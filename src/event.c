@@ -445,7 +445,7 @@ EventRegister(EventRef *refp, int type, int val, int prio,
     case EVENT_WRITE:
     case EVENT_EXCEPTION:
     case EVENT_TIMEOUT:
-      bad = (val < 0);
+      bad = (val < 0) || val >= FD_SETSIZE;
       break;
     case EVENT_SIGNAL:
       bad = (val <= 0 || val >= NSIG);
