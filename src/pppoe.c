@@ -282,6 +282,7 @@ PppoeOpen(PhysInfo p)
     }
 #endif
 
+got_node:
 	/* Connect our ng_ppp(4) node link hook to the ng_pppoe(4) node */
 	snprintf(path, sizeof(path), "%s%s", pe->path, pe->hook);
 	snprintf(linkHook, sizeof(linkHook),
@@ -291,7 +292,6 @@ PppoeOpen(PhysInfo p)
 	if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path, session_hook) < 0)
 		goto fail3;
 
-got_node:
 	/* Tell the PPPoE node to try to connect to a server */
 	memset(idata, 0, sizeof(idata));
 	snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
