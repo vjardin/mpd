@@ -36,9 +36,6 @@
 
   #define OPEN_STATE(s)		((s) > ST_CLOSING || ((s) & 1))
 
-  #define ST_MAX	10
-  #define ST_UNDEF	-1
-
   #define MODE_REQ	0
   #define MODE_NAK	1
   #define MODE_REJ	2
