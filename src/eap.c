@@ -21,6 +21,8 @@
   static void	EapIdentTimeout(void *ptr);
   static char	EapTypeSupported(u_char type);
   static void	EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len);
+  static void	EapRadiusSendMsg(void *ptr);
+  static void	EapRadiusSendMsgTimeout(void *ptr);
   static int	EapSetCommand(int ac, char *av[], void *arg);
 
   /* Set menu options */
@@ -113,6 +115,9 @@ EapStart(EapInfo eap, int which)
       eap->next_id = 1;
       eap->retry = AUTH_RETRIES;
 
+      TimerInit(&eap->reqTimer, "EapRadiusSendMsgTimer",
+	lnk->conf.retry_timeout * SECONDS, EapRadiusSendMsgTimeout, (void *) eap);
+
       TimerInit(&eap->identTimer, "EapTimer",
 	lnk->conf.retry_timeout * SECONDS, EapIdentTimeout, (void *) eap);
       TimerStart(&eap->identTimer);
@@ -147,6 +152,7 @@ EapStop(EapInfo eap)
  *
  * Send an EAP request to peer.
  */
+
 static void
 EapSendRequest(u_char type)
 {
@@ -216,6 +222,7 @@ EapSendRequest(u_char type)
  *
  * Send an EAP Nak to peer.
  */
+
 static void
 EapSendNak(u_char id, u_char type)
 {
@@ -386,17 +393,16 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 /*
  * EapRadiusProxy()
  *
- * Proxy EAP Requests to the RADIUS server
+ * Proxy EAP Requests from/to the RADIUS server
  */
+
 static void
 EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len)
 {
-  Mbuf		bp;
   int		data_len = len - 1, res;
   u_char	*data = NULL, *ppkt, type = 0;
   Auth		const a = &lnk->lcp.auth;
   EapInfo	const eap = &a->eap;
-  struct authdata	auth;
   struct fsmheader	lh;
   struct radius		*rad = &lnk->radius;
 
@@ -422,6 +428,8 @@ EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len)
     Log(LG_AUTH, ("[%s] EAP-RADIUS: Identity:%s", lnk->name, eap->identity));
   }
 
+  TimerStop(&eap->reqTimer);
+
   /* prepare packet */
   lh.code = code;
   lh.id = id;
@@ -433,28 +441,69 @@ EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len)
 
   res = RadiusEAPProxy(eap->identity, ppkt, len + sizeof(lh));
   Freee(MB_AUTH, ppkt);
-  if (res == RAD_NACK) {
-    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
-    return;
-  }
 
   /* send out the data packet */
   if (rad->eapmsg != NULL) {
-    bp = mballoc(MB_AUTH, rad->eapmsg_len);
-    memcpy(MBDATA(bp), rad->eapmsg, rad->eapmsg_len);
-    NgFuncWritePppFrame(lnk->bundleIndex, PROTO_EAP, bp);
-    if (lnk->radius.authentic) {
-      memset(&auth, 0, sizeof(auth));
-      strncpy(auth.authname, eap->identity, AUTH_MAX_AUTHNAME);
-      RadiusSetAuth(&auth);
-      AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
-    }
-    return;
+    eap->retry = AUTH_RETRIES;
+    TimerStart(&eap->reqTimer);
+    EapRadiusSendMsg(eap);
+    if (res != RAD_NACK)
+      return;
   }
 
-  AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+  if (res == RAD_NACK) {
+    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+  }
+
+  return;
 }
 
+/*
+ * EapRadiusSendMsg()
+ *
+ * Send an EAP Message to the peer
+ */
+
+static void
+EapRadiusSendMsg(void *ptr)
+{
+  EapInfo	const eap = (EapInfo) ptr;
+  Mbuf		bp;
+  struct radius		*rad = &lnk->radius;
+  struct authdata	auth;
+
+  Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  Type %s #%d len:%d ",
+    lnk->name, EapCode(rad->eapmsg[0]), EapType(rad->eapmsg[4]),
+    rad->eapmsg[1], htons(*((u_short *)&rad->eapmsg[2]))));
+
+  bp = mballoc(MB_AUTH, rad->eapmsg_len);
+  memcpy(MBDATA(bp), rad->eapmsg, rad->eapmsg_len);
+  NgFuncWritePppFrame(lnk->bundleIndex, PROTO_EAP, bp);
+  if (lnk->radius.authenticated) {
+    TimerStop(&eap->reqTimer);
+    strncpy(auth.authname, eap->identity, AUTH_MAX_AUTHNAME);
+    RadiusSetAuth(&auth);
+    AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
+  }
+}
+
+/*
+ * EapRadiusSendMsgTimeout()
+ *
+ * Timer expired for reply to our request
+ */
+
+static void
+EapRadiusSendMsgTimeout(void *ptr)
+{
+  EapInfo	const eap = (EapInfo) ptr;
+
+  TimerStop(&eap->reqTimer);
+  if (--eap->retry > 0) {
+    TimerStart(&eap->reqTimer);
+    EapRadiusSendMsg(eap);
+  }
+}
 
 /*
  * EapIdentTimeout()
@@ -473,6 +522,10 @@ EapIdentTimeout(void *ptr)
     EapSendIdentRequest(eap);
   }
 }
+
+/*
+ * EapStat()
+ */
 
 int
 EapStat(int ac, char *av[], void *arg)
@@ -534,6 +587,8 @@ EapType(u_char type)
       return("Generic Token Card");
     case EAP_TYPE_MSCHAP_V2:
       return("MS-CHAPv2");
+    case EAP_TYPE_EAP_TTLS:
+      return("TTLS");
     default:
       snprintf(buf, sizeof(buf), "type %d", type);
       return(buf);
