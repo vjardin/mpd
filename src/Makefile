@@ -10,7 +10,7 @@
 PROG?=			mpd
 PREFIX?=		/usr/local
 BINDIR?=		${PREFIX}/sbin
-VERSION=		3.13
+VERSION=		3.14
 NOMAN=
 
 # Default configuration directory
@@ -75,7 +75,6 @@ COPTS+=		-Wall \
 		-Wmissing-prototypes \
 		-Wnested-externs \
 		-Wpointer-arith \
-		-Wstrict-prototypes \
 		-Wwrite-strings
 
 # Standard sources
