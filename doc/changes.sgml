@@ -5,6 +5,17 @@
 
   <sect><heading>Change history<label id="changes"></heading>
 
+
+  <p>
+    Changes since version 3.14:
+    <itemize>
+    <item><tt>set iface enable tcpmssfix</tt> option added.
+    Submitted by Sergey Korolew 
+    <tt><htmlurl url='mailto:dsATbittu.org.ru' name='&lt;dsATbittu.org.ru&gt;'></tt>.
+    </item>
+    </itemize>
+  </p>
+
   <p>
     Changes since version 3.13:
     <itemize>

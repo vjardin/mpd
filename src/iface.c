@@ -5,6 +5,10 @@
  * Written by Archie Cobbs <archie@freebsd.org>
  * Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
  * See ``COPYRIGHT.whistle''
+ *
+ * TCP MSSFIX code copyright (c) 2000 Ruslan Ermilov
+ * TCP MSSFIX contributed by Sergey Korolew <dsATbittu.org.ru>
+ *
  */
 
 #include "ppp.h"
@@ -15,6 +19,7 @@
 #include "ngfunc.h"
 #include "netgraph.h"
 #include "radius.h"
+#include "util.h"
 #include <sys/sockio.h>
 #include <net/if.h>
 #include <net/if_types.h>
@@ -29,6 +34,12 @@
  */
 
   #define MAX_INTERFACES	32
+
+  /*
+   * We are in a liberal position about MSS
+   * (RFC 879, section 7).
+   */
+  #define MAXMSS(mtu) (mtu - sizeof(struct ip) - sizeof(struct tcphdr))
 
 /* Set menu options */
 
@@ -53,6 +64,7 @@
     IFACE_CONF_RADIUSIDLE,
     IFACE_CONF_RADIUSSESSION,
     IFACE_CONF_RADIUSROUTE,
+    IFACE_CONF_TCPMSSFIX,
   };
 
 /*
@@ -71,6 +83,8 @@
   static void	IfaceCachePkt(int proto, Mbuf pkt);
   static int	IfaceIsDemand(int proto, Mbuf pkt);
 
+  static void	IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss);
+  
 /*
  * GLOBAL VARIABLES
  */
@@ -108,6 +122,7 @@
     { 0,	IFACE_CONF_RADIUSIDLE,		"radius-idle"	},
     { 0,	IFACE_CONF_RADIUSSESSION,	"radius-session"},
     { 0,	IFACE_CONF_RADIUSROUTE,		"radius-route"	},
+    { 0,	IFACE_CONF_TCPMSSFIX,           "tcpmssfix"	},
     { 0,	0,				NULL		},
   };
 
@@ -125,6 +140,7 @@ IfaceInit(void)
   iface->max_mtu = NG_IFACE_MTU_DEFAULT;
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
+  Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
   Log(LG_BUND|LG_IFACE, ("[%s] using interface %s",
     bund->name, bund->iface.ifname));
 }
@@ -281,7 +297,10 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 #endif
 
   /* Turn on interface traffic flow */
-  NgFuncConfigBPF(bund, BPF_MODE_ON);
+  if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX))
+    NgFuncConfigBPF(bund, BPF_MODE_MSSFIX);
+  else 
+    NgFuncConfigBPF(bund, BPF_MODE_ON);
 
   /* Send any cached packets */
   IfaceCacheSend();
@@ -349,8 +368,29 @@ IfaceListenInput(int proto, Mbuf pkt)
   /* Maybe do dial-on-demand here */
   if (OPEN_STATE(fsm->state)) {
     if (bund->bm.n_up > 0) {
-      Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
-	bund->name, MBLEN(pkt)));
+      if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
+	struct ip	*iphdr;
+	int		plen, hlen;
+
+        if (proto == PROTO_IP) {
+	  iphdr = (struct ip *)MBDATA(pkt);
+	  hlen = iphdr->ip_hl << 2;
+	  plen = plength(pkt);
+	  /*
+	   * Check for MSS option only for TCP packets with zero fragment offsets
+	   * and correct total and header lengths.
+	   */
+	  if (iphdr->ip_p == IPPROTO_TCP
+	      && (ntohs(iphdr->ip_off) & IP_OFFMASK) == 0
+	      &&  ntohs(iphdr->ip_len) == plen
+	      && hlen <= plen
+	      && plen - hlen >= sizeof(struct tcphdr))
+	    IfaceCorrectMSS((struct tcphdr *)(MBDATA(pkt) + hlen), plen - hlen,
+	      MAXMSS(iface->mtu));
+        }
+      } else
+	Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
+	  bund->name, MBLEN(pkt)));
       NgFuncWriteFrame(bund->name, MPD_HOOK_DEMAND_TAP, pkt);
     } else {
       IfaceCachePkt(proto, pkt);
@@ -1143,4 +1183,50 @@ IfaceGetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
   return(-1);
 }
 
+static void
+IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss)
+{
+  int hlen, olen, optlen;
+  u_char *opt;
+  u_int16_t *mss;
+  int accumulate;
 
+  hlen = tc->th_off << 2;
+
+  /* Invalid header length or header without options. */
+  if (hlen <= sizeof(struct tcphdr) || hlen > pktlen)
+    return;
+
+  /* MSS option only allowed within SYN packets. */  
+  if (!(tc->th_flags & TH_SYN))
+    return;
+
+  for (olen = hlen - sizeof(struct tcphdr), opt = (u_char *)(tc + 1);
+	olen > 0; olen -= optlen, opt += optlen) {
+    if (*opt == TCPOPT_EOL)
+      break;
+    else if (*opt == TCPOPT_NOP)
+      optlen = 1;
+    else {
+      optlen = *(opt + 1);
+      if (optlen <= 0 || optlen > olen)
+	break;
+      if (*opt == TCPOPT_MAXSEG) {
+	if (optlen != TCPOLEN_MAXSEG)
+	  continue;
+	mss = (u_int16_t *)(opt + 2);
+	if (ntohs(*mss) > maxmss) {
+#if 0
+	  Log(LG_IFACE, ("[%s] MSS: %u -> %u",
+	    bund->name, ntohs(*mss), maxmss));
+#endif
+	  accumulate = *mss;
+	  *mss = htons(maxmss);
+	  accumulate -= *mss;
+	  ADJUST_CHECKSUM(accumulate, tc->th_sum);
+	}
+      }
+    }
+  }
+}
+                                                                                                 

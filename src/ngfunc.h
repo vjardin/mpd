@@ -30,6 +30,7 @@
   #define BPF_MODE_OFF		0	/* no BPF node traffic gets through */
   #define BPF_MODE_ON		1	/* normal BPF node traffic flow */
   #define BPF_MODE_DEMAND	2	/* block traffic; redirect demand */
+  #define BPF_MODE_MSSFIX	3	/* redirect TCP SYN packets */
 
 /*
  * FUNCTIONS

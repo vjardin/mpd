@@ -6,7 +6,10 @@
  * Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
  * See ``COPYRIGHT.whistle''
  *
+ * TCP MSSFIX contributed by Sergey Korolew <dsATbittu.org.ru>
+ *
  * Routines for doing netgraph stuff
+ *
  */
 
 #include "ppp.h"
@@ -108,6 +111,26 @@
   };
 
   #define NOMATCH_PROG_LEN	(sizeof(gNoMatchProg) / sizeof(*gNoMatchProg))
+
+  /* A BPF filter that matches TCP SYN packets */
+  static const struct bpf_insn gTCPSYNProg[] = {
+
+	/* Load IP protocol number and IP header length */
+/*00*/	BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 9),		/* A <- IP protocol */
+/*01*/	BPF_STMT(BPF_LDX+BPF_B+BPF_MSH, 0),		/* X <- header len */
+
+/*02*/	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, IPPROTO_TCP, 1, 0),	/* -> 04 */
+/*03*/	BPF_STMT(BPF_RET+BPF_K, 0),			/* reject packet */
+
+	/* Protocol is TCP -> accept if TH_SYN bit set */
+/*04*/	BPF_STMT(BPF_LD+BPF_B+BPF_IND, 13),		/* A <- TCP flags */
+/*05*/	BPF_STMT(BPF_ALU+BPF_AND+BPF_K, TH_SYN),	/* A <- A & TH_SYN */
+/*06*/	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 0, 1, 0),	/* compare to zero */
+/*07*/	BPF_STMT(BPF_RET+BPF_K, (u_int)-1),		/* accept packet */
+/*08*/	BPF_STMT(BPF_RET+BPF_K, 0),			/* reject packet */
+  };
+
+  #define TCPSYN_PROG_LEN	(sizeof(gTCPSYNProg) / sizeof(*gTCPSYNProg))
 
 /*
  * NgFuncInit()
@@ -463,6 +486,7 @@ NgFuncConfigBPF(Bund b, int mode)
       memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
       break;
     case BPF_MODE_ON:
+    case BPF_MODE_MSSFIX:
       snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_PPP);
       snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_PPP);
       break;
@@ -485,6 +509,37 @@ NgFuncConfigBPF(Bund b, int mode)
   /* Now, configure the hook on the PPP node side of the BPF node */
   memset(&u, 0, sizeof(u));
   snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_PPP);
+  hp->bpf_prog_len = TCPSYN_PROG_LEN;
+  memcpy(&hp->bpf_prog,
+    &gTCPSYNProg, TCPSYN_PROG_LEN * sizeof(*gTCPSYNProg));
+  switch (mode) {
+    case BPF_MODE_OFF:
+    case BPF_MODE_DEMAND:
+      memset(&hp->ifMatch, 0, sizeof(hp->ifMatch));
+      memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
+      break;
+    case BPF_MODE_ON:
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_IFACE);
+      snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_IFACE);
+      break;
+    case BPF_MODE_MSSFIX:
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_MPD);
+      snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_IFACE);
+      break;
+    default:
+      assert(0);
+  }
+
+  /* Set new program on the BPF_HOOK_IFACE hook */
+  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+      NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+    Log(LG_ERR, ("[%s] can't set %s node program: %s",
+      b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    DoExit(EX_ERRDEAD);
+  }
+  /* Configure the hook on the MPD node side of the BPF node */
+  memset(&u, 0, sizeof(u));
+  snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_MPD);
   hp->bpf_prog_len = NOMATCH_PROG_LEN;
   memcpy(&hp->bpf_prog,
     &gNoMatchProg, NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
@@ -495,6 +550,7 @@ NgFuncConfigBPF(Bund b, int mode)
       memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
       break;
     case BPF_MODE_ON:
+    case BPF_MODE_MSSFIX:
       snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_IFACE);
       snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_IFACE);
       break;

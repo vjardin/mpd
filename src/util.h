@@ -13,6 +13,28 @@
 #include "ipcp.h"
 #include "ip.h"
 
+  /*-
+   * The following macro is used to update an
+   * internet checksum.  "acc" is a 32-bit
+   * accumulation of all the changes to the
+   * checksum (adding in old 16-bit words and
+   * subtracting out new words), and "cksum"
+   * is the checksum value to be updated.
+   */
+  #define ADJUST_CHECKSUM(acc, cksum) { \
+    acc += cksum; \
+    if (acc < 0) { \
+      acc = -acc; \
+      acc = (acc >> 16) + (acc & 0xffff); \
+      acc += acc >> 16; \
+      cksum = (u_short) ~acc; \
+    } else { \
+      acc = (acc >> 16) + (acc & 0xffff); \
+      acc += acc >> 16; \
+      cksum = (u_short) acc; \
+    } \
+  }
+
 /*
  * FUNCTIONS
  */
