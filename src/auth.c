@@ -16,6 +16,9 @@
 #include "log.h"
 #include "ngfunc.h"
 #include "msoft.h"
+#include "pptp.h"
+
+#include <libutil.h>
 
 /*
  * DEFINITIONS
@@ -27,18 +30,18 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void	AuthTimeout(void *arg);
-  static int	AuthGetExternalPassword(AuthData auth);
-  static void	AuthAsync(void *arg);
-  static void	AuthAsyncFinish(void *arg, int was_canceled);
-  static int	AuthPreChecks(AuthData auth, int complain);
-  static void	AuthAccountTimeout(void *a);
-  static void	AuthAccount(void *arg);
-  static void	AuthAccountFinish(void *arg, int was_canceled);
-  static void	AuthSystem(AuthData auth);
-  static void	AuthOpie(AuthData auth);
-  static const char *AuthCode(int proto, u_char code);
-  static int	AuthSetCommand(int ac, char *av[], void *arg);
+  static void		AuthTimeout(void *arg);
+  static int		AuthGetExternalPassword(AuthData auth);
+  static void		AuthAsync(void *arg);
+  static void		AuthAsyncFinish(void *arg, int was_canceled);
+  static int		AuthPreChecks(AuthData auth, int complain);
+  static void		AuthAccountTimeout(void *a);
+  static void		AuthAccount(void *arg);
+  static void		AuthAccountFinish(void *arg, int was_canceled);
+  static void		AuthSystem(AuthData auth);
+  static void		AuthOpie(AuthData auth);
+  static const char	*AuthCode(int proto, u_char code);
+  static int		AuthSetCommand(int ac, char *av[], void *arg);
 
   /* Set menu options */
   enum {
@@ -96,6 +99,7 @@
     { 0,	AUTH_CONF_SYSTEM,	"system"	},
     { 0,	AUTH_CONF_OPIE,		"opie"		},
     { 0,	AUTH_CONF_MPPC_POL,	"mppc-pol"	},
+    { 0,	AUTH_CONF_UTMP_WTMP,	"utmp-wtmp"	},
     { 0,	0,			NULL		},
   };
 
@@ -233,7 +237,7 @@ AuthInput(int proto, Mbuf bp)
     return;
   }
 
-  auth = Malloc(MB_AUTH, sizeof(*auth));
+  auth = AuthDataNew();
   auth->proto = proto;
 
   bp = mbread(bp, (u_char *) &fsmh, sizeof(fsmh), NULL);
@@ -265,7 +269,6 @@ AuthInput(int proto, Mbuf bp)
 
   auth->id = fsmh.id;
   auth->code = fsmh.code;
-  auth->conf = bund->conf.auth;
   /* Status defaults to undefined */
   auth->status = AUTH_STATUS_UNDEF;
   
@@ -434,6 +437,32 @@ AuthCleanup(void)
   memset(&a->params, 0, sizeof(a->params));    
 }
 
+
+/* 
+ * AuthDataNew()
+ *
+ * Create a new auth-data object
+ */
+
+AuthData
+AuthDataNew(void) 
+{
+  AuthData	auth;
+
+  auth = Malloc(MB_AUTH, sizeof(*auth));
+  auth->conf = bund->conf.auth;
+  auth->lnk = LinkCopy();
+
+  lnk->phys->type->peeraddr(lnk->phys->info, auth->info.peeraddr, 
+    sizeof(auth->info.peeraddr));
+  strlcpy(auth->info.ifname, bund->iface.ifname, sizeof(auth->info.ifname));
+  strlcpy(auth->info.session_id, bund->session_id, sizeof(auth->info.session_id));
+
+  auth->info.n_links = bund->n_links;
+  auth->info.peer_addr = bund->ipcp.peer_addr;
+  return auth;
+}
+
 /*
  * AuthDataDestroy()
  *
@@ -518,9 +547,10 @@ AuthAccountStart(int type)
   AuthData	auth;
   u_long	updateInterval = 0;
   
-  if (!Enabled(&bund->conf.auth.options, AUTH_CONF_RADIUS_ACCT))
+  if (!Enabled(&bund->conf.auth.options, AUTH_CONF_RADIUS_ACCT)
+      && !Enabled(&bund->conf.auth.options, AUTH_CONF_UTMP_WTMP))
     return;
-    
+
   if (type == AUTH_ACCT_START) {
   
     /* maybe an outstanding thread is running */
@@ -538,12 +568,11 @@ AuthAccountStart(int type)
     }
   }
   
-  auth = Malloc(MB_AUTH, sizeof(*auth));
+  LinkUpdateStats();
+  auth = AuthDataNew();
   strncpy(auth->authname, lnk->peer_authname, sizeof(auth->authname));
   auth->acct_type = type;
 
-  LinkUpdateStats();
-  auth->lnk = LinkCopy();
   if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
     AuthAccountFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
@@ -584,12 +613,34 @@ AuthAccount(void *arg)
 {
   AuthData	const auth = (AuthData)arg;
   Link		const lnk = auth->lnk;	/* hide the global "lnk" */
-
+  
   Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", lnk->name));
   
   if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
     RadiusAccount(auth);
 
+  if (Enabled(&auth->conf.options, AUTH_CONF_UTMP_WTMP)) {
+    struct utmp	ut;
+
+    memset(&ut, 0, sizeof(ut));
+    strlcpy(ut.ut_line, auth->info.ifname, sizeof(ut.ut_line));
+
+    if (auth->acct_type == AUTH_ACCT_START) {
+
+      strlcpy(ut.ut_host, auth->info.peeraddr, sizeof(ut.ut_host));
+      strlcpy(ut.ut_name, auth->authname, sizeof(ut.ut_name));
+      time(&ut.ut_time);
+      login(&ut);
+      Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", lnk->name, ut.ut_line, 
+        ut.ut_name, ut.ut_host));
+    }
+  
+    if (auth->acct_type == AUTH_ACCT_STOP) {
+      Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", lnk->name, ut.ut_line));
+      logout(ut.ut_line);
+      logwtmp(ut.ut_line, "", "");
+    }
+  }
 }
 
 /*
@@ -717,6 +768,9 @@ AuthAsyncStart(AuthData auth)
     return;
   }
 
+  /* refresh the copy of the link */
+  if (auth->lnk != NULL)
+    Freee(MB_AUTH, auth->lnk);
   auth->lnk = LinkCopy();
   if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
     AuthAsyncFinish, auth) == -1) {
@@ -783,7 +837,7 @@ AuthAsync(void *arg)
     Log(LG_AUTH, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
     Log(LG_AUTH, (" Peer name: \"%s\"", auth->authname));
     if (AuthGetData(auth, 1) < 0) {
-      Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->authname));
+      Log(LG_AUTH, (" User \"%s\" not found in secret file", auth->authname));
       auth->status = AUTH_STATUS_FAIL;
       return;
     }
@@ -860,27 +914,27 @@ AuthSystem(AuthData auth)
   
   /* protect getpwnam and errno 
    * NOTE: getpwnam_r doesen't exists on FreeBSD < 5.1 */
-  pthread_mutex_lock(&gGiantMutex);
+  GIANT_MUTEX_LOCK();
   errno = 0;
   pw = getpwnam(auth->authname);
   if (!pw) {
     if (errno)
       Log(LG_ERR, (" Error retrieving passwd %s", strerror(errno)));
     else
-      Log(LG_AUTH, (" User %s not found in the systems database", auth->authname));
+      Log(LG_AUTH, (" User \"%s\" not found in the systems database", auth->authname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
-    pthread_mutex_unlock(&gGiantMutex);
+    GIANT_MUTEX_UNLOCK();
     return;
   }
-  pthread_mutex_unlock(&gGiantMutex);
+  GIANT_MUTEX_UNLOCK();
   
   Log(LG_AUTH, (" Found user %s Uid:%d Gid:%d Fmt:%*.*s", pw->pw_name, 
     pw->pw_uid, pw->pw_gid, 3, 3, pw->pw_passwd));
 
   if (auth->proto == PROTO_PAP) {
     /* protect non-ts crypt() */
-    pthread_mutex_lock(&gGiantMutex);
+    GIANT_MUTEX_LOCK();
     if (strcmp(crypt(pap->peer_pass, pw->pw_passwd), pw->pw_passwd) == 0) {
       auth->status = AUTH_STATUS_SUCCESS;
       a->authentic = AUTH_CONF_OPIE;      
@@ -888,7 +942,7 @@ AuthSystem(AuthData auth)
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     }
-    pthread_mutex_unlock(&gGiantMutex);    
+    GIANT_MUTEX_UNLOCK();
     return;
   } else if (auth->proto == PROTO_CHAP 
       && (chap->recv_alg == CHAP_ALG_MSOFT || chap->recv_alg == CHAP_ALG_MSOFTv2)) {
@@ -943,7 +997,7 @@ AuthOpie(AuthData auth)
       break;
   
     case 1:
-      Log(LG_ERR, (" User not found"));
+      Log(LG_ERR, (" User \"%s\" not found in opiekeys", auth->authname));
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
       return;

@@ -18,6 +18,7 @@
 
 #include <pwd.h>
 #include <opie.h>
+#include <utmp.h>
   
 /*
  * DEFINITIONS
@@ -72,6 +73,7 @@
     AUTH_CONF_OPIE,
     AUTH_CONF_MAX_LOGINS,
     AUTH_CONF_MPPC_POL,
+    AUTH_CONF_UTMP_WTMP,
   };  
   
   /* State of authorization process during authorization phase,
@@ -155,7 +157,7 @@
     char		*reply_message;	/* Text wich may displayed to the user */
     char		*mschap_error;	/* MSCHAP Error Message */
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */
-    void		(*finish)(struct authdata *auth);
+    void		(*finish)(struct authdata *auth); /* Finish handler */
     int			acct_type;	/* Accounting type, Start, Stop, Update */
     struct {
       struct rad_handle	*handle;	/* the RADIUS handle */
@@ -169,6 +171,13 @@
       struct in_addr	ip;		/* IP Address */
       struct in_addr	mask;		/* IP Netmask */
     } params;
+    struct {		/* informational (read-only) data needed for e.g. accouting */
+      char		peeraddr[253];	/* hr representation of the callers address */
+      struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
+      short		n_links;	/* number of links in the bundle */
+      char		session_id[AUTH_MAX_SESSIONID];	/* bundle's session-id */
+      char		ifname[IFNAMSIZ + 1];	/* name of the interface, i.e. ngX */
+    } info;
   };
   typedef struct authdata	*AuthData;
   
@@ -183,19 +192,21 @@
  * FUNCTIONS
  */
 
-  extern void	AuthInit(void);
-  extern void	AuthStart(void);
-  extern void	AuthStop(void);
-  extern void	AuthInput(int proto, Mbuf bp);
-  extern void	AuthOutput(int proto, u_int code, u_int id,
-	const u_char *ptr, int len, int add_len, u_char eap_type);
-  extern void	AuthFinish(int which, int ok, AuthData auth);
-  extern void	AuthCleanup(void);
-  extern int	AuthStat(int ac, char *av[], void *arg);
-  extern void	AuthAccountStart(int type);
-  extern void	AuthDataDestroy(AuthData auth);
-  extern int	AuthGetData(AuthData auth, int complain);
-  extern void	AuthAsyncStart(AuthData auth);
+  extern void		AuthInit(void);
+  extern void		AuthStart(void);
+  extern void		AuthStop(void);
+  extern void		AuthInput(int proto, Mbuf bp);
+  extern void		AuthOutput(int proto, u_int code, u_int id,
+			  const u_char *ptr, int len, int add_len, 
+			  u_char eap_type);
+  extern void		AuthFinish(int which, int ok, AuthData auth);
+  extern void		AuthCleanup(void);
+  extern int		AuthStat(int ac, char *av[], void *arg);
+  extern void		AuthAccountStart(int type);
+  extern AuthData	AuthDataNew(void);
+  extern void		AuthDataDestroy(AuthData auth);
+  extern int		AuthGetData(AuthData auth, int complain);
+  extern void		AuthAsyncStart(AuthData auth);
   extern const char	*AuthFailMsg(AuthData auth, int alg);
   extern const char	*AuthStatusText(int status);
   extern const char	*AuthMPPEPolicyname(int policy);
