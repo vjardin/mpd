@@ -331,6 +331,9 @@ DoExit(int code)
 static void
 SendSignal(sig)
 {
+  if (sig == SIGSEGV || sig == SIGBUS) {
+    FatalSignal(sig);
+  }
   write(gSignalPipe[1], &sig, 1);
 }
 
@@ -356,7 +359,6 @@ SignalHandler(int type, void *arg)
       break;
 
     default:
-     printf("Fatal\n");
       FatalSignal(sig);
   }
 
