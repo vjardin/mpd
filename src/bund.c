@@ -544,10 +544,6 @@ BundReasses(int add)
   Log(LG_BUND, ("[%s] up: %d link%s, total bandwidth %d bps",
     bund->name, bm->n_up, bm->n_up == 1 ? "" : "s", bm->total_bw));
 
-  /* Do any custom stuff */
-#ifdef IA_CUSTOM
-  CustomLinkStateChange(add);
-#endif
 }
 
 /*

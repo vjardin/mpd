@@ -15,10 +15,6 @@
 #include "mp.h"
 #include "iface.h"
 #include "command.h"
-#ifdef IA_CUSTOM
-#include "network.h"
-#include "sysadmin.h"
-#endif
 #include "console.h"
 #include "ngfunc.h"
 

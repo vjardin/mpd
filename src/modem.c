@@ -14,9 +14,6 @@
 #include "modem.h"
 #include "ngfunc.h"
 #include "lcp.h"
-#ifdef IA_CUSTOM
-#include "custom.h"
-#endif
 
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_message.h>

@@ -299,11 +299,6 @@ IfaceUp(struct in_addr self, struct in_addr peer)
       IfaceIpIfaceReady(1);
   }
 
-  /* Customization */
-#ifdef IA_CUSTOM
-  CustomIpIfaceUp(iface->self_addr, iface->peer_addr);
-#endif
-
   /* Turn on interface traffic flow */
   if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
     Log(LG_ERR, ("[%s] enabling TCPMSSFIX", bund->name));
@@ -328,11 +323,6 @@ IfaceDown(void)
   IfaceState	const iface = &bund->iface;
 
   Log(LG_IFACE, ("[%s] IFACE: Down event", bund->name));
-
-  /* Customization */
-#ifdef IA_CUSTOM
-  CustomIpIfaceDown();
-#endif
 
   /* If we're not open, it doesn't matter to us anyway */
   TimerStop(&iface->idleTimer);
@@ -856,9 +846,6 @@ static void
 IfaceIdleTimerExpired(void *arg)
 {
   IfaceState	const iface = &bund->iface;
-#ifdef IA_CUSTOM
-  int		delay;
-#endif
 
   /* We already did the final short delay, really shut down now */
   if (arg != NULL) {
@@ -871,14 +858,6 @@ IfaceIdleTimerExpired(void *arg)
   Log(LG_BUND, ("[%s] idle timeout after %d seconds",
     bund->name, iface->idleTimer.load * IFACE_IDLE_SPLIT / SECONDS));
 
-  /* Get delay and do it */
-#ifdef IA_CUSTOM
-  if ((delay = CustomIdleTimeoutAction()) > 0) {
-    TimerInit(&iface->idleTimer, "IfaceIdle",
-      delay * SECONDS, IfaceIdleTimerExpired, (void *)1);
-    TimerStart(&iface->idleTimer);
-  } else
-#endif
   IfaceIdleTimerExpired((void *)1);
 }
 

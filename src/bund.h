@@ -111,10 +111,6 @@
     u_short		bm_Md;
     char		script[BUND_MAX_SCRIPT];/* Link change script */
     struct optinfo	options;		/* Configured options */
-#ifdef IA_CUSTOM
-    struct optinfo	custopt;		/* Custom options */
-    char		netname[8];		/* Custom network name */
-#endif
     struct authconf	auth;			/* Auth backends, RADIUS, etc. */
   };
   

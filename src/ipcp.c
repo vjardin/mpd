@@ -276,19 +276,6 @@ IpcpConfigure(Fsm fp)
   else
     ipcp->peer_allow = ipcp->conf.peer_allow;
 
-  /* Dynamically get IP address? */
-#ifdef IA_CUSTOM
-  if (ipcp->conf.peer_allow.ipaddr.s_addr == 0) {
-    ipcp->conf.peer_allow.ipaddr = CustomGetPeerIp();
-    ipcp->conf.peer_allow.width = 32;
-    if (ipcp->conf.peer_allow.ipaddr.s_addr == 0)
-      Log(LG_IPCP, ("[%s] %s",
-	bund->name, "no IP address available for peer!"));
-    else
-      ipcp->ipDynamic = TRUE;
-  }
-#endif
-
   /* Initially request addresses as specified by config */
   ipcp->want_addr = ipcp->self_allow.ipaddr;
   ipcp->peer_addr = ipcp->peer_allow.ipaddr;
@@ -319,15 +306,6 @@ IpcpConfigure(Fsm fp)
 static void
 IpcpUnConfigure(Fsm fp)
 {
-#ifdef IA_CUSTOM
-  IpcpState	const ipcp = &bund->ipcp;
-
-  if (ipcp->ipDynamic) {
-    CustomReleasePeerIp(ipcp->conf.peer_allow.ipaddr);
-    ipcp->conf.peer_allow.ipaddr.s_addr = 0;
-    ipcp->ipDynamic = FALSE;
-  }
-#endif
 }
 
 /*
@@ -627,16 +605,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	      {
-		int	bogus = 0;
-
-#ifdef IA_CUSTOM
-		if (gIpcpExcludeRange.ipaddr.s_addr != 0
-		    && IpAddrInRange(&gIpcpExcludeRange, ip)) {
-		  Log(LG_IPCP, ("   %s is on my LAN network!", inet_ntoa(ip)));
-		  bogus = 1;
-		}
-#endif
-		if (IpAddrInRange(&ipcp->self_allow, ip) && !bogus) {
+		if (IpAddrInRange(&ipcp->self_allow, ip)) {
 		  Log(LG_IPCP, ("   %s is OK", inet_ntoa(ip)));
 		  ipcp->want_addr = ip;
 		} else if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
@@ -800,13 +769,6 @@ IpcpSetCommand(int ac, char *av[], void *arg)
 	ipcp->conf.self_allow = self_new_allow;
 	ipcp->conf.peer_allow = peer_new_allow;
 
-#ifndef IA_CUSTOM
-	/* Can't accept peer having zero address */
-	if (ipcp->conf.peer_allow.ipaddr.s_addr == 0) {
-	  Log(LG_ERR, ("[%s] IPCP: peer address cannot be zero", bund->name));
-	  return(0);
-	}
-#endif
       }
       break;
 

@@ -579,11 +579,7 @@ AuthGetData(AuthData auth, int complain)
   }
   fclose(fp);
 
-#ifdef IA_CUSTOM
-  return(CustomAuthData(auth, whyFail));
-#else
   return(-1);		/* Invalid */
-#endif
 }
 
 /*
