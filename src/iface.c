@@ -346,6 +346,9 @@ IfaceIpIfaceUp(int ready)
   /* Sanity */
   assert(!iface->ip_up);
 
+  /* For good measure */
+  BundUpdateParams();
+
   /* Set addresses and bring interface up */
   snprintf(hisaddr, sizeof(hisaddr), "%s", inet_ntoa(iface->peer_addr));
   ExecCmd(LG_IFACE, "%s %s %s %s netmask 0xffffffff %slink0",
