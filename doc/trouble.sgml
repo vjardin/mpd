@@ -113,6 +113,23 @@ The maximum length of a netgraph node name is 15 characters.
 The names are derived from the bundle names assigned in
 <tt>mpd.conf</tt>. So try shortening your bundle names.
 
+<tag><bf>
+I'm using mpd as PPTP server for Windows XP clients, when accessing bigger
+websites, or listing larger ftp directories, then the connection
+seems to hang.
+</bf></tag>
+
+Windows XP insists on a very low MTU (usualy 1396 Bytes), this needs
+fragmentation, if bigger packets should be transmited over the link.
+Fragmentation is negotiated at ICMP level, if there is a bad router
+somewhere in the network, who drops such packets, then the connection
+seems to hang.
+The first thing what you can try is reducing mpd's MTU value, by
+setting: <tt>set link mtu 1300</tt> and <tt>set bundle disable multilink</tt>,
+this should help in most cases.
+For TCP connections it's possible enabling the TCP-MSS-Fix:
+<tt>set iface enable tcpmssfix</tt> (available since mpd-3.15).
+
 </descrip>
 
 </p>
