@@ -19,13 +19,18 @@
 <descrip>
 
 <tag><tt>
-set ng hook <em>nodepath</em> <em>hook</em>
+set ng node <em>nodepath</em>
 </tt></tag>
 
-This command configures which Netgraph node, and which hook on that
+<tag><tt>
+set ng hook <em>hook</em>
+</tt></tag>
+
+These commands configure which Netgraph node, and which hook on that
 node, mpd is supposed to connect to. The node is found via the
 absolute Negraph address <tt><em>nodepath</em></tt> and must have
-a free hook named <tt><em>hook</em></tt>. This command is required.
+a free hook named <tt><em>hook</em></tt>. Both of these commands
+are required.
 
 The hook should be connectable directly to a link hook of the
 <tt>ng_ppp(3)</tt> netgraph node type.  That is, it should be
