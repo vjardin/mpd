@@ -10,6 +10,10 @@
 #ifndef _PPP_H_
 #define _PPP_H_
 
+/* Increase this if you have zillions of bundles */
+
+#define FD_SETSIZE	2048
+
 /* Keep source files simple */
 
 #include <sys/types.h>
