@@ -6,6 +6,15 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.5:
+    <itemize>
+    <item>Fix MS-CHAPv2 acknowledge reply to workaround Win9x bug when
+	trying to negotiate MPPE encryption.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.4:
     <itemize>
     <item>Fix an install problem on FreeBSD-current.
