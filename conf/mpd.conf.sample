@@ -306,6 +306,8 @@ radius:
 	set radius server localhost testing123 1812 1813
 # send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server.
 	set radius me 1.1.1.1
+# send accounting updates every 5 minutes
+	set radius acct-update 300
 # let the RADIUS server assign the IP
 	set ipcp enable radius-ip
 # enable RADIUS, and fallback to mpd.secret, if RADIUS auth failed
