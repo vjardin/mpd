@@ -4,3 +4,4 @@ etc/mpd/mpd.secret.sample
 etc/mpd/mpd.script.sample
 sbin/mpd
 share/doc/mpd/README
+share/doc/mpd/mpd.ps

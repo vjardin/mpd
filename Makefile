@@ -23,7 +23,7 @@ ${PORTBALL}:	.dist-done
 	cp dist/Makefile.doc ${DISTNAME}/doc/Makefile
 	cp src/COPYRIGHT* src/Makefile src/[a-z]* ${DISTNAME}/src
 	sed 's/@VERSION@/${VERSION}/g' < src/Makefile > ${DISTNAME}/src/Makefile
-	cp doc/mpd*.html ${DISTNAME}/doc
+	cp doc/mpd*.html doc/mpd.ps ${DISTNAME}/doc
 	cp doc/mpd.8 ${DISTNAME}/doc/mpd.8.in
 	cp conf/[a-z]* ${DISTNAME}/conf
 	sed 's/@VERSION@/${VERSION}/g' < dist/README > ${DISTNAME}/README
