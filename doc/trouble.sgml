@@ -101,6 +101,18 @@ This is because mpd is trying to ``redial,'' which of course is not
 appropriate for dial-in links. Use <tt>set link max-redial -1</tt>
 to disable the redial function.
 
+<tag><bf>
+I've configured lots and lots of bundles. But after creating 100
+of them (or some other power of 10) mpd starts getting ``Address
+already in use'' errors.
+</bf></tag>
+
+This is because the names assigned to the netgraph nodes are too
+long, being truncated, and the conflicting with existing names.
+The maximum length of a netgraph node name is 15 characters.
+The names are derived from the bundle names assigned in
+<tt>mpd.conf</tt>. So try shortening your bundle names.
+
 </descrip>
 
 </p>
