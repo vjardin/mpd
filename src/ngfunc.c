@@ -977,10 +977,7 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
 				  + sizeof(struct ng_ppp_link_stat)];
       struct ng_mesg		reply;
   }				u;
-  int				cmd, ret = 0;
-
-  /* Suspend the read event for avoiding race conditions */
-  EventUnRegister(&bund->ctrlEvent);
+  int				cmd;
 
   /* Get stats */
   cmd = clear ? NGM_PPP_GETCLR_LINK_STATS : NGM_PPP_GET_LINK_STATS;
@@ -988,17 +985,11 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
        &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
       bund->name, linkNum, strerror(errno)));
-    ret = -1;
-    goto done;
+    return -1;
   }
   if (statp != NULL)
     memcpy(statp, u.reply.data, sizeof(*statp));
-    
-done:
-  EventRegister(&bund->ctrlEvent, EVENT_READ,
-    bund->csock, EVENT_RECURRING, NgFuncCtrlEvent, bund);
-
-  return(ret);
+  return(0);
 }
 
 /*
