@@ -653,7 +653,8 @@ IfaceIpIfaceUp(int ready)
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
     ExecCmd(LG_IFACE, "%s %s inet %s %s %s %s %s",
       iface->up_script, iface->ifname, inet_ntoa(iface->self_addr),
-      peerbuf, bund->peer_authname, ns1buf, ns2buf);
+      peerbuf, *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname, 
+      ns1buf, ns2buf);
   }
 
   /* Done */
@@ -698,7 +699,8 @@ IfaceIpIfaceDown(void)
   /* Call "down" script */
   if (*iface->down_script) {
     ExecCmd(LG_IFACE, "%s %s inet %s",
-      iface->down_script, iface->ifname, bund->peer_authname);
+      iface->down_script, iface->ifname, 
+      *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname);
   }
 
   /* Remove rule ACLs */
