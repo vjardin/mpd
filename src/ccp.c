@@ -578,12 +578,14 @@ CcpSubtractBloat(int size)
   CcpState	const ccp = &bund->ccp;
 
   /* Account for CCP's protocol number overhead */
-  size -= CCP_OVERHEAD;
+  if (OPEN_STATE(ccp->fsm.state))
+    size -= CCP_OVERHEAD;
 
   /* Account for transmit compression overhead */
-  if (OPEN_STATE(ccp->fsm.state) && ccp->xmit && ccp->xmit->SubtractBloat) {
+  if (OPEN_STATE(ccp->fsm.state) && ccp->xmit && ccp->xmit->SubtractBloat)
     size = (*ccp->xmit->SubtractBloat)(size);
-  }
+
+  /* Done */
   return(size);
 }
 
