@@ -1,4 +1,4 @@
-# $FreeBSD: ports/net/mpd-netgraph/files/mpd.mtree,v 1.1 1999/12/09 23:03:10 archie Exp $
+# $FreeBSD: ports/net/mpd/files/mpd.mtree,v 1.2 1999/08/30 14:23:16 peter Exp $
 
 /set type=dir uname=root gname=wheel mode=0755
 .
