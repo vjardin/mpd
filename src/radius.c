@@ -360,8 +360,8 @@ int RadiusStart(short request_type)
    */
   if (Enabled(&bund->radiusconf.options, RADIUS_CONF_MESSAGE_AUTHENTIC)
       && request_type != RAD_ACCOUNTING_REQUEST)
-    if (rad_put_int(rad->radh, RAD_MESSAGE_AUTHENTIC, 0) == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_MESSAGE_AUTHENTIC) failed %s", lnk->name,
+    if (rad_put_message_authentic(rad->radh) == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_message_authentic failed %s", lnk->name,
         function, rad_strerror(rad->radh)));
       RadiusClose();
       return (RAD_NACK);
@@ -1182,7 +1182,7 @@ RadiusAccount(short acct_type)
 
   /* if Radius-Auth wasn't used, then copy in authname */
   if (!strlen(rad->authname))
-    strncpy(rad->authname, bund->peer_authname, AUTH_MAX_AUTHNAME);  
+    strncpy(rad->authname, lnk->peer_authname, AUTH_MAX_AUTHNAME);  
   
   Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s", lnk->name, function, rad->authname));
 
