@@ -12,7 +12,7 @@
 
 /* Increase this if you have zillions of bundles */
 
-#define FD_SETSIZE	2048
+#define FD_SETSIZE	8192
 
 /* Keep source files simple */
 
