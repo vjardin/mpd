@@ -21,7 +21,11 @@
 #include "mbuf.h"
 #include "phys.h"
 #include "vars.h"
+#ifdef __DragonFly__
+#include <netgraph/ppp/ng_ppp.h>
+#else
 #include <netgraph/ng_ppp.h>
+#endif
 
 /*
  * DEFINITIONS

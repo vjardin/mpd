@@ -15,7 +15,11 @@
 #include "comp.h"
 
 #include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/mppc/ng_mppc.h>
+#else
 #include <netgraph/ng_mppc.h>
+#endif
 
 /* 56 bit MPPE support was only added in FreeBSD 4.5 */
 #ifndef MPPE_56

@@ -37,7 +37,11 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <machine/endian.h>
+#ifdef __DragonFly__
+#include <net/ppp_layer/ppp_defs.h>
+#else
 #include <net/ppp_defs.h>
+#endif
 #include <netinet/in.h>
 #include <arpa/inet.h>
 

@@ -25,8 +25,13 @@
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
 #include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/iface/ng_iface.h>
+#include <netgraph/bpf/ng_bpf.h>
+#else
 #include <netgraph/ng_iface.h>
 #include <netgraph/ng_bpf.h>
+#endif
 
 /*
  * DEFINITIONS

@@ -16,8 +16,13 @@
 #include <net/if_dl.h>
 #include <net/bpf.h>
 #include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/ppp/ng_ppp.h>
+#include <netgraph/bpf/ng_bpf.h>
+#else
 #include <netgraph/ng_ppp.h>
 #include <netgraph/ng_bpf.h>
+#endif
 #include "mbuf.h"
 #include "timer.h"
 #include "vars.h"

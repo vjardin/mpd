@@ -14,10 +14,17 @@
 #include "pptp.h"
 #include "pptp_ctrl.h"
 
+#ifdef __DragonFly__
+#include <netgraph/socket/ng_socket.h>
+#include <netgraph/ng_message.h>
+#include <netgraph/ksocket/ng_ksocket.h>
+#include <netgraph/pptpgre/ng_pptpgre.h>
+#else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_ksocket.h>
 #include <netgraph/ng_pptpgre.h>
+#endif
 #include <netgraph.h>
 
 /*

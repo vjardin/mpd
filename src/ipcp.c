@@ -23,7 +23,11 @@
 #include <netgraph.h>
 #include <sys/mbuf.h>
 #include <net/slcompress.h>
+#ifdef __DragonFly__
+#include <netgraph/vjc/ng_vjc.h>
+#else
 #include <netgraph/ng_vjc.h>
+#endif
 
 /*
  * DEFINITIONS

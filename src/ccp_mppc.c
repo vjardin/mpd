@@ -15,7 +15,11 @@
 #include <md4.h>
 
 #include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/ppp/ng_ppp.h>
+#else
 #include <netgraph/ng_ppp.h>
+#endif
 #include <netgraph.h>
 
 /*

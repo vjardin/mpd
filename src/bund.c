@@ -20,7 +20,11 @@
 #include "custom.h"
 #include "ngfunc.h"
 
+#ifdef __DragonFly__
+#include <netgraph/iface/ng_iface.h>
+#else
 #include <netgraph/ng_iface.h>
+#endif
 
 /*
  * DEFINITIONS

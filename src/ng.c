@@ -12,7 +12,11 @@
 #include "phys.h"
 #include "ngfunc.h"
 
+#ifdef __DragonFly__
+#include <netgraph/socket/ng_socket.h>
+#else
 #include <netgraph/ng_socket.h>
+#endif
 #include <netgraph/ng_message.h>
 #include <netgraph.h>
 
