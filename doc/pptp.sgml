@@ -119,6 +119,16 @@ Default is on.
 Always include ACK even if already sent. This can improve throughput
 on unreliable links. Default is off.
 
+<tag><tt>windowing</tt></tag>
+
+Enables the windowing mechanism specified by the protocol. Disabling 
+this will cause Mpd to violate the protocol, possibly confusing other 
+PPTP peers, but often results in better performance. The windowing 
+mechanism is a design error in the PPTP protocol; L2TP, the successor 
+to PPTP, removes it. You need a recent version of FreeBSD 
+(NGM_PPTPGRE_COOKIE &gt;= 1082548365) in order to get this feature.
+Default is on.
+
 </descrip>
 
   <sect1><heading>PPTP setup hints</heading>
@@ -189,7 +199,7 @@ Note that if you are connecting to an NT server, your authentication
 name must include the NT domain name. For example:
 
 <tscreen><verb>
-    set bundle authname "DOMAIN\\username"
+    set auth authname "DOMAIN\\username"
 </verb></tscreen>
 
 For updating Windows 95 and 98 clients so they work properly, see
