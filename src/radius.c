@@ -178,24 +178,27 @@ RadiusAccount(AuthData auth)
     }
   }
 
-  /* XXX ToDo access to global bund Race Condition! */
-  if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->authname) != 0 ||
-      rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_ADDRESS, bund->ipcp.peer_addr)) { /*!= 0 ||
-      rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ac->mask) != 0) {*/
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: put (USER_NAME, FRAMED_IP_ADDRESS): %s", 
+  if (rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_ADDRESS, auth->info.peer_addr)) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_addr (RAD_FRAMED_IP_ADDRESS): %s", 
+      lnk->name, function, rad_strerror(auth->radius.handle)));
+    return;
+  }
+
+  if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->authname) != 0) {
+      /*rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ac->mask) != 0) {*/
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string (RAD_USER_NAME): %s", 
       lnk->name, function, rad_strerror(auth->radius.handle)));
     return;
   }
 
   if (rad_put_string(auth->radius.handle, RAD_ACCT_SESSION_ID, lnk->session_id) != 0 ||
-      rad_put_string(auth->radius.handle, RAD_ACCT_MULTI_SESSION_ID, bund->session_id) != 0) {
+      rad_put_string(auth->radius.handle, RAD_ACCT_MULTI_SESSION_ID, auth->info.session_id) != 0) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: put (SESSION_ID, MULTI_SESSION_ID): %s", 
       lnk->name, function, rad_strerror(auth->radius.handle)));
     return;
   }
 
-  /* XXX ToDo access to global bund Race Condition! */
-  if (rad_put_int(auth->radius.handle, RAD_ACCT_LINK_COUNT, bund->n_links) != 0) {
+  if (rad_put_int(auth->radius.handle, RAD_ACCT_LINK_COUNT, auth->info.n_links) != 0) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_LINK_COUNT) failed: %s", 
       lnk->name, function, rad_strerror(auth->radius.handle)));
     return;
@@ -249,12 +252,12 @@ RadiusAccount(AuthData auth)
 	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_TERMINATE_CAUSE) failed: %s",
 	  lnk->name, function, rad_strerror(auth->radius.handle)));
 	return;
-      } else {
-	if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_UPDATE)) {
-	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(STATUS_TYPE): %s", 
-	    lnk->name, function, rad_strerror(auth->radius.handle)));
-	  return;
-        }
+      } 
+    } else {
+      if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_UPDATE)) {
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(STATUS_TYPE): %s", 
+	  lnk->name, function, rad_strerror(auth->radius.handle)));
+	return;
       }
     }
 
@@ -389,10 +392,10 @@ static int
 RadiusSetCommand(int ac, char *av[], void *arg) 
 {
   static char function[] = "RadiusSetCommand";
-  RadConf const conf = &bund->conf.auth.radius;
-  RadServe_Conf server;
-  RadServe_Conf t_server;
-  int val, count;
+  RadConf	const conf = &bund->conf.auth.radius;
+  RadServe_Conf	server;
+  RadServe_Conf	t_server;
+  int		val, count;
 
   if (ac == 0)
       return(-1);
@@ -559,15 +562,11 @@ GetLinkID(void) {
 static int
 RadiusStart(AuthData auth, short request_type)
 {
-  static char		function[] = "RadiusStart";
-  Link			lnk = auth->lnk;	/* hide the global "lnk" */
-  Auth			const a = &lnk->lcp.auth;  
-  RadConf 		const conf = &bund->conf.auth.radius;  
-  char			host[MAXHOSTNAMELEN];
-  struct in_addr	*peer_ip;
-  char			*peeripname;
-  u_char		*peer_mac;
-  char			peermacname[18];
+  static char	function[] = "RadiusStart";
+  Link		lnk = auth->lnk;	/* hide the global "lnk" */
+  Auth		const a = &lnk->lcp.auth;  
+  RadConf 	const conf = &auth->conf.radius;  
+  char		host[MAXHOSTNAMELEN];
 
   if (RadiusInit(auth, request_type) == RAD_NACK) 
     return RAD_NACK;
@@ -646,32 +645,13 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 
-  peer_ip = PptpGetPeerIp();
-  if (peer_ip != NULL && peer_ip->s_addr != 0) {
-    peeripname = inet_ntoa(*peer_ip);
-    if (peeripname != NULL) {
-      if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, peeripname) == -1) {
-	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", lnk->name,
-	  function, rad_strerror(auth->radius.handle)));
-	return (RAD_NACK);
-      }  
-    } 
-  }
-
-  peer_mac = PppoeGetPeerAddr();
-  if ((peer_mac != NULL) && 
-      ((peer_mac[0] != 0) || (peer_mac[1] != 0) || (peer_mac[2] != 0) || 
-       (peer_mac[3] !=0 ) || (peer_mac[4] != 0) || (peer_mac[5] != 0))
-    ) {
-    snprintf(peermacname, sizeof(peermacname), "%02x%02x%02x%02x%02x%02x",
-      peer_mac[0], peer_mac[1], peer_mac[2], peer_mac[3], peer_mac[4], peer_mac[5]);
-    if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, peermacname) == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", lnk->name,
-	function, rad_strerror(auth->radius.handle)));
+  if (strlen(auth->info.peeraddr))
+    if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, auth->info.peeraddr) == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", 
+	lnk->name, function, rad_strerror(auth->radius.handle)));
       return (RAD_NACK);
-    }
-  }
-  
+    }  
+ 
   return RAD_ACK;
 }
 
