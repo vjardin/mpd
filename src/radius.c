@@ -394,14 +394,16 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
     case CHAP_ALG_MSOFT:
       Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) peer name: %s", lnk->name, function, name));
        if (passlen != 49) {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) unrecognised key length %d/%d", lnk->name, function, passlen, 49));
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) unrecognised key length %d/%d",
+	  lnk->name, function, passlen, 49));
 	RadiusClose();        
         return RAD_NACK;
       }
 
-      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE, challenge, challenge_size) == -1)  {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s", lnk->name,
-          function, rad_strerror(rad->radh)));
+      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE,
+	  challenge, challenge_size) == -1)  {
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s",
+	  lnk->name, function, rad_strerror(rad->radh)));
 	RadiusClose();          
         return (RAD_NACK);
       }
@@ -412,9 +414,10 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
       memcpy(rad_mschapval.lm_response, mschapval->lmHash, 24);
       memcpy(rad_mschapval.nt_response, mschapval->ntHash, 24);
 
-      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_RESPONSE, &rad_mschapval, sizeof rad_mschapval) == -1)  {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_RESPONSE) failed %s", lnk->name,
-          function, rad_strerror(rad->radh)));
+      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_RESPONSE,
+	&rad_mschapval, sizeof rad_mschapval) == -1)  {
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_RESPONSE) failed %s",
+	  lnk->name, function, rad_strerror(rad->radh)));
 	RadiusClose();
         return (RAD_NACK);
       }
@@ -423,15 +426,17 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
     case CHAP_ALG_MSOFTv2:
       
       Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) peer name: %s", lnk->name, function, name));
-      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE, challenge, challenge_size) == -1)  {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s", lnk->name,
-          function, rad_strerror(rad->radh)));
+      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE, challenge,
+	challenge_size) == -1)  {
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s",
+	  lnk->name, function, rad_strerror(rad->radh)));
 	RadiusClose();
         return (RAD_NACK);
       }
 
       if (passlen != sizeof(*mschapv2val)) {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d", lnk->name, function, passlen, sizeof(*mschapv2val)));
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d", lnk->name,
+	  function, passlen, sizeof(*mschapv2val)));
 	RadiusClose();        
         return RAD_NACK;
       }
@@ -443,9 +448,10 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
       memset(rad_mschapv2val.reserved,		'\0', 			sizeof rad_mschapv2val.reserved);
       memcpy(rad_mschapv2val.pchallenge,	mschapv2val->peerChal,	sizeof rad_mschapv2val.pchallenge);
 
-      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP2_RESPONSE, &rad_mschapv2val, sizeof rad_mschapv2val) == -1)  {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP2_RESPONSE) failed %s", lnk->name,
-          function, rad_strerror(rad->radh)));
+      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP2_RESPONSE,
+	  &rad_mschapv2val, sizeof rad_mschapv2val) == -1)  {
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP2_RESPONSE) failed %s",
+	  lnk->name, function, rad_strerror(rad->radh)));
 	RadiusClose();        
         return (RAD_NACK);
       }
@@ -488,6 +494,7 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
 
 }
 
+/* XXX mbretter: b0rked */
 int
 RadiusPutChangePassword(const char *mschapvalue, int mschapvaluelen, u_char chapid, int chap_type) 
 {
@@ -501,7 +508,8 @@ RadiusPutChangePassword(const char *mschapvalue, int mschapvaluelen, u_char chap
   switch (chap_type) {
 
     case CHAP_ALG_MSOFT:
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: Password changing using MS-CHAPv1 not implemented", lnk->name, function));
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: Password changing using MS-CHAPv1 not implemented",
+	lnk->name, function));
       return (RAD_NACK);
       break;
     
@@ -509,22 +517,29 @@ RadiusPutChangePassword(const char *mschapvalue, int mschapvaluelen, u_char chap
     
       mschapv2val_cpw = (struct mschapv2value_cpw *)mschapvalue;
       if (mschapvaluelen != sizeof(*mschapv2val_cpw)) {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d", lnk->name, function, 
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d",
+	  lnk->name, function,
           mschapvaluelen, sizeof(*mschapv2val_cpw)));
         return RAD_NACK;
       }
       
       rad_mschapv2val_cpw.code = 7;
       rad_mschapv2val_cpw.ident = chapid;
-      memcpy(rad_mschapv2val_cpw.encryptedHash,	mschapv2val_cpw->encryptedHash,	sizeof rad_mschapv2val_cpw.encryptedHash);
-      memcpy(rad_mschapv2val_cpw.pchallenge,	mschapv2val_cpw->peerChal,	sizeof rad_mschapv2val_cpw.pchallenge);        
-      memset(rad_mschapv2val_cpw.reserved,	'\0', 				sizeof rad_mschapv2val_cpw.reserved);
-      memcpy(rad_mschapv2val_cpw.nt_response,	mschapv2val_cpw->ntResponse,	sizeof rad_mschapv2val_cpw.nt_response);
-      memcpy(rad_mschapv2val_cpw.flags,		mschapv2val_cpw->flags,		sizeof rad_mschapv2val_cpw.flags);
+      memcpy(rad_mschapv2val_cpw.encryptedHash,	mschapv2val_cpw->encryptedHash,
+	sizeof rad_mschapv2val_cpw.encryptedHash);
+      memcpy(rad_mschapv2val_cpw.pchallenge,	mschapv2val_cpw->peerChal,
+	sizeof rad_mschapv2val_cpw.pchallenge);
+      memset(rad_mschapv2val_cpw.reserved,	'\0',
+	sizeof rad_mschapv2val_cpw.reserved);
+      memcpy(rad_mschapv2val_cpw.nt_response,	mschapv2val_cpw->ntResponse,
+	sizeof rad_mschapv2val_cpw.nt_response);
+      memcpy(rad_mschapv2val_cpw.flags,		mschapv2val_cpw->flags,
+	sizeof rad_mschapv2val_cpw.flags);
 
-      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP2_PW, &rad_mschapv2val_cpw, sizeof rad_mschapv2val_cpw) == -1)  {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP2_PW) failed %s", lnk->name,
-          function, rad_strerror(rad->radh)));
+      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP2_PW,
+	  &rad_mschapv2val_cpw, sizeof rad_mschapv2val_cpw) == -1)  {
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP2_PW) failed %s",
+	  lnk->name, function, rad_strerror(rad->radh)));
 	RadiusClose();        
         return (RAD_NACK);
       }
@@ -534,11 +549,13 @@ RadiusPutChangePassword(const char *mschapvalue, int mschapvaluelen, u_char chap
       for (chunk = 0; chunk < 4; chunk++) {
         new_nt_pw.chunk = chunk;
         printf("Chunk:%d\n",chunk);
-        memcpy(new_nt_pw.data, &mschapv2val_cpw->encryptedPass[(sizeof new_nt_pw.data) * chunk], sizeof new_nt_pw.data);
-      
-        if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_NT_ENC_PW, &new_nt_pw, sizeof new_nt_pw) == -1)  {
-          Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_NT_ENC_PW) failed %s", lnk->name,
-            function, rad_strerror(rad->radh)));
+        memcpy(new_nt_pw.data, &mschapv2val_cpw->encryptedPass[(sizeof new_nt_pw.data) * chunk],
+	  sizeof new_nt_pw.data);
+
+        if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_NT_ENC_PW,
+	    &new_nt_pw, sizeof new_nt_pw) == -1)  {
+          Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_NT_ENC_PW) failed %s",
+	    lnk->name, function, rad_strerror(rad->radh)));
 	  RadiusClose();
           return (RAD_NACK);
         }
@@ -559,11 +576,57 @@ int RadiusSendRequest(void)
 {
   static char		function[] = "RadiusSendRequest";
   struct radius		*rad = &bund->radius;
-  
-  switch (rad_send_request(rad->radh)) {
+  struct timeval	timelimit;
+  struct timeval	tv;
+  int 			fd, n;
+
+  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_init_send_request ...", lnk->name, function));
+  n = rad_init_send_request(rad->radh, &fd, &tv);
+  if (n != 0) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_init_send_request failed: %d", lnk->name,
+        function, n));
+     return RAD_NACK;
+  }
+
+  gettimeofday(&timelimit, NULL);
+  timeradd(&tv, &timelimit, &timelimit);
+
+  for ( ; ; ) {
+    fd_set readfds;
+
+    FD_ZERO(&readfds);
+    FD_SET(fd, &readfds);
+
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: selecting ...", lnk->name, function));
+    n = select(fd + 1, &readfds, NULL, NULL, &tv);
+
+    if (n == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: select failed: %s", lnk->name, function, strerror(errno)));
+      return RAD_NACK;
+    }
+
+    if (!FD_ISSET(fd, &readfds)) {
+      /* Compute a new timeout */
+      gettimeofday(&tv, NULL);
+      timersub(&timelimit, &tv, &tv);
+      if (tv.tv_sec > 0 || (tv.tv_sec == 0 && tv.tv_usec > 0))
+	/* Continue the select */
+	continue;
+    }
+
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_continue_send_request ...", lnk->name, function));
+    n = rad_continue_send_request(rad->radh, n, &fd, &tv);
+    if (n != 0)
+      break;
+
+    gettimeofday(&timelimit, NULL);
+    timeradd(&tv, &timelimit, &timelimit);
+  }
+
+  switch (n) {
 
     case RAD_ACCESS_ACCEPT:
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCESS_ACCEPT for user %s", lnk->name, 
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCESS_ACCEPT for user %s", lnk->name,
         function, rad->authname));
       rad->valid = 1;
       break;
@@ -652,6 +715,7 @@ RadiusCHAPAuthenticate(const char *name, const char *password, int passlen,
   
 }
 
+/* XXX mbretter: b0rked */
 int
 RadiusMSCHAPChangePassword(const char *mschapvalue, int mschapvaluelen, const char *challenge, 
 	int challenge_size, u_char chapid, int chap_type) 
@@ -675,8 +739,8 @@ RadiusMSCHAPChangePassword(const char *mschapvalue, int mschapvaluelen, const ch
   if (RadiusPutChangePassword(mschapvalue, mschapvaluelen, chapid, chap_type) == RAD_NACK) 
     return RAD_NACK;
 
-  if (RadiusPutAuth(rad->authname, (const char *)mschapv2val, sizeof *mschapv2val, challenge, challenge_size, chapid, chap_type) 
-    == RAD_NACK) 
+  if (RadiusPutAuth(rad->authname, (const char *)mschapv2val, sizeof *mschapv2val, challenge,
+      challenge_size, chapid, chap_type) == RAD_NACK)
       return RAD_NACK;
 
   if (RadiusSendRequest() == RAD_NACK) 
@@ -1035,15 +1099,15 @@ RadiusAccount(short acct_type)
     }
 
     if (rad_put_int(rad->radh, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_TERMINATE_CAUSE) failed: %s", lnk->name, function, 
-        rad_strerror(rad->radh)));
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_TERMINATE_CAUSE) failed: %s",
+	lnk->name, function, rad_strerror(rad->radh)));
       RadiusClose();        
       return RAD_NACK;
     }
 
     if (rad_put_int(rad->radh, RAD_ACCT_SESSION_TIME, time(NULL) - lnk->bm.last_open) != 0) {
-	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME) failed: %s", lnk->name, function, 
-	  rad_strerror(rad->radh)));
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME) failed: %s",
+	  lnk->name, function, rad_strerror(rad->radh)));
 	RadiusClose();        
 	return RAD_NACK;
     }
