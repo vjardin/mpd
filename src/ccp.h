@@ -24,9 +24,7 @@
 #ifdef COMPRESSION_DEFLATE
 #include "ccp_deflate.h"
 #endif
-#ifdef COMPRESSION_MPPC
 #include "ccp_mppc.h"
-#endif
 
 #include <netgraph/ng_message.h>
 
@@ -64,9 +62,7 @@
 #ifdef COMPRESSION_DEFLATE
     struct deflateinfo	deflate;	/* Deflate state */
 #endif
-#ifdef COMPRESSION_MPPC
     struct mppcinfo	mppc;		/* MPPC/MPPE state */
-#endif
     u_char		crypt_check:1;	/* We checked for required encryption */
   };
   typedef struct ccpstate	*CcpState;

@@ -32,10 +32,8 @@
   struct mppcinfo {
     u_int32_t	recv_bits;			/* recv config bits */
     u_int32_t	xmit_bits;			/* xmit config bits */
-#ifdef ENCRYPTION_MPPE
     u_char	xmit_key0[MPPE_KEY_LEN];	/* xmit start key */
     u_char	recv_key0[MPPE_KEY_LEN];	/* recv start key */
-#endif
   };
   typedef struct mppcinfo	*MppcInfo;
 
