@@ -236,7 +236,10 @@ The following attributes are set when doing accounting requests:
 <newline>RAD_ACCT_INPUT_PACKETS
 <newline>RAD_ACCT_OUTPUT_OCTETS
 <newline>RAD_ACCT_OUTPUT_PACKETS
-<newline>RAD_ACCT_SESSION_TIME</tt>
+<newline>RAD_ACCT_INPUT_GIGAWORDS
+<newline>RAD_ACCT_OUTPUT_GIGAWORDS
+<newline>RAD_ACCT_SESSION_TIME
+</tt>
 
 <tag><tt>tcp-wrapper</tt></tag>
 
@@ -247,6 +250,11 @@ connections, including PPTP and the TCP device layer.
 
 The console is also affected, but a bug requires this option to be
 set consistently on all bundles for it to work reliably.
+
+<tag><tt>max-logins <em>num</em></tt></tag>
+
+Limit the max. amount of concurrent logins with the same username.
+If set to zero, then this feature is disabled.
 
 </descrip>
 

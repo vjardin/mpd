@@ -8,6 +8,21 @@
   <p>
     Changes since version 3.15:
     <itemize>
+    <item>Added <tt>set bundle max-logins <em>num</em></tt> option at bundle level
+	for limiting the max. amount of concurrent logins with the same username.
+	Original idea submitted by Andrey V. Elsukov <tt><htmlurl
+	url='mailto:bu7cher@land.ru' name='&lt;bu7cher@land.ru&gt;'></tt>.
+    </item>
+    <item>Mpd has now its own link-stats with 64 bit counters. This
+	is a workaround for the 32 bit limitation of ng_ppp_link_stat.
+    </item>
+    <item>RADIUS enhancements:
+    <itemize>
+    	<item>Set the RAD_ACCT_INPUT_GIGAWORDS and RAD_ACCT_OUTPUT_GIGAWORDS 
+		attributes when sending accounting requests.</item>
+    	<item>Use the RAD_ACCT_INTERIM_INTERVAL attribute.</item>
+    </itemize>
+    </item>
     <item>Implemented PPPoE server functionality
     </item>
     <item>Added ability to configure ipfw firewall for clients using
