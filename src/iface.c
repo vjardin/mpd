@@ -895,6 +895,8 @@ IfaceSetMTU(int mtu, int speed)
   memset(&ifr, 0, sizeof(ifr));
   strncpy(ifr.ifr_name, bund->iface.ifname, sizeof(ifr.ifr_name));
   ifr.ifr_mtu = mtu;
+  Log(LG_BUND|LG_IFACE, ("[%s] setting interface %s MTU to %d bytes",
+    bund->name, bund->iface.ifname, mtu));
   if (ioctl(s, SIOCSIFMTU, (char *)&ifr) < 0)
     Perror("ioctl(%s)", "SIOCSIFMTU");
   close(s);

@@ -10,7 +10,7 @@
 PROG?=			mpd
 PREFIX?=		/usr/local
 BINDIR?=		${PREFIX}/sbin
-VERSION=		3.10
+VERSION=		3.11
 NOMAN=
 
 # Default configuration directory
@@ -57,6 +57,8 @@ LDADD+=		-lmd
 DPADD+=		${LIBMD}
 LDADD+=		-lnetgraph
 DPADD+=		${LIBNETGRAPH}
+LDADD+=		-lradius
+DPADD+=		${LIBRADIUS}
 
 MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
 
@@ -81,8 +83,8 @@ COPTS+=		-Wall \
 STDSRCS=        assert.c auth.c bund.c ccp.c chap.c \
 		console.c command.c ecp.c fsm.c iface.c input.c \
 		ip.c ipcp.c lcp.c link.c log.c main.c mbuf.c mp.c \
-		msg.c ngfunc.c pap.c phys.c proto.c timer.c util.c \
-		vars.c custom.c
+		msg.c ngfunc.c pap.c phys.c proto.c radius.c timer.c \
+		util.c vars.c custom.c
 
 # Mpd is event based, using this handy little event library..
 

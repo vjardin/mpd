@@ -109,6 +109,11 @@ DNS and/or NBNS servers from the remote peer during negotiation.
 Currently, mpd does not use these values for anything; they just
 appear in the log. A future revision may actually do something with them.
 
+<tag><tt>radius-ip</tt></tag>
+
+When using RADIUS for authentication, enable IP address assignment
+via RADIUS as well.
+
 </descrip>
 
 </p>

@@ -126,6 +126,8 @@
     { 0,	BUND_CONF_CRYPT_REQD,	"crypt-reqd"	},
     { 0,	BUND_CONF_BWMANAGE,	"bw-manage"	},
     { 0,	BUND_CONF_ROUNDROBIN,	"round-robin"	},
+    { 0,	BUND_CONF_RADIUSAUTH,	"radius-auth"	},
+    { 0,	BUND_CONF_RADIUSFALLBACK,	"radius-fallback"	},
     { 0,	0,			NULL		},
   };
 
@@ -712,6 +714,8 @@ fail:
   Disable(&bund->conf.options, BUND_CONF_COMPRESSION);
   Disable(&bund->conf.options, BUND_CONF_ENCRYPTION);
   Disable(&bund->conf.options, BUND_CONF_CRYPT_REQD);
+  Disable(&bund->conf.options, BUND_CONF_RADIUSAUTH);
+  Disable(&bund->conf.options, BUND_CONF_RADIUSFALLBACK);
 
   /* Init NCP's */
   IpcpInit();

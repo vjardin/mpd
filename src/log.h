@@ -41,6 +41,7 @@
     LG_I_PPTP,
     LG_I_PPTP2,
     LG_I_PPTP3,
+    LG_I_RADIUS,
     LG_I_CONSOLE
   };
 
@@ -66,6 +67,7 @@
   #define LG_PPTP		(1 << LG_I_PPTP)
   #define LG_PPTP2		(1 << LG_I_PPTP2)
   #define LG_PPTP3		(1 << LG_I_PPTP3)
+  #define LG_RADIUS		(1 << LG_I_RADIUS)
   #define LG_CONSOLE		(1 << LG_I_CONSOLE)
   #define LG_ALWAYS		(1 << LG_I_ALWAYS)
 
@@ -83,6 +85,7 @@
 			        | LG_IPCP		\
 			        | LG_CCP		\
 			        | LG_AUTH		\
+			        | LG_RADIUS		\
 			        | LG_FSM		\
 			        | LG_PHYS		\
 			        | LG_PPTP		\

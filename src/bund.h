@@ -20,6 +20,7 @@
 #include "ecp.h"
 #include "vars.h"
 #include "msg.h"
+#include "radius.h"
 #include "command.h"
 #include <netgraph/ng_message.h>
 
@@ -38,6 +39,8 @@
     BUND_CONF_CRYPT_REQD,	/* encryption is required */
     BUND_CONF_BWMANAGE,		/* dynamic bandwidth */
     BUND_CONF_ROUNDROBIN,	/* round-robin MP scheduling */
+    BUND_CONF_RADIUSAUTH,	/* enable radius auth */
+    BUND_CONF_RADIUSFALLBACK,	/* enable fallback to mpd.secret */
   };
 
   /* Default bundle-layer FSM retry timeout */
@@ -132,6 +135,9 @@
     u_char		self_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
     u_char		peer_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
     u_char		numRecordUp;		/* # links recorded up */
+
+    /* RADIUS info */
+    struct radius	radius;
 
     /* PPP node config */
 #if NGM_PPP_COOKIE < 940897794

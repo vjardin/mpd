@@ -72,6 +72,8 @@ protocol associated with the currently active bundle.
 <tag>lcp</tag>
 Show status information about the link control
 protocol associated with the currently active link.
+<tag>radius</tag>
+Information relating to RADIUS authentication.
 <tag>proto</tag>
 Show protocol statistics for the currently active bundle and link.
 <tag>types</tag>
@@ -115,6 +117,20 @@ Sets the login name required for telnet connections to be
 if <tt><em>name</em></tt> is omitted.
 The password for <tt><em>name</em></tt> is found by looking up
 <tt><em>name</em></tt> in <tt>mpd.secrets</tt>.
+<tag><tt>set radius ...</tt></tag>
+Configures RADIUS authentication:
+<descrip>
+<tag><tt>set radius server <em>name</em> <em>secret</em> [ <em>auth-port</em> [ <em>acct-port</em> ]]</tt></tag>
+Configure RADIUS server parameters.
+Multiple RADIUS servers may be configured by repeating this command.
+<tag><tt>set radius timeout <em>seconds</em></tt></tag>
+Set the timeout for completion of RADIUS requests.
+<tag><tt>set radius retries <em>#retries</em></tt></tag>
+Set the number of retries for RADIUS requests.
+<tag><tt>set radius config <em>pathname</em></tt></tag>
+Set the pathname to the <tt>radius.conf(5)</tt>, if different
+from the default <tt>/etc/radius.conf</tt>.
+</descrip>
 <tag><tt>set debug ...<em>level</em></tt></tag>
 Sets the <tt>netgraph(3)</tt> debugging level. Default is zero.
 <tag><tt>set modem ...</tt></tag>
@@ -229,6 +245,7 @@ categories. Those with a * are turned on by default:
 <tag>pptp*</tag>	PPTP device layer high level events
 <tag>pptp2</tag>	PPTP more verbosity
 <tag>pptp3</tag>	PPTP even more verbosity
+<tag>radius*</tag>	RADIUS authentication events
 </descrip>
 
 <tag><tt>help [ <em>command</em> ] </tt>

@@ -55,6 +55,19 @@
   };
   typedef struct chapinfo	*ChapInfo;
 
+  struct mschapvalue {
+    u_char	lmHash[24];
+    u_char	ntHash[24];
+    u_char	useNT;
+  };
+
+  struct mschapv2value {
+    u_char	peerChal[16];
+    u_char	reserved[8];
+    u_char	ntHash[24];
+    u_char	flags;
+  };
+	
 /*
  * FUNCTIONS
  */

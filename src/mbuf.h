@@ -56,6 +56,7 @@
     MB_COMP,
     MB_CRYPT,
     MB_PPTP,
+    MB_RADIUS,
   };
 
 /*

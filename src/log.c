@@ -114,6 +114,9 @@
 #ifdef LG_PPTP3
     ADD_OPT(PPTP3,	"PPTP packet dumps")
 #endif
+#ifdef LG_RADIUS
+    ADD_OPT(RADIUS,	"Radius authentication events")
+#endif
 #ifdef LG_CONSOLE
     ADD_OPT(CONSOLE,	"Log to the console as well as the log file")
 #endif

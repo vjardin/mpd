@@ -186,6 +186,17 @@ broken peer equipment.
 
 The default for this option is off.
 
+<tag><tt>radius-auth</tt></tag>
+
+Enable authentication via RADIUS.
+
+<tag><tt>radius-fallback</tt></tag>
+
+This option is only relevant when <tt>radius-auth</tt> is enabled.
+If disabled, authentication is only attempted via RADIUS.
+Otherwise, if authentication via RADIUS fails, mpd will attempt
+to authenticate using the traditional method using <tt>mpd.secrets</tt>.
+
 </descrip>
 
 

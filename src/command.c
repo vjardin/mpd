@@ -15,6 +15,7 @@
 #include "command.h"
 #include "ccp.h"
 #include "iface.h"
+#include "radius.h"
 #include "bund.h"
 #include "link.h"
 #include "lcp.h"
@@ -88,6 +89,8 @@
 	ShowLayers, NULL, NULL },
     { "link",				"Link status",
 	LinkStat, AdmitBund, NULL },
+    { "radius",				"radius status",
+	RadStat, AdmitBund, NULL },
     { "lcp",				"LCP status",
 	LcpStat, AdmitBund, NULL },
     { "mem",				"Memory map",
@@ -114,6 +117,8 @@
 	CMD_SUBMENU, AdmitBund, (void *) CcpSetCmds },
     { "ecp ...",			"ECP specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) EcpSetCmds },
+    { "radius ...",			"Set radius configuration",
+	CMD_SUBMENU, AdmitBund, (void *) RadiusSetCmds },
     { "login [authname]",		"Set/clear console password",
 	SetLoginCommand, NULL, NULL },
     { "debug level",			"Set netgraph debug level",

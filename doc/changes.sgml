@@ -6,6 +6,39 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.10:
+    <itemize>
+    <item>Support for authentication and IP address assignment via
+    RADIUS was added. Thanks to Michael Bretterklieber
+    <tt><htmlurl url='mailto:mbretter@jawa.at' name='&lt;mbretter@jawa.at&gt;'></tt>
+    for submitting the patches.
+    </item>
+    <item>Fixed build failure when MICROSOFT_CHAP is not enabled.
+    </item>
+    <item>Enabled support for DES encryption by default in the build.
+    </item>
+    <item>Fixed bug where LCP echo reply packets were being sent
+    with garbled payload contents.
+    </item>
+    <item>Fixed bug with <tt>set iface mtu</tt> where an inadvertent
+    <tt>set iface up-script</tt> command would also be invoked.
+    </item>
+    <item>Removed LCP_MRU_MARGIN hack which should no longer be needed.
+    Note: you may need to explicitly use <tt>set iface mtu</tt> and/or
+    <tt>set link mtu</tt> to get the previous MTU behavior for your
+    configuration.
+    </item>
+    <item>Fixed bug where outgoing PPTP requests were not being initiated
+    with the configured local source IP address. Note: using multiple PPTP
+    IP addresses at the same time for incoming connections still does not
+    work properly; workaround: use multiple MPD processes.
+    </item>
+    <item>Log the MTU being used each time an interface is configured.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.9:
     <itemize>
     <item>Fixed more bugs when computing the interface MTU

@@ -23,6 +23,18 @@
 /*
  * DEFINITONS
  */
+ 
+   /* Configuration options */
+  enum {
+    IPCP_CONF_VJCOMP,
+    IPCP_CONF_REQPRIDNS,
+    IPCP_CONF_REQSECDNS,
+    IPCP_CONF_REQPRINBNS,
+    IPCP_CONF_REQSECNBNS,
+    IPCP_CONF_PRETENDIP,
+    IPCP_CONF_RADIUSIP,
+  };
+
 
   struct ipcpvjcomp {
     u_short	proto;			/* Protocol (only VJCOMP supported) */

@@ -16,6 +16,7 @@
 #include "auth.h"
 #include "msoft.h"
 #include "ngfunc.h"
+#include "radius.h"
 #include <md5.h>
 
 /*
@@ -26,19 +27,6 @@
   #define CHAP_RESPONSE		2
   #define CHAP_SUCCESS		3
   #define CHAP_FAILURE		4
-
-  struct mschapvalue {
-    u_char	lmHash[24];
-    u_char	ntHash[24];
-    u_char	useNT;
-  };
-
-  struct mschapv2value {
-    u_char	peerChal[16];
-    u_char	reserved[8];
-    u_char	ntHash[24];
-    u_char	flags;
-  };
 
 /*
  * INTERNAL FUNCTIONS
@@ -442,6 +430,7 @@ ChapInput(Mbuf bp)
 	const char	*failMesg;
 	char		ackMesg[128];
 	int		whyFail;
+	int		radRes = RAD_NACK;
 
 	/* Stop challenge timer */
 	TimerStop(&chap->chalTimer);
@@ -465,16 +454,30 @@ ChapInput(Mbuf bp)
 	    memmove(peer_name, s + 1, strlen(s) + 1);
 	}
 
+	/* Copy in peer challenge for MS-CHAPv2 */
+	if (chap->recv_alg == CHAP_ALG_MSOFTv2)
+	  memcpy(hash_value, chap_value, 16);
+
+	if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) {
+	  radRes = RadiusCHAPAuthenticate(peer_name, chap_value,
+	    chap_value_size, chap->chal_data, chap->chal_len, chp.id,
+	    chap->recv_alg);
+	  if (radRes == RAD_ACK) {
+	    RadiusSetAuth(&auth);
+	    goto goodResponse;
+	  }
+	  if (!Enabled(&bund->conf.options, BUND_CONF_RADIUSFALLBACK)) {
+	    whyFail = AUTH_FAIL_INVALID_LOGIN;
+	    goto badResponse;
+	  }
+	}
+
 	/* Get peer's secret key */
 	Log(LG_AUTH, (" Peer name: \"%s\"", peer_name));
 	if (AuthGetData(peer_name, &auth, 1, &whyFail) < 0) {
 	  Log(LG_AUTH, (" Can't get credentials for \"%s\"", peer_name));
 	  goto badResponse;
 	}
-
-	/* Copy in peer challenge for MS-CHAPv2 */
-	if (chap->recv_alg == CHAP_ALG_MSOFTv2)
-	  memcpy(hash_value, chap_value, 16);
 
 	/* Get expected hash value */
 	if ((hash_value_size = ChapHash(chap->recv_alg, hash_value, chp.id,
@@ -498,6 +501,7 @@ badResponse:
 	  break;
 	}
 
+goodResponse:
 	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
 	if (chap->recv_alg == CHAP_ALG_MSOFTv2) {
 	  if (!memcmp(bund->peer_ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
@@ -518,11 +522,15 @@ badResponse:
 	  int i;
 
 	  /* Generate MS-CHAPv2 'authenticator response' */
-	  GenerateAuthenticatorResponse(auth.password, pv->ntHash,
-	    pv->peerChal, chap->chal_data, peer_name, authresp);
-	  for (i = 0; i < 20; i++)
-	    sprintf(hex + (i * 2), "%02X", authresp[i]);
-	  snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
+	  if (radRes == RAD_ACK) {
+	    strcpy(ackMesg, bund->radius.mschapv2resp);
+	  } else {
+	    GenerateAuthenticatorResponse(auth.password, pv->ntHash,
+	      pv->peerChal, chap->chal_data, peer_name, authresp);
+	    for (i = 0; i < 20; i++)
+	      sprintf(hex + (i * 2), "%02X", authresp[i]);
+	    snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
+	  }
 	}
 #endif
 	ChapOutput(CHAP_SUCCESS, chp.id, ackMesg, strlen(ackMesg));

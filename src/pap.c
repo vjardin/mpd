@@ -13,6 +13,7 @@
 
 #include "ppp.h"
 #include "pap.h"
+#include "radius.h"
 #include "auth.h"
 #include "ngfunc.h"
 
@@ -157,6 +158,7 @@ PapInput(Mbuf bp)
 	const char	*failMesg;
 	int		name_len, pass_len;
 	int		whyFail;
+	int		radRes = RAD_NACK;
 
 	/* Is this appropriate? */
 	if (a->peer_to_self != PROTO_PAP) {
@@ -187,6 +189,18 @@ PapInput(Mbuf bp)
 	memcpy(pass, pass_ptr, pass_len);
 	pass[pass_len] = 0;
 
+	if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) {
+	  radRes = RadiusPAPAuthenticate(name, pass);
+	  if (radRes == RAD_ACK) {
+	    RadiusSetAuth(&auth);
+	    goto goodRequest;
+	  }
+	  if (!Enabled(&bund->conf.options, BUND_CONF_RADIUSFALLBACK)) {
+	    whyFail = AUTH_FAIL_INVALID_LOGIN;
+	    goto badRequest;
+	  }
+	}
+
 	/* Get auth data for this system */
 	Log(LG_AUTH, (" Peer name: \"%s\"", name));
 	if (AuthGetData(name, &auth, 1, &whyFail) < 0) {
@@ -205,6 +219,7 @@ badRequest:
 	  break;
 	}
 
+goodRequest:
 	/* Login accepted */
 	Log(LG_AUTH, (" Response is valid"));
 	PapOutput(PAP_ACK, php.id,

@@ -590,8 +590,16 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   u_char	hash[16];
   char		*pass;
   u_char	*resp;
-
   MD4_CTX	c;
+
+  if (bund->radius.valid) {
+    if (dir == COMP_DIR_XMIT) {
+      memcpy(mppc->xmit_key0, bund->radius.mppe.sendkey, MPPE_KEY_LEN);
+    } else {
+      memcpy(mppc->recv_key0, bund->radius.mppe.recvkey, MPPE_KEY_LEN);
+    }
+    return;
+  }
 
   /* Get credential info */
   if (MppeGetKeyInfov2(&pass, &resp) < 0)

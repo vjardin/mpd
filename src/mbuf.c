@@ -55,6 +55,7 @@
     { MB_COMP,		"COMP" },
     { MB_CRYPT,		"CRYPT" },
     { MB_PPTP,		"PPTP" },
+    { MB_RADIUS,	"RADIUS" },
   };
 
   #define NUM_TYPE_STATS	(sizeof(gMbufStats) / sizeof(*gMbufStats))
