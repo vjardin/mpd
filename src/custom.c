@@ -141,16 +141,19 @@ RecordLinkUpDownReason(Link l, int up, const char *key, const char *fmt, ...)
   if (!bund)
     return;
 
-  va_start(args, fmt);
   if (l == NULL) {
     for (k = 0; k < bund->n_links; k++) {
-      if (bund && bund->links[k])
+      if (bund && bund->links[k]) {
+	va_start(args, fmt);
 	RecordLinkUpDownReason2(bund->links[k], up, key, fmt, args);
+	va_end(args);
+      }
     }
   } else {
+    va_start(args, fmt);
     RecordLinkUpDownReason2(l, up, key, fmt, args);
+    va_end(args);
   }
-  va_end(args);
 }
 
 static void

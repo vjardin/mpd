@@ -616,10 +616,12 @@ ModemChatLog(void *arg, int level, const char *fmt, ...)
   /* Concat prefix and message */
   va_start(args, fmt);
   vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
   if (*buf != ' ')
     snprintf(buf, sizeof(buf), "[%s] chat: ", lnk->name);
   else
     *buf = '\0';
+  va_start(args, fmt);
   vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, args);
   va_end(args);
 
