@@ -1,0 +1,59 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Encryption layer commands<label id="encryption"></heading>
+
+  <p>
+
+  This chapter describes commands that configure the Encryption Control
+  Protocol (ECP) layer. All of these commands apply to the currently
+  active bundle.
+
+<descrip>
+
+<tag><tt>set ecp key <em>string</em> </tt></tag><p>
+
+Sets the encryption key.
+
+<tag><tt>set ecp accept <em>option ...</em> </tt></tag><p>
+<tag><tt>set ecp deny <em>option ...</em> </tt></tag><p>
+<tag><tt>set ecp enable <em>option ...</em> </tt></tag><p>
+<tag><tt>set ecp disable <em>option ...</em> </tt></tag><p>
+<tag><tt>set ecp yes <em>option ...</em> </tt></tag><p>
+<tag><tt>set ecp no <em>option ...</em> </tt></tag><p>
+
+These commands configure various ECP options. Each direction of
+traffic (transmit and receive) is independent from the other.
+All options default to <tt><bf>disable</bf></tt> and <tt><bf>deny</bf></tt>.
+
+The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands determine
+whether we desire the corresponding option on received data.
+The <tt><bf>accept</bf></tt> and <tt><bf>deny</bf></tt> commands determine
+whether we will allow the peer to request the corresponding option
+(which we must enable on our transmitted data).
+
+<p>
+The <bf><tt>yes</tt></bf> command is the same as
+<tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
+The <bf><tt>no</tt></bf> command is the same as
+<tt><bf>disable</bf></tt> and <tt><bf>deny</bf></tt>.
+
+</descrip>
+
+<p>
+The options available at the ECP layer are:
+
+<descrip>
+
+<tag><tt>des</tt></tag>
+
+This option enables DES encryption.
+
+</descrip>
+
+</p>
+
+
+

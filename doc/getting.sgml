@@ -1,0 +1,23 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Getting mpd<label id="getting"></heading>
+
+  <p>
+	Mpd is supplied as a
+	<bf><htmlurl url="http://www.freebsd.org/ports" name="FreeBSD port">
+	</bf>, under the name <bf><tt>net/mpd</tt></bf>.
+	Therefore, the simplest way to get mpd onto your machine
+	is to install the mpd package or port.
+	For information on how to do this, see the
+	<bf><htmlurl url="http://www.freebsd.org/ports"
+	name="FreeBSD ports web page"></bf>.
+</p>
+
+<p>
+	Mpd can also be compiled and installed manually.
+	This is useful for example if you want to change the 
+	set of device types supported by mpd.
+

@@ -1,0 +1,140 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Configuration file format<label id="configfmt"></heading>
+
+<p>
+Mpd uses four different configuration files when it executes. These files
+are described below.
+
+<sect1><heading>General properties</heading>
+
+<p>
+For all of the configuration files, the following things are true:
+
+<itemize>
+	<item>
+	Any line whose first character is a number sign
+	(<tt>#</tt>) is considered a comment and is ignored.
+
+	<item>
+	Strings may be quoted using double quotes. The string
+	is decoded according to normal C language rules.
+</itemize>
+
+<sect1><heading><tt>mpd.conf</tt> and <tt>mpd.links</tt></heading>
+
+<p>
+The <tt>mpd.conf</tt> and <tt>mpd.links</tt> files have the same
+simple structure.
+An <em>entry</em> consists of a <em>label</em> followed by a sequence of
+mpd commands.
+A label begins at the first column and ends with a colon
+character. Commands are usually indented with a tab character
+(this is not required) and follow the label immediately on the
+next and subsequent lines.
+An entry ends at the first blank line after the label.
+</p>
+
+<p>
+Here is an example <tt>mpd.conf</tt> that contains a single
+configuration <tt>config1</tt> that defines a single bundle <tt>myisp</tt>,
+containing two links <tt>modem1</tt> and <tt>modem2</tt>:
+<tscreen><verb>
+#
+# mpd.conf configuration file
+#
+
+config1:
+	new myisp modem1 modem2
+	set bundle authname "mylogin1"
+	set iface enable on-demand
+	set iface addrs 1.2.3.4 5.6.7.8
+	set iface route default
+	set iface idle 300
+	link modem1
+	set modem var $Telephone "123-4567"
+	link modem2
+	set modem var $Telephone "123-4567"
+</verb></tscreen>
+
+<p>
+The corresponding <tt>mpd.links</tt> file might look like this:
+<tscreen><verb>
+#
+# mpd.links configuration file
+#
+
+# my internal modem which is on COM3
+modem1:
+	set link type modem
+	set modem device /dev/cuaa2
+
+# my external modem which is on COM2
+modem2:
+	set link type modem
+	set modem device /dev/cuaa1
+</verb></tscreen>
+
+Note that the telephone number to dial for each link is set
+in <tt>mpd.conf</tt> instead of <tt>mpd.links</tt>, because
+this is specific to <tt>config1</tt>. On the other hand,
+the serial port device is a property of the link and independent
+of the configuration; hence this is set for each link
+in <tt>mpd.links</tt>.
+</p>
+
+<sect1><heading><tt>mpd.secret</tt></heading>
+
+<p>
+	This file contains login, password pairs, one entry per line.
+	Each entry may have an optional third argument, which is
+	an IP address with optional netmask width. This is used
+	when netgotiating IP addresses with the corresponding peer.
+	We restrict the allowable IP addresses we'll assign to the
+	peer to lie within the specified range.
+</p>
+
+<p>
+	In the example below, we define two ISP accounts that we
+	use to connect to the Internet. Also, we have three friends
+	who are allowed to connect to us, and we want to restrict
+	the IP addresses that we'll let them have.
+<tscreen><verb>
+#
+# mpd.secrets configuration file
+#
+
+# my two ISP accounts
+mylogin1    password1
+mylogin2    "Xka \r\n"
+
+# my three friends
+bob         "akd\"ix23"   192.168.1.100
+jerry       "33dk88kz3"   192.168.1.101
+phil        "w*d9m&_4X"   192.168.1.128/25
+</verb></tscreen>
+	Here <tt>bob</tt> and <tt>jerry</tt> must negotiate 
+	<tt>192.168.1.100</tt> and <tt>192.168.1.101</tt>,
+	respectively, while <tt>phil</tt> can ask for any
+	address from <tt>192.168.1.128</tt> through <tt>192.168.1.255</tt>.
+</p>
+
+<sect1><heading><tt>mpd.script</tt></heading>
+
+<p>
+This file has a format similar to <tt>mpd.conf</tt> and
+<tt>mpd.links</tt>, but it contains chat script commands
+instead of mpd commands. Each line contains a single command, and
+labels identify starting points and/or subroutines
+in the script. Unlike <tt>mpd.conf</tt> and <tt>mpd.links</tt>,
+a blank line <em>does not</em> end the processing of
+commands.
+
+See <ref id="chat" name="Chat Scripting">
+for a complete decscription of chat scripting.
+</p>
+
+

@@ -1,0 +1,127 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Interface layer commands<label id="interface"></heading>
+
+<p>
+
+  This chapter describes commands that configure the interface layer.
+  All of these commands apply to the currently active bundle.
+
+  Note that while most of the time mpd is used for transmitting
+  IP traffic, it is designed to support other (currently unimplemented)
+  protocols such as AppleTalk, IPX, etc. This is why the Interface
+  layer (which is protocol independent) is distinct from the <ref id="ipcp"
+  name="IP Control Protocol (IPCP) layer"> which is specific to IP.
+
+<descrip>
+
+<tag><tt>
+set iface addrs <em>local-ip</em> <em>remote-ip</em>
+</tt></tag>
+
+This command is only required when dial-on-demand is enabled.
+Normally, mpd configures the interface with the IP addresses that
+were negotiated when connecting the link.  Since dial-on-demand
+configures the interface before actually connecting, mpd has to be
+told initial local and remote IP addresses to give the interface.
+These addresses don't have to correspond to the ``real'' ones; in
+fact, both addresses can be completely fictional. If and when
+different addresses are negotiated later, mpd will automatically
+renumber the interface and adjust the routes.
+
+<tag><tt>
+set iface route <em>address[/width]</em>
+</tt></tag>
+
+This command associates a route with the bundle. Whenever the
+interface is configured up, all associated routes are added.
+A route of <tt><bf>default</bf></tt> indicates the default route.
+Otherwise, the route is a network address with optional netmask
+width (e.g., <tt><bf>192.168.1.0/24</bf></tt>). If the netmask
+width is omitted, a single host route is assumed (i.e., a width
+of 32).
+
+Routes are automatically removed when the interface is brought down.
+
+<tag><tt>
+set iface idle <em>seconds</em>
+</tt></tag>
+
+Sets the idle timeout value for the bundle. If no qualifying
+outgoing packets are transmitted for <tt><em>seconds</em></tt>
+seconds, the connection is brought down. An idle timeout of
+zero disables this feature.
+
+Mpd attempts to be intelligent about what a qualifying packet is.
+Idle time should only apply to packets that are generated locally
+and represent real local activity of some sort.
+For example, NTP traffic, ICMP echo replies, and TCP reset packets
+do not count as outgoing demand.
+
+When the idle timeout occurs, if the dial-on-demand option is
+enabled, mpd goes back into dial-on-demand mode. Otherwise, the
+interface is brought down and all associated routes removed.
+
+<tag><tt>set iface up-script <em>script</em> </tt></tag><p>
+<tag><tt>set iface down-script <em>script</em> </tt></tag><p>
+
+Mpd can optionally run a user program every time the interface
+is brought up or down.
+The <tt><bf>up-script</bf></tt> is called like this:
+<tscreen><tt>
+<em>script</em> <em>interface</em> inet <em>local-ip</em> <em>remote-ip</em>
+</tt></tscreen>
+
+The <tt><bf>down-script</bf></tt> is called like this:
+<tscreen><tt>
+<em>script</em> <em>interface</em> inet
+</tt></tscreen>
+
+<tag><tt>
+set iface enable <em>option ...</em>
+<newline>set iface disable <em>option ...</em>
+</tt></tag>
+
+Enable and disable the various interface layer options for the bundle.
+
+</descrip>
+
+<p>
+The options available at the interface layer are:
+
+<descrip>
+
+<tag><tt>on-demand</tt></tag>
+
+This option causes the interface to operate in dial-on-demand mode,
+allowing you to have a ``virtual full time'' connection.
+An OPEN event causes the interface to be configured, but the actual
+connection of the link is delayed until qualifying outgoing traffic
+is detected. Moreover, after an idle timeout, the interface is not
+brought down; further traffic will bring the link back up again.
+
+<tag><tt>proxy-arp</tt></tag>
+
+When this option is enabled, if after link negotiation the peer's
+IP address is determined to lie on a local subnet, then mpd will
+arrange for the local machine to install a proxy ARP entry for
+the remote machine's IP address.
+
+For example, suppose the local machine lies on a LAN with address
+192.168.1.10, and another machine will be connecting via mpd
+and using the LAN address 192.168.1.20. Then these commands would
+set up proxy ARP for the remote machine:
+<tscreen><tt>
+set iface enable proxy-arp
+<newline>set ipcp 192.168.1.10/32 192.168.1.20/32
+</tt></tscreen>
+
+</descrip>
+
+
+</p>
+
+

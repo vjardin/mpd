@@ -1,0 +1,53 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>References<label id="refs"></heading>
+
+  <p>
+  The PPP protocol is documented in a slew of RFC's.
+  Some of these are listed below.
+
+  <p>
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1332.txt" name="RFC 1332 The PPP Internet Protocol Control Protocol (IPCP)">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1334.txt" name="RFC 1334 PPP Authentication Protocols">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1570.txt" name="RFC 1570 PPP LCP Extensions">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1661.txt" name="RFC 1661 The Point-to-Point Protocol (PPP)">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1662.txt" name="RFC 1662 PPP in HDLC-like Framing">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1877.txt" name="RFC 1877 PPP Internet Protocol Control Protocol Extensions for Name Server Addresses">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1962.txt" name="RFC 1962 The PPP Compression Control Protocol (CCP)">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1968.txt" name="RFC 1968 The PPP Encryption Control Protocol (ECP)">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1969.txt" name="RFC 1969 The PPP DES Encryption Protocol (DESE)">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1973.txt" name="RFC 1973 PPP in Frame Relay">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1974.txt" name="RFC 1974 PPP Stac LZS Compression Protocol">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1978.txt" name="RFC 1978 PPP Predictor Compression Protocol">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1979.txt" name="RFC 1979 PPP Deflate Protocol">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1990.txt" name="RFC 1990 The PPP Multilink Protocol (MP)">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc1994.txt" name="RFC 1994 PPP Challenge Handshake Authentication Protocol (CHAP)">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc2427.txt" name="RFC 2427 Multiprotocol Interconnect over Frame Relay">
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc2433.txt" name="RFC 2433 Microsoft PPP CHAP Extensions">
+
+<!--
+<htmlurl url="http://www.es.net/pub/rfcs/rfc2516.txt" name="RFC 2516 A Method for Transmitting PPP Over Ethernet (PPPoE)">
+-->
+
+<htmlurl url="http://www.es.net/pub/rfcs/rfc2637.txt" name="RFC 2637 Point-to-Point Tunnelling Protocol (PPTP)">
+

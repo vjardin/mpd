@@ -1,0 +1,96 @@
+#################################################################
+#
+#	MPD links file
+#
+# In this file you define the various "links" that comprise
+# a bundle. Each link corresponds to a single serial device.
+# These are commands that could be typed into the console directly.
+#
+# This file should only contain configuration for a link if
+# that configuration is specific to that particular link. That
+# is, things like device name and bandwidth. Other generic link
+# options # like LCP paramters belong in "mpd.conf".
+#
+# The first command for each link should be "set link type ..."
+#
+# $Id$
+#
+#################################################################
+
+#
+# An example of a normal analog modem on COM2. Mpd knows how
+# to automatically detect and configure several common modem types.
+#
+
+usr:
+	set link type modem
+	set modem device /dev/cuaa1
+	set modem var $DialPrefix "DT"
+
+#
+# Another example: Motorola Bitsurfer Pro terminal adapter on COM3
+# An ISDN terminal adapter is a "modem" as far as mpd is concerned.
+#
+# Note that mpd will automatically configure the SPID settings, etc.
+# for certain terminal adapters: Bitsurfr's, 3Com Impact IQ,
+# Farallon Netopia ISDN modem, Adtran Express XRT.
+#
+
+bitsurfr:
+	set link type modem
+	set modem device /dev/cuaa2
+	set link latency 1000
+	set link bandwidth 92160
+	set modem speed 115200
+	set modem watch +cd
+# ISDN configuration
+	set modem var $TA_SwitchType "NI-1"
+	set modem var $TA_Dirno1 "2125551212"
+	set modem var $TA_Dirno2 "2125551212"
+	set modem var $TA_SPID1 "212555121201"
+	set modem var $TA_SPID2 "212555121202"
+# we want 128K multi-link
+	set modem var $TA_Bonding "yes"
+
+#
+# Here is a netgraph example. This would do PPP over a
+# synchronous line using the "sr" device driver.
+#
+
+sync:
+	set link type ng
+	set ng node sr0:
+	set ng hook rawdata
+
+#
+# For our PPTP server
+#
+
+pptp:
+        set link type pptp
+        set pptp self 1.2.3.4
+        set pptp enable incoming
+        set pptp disable originate
+
+
+#
+# For our PPTP VPN connection to 192.168.2.0/24
+#
+
+vpn:
+        set link type pptp
+        set pptp self 1.2.3.4
+        set pptp peer 2.3.4.5
+        set pptp enable originate incoming outcall
+
+#
+# For our PPPoE connection, using Ethernte interface "fxp1"
+# Often the service is ignored. If yours is required, replace
+# the "whatever" string with your PPPoE service string.
+#
+
+PPPoE:
+        set link type pppoe
+        set pppoe iface fxp1
+        set pppoe service "whatever"
+

@@ -1,0 +1,6 @@
+etc/mpd/mpd.conf.sample
+etc/mpd/mpd.links.sample
+etc/mpd/mpd.secret.sample
+etc/mpd/mpd.script.sample
+sbin/mpd
+share/doc/mpd/README

@@ -1,0 +1,88 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Mpd command line interface<label id="cli"></heading>
+
+<p>
+	When run in interactive mode, or after connecting to
+	the telnet port, mpd presents a command line interface
+	at the console. Here mpd commands can be entered to
+	configure the various layers and check
+	the status of the defined bundles and links.
+	The commands available at the command line interface
+	are exactly the same ones available in the
+	<tt>mpd.conf</tt> and <tt>mpd.links</tt> config files.
+
+	At any given time, there is always an <em>active bundle</em>
+	and an <em>active link</em> within that bundle. These are
+	shown in the prompt. Here is an example of running mpd
+	with a configuration in <tt>mpd.conf</tt> that defines
+	a bundle <tt>myisp</tt> containing two links <tt>modem1</tt>
+	and <tt>modem2</tt>:
+<tscreen><verb>
+$ mpd config1
+Multi-link PPP for FreeBSD, by Archie L. Cobbs.
+Based on iij-ppp, by Toshiharu OHNO.
+mpd: pid 1419, version 3.0b1 (root@jan.whistle.com 10:37  7-Jan-1999)
+[myisp] ppp node is "mpd771-myisp"
+[myisp] using interface ng0
+[myisp:modem1] 
+</verb></tscreen>
+	By the time the prompt appears, mpd has already read in
+	and executed all the commands associated with the configuration
+	<tt>config1</tt>,
+	which defines the bundle <tt>myisp</tt>. When the bundle
+	is created mpd logs a message showing the name of the
+	associated netgraph <tt>ng_ppp(4)</tt> node and system interface
+	(mpd will automatically select one if not
+	explicitly told which one to use). In this case
+	<tt>mpd771-myisp</tt> is the netgraph node and <tt>ng0</tt>
+	is the interface. The prompt <tt>[myisp:modem1]</tt>
+	shows the currently active bundle (<tt>myisp</tt>) and
+	link (<tt>modem1</tt>). Any bundle specific commands issued
+	at this point will apply to <tt>myisp</tt>. Similarly,
+	any link specific commands will apply to <tt>modem1</tt>.
+
+	To change the active link or bundle, use the <tt>link</tt>
+	or <tt>bundle</tt> command:
+<tscreen><verb>
+[myisp:modem1] link modem2
+[myisp:modem2] 
+</verb></tscreen>
+	Now any commands entered apply to <tt>myisp</tt> or
+	<tt>modem2</tt>, as appropriate. This technique works
+	the same way in <tt>mpd.conf</tt>. Also, if changing
+	the link requires changing bundles as well, mpd will do
+	that too.
+
+	The available commands are described in the next chapter.
+	When mpd is running the <tt>help</tt> can be used to
+	get more information on a specific command:
+<tscreen><verb>
+[myisp:modem2] help show
+Commands available under "show":
+ bundle   : Bundle status                ccp      : CCP status
+ events   : Current events               ipcp     : IPCP status
+ iface    : Interface status             routes   : IP routing table
+ layers   : Layers to open/close         link     : Link status
+ lcp      : LCP status                   mem      : Memory map
+ mp       : Multi-link status            proto    : Protocol summary
+ types    : Supported device types       version  : Version string
+[myisp:modem2]
+</verb></tscreen>
+
+Mpd allows you to use only a prefix of a command, as long as the
+command is unambigous:
+<tscreen><verb>
+[myisp:modem2] b
+Defined bundles:
+        Bundle         Links
+        ------         -----
+        myisp          modem2[DOWN]
+[myisp:modem2] s
+s: ambiguous command
+</verb></tscreen>
+
+

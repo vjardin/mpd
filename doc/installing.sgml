@@ -1,0 +1,86 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Installing mpd<label id="installing"></heading>
+
+  <p>
+	If you use the FreeBSD package or port, mpd will be
+	automatically installed
+	into <tt>/usr/local/sbin/mpd</tt>.
+	with the default set of device types compiled into it.
+	In order to run, mpd needs
+	a few configuration files. The directory
+	<tt>/usr/local/etc/mpd</tt> is created
+	to hold them.
+	In it you will find some sample configuration files.
+</p>
+
+<p>
+	Before you can run mpd, you must set up your site-specific
+	configuration files. These files are:
+	<descrip>
+
+	<tag> <bf><tt>mpd.conf</tt></bf>
+
+<p>
+	This file defines one or more <bf>configurations</bf>.
+	When mpd is invoked, you specify the name of a
+	configuration on the command line. This configuration
+	(which merely consists of a series of mpd commands) is loaded.
+	If no configuration
+	is given, the first one listed in <tt>mpd.conf</tt>
+	is loaded.
+</p>
+
+<p>
+	Each configuration defines one or more bundles. Each bundle
+	is given a name, assigned a system interface and one or
+	more links that make up the bundle.
+	A bundle
+	is defined with the <bf><tt>new</tt></bf> command.
+	Subsequent commands in the configuration configure the various
+	layers for that bundle.
+</p>
+
+<p>
+	Generally speaking, the commands in <tt>mpd.conf</tt> only
+	configure the device independent information for a bundle.
+</p>
+
+	<tag> <bf><tt>mpd.links</tt></bf>
+
+<p>
+	This file contains definitions of the various links that
+	are available on the system. Different links may be part
+	of different bundles in different configurations. Therefore,
+	the commands in this file configure information that is
+	link specific and independent of any particular configuration.
+	For example, a certain modem may require a special init string,
+	no matter how or in what bundle the modem is to be used.
+	The commands in this file are executed when the bundle 
+	is defined (i.e., as a result of a <bf><tt>new</tt></bf>
+	command). So the information configured for a link by that
+	link's <tt>mpd.links</tt> entry can be overriden by subsequent
+	commands in <tt>mpd.conf</tt>.
+</p>
+
+
+	<tag> <bf><tt>mpd.secret</tt></bf>
+
+<p>
+	This file contains login, password pairs. This is where
+	mpd looks to find all authentication information. This
+	file should be readable only by <tt>root</tt>.
+</p>
+
+	<tag> <bf><tt>mpd.script</tt></bf>
+
+<p>
+	This file contains chat scripts for modem devices.
+</p>
+
+	</descrip>
+
+

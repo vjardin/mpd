@@ -1,0 +1,89 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Mpd Layers<label id="layers"></heading>
+
+      <p>
+	Mpd consists of several <bf>layers</bf>, corresponding
+	to the layered nature of the PPP protocol.
+	The two main concepts in mpd are 
+	<bf><ref id="bundle" name="bundles"></bf> and
+	<bf><ref id="links" name="links"></bf>.
+	A <bf>link</bf> is a single physical point-to-point
+	connection between the local machine and
+	a remote peer machine, such as a modem connection or
+	a synchronous serial connection.
+	A <bf>bundle</bf> is a collection of one or more links, all connecting
+	to the same remote peer, that together form a single
+	multi-link PPP connection whose effective bandwidth is
+	the sum of the bandwidths of the individual links.
+
+	The bundle layer in effect lies just above the link layer.
+	The bundle layer handles the task
+	of making multiple physical links appear as a single
+	virtual link. Bundles and layers exist regarless of whether
+	the link(s) are actually connected and transmitting packets.
+
+	At the bundle layer you configure multi-link
+	PPP settings, authentication credentials for the
+	bundle (i.e., login and password),
+	and the link management policy. The link management
+	policy determines whether mpd tries to keep all the links
+	connected all the time, or whether it adds and subtracts
+	links depending on demand, and if so, according to what parameters.
+
+	At this time, mpd requires the links that constitute each bundle
+	to be declared when the bundle is created; after that, they cannot
+	be changed. A future revision may lift this restriction.
+
+	With each bundle is a corresponding 
+	<bf><ref id="interface" name="interface"></bf> layer,
+	which corresponds directly to a netgraph interface
+	accessible via <tt>ifconfig(8)</tt>, such as <tt>ng0</tt>.
+	The netgraph interface is where IP packets ultimately appear
+	after travelling across the link.
+	The interface layer handles configuring the interface,
+	bringing it up or down as appropriate, assigning
+	IP addresses, setting up static routes, and configuring proxy-ARP.
+	The interface layer is also responsible for implementing
+	dial-on-demand and idle timeout functionality.
+
+	Each bundle has a corresponding 
+	<bf><ref id="ipcp" name="IP Control Protocol (IPCP)"></bf> layer,
+	which manages the IP specific configuration of the bundle.
+	This layer handles the negotiation of local and remote IP addresses
+	and Van Jacobsen TCP header compression,
+	as well as other optional IP related information such as
+	DNS servers and NBNS servers.
+
+	Each bundle also has corresponding
+	<bf><ref id="compression" name="compression"></bf>
+	and
+	<bf><ref id="encryption" name="encryption"></bf> layers, which
+	allow you to enable and configure compression and encryption
+	for data sent and received over the bundle.
+
+	Individual links in a bundle are configured at the
+	<bf><ref id="links" name="link"></bf> layer.
+	There are two parts to the link configuration, the device
+	independent part and the device specific part. Device
+	independent parameters include the authentication type
+	(PAP or CHAP), whether authentication is enabled in
+	either direction, keep-alive packets,
+	and various other link specific parameters.
+
+	Beneath the link layer is the
+	<bf>device</bf> layer.
+	Configuration
+	of device specific parameters happens at this layer. 
+	Each link has a specific <em>type</em>
+	corresponding to one of the supported device types in mpd.
+	The type dictates how the device dependent part of the link
+	is configured and what its capabilities are.
+
+	While the combination of all the various layers presents
+	a large number of configuration options, mpd tries to
+	have reasonable defaults for everything.
+

@@ -1,0 +1,28 @@
+# $Id$
+
+PREFIX?=	/usr/local
+BINDIR?=	${PREFIX}/share/doc/mpd
+
+FILES+=		../README
+FILES+=		mpd*.html
+
+MAN8=		mpd.8
+MANDIR=		${PREFIX}/man/man
+
+depend:
+
+clean cleandir:
+	rm -f mpd.8
+
+all:		mpd.8
+
+mpd.8:          mpd.8.in
+	sed -e "s,@PREFIX@,${PREFIX},g" < ${.ALLSRC} > ${.TARGET}
+
+.if !defined(NOPORTDOCS)
+afterinstall:
+	${INSTALL} -c -o ${DOCOWN} -g ${DOCGRP} -m ${DOCMODE} ${FILES} \
+		${BINDIR}
+.endif
+
+.include <bsd.prog.mk>

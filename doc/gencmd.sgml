@@ -1,0 +1,259 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>General mpd commands<label id="gencmd"></heading>
+
+<p>
+
+  This chapter describes general mpd commands that don't
+  apply to a specific layer.
+
+<descrip>
+
+<tag><tt>bundle [ <em>name</em> ] </tt>
+</tag>
+
+This command changes the currenly active bundle to the bundle named
+<tt><em>name</em></tt>. The currently active link is also
+changed, to the first link defined the bundle. If no
+<tt><em>name</em></tt> is given, this command lists all
+of the defined bundles and their constituent links.
+The new bundle will be reflected in the prompt.
+
+<tag><tt>link <em>name</em></tt>
+</tag>
+
+This command changes the currenly active link to the link named
+<tt><em>name</em></tt>. If this link does not belong to
+the currently active bundle, then the currently active bundle
+is changed to the bundle that owns link <tt><em>name</em></tt>.
+The new link will be reflected in the prompt.
+
+<tag><tt>load <em>configuration</em></tt>
+</tag>
+
+This command causes mpd to read the entry for
+<tt><em>configuration</em></tt> out of <tt>mpd.conf</tt> and
+execute the corresponding commands, just
+as if <tt><em>configuration</em></tt> had been specified on the command line.
+Execution stops at the first blank line.
+
+<tag><tt>show [ <em>item</em> ] </tt>
+</tag>
+
+This command displays various status information. The valid
+values for <tt><em>item</em></tt> are:
+
+<descrip>
+
+<tag>bundle</tag>
+Show status information about the currently active bundle.
+<tag>link</tag>
+Show status information about the currently active link.
+<tag>iface</tag>
+Show status information about the interface layer associated
+with the currently active bundle.
+<tag>routes</tag>
+Show the current IP routing table.
+<tag>mp</tag>
+Show status information about the multi-link
+protocol associated with the currently active bundle.
+<tag>ipcp</tag>
+Show status information about the IP control
+protocol associated with the currently active bundle.
+<tag>ccp</tag>
+Show status information about the compression control
+protocol associated with the currently active bundle.
+<tag>ecp</tag>
+Show status information about the encryption control
+protocol associated with the currently active bundle.
+<tag>lcp</tag>
+Show status information about the link control
+protocol associated with the currently active link.
+<tag>proto</tag>
+Show protocol statistics for the currently active bundle and link.
+<tag>types</tag>
+Show the device types supported by this version of mpd.
+<tag>layers</tag>
+Show the names of the layers that are valid as arguments to the <tt>open</tt>
+and <tt>close</tt> commands.
+<tag>events</tag>
+Show all pending events (for debugging mpd).
+<tag>mem</tag>
+Show distribution of dynamically allocated memory (for debugging mpd).
+<tag>version</tag>
+Show the version of mpd running.
+
+</descrip>
+
+<tag><tt>set ...</tt></tag>
+
+<p>
+This command sets various configuration information. Further
+details are contained in later sections in this chapter.
+The valid completions for <tt>set</tt> are:
+
+<descrip>
+
+<tag><tt>set bundle ...</tt></tag>
+Set bundle layer configuration parameters for the currently active bundle.
+<tag><tt>set link ...</tt></tag>
+Set link layer configuration parameters for the currently active link.
+<tag><tt>set iface ...</tt></tag>
+Set interface layer configuration parameters for the currently active bundle.
+<tag><tt>set ipcp ...</tt></tag>
+Set IP control protocol configuration parameters
+for the currently active bundle.
+<tag><tt>set ccp ...</tt></tag>
+Set compression control protocol configuration parameters
+for the currently active bundle.
+<tag><tt>set login [ <em>name</em> ] </tt></tag>
+Sets the login name required for telnet connections to be
+<tt><em>name</em></tt>, or eliminates any required login
+if <tt><em>name</em></tt> is omitted.
+The password for <tt><em>name</em></tt> is found by looking up
+<tt><em>name</em></tt> in <tt>mpd.secrets</tt>.
+<tag><tt>set debug ...<em>level</em></tt></tag>
+Sets the <tt>netgraph(3)</tt> debugging level. Default is zero.
+<tag><tt>set modem ...</tt></tag>
+Sets device specific configuration parameters
+for the currently active link, which must have type <bf>modem</bf>.
+<tag><tt>set ng ...</tt></tag>
+Sets device specific configuration parameters
+for the currently active link, which must have type <bf>netgraph</bf>.
+<tag><tt>set tcp ...</tt></tag>
+Sets device specific configuration parameters
+for the currently active link, which must have type <bf>tcp</bf>.
+<tag><tt>set udp ...</tt></tag>
+Sets device specific configuration parameters
+for the currently active link, which must have type <bf>udp</bf>.
+<tag><tt>set pptp ...</tt></tag>
+Sets device specific configuration parameters
+for the currently active link, which must have type <bf>pptp</bf>.
+<tag><tt>set pppoe ...</tt></tag>
+Sets device specific configuration parameters
+for the currently active link, which must have type <bf>pppoe</bf>.
+
+</descrip>
+
+<tag><tt>open [ <em>layer</em> ] </tt>
+</tag>
+
+This command causes an OPEN event to be sent to the corresponding
+layer or finite state machine (FSM). The valid layers are:
+
+<descrip>
+<tag>iface</tag>
+
+Interface layer. Opening this layer configures the interface and
+installs any routes. If dial-on-demand is enabled, nothing else
+happens until there is outgoing traffic. Otherwise, the lower layers
+are opened as well in order to establish a connection.
+
+<tag>bund</tag>
+Bundle layer. This layer represents the multi-link bundle ``virtual
+link'' and is normally opened and closed automatically by the
+interface layer.
+
+<tag>ipcp</tag>
+
+IP control protocol FSM. This is normally opened and closed automatically.
+
+<tag>ccp</tag>
+
+Compression control protocol FSM.
+This is normally opened and closed automatically.
+
+<tag>lcp</tag>
+
+Link control protocol FSM.
+This is normally opened and closed automatically.
+
+<tag>phys</tag>
+
+Device layer.
+This is normally opened and closed automatically.
+
+</descrip>
+
+Normally, only the <tt>iface</tt> layer should be explicitly
+opened or closed. This is because the other layers are programmed
+to automatically open and close when appropriate. Note that
+the <bf>SIGUSR1</bf> and <bf>SIGUSR2</bf> signals are an alternative
+way to open and close the currently active bundle.
+
+<tag><tt>close [ <em>layer</em> ] </tt>
+</tag>
+
+This command causes a CLOSE event to be sent to the corresponding
+layer or finite state machine (FSM).
+
+<tag><tt>log [ <em>+/-flag ...</em> ] </tt>
+</tag>
+
+Mpd supports several different logging flags. Every line logged by mpd is
+tagged with one (or more) of these flags. By turning the flags on or off,
+that particular type of logging is enabled or disabled. This allows you
+to customize logging verbosity.
+
+Without any arguments, the <tt>log</tt> command shows the current
+set of logging flags.
+To enable a logging flag, add the <tt>+<em>flag</em></tt> argument.
+To disable a logging flag, add the <tt>-<em>flag</em></tt> argument.
+
+These are the various flags supported by mpd and their corresponding
+categories. Those with a * are turned on by default:
+
+<descrip>
+<tag>auth*</tag>	Link authentication events
+<tag>bund*</tag>	Bundle layer events
+<tag>ccp</tag>		Compression events and negotiation
+<tag>ccp2</tag>		Compression more verbosity
+<tag>ccp3</tag>		Compression even more verbosity
+<tag>chat*</tag>	Modem chat script
+<tag>chat2</tag>	Modem chat script more verbosity. Very useful when
+			debugging chat scripts.
+<tag>console*</tag>	Log to the console as well as the log file
+<tag>echo</tag>		Echo/reply packets for all FSM's
+<tag>frame</tag>	Dump all frames transmitted and received
+<tag>fsm*</tag>		All FSM events (except echo and resets)
+<tag>iface*</tag>	Interface layer events
+<tag>ipcp*</tag>	IP control protocol events and negotiation
+<tag>lcp*</tag>		Link control protocol events and negotiation
+<tag>link*</tag>	Link layer events
+<tag>mp</tag>		Multi-link events and negotiation
+<tag>mp2</tag>		Multi-link more verbosity
+<tag>phys*</tag>	Device layer events
+<tag>pptp*</tag>	PPTP device layer high level events
+<tag>pptp2</tag>	PPTP more verbosity
+<tag>pptp3</tag>	PPTP even more verbosity
+</descrip>
+
+<tag><tt>help [ <em>command</em> ] </tt>
+</tag>
+
+This gives a brief description of the supplied command, or if
+an incomplete command is given, lists the available alternatives.
+
+<tag><tt>null</tt>
+</tag>
+
+This command does nothing.
+
+<tag><tt>exit</tt>
+</tag>
+
+This command exits the console, but does not quit the mpd process.
+This command is useful for disconnecting a telnet connection.
+
+<tag><tt>quit</tt>
+</tag>
+
+Close down all connections and quit the mpd process.
+
+</descrip>
+
+</p>
+

@@ -1,0 +1,30 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>UDP device type commands<label id="udp"></heading>
+
+  <p>
+  This chapter describes commands that are specific to UDP type links.
+  These commands apply to the currently active link, and are only
+  valid if the currently active link has type <bf>udp</bf>.
+
+<descrip>
+
+<tag><tt>
+set udp self <em>ipaddr</em> [ <em>port</em> ]
+</tt></tag>
+
+Sets the local IP address and port for the UDP connection.
+If none is specified, any suitable local IP address is used.
+
+<tag><tt>
+set udp peer <em>ipaddr</em> [ <em>port</em> ]
+</tt></tag>
+
+Sets the peer IP address and port for the UDP connection.
+If none is specified, any peer may talk to us.
+
+</descrip>
+

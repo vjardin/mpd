@@ -1,0 +1,193 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Bundle layer commands<label id="bundle"></heading>
+
+<p>
+
+  This chapter describes commands that configure the bundle layer.
+  All of these commands (except <bf><tt>new</tt></bf>)
+  apply to the currently active bundle, i.e.,
+  the bundle shown at the command line prompt.
+
+<descrip>
+
+<tag><tt>new </tt>[<tt> -i <em>iface</em> </tt>]<tt> 
+ <em>bundle</em> <em>link1</em> 
+ </tt>[<tt> <em>link2</em> </tt> ... ]
+</tag>
+
+This command creates a new bundle named <tt><em>bundle</em></tt>.
+The bundle will be associated with system interface
+<tt><em>iface</em></tt>, which should be the name of a netgraph
+interface, i.e., <tt>ng0</tt>, <tt>ng1</tt>, etc.  If an interface
+is specified but does not exist yet, mpd will create it (and any
+lower numbered <tt>ng*</tt> interfaces as well).  If no
+<tt><em>iface</em></tt> is specified, mpd will create a new one.
+Specifying an interface explicitly is advised, as otherwise a
+new interface will be created on your system every time mpd is
+invoked.
+
+The links that constitute the bundle are created and named
+<tt><em>link1</em></tt>, <tt><em>link2</em></tt>, etc.  For each
+link, there must be a corresponding entry with the same name (i.e.,
+label) in <tt>mpd.links</tt>. This entry must at the very least
+define the type of the link (via the <tt>set link type</tt> command).
+
+<tag><tt>
+set bundle period <em>seconds</em>
+<newline>set bundle hiwat <em>percent</em>
+<newline>set bundle lowat <em>percent</em>
+<newline>set bundle min-con <em>seconds</em>
+<newline>set bundle min-dis <em>seconds</em>
+</tt></tag>
+
+These commands are only meaningful when bandwidth management is enabled.
+Mpd will attempt to bring up a new link or take down an existing link
+when the utilization goes above <tt><em>hiwat</em></tt> or
+below <tt><em>lowat</em></tt> percent, respectively. The utilization is
+sampled every <tt><em>lowat</em></tt> divided by 6 seconds, and
+is averaged over the past <tt><em>lowat</em></tt> seconds.
+
+Mpd will not attempt to reconnect a link unless it has been disconnected
+for at least <tt><em>min-dis</em></tt> seconds. Similarly, mpd will
+not bring down a link unless it has stayed connected for at least
+<tt><em>min-con</em></tt> seconds. These latter two parameters
+help prevent oscillations, but cause slower response time.
+
+<tag><tt>
+set bundle authname <em>login</em>
+</tt></tag>
+
+This command sets the authentication login name associated with
+the bundle (in multi-link PPP, though each link is authenticated
+individually, they all must use the same login name). The
+<tt><em>login</em></tt> must have a corresponding entry in
+<tt>mpd.secrets</tt>. The <tt><em>login</em></tt> and password
+are used when the peer requires us to authenticate ourselves.
+
+<tag><tt>
+set bundle password <em>password</em>
+</tt></tag>
+
+This command is normally not necessary. It causes mpd to <em>not</em>
+lookup the password corresponding to
+<tt><em>login</em></tt> in <tt>mpd.secrets</tt>, but rather to use
+<tt><em>password</em></tt> instead. If you're too lazy to set up
+<tt>mpd.secrets</tt> and are only dialing out, you can use this
+command instead.
+
+<tag><tt>
+set bundle retry <em>seconds</em>
+</tt></tag>
+
+This sets the finite state machine (FSM) retry interval for all
+FSM's on this bundle. The default is 2 seconds. This command
+should only be used in exceptional situations, such as doing
+PPP over high-latency satellite links.
+
+<tag><tt>
+set bundle accept <em>option ...</em>
+<newline>set bundle deny <em>option ...</em>
+<newline>set bundle enable <em>option ...</em>
+<newline>set bundle disable <em>option ...</em>
+<newline>set bundle yes <em>option ...</em>
+<newline>set bundle no <em>option ...</em>
+</tt></tag>
+
+These commands configure various bundle options. Most options 
+are <em>bi-directional</em> in that they can be independently
+enabled and disabled in each direction.
+
+<p>
+The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands determine
+whether we want the corresponding option.
+The <tt><bf>accept</bf></tt> and <tt><bf>deny</bf></tt> commands determine
+whether we will allow the peer to request the corresponding option.
+
+<p>
+The <bf><tt>yes</tt></bf> command is the same as
+<tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
+The <bf><tt>no</tt></bf> command is the same as
+<tt><bf>disable</bf></tt> and <tt><bf>deny</bf></tt>.
+
+</descrip>
+
+<p>
+The options available at the bundle layer are:
+
+<descrip>
+
+<tag><tt>bw-manage</tt></tag>
+
+This command enables <em>bandwidth management</em>, in which mpd attempts
+to dynamically adjust the number of connected links depending on the
+traffic load.
+
+The proper functioning of bandwidth management depends on the correct
+latency and bandwidth information configured for each link; see the
+<tt><bf>set link latency</bf></tt> and <tt><bf>set link bandwidth</bf></tt>
+commands.
+
+The default for this option is off -- mpd connects the links ``all or none.''
+
+<tag><tt>multilink</tt></tag>
+
+This command enables multi-link PPP on the bundle. This option is required
+in both directions if there is more than one link in the bundle. However,
+multi-link PPP is sometimes useful on single links when the link MTU is
+low; multi-link PPP allows arbitrarily long packets to go over a link
+in fragments.
+
+This option defaults to <tt>enable</tt> and <tt>accept</tt> unless
+there is only one link in the bundle, in which case it defaults to
+<tt>disable</tt> and <tt>deny</tt> (i.e., normal non-multilink PPP).
+
+<tag><tt>shortseq</tt></tag>
+
+This option is only meaningful if multi-link PPP is negotiated.
+It proscribes shorter multi-link fragment headers,
+saving two bytes on every frame. It defaults to
+<tt>enable</tt> and <tt>accept</tt>.
+
+<tag><tt>compression</tt></tag>
+
+When compression support is compiled into mpd, this option must
+be enabled in order to activate it.
+
+<tag><tt>encryption</tt></tag>
+
+When encryption support is compiled into mpd, this option must
+be enabled in order to activate it.
+
+<tag><tt>crypt-reqd</tt></tag>
+
+Require encryption.
+When encryption support is compiled into mpd, this option
+causes mpd to drop the link if encryption cannot be succesfully
+negotiated in both directions. This means in effect, ``use encryption
+or don't connect at all.''
+
+<tag><tt>round-robin</tt></tag>
+
+When multilink PPP is enabled and there are two or more links
+connected, this option enables round robin packet scheduling
+across the links.  That is, instead of breaking each packet
+into fragments and delivering the individual fragments over
+all the links in the bundle, each packet is delivered whole
+over single link.  The link is chosen by rotating in round-robin
+fashion over all the links in the bundle.
+
+This option normally would result in less throughput; however,
+it may help in certain situations of high packet loss or
+broken peer equipment.
+
+The default for this option is off.
+
+</descrip>
+
+
+</p>
+

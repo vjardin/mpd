@@ -1,0 +1,41 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>PPPoE device type commands<label id="pppoe"></heading>
+
+  <p>
+  This chapter describes commands that are specific to PPPoE type links.
+  These commands apply to the currently active link, and are only
+  valid if the currently active link has type <bf>pppoe</bf>.
+
+  Right now the PPPoE layer only works in client mode. That is,
+  you can connect to a PPPoE server, but cannot act as a server yet.
+  Also, your kernel must be compiled with ``options NETGRAPH'' to
+  netgraph-enable the Ethernet interfaces (if your system is new enough
+  to have the <tt>/modules/ng_ether.ko</tt> KLD installed, then
+  this is no longer true; you only need load the KLD).
+
+  PPPoE requires two pieces of configuration information: the name
+  of the Ethernet interface to use, and a service name, which should
+  be supplied by your ISP. If you do not have a service name, then
+  the empty string (the default) often suffices.
+
+<descrip>
+
+<tag><tt>
+set pppoe iface <em>interface-name</em>
+</tt></tag>
+
+Set the name of the Ethernet interface to use. PPPoE does
+not affect normal use of the interface.
+
+<tag><tt>
+set pppoe service <em>service-name</em>
+</tt></tag>
+
+Sets the requested PPPoE service name.
+
+</descrip>
+
