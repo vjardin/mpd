@@ -129,6 +129,7 @@ UdpOpen(PhysInfo p)
 
   /* Bind socket */
   memset(&addr, 0, sizeof(addr));
+  addr.sin_len = sizeof(addr);
   addr.sin_family = AF_INET;
   addr.sin_addr = udp->self_addr;
   addr.sin_port = htons(udp->self_port);
@@ -144,11 +145,13 @@ UdpOpen(PhysInfo p)
   /* Connect socket if peer address and port is specified */
   if (udp->peer_addr.s_addr != 0 && udp->peer_port != 0) {
     memset(&addr, 0, sizeof(addr));
+    addr.sin_len = sizeof(addr);
     addr.sin_family = AF_INET;
     addr.sin_addr = udp->peer_addr;
     addr.sin_port = htons(udp->peer_port);
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
-	NGM_KSOCKET_CONNECT, &addr, sizeof(addr)) < 0) {
+	NGM_KSOCKET_CONNECT, &addr, sizeof(addr)) < 0
+        && errno != EINPROGRESS) {	/* happens in -current (weird) */
       Log(LG_PHYS, ("[%s] can't connect %s node: %s",
 	lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
       UdpDoClose(udp);
