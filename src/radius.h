@@ -1,9 +1,8 @@
-
 /*
- * radius.h
+ * See ``COPYRIGHT.mpd''
  *
- * Written by Michael Bretterklieber <michael@bretterklieber.com>
- * Written by Brendan Bank <brendan@gnarst.net>
+ * $Id$
+ *
  */
 
 #include "ppp.h"
@@ -35,6 +34,14 @@
 
 #ifndef RAD_ACCT_INTERIM_INTERVAL
 #define RAD_ACCT_INTERIM_INTERVAL 85
+#endif
+
+#ifndef RAD_EAP_MESSAGE
+#define RAD_EAP_MESSAGE 79
+#endif
+
+#ifndef RAD_MESSAGE_AUTHENTIC
+#define RAD_MESSAGE_AUTHENTIC 80
 #endif
 
 /* for mppe-keys */

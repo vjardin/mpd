@@ -97,6 +97,7 @@
     { 1,	LINK_CONF_CHAPMSv1,	"chap-msv1"	},
     { 1,	LINK_CONF_CHAPMSv2,	"chap-msv2"	},
     { 1,	LINK_CONF_EAP,		"eap"		},
+    { 1,	LINK_CONF_EAP_RADIUS,	"eap-radius"	},
     { 1,	LINK_CONF_ACFCOMP,	"acfcomp"	},
     { 1,	LINK_CONF_PROTOCOMP,	"protocomp"	},
     { 0,	LINK_CONF_MAGICNUM,	"magicnum"	},

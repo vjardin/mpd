@@ -1,8 +1,8 @@
 /*
- * radius.c
+ * See ``COPYRIGHT.mpd''
  *
- * Written by Michael Bretterklieber <michael@bretterklieber.com>
- * Written by Brendan Bank <brendan@gnarst.net>
+ * $Id$
+ *
  */
 
 #include "radius.h"
@@ -328,6 +328,17 @@ int RadiusStart(short request_type)
     }
   }
 
+  /* insert the Message Authenticator RFC 3579
+   * This is just a dummy attribute, libradius calculates the HMAC-MD5
+   * implicitely, if this attribute was set
+   */
+  if (rad_put_int(rad->radh, RAD_MESSAGE_AUTHENTIC, 0) == -1) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_MESSAGE_AUTHENTIC) failed %s", lnk->name,
+      function, rad_strerror(rad->radh)));
+    RadiusClose();
+    return (RAD_NACK);
+  }
+
   if (rad_put_int(rad->radh, RAD_NAS_PORT, GetLinkID()) == -1)  {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT) failed %s", lnk->name,
       function, rad_strerror(rad->radh)));
@@ -352,7 +363,7 @@ int RadiusStart(short request_type)
   if (rad_put_int(rad->radh, RAD_FRAMED_PROTOCOL, RAD_PPP) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_FRAMED_PROTOCOL) failed %s", lnk->name,
       function, rad_strerror(rad->radh)));
-    RadiusClose();    
+    RadiusClose();
     return (RAD_NACK);
   }
 
