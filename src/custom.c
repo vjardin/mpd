@@ -138,6 +138,9 @@ RecordLinkUpDownReason(Link l, int up, const char *key, const char *fmt, ...)
   va_list	args;
   int		k;
 
+  if (!bund)
+    return;
+
   va_start(args, fmt);
   if (l == NULL) {
     for (k = 0; k < bund->n_links; k++) {
