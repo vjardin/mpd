@@ -47,16 +47,16 @@
 void
 LengthenArray(void *array, int esize, int *alenp, int type)
 {
-	void **const arrayp = (void **)array;
-	void *newa;
+  void **const arrayp = (void **)array;
+  void *newa;
 
-	newa = Malloc(type, (*alenp + 1) * esize);
-	if (*arrayp != NULL) {
-		memcpy(newa, *arrayp, *alenp * esize);
-		Freee(*arrayp);
-	}
-	*arrayp = newa;
-	(*alenp)++;
+  newa = Malloc(type, (*alenp + 1) * esize);
+  if (*arrayp != NULL) {
+    memcpy(newa, *arrayp, *alenp * esize);
+    Freee(*arrayp);
+  }
+  *arrayp = newa;
+  (*alenp)++;
 }
 
 /*
