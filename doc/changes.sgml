@@ -6,6 +6,39 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.13:
+    <itemize>
+    <item>More RADIUS fixes from Michael Bretterklieber
+    <tt><htmlurl url='mailto:mbretter@jawa.at' name='&lt;mbretter@jawa.at&gt;'></tt>:
+    <itemize>
+    	<item>Fixed MPPE-Types negotiation.</item>
+    	<item>Session time is now calculated per link.</item>
+    	<item>Use RAD_FRAMED_ROUTE attribute.</item>
+    	<item>When no MPPE-Info's are returned by the server, but
+		MPPE-Keys are, then implicitely allow encryption with
+		all types (workaround for Microsoft IAS).</item>
+    </itemize>
+    </item>
+    <item>Reset link statistics when the link goes down</item>
+    <item><tt>set iface radius-route</tt> option added.
+    Submitted by Alexander Motin
+    <tt><htmlurl url='mailto:mav@alkar.net' name='&lt;mav@alkar.net&gt;'></tt>.
+    </item>
+    <item>DNS servers added to interface up script.
+    Submitted by Josh Elsasser
+    <tt><htmlurl url='mailto:jre@vineyard.net' name='&lt;jre@vineyard.net&gt;'></tt>.
+    </item>
+    <item>Fix bug in multi-session PPPoE support caused by incorrect
+	application of the original patch. Submitted by OGAWA Takaya
+    <tt><htmlurl url='mailto:t-ogawa@triaez.kaisei.org' name='&lt;t-ogawa@triaez.kaisei.org&gt;'></tt>.
+    </item>
+    <item>Fix problem where IP address assignment from <tt>mpd.secrets</tt>
+	would linger and affect subsequent connections on the same bundle.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.12:
     <itemize>
     <item>Support for PPPoE node re-use added. Patch submitted by

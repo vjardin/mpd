@@ -115,6 +115,9 @@
     struct in_range	peer_allow;	/* Range from /etc/ppp/secrets */
     struct discrim	peer_discrim;
     char		peer_authname[AUTH_MAX_AUTHNAME];
+    
+    /* some Infos needed for RADIUS */
+    struct radius_linkinfo	radius;
   };
 
 /*

@@ -345,12 +345,16 @@ PptpKillNode(PptpInfo pptp)
  * PptpGetPeerIp()
  */
 
-struct in_addr
+struct in_addr *
 PptpGetPeerIp(void)
 {
   PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
 
-  return(pptp->peer_addr);
+  if (lnk->phys->type == &gPptpPhysType) {
+     return(&(pptp->peer_addr));
+  } else {
+     return((struct in_addr *)NULL);
+  };
 }
 
 /*

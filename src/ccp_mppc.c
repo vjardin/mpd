@@ -56,6 +56,7 @@
   static void	MppeInitKeyv2(MppcInfo mppc, int dir);
   static int	MppeGetKeyInfov2(char **secretp, u_char **responsep);
   static short	MppcEnabledMppeType(short type);
+  static short	MppcAcceptableMppeType(short type);  
 
 #ifdef DEBUG_KEYS
   static void	KeyDebug(const u_char *data, int len, const char *fmt, ...);
@@ -351,13 +352,13 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 #ifdef ENCRYPTION_MPPE
 
       /* Check encryption */
-      if ((bits & MPPE_40) && !Acceptable(&ccp->options, gMppe40))
+      if ((bits & MPPE_40) && !MppcAcceptableMppeType(40))
 	bits &= ~MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-      if ((bits & MPPE_56) && !Acceptable(&ccp->options, gMppe56))
+      if ((bits & MPPE_56) && !MppcAcceptableMppeType(56))
 #endif
 	bits &= ~MPPE_56;
-      if ((bits & MPPE_128) && !Acceptable(&ccp->options, gMppe128))
+      if ((bits & MPPE_128) && !MppcAcceptableMppeType(128))
 	bits &= ~MPPE_128;
 
       /* Choose the strongest encryption available */
@@ -467,22 +468,25 @@ MppcEnabledMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
   struct radius	*rad = &bund->radius;
-  
+  short		ret, radius = FALSE;
+ 
   switch (type) {
   case 40:
     if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
-      return (rad->mppe.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
+      radius = TRUE;
+      ret = (rad->mppe.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
-      return Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
+      ret = Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
     }
     break;
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
     if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
-      return (rad->mppe.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
+      radius = TRUE;    
+      ret = (rad->mppe.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
-      return Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
+      ret = Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
     }
 
     break;
@@ -491,14 +495,61 @@ MppcEnabledMppeType(short type)
   case 128:
   default:
     if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
-      return (rad->mppe.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
+      radius = TRUE;    
+      ret = (rad->mppe.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
-      return Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
+      ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
+    }
+  }
+  Log(LG_CCP, ("[%s] CCP: Checking wether %d bits are enabled -> %s%s", 
+    lnk->name, type, ret ? "yes" : "no", radius ? " (RADIUS)" : "" ));
+  return ret;
+}
+
+static short
+MppcAcceptableMppeType(short type)
+{
+  CcpState	const ccp = &bund->ccp;
+  struct radius	*rad = &bund->radius;
+  short		ret, radius = FALSE;
+  
+  switch (type) {
+  case 40:
+    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+      radius = TRUE;
+      ret = rad->mppe.types & MPPE_TYPE_40BIT;
+    } else {
+      ret = Acceptable(&ccp->options, gMppe40);
+    }
+    break;
+
+#ifndef MPPE_56_UNSUPPORTED
+  case 56:
+    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+      radius = TRUE;
+      ret = rad->mppe.types & MPPE_TYPE_56BIT;
+    } else {
+      ret = Acceptable(&ccp->options, gMppe56);
+    }
+
+    break;
+#endif
+      
+  case 128:
+  default:
+    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+      radius = TRUE;    
+      ret = rad->mppe.types & MPPE_TYPE_128BIT;
+    } else {
+      ret = Acceptable(&ccp->options, gMppe128);
     }
   }
 
-}
+  Log(LG_CCP, ("[%s] CCP: Checking wether %d bits are acceptable -> %s%s", 
+    lnk->name, type, ret ? "yes" : "no", radius ? " (RADIUS)" : "" ));
+  return ret;
 
+}
 #ifdef ENCRYPTION_MPPE
 
 #define KEYLEN(b)	(((b) & MPPE_128) ? 16 : 8)

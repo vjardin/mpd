@@ -50,6 +50,7 @@
     IFACE_CONF_PROXY,
     IFACE_CONF_RADIUSMTU,
     IFACE_CONF_RADIUSIDLE,
+    IFACE_CONF_RADIUSROUTE,
   };
 
 /*
@@ -100,6 +101,7 @@
     { 0,	IFACE_CONF_PROXY,	"proxy-arp"	},
     { 0,	IFACE_CONF_RADIUSMTU,	"radius-mtu"	},
     { 0,	IFACE_CONF_RADIUSIDLE,	"radius-idle"	},        
+    { 0,	IFACE_CONF_RADIUSROUTE,	"radius-route"	},
     { 0,	0,			NULL		},
   };
 
@@ -286,9 +288,6 @@ IfaceDown(void)
   TimerStop(&iface->idleTimer);
   if (!iface->open)
     return;
-    
-  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) 
-    RadiusDown();
 
   /* If dial-on-demand, this is OK; just listen for future demand */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
@@ -357,7 +356,7 @@ static void
 IfaceIpIfaceUp(int ready)
 {
   IfaceState		const iface = &bund->iface;
-  int			k;
+  int			k,i;
   struct sockaddr_dl	hwa;
   char			hisaddr[20];
   u_char		*ether;
@@ -400,6 +399,15 @@ IfaceIpIfaceUp(int ready)
   /* Add loopback route */
   ExecCmd(LG_IFACE, "%s add %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
+
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE) && (bund->radius.n_routes > 0)) {
+    bund->radius.was_n_routes = iface->n_routes;
+    for (i=0; (i < bund->radius.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
+      memcpy(&(iface->routes[iface->n_routes++]), &(bund->radius.routes[i]), sizeof(struct ifaceroute));
+    };
+    Log(LG_IFACE, ("[%s] IFACE: using %d RADIUS routes", 
+      bund->name, bund->radius.n_routes));
+  }
   
   /* Add routes */
   for (k = 0; k < iface->n_routes; k++) {
@@ -496,6 +504,10 @@ IfaceIpIfaceDown(void)
       PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf);
     r->ok = 0;
   }
+
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE) && (bund->radius.n_routes > 0)) {
+    iface->n_routes = bund->radius.was_n_routes;
+  };
 
   /* Delete loopback route */
   ExecCmd(LG_IFACE, "%s delete %s -iface lo0",
@@ -919,18 +931,15 @@ IfaceSetMTU(int mtu, int speed)
     DoExit(EX_ERRDEAD);
   }
 
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSMTU) && rad->valid && (rad->mtu > 0)) {
+    mtu = rad->mtu;
+    Log(LG_IFACE, ("[%s] IFACE: using RADIUS mtu: %d", 
+      bund->name, mtu));
+  }
+
   /* Limit MTU to configured maximum */
   if (mtu > iface->max_mtu) {
-  
-    if (Enabled(&iface->options, IFACE_CONF_RADIUSMTU) && rad->valid && (rad->mtu > 0)) {
-      mtu = rad->mtu;
-      Log(LG_IFACE, ("[%s] IFACE: using RADIUS mtu: %d", 
-        bund->name, mtu));
-        
-    } else {
       mtu = iface->max_mtu;
-    }
-    
   }
 
   /* Set MTU on interface */

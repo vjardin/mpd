@@ -87,6 +87,8 @@ of dropped packets.
 
 When enabled, MPPE types (40, 56 or 128 bit) and MPPE policies (whether 
 encryption is required or optional) are controlled by the RADIUS server.
+In order to get MPPE to work you have also to enable mppc in
+<tt>mpd.conf</tt>.
 
 </descrip>
 

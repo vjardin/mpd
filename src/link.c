@@ -157,6 +157,7 @@ LinkMsg(int type, void *arg)
   switch (type) {
     case MSG_OPEN:
       lnk->num_redial = 0;
+      lnk->radius.authentic = 0;
       LcpOpen();
       break;
     case MSG_CLOSE:
@@ -170,6 +171,8 @@ LinkMsg(int type, void *arg)
       break;
     case MSG_DOWN:
       LcpDown();
+      /* reset Link-stats */
+      NgFuncGetStats(lnk->bundleIndex, TRUE, NULL);
       if (OPEN_STATE(lnk->lcp.fsm.state)) {
 	if (lnk->conf.max_redial == -1) {
 	  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);

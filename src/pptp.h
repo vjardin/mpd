@@ -25,7 +25,7 @@
  * FUNCTIONS
  */
 
-  extern struct in_addr		PptpGetPeerIp(void);
+  extern struct in_addr		*PptpGetPeerIp(void);
 
 #endif
 

@@ -213,15 +213,11 @@ to authenticate using the traditional method using <tt>mpd.secrets</tt>.
 
 Enable accounting via RADIUS. Accounting is implemented at bundle-level  
 (in BundJoin() and BundLeave()). Accounting is done per link.
-The session-id has the format <tt>authname:PID-bundlename:linkname</tt>,
-while the multi-session-id has the format <tt>authname:PID-bundlename</tt>,.
-This information is useful if you would like to make reports from the
-accounting log file of the RADIUS server.
 There are some minor problems:
 
 <itemize>
 <item>If user enters <tt>quit</tt> on the console, Account-stop will not be sent.</item>
-<item>If CCP fails but is required, Account-start will sent, but no Account-stop.</item>
+<item>If CCP fails but is required, Account-start and Account-stop are sent, but they shouldn't be.</item>
 <item>The session time is not calculated per link; it's the same for all links</item>
 </itemize>
 
@@ -233,6 +229,7 @@ The following attributes are set when doing accounting requests:
 <newline>RAD_ACCT_STATUS_TYPE
 <newline>RAD_ACCT_SESSION_ID
 <newline>RAD_ACCT_MULTI_SESSION_ID
+<newline>RAD_USER_NAME
 <newline>RAD_ACCT_LINK_COUNT
 <newline>RAD_ACCT_AUTHENTIC
 <newline>RAD_ACCT_TERMINATE_CAUSE

@@ -297,14 +297,18 @@ radius:
 	set radius retries 3
 	set radius timeout 3
 	set radius server localhost testing123 1812 1813
+# send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server.
+	set radius me 1.1.1.1
 # let the RADIUS server assign the IP
 	set ipcp enable radius-ip
 # enable RADIUS, and fallback to mpd.secret, if RADIUS auth failed
 	set bundle enable radius-auth radius-fallback
 # enable RADIUS accounting
 	set bundle enable radius-acct
-# use idle-timeout, mtu, and routes list from the RADIUS server
+# use idle-timeout, routes list and mtu from the RADIUS server
 	set iface enable radius-idle radius-mtu radius-route
-# let the RADIUS server assign MPPE-types and MPPE-policies
+# activate MPPE and let the RADIUS server assign MPPE-types and MPPE-policies
+	set bundle enable compression
+	set ccp yes mppc
 	set ccp enable radius
 

@@ -294,6 +294,10 @@ BundLeave(void)
 
   /* Special stuff when last link goes down... */
   if (bm->n_up == 0) {
+  
+    if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH) || 
+        Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
+      RadiusDown();
 
     /* Reset statistics and auth information */
     BundBmStop();

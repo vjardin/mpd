@@ -130,6 +130,8 @@ Set the number of retries for RADIUS requests.
 <tag><tt>set radius config <em>pathname</em></tt></tag>
 Set the pathname to the <tt>radius.conf(5)</tt>, if different
 from the default <tt>/etc/radius.conf</tt>.
+<tag><tt>set radius me <em>IP</em></tt></tag>
+Send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server.
 </descrip>
 <tag><tt>set debug ...<em>level</em></tt></tag>
 Sets the <tt>netgraph(3)</tt> debugging level. Default is zero.

@@ -2,7 +2,7 @@
 /*
  * radius.h
  *
- * Written by Michael Bretterklieber <mbretter@inode.at>
+ * Written by Michael Bretterklieber <mbretter@jawa.at>
  * Written by Brendan Bank <brendan@gnarst.net>
  */
 
@@ -33,6 +33,9 @@
 #define MPPE_TYPE_40BIT		2
 #define MPPE_TYPE_128BIT	4
 #define MPPE_TYPE_56BIT		8
+
+/* max. length of RAD_ACCT_SESSION_ID, RAD_ACCT_MULTI_SESSION_ID */
+#define RAD_ACCT_MAX_SESSIONID	256
 
 /*
  * FUNCTIONS
@@ -72,6 +75,7 @@ extern const	struct cmdtab RadiusSetCmds[];
   struct radiusconf {
     int		radius_timeout;
     int		radius_retries;
+    struct	in_addr radius_me;
     char	file[PATH_MAX];
     struct radiusserver_conf *server;
   };
@@ -80,14 +84,16 @@ extern const	struct cmdtab RadiusSetCmds[];
   struct radius {
     struct rad_handle	*radh;		/* RadLib Handle */
     short		valid;		/* Auth was successful */
+    short		auth_type;	/* PAP, CHAP, MS-CHAP */
     char		*reply_message;	/* Text wich may displayed to the user */
     char		authname[AUTH_MAX_AUTHNAME];
-    char		session_id[256];	/* Session-Id needed for accounting */
-    char		multi_session_id[256];	/* Multi-Session-Id needed for accounting */
-    time_t		acct_start;	/* Accounting start-time */
+    char		multi_session_id[RAD_ACCT_MAX_SESSIONID];	/* Multi-Session-Id needed for accounting */
     unsigned		vj:1;		/* FRAMED Compression */
     struct in_addr	ip;		/* FRAMED IP */
     struct in_addr	mask;	/* FRAMED Netmask */
+    short		was_n_routes;	/* Number of existing iface-routes */
+    short		n_routes;
+    struct ifaceroute	routes[IFACE_MAX_ROUTES];
     unsigned long	class;		/* Class */
     unsigned long	mtu;		/* FRAMED MTU */
     unsigned long	session_timeout;/* Session-Timeout */
@@ -111,6 +117,12 @@ extern const	struct cmdtab RadiusSetCmds[];
     }			mppe;
     struct radiusconf	conf;
   };
+  
+  struct radius_linkinfo {
+    int		authentic;	/* wether RADIUS authentication was used */
+    char	session_id[RAD_ACCT_MAX_SESSIONID];
+  };
+  typedef struct radius_linkinfo *RadLinkInfo;
 
   struct rad_chapvalue {
     u_char	ident;
