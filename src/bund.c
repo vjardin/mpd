@@ -261,9 +261,14 @@ BundJoin(void)
   /* Update PPP node configuration */
   NgFuncSetConfig();
   
-  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
+  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) {
     RadiusAccount(RAD_START);
-
+    if (bund->radius.conf.acct_update > 0) {
+      TimerInit(&lnk->radius.radUpdate, "RadiusAcctUpdate",
+	bund->radius.conf.acct_update * SECONDS, RadiusAcctUpdate, NULL);
+      TimerStart(&lnk->radius.radUpdate);
+    }
+  }
   /* Done */
   return(bm->n_up);
 }
@@ -283,8 +288,10 @@ BundLeave(void)
   assert(bm->n_up > 0);
   
   if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
+  {
+    TimerStop(&lnk->radius.radUpdate);
     RadiusAccount(RAD_STOP);
-
+  }
   BundReasses(0);
   
   /* Disable link */

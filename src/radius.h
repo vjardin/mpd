@@ -21,6 +21,10 @@
 #define RAD_NACK		0
 #define RAD_ACK			1
 
+#ifndef RAD_UPDATE
+#define RAD_UPDATE 3
+#endif
+
 /* for mppe-keys */
 #define AUTH_LEN		16
 #define SALT_LEN		2
@@ -59,6 +63,7 @@ extern void	RadiusSetAuth(AuthData auth);
 extern int	RadStat(int ac, char *av[], void *arg);
 extern void	RadiusDestroy(void);
 extern void	RadiusDown(void);
+extern void	RadiusAcctUpdate(void *a);
 
 extern const	struct cmdtab RadiusSetCmds[];
 
@@ -75,6 +80,7 @@ extern const	struct cmdtab RadiusSetCmds[];
   struct radiusconf {
     int		radius_timeout;
     int		radius_retries;
+    int 	acct_update;		/* Accounting Update Interval */
     struct	in_addr radius_me;
     char	file[PATH_MAX];
     struct radiusserver_conf *server;
@@ -119,8 +125,9 @@ extern const	struct cmdtab RadiusSetCmds[];
   };
   
   struct radius_linkinfo {
-    int		authentic;	/* wether RADIUS authentication was used */
-    char	session_id[RAD_ACCT_MAX_SESSIONID];
+    int			authentic;	/* wether RADIUS authentication was used */
+    char		session_id[RAD_ACCT_MAX_SESSIONID];
+    struct pppTimer 	radUpdate;	/* Accounting Update Timer */
   };
   typedef struct radius_linkinfo *RadLinkInfo;
 
@@ -159,5 +166,6 @@ extern const	struct cmdtab RadiusSetCmds[];
     short	chunk;
     u_char	data[129];
   };
-  
+
+
 #endif

@@ -37,7 +37,8 @@
     SET_ME,
     SET_TIMEOUT,
     SET_RETRIES,
-    SET_CONFIG
+    SET_CONFIG,
+    SET_UPDATE
   };
 
 /*
@@ -46,15 +47,17 @@
  
   const struct cmdtab RadiusSetCmds[] = { 
     { "server <name> <secret> [auth port] [acct port]", "Set radius server parameters" ,
-        RadiusSetCommand, NULL, (void *) SET_SERVER },
-    { "me <ip>", "Set NAS IP address" ,
-        RadiusSetCommand, NULL, (void *) SET_ME },
-    { "timeout <seconds>",                 "Set timeout in seconds",
-        RadiusSetCommand, NULL, (void *) SET_TIMEOUT },
-    { "retries <# retries>",                "set number of retries",
-        RadiusSetCommand, NULL, (void *) SET_RETRIES },
-    { "config <path to radius.conf>",    "set path to config file for libradius",
-        RadiusSetCommand, NULL, (void *) SET_CONFIG },
+	RadiusSetCommand, NULL, (void *) SET_SERVER },
+    { "me <ip>",			"Set NAS IP address" ,
+	RadiusSetCommand, NULL, (void *) SET_ME },
+    { "timeout <seconds>",		"Set timeout in seconds",
+	RadiusSetCommand, NULL, (void *) SET_TIMEOUT },
+    { "retries <# retries>",		"set number of retries",
+	RadiusSetCommand, NULL, (void *) SET_RETRIES },
+    { "config <path to radius.conf>",	"set path to config file for libradius",
+	RadiusSetCommand, NULL, (void *) SET_CONFIG },
+    { "acct-update <seconds>",		"set update interval",
+	RadiusSetCommand, NULL, (void *) SET_UPDATE },
     { NULL },
   };
   
@@ -76,101 +79,110 @@ RadiusSetCommand(int ac, char *av[], void *arg)
     switch ((int) arg) {
 
       case SET_SERVER:
-        if (ac > 4 || ac < 2) {
-          return(-1);
-        }
+	if (ac > 4 || ac < 2) {
+	  return(-1);
+	}
 
-        count = 0;
-        for ( t_server = conf->server ; t_server ;
-          t_server = t_server->next) {
-          count++;
-        }
-        if (count > RADIUS_MAX_SERVERS) {
-          Log(LG_RADIUS, ("[%s] %s: cannot configure more than %d servers",
-            lnk->name, function, RADIUS_MAX_SERVERS));
-          return (-1);
-        }
+	count = 0;
+	for ( t_server = conf->server ; t_server ;
+	  t_server = t_server->next) {
+	  count++;
+	}
+	if (count > RADIUS_MAX_SERVERS) {
+	  Log(LG_RADIUS, ("[%s] %s: cannot configure more than %d servers",
+	    lnk->name, function, RADIUS_MAX_SERVERS));
+	  return (-1);
+	}
 
-        server = Malloc(MB_RADIUS, sizeof(*server));
-        server->auth_port = 1812;
-        server->acct_port = 1813;
-        server->next = NULL;
+	server = Malloc(MB_RADIUS, sizeof(*server));
+	server->auth_port = 1812;
+	server->acct_port = 1813;
+	server->next = NULL;
 
-        if (strlen(av[0]) > 255) {
-          Log(LG_ERR, ("Hostname too long!. > 255 char."));
-          return(-1);
-        }
-        if (strlen(av[1]) > 127) {
-          Log(LG_ERR, ("Shared Secret too long! > 127 char."));
-          return(-1);
-        }
+	if (strlen(av[0]) > 255) {
+	  Log(LG_ERR, ("Hostname too long!. > 255 char."));
+	  return(-1);
+	}
 
-        if (ac > 2 && atoi(av[2]) < 65535 && atoi(av[2]) > 1) {
-          server->auth_port = atoi (av[2]);
+	if (strlen(av[1]) > 127) {
+	  Log(LG_ERR, ("Shared Secret too long! > 127 char."));
+	  return(-1);
+	}
 
-        } else if ( ac > 2 ) {
-          Log(LG_ERR, ("Auth Port number too high > 65535"));
-          return(-1);
-        }
+	if (ac > 2 && atoi(av[2]) < 65535 && atoi(av[2]) > 1) {
+	  server->auth_port = atoi (av[2]);
 
-        if (ac > 3 && atoi(av[3]) < 65535 && atoi(av[3]) > 1) {
-          server->acct_port = atoi (av[3]);
-        } else if ( ac > 3 ) {
-          Log(LG_ERR, ("Acct Port number too high > 65535"));
-          return(-1);
-        }
+	} else if ( ac > 2 ) {
+	  Log(LG_ERR, ("Auth Port number too high > 65535"));
+	  return(-1);
+	}
 
-        server->hostname = Malloc(MB_RADIUS, strlen(av[0]) + 1);
-        server->sharedsecret = Malloc(MB_RADIUS, strlen(av[1]) + 1);
+	if (ac > 3 && atoi(av[3]) < 65535 && atoi(av[3]) > 1) {
+	  server->acct_port = atoi (av[3]);
+	} else if ( ac > 3 ) {
+	  Log(LG_ERR, ("Acct Port number too high > 65535"));
+	  return(-1);
+	}
 
-        sprintf(server->hostname, "%s" , av[0]);
-        sprintf(server->sharedsecret, "%s" , av[1]);
+	server->hostname = Malloc(MB_RADIUS, strlen(av[0]) + 1);
+	server->sharedsecret = Malloc(MB_RADIUS, strlen(av[1]) + 1);
 
-        if (conf->server != NULL)
-          server->next = conf->server;
+	sprintf(server->hostname, "%s" , av[0]);
+	sprintf(server->sharedsecret, "%s" , av[1]);
 
-        conf->server = server;
+	if (conf->server != NULL)
+	  server->next = conf->server;
 
-        break;
+	conf->server = server;
+
+	break;
 
       case SET_ME:
 	val = inet_aton(*av, &(conf->radius_me));
 	  if (val == 0)
 	    Log(LG_ERR, ("Bad NAS address."));
-        break;
+	break;
 
       case SET_TIMEOUT:
-        val = atoi(*av);
-          if (val <= 0)
-            Log(LG_ERR, ("Timeout must be positive."));
-          else
-            conf->radius_timeout = val;
-        break;
+	val = atoi(*av);
+	  if (val <= 0)
+	    Log(LG_ERR, ("Timeout must be positive."));
+	  else
+	    conf->radius_timeout = val;
+	break;
+
+      case SET_UPDATE:
+	val = atoi(*av);
+	  if (val <= 0)
+	    Log(LG_ERR, ("Update interval must be positive."));
+	   else
+	     conf->acct_update = val;
+	break;
 
       case SET_RETRIES:
-        val = atoi(*av);
-        if (val <= 0)
-          Log(LG_ERR, ("Retries must be positive."));
-        else
-        conf->radius_retries = val;
-        break;
+	val = atoi(*av);
+	if (val <= 0)
+	  Log(LG_ERR, ("Retries must be positive."));
+	else
+	  conf->radius_retries = val;
+	break;
 
       case SET_CONFIG:
-        if (strlen(av[0]) > PATH_MAX)
-          Log(LG_ERR, (" PATH_MAX exceeded for config file."));
-        else
-          strcpy(conf->file, av[0]);
-        break;
+	if (strlen(av[0]) > PATH_MAX)
+	  Log(LG_ERR, (" PATH_MAX exceeded for config file."));
+	else
+	  strcpy(conf->file, av[0]);
+	break;
 
       default:
-        assert(0);
+	assert(0);
     }
 
     return 0;
 }
 
 int
-RadiusInit(short request_type) 
+RadiusInit(short request_type)
 {
   struct radius *rad = &bund->radius;
 
@@ -580,7 +592,9 @@ int RadiusSendRequest(void)
   struct timeval	tv;
   int 			fd, n;
 
+#ifdef DEBUG
   Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_init_send_request ...", lnk->name, function));
+#endif
   n = rad_init_send_request(rad->radh, &fd, &tv);
   if (n != 0) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_init_send_request failed: %d", lnk->name,
@@ -597,7 +611,9 @@ int RadiusSendRequest(void)
     FD_ZERO(&readfds);
     FD_SET(fd, &readfds);
 
+#ifdef DEBUG
     Log(LG_RADIUS, ("[%s] RADIUS: %s: selecting ...", lnk->name, function));
+#endif
     n = select(fd + 1, &readfds, NULL, NULL, &tv);
 
     if (n == -1) {
@@ -614,7 +630,9 @@ int RadiusSendRequest(void)
 	continue;
     }
 
+#ifdef DEBUG
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_continue_send_request ...", lnk->name, function));
+#endif
     n = rad_continue_send_request(rad->radh, n, &fd, &tv);
     if (n != 0)
       break;
@@ -824,165 +842,165 @@ RadiusGetParams()
         break;
 
       case RAD_FRAMED_MTU:
-        rad->mtu = rad_cvt_int(data);
+	rad->mtu = rad_cvt_int(data);
 	if (rad->mtu < IFACE_MIN_MTU || rad->mtu > IFACE_MAX_MTU) {
-          Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: invalid MTU: %lu ",
-            lnk->name, function, rad->mtu));
-          rad->mtu = 0;
-          break;
+	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: invalid MTU: %lu ",
+	    lnk->name, function, rad->mtu));
+	  rad->mtu = 0;
+	  break;
 	}
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: %lu ",
-          lnk->name, function, rad->mtu));
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: %lu ",
+	  lnk->name, function, rad->mtu));
         break;
 
       case RAD_FRAMED_COMPRESSION:
-        rad->vj = rad_cvt_int(data) == 1 ? 1 : 0;
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_COMPRESSION: %d ",
-          lnk->name, function, rad->vj));
+	rad->vj = rad_cvt_int(data) == 1 ? 1 : 0;
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_COMPRESSION: %d ",
+	  lnk->name, function, rad->vj));
         break;
 
       case RAD_FRAMED_PROTOCOL:
-        rad->protocol = rad_cvt_int(data);
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_PROTOCOL: %lu ",
-          lnk->name, function, rad->protocol));
+	rad->protocol = rad_cvt_int(data);
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_PROTOCOL: %lu ",
+	  lnk->name, function, rad->protocol));
         break;
 
       case RAD_SERVICE_TYPE:
-        rad->service_type = rad_cvt_int(data);
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_PROTOCOL: %lu ",
-          lnk->name, function, rad->service_type));
+	rad->service_type = rad_cvt_int(data);
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_PROTOCOL: %lu ",
+	  lnk->name, function, rad->service_type));
         break;
 
       case RAD_CLASS:
-        rad->class = rad_cvt_int(data);
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_CLASS: %lu ",
-          lnk->name, function, rad->class));
+	rad->class = rad_cvt_int(data);
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_CLASS: %lu ",
+	  lnk->name, function, rad->class));
         break;
-        
+
       case RAD_REPLY_MESSAGE:
-        free(rad->reply_message);
+	free(rad->reply_message);
 	rad->reply_message = rad_cvt_string(data, len);
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_REPLY_MESSAGE: %s ",
-          lnk->name, function, rad->reply_message));
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_REPLY_MESSAGE: %s ",
+	  lnk->name, function, rad->reply_message));
         break;
 
       case RAD_VENDOR_SPECIFIC:
-        if ((res = rad_get_vendor_attr(&vendor, &data, &len)) == -1) {
-          Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_get_vendor_attr failed: %s ",
-            lnk->name, function, rad_strerror(rad->radh)));
-          return RAD_NACK;
-        }
+	if ((res = rad_get_vendor_attr(&vendor, &data, &len)) == -1) {
+	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_get_vendor_attr failed: %s ",
+	    lnk->name, function, rad_strerror(rad->radh)));
+	  return RAD_NACK;
+	}
 
-        switch (vendor) {
+	switch (vendor) {
 
-          case RAD_VENDOR_MICROSOFT:
-            switch (res) {
+	  case RAD_VENDOR_MICROSOFT:
+	    switch (res) {
 
-              case RAD_MICROSOFT_MS_CHAP_ERROR:
-              	/* there is a nullbyte on the first pos, don't know why */
-                if (((const char *)data)[0] == '\0') {
+	      case RAD_MICROSOFT_MS_CHAP_ERROR:
+		/* there is a nullbyte on the first pos, don't know why */
+		if (((const char *)data)[0] == '\0') {
 		  ((const char *)data)++;
-                  len--;
-                }
+		  len--;
+		}
 		free(rad->mschap_error);
 		rad->mschap_error = rad_cvt_string(data, len);
-                
+
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: MS-CHAP-Error: %s",
 		  lnk->name, function, rad->mschap_error));
-                rad->valid = 0;
-                return RAD_NACK;
-                break;
+		rad->valid = 0;
+		return RAD_NACK;
+		break;
 
-              /* this was taken from userland ppp */
-              case RAD_MICROSOFT_MS_CHAP2_SUCCESS:
-                free(rad->mschapv2resp);
-                if (len == 0)
-                  rad->mschapv2resp = NULL;
-                else {
-                  if (len < 3 || ((const char *)data)[1] != '=') {
-                    /*
-                     * Only point at the String field if we don't think the
-                     * peer has misformatted the response.
-                     */
-                    ((const char *)data)++;
-                    len--;
-                  } else
-                    Log(LG_RADIUS, ("[%s] RADIUS: %s: Warning: The MS-CHAP2-Success attribute is mis-formatted. Compensating",
-                      lnk->name, function));
-                  if ((rad->mschapv2resp = rad_cvt_string((const char *)data, len)) == NULL) {
-                    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_cvt_string failed: %s",
-                      lnk->name, function, rad_strerror(rad->radh)));
-                    return RAD_NACK;
-                  }
-                  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP2_SUCCESS: %s",
-                      lnk->name, function, rad->mschapv2resp));
-                }
-                break;
-                
-              case RAD_MICROSOFT_MS_CHAP_DOMAIN:
+	      /* this was taken from userland ppp */
+	      case RAD_MICROSOFT_MS_CHAP2_SUCCESS:
+		free(rad->mschapv2resp);
+		if (len == 0)
+		  rad->mschapv2resp = NULL;
+		else {
+		  if (len < 3 || ((const char *)data)[1] != '=') {
+		    /*
+		     * Only point at the String field if we don't think the
+		     * peer has misformatted the response.
+		     */
+		    ((const char *)data)++;
+		    len--;
+		  } else
+		    Log(LG_RADIUS, ("[%s] RADIUS: %s: Warning: The MS-CHAP2-Success attribute is mis-formatted. Compensating",
+		      lnk->name, function));
+		    if ((rad->mschapv2resp = rad_cvt_string((const char *)data, len)) == NULL) {
+		    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_cvt_string failed: %s",
+		      lnk->name, function, rad_strerror(rad->radh)));
+		    return RAD_NACK;
+		  }
+		  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP2_SUCCESS: %s",
+		    lnk->name, function, rad->mschapv2resp));
+		}
+		break;
+
+	      case RAD_MICROSOFT_MS_CHAP_DOMAIN:
 		free(rad->msdomain);
 		rad->msdomain = rad_cvt_string(data, len);
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP_DOMAIN: %s",
 		  lnk->name, function, rad->msdomain));
-                break;
+		break;
 
               /* MPPE Keys MS-CHAPv2 */
-              case RAD_MICROSOFT_MS_MPPE_RECV_KEY:
+	      case RAD_MICROSOFT_MS_MPPE_RECV_KEY:
 		got_mppe_keys = TRUE;
-                Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_RECV_KEY",
-                  lnk->name, function));
+		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_RECV_KEY",
+		  lnk->name, function));
 		rad_demangle_mppe_key(rad->radh, data, len, rad->mppe.recvkey, &rad->mppe.recvkeylen);
-                break;
+		break;
 
-              case RAD_MICROSOFT_MS_MPPE_SEND_KEY:
+	      case RAD_MICROSOFT_MS_MPPE_SEND_KEY:
 		got_mppe_keys = TRUE;
-                Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_SEND_KEY",
-                  lnk->name, function));
-		rad_demangle_mppe_key(rad->radh, data, len, rad->mppe.sendkey, &rad->mppe.sendkeylen);                
-                break;
+		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_SEND_KEY",
+		  lnk->name, function));
+		rad_demangle_mppe_key(rad->radh, data, len, rad->mppe.sendkey, &rad->mppe.sendkeylen);
+		break;
 
               /* MPPE Keys MS-CHAPv1 */
-              case RAD_MICROSOFT_MS_CHAP_MPPE_KEYS:
+	      case RAD_MICROSOFT_MS_CHAP_MPPE_KEYS:
 		got_mppe_keys = TRUE;
-                Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP_MPPE_KEYS",
-                  lnk->name, function));
+		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP_MPPE_KEYS",
+		  lnk->name, function));
 
-                if (len != 32) {
-                  Log(LG_RADIUS, ("[%s] RADIUS: %s: Server returned garbage %d of expected %d Bytes",
-                    lnk->name, function, len, 32));
-                  return RAD_NACK;
-                }
-                
-                if (rad_demangle(rad->radh, data, len, rad->mppe.lm_key) == -1) {
-                  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_demangle failed: %s",
-                    lnk->name, function, rad_strerror(rad->radh)));
+		if (len != 32) {
+		  Log(LG_RADIUS, ("[%s] RADIUS: %s: Server returned garbage %d of expected %d Bytes",
+		    lnk->name, function, len, 32));
 		  return RAD_NACK;
-                }
-                break;
+		}
 
-              case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
-                rad->mppe.policy = rad_cvt_int(data);
-                Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY: %d (%s)",
-                  lnk->name, function, rad->mppe.policy, RadiusMPPEPolicyname(rad->mppe.policy)));
-                break;
+		if (rad_demangle(rad->radh, data, len, rad->mppe.lm_key) == -1) {
+		  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_demangle failed: %s",
+		    lnk->name, function, rad_strerror(rad->radh)));
+		  return RAD_NACK;
+		}
+		break;
 
-              case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES:
-                rad->mppe.types = rad_cvt_int(data);
-                Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES: %d (%s)",
-                  lnk->name, function, rad->mppe.types, RadiusMPPETypesname(rad->mppe.types)));
-                break;
+	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
+		rad->mppe.policy = rad_cvt_int(data);
+		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY: %d (%s)",
+		  lnk->name, function, rad->mppe.policy, RadiusMPPEPolicyname(rad->mppe.policy)));
+		break;
 
-              default:
-                Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping MICROSOFT vendor specific attribute: %d ",
-                  lnk->name, function, res));
-                break;
-            }
-        }
-        break;
+	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES:
+		rad->mppe.types = rad_cvt_int(data);
+		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES: %d (%s)",
+		  lnk->name, function, rad->mppe.types, RadiusMPPETypesname(rad->mppe.types)));
+		break;
+
+	      default:
+		Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping MICROSOFT vendor specific attribute: %d ",
+		  lnk->name, function, res));
+		break;
+	  }
+	}
+	break;
 
       default:
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping attribute: %d ", lnk->name, function, res));
-        break;
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping attribute: %d ", lnk->name, function, res));
+	break;
     }
   }
 
@@ -1013,6 +1031,20 @@ RadiusGetParams()
   return RAD_ACK;
 }
 
+void
+RadiusAcctUpdate(void *a)
+{
+  char  function[]	= "RadiusAcctUpdate";
+
+  Log(LG_RADIUS, ("[%s] RADIUS: %s: Sending Accounting Update",
+      lnk->name, function));
+
+  TimerStop(&lnk->radius.radUpdate);
+  RadiusAccount(RAD_UPDATE);
+  TimerStart(&lnk->radius.radUpdate);
+}
+
+
 int 
 RadiusAccount(short acct_type) 
 {
@@ -1037,7 +1069,7 @@ RadiusAccount(short acct_type)
   
   /* Grab some accounting data and initialize structure */
   if (acct_type == RAD_START) {
- 
+
     /* Generate a session ID */
     snprintf(lnk->radius.session_id, RAD_ACCT_MAX_SESSIONID, "%ld-%s",
       time(NULL) % 10000000, lnk->name);
@@ -1077,53 +1109,59 @@ RadiusAccount(short acct_type)
   }
 
   if (rad_put_int(rad->radh, RAD_ACCT_AUTHENTIC, authentic) != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_AUTHENTIC) failed: %s", lnk->name, function, 
-      rad_strerror(rad->radh)));
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_AUTHENTIC) failed: %s",
+      lnk->name, function, rad_strerror(rad->radh)));
     RadiusClose();    
     return RAD_NACK;
   }
 
-  if (acct_type == RAD_STOP) {
+  if (acct_type == RAD_STOP || acct_type == RAD_UPDATE) {
     struct ng_ppp_link_stat	stats;
     int				termCause = RAD_TERM_USER_REQUEST;
-    
-    if (lnk->downReason != NULL) {
-      if (!strncmp(lnk->downReason, STR_QUIT, strlen(lnk->downReason) - 1)) 
-	termCause = RAD_TERM_ADMIN_RESET;
-      if (!strncmp(lnk->downReason, STR_PEER_DISC, strlen(lnk->downReason) - 1)) 
-	termCause = RAD_TERM_USER_REQUEST;
-      if (!strncmp(lnk->downReason, STR_IDLE_TIMEOUT, strlen(lnk->downReason) - 1))
-	termCause = RAD_TERM_IDLE_TIMEOUT;
-      if (!strncmp(lnk->downReason, STR_SESSION_TIMEOUT, strlen(lnk->downReason) - 1))
-	termCause = RAD_TERM_SESSION_TIMEOUT;
-    }
 
-    if (rad_put_int(rad->radh, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_TERMINATE_CAUSE) failed: %s",
-	lnk->name, function, rad_strerror(rad->radh)));
-      RadiusClose();        
-      return RAD_NACK;
+    if (acct_type == RAD_STOP) {
+
+      if (lnk->downReason != NULL) {
+	if (!strncmp(lnk->downReason, STR_QUIT, strlen(lnk->downReason) - 1))
+	  termCause = RAD_TERM_ADMIN_RESET;
+	if (!strncmp(lnk->downReason, STR_PEER_DISC, strlen(lnk->downReason) - 1))
+	  termCause = RAD_TERM_USER_REQUEST;
+	if (!strncmp(lnk->downReason, STR_IDLE_TIMEOUT, strlen(lnk->downReason) - 1))
+	  termCause = RAD_TERM_IDLE_TIMEOUT;
+	if (!strncmp(lnk->downReason, STR_SESSION_TIMEOUT, strlen(lnk->downReason) - 1))
+	  termCause = RAD_TERM_SESSION_TIMEOUT;
+      }
+
+      if (rad_put_int(rad->radh, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_TERMINATE_CAUSE) failed: %s",
+	  lnk->name, function, rad_strerror(rad->radh)));
+	RadiusClose();
+	return RAD_NACK;
+      }
     }
 
     if (rad_put_int(rad->radh, RAD_ACCT_SESSION_TIME, time(NULL) - lnk->bm.last_open) != 0) {
 	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME) failed: %s",
 	  lnk->name, function, rad_strerror(rad->radh)));
-	RadiusClose();        
+	RadiusClose();
 	return RAD_NACK;
     }
-        
+
     if (NgFuncGetStats(lnk->bundleIndex, 0, &stats) >= 0) {
       if (rad_put_int(rad->radh, RAD_ACCT_INPUT_OCTETS, stats.recvOctets) != 0 ||
 	rad_put_int(rad->radh, RAD_ACCT_INPUT_PACKETS, stats.recvFrames) != 0 ||
 	rad_put_int(rad->radh, RAD_ACCT_OUTPUT_OCTETS, stats.xmitOctets) != 0 ||
 	rad_put_int(rad->radh, RAD_ACCT_OUTPUT_PACKETS, stats.xmitFrames) != 0) {
-	Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", lnk->name, function, rad_strerror(rad->radh)));
-	RadiusClose();        
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", lnk->name, function,
+	  rad_strerror(rad->radh)));
+	RadiusClose();
 	return RAD_NACK;
       }
     }
-  }  
-  Log(LG_RADIUS, ("[%s] RADIUS: %s: Sending accounting data (Type: %d)", lnk->name, function, acct_type));
+  }
+
+  Log(LG_RADIUS, ("[%s] RADIUS: %s: Sending accounting data (Type: %d)",
+    lnk->name, function, acct_type));
   if (RadiusSendRequest() == RAD_NACK) 
     return RAD_NACK;
 
@@ -1220,10 +1258,11 @@ RadStat(int ac, char *av[], void *arg)
   struct radius	*rad = &bund->radius;  
   int i;
 
-  printf("\tTimeout     : %d\n", conf->radius_timeout);
-  printf("\tRetries     : %d\n", conf->radius_retries);
-  printf("\tConfig-file : %s\n", conf->file);
-  printf("\tMe (NAS-IP) : %s\n", inet_ntoa(conf->radius_me));  
+  printf("\tTimeout      : %d\n", conf->radius_timeout);
+  printf("\tRetries      : %d\n", conf->radius_retries);
+  printf("\tConfig-file  : %s\n", conf->file);
+  printf("\tMe (NAS-IP)  : %s\n", inet_ntoa(conf->radius_me));
+  printf("\tAcct-Interval: %d\n", conf->acct_update);
   
   if (conf->server != NULL) {
 
@@ -1258,7 +1297,7 @@ RadStat(int ac, char *av[], void *arg)
   printf("\tFilter-Id       : %s\n", rad->filterid == NULL ? "" : rad->filterid);    
   printf("\tAcct-SID        : %s\n", lnk->radius.session_id);
   printf("\tAcct-MSID       : %s\n", rad->multi_session_id);
-  
+
   printf("\t---------------  Radius MSoft related Data ---------------\n");  
   printf("\tMPPE Types         : %s\n", RadiusMPPETypesname(rad->mppe.types));
   printf("\tMPPE Policy        : %s\n", RadiusMPPEPolicyname(rad->mppe.policy));
