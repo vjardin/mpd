@@ -1124,27 +1124,28 @@ FsmSendIdent(Fsm fp, const char *ident)
 static void
 FsmRecvEchoReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
-  Mbuf	mbp;
+  u_int32_t	self_magic;
+  Mbuf		mbp;
 
   /* Validate magic number */
   bp = FsmCheckMagic(fp, bp);
 
-  /* Build and send my reply (only in opened state) */
-  if (fp->state == ST_OPENED) {
-    u_int32_t	self_magic;
-
-    /* Stick my magic number in there instead */
-    self_magic = htonl(lnk->lcp.want_magic);
-    mbp = mbwrite(mballoc(MB_FSM, sizeof(self_magic)),
-      (u_char *) &self_magic, sizeof(self_magic));
-    mbp->next = bp;
-    bp = mbp;
-
-    /* Send it back, preserving everything else */
-    Log(LG_ECHO, ("%s: SendEchoRep #%d", Pref(fp), lhp->id));
-    FsmOutput(fp, CODE_ECHOREP, lhp->id, MBDATA(bp), plength(bp));
+  /* If not opened, do nothing */
+  if (fp->state != ST_OPENED) {
+    PFREE(bp);
+    return;
   }
-  PFREE(bp);
+
+  /* Stick my magic number in there instead */
+  self_magic = htonl(lnk->lcp.want_magic);
+  mbp = mbwrite(mballoc(MB_FSM, sizeof(self_magic)),
+    (u_char *) &self_magic, sizeof(self_magic));
+  mbp->next = bp;
+  bp = mbp;
+
+  /* Send it back, preserving everything else */
+  Log(LG_ECHO, ("%s: SendEchoRep #%d", Pref(fp), lhp->id));
+  FsmOutputMbuf(fp, CODE_ECHOREP, lhp->id, bp);
 }
 
 /*
