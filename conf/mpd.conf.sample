@@ -52,6 +52,8 @@ myisp:
 # Configure the (only) link. We expect to be authenticated by peer.
 	set link disable chap pap
 	set link accept chap pap
+# Deny weak MS-CHAP version
+	set link deny chap-msv1
 	set link yes acfcomp protocomp
 # Configure modem telephone number, and enable ringback
 	set modem script DialPeer
@@ -71,11 +73,12 @@ dialin:
 	new -i ng0 dialin usr
 	set iface addrs 1.1.1.1 2.2.2.2
 	set iface idle 900
+	set iface session 0
 	set bundle enable noretry
 	set ipcp ranges 1.1.1.1/32 2.2.2.2/32
 	set ipcp yes vjcomp
-	set link enable chap
-	set link disable pap
+	set link enable chap-md5
+	set link disable pap chap-msv1 chap-msv2
 	set link deny chap pap
 	set link yes acfcomp protocomp
 	set modem idle-script AnswerCall
@@ -244,6 +247,8 @@ vpn:
 	set iface disable on-demand
 	set iface addrs 192.168.1.1 192.168.2.1
 	set iface idle 0
+# disconnect the client after 8 hours
+	set iface session 28800
 	set iface route 192.168.2.0/24
 	set bundle disable multilink
 	set bundle authname "VpnLogin"
@@ -305,8 +310,8 @@ radius:
 	set bundle enable radius-auth radius-fallback
 # enable RADIUS accounting
 	set bundle enable radius-acct
-# use idle-timeout, routes list and mtu from the RADIUS server
-	set iface enable radius-idle radius-mtu radius-route
+# use idle-timeout, session-timeout, routes list and mtu from the RADIUS server
+	set iface enable radius-idle radius-session radius-mtu radius-route 
 # activate MPPE and let the RADIUS server assign MPPE-types and MPPE-policies
 	set bundle enable compression
 	set ccp yes mppc
