@@ -40,6 +40,7 @@
 
   /* Types of allocated memory */
   #define MB_AUTH	"AUTH"
+  #define MB_CONS	"CONSOLE"
   #define MB_BUND	"BUND"
   #define MB_CHAT	"CHAT"
   #define MB_COMP	"COMP"

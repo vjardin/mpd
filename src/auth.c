@@ -525,25 +525,25 @@ AuthStat(int ac, char *av[], void *arg)
   AuthConf	const conf = &bund->conf.auth;
   Auth		const a = &lnk->lcp.auth;
 
-  printf("Configuration:\n");
-  printf("\tAuthname        : %s\n", conf->authname);
-  printf("\tMax-Logins      : %d\n", conf->max_logins);
-  printf("\tAcct Update     : %d\n", conf->acct_update);
-  printf("\tTimeout         : %d\n", conf->timeout);
+  Printf("Configuration:\r\n");
+  Printf("\tAuthname        : %s\r\n", conf->authname);
+  Printf("\tMax-Logins      : %d\r\n", conf->max_logins);
+  Printf("\tAcct Update     : %d\r\n", conf->acct_update);
+  Printf("\tTimeout         : %d\r\n", conf->timeout);
   
-  printf("Auth options\n");
+  Printf("Auth options\r\n");
   OptStat(&conf->options, gConfList);
 
-  printf("Auth Data\n");
-  printf("\tMTU             : %ld\n", a->params.mtu);
-  printf("\tSession-Timeout : %ld\n", a->params.session_timeout);
-  printf("\tIdle-Timeout    : %ld\n", a->params.idle_timeout);
-  printf("\tAcct-Update     : %ld\n", a->params.acct_update);
-  printf("\tNum Routes      : %d\n", a->params.n_routes);
-  printf("\tMS-Domain       : %s\n", a->params.msdomain);  
-  printf("\tMPPE Types      : %s\n", AuthMPPEPolicyname(a->msoft.policy));
-  printf("\tMPPE Policy     : %s\n", AuthMPPETypesname(a->msoft.types));
-  printf("\tMPPE Keys       : %s\n", a->msoft.has_keys ? "yes" : "no");
+  Printf("Auth Data\r\n");
+  Printf("\tMTU             : %ld\r\n", a->params.mtu);
+  Printf("\tSession-Timeout : %ld\r\n", a->params.session_timeout);
+  Printf("\tIdle-Timeout    : %ld\r\n", a->params.idle_timeout);
+  Printf("\tAcct-Update     : %ld\r\n", a->params.acct_update);
+  Printf("\tNum Routes      : %d\r\n", a->params.n_routes);
+  Printf("\tMS-Domain       : %s\r\n", a->params.msdomain);  
+  Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(a->msoft.policy));
+  Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->msoft.types));
+  Printf("\tMPPE Keys       : %s\r\n", a->msoft.has_keys ? "yes" : "no");
 
   return (0);
 }

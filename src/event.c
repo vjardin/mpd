@@ -118,7 +118,7 @@ EventDump(const char *msg)
   u_int	n;
 
   n = pevent_ctx_count(gPeventCtx);
-  printf("%d Events registered\n", n);
+  Printf("%d Events registered\n", n);
 }
 
 /*

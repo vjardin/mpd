@@ -348,8 +348,8 @@ PhysStat(int ac, char *av[], void *arg)
 {
   PhysInfo	const p = lnk->phys;
 
-  printf("\tType  : %s\n", p->type->name);
-  printf("\tState : %s\n", PhysState(p));
+  Printf("\tType  : %s\r\n", p->type->name);
+  Printf("\tState : %s\r\n", PhysState(p));
   if (p->type->showstat)
     (*p->type->showstat)(p);
 }

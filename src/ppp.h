@@ -26,6 +26,7 @@
 #include <sys/queue.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
@@ -51,6 +52,8 @@
 #include <pdel/util/typed_mem.h>
 #include <pdel/util/pevent.h>
 #include <pdel/util/paction.h>
+#include <pdel/util/ghash.h>
+
 
 #include "defs.h"
 #include "event.h"
@@ -101,6 +104,10 @@
   extern int		gNumLinks;		/* Total number of links */
   extern int		gNumBundles;		/* Total number of bundles */
   extern int		gEnableTee;		/* Insert ng_tee into netgraph */
+  extern struct console	gConsole;
+  extern ConsoleSession	gConsoleSession;	/* currently active console-session */
+
+  extern struct globalconf	gGlobalConf;	/* Global config settings */
 
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
 
@@ -115,9 +122,6 @@
   extern int		gOpenSig;		/* Rec'd open signal */
   extern int		gCloseSig;		/* Rec'd close signal */
   extern int		gDeathSig;		/* Rec'd terminate signal */
-
-  /* Console login authname */
-  extern char		gLoginAuthName[AUTH_MAX_AUTHNAME];
 
 /*
  * FUNCTIONS

@@ -392,16 +392,16 @@ PptpStat(PhysInfo p)
 {
   PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
 
-  printf("PPTP status:\n");
-  printf("\tConnection   : %s\n", gPptpStateNames[pptp->state]);
-  printf("\tPeer range   : %s/%d",
+  Printf("PPTP status:\r\n");
+  Printf("\tConnection   : %s\r\n", gPptpStateNames[pptp->state]);
+  Printf("\tPeer range   : %s/%d",
     inet_ntoa(pptp->peer_addr_req.ipaddr), pptp->peer_addr_req.width);
   if (pptp->peer_port_req)
-    printf(", port %u", pptp->peer_port_req);
-  printf("\n");
-  printf("\tCurrent peer : %s, port %u\n",
+    Printf(", port %u", pptp->peer_port_req);
+  Printf("\r\n");
+  Printf("\tCurrent peer : %s, port %u\r\n",
     inet_ntoa(pptp->peer_addr), pptp->peer_port);
-  printf("PPTP options:\n");
+  Printf("PPTP options:\r\n");
   OptStat(&pptp->options, gConfList);
 }
 

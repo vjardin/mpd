@@ -196,10 +196,10 @@ LogCommand(int ac, char *av[], void *arg)
 
   if (ac == 0)
   {
-    #define LG_FMT	"    %-12s  %-10s  %s\n"
+    #define LG_FMT	"    %-12s  %-10s  %s\r\n"
 
-    printf(LG_FMT, "Log Option", "Enabled", "Description");
-    printf(LG_FMT, "----------", "-------", "-----------");
+    Printf(LG_FMT, "Log Option", "Enabled", "Description\r\n");
+    Printf(LG_FMT, "----------", "-------", "-----------\r\n");
     for (k = 0; k < NUM_LOG_LEVELS; k++)
     {
       int	j;
@@ -208,7 +208,7 @@ LogCommand(int ac, char *av[], void *arg)
       snprintf(buf, sizeof(buf), "%s", LogOptionList[k].desc);
       for (j = 0; buf[j]; j++)
 	buf[j] = tolower(buf[j]);
-      printf("  " LG_FMT, LogOptionList[k].name,
+      Printf("  " LG_FMT, LogOptionList[k].name,
 	(gLogOptions & LogOptionList[k].mask) ? "Yes" : "No", buf);
     }
     return(0);
@@ -243,7 +243,7 @@ LogCommand(int ac, char *av[], void *arg)
       }
       else
       {
-	printf("\"%s\" is unknown. Enter \"log\" for list.\n", *av);
+	Printf("\"%s\" is unknown. Enter \"log\" for list.\r\n", *av);
 	bits = 0;
       }
     }
@@ -266,6 +266,7 @@ void
 LogPrintf(const char *fmt, ...)
 {
   va_list	args;
+  char		buf[MAX_CONSOLE_BUF_LEN];
 
   LogTimeStamp(logprintf);
   va_start(args, fmt);
@@ -279,17 +280,33 @@ LogPrintf(const char *fmt, ...)
     va_end(args);
     putc('\n', stdout);
     fflush(stdout);
+  } 
+
+  va_start(args, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
+
+  if (gConsoleSession) {
+    gConsoleSession->write(gConsoleSession, "%s\r\n", buf);
+  } else {
+    struct ghash_walk	walk;
+    ConsoleSession	s;
+
+    ghash_walk_init(gConsole.sessions, &walk);
+    while ((s = ghash_walk_next(gConsole.sessions, &walk)) !=  NULL)
+      if (Enabled(&s->options, CONSOLE_LOGGING))
+	s->write(s, "%s\r\n", buf);
   }
 }
 
 /*
- * LogConsole()
+ * LogStdout()
  *
  * Print something to the console.
  */
 
 void
-LogConsole(const char *fmt, ...)
+LogStdout(const char *fmt, ...)
 {
   va_list	args;
 

@@ -52,11 +52,11 @@
 
   extern int		ParseAddr(char *s, struct in_range *range);
 
-  extern int		TcpGetListenPort(struct in_addr ip, int *port);
-  extern int		TcpAcceptConnection(int sock, struct sockaddr_in *addr);
+  extern int		TcpGetListenPort(struct in_addr ip, int *port, int block);
+  extern int		TcpAcceptConnection(int sock, struct sockaddr_in *addr, int block);
   extern int		TcpMakeConnection(struct in_addr addr, int port);
   extern int		GetInetSocket(int type, struct in_addr locip,
-			  int locport, char *ebuf, int len);
+			  int locport, int block, char *ebuf, int len);
 
   extern int		OpenSerialDevice(const char *path, int baudrate);
   extern int		ExclusiveOpenDevice(const char *path);

@@ -42,15 +42,15 @@ MpStat(int ac, char *av[], void *arg)
 {
   MpState	mp = &bund->mp;
 
-  printf("Multilink self:\n");
-  printf("\tMRRU     : %d\n"
-	"\tShortSeq : %s\n",
+  Printf("Multilink self:\r\n");
+  Printf("\tMRRU     : %d\r\n"
+	"\tShortSeq : %s\r\n",
     mp->self_mrru,
     mp->self_short_seq ? "Yes" : "No");
 
-  printf("Multilink peer:\n");
-  printf("\tMRRU     : %d\n"
-	 "\tShortSeq : %s\n",
+  Printf("Multilink peer:\r\n");
+  Printf("\tMRRU     : %d\r\n"
+	 "\tShortSeq : %s\r\n",
     mp->peer_mrru,
     mp->peer_short_seq ? "Yes" : "No");
   return(0);

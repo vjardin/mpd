@@ -14,104 +14,179 @@
  * DEFINITIONS
  */
 
-  #define MAX_CONSOLE_ARGS	50
-  #define MAX_CONSOLE_LINE	400
+  #ifndef CTRL
+  #define CTRL(c) (c - '@')
+  #endif
+
+  #define Logc(lev, args)        LogStdout args
+
+  #define EchoOff()	cs->write(cs, "\xFF\xFB\x01\xFF\xFD\x01");
+  #define EchoOn()	cs->write(cs, "\xFF\xFC\x01\xFF\xFE\x01");
+						  
+
+  enum {
+    STATE_USERNAME = 0,
+    STATE_PASSWORD,
+    STATE_AUTHENTIC
+  };
+
+  /* Set menu options */
+  enum {
+    SET_OPEN,
+    SET_CLOSE,
+    SET_USER,
+    SET_PORT,
+    SET_IP,
+    SET_DISABLE,
+    SET_ENABLE,
+  };
+
 
 /*
  * INTERNAL FUNCTIONS
  */
 
-  static void	ConsoleListen(void);
-  static void	ConsoleInput(int type, void *cookie);
   static void	ConsoleConnect(int type, void *cookie);
-  static int	GetConsoleInput(void);
+  static void	ConsoleSessionClose(ConsoleSession cs);
+  static void	ConsoleSessionReadEvent(int type, void *cookie);
+  static void	ConsoleSessionWriteEvent(int type, void *cookie);
+  static void	ConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...);
+  static void	ConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl);
+  static void	ConsoleSessionShowPrompt(ConsoleSession cs);
+
+  static int		ConsoleUserHashEqual(struct ghash *g, const void *item1, 
+		  		const void *item2);
+  static u_int32_t	ConsoleUserHash(struct ghash *g, const void *item);
+  static int	ConsoleSetCommand(int ac, char *av[], void *arg);
+
 
 /*
  * GLOBAL VARIABLES
  */
 
-  Link		gConsoleLink;
-  Bund		gConsoleBund;
+  const struct cmdtab ConsoleSetCmds[] = {
+    { "open",		"Open the console" ,
+  	ConsoleSetCommand, NULL, (void *) SET_OPEN },
+    { "close",		"Close the console" ,
+  	ConsoleSetCommand, NULL, (void *) SET_CLOSE },
+    { "user <name> <password>", "Add a console user" ,
+      	ConsoleSetCommand, NULL, (void *) SET_USER },
+    { "port <port>",		"Set port" ,
+  	ConsoleSetCommand, NULL, (void *) SET_PORT },
+    { "ip <ip>",		"Set IP address" ,
+  	ConsoleSetCommand, NULL, (void *) SET_IP },
+    { "enable",			"Enable console" ,
+  	ConsoleSetCommand, NULL, (void *) SET_ENABLE },
+    { "disable",		"Disable console" ,
+  	ConsoleSetCommand, NULL, (void *) SET_DISABLE },
+    { NULL },
+  };
+
 
 /*
  * INTERNAL VARIABLES
  */
 
-  static int		gPrompt;
+  static const struct confinfo	gConfList[] = {
+    { 0,	CONSOLE_LOGGING,	"logging"	},
+    { 0,	0,			NULL		},
+  };
 
-  static int		gListenFd;
-  static int		gConsoleFd;
-  static int		gConsoleAuth;
-
-  static EventRef	gConsoleInputEvent;
-  static EventRef	gConsoleConnectEvent;
 
 /*
  * ConsoleInit()
- *
- * We assume that stdin and stdout are always open & valid, though
- * when there's no console connection they are directed at /dev/null.
  */
 
-void
-ConsoleInit(int cfd, int lfd)
+int
+ConsoleInit(Console c)
 {
+  /* setup console-defaults */
+  memset(&gConsole, 0, sizeof(gConsole));
+  inet_aton(DEFAULT_CONSOLE_IP, &gConsole.addr);
+  gConsole.port = DEFAULT_CONSOLE_PORT;
 
-/* Initialize globals */
+  c->sessions = ghash_create(c, 0, 0, MB_CONS, NULL, NULL, NULL, NULL);
+  c->users = ghash_create(c, 0, 0, MB_CONS, ConsoleUserHash, ConsoleUserHashEqual, NULL, NULL);
 
-  gConsoleLink = lnk;
-  gConsoleBund = bund;
-  gConsoleFd = cfd;
-  gListenFd = lfd;
-  gConsoleAuth = (gConsoleFd >= 0);
-  gPrompt = TRUE;
-
-/* Wait for activity */
-
-  ConsoleListen();
+  return 0;
 }
 
 /*
- * ConsoleListen()
+ * ConsoleOpen()
  */
 
-static void
-ConsoleListen()
+int
+ConsoleOpen(Console c)
 {
-  if (gConsoleFd >= 0)
-  {
-    if (gPrompt)
-    {
-      if (!gConsoleAuth)
-	printf("Password: ");
-      else
-	printf("[%s:%s] ",
-	  gConsoleBund ? gConsoleBund->name : "",
-	  gConsoleLink ? gConsoleLink->name : "");
-      fflush(stdout);
-      gPrompt = FALSE;
-    }
-    EventRegister(&gConsoleInputEvent, EVENT_READ, gConsoleFd,
-      0, ConsoleInput, NULL);
+  if (c->fd) {
+    Log(LG_ERR, ("Console already running"));
+    return -1;
   }
-  else if (gListenFd >= 0)
-    EventRegister(&gConsoleConnectEvent, EVENT_READ, gListenFd,
-      0, ConsoleConnect, NULL);
+
+  if ((c->fd = TcpGetListenPort(c->addr, &c->port, FALSE)) < 0) {
+    Logc(LG_ERR, ("Can't listen for console connections on %s:%d", 
+	inet_ntoa(c->addr), c->port));
+    return -1;
+  }
+
+  if (EventRegister(&c->event, EVENT_READ, c->fd, 
+	EVENT_RECURRING, ConsoleConnect, c) < 0)
+    return -1;
+
+  Logc(LG_ALWAYS, ("Console listening on %s:%d", 
+	inet_ntoa(c->addr), c->port));
+  return 0;
 }
 
 /*
- * ConsoleInput()
+ * ConsoleClose()
  */
 
-static void
-ConsoleInput(int type, void *cookie)
+int
+ConsoleClose(Console c)
 {
-  bund = gConsoleBund;
-  lnk = gConsoleLink;
-  gPrompt = GetConsoleInput();
-  gConsoleBund = bund;
-  gConsoleLink = lnk;
-  ConsoleListen();
+  if (!c->fd)
+    return 0;
+  EventUnRegister(&c->event);
+  close(c->fd);
+  c->fd = 0;
+  return 0;
+}
+
+/*
+ * ConsoleStat()
+ */
+
+int
+ConsoleStat(int ac, char *av[], void *arg)
+{
+  Console		c = &gConsole;
+  ConsoleUser		u;
+  ConsoleSession	s;
+  ConsoleSession	cs = gConsoleSession;
+  struct ghash_walk	walk;
+
+  Printf("Configuration:\r\n");
+  Printf("\tState         : %s\r\n", c->fd ? "OPENED" : "CLOSED");
+  Printf("\tPort          : %d\r\n", c->port);
+  Printf("\tIP-Address    : %s\r\n", inet_ntoa(c->addr));
+
+  Printf("Configured users:\r\n");
+  ghash_walk_init(c->users, &walk);
+  while ((u = ghash_walk_next(c->users, &walk)) !=  NULL)
+    Printf("\tUsername: %s\r\n", u->username);
+
+  Printf("Active sessions:\r\n");
+  ghash_walk_init(c->sessions, &walk);
+  while ((s = ghash_walk_next(c->sessions, &walk)) !=  NULL)
+    Printf("\tUsername: %s\t\t\tfrom:%s\r\n",
+	s->user.username, inet_ntoa(s->peer_addr.sin_addr));
+
+  if (cs) {
+    Printf("Session options:\r\n");
+    OptStat(&cs->options, gConfList);
+  }
+  return 0;
 }
 
 /*
@@ -121,161 +196,485 @@ ConsoleInput(int type, void *cookie)
 static void
 ConsoleConnect(int type, void *cookie)
 {
-  struct sockaddr_in	addr;
-  int fdi=-1, fdo=-1;
+  Console		c = cookie;
+  ConsoleSession	cs;
+  const char		*options = 
+	  "\xFF\xFB\x03"	/* WILL Suppress Go-Ahead */
+	  "\xFF\xFD\x03"	/* DO Suppress Go-Ahead */
+	  "\xFF\xFB\x01"	/* WILL echo */
+	  "\xFF\xFD\x01";	/* DO echo */
+  
+  Logc(LG_CONSOLE, ("ConsoleConnect"));
+  cs = Malloc(MB_CONS, sizeof(*cs));
+  memset(cs, 0, sizeof(*cs));
+  if ((cs->fd = TcpAcceptConnection(c->fd, &cs->peer_addr, FALSE)) < 0) 
+    goto cleanup;
 
-  assert(gConsoleFd < 0);
-  if ((gConsoleFd = TcpAcceptConnection(gListenFd, &addr)) < 0)
-  {
-    Log(LG_ERR, ("mpd: can't accept console connection"));
-    goto done;
+  if (EventRegister(&cs->readEvent, EVENT_READ, cs->fd, 
+	EVENT_RECURRING, ConsoleSessionReadEvent, cs) < 0)
+    goto fail;
+
+  cs->console = c;
+  cs->bund = bund;
+  cs->link = lnk;
+  cs->close = ConsoleSessionClose;
+  cs->write = ConsoleSessionWrite;
+  cs->writev = ConsoleSessionWriteV;
+  cs->prompt = ConsoleSessionShowPrompt;
+  cs->state = STATE_USERNAME;
+  ghash_put(c->sessions, cs);
+  Logc(LG_CONSOLE, ("Allocated new console session: %p from:%s", 
+    cs, inet_ntoa(cs->peer_addr.sin_addr)));
+  cs->write(cs, "Multi-link PPP for FreeBSD, by Archie L. Cobbs.\r\n");
+  cs->write(cs, "Based on iij-ppp, by Toshiharu OHNO.\r\n\r\n");
+  cs->write(cs, options);
+  cs->prompt(cs);
+  return;
+
+fail:
+  close(cs->fd);
+
+cleanup:
+  Freee(MB_CONS, cs);
+  return;
+
+}
+
+
+/*
+ * ConsoleSessionClose()
+ */
+
+static void
+ConsoleSessionClose(ConsoleSession cs)
+{
+  EventUnRegister(&cs->readEvent);
+  EventUnRegister(&cs->writeEvent);
+  ghash_remove(cs->console->sessions, cs);
+  close(cs->fd);
+  if (cs->user.username)
+    FREE(MB_CONS, cs->user.username);
+  Freee(MB_CONS, cs);
+  return;
+}
+
+
+/*
+ * ConsoleSessionReadEvent()
+ */
+
+static void
+ConsoleSessionReadEvent(int type, void *cookie)
+{
+  ConsoleSession	cs = cookie;
+  CmdTab		cmd, tab;
+  int			n, ac, ac2, exitflag, i;
+  u_char		c;
+  char			compl[MAX_CONSOLE_LINE], line[MAX_CONSOLE_LINE];
+  char			*av[MAX_CONSOLE_ARGS], *av2[MAX_CONSOLE_ARGS];
+  char			*av_copy[MAX_CONSOLE_ARGS];
+  Bund			bund_orig;
+  Link 			link_orig;
+
+  gConsoleSession = cs;
+  bund_orig = bund;
+  link_orig = lnk;
+  bund = cs->bund;
+  lnk = cs->link;
+  while(1) {
+    if ((n = read(cs->fd, &c, 1)) <= 0) {
+      if (n < 0) {
+	if (errno == EAGAIN)
+	  goto out;
+	Logc(LG_ERR, ("Error while reading from console %s", strerror(errno)));
+      } else {
+	Logc(LG_ERR, ("Console connection closed by peer"));
+      }
+      goto abort;
+    }
+
+    /* deal with escapes, map cursors */
+    if (cs->escaped) {
+      if (cs->escaped == '[') {
+	switch(c) {
+	  case 'A':	/* up */
+	    c = CTRL('P');
+	    break;
+	  case 'B':	/* down */
+	    c = CTRL('N');
+	    break;
+	  case 'C':	/* right */
+	    c = CTRL('F');
+	    break;
+	  case 'D':	/* left */
+	    c = CTRL('B');
+	    break;
+	  default:
+	    c = 0;
+	}
+	cs->escaped = FALSE;
+      } else {
+	cs->escaped = c == '[' ? c : 0;
+	continue;
+      }
+    }
+
+    Logc(LG_CONSOLE, ("%c/%d", c, c));
+    switch(c) {
+    case 0:
+    case '\n':
+      break;
+    case 27:	/* escape */
+      cs->escaped = TRUE;
+      break;
+    case 255:	/* telnet option follows */
+      cs->telnet = TRUE;
+      break;
+    case 253:	/* telnet option-code DO */
+      break;
+    case 9:	/* TAB */
+      ac = ParseLine(cs->cmd, av, sizeof(av) / sizeof(*av));
+      memset(compl, 0, sizeof(compl));
+      tab = gCommands;
+      for (i = 0; i < ac; i++) {
+
+        if (FindCommand(tab, av[i], &cmd, FALSE)) 
+	  goto notfound;
+	strcpy(line, cmd->name);
+        ac2 = ParseLine(line, av2, sizeof(av2) / sizeof(*av2));
+	snprintf(&compl[strlen(compl)], sizeof(compl) - strlen(compl), "%s ", av2[0]);
+	FreeArgs(ac2, av2);
+	tab = cmd->arg;
+	if (!tab)
+	  break;
+      }
+      for (i = 0; i < cs->cmd_len; i++)
+	cs->write(cs, "\b \b");
+      strcpy(cs->cmd, compl);
+      cs->cmd_len = strlen(cs->cmd);
+      cs->write(cs, cs->cmd);
+notfound:
+      FreeArgs(ac, av);
+      break;
+    case CTRL('C'):
+      if (cs->telnet)
+	break;
+      Logc(LG_CONSOLE, ("CTRL-C"));
+      memset(cs->cmd, 0, MAX_CONSOLE_LINE);
+      cs->cmd_len = 0;
+      cs->prompt(cs);
+      cs->telnet = FALSE;
+      break;
+    case CTRL('P'):	/* page up */
+      if (*cs->history) {
+	memcpy(cs->cmd, cs->history, MAX_CONSOLE_LINE);
+	cs->cmd_len = strlen(cs->cmd);
+	cs->prompt(cs);
+	cs->write(cs, cs->cmd);
+      }
+      break;
+    case CTRL('N'):
+    case CTRL('F'):
+    case CTRL('B'):
+      break;
+    case CTRL('H'):
+    case 127:	/* BS */
+      if (cs->cmd_len > 0) {
+	cs->cmd[cs->cmd_len - 1] = 0;
+	cs->cmd_len -= 1;
+	cs->write(cs, "\b \b");
+      }
+      break;
+    case '\r':
+    case '?':
+    { 
+
+      cs->telnet = FALSE;
+      if (cs->state == STATE_USERNAME) {
+	cs->user.username = typed_mem_strdup(MB_CONS, cs->cmd);
+        memset(cs->cmd, 0, MAX_CONSOLE_LINE);
+        cs->cmd_len = 0;
+	cs->state = STATE_PASSWORD;
+	cs->prompt(cs);
+	break;
+      } else if (cs->state == STATE_PASSWORD) {
+	ConsoleUser u;
+
+	u = ghash_get(cs->console->users, &cs->user);
+
+	if (!u) 
+	  goto failed;
+
+	if (strcmp(u->password, cs->cmd)) 
+	  goto failed;
+
+	cs->state = STATE_AUTHENTIC;
+	cs->write(cs, "\r\nmpd: pid %lu, version %s\r\n", 
+		(u_long) getpid(), gVersion);
+	goto success;
+
+failed:
+	cs->write(cs, "Login failed\r\n");
+	Logc(LG_CONSOLE, ("Failed login attempt from %s", 
+		inet_ntoa(cs->peer_addr.sin_addr)));
+	FREE(MB_CONS, cs->user.username);
+	cs->state = STATE_USERNAME;
+success:
+	memset(cs->cmd, 0, MAX_CONSOLE_LINE);
+	cs->cmd_len = 0;
+	cs->prompt(cs);
+	break;
+      }
+
+      Logc(LG_CONSOLE, ("[CONSOLE]%s:%s", 
+	cs->user.username, cs->cmd));
+      cs->write(cs, "\r\n");
+      memcpy(line, cs->cmd, sizeof(line));
+      ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
+      memcpy(av_copy, av, sizeof(av));
+      exitflag = DoCommand(ac, av);
+      FreeArgs(ac, av_copy);
+      if (exitflag)
+	goto abort;
+      cs->prompt(cs);
+      if (c != '?') {
+	memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
+        memset(cs->cmd, 0, MAX_CONSOLE_LINE);
+	cs->cmd_len = 0;
+      } else {
+	cs->write(cs, cs->cmd);
+      }
+      break;
+    }
+    /* "normal" char entered */
+    default:
+      if (cs->telnet) {
+	if (c < 251)
+	  cs->telnet = FALSE;
+	break;
+      }
+
+      if (cs->state != STATE_PASSWORD)
+ 	cs->write(cs, "%c", c);
+
+      /* XXX ToDo testing */
+      if ((cs->cmd_len + 1) >= MAX_CONSOLE_LINE) {
+        Logc(LG_ERR, ("mpd: console input line too long"));
+        break;
+      }
+      cs->cmd[cs->cmd_len++] = c;
+    }
   }
 
-/* Say who we connected to */
+abort:
+  cs->close(cs);
+out:
+  gConsoleSession = NULL;
+  bund = bund_orig;
+  lnk = link_orig;
+  return;
+}
 
-  Log(LG_ALWAYS, ("mpd: console connection from %s, %d",
-    inet_ntoa(addr.sin_addr), (int) ntohs(addr.sin_port)));
 
-/* Make reads non-blocking */
+/*
+ * ConsoleWriteEvent()
+ */
 
-  if (fcntl(gConsoleFd, F_SETFL, O_NONBLOCK) < 0)
-  {
-    (void) close(gConsoleFd);
-    gConsoleFd = -1;
-    Perror("fcntl");
-    Log(LG_ERR, ("mpd: can't make console non-blocking"));
-    goto done;
+static void
+ConsoleSessionWriteEvent(int type, void *cookie)
+{
+  ConsoleSession	cs = cookie;
+  int			written;
+  char			buf[MAX_CONSOLE_BUF_LEN];
+
+  if ((written = write(cs->fd, cs->writebuf, cs->writebuf_len)) <= 0) {
+    if (written < 0) {
+      if (errno == EAGAIN)
+	goto out;
+      Logc(LG_ERR, ("Error writing to console %s", strerror(errno)));
+      goto abort;
+    } else
+	goto out;
   }
 
-/* Associate stdin and stdout with this new socket */
+  if (written == cs->writebuf_len) {
+    cs->writebuf_len = 0;
+  } else {
+    cs->writebuf_len -= written;
+    memcpy(buf, &cs->writebuf[written], cs->writebuf_len);
+    memcpy(cs->writebuf, buf, cs->writebuf_len);
+    Logc(LG_CONSOLE, ("ConsoleSessionWriteEvent registered"));
+    EventRegister(&cs->writeEvent, EVENT_WRITE, cs->fd, 
+	0, ConsoleSessionWriteEvent, cs);
+  }
 
-    if (stdin != NULL) {
-	fclose(stdin);
-	stdin = NULL;
-    }
-    fdi = dup(gConsoleFd);
-    if ((stdin = fdopen(fdi, "r")) == NULL) {
-	Perror("fdopen(%d)", fdi);
-	Log(LG_ERR, ("mpd: can't fdopen() stdin"));
-	(void) close(fdi);
-	(void) close(gConsoleFd);
-	gConsoleFd = -1;
-	goto done;
-    }
-    
-    if (stdout != NULL) {
-	fclose(stdout);
-	stdout = NULL;
-    }
-    fdo = dup(gConsoleFd);
-    if ((stdout = fdopen(fdo, "w")) == NULL) {
-	Perror("fdopen(%d)", gConsoleFd);
-	Log(LG_ERR, ("mpd: can't fdopen() stdout"));
-	(void) close(fdo);
-	(void) close(gConsoleFd);
-	gConsoleFd = -1;
-	goto done;
-    }
+out:
+  return;
 
-/* Login required? */
-
-  gConsoleAuth = !*gLoginAuthName;
-  if (gConsoleAuth)
-    Greetings();
-  gPrompt = TRUE;
-
-done:
-  ConsoleListen();
+abort:
+  cs->close(cs);
 }
 
 /*
- * GetConsoleInput()
+ * ConsoleSessionWrite()
+ */
+
+static void 
+ConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...)
+{
+  va_list vl;
+
+  va_start(vl, fmt);
+  ConsoleSessionWriteV(cs, fmt, vl);
+  va_end(vl);
+}
+
+/*
+ * ConsoleSessionWriteV()
+ */
+
+static void 
+ConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl)
+{
+  cs->writebuf_len += vsnprintf(&cs->writebuf[cs->writebuf_len],
+	MAX_CONSOLE_BUF_LEN - cs->writebuf_len - 1,
+	fmt, vl);
+
+  ConsoleSessionWriteEvent(EVENT_WRITE, cs);
+}
+
+/*
+ * ConsoleShowPrompt()
+ */
+
+static void
+ConsoleSessionShowPrompt(ConsoleSession cs)
+{
+  switch(cs->state) {
+  case STATE_USERNAME:
+    cs->write(cs, "Username: ");
+    break;
+  case STATE_PASSWORD:
+    cs->write(cs, "\r\nPassword: ");
+    break;
+  case STATE_AUTHENTIC:
+    cs->write(cs, "\r\n[%s] ", cs->link->name);
+    break;
+  }
+}
+
+
+/*
+ * ConsoleUserHash
  *
- * Read and interpret a console command
+ * Fowler/Noll/Vo- hash
+ * see http://www.isthe.com/chongo/tech/comp/fnv/index.html
+ *
+ * By:
+ *  chongo <Landon Curt Noll> /\oo/\
+ *  http://www.isthe.com/chongo/
+ */
+
+static u_int32_t
+ConsoleUserHash(struct ghash *g, const void *item)
+{
+  ConsoleUser u = (ConsoleUser) item;
+  u_char *s = (u_char *) u->username;
+  u_int32_t hash = 0x811c9dc5;
+
+  while (*s) {
+    hash += (hash<<1) + (hash<<4) + (hash<<7) + (hash<<8) + (hash<<24);
+    /* xor the bottom with the current octet */
+    hash ^= (u_int32_t)*s++;
+  }
+
+  return hash;
+}
+
+/*
+ * ConsoleUserHashEqual
  */
 
 static int
-GetConsoleInput(void)
+ConsoleUserHashEqual(struct ghash *g, const void *item1, const void *item2)
 {
-  int		gotWholeLine = FALSE;
-  int		ac, exitflag = FALSE;
-  char		*av[MAX_CONSOLE_ARGS];
-  char		*av_copy[MAX_CONSOLE_ARGS];
-  static char	line[MAX_CONSOLE_LINE];
+  ConsoleUser u1 = (ConsoleUser) item1;
+  ConsoleUser u2 = (ConsoleUser) item2;
 
-/* Read console input (unless buffer is full) XXX bug: can't use fgets() */
-
-  if (fgets(line + strlen(line), sizeof(line) - strlen(line), stdin))
-  {
-    if (strlen(line) >= sizeof(line) - 1)
-    {
-      Log(LG_ERR, ("mpd: console input line too long"));
-      exitflag = TRUE;
-    }
-    else
-      if (line[strlen(line) - 1] == '\n')
-      {
-	gotWholeLine = TRUE;
-	if (!gConsoleAuth)
-	{
-	  struct authdata	auth;
-
-	  while (line[strlen(line) - 1] == '\n'
-	      || line[strlen(line) - 1] == '\r')
-	    line[strlen(line) - 1] = 0;
-	  memset(&auth, 0, sizeof(auth));
-	  strlcpy(auth.authname, gLoginAuthName, sizeof(auth.authname));
-	  if (AuthGetData(&auth, 1) < 0 || strcmp(line, auth.password))
-	  {
-	    printf("Login incorrect.\n");
-	    exitflag = TRUE;
-	  }
-	  else
-	  {
-	    Greetings();
-	    gConsoleAuth = TRUE;
-	    exitflag = FALSE;
-	    *line = 0;
-	  }
-	}
-	else
-	{
-	  ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
-	  memcpy(av_copy, av, sizeof(av));
-	  exitflag = DoCommand(ac, av);
-	  FreeArgs(ac, av_copy);
-	  *line = 0;
-	}
-      }
-  }
+  if (u1 && u2)
+    return (strcmp(u1->username, u2->username) == 0);
   else
-  {
-    if (ferror(stdin))
-      Log(LG_ERR, ("mpd: error reading console: %s", strerror(errno)));
-    else
-    {
-      Log(LG_ERR, ("mpd: EOF on console"));
-      assert(feof(stdin));
-    }
-    exitflag = TRUE;
-  }
-
-/* Exit the console? */
-
-  if (exitflag)
-  {
-    Log(LG_ALWAYS, ("mpd: exiting console"));
-    (void) close(gConsoleFd);
-    gConsoleFd = -1;
-    if (freopen("/dev/null", "r", stdin) == NULL)
-      Log(LG_ERR, ("mpd: freopen: %s", strerror(errno)));
-    if (freopen("/dev/null", "w", stdout) == NULL)
-      Log(LG_ERR, ("mpd: freopen: %s", strerror(errno)));
-    *line = 0;
-  }
-
-/* Return TRUE if we got a whole line */
-
-  return(gotWholeLine);
+    return 0;
 }
 
+/*
+ * ConsoleSetCommand()
+ */
+
+static int
+ConsoleSetCommand(int ac, char *av[], void *arg) 
+{
+  Console	 	c = &gConsole;
+  ConsoleSession	cs = gConsoleSession;
+  ConsoleUser		u;
+  int			port;
+
+  switch ((int) arg) {
+
+    case SET_OPEN:
+      ConsoleOpen(c);
+      break;
+
+    case SET_CLOSE:
+      ConsoleClose(c);
+      break;
+
+    case SET_ENABLE:
+      if (cs)
+	EnableCommand(ac, av, &cs->options, gConfList);
+      break;
+
+    case SET_DISABLE:
+      if (cs)
+	DisableCommand(ac, av, &cs->options, gConfList);
+      break;
+
+    case SET_USER:
+      if (ac != 2) 
+	return(-1);
+
+      u = Malloc(MB_CONS, sizeof(*u));
+      u->username = typed_mem_strdup(MB_CONS, av[0]);
+      u->password = typed_mem_strdup(MB_CONS, av[1]);
+      ghash_put(c->users, u);
+      break;
+
+    case SET_PORT:
+      if (ac != 1)
+	return(-1);
+
+      port =  strtol(av[0], NULL, 10);
+      if (port < 1 && port > 65535) {
+	Log(LG_ERR, ("[CONSOLE] Bogus port given %s", av[0]));
+	return(-1);
+      }
+      c->port = port;
+      break;
+
+    case SET_IP:
+      if (ac != 1)
+	return(-1);
+
+      if (inet_aton(av[0], &c->addr) == -1) {
+	Log(LG_ERR, ("[CONSOLE] Bogus IP address given %s", av[0]));
+	return(-1);
+      }
+      break;
+
+    default:
+      return(-1);
+
+  }
+
+  return 0;
+}

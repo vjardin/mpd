@@ -209,7 +209,7 @@ TcpConEvent(int type, void *cookie)
   {
     int	sock;
 
-    if ((sock = TcpAcceptConnection(tcp->sock, &peerAddr)) < 0)
+    if ((sock = TcpAcceptConnection(tcp->sock, &peerAddr, FALSE)) < 0)
       goto failed;
     (void) close(tcp->sock);
     tcp->sock = sock;
@@ -415,12 +415,12 @@ TcpStat(PhysInfo p)
 {
   TcpInfo	const tcp = (TcpInfo) lnk->phys->info;
 
-  printf("TCP configuration:\n");
-  printf("\tSelf address : %s, port %u\n",
+  Printf("TCP configuration:\r\n");
+  Printf("\tSelf address : %s, port %u\r\n",
     inet_ntoa(tcp->self_addr), tcp->self_port);
-  printf("\tPeer address : %s, port %u\n",
+  Printf("\tPeer address : %s, port %u\r\n",
     inet_ntoa(tcp->peer_addr), tcp->peer_port);
-  printf("\tConnect mode : %s\n", tcp->active ? "ACTIVE" : "PASSIVE");
+  Printf("\tConnect mode : %s\r\n", tcp->active ? "ACTIVE" : "PASSIVE");
   AsyncStat(tcp->async);
 }
 

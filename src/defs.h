@@ -61,6 +61,7 @@
   #define LINK_MAX_NAME		20
 
   #define DEFAULT_CONSOLE_PORT	5005
+  #define DEFAULT_CONSOLE_IP	"127.0.0.1"
 
   /* Forward decl's */
   struct linkst;

@@ -1157,26 +1157,26 @@ IfaceStat(int ac, char *av[], void *arg)
   IfaceState	const iface = &bund->iface;
   int		k;
 
-  printf("Interface %s:\n", iface->ifname);
-  printf("\tStatus       : %s\n", iface->open ? "OPEN" : "CLOSED");
-  printf("\tIP Addresses : %s -> ", inet_ntoa(iface->self_addr));
-  printf("%s\n", inet_ntoa(iface->peer_addr));
-  printf("\tMaximum MTU  : %d bytes\n", iface->max_mtu);
-  printf("\tCurrent MTU  : %d bytes\n", iface->mtu);
-  printf("\tIdle timeout : %d seconds\n", iface->idle_timeout);
-  printf("\tSession timeout : %d seconds\n", iface->session_timeout);
-  printf("\tEvent scripts: UP: \"%s\"  DOWN: \"%s\"\n",
+  Printf("Interface %s:\r\n", iface->ifname);
+  Printf("\tStatus       : %s\r\n", iface->open ? "OPEN" : "CLOSED");
+  Printf("\tIP Addresses : %s -> ", inet_ntoa(iface->self_addr));
+  Printf("%s\r\n", inet_ntoa(iface->peer_addr));
+  Printf("\tMaximum MTU  : %d bytes\r\n", iface->max_mtu);
+  Printf("\tCurrent MTU  : %d bytes\r\n", iface->mtu);
+  Printf("\tIdle timeout : %d seconds\r\n", iface->idle_timeout);
+  Printf("\tSession timeout : %d seconds\r\n", iface->session_timeout);
+  Printf("\tEvent scripts: UP: \"%s\"  DOWN: \"%s\"\r\n",
     *iface->up_script ? iface->up_script : "<none>",
     *iface->down_script ? iface->down_script : "<none>");
-  printf("Static routes via peer:\n");
+  Printf("Static routes via peer:\r\n");
   for (k = 0; k < iface->n_routes; k++) {
-    printf("\t%s ", iface->routes[k].dest.s_addr ?
+    Printf("\t%s ", iface->routes[k].dest.s_addr ?
       inet_ntoa(iface->routes[k].dest) : "default");
     if (iface->routes[k].netmask.s_addr)
-      printf("\tnetmask %s", inet_ntoa(iface->routes[k].netmask));
-    printf("\n");
+      Printf("\tnetmask %s", inet_ntoa(iface->routes[k].netmask));
+    Printf("\r\n");
   }
-  printf("Interface level options:\n");
+  Printf("Interface level options:\r\n");
   OptStat(&iface->options, gConfList);
   return(0);
 }

@@ -1,4 +1,3 @@
-
 /*
  * main.c
  *
@@ -24,6 +23,7 @@
 
   /* Implied system name when none specified on the command line */
   #define DEFAULT_CONF	"default"
+  #define STARTUP_CONF	"startup"
 
   #define MAX_ARGS	50
 
@@ -80,13 +80,16 @@
   int			gNumLinks;
   int			gNumBundles;
   int			gEnableTee = FALSE;
+  ConsoleSession	gConsoleSession;
+  struct console	gConsole;
+
+  struct globalconf	gGlobalConf;
 
   pthread_mutex_t	gGiantMutex;
 
   const char		*gConfigFile = CONF_FILE;
   const char		*gConfDirectory = PATH_CONF_DIR;
 
-  char			gLoginAuthName[AUTH_MAX_AUTHNAME];
   const char		*gVersion = MPD_VERSION;
 
 /*
@@ -106,19 +109,17 @@
   static void		SignalHandler(int type, void *arg);
   static void		CloseIfaces(void);
 
+
 /*
  * INTERNAL VARIABLES
  */
 
-  static struct in_addr	gConsoleBindAddr;
-  static int		gConsoleBindPort = DEFAULT_CONSOLE_PORT;
-  static int		gConsoleListen = FALSE;
   static int		gBackground = FALSE;
   static int		gKillProc = FALSE;
   static const char	*gPidFile = PID_FILE;
   static const char	*gPeerSystem = NULL;
-  static int		gSignalPipe[2];
   static EventRef	gSignalEvent;
+  static int		gSignalPipe[2];
 
 /*
  * main()
@@ -127,13 +128,18 @@
 int
 main(int ac, char *av[])
 {
-  int	listen_fd;
-  int	console_fd;
   int	ret;
   char	*args[MAX_ARGS];
 
   /* enable libpdel typed_mem */
   typed_mem_enable();
+
+  /* init console-stuff */
+  ConsoleInit(&gConsole);
+
+  /* init global-config */
+  memset(&gGlobalConf, 0, sizeof(gGlobalConf));
+  Disable(&gGlobalConf.options, GLOBAL_CONF_TCPWRAPPER);
 
   /* Read and parse command line */
   if (ac > MAX_ARGS)
@@ -176,12 +182,11 @@ main(int ac, char *av[])
 
   EventSetLog(1, EventWarnx);
 
-  /* Creating signaling pipe */
+  /* Create signaling pipe */
   if ((ret = pipe(gSignalPipe)) != 0) {
     Log(LG_ERR, ("Could not create signal pipe %d", ret));
     exit(EX_UNAVAILABLE);
   }
-
   if (EventRegister(&gSignalEvent, EVENT_READ, gSignalPipe[0], 
       EVENT_RECURRING, SignalHandler, NULL) != 0)
     exit(EX_UNAVAILABLE);
@@ -203,21 +208,7 @@ main(int ac, char *av[])
   /* Signals we ignore */
   signal(SIGPIPE, SIG_IGN);
 
-  /* Get console telnet port */
-  if (gConsoleListen) {
-    if ((listen_fd = TcpGetListenPort(gConsoleBindAddr,
-	&gConsoleBindPort)) < 0) {
-      Log(LG_ERR, ("mpd: can't bind console telnet port on %s:%d",
-	inet_ntoa(gConsoleBindAddr), gConsoleBindPort));
-      DoExit(EX_UNAVAILABLE);
-    }
-    Log(LG_ALWAYS, ("mpd: telnet console address is %s:%d",
-      inet_ntoa(gConsoleBindAddr), gConsoleBindPort));
-  } else
-    listen_fd = -1;
-
-  console_fd = gBackground ? -1 : fileno(stdin);
-
+  ReadFile(gConfigFile, STARTUP_CONF, DoCommand);
   /* Read configuration as specified on the command line, or default */
   if (!gPeerSystem)
     ReadFile(gConfigFile, DEFAULT_CONF, DoCommand);
@@ -227,9 +218,6 @@ main(int ac, char *av[])
       DoExit(EX_CONFIG);
     }
   }
-
-  /* Intialize console */
-  ConsoleInit(console_fd, listen_fd);
 
   while(1)
     sleep(10000000);
@@ -245,8 +233,8 @@ main(int ac, char *av[])
 void
 Greetings(void)
 {
-  LogConsole("Multi-link PPP for FreeBSD, by Archie L. Cobbs.");
-  LogConsole("Based on iij-ppp, by Toshiharu OHNO.");
+  LogStdout("Multi-link PPP for FreeBSD, by Archie L. Cobbs.");
+  LogStdout("Based on iij-ppp, by Toshiharu OHNO.");
   Log(LG_ALWAYS, ("mpd: pid %lu, version %s", (u_long) getpid(), gVersion));
 }
 
@@ -401,10 +389,6 @@ FatalSignal(sig)
 static void
 OpenSignal(int sig)
 {
-  /* Apply signal to console bundle & link */
-  lnk = gConsoleLink;
-  bund = gConsoleBund;
-
   /* Open bundle */
   if (bund && lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
@@ -425,10 +409,6 @@ static void
 CloseSignal(int sig)
 {
 
-  /* Apply signal to console bundle & link */
-  lnk = gConsoleLink;
-  bund = gConsoleBund;
-
   /* Close bundle */
   if (bund && lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, closing",
@@ -439,6 +419,7 @@ CloseSignal(int sig)
     Log(LG_ALWAYS, ("mpd: rec'd signal %s, ignored", sys_signame[sig]));
 
 }
+
 
 /*
  * EventWarnx()
@@ -520,20 +501,9 @@ OptApply(Option opt, int ac, char *av[])
   if (ac < opt->n_args)
     Usage(EX_USAGE);
   switch (opt->sflag) {
-    case 'a':
-      if (!inet_aton(*av, &gConsoleBindAddr)) {
-	fprintf(stderr, "invalid IP address %s\n", *av);
-	Usage(EX_USAGE);
-      }
-      gConsoleListen = TRUE;
-      return(1);
     case 'b':
       gBackground = TRUE;
       return(0);
-    case 'c':
-      gConsoleBindPort = atoi(*av);
-      gConsoleListen = TRUE;
-      return(1);
     case 'd':
       gConfDirectory = *av;
       return(1);

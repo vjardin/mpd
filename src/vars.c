@@ -8,6 +8,7 @@
  */
 
 #include "ppp.h"
+#include "console.h"
 
 /*
  * DEFINITIONS
@@ -36,17 +37,17 @@ OptStat(Options opt, ConfInfo list)
 {
   int	k;
 
-  printf("\tName\t\tSelf\t\tPeer\n");
-  printf("\t----------------------------------------\n");
+  Printf("\tName\t\tSelf\t\tPeer\r\n");
+  Printf("\t----------------------------------------\r\n");
   for (k = 0; list[k].name; k++)
   {
     ConfInfo	const c = &list[k];
 
-    printf("\t%-10s\t%s",
+    Printf("\t%-10s\t%s",
       c->name, Enabled(opt, c->option) ? "enable" : "disable");
     if (c->peered)
-      printf("\t\t%s", Acceptable(opt, c->option) ? "accept" : "deny");
-    printf("\n");
+      Printf("\t\t%s", Acceptable(opt, c->option) ? "accept" : "deny");
+    Printf("\r\n");
   }
 }
 

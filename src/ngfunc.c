@@ -761,8 +761,6 @@ NgFuncDataEvent(int type, void *cookie)
 /*
  * NgFuncCtrlEvent()
  *
- * NOTE: This is the only place we are allowed to read from a bundle's
- * control socket once NgFuncInit() has returned. See NgFuncSendQuery().
  */
 
 static void
@@ -786,28 +784,6 @@ NgFuncCtrlEvent(int type, void *cookie)
     return;
   }
 
-  /* If message is a reply, wake up requesting thread */
-  if ((u.msg.header.flags & NGF_RESP) != 0) {
-    struct ngmsg_reply *reply;
-
-    TAILQ_FOREACH(reply, &bund->ngreplies, next) {
-      if (reply->cookie == u.msg.header.typecookie
-	  && reply->cmd == u.msg.header.cmd
-	  && reply->token == u.msg.header.token) {
-	if (len > reply->replen)
-	  len = reply->replen;
-	reply->replen = len;
-	memcpy(reply->reply, &u.msg, len);
-	if (reply->raddr != NULL)
-	  strncpy(reply->raddr, raddr, NG_PATHLEN);
-	reply->received = TRUE;
-	pthread_cond_broadcast(&bund->ngreply_cond);
-	return;
-      }
-    }
-    goto unknown;
-  }
-
   /* Examine message */
   switch (u.msg.header.typecookie) {
 
@@ -823,7 +799,6 @@ NgFuncCtrlEvent(int type, void *cookie)
       break;
   }
 
-unknown:
   /* Unknown message */
   Log(LG_ERR, ("[%s] rec'd unknown ctrl message, cookie=%d cmd=%d",
     bund->name, u.msg.header.typecookie, u.msg.header.cmd));
@@ -837,34 +812,32 @@ int
 NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
 	size_t arglen, struct ng_mesg *rbuf, size_t replen, char *raddr)
 {
-  struct ngmsg_reply *reply;
-  int token;
+  int token, len;
+  int ret = 0;
+
+  /* Suspend the read event for avoiding race conditions */
+  EventUnRegister(&bund->ctrlEvent);
 
   /* Send message */
   if ((token = NgSendMsg(bund->csock, path, cookie, cmd, args, arglen)) < 0)
-    return -1;
+    goto fail;
 
-  /* Register to receive reply */
-  reply = Malloc(MB_BUND, sizeof(*reply));
-  reply->cookie = cookie;
-  reply->token = token;
-  reply->cmd = cmd;
-  reply->reply = rbuf;
-  reply->replen = replen;
-  reply->raddr = raddr;
-  reply->received = FALSE;
-  TAILQ_INSERT_TAIL(&bund->ngreplies, reply, next);
+  /* Read message */
+  if ((len = NgRecvMsg(bund->csock, rbuf, replen, raddr)) < 0) {
+    Log(LG_ERR, ("[%s] can't read unexpected message: %s",
+      bund->name, strerror(errno)));
+    goto fail;
+  }
 
-  /* Wait for reply; we will be woken up by NgFuncCtrlEvent() */
-  while (!reply->received)
-    assert(pthread_cond_wait(&bund->ngreply_cond, &gGiantMutex) == 0);
+ goto done;
 
-  /* Destroy pending reply structure */
-  TAILQ_REMOVE(&bund->ngreplies, reply, next);
-  Freee(MB_BUND, reply);
+fail:
+  ret = -1;
+done:
+  EventRegister(&bund->ctrlEvent, EVENT_READ, bund->csock, 
+    EVENT_RECURRING, NgFuncCtrlEvent, bund);
+  return ret;
 
-  /* Done */
-  return 0;
 }
 
 /*

@@ -319,13 +319,18 @@ LinkCommand(int ac, char *av[], void *arg)
 	k++);
   };
   if (k == gNumLinks) {
-    printf("Link \"%s\" is not defined\n", av[0]);
+    Printf("Link \"%s\" is not defined\r\n", av[0]);
     return(0);
   }
 
   /* Change default link and bundle */
-  lnk = gLinks[k];
-  bund = lnk->bund;
+  if (gConsoleSession) {
+    gConsoleSession->link = gLinks[k];
+    gConsoleSession->bund = gConsoleSession->link->bund;
+  } else {
+    lnk = gLinks[k];
+    bund = lnk->bund;
+  }
   return(0);
 }
 
@@ -336,42 +341,42 @@ LinkCommand(int ac, char *av[], void *arg)
 int
 LinkStat(int ac, char *av[], void *arg)
 {
-  printf("Link %s:\n", lnk->name);
+  Printf("Link %s:\r\n", lnk->name);
 
-  printf("Configuration\n");
-  printf("\tMRU            : %d bytes\n", lnk->conf.mru);
-  printf("\tCtrl char map  : 0x%08x bytes\n", lnk->conf.accmap);
-  printf("\tRetry timeout  : %d seconds\n", lnk->conf.retry_timeout);
-  printf("\tMax redial     : %d connect attempts\n", lnk->conf.max_redial);
-  printf("\tBandwidth      : %d bits/sec\n", lnk->bandwidth);
-  printf("\tLatency        : %d usec\n", lnk->latency);
-  printf("\tKeep-alive     : ");
+  Printf("Configuration\r\n");
+  Printf("\tMRU            : %d bytes\r\n", lnk->conf.mru);
+  Printf("\tCtrl char map  : 0x%08x bytes\r\n", lnk->conf.accmap);
+  Printf("\tRetry timeout  : %d seconds\r\n", lnk->conf.retry_timeout);
+  Printf("\tMax redial     : %d connect attempts\r\n", lnk->conf.max_redial);
+  Printf("\tBandwidth      : %d bits/sec\r\n", lnk->bandwidth);
+  Printf("\tLatency        : %d usec\r\n", lnk->latency);
+  Printf("\tKeep-alive     : ");
   if (lnk->lcp.fsm.conf.echo_int == 0)
-    printf("disabled\n");
+    Printf("disabled\r\n");
   else
-    printf("every %d secs, timeout %d\n",
+    Printf("every %d secs, timeout %d\r\n",
       lnk->lcp.fsm.conf.echo_int, lnk->lcp.fsm.conf.echo_max);
-  printf("\tIdent string   : \"%s\"\n", lnk->conf.ident ? lnk->conf.ident : "");
-  printf("\tSession-Id     : %s\n", lnk->session_id);
-  printf("Link level options\n");
+  Printf("\tIdent string   : \"%s\"\r\n", lnk->conf.ident ? lnk->conf.ident : "");
+  Printf("\tSession-Id     : %s\r\n", lnk->session_id);
+  Printf("Link level options\r\n");
   OptStat(&lnk->conf.options, gConfList);
   LinkUpdateStats();
-  printf("Traffic stats:\n");
+  Printf("Traffic stats:\r\n");
 
-  printf("\tOctets input   : %llu\n", lnk->stats.recvOctets);
-  printf("\tFrames input   : %llu\n", lnk->stats.recvFrames);
-  printf("\tOctets output  : %llu\n", lnk->stats.xmitOctets);
-  printf("\tFrames output  : %llu\n", lnk->stats.xmitFrames);
-  printf("\tBad protocols  : %llu\n", lnk->stats.badProtos);
+  Printf("\tOctets input   : %llu\r\n", lnk->stats.recvOctets);
+  Printf("\tFrames input   : %llu\r\n", lnk->stats.recvFrames);
+  Printf("\tOctets output  : %llu\r\n", lnk->stats.xmitOctets);
+  Printf("\tFrames output  : %llu\r\n", lnk->stats.xmitFrames);
+  Printf("\tBad protocols  : %llu\r\n", lnk->stats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-  printf("\tRunts          : %llu\n", lnk->stats.runts);
+  Printf("\tRunts          : %llu\r\n", lnk->stats.runts);
 #endif
-  printf("\tDup fragments  : %llu\n", lnk->stats.dupFragments);
+  Printf("\tDup fragments  : %llu\r\n", lnk->stats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-  printf("\tDrop fragments : %llu\n", lnk->stats.dropFragments);
+  Printf("\tDrop fragments : %llu\r\n", lnk->stats.dropFragments);
 #endif
 
-  printf("Device specific info:\n");
+  Printf("Device specific info:\r\n");
   PhysStat(0, NULL, NULL);
   return(0);
 }

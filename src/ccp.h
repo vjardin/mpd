@@ -13,6 +13,7 @@
 #include "fsm.h"
 #include "mbuf.h"
 #include "comp.h"
+#include "console.h"
 #include "command.h"
 
 #ifdef COMPRESSION_PRED1

@@ -330,17 +330,17 @@ CcpStat(int ac, char *av[], void *arg)
 {
   CcpState	const ccp = &bund->ccp;
 
-  printf("%s [%s]\n", Pref(&ccp->fsm), FsmStateName(ccp->fsm.state));
-  printf("Enabled protocols:\n");
+  Printf("%s [%s]\r\n", Pref(&ccp->fsm), FsmStateName(ccp->fsm.state));
+  Printf("Enabled protocols:\r\n");
   OptStat(&ccp->options, gConfList);
 
-  printf("Incoming decompression:\n");
-  printf("\tProtocol:%s\n", !ccp->recv ?  " none" :
+  Printf("Incoming decompression:\r\n");
+  Printf("\tProtocol:%s\n", !ccp->recv ?  " none" :
     ccp->recv->Describe ? (*ccp->recv->Describe)(COMP_DIR_RECV) :
     ccp->recv->name);
 
-  printf("Outgoing compression:\n");
-  printf("\tProtocol:%s\n", !ccp->xmit ?  " none" :
+  Printf("Outgoing compression:\r\n");
+  Printf("\tProtocol:%s\n", !ccp->xmit ?  " none" :
     ccp->xmit->Describe ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) :
     ccp->xmit->name);
 

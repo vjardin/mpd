@@ -524,26 +524,26 @@ LcpStat(int ac, char *av[], void *arg)
 {
   LcpState	const lcp = &lnk->lcp;
 
-  printf("%s [%s]\n", lcp->fsm.type->name, FsmStateName(lcp->fsm.state));
+  Printf("%s [%s]\r\n", lcp->fsm.type->name, FsmStateName(lcp->fsm.state));
 
-  printf("Self:\n");
-  printf(	"\tMRU      : %d bytes\n"
-		"\tMAGIC    : 0x%08x\n"
-		"\tACCMAP   : 0x%08x\n"
-		"\tACFCOMP  : %s\n"
-		"\tPROTOCOMP: %s\n",
+  Printf("Self:\r\n");
+  Printf(	"\tMRU      : %d bytes\r\n"
+		"\tMAGIC    : 0x%08x\r\n"
+		"\tACCMAP   : 0x%08x\r\n"
+		"\tACFCOMP  : %s\r\n"
+		"\tPROTOCOMP: %s\r\n",
     (int) lcp->want_mru,
     (int) lcp->want_magic,
     (int) lcp->want_accmap,
     lcp->want_acfcomp ? "Yes" : "No",
     lcp->want_protocomp ? "Yes" : "No");
 
-  printf("Peer:\n");
-  printf(	"\tMRU      : %d bytes\n"
-		"\tMAGIC    : 0x%08x\n"
-		"\tACCMAP   : 0x%08x\n"
-		"\tACFCOMP  : %s\n"
-		"\tPROTOCOMP: %s\n",
+  Printf("Peer:\r\n");
+  Printf(	"\tMRU      : %d bytes\r\n"
+		"\tMAGIC    : 0x%08x\r\n"
+		"\tACCMAP   : 0x%08x\r\n"
+		"\tACFCOMP  : %s\r\n"
+		"\tPROTOCOMP: %s\r\n",
     (int) lcp->peer_mru,
     (int) lcp->peer_magic,
     (int) lcp->peer_accmap,

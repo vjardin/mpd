@@ -532,7 +532,7 @@ PptpCtrlListen(int enable, int port, int allow_multiple)
     gAllowMultiple = allow_multiple;
     if (gListenSock >= 0 || EventIsRegistered(&gListenRetry))
       return(0);
-    if ((gListenSock = TcpGetListenPort(gListenIp, &port)) < 0) {
+    if ((gListenSock = TcpGetListenPort(gListenIp, &port, FALSE)) < 0) {
       Log(LG_PPTP, ("mpd: can't get PPTP listening socket"));
       if (errno == EADDRINUSE)			/* try again soon */
 	EventRegister(&gListenRetry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
@@ -721,7 +721,7 @@ PptpCtrlListenEvent(int type, void *cookie)
   int				sock;
 
   /* Accept connection */
-  if ((sock = TcpAcceptConnection(gListenSock, &peer)) < 0)
+  if ((sock = TcpAcceptConnection(gListenSock, &peer, FALSE)) < 0)
     return;
   Log(LG_PPTP, ("mpd: PPTP connection from %s:%u",
     inet_ntoa(peer.sin_addr), (u_short) ntohs(peer.sin_port)));
@@ -1132,7 +1132,7 @@ PptpCtrlGetCtrl(int orig, struct in_addr locip,
     return(c);
 
   /* Connect to peer */
-  if ((c->csock = GetInetSocket(SOCK_STREAM, locip, 0, buf, bsiz)) < 0) {
+  if ((c->csock = GetInetSocket(SOCK_STREAM, locip, 0, FALSE, buf, bsiz)) < 0) {
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
     return(NULL);
   }

@@ -364,16 +364,16 @@ EcpStat(int ac, char *av[], void *arg)
 {
   EcpState	const ecp = &bund->ecp;
 
-  printf("%s [%s]\n", Pref(&ecp->fsm), FsmStateName(ecp->fsm.state));
-  printf("Enabled protocols:\n");
+  Printf("%s [%s]\r\n", Pref(&ecp->fsm), FsmStateName(ecp->fsm.state));
+  Printf("Enabled protocols:\r\n");
   OptStat(&ecp->options, gConfList);
-  printf("Incoming encryption:\n");
-  printf("\tProtocol  : %5s\n", ecp->xmit ? ecp->xmit->name : "none");
-  printf("\tRecv pkts : %5d\n", ecp->stat.inPackets);
-  printf("\tRecv drops: %5d\n", ecp->stat.inPacketDrops);
-  printf("Outgoing encryption:\n");
-  printf("\tProtocol  : %5s\n", ecp->recv ? ecp->recv->name : "none");
-  printf("\tXmit pkts : %5d\n", ecp->stat.outPackets);
+  Printf("Incoming encryption:\r\n");
+  Printf("\tProtocol  : %5s\r\n", ecp->xmit ? ecp->xmit->name : "none");
+  Printf("\tRecv pkts : %5d\r\n", ecp->stat.inPackets);
+  Printf("\tRecv drops: %5d\r\n", ecp->stat.inPacketDrops);
+  Printf("Outgoing encryption:\r\n");
+  Printf("\tProtocol  : %5s\r\n", ecp->recv ? ecp->recv->name : "none");
+  Printf("\tXmit pkts : %5d\r\n", ecp->stat.outPackets);
   return(0);
 }
 

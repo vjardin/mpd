@@ -241,10 +241,10 @@ UdpStat(PhysInfo p)
 {
   UdpInfo	const udp = (UdpInfo) lnk->phys->info;
 
-  printf("UDP configuration:\n");
-  printf("\tSelf address : %s, port %u\n",
+  Printf("UDP configuration:\r\n");
+  Printf("\tSelf address : %s, port %u\r\n",
     inet_ntoa(udp->self_addr), udp->self_port);
-  printf("\tPeer address : %s, port %u\n",
+  Printf("\tPeer address : %s, port %u\r\n",
     inet_ntoa(udp->peer_addr), udp->peer_port);
 }
 

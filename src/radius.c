@@ -306,11 +306,11 @@ RadStat(int ac, char *av[], void *arg)
   char		*buf;
   RadServe_Conf	server;
 
-  printf("Configuration:\n");
-  printf("\tTimeout      : %d\n", conf->radius_timeout);
-  printf("\tRetries      : %d\n", conf->radius_retries);
-  printf("\tConfig-file  : %s\n", conf->file);
-  printf("\tMe (NAS-IP)  : %s\n", inet_ntoa(conf->radius_me));
+  Printf("Configuration:\r\n");
+  Printf("\tTimeout      : %d\r\n", conf->radius_timeout);
+  Printf("\tRetries      : %d\r\n", conf->radius_retries);
+  Printf("\tConfig-file  : %s\r\n", conf->file);
+  Printf("\tMe (NAS-IP)  : %s\r\n", inet_ntoa(conf->radius_me));
   
   if (conf->server != NULL) {
 
@@ -318,30 +318,30 @@ RadStat(int ac, char *av[], void *arg)
     i = 1;
 
     while (server) {
-      printf("\t---------------  Radius Server %d ---------------\n", i);
-      printf("\thostname   : %s\n", server->hostname);
-      printf("\tsecret     : *********\n");
-      printf("\tauth port  : %d\n", server->auth_port);
-      printf("\tacct port  : %d\n", server->acct_port);
+      Printf("\t---------------  Radius Server %d ---------------\r\n", i);
+      Printf("\thostname   : %s\r\n", server->hostname);
+      Printf("\tsecret     : *********\r\n");
+      Printf("\tauth port  : %d\r\n", server->auth_port);
+      Printf("\tacct port  : %d\r\n", server->acct_port);
       i++;
       server = server->next;
     }
 
   }
 
-  printf("RADIUS options\n");
+  Printf("RADIUS options\r\n");
   OptStat(&conf->options, gConfList);
 
-  printf("Data:\n");
-  printf("\tAuthenticated  : %s\n", a->authentic == AUTH_CONF_RADIUS_AUTH ? 
+  Printf("Data:\r\n");
+  Printf("\tAuthenticated  : %s\r\n", a->authentic == AUTH_CONF_RADIUS_AUTH ? 
   	"yes" : "no");
-  printf("\tClass          : %ld\n", a->radius.class);
-  printf("\tACL Rule       : %s\n", a->radius.acl_rule ? "yes" : "no");
-  printf("\tACL Pipe       : %s\n", a->radius.acl_pipe ? "yes" : "no");
-  printf("\tACL Queue      : %s\n", a->radius.acl_queue ? "yes" : "no");
+  Printf("\tClass          : %ld\r\n", a->radius.class);
+  Printf("\tACL Rule       : %s\r\n", a->radius.acl_rule ? "yes" : "no");
+  Printf("\tACL Pipe       : %s\r\n", a->radius.acl_pipe ? "yes" : "no");
+  Printf("\tACL Queue      : %s\r\n", a->radius.acl_queue ? "yes" : "no");
   
   buf = Bin2Hex(a->radius.state, a->radius.state_len); 
-  printf("\tState          : %s\n", buf);
+  Printf("\tState          : %s\r\n", buf);
   Freee(MB_UTIL, buf);
   
   return (0);

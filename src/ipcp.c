@@ -178,41 +178,41 @@ IpcpStat(int ac, char *av[], void *arg)
   }			u;
   struct slcompress	*const sls = (struct slcompress *)(void *)u.reply.data;
 
-  printf("%s [%s]\n", Pref(fp), FsmStateName(fp->state));
-  printf("Allowed IP address ranges:\n");
-  printf("\tSelf: %s/%d\n",
+  Printf("%s [%s]\r\n", Pref(fp), FsmStateName(fp->state));
+  Printf("Allowed IP address ranges:\r\n");
+  Printf("\tSelf: %s/%d\r\n",
     inet_ntoa(ipcp->conf.self_allow.ipaddr), ipcp->conf.self_allow.width);
-  printf("\tPeer: %s/%d\n",
+  Printf("\tPeer: %s/%d\r\n",
     inet_ntoa(ipcp->conf.peer_allow.ipaddr), ipcp->conf.peer_allow.width);
-  printf("Current addressing:\n");
-  printf("\tSelf: %s\n", inet_ntoa(ipcp->want_addr));
-  printf("\tPeer: %s\n", inet_ntoa(ipcp->peer_addr));
-  printf("Compression:\n");
-  printf("\tSelf: ");
+  Printf("Current addressing:\r\n");
+  Printf("\tSelf: %s\r\n", inet_ntoa(ipcp->want_addr));
+  Printf("\tPeer: %s\r\n", inet_ntoa(ipcp->peer_addr));
+  Printf("Compression:\r\n");
+  Printf("\tSelf: ");
   if (ipcp->want_comp.proto != 0)
-    printf("%s, %d compression channels, CID %scompressible\n",
+    Printf("%s, %d compression channels, CID %scompressible\r\n",
       ProtoName(ntohs(ipcp->want_comp.proto)),
       ipcp->want_comp.maxchan + 1, ipcp->want_comp.compcid ? "" : "not ");
   else
-    printf("None\n");
-  printf("\tPeer: ");
+    Printf("None\r\n");
+  Printf("\tPeer: ");
   if (ipcp->peer_comp.proto != 0)
-    printf("%s, %d compression channels, CID %scompressible\n",
+    Printf("%s, %d compression channels, CID %scompressible\n",
       ProtoName(ntohs(ipcp->peer_comp.proto)),
       ipcp->peer_comp.maxchan + 1, ipcp->peer_comp.compcid ? "" : "not ");
   else
-    printf("None\n");
-  printf("Server info we give to peer:\n");
-  printf("DNS servers : %15s", inet_ntoa(ipcp->conf.peer_dns[0]));
-  printf("  %15s\n", inet_ntoa(ipcp->conf.peer_dns[1]));
-  printf("NBNS servers: %15s", inet_ntoa(ipcp->conf.peer_nbns[0]));
-  printf("  %15s\n", inet_ntoa(ipcp->conf.peer_nbns[1]));
-  printf("Server info peer gave to us:\n");
-  printf("DNS servers : %15s", inet_ntoa(ipcp->want_dns[0]));
-  printf("  %15s\n", inet_ntoa(ipcp->want_dns[1]));
-  printf("NBNS servers: %15s", inet_ntoa(ipcp->want_nbns[0]));
-  printf("  %15s\n", inet_ntoa(ipcp->want_nbns[1]));
-  printf("IPCP Options:\n");
+    Printf("None\r\n");
+  Printf("Server info we give to peer:\r\n");
+  Printf("DNS servers : %15s", inet_ntoa(ipcp->conf.peer_dns[0]));
+  Printf("  %15s\r\n", inet_ntoa(ipcp->conf.peer_dns[1]));
+  Printf("NBNS servers: %15s", inet_ntoa(ipcp->conf.peer_nbns[0]));
+  Printf("  %15s\r\n", inet_ntoa(ipcp->conf.peer_nbns[1]));
+  Printf("Server info peer gave to us:\r\n");
+  Printf("DNS servers : %15s", inet_ntoa(ipcp->want_dns[0]));
+  Printf("  %15s\r\n", inet_ntoa(ipcp->want_dns[1]));
+  Printf("NBNS servers: %15s", inet_ntoa(ipcp->want_nbns[0]));
+  Printf("  %15s\r\n", inet_ntoa(ipcp->want_nbns[1]));
+  Printf("IPCP Options:\r\n");
   OptStat(&ipcp->conf.options, gConfList);
 
   /* Get VJC state */
@@ -221,15 +221,15 @@ IpcpStat(int ac, char *av[], void *arg)
       NULL, 0, &u.reply, sizeof(u), NULL) < 0)
     return(0);
 
-  printf("VJ Compression:\n");
-  printf("\tOut comp : %d\n", sls->sls_compressed);
-  printf("\tOut total: %d\n", sls->sls_packets);
-  printf("\tMissed   : %d\n", sls->sls_misses);
-  printf("\tSearched : %d\n", sls->sls_searches);
-  printf("\tIn comp  : %d\n", sls->sls_compressedin);
-  printf("\tIn uncomp: %d\n", sls->sls_uncompressedin);
-  printf("\tIn error : %d\n", sls->sls_errorin);
-  printf("\tIn tossed: %d\n", sls->sls_tossed);
+  Printf("VJ Compression:\r\n");
+  Printf("\tOut comp : %d\r\n", sls->sls_compressed);
+  Printf("\tOut total: %d\r\n", sls->sls_packets);
+  Printf("\tMissed   : %d\r\n", sls->sls_misses);
+  Printf("\tSearched : %d\r\n", sls->sls_searches);
+  Printf("\tIn comp  : %d\r\n", sls->sls_compressedin);
+  Printf("\tIn uncomp: %d\r\n", sls->sls_uncompressedin);
+  Printf("\tIn error : %d\r\n", sls->sls_errorin);
+  Printf("\tIn tossed: %d\r\n", sls->sls_tossed);
   return(0);
 }
 

@@ -425,11 +425,11 @@ PppoeStat(PhysInfo p)
 	const PppoeInfo pe = (PppoeInfo)p->info;
 	const char *ststr;
 
-	printf("PPPoE configuration:\n");
-	printf("\tNode    : %s\n", pe->path);
-	printf("\tHook    : %s\n", pe->hook);
-	printf("\tSession : %s\n", pe->session);
-	printf("PPPoE status:\n");
+	Printf("PPPoE configuration:\r\n");
+	Printf("\tNode    : %s\r\n", pe->path);
+	Printf("\tHook    : %s\r\n", pe->hook);
+	Printf("\tSession : %s\r\n", pe->session);
+	Printf("PPPoE status:\r\n");
 	switch (pe->state) {
 	case PPPOE_DOWN:
 		ststr = "DOWN";
@@ -444,7 +444,7 @@ PppoeStat(PhysInfo p)
 		ststr = "???";
 		break;
 	}
-	printf("\tState   : %s\n", ststr);
+	Printf("\tState   : %s\r\n", ststr);
 }
 
 /*

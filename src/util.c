@@ -905,7 +905,7 @@ PIDCheck(const char *filename, int killem)
  */
 
 int
-GetInetSocket(int type, struct in_addr locip, int locport, char *ebuf, int len)
+GetInetSocket(int type, struct in_addr locip, int locport, int block, char *ebuf, int len)
 {
   struct sockaddr_in	self;
   int			sock, self_size = sizeof(self);
@@ -919,11 +919,14 @@ GetInetSocket(int type, struct in_addr locip, int locport, char *ebuf, int len)
     return(-1);
   }
   (void) fcntl(sock, F_SETFD, 1);
-  if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
+  if (!block) 
   {
-    snprintf(ebuf, len, "can't set socket non-blocking: %s", strerror(errno));
-    close(sock);
-    return(-1);
+    if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
+    {
+      snprintf(ebuf, len, "can't set socket non-blocking: %s", strerror(errno));
+      close(sock);
+      return(-1);
+    }
   }
   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)))
   {
@@ -941,8 +944,10 @@ GetInetSocket(int type, struct in_addr locip, int locport, char *ebuf, int len)
     close(sock);
     return(-1);
   }
+  
   return(sock);
 }
+
 
 /*
  * TcpGetListenPort()
@@ -951,14 +956,14 @@ GetInetSocket(int type, struct in_addr locip, int locport, char *ebuf, int len)
  */
 
 int
-TcpGetListenPort(struct in_addr ip, int *port)
+TcpGetListenPort(struct in_addr ip, int *port, int block)
 {
   char	ebuf[100];
   int	sock;
 
 /* Get socket */
 
-  if ((sock = GetInetSocket(SOCK_STREAM, ip, *port, ebuf, sizeof(ebuf))) < 0)
+  if ((sock = GetInetSocket(SOCK_STREAM, ip, *port, block, ebuf, sizeof(ebuf))) < 0)
   {
     Log(LG_ERR, ("mpd: %s", ebuf));
     return(-1);
@@ -994,6 +999,7 @@ TcpGetListenPort(struct in_addr ip, int *port)
   return(sock);
 }
 
+
 /*
  * TcpAcceptConnection()
  *
@@ -1001,7 +1007,7 @@ TcpGetListenPort(struct in_addr ip, int *port)
  */
 
 int
-TcpAcceptConnection(int sock, struct sockaddr_in *addr)
+TcpAcceptConnection(int sock, struct sockaddr_in *addr, int block)
 {
   int	new_sock;
   int	size = sizeof(*addr);
@@ -1016,7 +1022,7 @@ TcpAcceptConnection(int sock, struct sockaddr_in *addr)
   }
   
   if (bund) {
-    if (Enabled(&bund->conf.options, BUND_CONF_TCPWRAPPER)) {
+    if (Enabled(&gGlobalConf.options, GLOBAL_CONF_TCPWRAPPER)) {
       request_init(&req, RQ_DAEMON, "mpd", RQ_FILE, new_sock, NULL);
       fromhost(&req);
       if (!hosts_access(&req)) {
@@ -1028,16 +1034,20 @@ TcpAcceptConnection(int sock, struct sockaddr_in *addr)
     }
   }
   
-  (void) fcntl(new_sock, F_SETFD, 1);
-  if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0) {
-    Perror("fcntl");
-    return(-1);
+  if (!block) 
+  {
+    (void) fcntl(new_sock, F_SETFD, 1);
+    if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0) {
+      Perror("fcntl");
+      return(-1);
+    }
   }
 
 /* Done */
 
   return(new_sock);
 }
+
 
 /*
  * ShowMesg()

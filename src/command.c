@@ -12,6 +12,7 @@
  */
 
 #include "ppp.h"
+#include "console.h"
 #include "command.h"
 #include "ccp.h"
 #include "iface.h"
@@ -39,6 +40,13 @@
 
   #define DEFAULT_OPEN_LAYER	"iface"
 
+  /* Set menu options */
+  enum {
+    SET_ENABLE,
+    SET_DISABLE,
+  };
+
+
 /*
  * INTERNAL FUNCTIONS
  */
@@ -48,19 +56,19 @@
   static int	ShowLayers(int ac, char *av[], void *arg);
   static int	ShowTypes(int ac, char *av[], void *arg);
   static int	ShowEvents(int ac, char *av[], void *arg);
+  static int	ShowGlobals(int ac, char *av[], void *arg);
   static int	OpenCommand(int ac, char *av[], void *arg);
   static int	CloseCommand(int ac, char *av[], void *arg);
   static int	LoadCommand(int ac, char *av[], void *arg);
   static int	ExitCommand(int ac, char *av[], void *arg);
   static int	QuitCommand(int ac, char *av[], void *arg);
   static int	NullCommand(int ac, char *av[], void *arg);
-  static int	HelpCommand(int ac, char *av[], void *arg);
-  static int	SetLoginCommand(int ac, char *av[], void *arg);
+  static int	GlobalSetCommand(int ac, char *av[], void *arg);
   static int	SetDebugCommand(int ac, char *av[], void *arg);
 
   /* Other stuff */
   static int	DoCommandTab(CmdTab cmdlist, int ac, char *av[]);
-  static const	char *FindCommand(CmdTab cmds,
+  const	char *FindCommand(CmdTab cmds,
 			char* str, CmdTab *cp, int complain);
   static Layer	GetLayer(const char *name);
 
@@ -69,6 +77,19 @@
  */
 
   static int	exitflag;
+
+  const struct cmdtab GlobalSetCmds[] = {
+    { "enable [opt ...]", 		"Enable option" ,
+       	GlobalSetCommand, NULL, (void *) SET_ENABLE },
+    { "disable [opt ...]", 		"Disable option" ,
+       	GlobalSetCommand, NULL, (void *) SET_DISABLE },
+    { NULL },
+  };
+
+  static const struct confinfo	gGlobalConfList[] = {
+    { 0,	GLOBAL_CONF_TCPWRAPPER,	"tcp-wrapper"	},
+    { 0,	0,			NULL		},
+  };
 
   static const struct cmdtab ShowCommands[] = {
     { "bundle [name]",			"Bundle status",
@@ -101,6 +122,10 @@
 	MemStat, NULL, NULL },
     { "mp",				"Multi-link status",
 	MpStat, AdmitBund, NULL },
+    { "console",			"Console status",
+	ConsoleStat, NULL, NULL },
+    { "globals",			"Global settings",
+	ShowGlobals, NULL, NULL },
     { "types",				"Supported device types",
 	ShowTypes, NULL, NULL },
     { "version",			"Version string",
@@ -127,8 +152,10 @@
 	CMD_SUBMENU, AdmitBund, (void *) AuthSetCmds },
     { "radius ...",			"RADIUS specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) RadiusSetCmds },
-    { "login [authname]",		"Set/clear console password",
-	SetLoginCommand, NULL, NULL },
+    { "console ...",			"Console specific stuff",
+	CMD_SUBMENU, NULL, (void *) ConsoleSetCmds },
+    { "global ...",			"Global settings",
+	CMD_SUBMENU, NULL, (void *) GlobalSetCmds },
     { "debug level",			"Set netgraph debug level",
 	SetDebugCommand, NULL, NULL },
 #define _WANT_DEVICE_CMDS
@@ -136,7 +163,7 @@
     { NULL },
   };
 
-  static const struct cmdtab gCommands[] = {
+  const struct cmdtab gCommands[] = {
     { "new [-i ng#] bundle link ...",	"Create new bundle",
     	BundCreateCmd, NULL, NULL },
     { "bundle [name]",			"Choose/list bundles",
@@ -167,6 +194,8 @@
 	HelpCommand, NULL, NULL },
     { NULL },
   };
+
+
 
 /*
  * Layers
@@ -268,7 +297,7 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
  * FindCommand()
  */
 
-static const char *
+const char *
 FindCommand(CmdTab cmds, char *str, CmdTab *cmdp, int complain)
 {
   int		found, nmatch;
@@ -299,11 +328,38 @@ FindCommand(CmdTab cmds, char *str, CmdTab *cmdp, int complain)
 
 /********** COMMANDS **********/
 
+
+/*
+ * GlobalSetCommand()
+ */
+
+static int
+GlobalSetCommand(int ac, char *av[], void *arg) 
+{
+  if (ac == 0)
+    return(-1);
+
+  switch ((int) arg) {
+    case SET_ENABLE:
+      EnableCommand(ac, av, &gGlobalConf.options, gGlobalConfList);
+      break;
+
+    case SET_DISABLE:
+      DisableCommand(ac, av, &gGlobalConf.options, gGlobalConfList);
+      break;
+
+    default:
+      return(-1);
+  }
+
+  return 0;
+}
+
 /*
  * HelpCommand()
  */
 
-static int
+int
 HelpCommand(int ac, char *av[], void *arg)
 {
   int		depth;
@@ -330,7 +386,7 @@ HelpCommand(int ac, char *av[], void *arg)
       mark = mark_save + strlen(mark_save);
     if (cmd->func != CMD_SUBMENU)
     {
-      printf("Usage: %s\n", buf);
+      Printf("Usage: %s\r\n", buf);
       return(0);
     }
   }
@@ -338,38 +394,18 @@ HelpCommand(int ac, char *av[], void *arg)
   /* Show list of available commands in this submenu */
   *mark = 0;
   if (!*buf)
-    printf("Available commands:\n");
+    Printf("Available commands:\r\n");
   else
-    printf("Commands available under \"%s\":\n", buf);
+    Printf("Commands available under \"%s\":\r\n", buf);
   for (cmd = menu; cmd->name; cmd++) {
     snprintf(buf, sizeof(buf), "%s", cmd->name);
     if ((mark = strchr(buf, ' ')))
       *mark = 0;
-    printf(" %-9s: %-20s%c", buf, cmd->desc,
-      ((cmd - menu) & 1)? '\n' : '\t');
+    Printf(" %-9s: %-20s%s", buf, cmd->desc,
+      ((cmd - menu) & 1)? "\r\n" : "\t");
   }
   if ((cmd - menu) & 1)
-    printf("\n");
-  return(0);
-}
-
-/*
- * SetLoginCommand()
- */
-
-static int
-SetLoginCommand(int ac, char *av[], void *arg)
-{
-  switch (ac) {
-    case 0:
-      *gLoginAuthName = 0;
-      break;
-    case 1:
-      snprintf(gLoginAuthName, sizeof(gLoginAuthName), "%s", av[0]);
-      break;
-    default:
-      return(-1);
-  }
+    Printf("\r\n");
   return(0);
 }
 
@@ -397,7 +433,7 @@ SetDebugCommand(int ac, char *av[], void *arg)
 static int
 ShowVersion(int ac, char *av[], void *arg)
 {
-  printf("MPD version: %s\n", gVersion);
+  Printf("MPD version: %s\r\n", gVersion);
   return(0);
 }
 
@@ -411,6 +447,19 @@ ShowEvents(int ac, char *av[], void *arg)
   EventDump("mpd events");
   return(0);
 }
+
+/*
+ * ShowGlobals()
+ */
+
+static int
+ShowGlobals(int ac, char *av[], void *arg)
+{
+  Printf("Global settings:\r\n");
+  OptStat(&gGlobalConf.options, gGlobalConfList);
+  return 0;
+}
+
 
 /*
  * ExitCommand()
@@ -548,10 +597,10 @@ ShowLayers(int ac, char *av[], void *arg)
 {
   int	k;
 
-  printf("\tName\t\tDescription\n"
-	 "\t----\t\t-----------\n");
+  Printf("\tName\t\tDescription\r\n"
+	 "\t----\t\t-----------\r\n");
   for (k = 0; k < NUM_LAYERS; k++)
-    printf("\t%s\t\t%s\n", gLayers[k].name, gLayers[k].desc);
+    Printf("\t%s\t\t%s\r\n", gLayers[k].name, gLayers[k].desc);
   return(0);
 }
 
@@ -565,10 +614,10 @@ ShowTypes(int ac, char *av[], void *arg)
   PhysType	pt;
   int		k;
 
-  printf("Supported device types:\n\t");
+  Printf("Supported device types:\r\n\t");
   for (k = 0; (pt = gPhysTypes[k]); k++)
-    printf(" %s", pt->name);
-  printf("\n");
+    Printf(" %s", pt->name);
+  Printf("\r\n");
   return(0);
 }
 

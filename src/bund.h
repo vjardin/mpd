@@ -39,7 +39,6 @@
     BUND_CONF_BWMANAGE,		/* dynamic bandwidth */
     BUND_CONF_ROUNDROBIN,	/* round-robin MP scheduling */
     BUND_CONF_NORETRY,		/* don't retry failed links */
-    BUND_CONF_TCPWRAPPER,	/* enable tcp-wrapper */
   };
 
   /* Default bundle-layer FSM retry timeout */
@@ -110,18 +109,6 @@
     struct authconf	auth;			/* Auth backends, RADIUS, etc. */
   };
 
-  /* A pending reply on the bundle's netgraph control socket */
-  struct ngmsg_reply {
-    u_int32_t			cookie;
-    u_int32_t			cmd;
-    u_int32_t			token;
-    struct ng_mesg		*reply;
-    size_t			replen;
-    char			*raddr;
-    u_char			received;
-    TAILQ_ENTRY(ngmsg_reply)	next;
-  };
-  
   /* Total state of a bundle */
   struct bundle {
     char		name[LINK_MAX_NAME];	/* Name of this bundle */
@@ -165,9 +152,6 @@
     u_char		open:1;		/* In the open state */
     u_char		multilink:1;	/* Doing multi-link on this bundle */
 
-    /* Netgraph control message replies */
-    pthread_cond_t	ngreply_cond;
-    TAILQ_HEAD(, ngmsg_reply) ngreplies;
   };
   
 /*

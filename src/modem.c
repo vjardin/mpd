@@ -832,7 +832,7 @@ ModemSetCommand(int ac, char *av[], void *arg)
 	    bit = TIOCM_DSR;
 	  else
 	  {
-	    printf("[%s] modem signal \"%s\" is unknown\n", lnk->name, *av);
+	    Printf("[%s] modem signal \"%s\" is unknown\r\n", lnk->name, *av);
 	    bit = 0;
 	  }
 	  if (add)
@@ -886,24 +886,24 @@ ModemStat(PhysInfo p)
   ModemInfo		const m = (ModemInfo) p->info;
   struct ng_async_stat	stats;
 
-  printf("Modem info:\n");
-  printf("\tDevice       : %s\n", m->device);
-  printf("\tPort speed   : %d baud\n", m->speed);
-  printf("\tConn. script : \"%s\"\n", m->connScript);
-  printf("\tIdle script  : \"%s\"\n", m->idleScript);
-  printf("\tPins to watch: %s%s\n",
+  Printf("Modem info:\r\n");
+  Printf("\tDevice       : %s\r\n", m->device);
+  Printf("\tPort speed   : %d baud\r\n", m->speed);
+  Printf("\tConn. script : \"%s\"\r\n", m->connScript);
+  Printf("\tIdle script  : \"%s\"\r\n", m->idleScript);
+  Printf("\tPins to watch: %s%s\r\n",
     (m->watch & TIOCM_CAR) ? "CD " : "",
     (m->watch & TIOCM_DSR) ? "DSR" : "");
   if (ModemGetNgStats(m, &stats) >= 0) {
-    printf("Async stats:\n");
-    printf("\t       syncOctets: %8u\n", stats.syncOctets);
-    printf("\t       syncFrames: %8u\n", stats.syncFrames);
-    printf("\t    syncOverflows: %8u\n", stats.syncOverflows);
-    printf("\t      asyncOctets: %8u\n", stats.asyncOctets);
-    printf("\t      asyncFrames: %8u\n", stats.asyncFrames);
-    printf("\t       asyncRunts: %8u\n", stats.asyncRunts);
-    printf("\t   asyncOverflows: %8u\n", stats.asyncOverflows);
-    printf("\tasyncBadCheckSums: %8u\n", stats.asyncBadCheckSums);
+    Printf("Async stats:\n");
+    Printf("\t       syncOctets: %8u\r\n", stats.syncOctets);
+    Printf("\t       syncFrames: %8u\r\n", stats.syncFrames);
+    Printf("\t    syncOverflows: %8u\r\n", stats.syncOverflows);
+    Printf("\t      asyncOctets: %8u\r\n", stats.asyncOctets);
+    Printf("\t      asyncFrames: %8u\r\n", stats.asyncFrames);
+    Printf("\t       asyncRunts: %8u\r\n", stats.asyncRunts);
+    Printf("\t   asyncOverflows: %8u\r\n", stats.asyncOverflows);
+    Printf("\tasyncBadCheckSums: %8u\r\n", stats.asyncBadCheckSums);
   }
 }
 

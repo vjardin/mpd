@@ -141,9 +141,9 @@ NgStat(PhysInfo p)
 {
   NgInfo	const ng = (NgInfo) p->info;
 
-  printf("Netgraph node configuration:\n");
-  printf("\tNode : %s\n", ng->path);
-  printf("\tHook : %s\n", ng->hook);
+  Printf("Netgraph node configuration:\r\n");
+  Printf("\tNode : %s\r\n", ng->path);
+  Printf("\tHook : %s\r\n", ng->hook);
 }
 
 /*

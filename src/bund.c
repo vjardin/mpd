@@ -127,7 +127,6 @@
     { 0,	BUND_CONF_BWMANAGE,	"bw-manage"	},
     { 0,	BUND_CONF_ROUNDROBIN,	"round-robin"	},
     { 0,	BUND_CONF_NORETRY,	"noretry"	},
-    { 0,	BUND_CONF_TCPWRAPPER,	"tcp-wrapper"	},
     { 0,	0,			NULL		},
   };
 
@@ -608,13 +607,13 @@ BundCommand(int ac, char *av[], void *arg)
 
       #define BUND_FMT "\t%-15s"
 
-      printf("Defined bundles:\n");
-      printf(BUND_FMT "Links\n", "Bundle");
-      printf(BUND_FMT "-----\n", "------");
+      Printf("Defined bundles:\r\n");
+      Printf(BUND_FMT "Links\r\n", "Bundle");
+      Printf(BUND_FMT "-----\r\n", "------");
 
       for (k = 0; k < gNumBundles; k++)
 	if ((sb = gBundles[k]) != NULL) {
-	  printf(BUND_FMT, sb->name);
+	  Printf(BUND_FMT, sb->name);
 	  BundShowLinks(sb);
 	}
       break;
@@ -623,11 +622,16 @@ BundCommand(int ac, char *av[], void *arg)
 
       /* Change bundle, and link also if needed */
       if ((sb = BundFind(av[0])) != NULL) {
-	bund = sb;
-	if (lnk->bund != bund)
-	  lnk = bund->links[0];
+	if (gConsoleSession) {
+	  gConsoleSession->bund = sb;
+	  gConsoleSession->link = sb->links[0];
+	} else {
+	  bund = sb;
+	  if (lnk->bund != bund)
+	    lnk = bund->links[0];
+	}
       } else
-	printf("Bundle \"%s\" not defined.\n", av[0]);
+	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
       break;
 
     default:
@@ -672,8 +676,6 @@ BundCreateCmd(int ac, char *av[], void *arg)
   bund = Malloc(MB_BUND, sizeof(*bund));
   snprintf(bund->name, sizeof(bund->name), "%s", av[0]);
   bund->csock = bund->dsock = -1;
-  assert(pthread_cond_init(&bund->ngreply_cond, NULL) == 0);
-  TAILQ_INIT(&bund->ngreplies);
 
   /* Setup netgraph stuff */
   if (NgFuncInit(bund, reqIface) < 0) {
@@ -700,7 +702,6 @@ BundCreateCmd(int ac, char *av[], void *arg)
     Freee(MB_BUND, bund->links);
     NgFuncShutdown(bund);
 fail2:
-    assert(pthread_cond_destroy(&bund->ngreply_cond) == 0);
     Freee(MB_BUND, bund);
 fail:
     bund = old_bund;
@@ -743,6 +744,11 @@ fail:
   EcpInit();
   
   AuthInit();
+
+  if (gConsoleSession) {
+    gConsoleSession->bund = bund;
+    gConsoleSession->link = bund->links[0];
+  }
   
   /* Done */
   return(0);
@@ -767,7 +773,7 @@ BundStat(int ac, char *av[], void *arg)
       break;
     case 1:
       if ((sb = BundFind(av[0])) == NULL) {
-	printf("Bundle \"%s\" not defined.\n", av[0]);
+	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
 	return(0);
       }
       break;
@@ -784,55 +790,55 @@ BundStat(int ac, char *av[], void *arg)
     tbw += sb->links[k]->bandwidth;
   }
 
-  printf("Bundle %s:\n", sb->name);
-  printf("\tLinks          : ");
+  Printf("Bundle %s:\r\n", sb->name);
+  Printf("\tLinks          : \r\n");
   BundShowLinks(sb);
-  printf("\tStatus         : %s\n", sb->open ? "OPEN" : "CLOSED");
-  printf("\tSession-Id     : %s\n", sb->session_id);
-  printf("\tTotal bandwidth: %u\n", tbw);
-  printf("\tAvail bandwidth: %u\n", bw);
-  printf("\tPeer authname  : \"%s\"\n", sb->peer_authname);
-  printf("\tPeer discrim.  : %s\n", MpDiscrimText(&sb->peer_discrim));
+  Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");
+  Printf("\tSession-Id     : %s\r\n", sb->session_id);
+  Printf("\tTotal bandwidth: %u\r\n", tbw);
+  Printf("\tAvail bandwidth: %u\r\n", bw);
+  Printf("\tPeer authname  : \"%s\"\r\n", sb->peer_authname);
+  Printf("\tPeer discrim.  : %s\r\n", MpDiscrimText(&sb->peer_discrim));
 
   /* Show configuration */
-  printf("Configuration:\n");
-  printf("\tMy auth name   : \"%s\"\n", sb->conf.auth.authname);
-  printf("\tMy MRRU        : %d bytes\n", sb->conf.mrru);
-  printf("\tRetry timeout  : %d seconds\n", sb->conf.retry_timeout);
-  printf("\tSample period  : %d seconds\n", sb->conf.bm_S);
-  printf("\tLow water mark : %d%%\n", sb->conf.bm_Lo);
-  printf("\tHigh water mark: %d%%\n", sb->conf.bm_Hi);
-  printf("\tMin connected  : %d seconds\n", sb->conf.bm_Mc);
-  printf("\tMax connected  : %d seconds\n", sb->conf.bm_Md);
-  printf("Bundle level options:\n");
+  Printf("Configuration:\r\n");
+  Printf("\tMy auth name   : \"%s\"\r\n", sb->conf.auth.authname);
+  Printf("\tMy MRRU        : %d bytes\r\n", sb->conf.mrru);
+  Printf("\tRetry timeout  : %d seconds\r\n", sb->conf.retry_timeout);
+  Printf("\tSample period  : %d seconds\r\n", sb->conf.bm_S);
+  Printf("\tLow water mark : %d%%\r\n", sb->conf.bm_Lo);
+  Printf("\tHigh water mark: %d%%\r\n", sb->conf.bm_Hi);
+  Printf("\tMin connected  : %d seconds\r\n", sb->conf.bm_Mc);
+  Printf("\tMax connected  : %d seconds\r\n", sb->conf.bm_Md);
+  Printf("Bundle level options:\r\n");
   OptStat(&sb->conf.options, gConfList);
 
   /* Show peer info */
   if (sb->bm.n_up > 0) {
-    printf("Multilink PPP:\n");
-    printf("\tStatus         : %s\n",
-      sb->multilink ? "Active" : "Inactive");
+    Printf("Multilink PPP:\r\n");
+    Printf("\tStatus         : %s\r\n",
+      sb->multilink ? "Active" : "Inactive\r\n");
     if (sb->multilink) {
-      printf("\tPeer auth name : \"%s\"\n", sb->peer_authname);
-      printf("\tPeer discrimin.: %s\n", MpDiscrimText(&sb->peer_discrim));
+      Printf("\tPeer auth name : \"%s\"\r\n", sb->peer_authname);
+      Printf("\tPeer discrimin.: %s\r\n", MpDiscrimText(&sb->peer_discrim));
     }
   }
 
   /* Show stats */
   LinkUpdateStats();
-  printf("Traffic stats:\n");
+  Printf("Traffic stats:\r\n");
 
-  printf("\tOctets input   : %llu\n", lnk->stats.recvOctets);
-  printf("\tFrames input   : %llu\n", lnk->stats.recvFrames);
-  printf("\tOctets output  : %llu\n", lnk->stats.xmitOctets);
-  printf("\tFrames output  : %llu\n", lnk->stats.xmitFrames);
-  printf("\tBad protocols  : %llu\n", lnk->stats.badProtos);
+  Printf("\tOctets input   : %llu\r\n", lnk->stats.recvOctets);
+  Printf("\tFrames input   : %llu\r\n", lnk->stats.recvFrames);
+  Printf("\tOctets output  : %llu\r\n", lnk->stats.xmitOctets);
+  Printf("\tFrames output  : %llu\r\n", lnk->stats.xmitFrames);
+  Printf("\tBad protocols  : %llu\r\n", lnk->stats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-  printf("\tRunts          : %llu\n", lnk->stats.runts);
+  Printf("\tRunts          : %llu\r\n", lnk->stats.runts);
 #endif
-  printf("\tDup fragments  : %llu\n", lnk->stats.dupFragments);
+  Printf("\tDup fragments  : %llu\r\n", lnk->stats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-  printf("\tDrop fragments : %llu\n", lnk->stats.dropFragments);
+  Printf("\tDrop fragments : %llu\r\n", lnk->stats.dropFragments);
 #endif
 
   return(0);
@@ -848,14 +854,14 @@ BundShowLinks(Bund sb)
   int	j;
 
   for (j = 0; j < sb->n_links; j++) {
-    printf("%s", sb->links[j]->name);
+    Printf("%s", sb->links[j]->name);
     if (!sb->links[j]->phys->type)
-      printf("[no type] ");
+      Printf("[no type] ");
     else
-      printf("[%s/%s] ", FsmStateName(sb->links[j]->lcp.fsm.state),
+      Printf("[%s/%s] ", FsmStateName(sb->links[j]->lcp.fsm.state),
 	PhysState(sb->links[j]->phys));
   }
-  printf("\n");
+  Printf("\r\n");
 }
 
 /*
@@ -1014,7 +1020,7 @@ BundBmTimeout(void *arg)
       }
       snprintf(ins + strlen(ins), sizeof(ins) - strlen(ins), " ");
     }
-    LogConsole("%s", ins);
+    LogStdout("%s", ins);
 
     snprintf(ins, sizeof(ins), " IN util: total %3u%%  ", inUtilTotal);
     snprintf(outs, sizeof(outs), "OUT util: total %3u%%  ", outUtilTotal);
@@ -1024,8 +1030,8 @@ BundBmTimeout(void *arg)
       snprintf(outs + strlen(outs), sizeof(outs) - strlen(outs),
 	" %3u%%", outUtil[LINK_BM_N - 1 - j]);
     }
-    LogConsole("  %s", ins);
-    LogConsole("  %s", outs);
+    LogStdout("  %s", ins);
+    LogStdout("  %s", outs);
   }
 #endif
 

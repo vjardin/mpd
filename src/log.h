@@ -114,7 +114,7 @@
   extern int	LogOpen(void);
   extern void	LogClose(void);
   extern void	LogPrintf(const char *fmt, ...) __printflike(1, 2);
-  extern void	LogConsole(const char *fmt, ...) __printflike(1, 2);
+  extern void	LogStdout(const char *fmt, ...) __printflike(1, 2);
   extern int	LogCommand(int ac, char *av[], void *arg);
   extern void	LogDumpBuf(int lev, const u_char *buf,
 		  int len, const char *fmt, ...) __printflike(4, 5);
