@@ -27,7 +27,9 @@
   #define LCP_MIN_MRU		296
 
   /* Authorization timeout in seconds */
-  #define LCP_AUTH_TIMEOUT	20
+  /* mbretter: increased from 20 to 40 secs, because to low
+   * if Mpd is proxying EAP requests */
+  #define LCP_AUTH_TIMEOUT	40
 
   #define LCP_NUM_AUTH_PROTOS	5
 
