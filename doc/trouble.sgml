@@ -92,6 +92,15 @@ via kernel <tt>config(8)</tt> options, and (b) increasing your
 kernel security level (see the <tt>init(8)</tt> man page), which prevents
 KLD modules from being loaded. Change one of these things to fix the problem.
 
+<tag><bf>
+I've configured a link for dial-in, and sometimes after disconnecting
+mpd gets into some kind of infinite loop.
+</bf></tag>
+
+This is because mpd is trying to ``redial,'' which of course is not
+appropriate for dial-in links. Use <tt>set link max-redial -1</tt>
+to disable the redial function.
+
 </descrip>
 
 </p>
