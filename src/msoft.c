@@ -9,9 +9,7 @@
 
 #include "ppp.h"
 #include "msoft.h"
-#ifdef ENCRYPTION_MPPE
 #include <openssl/sha.h>
-#endif
 #include <openssl/md4.h>
 #include <openssl/des.h>
 
@@ -172,8 +170,6 @@ DesEncrypt(const u_char *clear, u_char *key0, u_char *cypher)
   des_ecb_encrypt((des_cblock *) clear, (des_cblock *) cypher, ks, 1);
 }
 
-#ifdef ENCRYPTION_MPPE
-
 /*
  * MsoftGetStartKey()
  */
@@ -191,8 +187,6 @@ MsoftGetStartKey(u_char *chal, u_char *h)
   SHA1_Final(hash, &c);
   memcpy(h, hash, 16);
 }
-
-#endif
 
 /*
  * GenerateNTResponse()
@@ -277,8 +271,6 @@ GenerateAuthenticatorResponse(const char *password,
   SHA1_Final(authresp, &shactx);
 }
 
-#ifdef ENCRYPTION_MPPE
-
 /*
  * MsoftGetMasterKey()
  */
@@ -319,4 +311,3 @@ MsoftGetAsymetricStartKey(u_char *h, int server_recv)
   memcpy(h, hash, 16);
 }
 
-#endif
