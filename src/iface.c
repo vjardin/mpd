@@ -419,11 +419,21 @@ IfaceIpIfaceUp(int ready)
   /* Call "up" script */
   if (*iface->up_script) {
     char	peerbuf[40];
+    char	ns1buf[21], ns2buf[21];
+
+    if(bund->ipcp.want_dns[0].s_addr != 0)
+      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(bund->ipcp.want_dns[0]));
+    else
+      ns1buf[0] = '\0';
+    if(bund->ipcp.want_dns[1].s_addr != 0)
+      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(bund->ipcp.want_dns[1]));
+    else
+      ns2buf[0] = '\0';
 
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    ExecCmd(LG_IFACE, "%s %s inet %s %s %s",
+    ExecCmd(LG_IFACE, "%s %s inet %s %s %s %s %s",
       iface->up_script, iface->ifname, inet_ntoa(iface->self_addr),
-      peerbuf, bund->peer_authname);
+      peerbuf, bund->peer_authname, ns1buf, ns2buf);
   }
 
   /* Done */
