@@ -566,7 +566,6 @@ RadiusStart(AuthData auth, short request_type)
 {
   static char	function[] = "RadiusStart";
   Link		lnk = auth->lnk;	/* hide the global "lnk" */
-  Auth		const a = &lnk->lcp.auth;  
   RadConf 	const conf = &auth->conf.radius;  
   char		host[MAXHOSTNAMELEN];
 

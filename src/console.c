@@ -92,11 +92,11 @@ ConsoleListen()
       gPrompt = FALSE;
     }
     EventRegister(&gConsoleInputEvent, EVENT_READ, gConsoleFd,
-      CONSOLE_PRIO, ConsoleInput, NULL);
+      0, ConsoleInput, NULL);
   }
   else if (gListenFd >= 0)
     EventRegister(&gConsoleConnectEvent, EVENT_READ, gListenFd,
-      CONSOLE_PRIO, ConsoleConnect, NULL);
+      0, ConsoleConnect, NULL);
 }
 
 /*

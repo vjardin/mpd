@@ -30,14 +30,6 @@
   #define EX_ERRDEAD		EX_SOFTWARE
   #define EX_TERMINATE		99	/* pseudo-code */
 
-  /* Event priorities */
-  #define CONSOLE_PRIO		100	/* Console I/O */
-  #define BUND_PRIO		50	/* Bundle events */
-  #define LINK_PRIO		40	/* Link events */
-  #define PHYS_PRIO		30	/* Device events */
-  #define TIMER_PRIO		20	/* Misc. timers */
-  #define DEV_PRIO		10	/* Device I/O */
-
   /* Pathnames */
   #define CONF_FILE 		"mpd.conf"
   #define SECRET_FILE		"mpd.secret"

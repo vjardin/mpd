@@ -340,9 +340,9 @@ NgFuncInit(Bund b, const char *reqIface)
 
   /* Listen for happenings on our node */
   EventRegister(&b->dataEvent, EVENT_READ,
-    b->dsock, DEV_PRIO, NgFuncDataEvent, b);
+    b->dsock, EVENT_RECURRING, NgFuncDataEvent, b);
   EventRegister(&b->ctrlEvent, EVENT_READ,
-    b->csock, DEV_PRIO, NgFuncCtrlEvent, b);
+    b->csock, EVENT_RECURRING, NgFuncCtrlEvent, b);
 
   /* OK */
   return(0);
@@ -696,10 +696,6 @@ NgFuncDataEvent(int type, void *cookie)
   bund = (Bund) cookie;
   lnk = bund->links[0];
 
-  /* Re-register event */
-  EventRegister(&bund->dataEvent, EVENT_READ,
-    bund->dsock, DEV_PRIO, NgFuncDataEvent, bund);
-
   /* Read data */
   if ((nread = recvfrom(bund->dsock, buf, sizeof(buf),
       0, (struct sockaddr *)&naddr, &nsize)) < 0) {
@@ -768,10 +764,6 @@ NgFuncCtrlEvent(int type, void *cookie)
   /* Set bundle */
   bund = (Bund) cookie;
   lnk = bund->links[0];
-
-  /* Re-register */
-  EventRegister(&bund->ctrlEvent, EVENT_READ,
-    bund->csock, DEV_PRIO, NgFuncCtrlEvent, bund);
 
   /* Read message */
   if ((len = NgRecvMsg(bund->csock, &u.msg, sizeof(u), raddr)) < 0) {
@@ -921,24 +913,33 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
 				  + sizeof(struct ng_ppp_link_stat)];
       struct ng_mesg		reply;
   }				u;
-  int				cmd;
+  int				cmd, ret = 0;
 
+  /* Suspend the read event for avoiding race conditions */
+  EventUnRegister(&bund->ctrlEvent);
   /* Get stats */
   cmd = clear ? NGM_PPP_GETCLR_LINK_STATS : NGM_PPP_GET_LINK_STATS;
   if (NgSendMsg(bund->csock, MPD_HOOK_PPP,
       NGM_PPP_COOKIE, cmd, &linkNum, sizeof(linkNum)) < 0) {
     Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
       bund->name, linkNum, strerror(errno)));
-    return(-1);
+    ret = -1;
+    goto done;
   }
   if (NgRecvMsg(bund->csock, &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
       bund->name, MPD_HOOK_PPP, strerror(errno)));
-    return(-1);
+    ret = -1;
+    goto done;
   }
   if (statp != NULL)
     memcpy(statp, u.reply.data, sizeof(*statp));
-  return(0);
+    
+done:
+  EventRegister(&bund->ctrlEvent, EVENT_READ,
+    bund->csock, EVENT_RECURRING, NgFuncCtrlEvent, bund);
+
+  return(ret);
 }
 
 /*

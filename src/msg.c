@@ -144,7 +144,7 @@ static void
 MsgReregister(MsgHandler m)
 {
   if (EventRegister(&m->event, EVENT_READ,
-    m->pipe[PIPE_READ], m->prio, MsgEvent, m) < 0)
+    m->pipe[PIPE_READ], 0, MsgEvent, m) < 0)
   {
     Log(LG_ERR, ("mpd: can't register event"));
     DoExit(EX_ERRDEAD);

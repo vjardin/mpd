@@ -536,12 +536,12 @@ PptpCtrlListen(int enable, int port, int allow_multiple)
       Log(LG_PPTP, ("mpd: can't get PPTP listening socket"));
       if (errno == EADDRINUSE)			/* try again soon */
 	EventRegister(&gListenRetry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
-	  DEV_PRIO, PptpCtrlListenRetry, (void *)(intptr_t)port);
+	  0, PptpCtrlListenRetry, (void *)(intptr_t)port);
       return(-1);
     }
     Log(LG_ERR, ("mpd: local IP address for PPTP is %s", inet_ntoa(gListenIp)));
     EventRegister(&gListenEvent, EVENT_READ,
-      gListenSock, DEV_PRIO, PptpCtrlListenEvent, NULL);
+      gListenSock, EVENT_RECURRING, PptpCtrlListenEvent, NULL);
   } else {
     gAllowMultiple = 0;
     if (gListenSock < 0)
@@ -720,10 +720,6 @@ PptpCtrlListenEvent(int type, void *cookie)
   PptpCtrl			c;
   int				sock;
 
-  /* Reregister for more connections */
-  EventRegister(&gListenEvent, EVENT_READ,
-    gListenSock, DEV_PRIO, PptpCtrlListenEvent, NULL);
-
   /* Accept connection */
   if ((sock = TcpAcceptConnection(gListenSock, &peer)) < 0)
     return;
@@ -839,7 +835,7 @@ abort:
 
   /* Register for events on control and data sockets */
   EventRegister(&c->ctrlEvent, EVENT_READ,
-    c->csock, DEV_PRIO, PptpCtrlReadCtrl, c);
+    c->csock, EVENT_RECURRING, PptpCtrlReadCtrl, c);
 
   /* Start echo keep-alive timer */
   PptpCtrlResetIdleTimer(c);
@@ -874,10 +870,6 @@ PptpCtrlReadCtrl(int type, void *cookie)
   PptpCtrl	const c = (PptpCtrl) cookie;
   PptpMsgHead	const hdr = &c->frame.hdr;
   int		nread;
-
-  /* Reregister */
-  EventRegister(&c->ctrlEvent, EVENT_READ,
-    c->csock, DEV_PRIO, PptpCtrlReadCtrl, c);
 
   /* Figure how much to read and read it */
   nread = (c->flen < sizeof(*hdr) ? sizeof(*hdr) : hdr->length) - c->flen;
@@ -1157,7 +1149,7 @@ PptpCtrlGetCtrl(int orig, struct in_addr locip,
 
   /* Wait for it to go through */
   EventRegister(&c->connEvent, EVENT_WRITE, c->csock,
-    DEV_PRIO, PptpCtrlConnEvent, c);
+    0, PptpCtrlConnEvent, c);
   Log(LG_PPTP, ("pptp%d: connecting to %s:%u",
     c->id, inet_ntoa(c->peer_addr), c->peer_port));
   return(c);

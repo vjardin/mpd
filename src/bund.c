@@ -710,7 +710,7 @@ fail:
   IfaceInit();
 
   /* Get message channel */
-  bund->msgs = MsgRegister(BundMsg, BUND_PRIO);
+  bund->msgs = MsgRegister(BundMsg, 0);
 
   /* Initialize bundle configuration */
   bund->conf.mrru = MP_DEFAULT_MRRU;

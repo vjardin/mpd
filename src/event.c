@@ -126,7 +126,7 @@ EventDump(const char *msg)
  */
 
 int
-EventRegister(EventRef *refp, int type, int val, int prio,
+EventRegister(EventRef *refp, int type, int val, int flags,
 	void (*action)(int type, void *cookie), void *cookie)
 {
   EventRef	ev;
@@ -147,12 +147,12 @@ EventRegister(EventRef *refp, int type, int val, int prio,
   ev->type = type;
   ev->pe = NULL;
 
-  if (pevent_register(gPeventCtx, &ev->pe, 0, &gGiantMutex, EventHandler,
+  if (pevent_register(gPeventCtx, &ev->pe, flags, &gGiantMutex, EventHandler,
       ev, type, val) == -1) {
       MyWarnx("%s: error pevent_register: %s", __FUNCTION__, strerror(errno));
       return(-1);
   }
-
+  
   *refp = ev;
   return(0);
 }

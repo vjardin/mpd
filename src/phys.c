@@ -78,7 +78,7 @@ PhysInit(void)
 
   p = Malloc(MB_PHYS, sizeof(*p));
   p->state = PHYS_DOWN;
-  p->msgs = MsgRegister(PhysMsg, PHYS_PRIO);
+  p->msgs = MsgRegister(PhysMsg, 0);
   return(p);
 }
 

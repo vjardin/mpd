@@ -228,7 +228,7 @@ LinkNew(char *name)
   lnk = Malloc(MB_BUND, sizeof(*lnk));
   gLinks[k] = lnk;
   snprintf(lnk->name, sizeof(lnk->name), "%s", name);
-  lnk->msgs = MsgRegister(LinkMsg, LINK_PRIO);
+  lnk->msgs = MsgRegister(LinkMsg, 0);
 
   /* Initialize link configuration with defaults */
   lnk->conf.mru = LCP_DEFAULT_MRU;

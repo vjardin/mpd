@@ -266,7 +266,7 @@ PppoeOpen(PhysInfo p)
 
 	/* Register an event listening to the control socket */
 	EventRegister(&pe->ctrlEvent, EVENT_READ, pe->csock,
-	    DEV_PRIO, PppoeCtrlReadEvent, lnk);
+	    EVENT_RECURRING, PppoeCtrlReadEvent, lnk);
 
 	/* OK */
 	pe->state = PPPOE_CONNECTING;
@@ -358,10 +358,6 @@ PppoeCtrlReadEvent(int type, void *arg)
 	bund = lnk->bund;
 	pe = (PppoeInfo)lnk->phys->info;
 	assert(pe->state != PPPOE_DOWN);
-
-	/* Register new event */
-	EventRegister(&pe->ctrlEvent, EVENT_READ, pe->csock,
-	    DEV_PRIO, PppoeCtrlReadEvent, lnk);
 
 	/* Read control message */
 	if (NgRecvMsg(pe->csock, &u.resp, sizeof(u), path) < 0) {
@@ -595,10 +591,6 @@ PppoeListenEvent(int type, void *arg)
 	} u;
 	struct ngpppoe_init_data *const idata = &u.poeid;
 
-	/* Register an event listening to the control socket */
-	EventRegister(&(PIf->ctrlEvent), EVENT_READ, PIf->dsock,
-	    DEV_PRIO, PppoeListenEvent, arg);
-
 	switch (sz = NgRecvData(PIf->dsock, response, sizeof response, rhook)) { 
           case -1: 
 	    Log(LG_ERR, ("NgRecvData: %d", sz));
@@ -655,7 +647,7 @@ PppoeListenEvent(int type, void *arg)
 		    		"%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
 			
 			    /* Connect our ng_ppp(4) node link hook to the ng_tee(4) node */
-			    if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path1, "right") < 0) {
+			    if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path1, "right") < 0) {
 	    			Log(LG_ERR, ("[%s] can't connect to ppp: %s",
 				    lnk->name, strerror(errno)));
 			    } else {
@@ -792,8 +784,8 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf, const c
 
 	/* Register an event listening to the control socket */
 	EventRegister(&(PIf->ctrlEvent), EVENT_READ, PIf->dsock,
-	    DEV_PRIO, PppoeListenEvent, PIf);
-
+	    0, PppoeListenEvent, PIf);
+	    
 	return(1);
 };
 

@@ -156,7 +156,7 @@ TcpOpen(PhysInfo p)
       if (errno == EINPROGRESS)
       {
 	EventRegister(&tcp->connEvent, EVENT_WRITE, tcp->sock,
-	  DEV_PRIO, TcpConEvent, lnk);
+	  0, TcpConEvent, lnk);
 	Log(LG_PHYS, ("[%s] connecting to %s:%u",
 	  lnk->name, inet_ntoa(tcp->peer_addr), tcp->peer_port));
 	return;
@@ -183,7 +183,7 @@ TcpOpen(PhysInfo p)
     Log(LG_PHYS, ("[%s] waiting for connection on %s:%u",
       lnk->name, inet_ntoa(tcp->self_addr), tcp->self_port));
     EventRegister(&tcp->connEvent, EVENT_READ, tcp->sock,
-      DEV_PRIO, TcpConEvent, lnk);
+      0, TcpConEvent, lnk);
   }
 }
 
@@ -259,7 +259,7 @@ failed:
 /* Wait for input */
 
   EventRegister(&tcp->readEvent, EVENT_READ,
-    tcp->sock, DEV_PRIO, TcpRead, lnk);
+    tcp->sock, 0, TcpRead, lnk);
 }
 
 /*
@@ -330,7 +330,7 @@ TcpRead(int type, void *cookie)
 
 done:
   EventRegister(&tcp->readEvent, EVENT_READ,
-    tcp->sock, DEV_PRIO, TcpRead, lnk);
+    tcp->sock, 0, TcpRead, lnk);
 }
 
 /*
@@ -380,7 +380,7 @@ TcpWrite(int type, void *cookie)
   }
   if (tcp->out)
     EventRegister(&tcp->writeEvent, EVENT_WRITE,
-      tcp->sock, DEV_PRIO, TcpWrite, lnk);
+      tcp->sock, 0, TcpWrite, lnk);
 }
 
 /*

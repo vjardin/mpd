@@ -182,7 +182,8 @@ main(int ac, char *av[])
     exit(EX_UNAVAILABLE);
   }
 
-  if (EventRegister(&gSignalEvent, EVENT_READ, gSignalPipe[0], DEV_PRIO, SignalHandler, NULL) != 0)
+  if (EventRegister(&gSignalEvent, EVENT_READ, gSignalPipe[0], 
+      EVENT_RECURRING, SignalHandler, NULL) != 0)
     exit(EX_UNAVAILABLE);
 
   /* Register for some common fatal signals so we can exit cleanly */
@@ -361,7 +362,6 @@ SignalHandler(int type, void *arg)
       FatalSignal(sig);
   }
 
-  EventRegister(&gSignalEvent, EVENT_READ, gSignalPipe[0], DEV_PRIO, SignalHandler, NULL);
 }
 
 /*

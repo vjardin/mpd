@@ -49,7 +49,7 @@ TimerStart(PppTimer timer)
 
   /* Register timeout event */
   EventRegister(&timer->event, EVENT_TIMEOUT,
-    timer->load, TIMER_PRIO, TimerExpires, timer);
+    timer->load, 0, TimerExpires, timer);
 }
 
 /*
