@@ -29,7 +29,7 @@
 	<item>Pre-tested chat scripts for automatic configuration
 		of several common modems and ISDN terminal adapters
 	<item>Support for the
-	<htmlurl url="ftp://ftp.whistle.com/pub/archie/netgraph/index.html"
+	<htmlurl url="http://www.daemonnews.org/200003/netgraph.html"
 	name="Netgraph kernel networking system">
 	<item>Support for tunnelling PPP over TCP, UDP, and PPTP
 	<item>Clean device-type independent design
@@ -44,7 +44,7 @@
 	event-driven scripting language for modem identification,
 	setup, manual server login, etc.
 	<item>
-	<bf><htmlurl url="ftp://ftp.whistle.com/pub/archie/netgraph/index.html"
+	<bf><htmlurl url="http://www.daemonnews.org/200003/netgraph.html"
 	name="Netgraph">.</bf>
 	Netgraph is highly modular kernel networking system,
 	supporting synchronous serial
@@ -63,10 +63,8 @@
 	</itemize>
 
       <p>
-	Mpd was originally developed at
-	<htmlurl url="http://www.whistle.com" name="Whistle Communications">
-	for use in the
-	<htmlurl url="http://www.whistle.com" name="Whistle InterJet">.
+	Mpd was originally developed at Whistle Communications, Inc.
+	for use in the Whistle InterJet.
 	It is based on the original <tt>iij-ppp</tt> user-mode PPP code,
 	though it has pretty much been completely rewritten since then.
 
@@ -75,5 +73,4 @@
 	  are proprietary and/or export-controlled and cannot be
 	  included in the normal distribution. For MPPC, you need
 	  proprietary compression from Hi/Fn (formerly Stac).
-	  DES encryption support requires the <tt>libdes</tt> library.
 
