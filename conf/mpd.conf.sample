@@ -130,9 +130,9 @@ sync:
 # IP address of 1.2.3.4.
 #
 # We want to allow a client to connect to 1.2.3.4 from out on the Internet
-# via PPTP.  We will assign that client the address 192.168.1.2 and proxy-ARP
+# via PPTP.  We will assign that client the address 192.168.1.50 and proxy-ARP
 # for that address, so the virtual PPP link will be numbered 192.168.1.1 local
-# and 192.168.1.2 remote.  From the client machine's perspective, it will
+# and 192.168.1.50 remote.  From the client machine's perspective, it will
 # appear as if it is actually on the 192.168.1.0/24 network, even though in
 # reality it is somewhere far away out on the Internet.
 #
@@ -148,17 +148,34 @@ sync:
 #	
 #	client1:
 #		new -i ng0 pptp1 pptp1
-#		...
 #		set ipcp ranges 192.168.1.1/32 192.168.1.50/32
+#		load client_standard
 #		...
 #	
 #	client2:
 #		new -i ng1 pptp2 pptp2
-#		...
 #		set ipcp ranges 192.168.1.1/32 192.168.1.51/32
+#		load client_standard
 #		...
 #	
-#	...
+#	client_standard:
+#		set iface disable on-demand
+#		set iface enable proxy-arp
+#		set iface idle 1800
+#		set bundle enable multilink
+#		set link yes acfcomp protocomp
+#		set link no pap chap
+#		set link enable chap
+#		set link keep-alive 10 60
+#		set ipcp yes vjcomp
+#		set ipcp dns 192.168.1.3
+#		set ipcp nbns 192.168.1.4
+#		set bundle enable compression
+#		set ccp yes mppc
+#		set ccp yes mpp-e40
+#		set ccp yes mpp-e128
+#		set ccp yes mpp-stateless
+#
 #	
 # See also the 'pptp' link entry in mpd.links.sample.
 #
@@ -168,13 +185,13 @@ pptp:
 	set iface disable on-demand
 	set iface enable proxy-arp
 	set iface idle 1800
-	set bundle disable multilink
+	set bundle enable multilink
 	set link yes acfcomp protocomp
 	set link no pap chap
 	set link enable chap
 	set link keep-alive 10 60
 	set ipcp yes vjcomp
-	set ipcp ranges 192.168.1.1/32 192.168.1.2/32
+	set ipcp ranges 192.168.1.1/32 192.168.1.50/32
 	set ipcp dns 192.168.1.3
 	set ipcp nbns 192.168.1.4
 #
@@ -198,6 +215,14 @@ pptp:
 # has internal address 192.168.1.1 and externally visible address 1.2.3.4,
 # and the remote machine has internal address 192.168.2.1 and externally
 # visible address 2.3.4.5.
+#
+# Note: mpd does not support the peer's "inside" IP address being the same
+# as its "outside" IP address. In the above example, this means that
+# 192.168.2.1 != 2.3.4.5.
+#
+# The "inside" IP addresses are configured by "set ipcp ranges ..."
+# (in mpd.conf) while the "outside" IP addreses are configured by
+# "set pptp self ..." and "set pptp peer ..." (in mpd.links).
 #
 # See also the 'vpn' link entry in mpd.links.sample.
 #
