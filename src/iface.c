@@ -37,7 +37,7 @@
  * DEFINITIONS
  */
 
-  #define MAX_INTERFACES	32
+  #define MAX_INTERFACES	256
 
   /*
    * We are in a liberal position about MSS
