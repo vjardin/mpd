@@ -6,6 +6,15 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.6:
+    <itemize>
+    <item>Fix a bug where the MPPE keys were being incorrectly generated
+	when MS-CHAP was used to authenticate in both directions.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.5:
     <itemize>
     <item>Fix MS-CHAPv2 acknowledge reply to workaround Win9x bug when
