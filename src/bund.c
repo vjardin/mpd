@@ -263,15 +263,16 @@ BundJoin(void)
   NgFuncSetConfig();
   
   if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) {
+    u_long updateInterval = 0;
+
     RadiusAccount(RAD_START);
-    if (bund->radius.conf.acct_update > 0) {
-      u_long updateInterval;
 
-      if (bund->radius.interim_interval > 0)
-	updateInterval = bund->radius.interim_interval;
-      else
-        updateInterval = bund->radius.conf.acct_update;
+    if (bund->radius.interim_interval > 0)
+      updateInterval = bund->radius.interim_interval;
+    else if (bund->radius.conf.acct_update > 0)
+      updateInterval = bund->radius.conf.acct_update;
 
+    if (updateInterval > 0) {
       TimerInit(&lnk->radius.radUpdate, "RadiusAcctUpdate",
 	updateInterval * SECONDS, RadiusAcctUpdate, NULL);
       TimerStart(&lnk->radius.radUpdate);
