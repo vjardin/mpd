@@ -27,7 +27,7 @@
  */
 
   #define IFACE_MAX_ROUTES	32
-  #define IFACE_MAX_SCRIPT	32
+  #define IFACE_MAX_SCRIPT	128
 
   #define IFACE_IDLE_SPLIT	4
 
