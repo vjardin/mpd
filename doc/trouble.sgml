@@ -82,6 +82,16 @@ and 1813 (accounting), wich are also the default ports of mpd. In
 the past unofficial port numbers (1645 and 1646) were used for RADIUS,
 but these are deprecated.
 
+<tag><bf>
+I'm getting ``Operation not permitted'' errors trying to run mpd.
+</bf></tag>
+
+This is often caused by a combination of (a) using netgraph in KLD module
+form instead of statically compiling the various modules into the kernel
+via kernel <tt>config(8)</tt> options, and (b) increasing your 
+kernel security level (see the <tt>init(8)</tt> man page), which prevents
+KLD modules from being loaded. Change one of these things to fix the problem.
+
 </descrip>
 
 </p>
