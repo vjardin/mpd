@@ -213,8 +213,8 @@ DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
     return;
   }
   Log(LG_ECP, ("   nonce 0x%08lx%08lx",
-    ntohl(((u_int32_t *) opt->data)[0]),
-    ntohl(((u_int32_t *) opt->data)[1])));
+    (unsigned long)ntohl(((u_int32_t *) opt->data)[0]),
+    (unsigned long)ntohl(((u_int32_t *) opt->data)[1])));
   switch (mode)
   {
     case MODE_REQ:
