@@ -158,6 +158,8 @@ LcpConfigure(Fsm fp)
   /* Initialize normal LCP stuff */
   lcp->peer_mru = LCP_DEFAULT_MRU;
   lcp->want_mru = lnk->conf.mru;
+  if (lcp->want_mru > lnk->phys->type->mru)
+    lcp->want_mru = lnk->phys->type->mru;
   lcp->peer_accmap = 0xffffffff;
   lcp->want_accmap = lnk->conf.accmap;
   lcp->peer_acfcomp = FALSE;
@@ -703,7 +705,8 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	      if (mru >= LCP_MIN_MRU
-		  && mru <= lnk->phys->type->mru - LCP_MRU_MARGIN)
+		  && (mru <= lnk->phys->type->mru - LCP_MRU_MARGIN
+		    || mru < lcp->want_mru))
 		lcp->want_mru = mru;
 	      break;
 	    case MODE_REJ:
