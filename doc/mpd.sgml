@@ -45,8 +45,8 @@
       <title>Mpd &version; User Manual</title>
       <author>
 	<name>Archie Cobbs
-	<newline><tt><htmlurl url='mailto:archie@whistle.com'
-	  name='&lt;archie@whistle.com&gt;'></tt>
+	<newline><tt><htmlurl url='mailto:archie@freebsd.org'
+	  name='&lt;archie@freebsd.org&gt;'></tt>
 	</name>
       </author>
       <date>&date;</date>

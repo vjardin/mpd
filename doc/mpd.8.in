@@ -1,5 +1,5 @@
 .\"
-.\" Written by Archie Cobbs <archie@whistle.com>
+.\" Written by Archie Cobbs <archie@freebsd.org>
 .\" Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
 .\" See ``COPYRIGHT.whistle''
 .\"
@@ -155,7 +155,7 @@ Stored process ID and lock file
 .Xr ppp 8 ,
 .Xr pppd 8 .
 .Sh AUTHOR
-Mpd was written by Archie Cobbs <archie@whistle.com>, based
+Mpd was written by Archie Cobbs <archie@freebsd.org>, based
 on the original
 .Xr ppp 8
 daemon written by Toshiharu OHNO <tony-o@iij.ad.jp>.

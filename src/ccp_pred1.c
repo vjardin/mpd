@@ -11,7 +11,7 @@
  *
  * Test program for Dave Rand's rendition of the predictor algorithm
  *
- * Updated by: archie@whistle.com (Archie Cobbs)
+ * Updated by: archie@freebsd.org (Archie Cobbs)
  * Updated by: iand@labtam.labtam.oz.au (Ian Donaldson)
  * Updated by: Carsten Bormann <cabo@cs.tu-berlin.de>
  * Original  : Dave Rand <dlr@bungi.com>/<dave_rand@novell.com>

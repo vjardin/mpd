@@ -6,7 +6,7 @@
  * Copyright (c) 1993, Internet Initiative Japan, Inc. All rights reserved.
  * See ``COPYRIGHT.iij''
  * 
- * Rewritten by Archie Cobbs <archie@whistle.com>
+ * Rewritten by Archie Cobbs <archie@freebsd.org>
  * Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
  * See ``COPYRIGHT.whistle''
  */

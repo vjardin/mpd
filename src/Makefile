@@ -2,7 +2,7 @@
 #
 # Makefile for mpd, multi-link PPP daemon for FreeBSD
 #
-# Written by Archie Cobbs <archie@whistle.com>
+# Written by Archie Cobbs <archie@freebsd.org>
 # Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
 # See ``COPYRIGHT.whistle''
 #
