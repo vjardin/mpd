@@ -18,8 +18,8 @@ Written by Archie Cobbs <archie@FreeBSD.org>
 
 * HOW DO I BUILD AND INSTALL IT?
 
-  cd src
-  make depend all install
+  cd /usr/ports/net/mpd
+  make all install
 
 * HOW DO I SET IT UP?
 
@@ -58,5 +58,6 @@ Written by Archie Cobbs <archie@FreeBSD.org>
 
 * WHERE CAN I GO FOR HELP?
 
-  Email questions to the freebsd-net@freebsd.org mailing list.
+  MPD is now hosted on SourceForge with a mpd-users mailing list.
+  http://sourceforge.net/projects/mpd
 
