@@ -12,6 +12,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl kbv
+.Op Fl a Ar IP-address
 .Op Fl d Ar directory
 .Op Fl c Ar tcp-port
 .Op Fl p Ar pid-file
@@ -77,6 +78,16 @@ Mpd supports the following command options:
 .Pp
 .Bl -tag -width Ds -compact
 .Pp
+.It Fl a Ar IP-address
+.It Fl -console-address Ar IP-address
+.Pp
+Allow
+.Xr telnet 1
+connections to
+.Ar IP-address
+to give access to the console command line.
+The default IP address is 0.0.0.0 (i.e., listen on all interfaces).
+.Pp
 .It Fl b
 .It Fl -background
 .Pp
@@ -110,6 +121,7 @@ connections to TCP port
 to give access to the console command line.
 Note that this is a security hole, and should only
 be used in conjuntion with a console password.
+The default port is 5005.
 .Pp
 .It Fl k
 .It Fl -kill
