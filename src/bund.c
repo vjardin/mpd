@@ -548,7 +548,7 @@ BundUpdateParams(void)
       mtu = NG_IFACE_MTU_DEFAULT;	/* Reset to default settings */
       break;
     case 1:
-      if (!Enabled(&bund->conf.options, BUND_CONF_MULTILINK)) {
+      if (!bund->multilink) {		/* If no multilink, use peer MRU */
 	mtu = MIN(bund->links[the_link]->lcp.peer_mru,
 		  bund->links[the_link]->phys->type->mtu);
 	break;
@@ -560,10 +560,12 @@ BundUpdateParams(void)
   }
 
   /* Subtract to make room for various frame-bloating protocols */
-  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
-    mtu = CcpSubtractBloat(mtu);
-  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
-    mtu = EcpSubtractBloat(mtu);
+  if (bm->n_up > 0) {
+    if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+      mtu = CcpSubtractBloat(mtu);
+    if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
+      mtu = EcpSubtractBloat(mtu);
+  }
 
   /* Update interface MTU */
   if (mtu > BUND_MAX_MTU)
