@@ -161,7 +161,7 @@ LinkMsg(int type, void *arg)
   switch (type) {
     case MSG_OPEN:
       lnk->num_redial = 0;
-      lnk->radius.authentic = 0;
+      lnk->radius.authenticated = 0;
       LcpOpen();
       break;
     case MSG_CLOSE:
