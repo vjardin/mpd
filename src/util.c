@@ -40,6 +40,9 @@
   static void		Escape(char *line);
   static char		*ReadLine(FILE *fp, int *lineNum);
 
+  static char		HexVal(char c);
+
+
 /*
  * LengthenArray()
  */
@@ -1072,6 +1075,39 @@ Bin2Hex(const unsigned char *bin, int len)
   }
   buf[j] = 0;
   return buf;
+}
+
+/*
+ * Hex2Bin()
+ */
+
+u_char *
+Hex2Bin(char *hexstr)
+{
+  int		i;
+  u_char	*binval;
+
+  binval = Malloc(MB_UTIL, strlen(hexstr) / 2);
+
+  for (i = 0; i < strlen(hexstr) / 2; i++) {
+    binval[i] = 16 * HexVal(hexstr[2*i]) + HexVal(hexstr[2*i+1]);
+  }
+
+  return binval;
+}
+ 
+static char
+HexVal(char c)
+{
+  if (c >= '0' && c <= '9') {
+    return (c - '0');
+  } else if (c >= 'a' && c <= 'z') {
+    return (c - 'a' + 10);
+  } else if (c >= 'A' && c <= 'Z') {
+    return (c - 'A' + 10);
+  } else {
+    return (-1);
+  }
 }
 
 /*
