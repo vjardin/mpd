@@ -152,10 +152,11 @@ RadiusSetCommand(int ac, char *av[], void *arg)
     return 0;
 }
 
-void RadiusInit(void) {
+static void
+RadiusInit(void)
+{
   struct radius *rad = &bund->radius;
 
-  if (rad->radh != NULL) rad_close(rad->radh);
   memset(rad, 0, sizeof(struct radius) - sizeof(struct radiusconf));
 }
 
