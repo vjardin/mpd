@@ -222,6 +222,9 @@ PppoeOpen(PhysInfo p)
 		return;
 	    };
 
+	    /* Create PPPOE node if necessary */
+	    PppoeNodeUpdate();
+
 	    /* Create a new netgraph node */
 	    if (NgMkSockNode(NULL, &pe->csock, &pe->dsock) < 0) {
 		Log(LG_ERR, ("[%s] PPPoE can't create ctrl socket: %s",
