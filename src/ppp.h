@@ -45,6 +45,7 @@
 #include <pdel/structs/type/array.h>
 #include <pdel/util/typed_mem.h>
 #include <pdel/util/pevent.h>
+#include <pdel/util/paction.h>
 
 #include "defs.h"
 #include "event.h"
