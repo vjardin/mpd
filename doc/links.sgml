@@ -127,6 +127,9 @@ mpd will try again, starting over at zero.
 
 The default value is zero, which means unlimited retries.
 
+If <tt>max-redial</tt> is set to -1, then mpd will never redial.
+This setting should be used with links that are dedicated for dial-in.
+
 <tag><tt>set link accept <em>option ...</em> </tt></tag><p>
 <tag><tt>set link deny <em>option ...</em> </tt></tag><p>
 <tag><tt>set link enable <em>option ...</em> </tt></tag><p>
