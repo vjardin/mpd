@@ -605,7 +605,7 @@ static int
 CcpCheckEncryption(void)
 {
   CcpState	const ccp = &bund->ccp;
-  struct radius	*rad = &bund->radius;
+  struct radius	*rad = &lnk->radius;
 
   /* Already checked? */
   if (ccp->crypt_check)
@@ -614,7 +614,7 @@ CcpCheckEncryption(void)
 
   /* Is encryption required? */
   if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
-    if (bund->radius.mppe.policy != MPPE_POLICY_REQUIRED) 
+    if (rad->mppe.policy != MPPE_POLICY_REQUIRED) 
       return(0);
   } else {
     if (!Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD))

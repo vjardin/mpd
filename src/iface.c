@@ -233,7 +233,7 @@ void
 IfaceUp(struct in_addr self, struct in_addr peer)
 {
   IfaceState	const iface = &bund->iface;
-  struct radius	*rad = &bund->radius;  
+  struct radius	*rad = &lnk->radius;
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
   SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
@@ -586,11 +586,11 @@ IfaceIpIfaceUp(int ready)
     PATH_ROUTE, inet_ntoa(iface->self_addr));
 
   if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE)) {
-    for (i=0; (i < bund->radius.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
-      memcpy(&(iface->routes[iface->n_routes++]), &(bund->radius.routes[i]), sizeof(struct ifaceroute));
+    for (i=0; (i < lnk->radius.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
+      memcpy(&(iface->routes[iface->n_routes++]), &(lnk->radius.routes[i]), sizeof(struct ifaceroute));
     };
     Log(LG_IFACE, ("[%s] IFACE: using %d RADIUS routes", 
-      bund->name, bund->radius.n_routes));
+      bund->name, lnk->radius.n_routes));
   }
   
   /* Add routes */
@@ -613,54 +613,47 @@ IfaceIpIfaceUp(int ready)
     Log(LG_IFACE, ("[%s] IFACE: using RADIUS ACLs", 
       bund->name));
     /* Allocate ACLs */
-    acls = bund->radius.acl_pipe;
+    acls = lnk->radius.acl_pipe;
     while (acls != NULL) {
-	IfaceAllocACL(&pipe_pool,pipe_pool_start,iface->ifname,acls->number);
+	IfaceAllocACL(&pipe_pool, pipe_pool_start, iface->ifname, acls->number);
 	acls = acls->next;
     };
-    acls = bund->radius.acl_queue;
+    acls = lnk->radius.acl_queue;
     while (acls != NULL) {
-	IfaceAllocACL(&queue_pool,queue_pool_start,iface->ifname,acls->number);
+	IfaceAllocACL(&queue_pool, queue_pool_start, iface->ifname, acls->number);
 	acls = acls->next;
     };
-    acls = bund->radius.acl_rule;
+    acls = lnk->radius.acl_rule;
     while (acls != NULL) {
-	IfaceAllocACL(&rule_pool,rule_pool_start,iface->ifname,acls->number);
+	IfaceAllocACL(&rule_pool, rule_pool_start, iface->ifname, acls->number);
 	acls = acls->next;
     };
 
     /* Set ACLs */
-    acls = bund->radius.acl_pipe;
+    acls = lnk->radius.acl_pipe;
     while (acls != NULL) {
-	i=IfaceFindACL(pipe_pool,iface->ifname,acls->number);
-
-	buf = IFaceParseACL(acls->rule,iface->ifname);
-	ExecCmd(LG_IFACE, "%s pipe %d config %s",
-    	    PATH_IPFW, i, acls->rule);
+	i = IfaceFindACL(pipe_pool, iface->ifname, acls->number);
+	buf = IFaceParseACL(acls->rule, iface->ifname);
+	ExecCmd(LG_IFACE, "%s pipe %d config %s", PATH_IPFW, i, acls->rule);
 	Freee(MB_UTIL, buf);
-
 	acls = acls->next;
-    };
-    acls = bund->radius.acl_queue;
-    while (acls != NULL) {
-	i = IfaceFindACL(queue_pool,iface->ifname,acls->number);
+    }
 
+    acls = lnk->radius.acl_queue;
+    while (acls != NULL) {
+	i = IfaceFindACL(queue_pool, iface->ifname, acls->number);
 	buf = IFaceParseACL(acls->rule,iface->ifname);
-	ExecCmd(LG_IFACE, "%s queue %d config %s",
-    	    PATH_IPFW, i, buf);
+	ExecCmd(LG_IFACE, "%s queue %d config %s", PATH_IPFW, i, buf);
 	Freee(MB_UTIL, buf);
-	
 	acls = acls->next;
-    };
-    acls = bund->radius.acl_rule;
-    while (acls != NULL) {
-	i = IfaceFindACL(rule_pool,iface->ifname,acls->number);
+    }
 
-	buf = IFaceParseACL(acls->rule,iface->ifname);
-	ExecCmd(LG_IFACE, "%s add %d %s via %s",
-    	    PATH_IPFW, i, buf, iface->ifname);
+    acls = lnk->radius.acl_rule;
+    while (acls != NULL) {
+	i = IfaceFindACL(rule_pool, iface->ifname, acls->number);
+	buf = IFaceParseACL(acls->rule, iface->ifname);
+	ExecCmd(LG_IFACE, "%s add %d %s via %s", PATH_IPFW, i, buf, iface->ifname);
 	Freee(MB_UTIL, buf);
-	
 	acls = acls->next;
     };
   }
@@ -1232,7 +1225,7 @@ IfaceSetMTU(int mtu, int speed)
   IfaceState	const iface = &bund->iface;
   struct ifreq	ifr;
   int		s;
-  struct radius	*rad = &bund->radius;
+  struct radius	*rad = &lnk->radius;
 
   /* Get socket */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {

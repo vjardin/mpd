@@ -142,8 +142,8 @@
     char		msPassword[AUTH_MAX_PASSWORD];	    /* For MSOFT MPPE */
     u_char		numRecordUp;		/* # links recorded up */
 
-    /* RADIUS info */
-    struct radius	radius;
+    /* RADIUS configuration */
+    struct radiusconf	radiusconf;
 
     /* PPP node config */
 #if NGM_PPP_COOKIE < 940897794

@@ -16,7 +16,16 @@
  * DEFINITIONS
  */
 
-  #define EAP_NUM_AUTH_PROTOS	2
+  #define EAP_NUM_TYPES		EAP_TYPE_MSCHAP_V2
+  #define EAP_NUM_STDTYPES	3
+  #define EAP_MAX_IDENTITY	255
+
+  /* Configuration options */
+  enum {
+    EAP_CONF_RADIUS,
+    EAP_CONF_MD5,
+    EAP_CONF_CHAPMSv2,
+  };
 
   enum {
     EAP_REQUEST = 1,
@@ -69,11 +78,21 @@
     EAP_TYPE_FAST,		/* EAP-FAST */
   };
 
+  extern const	struct cmdtab EapSetCmds[];
+
+  /* Configuration for a link */
+  struct eapconf {
+    struct optinfo	options;	/* Configured options */
+  };
+
   struct eapinfo {
     short		next_id;		/* Packet id */
     short		retry;			/* Resend count */
     struct pppTimer	identTimer;		/* Identity timer */
-    u_char		types[EAP_NUM_AUTH_PROTOS];	/* List of requested EAP-Types */
+    u_char		identity[EAP_MAX_IDENTITY];	/* Identity */
+    u_char		peer_types[EAP_NUM_TYPES];	/* list of acceptable types */
+    u_char		want_types[EAP_NUM_TYPES];	/* list of requestable types */
+    struct eapconf	conf;			/* Configured options */
   };
   typedef struct eapinfo	*EapInfo;
 
@@ -81,11 +100,13 @@
  * FUNCTIONS
  */
 
+  extern void	EapInit(void);
   extern void	EapStart(EapInfo eap, int which);
   extern void	EapStop(EapInfo eap);
   extern void	EapInput(u_char code, u_char id, const u_char *pkt, u_short len);
   extern const	char *EapCode(u_char code);
   extern const	char *EapType(u_char type);
+  extern int	EapStat(int ac, char *av[], void *arg);
 
 #endif
 

@@ -251,9 +251,6 @@ LcpConfigure(Fsm fp)
       lcp->peer_protos[i] = NULL;
   }
 
-  /* XXX We currently don't support client-side EAP */
-  lcp->peer_protos[4] = NULL;
-
   lnk->range_valid = FALSE;
 
   /* Multi-link stuff */

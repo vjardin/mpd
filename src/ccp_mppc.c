@@ -467,7 +467,7 @@ static short
 MppcEnabledMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
-  struct radius	*rad = &bund->radius;
+  struct radius	*rad = &lnk->radius;
   short		ret, radius = FALSE;
  
   switch (type) {
@@ -510,7 +510,7 @@ static short
 MppcAcceptableMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
-  struct radius	*rad = &bund->radius;
+  struct radius	*rad = &lnk->radius;
   short		ret, radius = FALSE;
   
   switch (type) {
@@ -577,8 +577,8 @@ MppeInitKey(MppcInfo mppc, int dir)
   if (bits & MPPE_128) {
     MD4_CTX	c;
 
-    if (bund->radius.valid)
-      memcpy(hash, bund->radius.mppe.nt_hash, sizeof(hash));
+    if (lnk->radius.valid)
+      memcpy(hash, lnk->radius.mppe.nt_hash, sizeof(hash));
     else {
       NTPasswordHash(pass, hash);
       KEYDEBUG((hash, sizeof(hash), "NTPasswordHash"));
@@ -591,8 +591,8 @@ MppeInitKey(MppcInfo mppc, int dir)
     MsoftGetStartKey(chal, hash);
     KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    if (bund->radius.valid)
-      memcpy(hash, bund->radius.mppe.lm_key, 8);
+    if (lnk->radius.valid)
+      memcpy(hash, lnk->radius.mppe.lm_key, 8);
     else
       LMPasswordHash(pass, hash);
     KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
@@ -668,11 +668,11 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   MD4_CTX	c;
 
   /* If using RADIUS, key info comes from the server */
-  if (bund->radius.valid) {
+  if (lnk->radius.valid) {
     if (dir == COMP_DIR_XMIT) {
-      memcpy(mppc->xmit_key0, bund->radius.mppe.sendkey, MPPE_KEY_LEN);
+      memcpy(mppc->xmit_key0, lnk->radius.mppe.sendkey, MPPE_KEY_LEN);
     } else {
-      memcpy(mppc->recv_key0, bund->radius.mppe.recvkey, MPPE_KEY_LEN);
+      memcpy(mppc->recv_key0, lnk->radius.mppe.recvkey, MPPE_KEY_LEN);
     }
     return;
   }

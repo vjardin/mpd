@@ -44,9 +44,9 @@
     LINK_CONF_CHAPMSv1,
     LINK_CONF_CHAPMSv2,
     LINK_CONF_EAP,
-    LINK_CONF_EAP_RADIUS,
     LINK_CONF_ACFCOMP,
     LINK_CONF_PROTOCOMP,
+    LINK_CONF_MSDOMAIN,
     LINK_CONF_MAGICNUM,
     LINK_CONF_PASSIVE,
     LINK_CONF_CHECK_MAGIC,
@@ -142,7 +142,7 @@
     char		peer_authname[AUTH_MAX_AUTHNAME];
     
     /* some Infos needed for RADIUS */
-    struct radius_linkinfo	radius;
+    struct radius	radius;
   };
 
 /*

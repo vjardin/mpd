@@ -38,14 +38,16 @@
     SET_TIMEOUT,
     SET_RETRIES,
     SET_CONFIG,
-    SET_UPDATE
+    SET_UPDATE,
+    SET_ENABLE,
+    SET_DISABLE,
   };
 
 /*
  * GLOBAL VARIABLES
  */
- 
-  const struct cmdtab RadiusSetCmds[] = { 
+
+  const struct cmdtab RadiusSetCmds[] = {
     { "server <name> <secret> [auth port] [acct port]", "Set radius server parameters" ,
 	RadiusSetCommand, NULL, (void *) SET_SERVER },
     { "me <ip>",			"Set NAS IP address" ,
@@ -58,20 +60,31 @@
 	RadiusSetCommand, NULL, (void *) SET_CONFIG },
     { "acct-update <seconds>",		"set update interval",
 	RadiusSetCommand, NULL, (void *) SET_UPDATE },
+    { "enable [opt ...]",		"Enable option",
+	RadiusSetCommand, NULL, (void *) SET_ENABLE },
+    { "disable [opt ...]",		"Disable option",
+	RadiusSetCommand, NULL, (void *) SET_DISABLE },
     { NULL },
   };
-  
+
+/*
+ * INTERNAL VARIABLES
+ */
+
+  static struct confinfo	gConfList[] = {
+    { 0,	RADIUS_CONF_MESSAGE_AUTHENTIC,	"message-authentic"	},
+    { 0,	0,				NULL			},
+  };
+
 /* Set menu options */
 static int
 RadiusSetCommand(int ac, char *av[], void *arg) 
 {
   static char function[] = "RadiusSetCommand";
-  RadConf const conf = &bund->radius.conf;
+  RadConf const conf = &bund->radiusconf;
   RadServe_Conf server;
   RadServe_Conf t_server;
   int val, count;
-
-  /* Log(LG_RADIUS, ("[%s] %s: started",  lnk->name, function)); */
 
   if (ac == 0)
       return(-1);
@@ -174,6 +187,14 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 	  strcpy(conf->file, av[0]);
 	break;
 
+    case SET_ENABLE:
+      EnableCommand(ac, av, &conf->options, gConfList);
+      break;
+
+    case SET_DISABLE:
+      DisableCommand(ac, av, &conf->options, gConfList);
+      break;
+
       default:
 	assert(0);
     }
@@ -184,7 +205,7 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 int
 RadiusInit(short request_type)
 {
-  struct radius *rad = &bund->radius;
+  struct radius *rad = &lnk->radius;
 
   RadiusClose();
   
@@ -207,9 +228,9 @@ RadiusInit(short request_type)
 
   }
   
-  if (strlen(bund->radius.conf.file)) {
-    Log(LG_RADIUS, ("[%s] RADIUS: using %s", lnk->name, bund->radius.conf.file));
-    if (rad_config(rad->radh, bund->radius.conf.file) != 0) {
+  if (strlen(bund->radiusconf.file)) {
+    Log(LG_RADIUS, ("[%s] RADIUS: using %s", lnk->name, bund->radiusconf.file));
+    if (rad_config(rad->radh, bund->radiusconf.file) != 0) {
       Log(LG_RADIUS, ("[%s] RADIUS: rad_config: %s", lnk->name, rad_strerror(rad->radh)));
       RadiusClose();      
       return (RAD_NACK);
@@ -228,7 +249,7 @@ RadiusInit(short request_type)
 void
 RadiusClose(void) 
 {
-  struct radius *rad = &bund->radius;
+  struct radius *rad = &lnk->radius;
 
   if (rad->radh != NULL) rad_close(rad->radh);  
   rad->radh = NULL;
@@ -249,14 +270,20 @@ static int GetLinkID(void) {
 void
 RadiusDown(void) 
 {
+  struct radius		*rad = &lnk->radius;
+
   Log(LG_RADIUS, ("[%s] RADIUS: Down Event", lnk->name));
+  if (rad->pers.state != NULL)
+    Freee(MB_RADIUS, rad->pers.state);
+
+  memset(&rad->pers, 0, sizeof(struct radius_persistent));
   RadiusDestroy();
 }
 
 void
 RadiusDestroy(void) 
 {
-  struct radius 	*rad = &bund->radius;
+  struct radius 	*rad = &lnk->radius;
   struct radius_acl	*acls, *acls1;
 
   RadiusClose();
@@ -267,32 +294,35 @@ RadiusDestroy(void)
   free(rad->mschapv2resp);
   rad->mschapv2resp = NULL;
   free(rad->reply_message);
-  rad->reply_message = NULL;  
+  rad->reply_message = NULL;
+  Freee(MB_RADIUS, rad->eapmsg);
+  rad->eapmsg = NULL;
+
   acls = rad->acl_rule;
   while (acls != NULL) {
     acls1 = acls->next;
-    free(acls);
+    Freee(MB_RADIUS, acls);
     acls = acls1;
   };
   acls = rad->acl_pipe;
   while (acls != NULL) {
     acls1 = acls->next;
-    free(acls);
+    Freee(MB_RADIUS, acls);
     acls = acls1;
   };
   acls = rad->acl_queue;
   while (acls != NULL) {
     acls1 = acls->next;
-    free(acls);
+    Freee(MB_RADIUS, acls);
     acls = acls1;
   };
-  memset(rad, 0, sizeof(struct radius) - sizeof(struct radiusconf));
+  memset(rad, 0, sizeof(struct radius) - sizeof(struct radius_persistent));
 }
 
 int RadiusStart(short request_type)
 {
   static char		function[] = "RadiusStart";
-  struct radius		*rad = &bund->radius;
+  struct radius		*rad = &lnk->radius;
   char			host[MAXHOSTNAMELEN];
   struct in_addr	*peer_ip;
   char			*peeripname;
@@ -310,7 +340,7 @@ int RadiusStart(short request_type)
   if (rad_create_request(rad->radh, request_type) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS: rad_create_request: %s", lnk->name, rad_strerror(rad->radh)));
     return (RAD_NACK);
-  }    
+  }
 
   if (rad_put_string(rad->radh, RAD_NAS_IDENTIFIER, host) == -1)  {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(host) failed %s", lnk->name,
@@ -319,8 +349,8 @@ int RadiusStart(short request_type)
     return (RAD_NACK);
   }
   
-  if (rad->conf.radius_me.s_addr != 0) {
-    if (rad_put_addr(rad->radh, RAD_NAS_IP_ADDRESS, rad->conf.radius_me) == -1)  {
+  if (bund->radiusconf.radius_me.s_addr != 0) {
+    if (rad_put_addr(rad->radh, RAD_NAS_IP_ADDRESS, bund->radiusconf.radius_me) == -1)  {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_addr(RAD_NAS_IP_ADDRESS) failed %s", lnk->name,
 	function, rad_strerror(rad->radh)));
       RadiusClose();
@@ -328,16 +358,18 @@ int RadiusStart(short request_type)
     }
   }
 
-  /* insert the Message Authenticator RFC 3579
+  /* Insert the Message Authenticator RFC 3579
    * This is just a dummy attribute, libradius calculates the HMAC-MD5
-   * implicitely, if this attribute was set
+   * implicitely, if this attribute was added.
    */
-  if (rad_put_int(rad->radh, RAD_MESSAGE_AUTHENTIC, 0) == -1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_MESSAGE_AUTHENTIC) failed %s", lnk->name,
-      function, rad_strerror(rad->radh)));
-    RadiusClose();
-    return (RAD_NACK);
-  }
+  if (Enabled(&bund->radiusconf.options, RADIUS_CONF_MESSAGE_AUTHENTIC)
+      && request_type != RAD_ACCOUNTING_REQUEST)
+    if (rad_put_int(rad->radh, RAD_MESSAGE_AUTHENTIC, 0) == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_MESSAGE_AUTHENTIC) failed %s", lnk->name,
+        function, rad_strerror(rad->radh)));
+      RadiusClose();
+      return (RAD_NACK);
+    }
 
   if (rad_put_int(rad->radh, RAD_NAS_PORT, GetLinkID()) == -1)  {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT) failed %s", lnk->name,
@@ -366,6 +398,18 @@ int RadiusStart(short request_type)
     RadiusClose();
     return (RAD_NACK);
   }
+
+  if (rad->pers.state != NULL) {
+      Log(LG_RADIUS, ("[%s] RADIUS: putting RAD_STATE", lnk->name));
+
+    if (rad_put_attr(rad->radh, RAD_STATE, rad->pers.state, rad->pers.state_len) == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_STATE) failed %s", lnk->name,
+        function, rad_strerror(rad->radh)));
+      RadiusClose();
+      return (RAD_NACK);
+    }
+  }
+
 
   peer_ip = PptpGetPeerIp();
   if (peer_ip != NULL && peer_ip->s_addr != 0) {
@@ -403,7 +447,7 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
         const char *challenge, int challenge_size, u_char chapid, int auth_type)
 {
   static char		function[] = "RadiusPutAuth";
-  struct radius		*rad = &bund->radius;
+  struct radius		*rad = &lnk->radius;
   struct rad_chapvalue		rad_chapval;
   struct rad_mschapvalue	rad_mschapval;
   struct rad_mschapv2value	rad_mschapv2val;
@@ -417,11 +461,11 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
 
   /* Remember authname */
   strncpy(rad->authname, name, AUTH_MAX_AUTHNAME);
-  
+
   if (rad_put_string(rad->radh, RAD_USER_NAME, name) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(username) failed %s", lnk->name,
       function, rad_strerror(rad->radh)));
-    RadiusClose();    
+    RadiusClose();
     return (RAD_NACK);
   }
 
@@ -535,18 +579,15 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
 int RadiusSendRequest(void)
 {
   static char		function[] = "RadiusSendRequest";
-  struct radius		*rad = &bund->radius;
+  struct radius		*rad = &lnk->radius;
   struct timeval	timelimit;
   struct timeval	tv;
   int 			fd, n;
 
-#ifdef DEBUG
-  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_init_send_request ...", lnk->name, function));
-#endif
   n = rad_init_send_request(rad->radh, &fd, &tv);
   if (n != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_init_send_request failed: %d", lnk->name,
-        function, n));
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_init_send_request failed: %d %s",
+      lnk->name, function, n, rad_strerror(rad->radh)));
      return RAD_NACK;
   }
 
@@ -559,9 +600,6 @@ int RadiusSendRequest(void)
     FD_ZERO(&readfds);
     FD_SET(fd, &readfds);
 
-#ifdef DEBUG
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: selecting ...", lnk->name, function));
-#endif
     n = select(fd + 1, &readfds, NULL, NULL, &tv);
 
     if (n == -1) {
@@ -578,9 +616,6 @@ int RadiusSendRequest(void)
 	continue;
     }
 
-#ifdef DEBUG
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_continue_send_request ...", lnk->name, function));
-#endif
     n = rad_continue_send_request(rad->radh, n, &fd, &tv);
     if (n != 0)
       break;
@@ -589,6 +624,7 @@ int RadiusSendRequest(void)
     timeradd(&tv, &timelimit, &timelimit);
   }
 
+  rad->response_type = n;
   switch (n) {
 
     case RAD_ACCESS_ACCEPT:
@@ -597,21 +633,26 @@ int RadiusSendRequest(void)
       rad->valid = 1;
       break;
 
+    case RAD_ACCESS_CHALLENGE:
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCESS_CHALLENGE for user %s", lnk->name,
+        function, rad->authname));
+      return RAD_ACK;
+
     case RAD_ACCESS_REJECT:
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCESS_REJECT for user %s", lnk->name, 
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCESS_REJECT for user %s", lnk->name,
         function, rad->authname));
       rad->valid = 0;
       break;
-      
+
     case RAD_ACCOUNTING_RESPONSE:
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCOUNTING_RESPONSE for user %s", lnk->name, 
-        function, rad->authname));    
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCOUNTING_RESPONSE for user %s", lnk->name,
+        function, rad->authname));
       return RAD_ACK;
 
     case -1:
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_send_request failed %s", lnk->name,
         function, rad_strerror(rad->radh)));
-      RadiusClose();      
+      RadiusClose();
       return(RAD_NACK);
       break;
       
@@ -629,21 +670,21 @@ int RadiusSendRequest(void)
 int
 RadiusPAPAuthenticate(const char *name, const char *password)
 {
-  struct radius	*rad = &bund->radius;
-  
+  struct radius	*rad = &lnk->radius;
+
   RadiusDestroy();
-  if (RadiusStart(RAD_ACCESS_REQUEST) == RAD_NACK) 
+  if (RadiusStart(RAD_ACCESS_REQUEST) == RAD_NACK)
     return RAD_NACK;
-  
-  if (RadiusPutAuth(name, password, 0, NULL, NULL, 0, RADIUS_PAP) == RAD_NACK) 
+
+  if (RadiusPutAuth(name, password, 0, NULL, NULL, 0, RADIUS_PAP) == RAD_NACK)
     return RAD_NACK;
-  
+
   if (RadiusSendRequest() == RAD_NACK) 
     return RAD_NACK;
-    
-  if (RadiusGetParams() == RAD_NACK) 
+
+  if (RadiusGetParams(FALSE) == RAD_NACK)
     return RAD_NACK;
-  
+
   if (rad->valid) {
     lnk->radius.authentic = 1;
     return RAD_ACK;
@@ -657,7 +698,7 @@ int
 RadiusCHAPAuthenticate(const char *name, const char *password, int passlen,
         const char *challenge, int challenge_size, u_char chapid, int chap_type) 
 {
-  struct radius	*rad = &bund->radius;
+  struct radius	*rad = &lnk->radius;
 
   RadiusDestroy();    
   if (RadiusStart(RAD_ACCESS_REQUEST) == RAD_NACK) 
@@ -669,7 +710,7 @@ RadiusCHAPAuthenticate(const char *name, const char *password, int passlen,
   if (RadiusSendRequest() == RAD_NACK) 
     return RAD_NACK;
 
-  if (RadiusGetParams() == RAD_NACK) 
+  if (RadiusGetParams(FALSE) == RAD_NACK)
     return RAD_NACK;
   
   if (rad->valid) {
@@ -682,24 +723,99 @@ RadiusCHAPAuthenticate(const char *name, const char *password, int passlen,
 }
 
 int
-RadiusGetParams() 
+RadiusEAPProxy(const char *identity, const char *pkt, int len)
 {
-  char  function[] = "RadiusGetParams";
-  struct radius *rad = &bund->radius;
-  int res,i,j;
-  size_t len;
-  const void *data;
-  u_int32_t vendor;
-  char *route;
-  char *acl1,*acl2;
-  struct radius_acl **acls, *acls1;
-  struct ifaceroute r;
-  struct in_range range;
-  short got_mppe_keys = FALSE;
+  static char function[] = "RadiusEAPProxy";
+  struct radius	*rad = &lnk->radius;
+
+  RadiusDestroy();
+  if (RadiusStart(RAD_ACCESS_REQUEST) == RAD_NACK)
+    return RAD_NACK;
+
+  /* Remember authname */
+  strncpy(rad->authname, identity, AUTH_MAX_AUTHNAME);
+
+  if (rad_put_string(rad->radh, RAD_USER_NAME, identity) == -1) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(identity) failed %s", lnk->name,
+      function, rad_strerror(rad->radh)));
+    RadiusClose();
+    return (RAD_NACK);
+  }
+
+  if (rad_put_attr(rad->radh, RAD_EAP_MESSAGE, pkt, len) == -1) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_attr(RAD_EAP_MESSAGE) failed %s", lnk->name,
+      function, rad_strerror(rad->radh)));
+    RadiusClose();
+    return (RAD_NACK);
+  }
+
+  rad->auth_type = RADIUS_EAP;
+
+  if (RadiusSendRequest() == RAD_NACK)
+    return RAD_NACK;
+
+  switch (rad->response_type) {
+
+    case RAD_ACCESS_ACCEPT:
+      lnk->radius.authentic = 1;
+      return RadiusGetParams(FALSE);
+      break;
+
+    case RAD_ACCESS_CHALLENGE:
+      break;
+
+    case RAD_ACCESS_REJECT:
+      return RAD_NACK;
+  }
+  return RadiusGetParams(TRUE);
+}
+
+int
+RadiusGetParams(int eap_proxy)
+{
+  char		function[] = "RadiusGetParams";
+  struct radius	*rad = &lnk->radius;
+  int		res, i, j;
+  size_t	len;
+  const void	*data;
+  u_int32_t	vendor;
+  char		*route;
+  char		*acl1, *acl2;
+  short		got_mppe_keys = FALSE;
+  struct radius_acl	**acls, *acls1;
+  struct ifaceroute	r;
+  struct in_range	range;
 
   while ((res = rad_get_attr(rad->radh, &data, &len)) > 0) {
 
     switch (res) {
+
+      case RAD_STATE:
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_STATE", lnk->name, function));
+	rad->pers.state_len = len;
+	if (rad->pers.state != NULL)
+	  Freee(MB_RADIUS, rad->pers.state);
+	rad->pers.state = Malloc(MB_RADIUS, len);
+	memcpy(rad->pers.state, data, len);
+	continue;
+
+	/* libradius already checks the message-authenticator, so simply ignore it */
+      case RAD_MESSAGE_AUTHENTIC:
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MESSAGE_AUTHENTIC", lnk->name, function));
+	continue;
+
+      case RAD_EAP_MESSAGE:
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE", lnk->name, function));
+	if (rad->eapmsg != NULL)
+	  Freee(MB_RADIUS, rad->eapmsg);
+	rad->eapmsg = Malloc(MB_RADIUS, len);
+	memcpy(rad->eapmsg, data, len);
+	rad->eapmsg_len = len;
+	continue;
+    }
+
+    if (!eap_proxy)
+      switch (res) {
 
       case RAD_FRAMED_IP_ADDRESS:
         rad->ip = rad_cvt_addr(data);
@@ -714,7 +830,7 @@ RadiusGetParams()
         break;
 
       case RAD_FRAMED_ROUTE:
-	route = rad_cvt_string(data,len);
+	route = rad_cvt_string(data, len);
 	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_ROUTE: %s ",
 	  lnk->name, function, route));
 	if (!ParseAddr(route, &range)) {
@@ -723,17 +839,16 @@ RadiusGetParams()
 	  break;
 	}
 	free(route);
-	r.netmask.s_addr = range.width ?
-	  htonl(~0 << (32 - range.width)) : 0;
+	r.netmask.s_addr = range.width ? htonl(~0 << (32 - range.width)) : 0;
 	r.dest.s_addr = (range.ipaddr.s_addr & r.netmask.s_addr);
 	j = 0;
-	for (i=0;i<rad->n_routes;i++) {
-	  if ((r.dest.s_addr==rad->routes[i].dest.s_addr)&&(r.netmask.s_addr==rad->routes[i].netmask.s_addr))
-	    j=1;
+	for (i = 0;i < rad->n_routes; i++) {
+	  if ((r.dest.s_addr == rad->routes[i].dest.s_addr)
+	      && (r.netmask.s_addr == rad->routes[i].netmask.s_addr))
+	    j = 1;
 	};
-	if (j==0) {
+	if (j == 0)
 	  rad->routes[rad->n_routes++] = r;
-	};
 	break;
 
       case RAD_SESSION_TIMEOUT:
@@ -910,60 +1025,60 @@ RadiusGetParams()
 	  }
           case RAD_VENDOR_MPD:
 
-        	if (res == RAD_MPD_RULE) {
-		    acl2 = rad_cvt_string(data, len);
-            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_RULE: %s",
-            		lnk->name, function, acl2));
-		    acls = &(rad->acl_rule);
-	    	} else if (res == RAD_MPD_PIPE) {
-		    acl2 = rad_cvt_string(data, len);
-            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_PIPE: %s",
-                	lnk->name, function, acl2));
-		    acls = &(rad->acl_pipe);
-	        } else if (res == RAD_MPD_QUEUE) {
-		    acl2 = rad_cvt_string(data, len);
-            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_QUEUE: %s",
-            		lnk->name, function, acl2));
-		    acls = &(rad->acl_queue);
-		} else {
-    		    Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ", lnk->name, function, res));
-		    break;
-	        };
-		
-		acl1 = strsep(&acl2,"=");
-		i = atol(acl1);
-		if (i <= 0) {
-            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl number: %i",
-                	lnk->name, function,i));
-		    free(acl1);
-		    break;
-		};
-		if ((acl2 == NULL) && (acl2[0] == 0)) {
-            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl",
-                	lnk->name, function));
-		    free(acl1);
-		    break;
-		};
-		acls1 = malloc(sizeof(struct radius_acl));
-		acls1->number = i;
-		strncpy(acls1->rule,acl2,ACL_LEN);
-		while ((*acls != NULL)&&((*acls)->number < i)) {
-		    acls = &((*acls)->next);
-		};
-		if (*acls == NULL) {
-		    acls1->next = NULL;
-		} else if ((*acls)->number == i) {
-            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: duplicate acl",
-                	lnk->name, function));
-		    free(acl1);
-		    break;
-		} else {			
-		    acls1->next = *acls;
-		};
-		*acls = acls1;
-		
-		free(acl1);
-		break;
+	    if (res == RAD_MPD_RULE) {
+	      acl2 = rad_cvt_string(data, len);
+	      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_RULE: %s",
+		lnk->name, function, acl2));
+	      acls = &(rad->acl_rule);
+	    } else if (res == RAD_MPD_PIPE) {
+	      acl2 = rad_cvt_string(data, len);
+	      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_PIPE: %s",
+	        lnk->name, function, acl2));
+	      acls = &(rad->acl_pipe);
+	    } else if (res == RAD_MPD_QUEUE) {
+	      acl2 = rad_cvt_string(data, len);
+	      Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_QUEUE: %s",
+	        lnk->name, function, acl2));
+	      acls = &(rad->acl_queue);
+	    } else {
+	      Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ",
+		lnk->name, function, res));
+	      break;
+	    }
+
+	    acl1 = strsep(&acl2, "=");
+	    i = atol(acl1);
+	    if (i <= 0) {
+	      Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl number: %i",
+		lnk->name, function, i));
+	      free(acl1);
+	      break;
+	    }
+	    if ((acl2 == NULL) && (acl2[0] == 0)) {
+	      Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl", lnk->name, function));
+	      free(acl1);
+	      break;
+	    }
+	    acls1 = Malloc(MB_RADIUS, sizeof(struct radius_acl));
+	    acls1->number = i;
+	    strncpy(acls1->rule, acl2, ACL_LEN);
+	    while ((*acls != NULL) && ((*acls)->number < i))
+	      acls = &((*acls)->next);
+
+	    if (*acls == NULL) {
+	      acls1->next = NULL;
+	    } else if ((*acls)->number == i) {
+	      Log(LG_RADIUS, ("[%s] RADIUS: %s: duplicate acl",
+		lnk->name, function));
+	      free(acl1);
+	      break;
+	    } else {
+	      acls1->next = *acls;
+	    }
+	    *acls = acls1;
+
+	    free(acl1);
+	    break;
 
     	  default:
     	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping vendor %d  attribute: %d ", lnk->name, function, vendor, res));
@@ -1022,7 +1137,7 @@ int
 RadiusAccount(short acct_type) 
 {
   char  function[]	= "RadiusAccount";
-  struct radius		*rad = &bund->radius;
+  struct radius		*rad = &lnk->radius;
   int			authentic;
 
   /* if Radius-Auth wasn't used, then copy in authname */
@@ -1036,10 +1151,10 @@ RadiusAccount(short acct_type)
   } else {
     authentic = RAD_AUTH_LOCAL;
   }
- 
-  if (RadiusStart(RAD_ACCOUNTING_REQUEST) == RAD_NACK) 
+
+  if (RadiusStart(RAD_ACCOUNTING_REQUEST) == RAD_NACK)
     return RAD_NACK;
-  
+
   /* Grab some accounting data and initialize structure */
   if (acct_type == RAD_START) {
 
@@ -1150,7 +1265,7 @@ RadiusAccount(short acct_type)
 
   Log(LG_RADIUS, ("[%s] RADIUS: %s: Sending accounting data (Type: %d)",
     lnk->name, function, acct_type));
-  if (RadiusSendRequest() == RAD_NACK) 
+  if (RadiusSendRequest() == RAD_NACK)
     return RAD_NACK;
 
   return RAD_ACK;
@@ -1160,11 +1275,11 @@ RadiusAccount(short acct_type)
 int
 RadiusAddServer (short request_type)
 {
-  RadConf       const c = &bund->radius.conf;
-  RadServe_Conf s;
-  char  function[] = "RadiusAddServer";
-  int i;
-  struct radius *rad = &bund->radius;
+  char		function[] = "RadiusAddServer";
+  int		i;
+  RadConf	const c = &bund->radiusconf;
+  RadServe_Conf	s;
+  struct radius	*rad = &lnk->radius;
 
   if (c->server == NULL)
     return (RAD_ACK);
@@ -1204,14 +1319,14 @@ void
 RadiusSetAuth(AuthData auth) 
 {
   char  function[] = "RadiusSetAuth";
-  strncpy(auth->authname, bund->radius.authname, AUTH_MAX_AUTHNAME);
+  strncpy(auth->authname, lnk->radius.authname, AUTH_MAX_AUTHNAME);
 
   if (Enabled(&bund->ipcp.conf.options, IPCP_CONF_RADIUSIP)) {
 
     Log(LG_RADIUS, ("[%s] RADIUS: %s: Trying to use IP-address from radius-server",
       lnk->name, function));
 
-    if (strcmp(inet_ntoa(bund->radius.ip), "255.255.255.255") == 0) {
+    if (strcmp(inet_ntoa(lnk->radius.ip), "255.255.255.255") == 0) {
       /* the peer can choose an address */
       Log(LG_RADIUS, ("[%s] RADIUS: %s: server says that the peer can choose an address",
         lnk->name, function));
@@ -1219,7 +1334,7 @@ RadiusSetAuth(AuthData auth)
       auth->range.width = 0;
       auth->range_valid = 1;
 
-    } else if (strcmp(inet_ntoa(bund->radius.ip), "255.255.255.254") == 0) {
+    } else if (strcmp(inet_ntoa(lnk->radius.ip), "255.255.255.254") == 0) {
 
       /* we should choose the ip */
       Log(LG_RADIUS, ("[%s] RADIUS: %s: server says that we should choose an address",
@@ -1230,8 +1345,8 @@ RadiusSetAuth(AuthData auth)
 
       /* or use IP from Radius-server */
       Log(LG_RADIUS, ("[%s] RADIUS: %s: using this IP: %s",
-        lnk->name, function, inet_ntoa(bund->radius.ip)));
-      memcpy(&auth->range.ipaddr, &bund->radius.ip, sizeof(struct in_addr));
+        lnk->name, function, inet_ntoa(lnk->radius.ip)));
+      memcpy(&auth->range.ipaddr, &lnk->radius.ip, sizeof(struct in_addr));
       auth->range_valid = 1;
       auth->range.width = 32;
     }
@@ -1239,12 +1354,12 @@ RadiusSetAuth(AuthData auth)
 }
 
 int
-RadStat(int ac, char *av[], void *arg) 
+RadStat(int ac, char *av[], void *arg)
 {
-  RadConf       const conf = &bund->radius.conf;
-  RadServe_Conf server;
-  struct radius	*rad = &bund->radius;  
-  int i;
+  int		i;
+  RadConf	const conf = &bund->radiusconf;
+  RadServe_Conf	server;
+  struct radius	*rad = &lnk->radius;
 
   printf("\tTimeout      : %d\n", conf->radius_timeout);
   printf("\tRetries      : %d\n", conf->radius_retries);
@@ -1268,6 +1383,9 @@ RadStat(int ac, char *av[], void *arg)
     }
 
   }
+
+  printf("RADIUS options\n");
+  OptStat(&bund->radiusconf.options, gConfList);
 
   printf("\t---------------  Radius Data ---------------\n");
   printf("\tAuthenticated   : %s\n", rad->valid ? "yes" : "no");

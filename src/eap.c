@@ -20,8 +20,67 @@
   static void	EapSendIdentRequest(EapInfo pap);
   static void	EapIdentTimeout(void *ptr);
   static char	EapTypeSupported(u_char type);
+  static void	EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len);
+  static int	EapSetCommand(int ac, char *av[], void *arg);
+
+  /* Set menu options */
+  enum {
+    SET_ACCEPT,
+    SET_DENY,
+    SET_ENABLE,
+    SET_DISABLE,
+    SET_YES,
+    SET_NO,
+  };
+
+/*
+ * GLOBAL VARIABLES
+ */
+
+  const struct cmdtab EapSetCmds[] = {
+    { "accept [opt ...]",		"Accept option",
+	EapSetCommand, NULL, (void *) SET_ACCEPT },
+    { "deny [opt ...]",			"Deny option",
+	EapSetCommand, NULL, (void *) SET_DENY },
+    { "enable [opt ...]",		"Enable option",
+	EapSetCommand, NULL, (void *) SET_ENABLE },
+    { "disable [opt ...]",		"Disable option",
+	EapSetCommand, NULL, (void *) SET_DISABLE },
+    { "yes [opt ...]",			"Enable and accept option",
+	EapSetCommand, NULL, (void *) SET_YES },
+    { "no [opt ...]",			"Disable and deny option",
+	EapSetCommand, NULL, (void *) SET_NO },
+    { NULL },
+  };
+
+/*
+ * INTERNAL VARIABLES
+ */
+
+  static struct confinfo	gConfList[] = {
+    { 0,	EAP_CONF_RADIUS,	"radius-proxy"	},
+    { 1,	EAP_CONF_MD5,		"md5"		},
+    { 1,	EAP_CONF_CHAPMSv2,	"chap-msv2"	},
+    { 0,	0,			NULL		},
+  };
 
 
+
+/*
+ * EapInit()
+ */
+
+void
+EapInit()
+{
+  EapInfo	eap;
+
+  eap = &lnk->lcp.auth.eap;
+  Disable(&eap->conf.options, EAP_CONF_MD5);
+  Accept(&eap->conf.options, EAP_CONF_MD5);
+  Disable(&eap->conf.options, EAP_CONF_CHAPMSv2);
+  Accept(&eap->conf.options, EAP_CONF_CHAPMSv2);
+}
 
 /*
  * EapStart()
@@ -30,12 +89,25 @@
 void
 EapStart(EapInfo eap, int which)
 {
+  int	i;
+
+  for (i = 0; i < EAP_NUM_TYPES; i++)
+    eap->peer_types[i] = eap->want_types[i] = 0;
+
+  /* fill a list of requestable auth types */
+  if (Enabled(&eap->conf.options, EAP_CONF_MD5))
+    eap->want_types[0] = EAP_TYPE_MD5CHAL;
+  if (Enabled(&eap->conf.options, EAP_CONF_CHAPMSv2))
+    eap->want_types[1] = EAP_TYPE_MSCHAP_V2;
+
+  /* fill a list of acceptable auth types */
+  if (Acceptable(&eap->conf.options, EAP_CONF_MD5))
+    eap->peer_types[0] = EAP_TYPE_MD5CHAL;
+  if (Acceptable(&eap->conf.options, EAP_CONF_CHAPMSv2))
+    eap->peer_types[1] = EAP_TYPE_MSCHAP_V2;
 
   switch (which) {
     case AUTH_PEER_TO_SELF:
-      /* fill a list of requestable auth types */
-      eap->types[0] = EAP_TYPE_MD5CHAL;
-      eap->types[1] = EAP_TYPE_MSCHAP_V2;
 
       /* Initialize retry counter and timer */
       eap->next_id = 1;
@@ -45,7 +117,10 @@ EapStart(EapInfo eap, int which)
 	lnk->conf.retry_timeout * SECONDS, EapIdentTimeout, (void *) eap);
       TimerStart(&eap->identTimer);
 
-      /* Send first request */
+      /* Send first request
+       * Send the request even, if the Radius-Eap-Proxy feature is active,
+       * this saves on roundtrip.
+       */
       EapSendIdentRequest(eap);
       break;
 
@@ -82,9 +157,9 @@ EapSendRequest(u_char type)
   u_char	req_type = 0;
 
   if (type == 0) {
-    for (i = 0; i < EAP_NUM_AUTH_PROTOS; i++) {
-      if (eap->types[i] != 0) {
-        req_type = eap->types[i];
+    for (i = 0; i < EAP_NUM_TYPES; i++) {
+      if (eap->want_types[i] != 0) {
+        req_type = eap->want_types[i];
         break;
       }
     }
@@ -99,7 +174,7 @@ EapSendRequest(u_char type)
   }
 
   /* don't request this type again */
-  eap->types[i] = 0;
+  eap->want_types[i] = 0;
 
   switch (req_type) {
 
@@ -113,7 +188,7 @@ EapSendRequest(u_char type)
       chap->retry = AUTH_RETRIES;
       chap->proto = PROTO_EAP;
 
-      if (type == EAP_TYPE_MD5CHAL) {
+      if (req_type == EAP_TYPE_MD5CHAL) {
 	chap->recv_alg = CHAP_ALG_MD5;
       } else {
 	chap->recv_alg = CHAP_ALG_MSOFTv2;
@@ -129,7 +204,7 @@ EapSendRequest(u_char type)
 
     default:
       Log(LG_AUTH, ("[%s] EAP: Type %d is currently un-implemented",
-	lnk->name, eap->types[i]));
+	lnk->name, eap->want_types[i]));
       AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
   }
 
@@ -149,9 +224,9 @@ EapSendNak(u_char id, u_char type)
   int		i = 0;
   u_char	nak_type = 0;
 
-  for (i = 0; i < EAP_NUM_AUTH_PROTOS; i++) {
-    if (eap->types[i] != 0) {
-      nak_type = eap->types[i];
+  for (i = 0; i < EAP_NUM_TYPES; i++) {
+    if (eap->peer_types[i] != 0) {
+      nak_type = eap->peer_types[i];
       break;
     }
   }
@@ -163,7 +238,7 @@ EapSendNak(u_char id, u_char type)
   }
 
   /* don't nak this proto again */
-  eap->types[i] = 0;
+  eap->peer_types[i] = 0;
 
   AuthOutput(PROTO_EAP, EAP_RESPONSE, id, &nak_type, 1, 0, EAP_TYPE_NAK);
   return;
@@ -191,11 +266,14 @@ EapSendIdentRequest(EapInfo eap)
 void
 EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 {
-  int		data_len = len - 1;
+  int		data_len = len - 1, i, acc_type;
   u_char	*data = NULL, type = 0;
   Auth		const a = &lnk->lcp.auth;
   EapInfo	const eap = &a->eap;
   ChapInfo	const chap = &a->chap;
+
+  if (Enabled(&eap->conf.options, EAP_CONF_RADIUS))
+    return EapRadiusProxy(code, id, pkt, len);
 
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
@@ -219,11 +297,26 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	case EAP_TYPE_NOTIF:
 	  Log(LG_AUTH, ("[%s] EAP: Type %s is invalid in Request messages",
 	    lnk->name, EapType(type)));
+	  AuthFinish(AUTH_SELF_TO_PEER, FALSE, NULL);
 	  break;
 
 	/* deal with Auth Types */
 	default:
+	  acc_type = 0;
 	  if (EapTypeSupported(type)) {
+	    for (i = 0; i < EAP_NUM_TYPES; i++) {
+	      if (eap->peer_types[i] == type) {
+		acc_type = eap->peer_types[i];
+		break;
+	      }
+	    }
+
+	    if (acc_type == 0) {
+	      Log(LG_AUTH, ("[%s] EAP: Type %s not acceptable", lnk->name, EapType(type)));
+	      EapSendNak(id, type);
+	      break;
+	    }
+
 	    switch (type) {
 	      case EAP_TYPE_MD5CHAL:
 	      case EAP_TYPE_MSCHAP_V2:
@@ -245,8 +338,8 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
       switch (type) {
 	case EAP_TYPE_IDENT:
 	  TimerStop(&eap->identTimer);
-	  Log(LG_AUTH, ("[%s] EAP: Identity:%*.*s", lnk->name,
-	    data_len, data_len, data));
+	  Log(LG_AUTH, ("[%s] EAP: Identity:%*.*s",
+	    lnk->name, data_len, data_len, data));
 	  EapSendRequest(0);
 	  break;
 
@@ -277,18 +370,91 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 
     case EAP_SUCCESS:
       AuthFinish(AUTH_SELF_TO_PEER, TRUE, NULL);
-      break;
+      return;
 
     case EAP_FAILURE:
       AuthFinish(AUTH_SELF_TO_PEER, FALSE, NULL);
-      break;
+      return;
 
     default:
       Log(LG_AUTH, ("[%s] EAP: unknown code %d", lnk->name, code));
-      AuthFinish(AUTH_SELF_TO_PEER, FALSE, NULL);
-      break;
+      AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
   }
+
 }
+
+/*
+ * EapRadiusProxy()
+ *
+ * Proxy EAP Requests to the RADIUS server
+ */
+static void
+EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len)
+{
+  Mbuf		bp;
+  int		data_len = len - 1, res;
+  u_char	*data = NULL, *ppkt, type = 0;
+  Auth		const a = &lnk->lcp.auth;
+  EapInfo	const eap = &a->eap;
+  struct authdata	auth;
+  struct fsmheader	lh;
+  struct radius		*rad = &lnk->radius;
+
+  if (pkt != NULL) {
+    data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
+    type = pkt[0];
+    Log(LG_AUTH, ("[%s] EAP-RADIUS: rec'd %s Type %s #%d len:%d",
+      lnk->name, EapCode(code), EapType(type), id, len));
+  } else {
+    Log(LG_AUTH, ("[%s] EAP-RADIUS: rec'd %s #%d len:%d",
+      lnk->name, EapCode(code), id, len));
+  }
+
+  if (code == EAP_RESPONSE && type == EAP_TYPE_IDENT) {
+    TimerStop(&eap->identTimer);
+    if (data_len >= EAP_MAX_IDENTITY) {
+      Log(LG_AUTH, ("[%s] EAP-RADIUS: Identity to big (%d), truncating",
+	lnk->name, data_len));
+        data_len = EAP_MAX_IDENTITY - 1;
+    }
+    memset(eap->identity, 0, sizeof(eap->identity));
+    strncpy(eap->identity, data, data_len);
+    Log(LG_AUTH, ("[%s] EAP-RADIUS: Identity:%s", lnk->name, eap->identity));
+  }
+
+  /* prepare packet */
+  lh.code = code;
+  lh.id = id;
+  lh.length = htons(len + sizeof(lh));
+
+  ppkt = Malloc(MB_AUTH, len + sizeof(lh));
+  memcpy(ppkt, &lh, sizeof(lh));
+  memcpy(&ppkt[sizeof(lh)], pkt, len);
+
+  res = RadiusEAPProxy(eap->identity, ppkt, len + sizeof(lh));
+  Freee(MB_AUTH, ppkt);
+  if (res == RAD_NACK) {
+    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+    return;
+  }
+
+  /* send out the data packet */
+  if (rad->eapmsg != NULL) {
+    bp = mballoc(MB_AUTH, rad->eapmsg_len);
+    memcpy(MBDATA(bp), rad->eapmsg, rad->eapmsg_len);
+    NgFuncWritePppFrame(lnk->bundleIndex, PROTO_EAP, bp);
+    if (lnk->radius.authentic) {
+      memset(&auth, 0, sizeof(auth));
+      strncpy(auth.authname, eap->identity, AUTH_MAX_AUTHNAME);
+      RadiusSetAuth(&auth);
+      AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
+    }
+    return;
+  }
+
+  AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+}
+
 
 /*
  * EapIdentTimeout()
@@ -306,6 +472,18 @@ EapIdentTimeout(void *ptr)
     TimerStart(&eap->identTimer);
     EapSendIdentRequest(eap);
   }
+}
+
+int
+EapStat(int ac, char *av[], void *arg)
+{
+  EapInfo	const eap = &lnk->lcp.auth.eap;
+
+  printf("\tIdentity     : %s\n", eap->identity);
+  printf("EAP options\n");
+  OptStat(&eap->conf.options, gConfList);
+
+  return (0);
 }
 
 /*
@@ -382,3 +560,47 @@ EapTypeSupported(u_char type)
   }
 }
 
+/*
+ * EapSetCommand()
+ */
+
+static int
+EapSetCommand(int ac, char *av[], void *arg)
+{
+  EapInfo	const eap = &lnk->lcp.auth.eap;
+
+  if (ac == 0)
+    return(-1);
+
+  switch ((intptr_t)arg) {
+
+    case SET_ACCEPT:
+      AcceptCommand(ac, av, &eap->conf.options, gConfList);
+      break;
+
+    case SET_DENY:
+      DenyCommand(ac, av, &eap->conf.options, gConfList);
+      break;
+
+    case SET_ENABLE:
+      EnableCommand(ac, av, &eap->conf.options, gConfList);
+      break;
+
+    case SET_DISABLE:
+      DisableCommand(ac, av, &eap->conf.options, gConfList);
+      break;
+
+    case SET_YES:
+      YesCommand(ac, av, &eap->conf.options, gConfList);
+      break;
+
+    case SET_NO:
+      NoCommand(ac, av, &eap->conf.options, gConfList);
+      break;
+
+    default:
+      assert(0);
+  }
+
+  return(0);
+}

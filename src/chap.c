@@ -405,13 +405,14 @@ ChapInput(int proto, u_char code, u_char id, const u_char *pkt, u_short len)
 	}
 
 	/* Strip MS domain if any */
-	if (chap->recv_alg == CHAP_ALG_MSOFT
-	    || chap->recv_alg == CHAP_ALG_MSOFTv2) {
-	  char	*s;
+	if (!Enabled(&lnk->conf.options, LINK_CONF_MSDOMAIN))
+	  if (chap->recv_alg == CHAP_ALG_MSOFT
+	      || chap->recv_alg == CHAP_ALG_MSOFTv2) {
+	    char	*s;
 
-	  if ((s = strrchr(peer_name, '\\')))
-	    memmove(peer_name, s + 1, strlen(s) + 1);
-	}
+	    if ((s = strrchr(peer_name, '\\')))
+	      memmove(peer_name, s + 1, strlen(s) + 1);
+	  }
 
 	/* Copy in peer challenge for MS-CHAPv2 */
 	if (chap->recv_alg == CHAP_ALG_MSOFTv2)
@@ -497,7 +498,7 @@ goodResponse:
 
 	  /* Generate MS-CHAPv2 'authenticator response' */
 	  if (radRes == RAD_ACK) {
-	    strcpy(ackMesg, bund->radius.mschapv2resp);
+	    strcpy(ackMesg, lnk->radius.mschapv2resp);
 	  } else {
 	    GenerateAuthenticatorResponse(auth.password, pv->ntHash,
 	      pv->peerChal, chap->chal_data, peer_name, authresp);

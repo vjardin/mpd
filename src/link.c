@@ -97,9 +97,9 @@
     { 1,	LINK_CONF_CHAPMSv1,	"chap-msv1"	},
     { 1,	LINK_CONF_CHAPMSv2,	"chap-msv2"	},
     { 1,	LINK_CONF_EAP,		"eap"		},
-    { 0,	LINK_CONF_EAP_RADIUS,	"radius-eap"	},
     { 1,	LINK_CONF_ACFCOMP,	"acfcomp"	},
     { 1,	LINK_CONF_PROTOCOMP,	"protocomp"	},
+    { 0,	LINK_CONF_MSDOMAIN,	"keep-ms-domain"},
     { 0,	LINK_CONF_MAGICNUM,	"magicnum"	},
     { 0,	LINK_CONF_PASSIVE,	"passive"	},
     { 0,	LINK_CONF_CHECK_MAGIC,	"check-magic"	},
@@ -209,7 +209,7 @@ LinkMsg(int type, void *arg)
 Link
 LinkNew(char *name)
 {
-  int k;
+  int		k;
 
   /* Check if name is already used */
   for (k = 0; k < gNumLinks; k++) {
@@ -252,8 +252,9 @@ LinkNew(char *name)
   Accept(&lnk->conf.options, LINK_CONF_PAP);
 
   Disable(&lnk->conf.options, LINK_CONF_EAP);
-  /* we currently don't support client-side EAP */
-  Deny(&lnk->conf.options, LINK_CONF_EAP);
+  Accept(&lnk->conf.options, LINK_CONF_EAP);
+
+  Disable(&lnk->conf.options, LINK_CONF_MSDOMAIN);
 
   Enable(&lnk->conf.options, LINK_CONF_ACFCOMP);
   Accept(&lnk->conf.options, LINK_CONF_ACFCOMP);
@@ -268,6 +269,7 @@ LinkNew(char *name)
   /* Initialize link layer stuff */
   lnk->phys = PhysInit();
   LcpInit();
+  EapInit();
 
   /* Read special configuration for link, if any */
   (void) ReadFile(LINKS_FILE, name, DoCommand);

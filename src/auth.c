@@ -128,7 +128,7 @@ AuthInput(int proto, Mbuf bp)
   if (len > ntohs(fsmh.length))
     len = ntohs(fsmh.length);
 
-  if (bp == NULL && proto != PROTO_EAP)
+  if (bp == NULL && proto != PROTO_EAP && proto != PROTO_CHAP)
   {
     const char	*failMesg;
     u_char	code = 0;
@@ -435,8 +435,8 @@ AuthFailMsg(int proto, int alg, int whyFail)
 	break;
     }
 
-    if (bund->radius.mschap_error != NULL) {
-      snprintf(buf, sizeof(buf), bund->radius.mschap_error);
+    if (lnk->radius.mschap_error != NULL) {
+      snprintf(buf, sizeof(buf), lnk->radius.mschap_error);
     } else {
       snprintf(buf, sizeof(buf), "E=%d R=0", mscode);
     }

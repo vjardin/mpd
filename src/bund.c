@@ -131,7 +131,7 @@
     { 0,	BUND_CONF_ROUNDROBIN,	"round-robin"	},
     { 0,	BUND_CONF_RADIUSAUTH,	"radius-auth"	},
     { 0,	BUND_CONF_RADIUSFALLBACK,	"radius-fallback"	},
-    { 0,	BUND_CONF_RADIUSACCT,	"radius-acct"	},    
+    { 0,	BUND_CONF_RADIUSACCT,	"radius-acct"	},
     { 0,	BUND_CONF_NORETRY,	"noretry"	},
     { 0,	BUND_CONF_TCPWRAPPER,	"tcp-wrapper"	},
     { 0,	0,			NULL		},
@@ -270,10 +270,10 @@ BundJoin(void)
 
     RadiusAccount(RAD_START);
 
-    if (bund->radius.interim_interval > 0)
-      updateInterval = bund->radius.interim_interval;
-    else if (bund->radius.conf.acct_update > 0)
-      updateInterval = bund->radius.conf.acct_update;
+    if (lnk->radius.interim_interval > 0)
+      updateInterval = lnk->radius.interim_interval;
+    else if (bund->radiusconf.acct_update > 0)
+      updateInterval = bund->radiusconf.acct_update;
 
     if (updateInterval > 0) {
       TimerInit(&lnk->radius.radUpdate, "RadiusAcctUpdate",
@@ -308,11 +308,16 @@ BundLeave(void)
   /* stopping link statistics timer */
   TimerStop(&lnk->stats.updateTimer);
 
-  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
+  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT))
   {
     TimerStop(&lnk->radius.radUpdate);
     RadiusAccount(RAD_STOP);
   }
+
+  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH) ||
+      Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT))
+    RadiusDown();
+
   BundReasses(0);
   
   /* Disable link */
@@ -322,10 +327,6 @@ BundLeave(void)
   /* Special stuff when last link goes down... */
   if (bm->n_up == 0) {
   
-    if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH) || 
-        Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
-      RadiusDown();
-
     /* Reset statistics and auth information */
     BundBmStop();
     if (bm->ncps_up)
@@ -763,6 +764,8 @@ fail:
   Disable(&bund->conf.options, BUND_CONF_CRYPT_REQD);
   Disable(&bund->conf.options, BUND_CONF_RADIUSAUTH);
   Disable(&bund->conf.options, BUND_CONF_RADIUSFALLBACK);
+
+  Disable(&bund->radiusconf.options, RADIUS_CONF_MESSAGE_AUTHENTIC);
 
   /* Init NCP's */
   IpcpInit();
