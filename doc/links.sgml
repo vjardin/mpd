@@ -52,8 +52,8 @@ just not configured at all, since all links default to the same
 values anyway). Then mpd will distribute packets in equal sized
 fragments over the links.
 
-<tag><tt>set link mtu <em>numbytes</em></tt></tag>
-<tag><tt>set link mru <em>numbytes</em></tt></tag>
+<tag><tt>set link mtu <em>numbytes</em></tt></tag><p>
+<tag><tt>set link mru <em>numbytes</em></tt></tag><p>
 
 The <tt>set link mtu</tt> command sets the maximum transmit unit
 (MTU) value for the link.  This is the size of the largest single
