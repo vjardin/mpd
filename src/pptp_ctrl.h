@@ -153,15 +153,13 @@
   #define PPTP_SCCR_REAS_LOCAL	3	/* local shutdown */
 
   struct pptpStopCtrlConnReply {
-    u_int16_t		vers;		/* protocol version */
     u_int8_t		result;		/* result code */
     u_int8_t		err;		/* error code */
     u_int16_t		resv0;		/* reserved */
   };
 
 #else
-  { { "vers", 2 }, { "result", 1 }, { "err", 1 },
-    { PPTP_RESV_PREF "0", 2 }, { NULL, 0 } },
+  { { "result", 1 }, { "err", 1 }, { PPTP_RESV_PREF "0", 2 }, { NULL, 0 } },
 #endif
 #ifndef _WANT_PPTP_FIELDS
 
