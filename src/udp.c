@@ -41,6 +41,7 @@
     u_int16_t		peer_port;	/* Configured peer port */
     u_int16_t		rxSeq;		/* Last seq received */
     u_int16_t		txSeq;		/* Last seq sent */
+    int			origination;	/* Link origination */
   };
   typedef struct udpinfo	*UdpInfo;
 
@@ -49,6 +50,7 @@
   enum {
     SET_PEERADDR,
     SET_SELFADDR,
+    SET_ORIGINATION,
   };
 
 /*
@@ -59,6 +61,7 @@
   static void	UdpOpen(PhysInfo p);
   static void	UdpClose(PhysInfo p);
   static void	UdpStat(PhysInfo p);
+  static int	UdpOrigination(PhysInfo p);
 
   static void	UdpDoClose(UdpInfo udp);
   static int	UdpSetCommand(int ac, char *av[], void *arg);
@@ -77,7 +80,7 @@
     NULL,
     NULL,	/* XXX when another node is involved, need a function here */
     UdpStat,
-    NULL,
+    UdpOrigination,
   };
 
   const struct cmdtab UdpSetCmds[] = {
@@ -85,6 +88,8 @@
 	UdpSetCommand, NULL, (void *) SET_SELFADDR },
     { "peer ip [port]",			"Set remote IP address",
 	UdpSetCommand, NULL, (void *) SET_PEERADDR },
+    { "origination < local | remote >",	"Set link origination",
+	UdpSetCommand, NULL, (void *) SET_ORIGINATION },
     { NULL },
   };
 
@@ -98,6 +103,7 @@ UdpInit(PhysInfo p)
   UdpInfo	udp;
 
   udp = (UdpInfo) (p->info = Malloc(MB_PHYS, sizeof(*udp)));
+  udp->origination = LINK_ORIGINATE_UNKNOWN;
   return(0);
 }
 
@@ -235,6 +241,18 @@ UdpStat(PhysInfo p)
 }
 
 /*
+ * UdpOrigination()
+ */
+
+static int
+UdpOrigination(PhysInfo p)
+{
+  UdpInfo	const udp = (UdpInfo) lnk->phys->info;
+
+  return (udp->origination);
+}
+
+/*
  * UdpSetCommand()
  */
 
@@ -268,6 +286,19 @@ getAddrPort:
 	*pp = atoi(av[1]);
       }
       break;
+    case SET_ORIGINATION:
+      if (ac != 1)
+	return(-1);
+      if (strcasecmp(av[0], "local") == 0) {
+	udp->origination = LINK_ORIGINATE_LOCAL;
+	break;
+      }
+      if (strcasecmp(av[0], "remote") == 0) {
+	udp->origination = LINK_ORIGINATE_REMOTE;
+	break;
+      }
+      Log(LG_ERR, ("Invalid link origination \"%s\"", av[0]));
+      return(-1);
 
     default:
       assert(0);
