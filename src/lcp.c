@@ -175,7 +175,7 @@ LcpConfigure(Fsm fp)
   if (Enabled(&lnk->conf.options, LINK_CONF_CHAP)) {
     lcp->want_auth = PROTO_CHAP;
 #ifdef MICROSOFT_CHAP
-    lcp->want_chap_alg = CHAP_ALG_MSOFTv2;	/* need this to get mppe key */
+    lcp->want_chap_alg = CHAP_ALG_MSOFT;	/* need this to get mppe key */
 #else
     lcp->want_chap_alg = CHAP_ALG_MD5;
 #endif
