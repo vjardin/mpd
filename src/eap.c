@@ -451,16 +451,28 @@ EapRadiusProxyFinish(AuthData auth)
   Log(LG_AUTH, ("[%s] EAP-RADIUS: RadiusEapProxyFinish: status %s", 
     lnk->name, AuthStatusText(auth->status)));
 
+  /* this shouldn't happen normally, however be liberal */
+  if (a->radius.eapmsg == NULL) {
+    struct fsmheader	lh;
+
+    Log(LG_AUTH, ("[%s] EAP-RADIUS: Warning, rec'd empty EAP-Message", 
+      lnk->name));
+    /* prepare packet */
+    lh.code = auth->status == AUTH_STATUS_SUCCESS ? EAP_SUCCESS : EAP_FAILURE;
+    lh.id = auth->id;
+    lh.length = htons(sizeof(lh));
+
+    a->radius.eapmsg = Malloc(MB_AUTH, sizeof(lh));
+    memcpy(a->radius.eapmsg, &lh, sizeof(lh));
+    a->radius.eapmsg_len = sizeof(lh);
+  }
+
   if (a->radius.eapmsg != NULL) {
     eap->retry = AUTH_RETRIES;
     
     EapRadiusSendMsg(eap);    
     if (auth->status == AUTH_STATUS_UNDEF)
       TimerStart(&eap->reqTimer);
-  } else {
-    Log(LG_AUTH, ("[%s] EAP-RADIUS: PANIC, rec'd empty EAP-Message", 
-      lnk->name));
-    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
   }
 
   if (auth->status == AUTH_STATUS_FAIL) {
@@ -483,10 +495,16 @@ EapRadiusSendMsg(void *ptr)
 {
   Mbuf		bp;
   Auth		const a = &lnk->lcp.auth;
+  FsmHeader	const f = (FsmHeader)a->radius.eapmsg;
 
-  Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  Type %s #%d len:%d ",
-    lnk->name, EapCode(a->radius.eapmsg[0]), EapType(a->radius.eapmsg[4]),
-    a->radius.eapmsg[1], htons(*((u_short *)&a->radius.eapmsg[2]))));
+  if (a->radius.eapmsg_len > 4) {
+    Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  Type %s #%d len:%d ",
+      lnk->name, EapCode(f->code), EapType(a->radius.eapmsg[4]),
+      f->id, htons(f->length)));
+  } else {
+    Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  #%d len:%d ",
+      lnk->name, EapCode(f->code), f->id, htons(f->length)));
+  } 
 
   bp = mballoc(MB_AUTH, a->radius.eapmsg_len);
   memcpy(MBDATA(bp), a->radius.eapmsg, a->radius.eapmsg_len);
