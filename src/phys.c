@@ -30,7 +30,7 @@
  * and CLOSE events. If the device goes down suddenly after being OPEN,
  * the close method will not be explicitly called to clean up.
  *
- * All device types must support MRU's of at least 1500 + LCP_MRU_MARGIN.
+ * All device types must support MRU's of at least 1500.
  *
  * Each device is responsible for connecting the appropriate netgraph
  * node to the PPP node when the link comes up, and disconnecting it

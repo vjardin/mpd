@@ -24,7 +24,6 @@
 
   /* MRU defs */
   #define LCP_DEFAULT_MRU	1500	/* Per RFC 1661 */
-  #define LCP_MRU_MARGIN	20	/* Negotiate with this margin */
   #define LCP_MIN_MRU		296
 
   /* Authorization timeout in seconds */

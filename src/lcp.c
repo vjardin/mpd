@@ -709,8 +709,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	      if (mru >= LCP_MIN_MRU
-		  && (mru <= lnk->phys->type->mru - LCP_MRU_MARGIN
-		    || mru < lcp->want_mru))
+		  && (mru <= lnk->phys->type->mru || mru < lcp->want_mru))
 		lcp->want_mru = mru;
 	      break;
 	    case MODE_REJ:

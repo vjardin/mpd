@@ -373,10 +373,9 @@ LinkSetCommand(int ac, char *av[], void *arg)
 	Log(LG_ERR, ("[%s] this link has no type set", lnk->name));
       else if (val < LCP_MIN_MRU)
 	Log(LG_ERR, ("[%s] the min %s is %d", lnk->name, name, LCP_MIN_MRU));
-      else if (val + LCP_MRU_MARGIN > lnk->phys->type->mru)
+      else if (val > lnk->phys->type->mru)
 	Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
-	  lnk->name, name, lnk->phys->type->name,
-	  lnk->phys->type->mru - LCP_MRU_MARGIN));
+	  lnk->name, name, lnk->phys->type->name, lnk->phys->type->mru));
       else if ((intptr_t)arg == SET_MTU)
 	lnk->conf.mtu = val;
       else
