@@ -302,7 +302,7 @@ MsoftGetMasterKey(u_char *resp, u_char *h)
  */
 
 void
-MsoftGetAsymetricStartKey(u_char *h, int xmit)
+MsoftGetAsymetricStartKey(u_char *h, int server_recv)
 {
   SHA1_CTX		c;
   u_char		pad[40];
@@ -312,7 +312,7 @@ MsoftGetAsymetricStartKey(u_char *h, int xmit)
   SHA1Update(&c, h, 16);
   memset(pad, 0x00, sizeof(pad));
   SHA1Update(&c, pad, sizeof(pad));
-  SHA1Update(&c, xmit ? MS_MAGIC_2 : MS_MAGIC_3, 84);
+  SHA1Update(&c, server_recv ? MS_MAGIC_2 : MS_MAGIC_3, 84);
   memset(pad, 0xf2, sizeof(pad));
   SHA1Update(&c, pad, sizeof(pad));
   SHA1Final(hash, &c);

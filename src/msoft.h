@@ -38,7 +38,7 @@
 		  const char *rechash);
 
   extern void	MsoftGetMasterKey(u_char *resp, u_char *h);
-  extern void	MsoftGetAsymetricStartKey(u_char *h, int xmit);
+  extern void	MsoftGetAsymetricStartKey(u_char *h, int server_recv);
 
 #endif
 
