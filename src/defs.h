@@ -59,6 +59,7 @@
 
   #define AUTH_MAX_AUTHNAME	64
   #define AUTH_MAX_PASSWORD	64
+  #define AUTH_MAX_EXTCMD	128
 
   /* Forward decl's */
   struct linkst;

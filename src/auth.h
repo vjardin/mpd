@@ -52,8 +52,10 @@
   struct authdata {
     char		authname[AUTH_MAX_AUTHNAME];
     char		password[AUTH_MAX_PASSWORD];
+    char		extcmd[AUTH_MAX_EXTCMD];
     struct in_range	range;
     u_int		range_valid:1;
+    u_int		external:1;
   };
   typedef struct authdata	*AuthData;
 

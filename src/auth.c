@@ -20,6 +20,7 @@
  */
 
   static void	AuthTimeout(void *arg);
+  static int	AuthGetExternalPassword(AuthData auth);
 
 /*
  * AuthStart()
@@ -117,6 +118,12 @@ AuthFinish(int which, int ok, AuthData auth)
       assert(0);
   }
 
+  /* Notify external auth program if needed */
+  if (auth->external) {
+    ExecCmd(LG_AUTH, "%s %s %s", auth->extcmd,
+      ok ? "-y" : "-n", auth->authname);
+  }
+
   /* Did auth fail (in either direction)? */
   if (!ok) {
     AuthStop();
@@ -178,7 +185,7 @@ AuthGetData(const char *authname, AuthData auth, int complain, int *whyFail)
     snprintf(auth->authname, sizeof(auth->authname), "%s", authname);
     snprintf(auth->password, sizeof(auth->password), "%s", bund->conf.password);
     memset(&auth->range, 0, sizeof(auth->range));
-    auth->range_valid = FALSE;
+    auth->range_valid = auth->external = FALSE;
     return(0);
   }
 
@@ -189,9 +196,23 @@ AuthGetData(const char *authname, AuthData auth, int complain, int *whyFail)
     memset(av, 0, sizeof(av));
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
     Freee(line);
-    if (ac >= 2 && !strcmp(av[0], authname)) {
+    if (ac >= 2
+	&& (strcmp(av[0], authname) == 0
+	 || (av[1][0] == '!' && strcmp(av[0], "*") == 0))) {
       snprintf(auth->authname, sizeof(auth->authname), "%s", av[0]);
-      snprintf(auth->password, sizeof(auth->password), "%s", av[1]);
+      if (av[1][0] == '!') {		/* external auth program */
+	snprintf(auth->extcmd, sizeof(auth->extcmd), "%s", av[1] + 1);
+	auth->external = TRUE;
+	if (AuthGetExternalPassword(auth) == -1) {
+	  FreeArgs(ac, av);
+	  fclose(fp);
+	  return(-1);
+	}
+      } else {
+	snprintf(auth->password, sizeof(auth->password), "%s", av[1]);
+	*auth->extcmd = '\0';
+	auth->external = FALSE;
+      }
       memset(&auth->range, 0, sizeof(auth->range));
       auth->range_valid = FALSE;
       if (ac >= 3)
@@ -282,5 +303,41 @@ AuthFailMsg(int proto, int alg, int whyFail)
     }
   }
   return(mesg);
+}
+
+/*
+ * AuthGetExternalPassword()
+ *
+ * Run the named external program to fill in the password for the user
+ * mentioned in the AuthData
+ * -1 on error (can't fork, no data read, whatever)
+ */
+static int
+AuthGetExternalPassword(AuthData a)
+{
+  char cmd[AUTH_MAX_PASSWORD + 5 + AUTH_MAX_AUTHNAME];
+  int ok = 0;
+  FILE *fp;
+  int len;
+
+  snprintf(cmd, sizeof(cmd), "%s %s", a->extcmd, a->authname);
+  Log(LG_AUTH, ("Invoking external auth program: %s", cmd));
+  if ((fp = popen(cmd, "r")) == NULL) {
+    Perror("Popen");
+    return (-1);
+  }
+  if (fgets(a->password, sizeof(a->password), fp) != NULL) {
+    len = strlen(a->password);		/* trim trailing newline */
+    if (len > 0 && a->password[len - 1] == '\n')
+      a->password[len - 1] = '\0';
+    ok = (*a->password != '\0');
+  } else {
+    if (ferror(fp))
+      Perror("Error reading from external auth program");
+  }
+  if (!ok)
+    Log(LG_AUTH, ("External auth program failed for user \"%s\"", a->authname));
+  pclose(fp);
+  return (ok ? 0 : -1);
 }
 

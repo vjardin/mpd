@@ -189,6 +189,9 @@ The default for this option is off.
 <tag><tt>radius-auth</tt></tag>
 
 Enable authentication via RADIUS.
+Note: If authenticating via RADIUS and using MPPE encryption,
+MS-CHAP version 2 is required; support for RADIUS + MPPE + MS-CHAP version 1
+is not yet implemented.
 
 <tag><tt>radius-fallback</tt></tag>
 

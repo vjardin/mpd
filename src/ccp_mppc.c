@@ -487,6 +487,13 @@ MppeInitKey(MppcInfo mppc, int dir)
   char		*pass;
   u_char	*chal;
 
+  /* If using RADIUS, key info comes from the server */
+  if (bund->radius.valid) {
+    Log(LG_ERR, ("[%s] RADIUS support for MPPE/MS-CHAPv1 is unimplemented;"
+	" MS-CHAPv2 required", lnk->name));
+    return;
+  }
+
   /* Get credential info */
   if (MppeGetKeyInfo(&pass, &chal) < 0)
     return;
@@ -523,10 +530,7 @@ static int
 MppeGetKeyInfo(char **secretp, u_char **challengep)
 {
   CcpState		const ccp = &bund->ccp;
-  static char		password[AUTH_MAX_PASSWORD];
-  char			*authname;
   u_char		*challenge;
-  struct authdata	auth;
 
   /* The secret comes from the originating caller's credentials */
   switch (lnk->originate) {
@@ -538,7 +542,6 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
 	goto fail;
       }
-      authname = bund->conf.authname;
       challenge = bund->peer_msChal;
       break;
     case LINK_ORIGINATE_REMOTE:
@@ -549,7 +552,6 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
 	goto fail;
       }
-      authname = bund->peer_authname;
       challenge = bund->self_msChal;
       break;
     case LINK_ORIGINATE_UNKNOWN:
@@ -558,18 +560,9 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
       goto fail;
   }
 
-  /* Get password corresponding to whichever account name */
-  if (AuthGetData(authname, &auth, 1, NULL) >= 0) {
-    snprintf(password, sizeof(password), "%s", auth.password);
-  } else {
-    LogPrintf("[%s] unable to get data for authname \"%s\"",
-      bund->name, authname);
-    goto fail;
-  }
-
   /* Return info */
-  *secretp = password;
-  *challengep = challenge;
+  *secretp = bund->msPassword;
+  *challengep = challenge;  
   return(0);
 
 fail:
@@ -592,6 +585,7 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   u_char	*resp;
   MD4_CTX	c;
 
+  /* If using RADIUS, key info comes from the server */
   if (bund->radius.valid) {
     if (dir == COMP_DIR_XMIT) {
       memcpy(mppc->xmit_key0, bund->radius.mppe.sendkey, MPPE_KEY_LEN);
@@ -631,10 +625,7 @@ static int
 MppeGetKeyInfov2(char **secretp, u_char **responsep)
 {
   CcpState		const ccp = &bund->ccp;
-  static char		password[AUTH_MAX_PASSWORD];
-  char			*authname;
   u_char		*response;
-  struct authdata	auth;
 
   /* The secret comes from the originating caller's credentials */
   switch (lnk->originate) {
@@ -646,7 +637,6 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
 	goto fail;
       }
-      authname = bund->conf.authname;
       response = bund->self_ntResp;
       break;
     case LINK_ORIGINATE_REMOTE:
@@ -657,7 +647,6 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
 	goto fail;
       }
-      authname = bund->peer_authname;
       response = bund->peer_ntResp;
       break;
     case LINK_ORIGINATE_UNKNOWN:
@@ -666,17 +655,8 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
       goto fail;
   }
 
-  /* Get password corresponding to whichever account name */
-  if (AuthGetData(authname, &auth, 1, NULL) >= 0) {
-    snprintf(password, sizeof(password), "%s", auth.password);
-  } else {
-    LogPrintf("[%s] unable to get data for authname \"%s\"",
-      bund->name, authname);
-    goto fail;
-  }
-
   /* Return info */
-  *secretp = password;
+  *secretp = bund->msPassword;
   *responsep = response;
   return(0);
 

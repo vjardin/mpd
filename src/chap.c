@@ -503,6 +503,9 @@ badResponse:
 
 goodResponse:
 	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
+	if (chap->recv_alg == CHAP_ALG_MSOFT
+	    || chap->recv_alg == CHAP_ALG_MSOFTv2)
+	  strlcpy(bund->msPassword, auth.password, sizeof(bund->msPassword));
 	if (chap->recv_alg == CHAP_ALG_MSOFTv2) {
 	  if (!memcmp(bund->peer_ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
 	    memcpy(bund->peer_ntResp,
