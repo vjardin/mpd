@@ -55,7 +55,7 @@ from authentication.
 <tag>Authentication protocol negotiation</tag>
 <p>
 Starting with MPD 3.14, MPD behaves more intelligently when negotiating
-authentication protocolss. MPD searches an internal list of protocols,
+authentication protocols. MPD searches an internal list of protocols,
 from most to least secure, until a mutually agreeable protocol is found.
 If the link is a PPTP link, then MS-CHAP is most preferrable, otherwise
 MD5-CHAP is most preferrable.
