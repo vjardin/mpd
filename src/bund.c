@@ -302,6 +302,9 @@ BundLeave(void)
   /* Elvis has left the bundle */
   assert(bm->n_up > 0);
   
+  /* stopping link statistics timer */
+  TimerStop(&lnk->stats.updateTimer);
+
   if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
   {
     TimerStop(&lnk->radius.radUpdate);
