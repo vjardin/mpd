@@ -35,6 +35,8 @@
     } \
   }
 
+  #define MAX_U_INT32 0xffffffffU
+
 /*
  * FUNCTIONS
  */

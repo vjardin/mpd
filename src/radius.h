@@ -25,6 +25,18 @@
 #define RAD_UPDATE 3
 #endif
 
+#ifndef RAD_ACCT_INPUT_GIGAWORDS
+#define RAD_ACCT_INPUT_GIGAWORDS 52
+#endif
+
+#ifndef RAD_ACCT_OUTPUT_GIGAWORDS
+#define RAD_ACCT_OUTPUT_GIGAWORDS 53
+#endif
+
+#ifndef RAD_ACCT_INTERIM_INTERVAL
+#define RAD_ACCT_INTERIM_INTERVAL 85
+#endif
+
 /* for mppe-keys */
 #define AUTH_LEN		16
 #define SALT_LEN		2
@@ -116,16 +128,17 @@ extern const	struct cmdtab RadiusSetCmds[];
     struct radius_acl 	*acl_rule;
     struct radius_acl 	*acl_pipe;
     struct radius_acl 	*acl_queue;
-    unsigned long	class;		/* Class */
-    unsigned long	mtu;		/* FRAMED MTU */
-    unsigned long	session_timeout;/* Session-Timeout */
-    unsigned long	idle_timeout;	/* Idle-Timeout */
-    unsigned long	protocol;	/* FRAMED Protocol */
-    unsigned long	service_type;	/* Service Type */
-    char		*filterid;	/* FRAMED Filter Id */
-    char		*msdomain;	/* Microsoft domain */
-    char		*mschap_error;	/* MSCHAP Error Message */    
-    char		*mschapv2resp;	/* Response String for MSCHAPv2 */
+    unsigned long	class;			/* Class */
+    unsigned long	mtu;			/* FRAMED MTU */
+    unsigned long	session_timeout;	/* Session-Timeout */
+    unsigned long	idle_timeout;		/* Idle-Timeout */
+    unsigned long	protocol;		/* FRAMED Protocol */
+    unsigned long	service_type;		/* Service Type */
+    unsigned long	interim_interval;	/* interval for accouting updates */
+    char		*filterid;		/* FRAMED Filter Id */
+    char		*msdomain;		/* Microsoft domain */
+    char		*mschap_error;		/* MSCHAP Error Message */    
+    char		*mschapv2resp;		/* Response String for MSCHAPv2 */
     struct {
       int	policy;			/* MPPE_POLICY_* */
       int	types;			/* MPPE_TYPE_*BIT bitmask */

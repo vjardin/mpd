@@ -174,7 +174,7 @@ LinkMsg(int type, void *arg)
     case MSG_DOWN:
       LcpDown();
       /* reset Link-stats */
-      NgFuncGetStats(lnk->bundleIndex, TRUE, NULL);
+      LinkResetStats();
       if (OPEN_STATE(lnk->lcp.fsm.state)) {
 	if (lnk->conf.max_redial == -1) {
 	  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
@@ -307,8 +307,6 @@ LinkCommand(int ac, char *av[], void *arg)
 int
 LinkStat(int ac, char *av[], void *arg)
 {
-  struct ng_ppp_link_stat	stats;
-
   printf("Link %s:\n", lnk->name);
 
   printf("Configuration\n");
@@ -327,26 +325,73 @@ LinkStat(int ac, char *av[], void *arg)
   printf("\tIdent string   : \"%s\"\n", lnk->conf.ident ? lnk->conf.ident : "");
   printf("Link level options\n");
   OptStat(&lnk->conf.options, gConfList);
-  if (NgFuncGetStats(lnk->bundleIndex, 0, &stats) >= 0) {
-    printf("Traffic stats:\n");
+  LinkUpdateStats();
+  printf("Traffic stats:\n");
 
-    printf("\tOctets input   : %8u\n", stats.recvOctets);
-    printf("\tFrames input   : %8u\n", stats.recvFrames);
-    printf("\tOctets output  : %8u\n", stats.xmitOctets);
-    printf("\tFrames output  : %8u\n", stats.xmitFrames);
-    printf("\tBad protocols  : %8u\n", stats.badProtos);
+  printf("\tOctets input   : %llu\n", lnk->stats.recvOctets);
+  printf("\tFrames input   : %llu\n", lnk->stats.recvFrames);
+  printf("\tOctets output  : %llu\n", lnk->stats.xmitOctets);
+  printf("\tFrames output  : %llu\n", lnk->stats.xmitFrames);
+  printf("\tBad protocols  : %llu\n", lnk->stats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-    printf("\tRunts          : %8u\n", stats.runts);
+  printf("\tRunts          : %llu\n", lnk->stats.runts);
 #endif
-    printf("\tDup fragments  : %8u\n", stats.dupFragments);
+  printf("\tDup fragments  : %llu\n", lnk->stats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-    printf("\tDrop fragments : %8u\n", stats.dropFragments);
+  printf("\tDrop fragments : %llu\n", lnk->stats.dropFragments);
 #endif
-  }
 
   printf("Device specific info:\n");
   PhysStat(0, NULL, NULL);
   return(0);
+}
+
+/* 
+ * LinkUpdateStats()
+ */
+
+void
+LinkUpdateStats(void)
+{
+  struct ng_ppp_link_stat	stats;
+
+  if (NgFuncGetStats(lnk->bundleIndex, TRUE, &stats) != -1) {
+    lnk->stats.xmitFrames += stats.xmitFrames;
+    lnk->stats.xmitOctets += stats.xmitOctets;
+    lnk->stats.recvFrames += stats.recvFrames;
+    lnk->stats.recvOctets += stats.recvOctets;
+    lnk->stats.badProtos  += stats.badProtos;
+#if NGM_PPP_COOKIE >= 940897794
+    lnk->stats.runts	  += stats.runts;
+#endif
+    lnk->stats.dupFragments += stats.dupFragments;
+#if NGM_PPP_COOKIE >= 940897794
+    lnk->stats.dropFragments += stats.dropFragments;
+#endif
+  }
+}
+
+/* 
+ * LinkUpdateStatsTimer()
+ */
+
+void
+LinkUpdateStatsTimer(void *cookie)
+{
+  TimerStop(&lnk->stats.updateTimer);
+  LinkUpdateStats();
+  TimerStart(&lnk->stats.updateTimer);
+}
+
+/*
+ * LinkResetStats()
+ */
+
+void
+LinkResetStats(void)
+{
+  NgFuncGetStats(lnk->bundleIndex, TRUE, NULL);
+  memset(&lnk->stats, 0, sizeof(struct linkstats));
 }
 
 /*

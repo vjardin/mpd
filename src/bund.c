@@ -15,6 +15,7 @@
 #include "ccp.h"
 #include "mp.h"
 #include "iface.h"
+#include "link.h"
 #include "msg.h"
 #include "custom.h"
 #include "ngfunc.h"
@@ -264,11 +265,24 @@ BundJoin(void)
   if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) {
     RadiusAccount(RAD_START);
     if (bund->radius.conf.acct_update > 0) {
+      u_long updateInterval;
+
+      if (bund->radius.interim_interval > 0)
+	updateInterval = bund->radius.interim_interval;
+      else
+        updateInterval = bund->radius.conf.acct_update;
+
       TimerInit(&lnk->radius.radUpdate, "RadiusAcctUpdate",
-	bund->radius.conf.acct_update * SECONDS, RadiusAcctUpdate, NULL);
+	updateInterval * SECONDS, RadiusAcctUpdate, NULL);
       TimerStart(&lnk->radius.radUpdate);
     }
   }
+
+  /* starting link statistics timer */
+  TimerInit(&lnk->stats.updateTimer, "LinkUpdateStats", 
+    LINK_STATS_UPDATE_INTERVAL, LinkUpdateStatsTimer, NULL);
+  TimerStart(&lnk->stats.updateTimer);
+
   /* Done */
   return(bm->n_up);
 }
@@ -760,9 +774,8 @@ fail:
 int
 BundStat(int ac, char *av[], void *arg)
 {
-  struct ng_ppp_link_stat	stats;
-  Bund				sb;
-  int				k, bw, tbw, nup;
+  Bund	sb;
+  int	k, bw, tbw, nup;
 
   /* Find bundle they're talking about */
   switch (ac) {
@@ -822,22 +835,22 @@ BundStat(int ac, char *av[], void *arg)
   }
 
   /* Show stats */
-  if (NgFuncGetStats(lnk->bundleIndex, 0, &stats) >= 0) {
-    printf("Traffic stats:\n");
+  LinkUpdateStats();
+  printf("Traffic stats:\n");
 
-    printf("\tOctets input   : %8u\n", stats.recvOctets);
-    printf("\tFrames input   : %8u\n", stats.recvFrames);
-    printf("\tOctets output  : %8u\n", stats.xmitOctets);
-    printf("\tFrames output  : %8u\n", stats.xmitFrames);
-    printf("\tBad protocols  : %8u\n", stats.badProtos);
+  printf("\tOctets input   : %llu\n", lnk->stats.recvOctets);
+  printf("\tFrames input   : %llu\n", lnk->stats.recvFrames);
+  printf("\tOctets output  : %llu\n", lnk->stats.xmitOctets);
+  printf("\tFrames output  : %llu\n", lnk->stats.xmitFrames);
+  printf("\tBad protocols  : %llu\n", lnk->stats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-    printf("\tRunts          : %8u\n", stats.runts);
+  printf("\tRunts          : %llu\n", lnk->stats.runts);
 #endif
-    printf("\tDup fragments  : %8u\n", stats.dupFragments);
+  printf("\tDup fragments  : %llu\n", lnk->stats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-    printf("\tDrop fragments : %8u\n", stats.dropFragments);
+  printf("\tDrop fragments : %llu\n", lnk->stats.dropFragments);
 #endif
-  }
+
   return(0);
 }
 

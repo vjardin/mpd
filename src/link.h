@@ -78,6 +78,24 @@
   };
   typedef struct linkbm	*LinkBm;
 
+  #define LINK_STATS_UPDATE_INTERVAL	60 * SECONDS
+
+  /* internal 64 bit counters as workaround for the 32 bit 
+   * limitation for ng_ppp_link_stat
+   */
+  struct linkstats {
+	struct pppTimer	updateTimer;	/* update Timer */
+	u_int64_t 	xmitFrames;	/* xmit frames on link */
+	u_int64_t 	xmitOctets;	/* xmit octets on link */
+	u_int64_t 	recvFrames;	/* recv frames on link */
+	u_int64_t	recvOctets;	/* recv octets on link */
+	u_int64_t 	badProtos;	/* frames rec'd with bogus protocol */
+	u_int64_t 	runts;		/* Too short MP fragments */
+	u_int64_t 	dupFragments;	/* MP frames with duplicate seq # */
+	u_int64_t dropFragments;	/* MP fragments we had to drop */
+  };
+  typedef struct linkstat *LinkStats;
+
   /* Values for link origination (must fit in 2 bits) */
   #define LINK_ORIGINATE_UNKNOWN	0
   #define LINK_ORIGINATE_LOCAL		1
@@ -98,6 +116,7 @@
     struct linkconf	conf;		/* Link configuration */
     struct lcpstate	lcp;		/* LCP state info */
     struct linkbm	bm;		/* Link bandwidth mgmt info */
+    struct linkstats	stats;		/* Link statistics */
     PhysInfo		phys;		/* Physical layer info */
 
     /* Link properties */
@@ -140,6 +159,9 @@
   extern Link	LinkNew(char *name);
   extern int	LinkNuke(Link link);
   extern int	LinkStat(int ac, char *av[], void *arg);
+  extern void	LinkUpdateStats(void);
+  extern void	LinkUpdateStatsTimer(void *cookie);
+  extern void	LinkResetStats(void);
   extern int	LinkCommand(int ac, char *av[], void *arg);
 
 #endif

@@ -858,6 +858,12 @@ RadiusGetParams()
           lnk->name, function, rad->idle_timeout));
         break;
 
+     case RAD_ACCT_INTERIM_INTERVAL:
+	rad->interim_interval = rad_cvt_int(data);
+        Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCT_INTERIM_INTERVAL: %lu ",
+          lnk->name, function, rad->interim_interval));
+	break;
+
       case RAD_FRAMED_MTU:
 	rad->mtu = rad_cvt_int(data);
 	if (rad->mtu < IFACE_MIN_MTU || rad->mtu > IFACE_MAX_MTU) {
@@ -1193,8 +1199,7 @@ RadiusAccount(short acct_type)
   }
 
   if (acct_type == RAD_STOP || acct_type == RAD_UPDATE) {
-    struct ng_ppp_link_stat	stats;
-    int				termCause = RAD_TERM_USER_REQUEST;
+    int	termCause = RAD_TERM_USER_REQUEST;
 
     if (acct_type == RAD_STOP) {
 
@@ -1224,16 +1229,17 @@ RadiusAccount(short acct_type)
 	return RAD_NACK;
     }
 
-    if (NgFuncGetStats(lnk->bundleIndex, 0, &stats) >= 0) {
-      if (rad_put_int(rad->radh, RAD_ACCT_INPUT_OCTETS, stats.recvOctets) != 0 ||
-	rad_put_int(rad->radh, RAD_ACCT_INPUT_PACKETS, stats.recvFrames) != 0 ||
-	rad_put_int(rad->radh, RAD_ACCT_OUTPUT_OCTETS, stats.xmitOctets) != 0 ||
-	rad_put_int(rad->radh, RAD_ACCT_OUTPUT_PACKETS, stats.xmitFrames) != 0) {
-	Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", lnk->name, function,
-	  rad_strerror(rad->radh)));
-	RadiusClose();
-	return RAD_NACK;
-      }
+    LinkUpdateStats();
+    if (rad_put_int(rad->radh, RAD_ACCT_INPUT_OCTETS, lnk->stats.recvOctets % MAX_U_INT32) != 0 ||
+	rad_put_int(rad->radh, RAD_ACCT_INPUT_PACKETS, lnk->stats.recvFrames) != 0 ||
+    	rad_put_int(rad->radh, RAD_ACCT_OUTPUT_OCTETS, lnk->stats.xmitOctets % MAX_U_INT32) != 0 ||
+     	rad_put_int(rad->radh, RAD_ACCT_OUTPUT_PACKETS, lnk->stats.xmitFrames) != 0 ||
+     	rad_put_int(rad->radh, RAD_ACCT_INPUT_GIGAWORDS, lnk->stats.recvOctets / MAX_U_INT32) != 0 ||
+     	rad_put_int(rad->radh, RAD_ACCT_OUTPUT_GIGAWORDS, lnk->stats.xmitOctets / MAX_U_INT32) != 0) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", lnk->name, function,
+        rad_strerror(rad->radh)));
+      RadiusClose();
+      return RAD_NACK;
     }
   }
 
