@@ -290,6 +290,12 @@ LinkCopy(void)
   
   nlnk = Malloc(MB_BUND, sizeof(*nlnk));
   memcpy(nlnk, lnk, sizeof(*lnk));
+  nlnk->downReason = NULL;
+  if (lnk->downReason != NULL) {
+    nlnk->downReason = Malloc(MB_BUND, strlen(lnk->downReason) + 1);
+    strcpy(nlnk->downReason, lnk->downReason);
+  }
+
   return nlnk;
 }
 

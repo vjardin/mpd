@@ -472,6 +472,7 @@ AuthDataNew(void)
 void
 AuthDataDestroy(AuthData auth)
 {
+  Freee(MB_BUND, auth->lnk->downReason);
   Freee(MB_BUND, auth->lnk);
   Freee(MB_AUTH, auth->reply_message);
   Freee(MB_AUTH, auth->mschap_error);
@@ -582,8 +583,8 @@ AuthAccountStart(int type)
 
   if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
     AuthAccountFinish, auth) == -1) {
-    Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d %s", 
-      lnk->name, errno, strerror(errno)));
+    Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
+      lnk->name, errno));
     AuthDataDestroy(auth);
   }
 
@@ -776,8 +777,10 @@ AuthAsyncStart(AuthData auth)
   }
 
   /* refresh the copy of the link */
-  if (auth->lnk != NULL)
+  if (auth->lnk != NULL) {
+    Freee(MB_AUTH, auth->lnk->downReason);
     Freee(MB_AUTH, auth->lnk);
+  }
   auth->lnk = LinkCopy();
   if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
     AuthAsyncFinish, auth) == -1) {
