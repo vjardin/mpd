@@ -1,0 +1,39 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>EAP commands<label id="eap"></heading>
+
+<p>
+
+  This chapter describes commands that configure the EAP (Extensible Authentication 
+  Protocol). Mpd supports natively only the EAP-Type MD5, other EAP-Types may be used 
+  in conjunction with a RADIUS server. All of these commands apply to the currently
+  active link.
+
+<descrip>
+
+<tag><tt>set eap accept <em>option ...</em> </tt></tag><p>
+<tag><tt>set eap deny <em>option ...</em> </tt></tag><p>
+<tag><tt>set eap enable <em>option ...</em> </tt></tag><p>
+<tag><tt>set eap disable <em>option ...</em> </tt></tag><p>
+<tag><tt>set eap yes <em>option ...</em> </tt></tag><p>
+<tag><tt>set eap no <em>option ...</em> </tt></tag><p>
+
+These commands configure various EAP options. Most options 
+are <em>bi-directional</em> in that they can be independently
+enabled and disabled in each direction. 
+
+<tag><tt>md5</tt></tag>
+
+EAP-Type MD5. It's the same as CHAP-MD5, except that is framed inside EAP packets.
+
+<tag><tt>radius-proxy</tt></tag>
+
+Causes Mpd to proxy all EAP requests to the RADIUS server.
+
+</descrip>
+</p>
+
+

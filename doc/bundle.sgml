@@ -58,28 +58,6 @@ not bring down a link unless it has stayed connected for at least
 help prevent oscillations, but cause slower response time.
 
 <tag><tt>
-set bundle authname <em>login</em>
-</tt></tag>
-
-This command sets the authentication login name associated with
-the bundle (in multi-link PPP, though each link is authenticated
-individually, they all must use the same login name). The
-<tt><em>login</em></tt> must have a corresponding entry in
-<tt>mpd.secrets</tt>. The <tt><em>login</em></tt> and password
-are used when the peer requires us to authenticate ourselves.
-
-<tag><tt>
-set bundle password <em>password</em>
-</tt></tag>
-
-This command is normally not necessary. It causes mpd to <em>not</em>
-lookup the password corresponding to
-<tt><em>login</em></tt> in <tt>mpd.secrets</tt>, but rather to use
-<tt><em>password</em></tt> instead. If you're too lazy to set up
-<tt>mpd.secrets</tt> and are only dialing out, you can use this
-command instead.
-
-<tag><tt>
 set bundle retry <em>seconds</em>
 </tt></tag>
 
@@ -193,54 +171,6 @@ This tells mpd to not attempt to reconnect a bundle whose last
 link has closed. This is needed for dialin-only bundles, where
 mpd doesn't know how to initiate an outgoing connection.
 
-<tag><tt>radius-auth</tt></tag>
-
-Enable authentication via RADIUS.
-All authentication methods are supported (PAP, CHAP, MS-CHAPv1,
-MS-CHAPv2). When using IAS as RADIUS server you can not use CHAP,
-because CHAP needs a plaintext password on the server, and
-Windows servers only store the NT-HASH. Password changing is
-currently not supported.
-
-<tag><tt>radius-fallback</tt></tag>
-
-This option is only relevant when <tt>radius-auth</tt> is enabled.
-If disabled, authentication is only attempted via RADIUS.
-Otherwise, if authentication via RADIUS fails, mpd will attempt
-to authenticate using the traditional method using <tt>mpd.secrets</tt>.
-
-<tag><tt>radius-acct</tt></tag>
-
-Enable accounting via RADIUS. Accounting is implemented at bundle-level
-(in BundJoin() and BundLeave()). Accounting is done per link.
-There are some minor problems:
-
-<itemize>
-<item>If user enters <tt>quit</tt> on the console, Account-stop will not be sent.</item>
-<item>If CCP fails but is required, Account-start and Account-stop are sent, but they shouldn't be.</item>
-</itemize>
-
-Note: Its possible to use RADIUS-accounting without RADIUS-authentication.
-
-The following attributes are set when doing accounting requests:
-
-<tt>RAD_FRAMED_IP_ADDRESS
-<newline>RAD_ACCT_STATUS_TYPE
-<newline>RAD_ACCT_SESSION_ID
-<newline>RAD_ACCT_MULTI_SESSION_ID
-<newline>RAD_USER_NAME
-<newline>RAD_ACCT_LINK_COUNT
-<newline>RAD_ACCT_AUTHENTIC
-<newline>RAD_ACCT_TERMINATE_CAUSE
-<newline>RAD_ACCT_INPUT_OCTETS
-<newline>RAD_ACCT_INPUT_PACKETS
-<newline>RAD_ACCT_OUTPUT_OCTETS
-<newline>RAD_ACCT_OUTPUT_PACKETS
-<newline>RAD_ACCT_INPUT_GIGAWORDS
-<newline>RAD_ACCT_OUTPUT_GIGAWORDS
-<newline>RAD_ACCT_SESSION_TIME
-</tt>
-
 <tag><tt>tcp-wrapper</tt></tag>
 
 With this option mpd uses <tt>/etc/hosts.allow</tt> everytime a
@@ -250,11 +180,6 @@ connections, including PPTP and the TCP device layer.
 
 The console is also affected, but a bug requires this option to be
 set consistently on all bundles for it to work reliably.
-
-<tag><tt>max-logins <em>num</em></tt></tag>
-
-Limit the max. amount of concurrent logins with the same username.
-If set to zero, then this feature is disabled.
 
 </descrip>
 

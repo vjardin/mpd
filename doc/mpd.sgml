@@ -26,6 +26,9 @@
 <!ENTITY links SYSTEM "links.sgml">
 <!ENTITY compression SYSTEM "compression.sgml">
 <!ENTITY encryption SYSTEM "encryption.sgml">
+<!ENTITY authentication SYSTEM "auth.sgml">
+<!ENTITY radius SYSTEM "radius.sgml">
+<!ENTITY eap SYSTEM "eap.sgml">
 
 <!ENTITY modem SYSTEM "modem.sgml">
 <!ENTITY netgraph SYSTEM "netgraph.sgml">
@@ -39,6 +42,7 @@
 <!ENTITY trouble SYSTEM "trouble.sgml">
 <!ENTITY todo SYSTEM "todo.sgml">
 <!ENTITY internalsauth SYSTEM "int-auth.sgml">
+<!ENTITY developer SYSTEM "developer.sgml">
 
 <!ENTITY refs SYSTEM "refs.sgml">
 
@@ -103,6 +107,9 @@ You must be running FreeBSD version 3.4 or higher.
 	&links;
 	&compression;
 	&encryption;
+	&authentication;
+	&eap;
+	&radius;
 
     <chapt><heading>Device Types</heading>
 
@@ -123,6 +130,7 @@ You must be running FreeBSD version 3.4 or higher.
 
 	&todo;
 	&internalsauth;
+	&developer;
 
     <chapt><heading>References</heading>
 

@@ -1,0 +1,96 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Auth commands<label id="auth"></heading>
+
+<p>
+
+  This chapter describes commands that configure the Authentication 
+  subsystem. All of these commands apply to the currently
+  active bundle.
+
+<descrip>
+
+<tag><tt>
+set auth authname <em>login</em>
+</tt></tag>
+
+This command sets the authentication login name associated with
+the bundle (in multi-link PPP, though each link is authenticated
+individually, they all must use the same login name). The
+<tt><em>login</em></tt> must have a corresponding entry in
+<tt>mpd.secrets</tt>. The <tt><em>login</em></tt> and password
+are used when the peer requires us to authenticate ourselves.
+
+<tag><tt>
+set auth password <em>password</em>
+</tt></tag>
+
+This command is normally not necessary. It causes mpd to <em>not</em>
+lookup the password corresponding to
+<tt><em>login</em></tt> in <tt>mpd.secrets</tt>, but rather to use
+<tt><em>password</em></tt> instead. If you're too lazy to set up
+<tt>mpd.secrets</tt> and are only dialing out, you can use this
+command instead.
+
+<tag><tt>max-logins <em>num</em></tt></tag>
+
+Limit the max. amount of concurrent logins with the same username.
+If set to zero, then this feature is disabled.
+
+<tag><tt>acct-update <em>seconds</em></tt></tag>
+
+Enables periodic accounting updates, if set to a value greater then 
+zero.
+
+<tag><tt>timeout <em>seconds</em></tt></tag>
+
+Sets the timeout for the whole authenication process. It defaults to 40 seconds. 
+Under some circumstances, the value should be changed, it usually 
+depends on the used authentication backend and protocol, p.ex. when using EAP with 
+slow RADIUS server this value should be increased.
+
+<tag><tt>
+<newline>set auth enable <em>option ...</em>
+<newline>set auth disable <em>option ...</em>
+</tt></tag>
+
+</descrip>
+
+<p>
+
+The options available are:
+
+<descrip>
+
+<tag><tt>internal</tt></tag>
+
+Enables authentication against the <tt>mpd.secrets</tt> file.
+
+Default <tt><bf>enable</bf></tt>.
+
+<tag><tt>radius-auth</tt></tag>
+
+Enable authentication via RADIUS.
+
+Default <tt><bf>disable</bf></tt>.
+
+<tag><tt>radius-acct</tt></tag>
+
+Enable accounting via RADIUS, accounting is done per link.
+
+Default <tt><bf>disable</bf></tt>.
+
+<tag><tt>mppc-pol</tt></tag>
+
+If enabled, Mpd uses the MPPE-Types and MPPE-Policy info from the authentication 
+backend.
+
+Default <tt><bf>enable</bf></tt>.
+
+</descrip>
+</p>
+
+

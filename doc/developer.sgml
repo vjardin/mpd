@@ -1,0 +1,72 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Hints for developers<label id="developer"></heading>
+
+  <p>
+  This chapter describes describes some hints for developers.
+
+<descrip>
+
+<tag>Source-Code-Style</tag>
+<p>
+There is not so much to say about that, just take a look at the existing 
+source files. <newline>
+The Tab-Width is eight with an indent of two. Please make a space between 
+operators and operands.
+</p>
+
+<tag>NgFuncGetStats</tag>
+<p>
+NEVER call NgFuncGetStats() with the <em>clear</em> parameter set to true, because 
+there are other functions (echo requests/replies, bandwidth management) 
+wich relies on increasing link-stats. Mpd carries a copy of the netgraph 
+link-stats at link-level, just use these instead. You can call 
+LinkUpdateStats() for updating the internal stats-struct.
+</p>
+
+<tag>New Authentication-Backends</tag>
+<p>
+Authentication backends must run independently from the rest of Mpd, i.e. 
+you must not access the global <tt>bund</tt>, <tt>link</tt> or any other 
+global ressource of Mpd, because 
+the authentication process is started in its own thread (you have to 
+take care about thread-safety). An <tt>AuthData</tt> object is passed 
+to your authenticating-function wich carries a copy of the link and other 
+parameters. If your backend provides other parameters, like MTU, IP, etc. 
+then put these at the appropriate place into <tt>AuthData</tt> or 
+<tt>Auth</tt>. To be sure to not accidentally accessing the global 
+<tt>lnk</tt>, use something like this:
+<code>
+static int
+WhateverAuthenticate(AuthData auth)
+{
+  Link		const lnk = auth->lnk;	/* hide the global "lnk" */
+  Auth		const a = &amp;lnk->lcp.auth;
+[...]
+</code>
+If you can't avoid reading from Mpd's internal data, then use acquire the 
+Giant Mutex:
+<code>
+[...]
+  pthread_mutex_lock(&amp;gGiantMutex);
+  [do whatever]
+  pthread_mutex_unlock(&amp;gGiantMutex);
+[...]
+</code>
+<bf>IMPORTANT</bf>: Never use the global <tt>bund</tt>, because it may be changed in the 
+meantime, use the pointer provided by the link:
+<code>
+  Bund		const bund = auth->lnk->bund;	/* hide the global "bund" */
+</code>
+<bf>NOTE</bf>: The copy of the link is not a deep-copy, so accessing bundle values via 
+<tt>auth-&gt;lnk-&gt;bund</tt> is NOT thread-safe.
+</p>
+
+</descrip>
+
+
+</p>
+

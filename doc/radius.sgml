@@ -1,0 +1,135 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>RADIUS commands<label id="radius"></heading>
+
+<p>
+
+  This chapter describes commands that configure the RADIUS 
+  authentication backend. All of these commands apply to the currently
+  active bundle.
+
+<descrip>
+
+<tag><tt>
+set radius server <em>name</em> <em>secret</em> [ <em>auth-port</em> [ <em>acct-port</em> ]]
+</tt></tag>
+
+Configure RADIUS server parameters. Multiple RADIUS servers may be configured 
+by repeating this command, up to 10 servers may be specified.
+
+<tag><tt>
+set radius timeout <em>seconds</em>
+</tt></tag>
+
+Set the timeout for completion of RADIUS requests.
+
+<tag><tt>
+set radius retries <em>#retries</em>
+</tt></tag>
+
+Set the number of retries for RADIUS requests.
+
+<tag><tt>
+set radius me <em>IP</em>
+</tt></tag>
+
+Send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server
+
+<tag><tt>
+set radius enable message-authentic
+</tt></tag>
+
+Adds the Message-Authenticator attribute to the RADIUS request. 
+The Message-Authenticator is an HMAC-MD5 checksum of the entire 
+Access-Request packet using the shared secret as the key. This 
+should protect the RADIUS server against online dictionary attacks.
+This is mandatory when using the EAP-RADIUS-Proxy and it's implicitely 
+added to the request by Mpd.
+
+</p>
+
+<tag>RADIUS internals</tag>
+<p>
+
+All authentication methods are supported (PAP, CHAP, MS-CHAPv1,
+MS-CHAPv2). Password changing is currently not supported.
+
+There are some minor problems:
+
+<itemize>
+<item>If user enters <tt>quit</tt> on the console, Account-stop will not be sent.</item>
+<item>If CCP fails but is required, Account-start and Account-stop are sent, but they shouldn't be.</item>
+</itemize>
+
+Mpd automatically uses attributes like MTU, Idle-Timeout, IP-Address, etc. if they are 
+transmitted by the RADIUS server.
+
+Note: Its possible to use RADIUS-accounting without RADIUS-authentication.
+
+The following attributes are set when doing accounting requests:
+
+<tt>RAD_FRAMED_IP_ADDRESS
+<newline>RAD_ACCT_STATUS_TYPE
+<newline>RAD_ACCT_SESSION_ID
+<newline>RAD_ACCT_MULTI_SESSION_ID
+<newline>RAD_USER_NAME
+<newline>RAD_ACCT_LINK_COUNT
+<newline>RAD_ACCT_AUTHENTIC
+<newline>RAD_ACCT_TERMINATE_CAUSE
+<newline>RAD_ACCT_INPUT_OCTETS
+<newline>RAD_ACCT_INPUT_PACKETS
+<newline>RAD_ACCT_OUTPUT_OCTETS
+<newline>RAD_ACCT_OUTPUT_PACKETS
+<newline>RAD_ACCT_INPUT_GIGAWORDS
+<newline>RAD_ACCT_OUTPUT_GIGAWORDS
+<newline>RAD_ACCT_SESSION_TIME
+</tt>
+
+<tag>RADIUS ACL's</tag>
+<p>
+
+Mpd can use the Access Control Lists (ACLs) taken from the RADIUS server.
+This ACLs may include ipfw rules, dummynet pipes and dummynet queues.
+To use this feature you should add to your RADIUS server such dictionary:
+<verb>#----------------------------------------------------------
+# dictionary.mpd                                                                                   
+                                                                                                   
+VENDOR          mpd             12341                                                              
+                                                                                                   
+ATTRIBUTE       mpd-rule        1       string          mpd                                        
+ATTRIBUTE       mpd-pipe        2       string          mpd                                        
+ATTRIBUTE       mpd-queue       3       string          mpd 
+#----------------------------------------------------------
+</verb>
+After this you can write in your RADIUS configuration something like:
+<verb>
+mpd-pipe += "1=bw 10Kbyte/s",
+mpd-pipe += "5=bw 20Kbyte/s",
+mpd-rule += "1=pipe %p1 all from any to any in",
+mpd-rule += "2=pipe %p5 all from any to any out",
+mpd-rule += "100=allow all from any to any",
+</verb>
+
+When mpd receives these parameters it will <verb>ipfw(8)</verb> to create
+firewall rules, pipes and queues with unique numbers starting from 10000.
+To the end of each rule will be added "via ngX" to make the rule apply
+only to that client's networking interface.
+
+As a result of this example we would get these commands executed:
+<verb>
+ipfw pipe 10000 config bw 10Kbyte/s
+ipfw pipe 10001 config bw 20Kbyte/s
+ipfw add 10000 pipe 10000 all from any to any in via ng0
+ipfw add 10001 pipe 10001 all from any to any out via ng0
+ipfw add 10002 allow all from any to any via ng0
+</verb>
+
+When the link goes down, all created rules will be removed.
+
+</descrip>
+</p>
+
+

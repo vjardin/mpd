@@ -74,6 +74,8 @@ protocol associated with the currently active bundle.
 <tag>lcp</tag>
 Show status information about the link control
 protocol associated with the currently active link.
+<tag>auth</tag>
+Show status information about Authentication.
 <tag>eap</tag>
 Show status information about EAP.
 <tag>radius</tag>
@@ -121,34 +123,12 @@ Sets the login name required for telnet connections to be
 if <tt><em>name</em></tt> is omitted.
 The password for <tt><em>name</em></tt> is found by looking up
 <tt><em>name</em></tt> in <tt>mpd.secrets</tt>.
+<tag><tt>set auth ...</tt></tag>
+Configures the authentication subsystem.
 <tag><tt>set radius ...</tt></tag>
-Configures RADIUS authentication:
-<descrip>
-<tag><tt>set radius server <em>name</em> <em>secret</em> [ <em>auth-port</em> [ <em>acct-port</em> ]]</tt></tag>
-Configure RADIUS server parameters.
-Multiple RADIUS servers may be configured by repeating this command.
-<tag><tt>set radius timeout <em>seconds</em></tt></tag>
-Set the timeout for completion of RADIUS requests.
-<tag><tt>set radius retries <em>#retries</em></tt></tag>
-Set the number of retries for RADIUS requests.
-<tag><tt>set radius config <em>pathname</em></tt></tag>
-Set the pathname to the <tt>radius.conf(5)</tt>, if different
-from the default <tt>/etc/radius.conf</tt>.
-<tag><tt>set radius me <em>IP</em></tt></tag>
-Send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server.
-<tag><tt>set radius acct-update <em>seconds</em></tt></tag>
-Set the accounting update interval.
-<tag><tt>set radius enable message-authentic</tt></tag>
-Adds the Message-Authenticator attribute to the RADIUS request.
-</descrip>
+Configures RADIUS.
 <tag><tt>set eap ...</tt></tag>
-Configures the EAP:
-<descrip>
-<tag><tt>set eap enable radius-proxy</tt></tag>
-Causes Mpd to proxy all EAP requests to the RADIUS server.
-<tag><tt>set eap enable md5</tt></tag>
-Enables the EAP-Type MD5.
-</descrip>
+Configures the EAP.
 <tag><tt>set debug ...<em>level</em></tt></tag>
 Sets the <tt>netgraph(3)</tt> debugging level. Default is zero.
 <tag><tt>set modem ...</tt></tag>

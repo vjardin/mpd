@@ -33,7 +33,6 @@
 
   <tag><tt>COMPRESSION_PRED1</tt></tag><p>
   <tag><tt>COMPRESSION_STAC</tt></tag><p>
-  <tag><tt>COMPRESSION_MPPC</tt></tag><p>
   <tag><tt>COMPRESSION_DEFLATE</tt></tag><p>
 
   These enable support for the corresponding compression types.
@@ -42,16 +41,8 @@
   these are not very well tested.
 
   <tag><tt>ENCRYPTION_DES</tt></tag><p>
-  <tag><tt>ENCRYPTION_MPPE</tt></tag><p>
 
   These enable support for the corresponding encryption types.
-
-  <tag><tt>
-  MICROSOFT_CHAP
-  </tt></tag>
-
-  Enables support for Microsoft style CHAP (versions 1 and 2).
-  Note that this option is implied by the <tt>ENCRYPTION_MPPE</tt> option.
 
   <tag><tt>
   SYSLOG_FACILITY

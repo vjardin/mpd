@@ -9,27 +9,110 @@
     Changes since version 3:
     <itemize>
     <item>
+	Design changes:
+	Mpd uses now a thread-based event system using libpdel, these libpdel parts are now
+	integrated:
+	<itemize>
+	<item>typed_mem(3)</item>
+	<item>pevent(3)</item>
+	<item>alog(3)</item>
+	</itemize>
+	Mpd uses a "Giant Mutex" for protecting its resources.
+    </item>
+    <item>
+	Rewrites of the authentication subsystem:
+	<itemize>
+	<item>
+	Make authentication and accounting requests asynchronously using paction(3).
+        </item>
+	<item>
+        Authentication backends are acting now independently from the rest of Mpd, using
+	some internal structs as interface.
+        </item>
+	<item>
+        The <tt>mpd.secrets</tt> file is now used as one authentication backends of many, it 
+	has no special role anymore, i.e. it could be disabled.
+        </item>
+	<item>
+        Generate a session-id at bundle and link level for using with accounting requests.
+	</item>
+	</itemize>
+    </item>
+    <item>
+	Removed configuration parameters:
+	<itemize>
+	<item>
+        bundle: <tt>radius-fallback</tt>
+        </item>
+	<item>
+        iface: <tt>radius-session</tt>, <tt>radius-idle</tt>, <tt>radius-mtu</tt>, 
+	<tt>radius-route</tt>, <tt>radius-acl</tt>
+        </item>
+	<item>
+        ipcp: <tt>radius-ip</tt>
+        </item>
+	</itemize>
+
+	Moved configuration parameters:
+	<itemize>
+        <item>
+        bundle to auth: <tt>radius-auth</tt>, <tt>radius-acct</tt>, <tt>authname</tt>, 
+	<tt>password</tt>, <tt>max-logins</tt>
+        </item>
+        <item>
+        radius to auth: <tt>acct-update</tt>
+        </item>
+        <item>
+        ccp to auth: <tt>radius</tt> and renamed to <tt>mppc-pol</tt>
+        </item>
+	</itemize>
+
+	New configuration parameters:
+	<itemize>
+        <item>
+	link: <tt>keep-ms-domain</tt>, this prevents Mpd from stripping the MS-Domain, 
+	this is can be useful when using IAS as RADIUS server.
+        </item>
+	<item>
+	radius: <tt>message-authentic</tt>, this adds the Message-Authenticator
+	attribute to the RADIUS request.
+	</item>
+	<item>
+	auth: <tt>internal</tt>, controles the usage of the <tt>mpd.secrets</tt> file 
+	(internal authentication backend).
+        </item>
+	<item>
+	auth: <tt>timeout</tt>, configureable timeout for the authentication phase.
+        </item>
+	<item>
+	eap: <tt>radius-proxy</tt>, this causes Mpd to proxy all EAP requests to
+	the RADIUS server, Mpd only makes the initial Identity-Request
+	(this saves one round-trip), every other requests are forwarded to the RADIUS server.
+	This adds the possibility supporting every EAP-Type of the RADIUS server, without
+	implementing each EAP-Type into Mpd.
+	</item>
+	<item>
+	eap: <tt>md5</tt>, EAP-Type MD5, it's the same as CHAP-MD5, but inside EAP frames.
+	</item>
+	</itemize>
+    </item>
+    <item>
 	Removed defines <tt>ENCRYPTION_MPPE</tt> and <tt>COMPRESSION_MPPC</tt>, they are now builtin.
     </item>
     <item>
-	Added new option <tt>keep-ms-domain</tt> at link level, this prevents Mpd from
-	stripping the MS-Domain, this is can be useful when using IAS as RADIUS server.
+	Get rid of <tt>IA_CUSTOM</tt> define.
     </item>
     <item>
 	RADIUS related changes:
 	<itemize>
 	<item>
-	IMPORTANT: Mpd needs now an enhanced libradius, here are the patchsets:
+	<bf>IMPORTANT</bf>: Mpd needs now an enhanced libradius, here are the patchsets:
 	<tt><htmlurl url='http://www.bretterklieber.com/freebsd/libradius.diff' name='4-STABLE'></tt>
 	<tt><htmlurl url='http://www.bretterklieber.com/freebsd/libradius5.diff' name='5-CURRENT'></tt>
 	</item>
 	<item>
 	Internals: Cleanup <tt>struct radius</tt>, moved <tt>struct radius</tt> from
 	the bundle to the link.
-	</item>
-	<item>
-	Added new option <tt>message-authentic</tt>, this adds the Message-Authenticator
-	attribute to the RADIUS request.
 	</item>
 	<item>
 	Remember and send the RAD_STATE attribute.
@@ -43,25 +126,6 @@
 	Implemented the Extensible Authentication Protocol RFC 2284 (EAP). Currently only
 	EAP-MD5 is supported (client and server side).
 	EAP negotiaton can be enabled at link level.
-    </item>
-    <item>
-	Implemented an EAP-RADIUS-Proxy, wich can be activated with
-	<tt>set eap enable radius-proxy</tt>. This causes Mpd to proxy all EAP requests to
-	the RADIUS server, Mpd only makes the initial Identity-Request
-	(this saves one round-trip), every other requests are forwarded to the RADIUS server.
-	This adds the possibility supporting every EAP-Type of the RADIUS server, without
-	implementing each EAP-Type into Mpd.
-    </item>
-    <item>
-	Design changes:
-	Mpd uses now a thread-based event system using libpdel, these libpdel parts are now
-	integrated:
-	<itemize>
-	<item>typed_mem(3)</item>
-	<item>pevent(3)</item>
-	<item>alog(3)</item>
-	</itemize>
-	Mpd uses a "Giant Mutex" for protecting its resources.
     </item>
     </itemize>
   </p>
