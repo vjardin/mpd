@@ -109,8 +109,7 @@ DesEncrypt(Mbuf plain)
   mbcopy(plain, MBDATA(cypher) + DES_OVERHEAD, plen);
   for (k = 0; k < clen; k += 8)
   {
-    des_cblock	*const block = (des_cblock *)
-			(MBDATA(cypher) + DES_OVERHEAD + k);
+    u_char	*const block = MBDATA(cypher) + DES_OVERHEAD + k;
 
     des_cbc_encrypt(block, block, 8, des->ks, &des->xmit_ivec, TRUE);
     memcpy(des->xmit_ivec, block, 8);
@@ -170,7 +169,7 @@ DesDecrypt(Mbuf cypher)
   plain = mbunify(cypher);
   for (k = 0; k < clen; k += 8)
   {
-    des_cblock	*const block = (des_cblock *) (MBDATA(plain) + k);
+    u_char	*const block = MBDATA(plain) + k;
     des_cblock	next_ivec;
 
     memcpy(next_ivec, block, 8);
@@ -193,7 +192,7 @@ DesBuildConfigReq(u_char *cp)
   EcpState	const ecp = &bund->ecp;
   DesInfo	const des = &ecp->des;
 
-  des_random_key(des->recv_ivec);
+  des_random_key(&des->recv_ivec);
   return(FsmConfValue(cp, ECP_TY_DES, 8, &des->recv_ivec));
 }
 
