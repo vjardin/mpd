@@ -28,6 +28,7 @@
 #include <netgraph/ng_ppp.h>
 #include <netgraph/ng_vjc.h>
 #include <netgraph/ng_bpf.h>
+#include <netgraph/ng_tee.h>
 
 /*
  * DEFINITIONS
@@ -249,15 +250,39 @@ NgFuncInit(Bund b, const char *reqIface)
     goto fail;
   }
 
-  /* Connect the other side of the bpf node to the iface node */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-  snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
+  /* Add a tee node between bpf and interface if configured */
+  if(gEnableTee) {
+    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_IFACE);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_RIGHT);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+      Log(LG_ERR, ("[%s] can't create %s node: %s",
+	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
+      goto fail;
+    }
+
+    snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
+	BPF_HOOK_IFACE);
+    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_LEFT);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
+
+  } else {
+
+    /* Connect the other side of the bpf node to the iface node */
+    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
+
+  }
+
   if (NgSendMsg(b->csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, BPF_HOOK_IFACE, NG_IFACE_HOOK_INET, strerror(errno)));
+      b->name, cn.ourhook, NG_IFACE_HOOK_INET, strerror(errno)));
     goto fail;
   }
 
@@ -473,7 +498,11 @@ NgFuncConfigBPF(Bund b, int mode)
   char				path[NG_PATHLEN + 1];
 
   /* Get absolute path to bpf node */
-  snprintf(path, sizeof(path), "%s:%s", b->iface.ifname, NG_IFACE_HOOK_INET);
+  if (gEnableTee)
+    snprintf(path, sizeof(path), "%s:%s.%s", b->iface.ifname, NG_IFACE_HOOK_INET,
+	NG_TEE_HOOK_RIGHT);
+  else
+    snprintf(path, sizeof(path), "%s:%s", b->iface.ifname, NG_IFACE_HOOK_INET);
 
   /* First, configure the hook on the interface node side of the BPF node */
   memset(&u, 0, sizeof(u));

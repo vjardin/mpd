@@ -60,6 +60,8 @@
 				"Show version information"	},
     { 0, 'h',	"help",		"",
 				"Show usage information"	},
+    { 0, 't',	"tee",		"",
+				"Insert ng_tee into netgraph"	},
   };
 
   #define OPTLIST_SIZE		(sizeof(OptList) / sizeof(*OptList))
@@ -77,6 +79,7 @@
   Bund			*gBundles;
   int			gNumLinks;
   int			gNumBundles;
+  int			gEnableTee = FALSE;
 
   pthread_mutex_t	gGiantMutex;
 
@@ -313,7 +316,6 @@ DoExit(int code)
   Log(LG_ALWAYS, ("mpd: process %d terminated", getpid()));
   LogClose();
   (void) unlink(gPidFile);
-
   exit(code == EX_TERMINATE ? EX_NORMAL : code);
 }
 
@@ -554,6 +556,9 @@ OptApply(Option opt, int ac, char *av[])
       exit(EX_NORMAL);
     case 'h':
       Usage(EX_NORMAL);
+    case 't':
+      gEnableTee = TRUE;
+      return(0);
     default:
       assert(0);
   }

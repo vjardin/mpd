@@ -95,6 +95,7 @@
 
   extern int		gNumLinks;		/* Total number of links */
   extern int		gNumBundles;		/* Total number of bundles */
+  extern int		gEnableTee;		/* Insert ng_tee into netgraph */
 
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
 
