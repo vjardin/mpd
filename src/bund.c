@@ -827,7 +827,8 @@ BundShowLinks(Bund sb)
     if (!sb->links[j]->phys->type)
       printf("[no type] ");
     else
-      printf("[%s] ", PhysState(sb->links[j]->phys));
+      printf("[%s/%s] ", PhysState(sb->links[j]->phys),
+	  FsmStateName(sb->links[j]->lcp.fsm.state));
   }
   printf("\n");
 }
