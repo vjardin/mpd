@@ -51,6 +51,7 @@
     char		ifname[IFNAMSIZ+1];	/* Name of my interface */
     u_char		traffic[IFACE_IDLE_SPLIT];	/* Mark any traffic */
     u_short		mtu;			/* Interface MTU */
+    u_short		max_mtu;		/* Configured maximum MTU */
     struct optinfo	options;		/* Configuration options */
     short		idle_timeout;		/* Idle timeout */
     short		n_routes;

@@ -47,6 +47,20 @@ of 32).
 Routes are automatically removed when the interface is brought down.
 
 <tag><tt>
+set iface mtu <em>value</em>
+</tt></tag>
+
+This command sets an upper bound on the MTU that will be configured
+on the interface when the bundle comes up.
+This value is not used at all during link negotiation; there are
+separate bundle and link commands for configuring that.
+Even if a higher bundle MTU is negotiated, this limit will still apply.
+
+This command is useful when you want to manually restrict the MTU
+of the interface for other reasons, e.g., if you're also doing IPSec.
+The default value is 1500.
+
+<tag><tt>
 set iface idle <em>seconds</em>
 </tt></tag>
 

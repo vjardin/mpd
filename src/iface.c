@@ -29,6 +29,8 @@
  */
 
   #define MAX_INTERFACES	32
+  #define IFACE_MIN_MTU		296
+  #define IFACE_MAX_MTU		65536
 
 /* Set menu options */
 
@@ -36,6 +38,7 @@
     SET_IDLE,
     SET_ADDRS,
     SET_ROUTE,
+    SET_MTU,
     SET_UP_SCRIPT,
     SET_DOWN_SCRIPT,
     SET_ENABLE,
@@ -73,6 +76,8 @@
 	IfaceSetCommand, NULL, (void *) SET_ADDRS },
     { "route dest[/width]",		"Add IP route",
 	IfaceSetCommand, NULL, (void *) SET_ROUTE },
+    { "mtu size",			"Set max allowed interface MTU",
+	IfaceSetCommand, NULL, (void *) SET_MTU },
     { "up-script [progname]",		"Interface up script",
 	IfaceSetCommand, NULL, (void *) SET_UP_SCRIPT },
     { "down-script [progname]",		"Interface down script",
@@ -107,6 +112,7 @@ IfaceInit(void)
 
   /* Default configuration */
   iface->mtu = NG_IFACE_MTU_DEFAULT;
+  iface->max_mtu = NG_IFACE_MTU_DEFAULT;
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
   Log(LG_BUND|LG_IFACE, ("[%s] using interface %s",
@@ -774,6 +780,18 @@ IfaceSetCommand(int ac, char *av[], void *arg)
       }
       break;
 
+    case SET_MTU:
+      {
+	int	max_mtu;
+
+	max_mtu = atoi(av[0]);
+	if (max_mtu < IFACE_MIN_MTU || max_mtu > IFACE_MAX_MTU) {
+	  Log(LG_ERR, ("invalid interface mtu %d", max_mtu));
+	  break;
+	}
+	iface->max_mtu = max_mtu;
+      }
+
     case SET_UP_SCRIPT:
       switch (ac) {
 	case 0:
@@ -830,6 +848,8 @@ IfaceStat(int ac, char *av[], void *arg)
   printf("\tStatus       : %s\n", iface->open ? "OPEN" : "CLOSED");
   printf("\tIP Addresses : %s -> ", inet_ntoa(iface->self_addr));
   printf("%s\n", inet_ntoa(iface->peer_addr));
+  printf("\tMaximum MTU  : %d bytes\n", iface->max_mtu);
+  printf("\tCurrent MTU  : %d bytes\n", iface->mtu);
   printf("\tIdle timeout : %d seconds\n", iface->idle_timeout);
   printf("\tEvent scripts: UP: \"%s\"  DOWN: \"%s\"\n",
     *iface->up_script ? iface->up_script : "<none>",
@@ -865,6 +885,10 @@ IfaceSetMTU(int mtu, int speed)
     Perror("socket");
     DoExit(EX_ERRDEAD);
   }
+
+  /* Limit MTU to configured maximum */
+  if (mtu > iface->max_mtu)
+    mtu = iface->max_mtu;
 
   /* Set MTU on interface */
   memset(&ifr, 0, sizeof(ifr));

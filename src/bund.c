@@ -31,7 +31,6 @@
   #define BUND_REOPEN_DELAY	3	/* wait this long before closing */
   #define BUND_REOPEN_PAUSE	3	/* wait this long before re-opening */
 
-  #define BUND_MAX_MTU		1500
   #define BUND_MIN_TOT_BW	9600
 
   /* Set menu options */
@@ -568,8 +567,6 @@ BundUpdateParams(void)
   }
 
   /* Update interface MTU */
-  if (mtu > BUND_MAX_MTU)
-    mtu = BUND_MAX_MTU;
   IfaceSetMTU(mtu, bm->total_bw);
 }
 
