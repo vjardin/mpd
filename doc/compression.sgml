@@ -68,6 +68,11 @@ Enables MPPC compression.
 
 Enables 40-bit MPPE encryption.
 
+<tag><tt>mpp-e56</tt></tag>
+
+Enables 56-bit MPPE encryption.
+Note: 56 bit MPPE encryption is only supported in FreeBSD 4.5 or later.
+
 <tag><tt>mpp-e128</tt></tag>
 
 Enables 128-bit MPPE encryption.
