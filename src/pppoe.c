@@ -846,7 +846,7 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf, const c
 	}
 
 	/* Register an event listening to the control socket */
-	EventRegister(&(PIf->ctrlEvent), EVENT_READ, PIf->dsock,
+	EventRegister(&(PIf->ctrlEvent), EVENT_RECURRING|EVENT_READ, PIf->dsock,
 	    0, PppoeListenEvent, PIf);
 	    
 	return(1);
