@@ -611,7 +611,7 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
 	goto fail;
       }
-      challenge = bund->peer_msChal;
+      challenge = bund->ccp.mppc.peer_msChal;
       break;
     case LINK_ORIGINATE_REMOTE:
       if (lnk->lcp.want_auth != PROTO_CHAP
@@ -621,7 +621,7 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
 	goto fail;
       }
-      challenge = bund->self_msChal;
+      challenge = bund->ccp.mppc.self_msChal;
       break;
     case LINK_ORIGINATE_UNKNOWN:
     default:
@@ -630,7 +630,7 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
   }
 
   /* Return info */
-  *secretp = bund->msPassword;
+  *secretp = bund->ccp.mppc.msPassword;
   *challengep = challenge;
   return(0);
 
@@ -696,7 +696,7 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
 	goto fail;
       }
-      response = bund->self_ntResp;
+      response = bund->ccp.mppc.self_ntResp;
       break;
     case LINK_ORIGINATE_REMOTE:
       if (lnk->lcp.want_auth != PROTO_CHAP
@@ -706,7 +706,7 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
 	goto fail;
       }
-      response = bund->peer_ntResp;
+      response = bund->ccp.mppc.peer_ntResp;
       break;
     case LINK_ORIGINATE_UNKNOWN:
     default:
@@ -715,7 +715,7 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
   }
 
   /* Return info */
-  *secretp = bund->msPassword;
+  *secretp = bund->ccp.mppc.msPassword;
   *responsep = response;
   return(0);
 

@@ -119,7 +119,8 @@
     char		netname[8];		/* Custom network name */
 #endif
   };
-
+  
+  
   /* Total state of a bundle */
   struct bundle {
     char		name[20];		/* Name of this bundle */
@@ -135,11 +136,6 @@
     char		peer_authname[AUTH_MAX_AUTHNAME]; /* Peer's authname */
     struct in_range	peer_allow;		/* Peer's allowed IP (if any) */
     struct discrim	peer_discrim;		/* Peer's discriminator */
-    u_char		self_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
-    u_char		peer_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
-    u_char		self_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
-    u_char		peer_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
-    char		msPassword[AUTH_MAX_PASSWORD];	    /* For MSOFT MPPE */
     u_char		numRecordUp;		/* # links recorded up */
 
     /* RADIUS configuration */
@@ -170,7 +166,7 @@
     u_char		open:1;		/* In the open state */
     u_char		multilink:1;	/* Doing multi-link on this bundle */
   };
-
+  
 /*
  * VARIABLES
  */
