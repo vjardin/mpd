@@ -37,9 +37,10 @@ PHYSTYPE_PPPOE=		yes
 #COMPRESSION_DEFLATE=	yes
 #COMPRESSION_MPPC=	yes
 
-# Define whether to support Microsoft MPPE encryption.
+# Define supported encryption types
 
 ENCRYPTION_MPPE=	yes
+ENCRYPTION_DES=		yes
 
 # Define whether to support Microsoft CHAP. This requires libdes.
 # This is included automatically if you are using MPPE encryption.
