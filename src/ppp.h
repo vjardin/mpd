@@ -40,6 +40,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <pdel/structs/structs.h>
+#include <pdel/structs/type/array.h>
+#include <pdel/util/typed_mem.h>
+
 #include "defs.h"
 #include "event.h"
 #include "msgdef.h"

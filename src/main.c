@@ -144,6 +144,8 @@ main(int ac, char *av[])
     (void) chdir(gConfDirectory);
   }
 
+  typed_mem_enable();
+
   /* Open log file */
   if (LogOpen())
     exit(EX_ERRDEAD);
