@@ -402,6 +402,7 @@ ChapInput(Mbuf bp)
 	case CHAP_ALG_MSOFT:
 	  if (!memcmp(bund->peer_msChal, gMsoftZeros, CHAP_MSOFT_CHAL_LEN))
 	    memcpy(bund->peer_msChal, chap_value, CHAP_MSOFT_CHAL_LEN);
+	  strlcpy(bund->msPassword, auth.password, sizeof(bund->msPassword));
 	  break;
 	case CHAP_ALG_MSOFTv2:
 	  if (!memcmp(bund->peer_msChal, gMsoftZeros, CHAP_MSOFTv2_CHAL_LEN))
@@ -411,6 +412,7 @@ ChapInput(Mbuf bp)
 	      hash_value + offsetof(struct mschapv2value, ntHash),
 	      CHAP_MSOFTv2_RESP_LEN);
 	  }
+	  strlcpy(bund->msPassword, auth.password, sizeof(bund->msPassword));
 	  break;
 	}
 
