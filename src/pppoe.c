@@ -252,12 +252,12 @@ PppoeOpen(PhysInfo p)
 	    }
 	    for (i=0; i<6; i++)
 		pe->peeraddr[i]=0x00;
-	};
 
-	/* Set a timer to limit connection time */
-	TimerInit(&pe->connectTimer, "PPPoE-connect",
-	    PPPOE_CONNECT_TIMEOUT * SECONDS, PppoeConnectTimeout, pe);
-	TimerStart(&pe->connectTimer);
+	    /* Set a timer to limit connection time */
+	    TimerInit(&pe->connectTimer, "PPPoE-connect",
+		PPPOE_CONNECT_TIMEOUT * SECONDS, PppoeConnectTimeout, pe);
+	    TimerStart(&pe->connectTimer);
+	};
 
 	/* Register an event listening to the control socket */
 	EventRegister(&pe->ctrlEvent, EVENT_READ, pe->csock,
@@ -623,6 +623,7 @@ PppoeListenEvent(int type, void *arg)
 	        PppoeInfo	const p = (PppoeInfo)ph->info;
 		if ((strcmp(PIf->ifnodepath,p->path) == 0)
 		     && (strcmp(PIf->session,p->session) == 0)
+		     && (ph->state == PHYS_DOWN)
 		     && (p->state == PPPOE_DOWN)
 		     && (now-ph->lastClose >= PPPOE_REOPEN_PAUSE)) {
 		     
@@ -706,6 +707,13 @@ PppoeListenEvent(int type, void *arg)
 							    p->peeraddr[i]=macaddr[i];
     						    };
 						    Log(LG_PHYS, ("[%s] PPPoE response sent", lnk->name));
+
+						    /* Set a timer to limit connection time */
+						    TimerInit(&p->connectTimer, "PPPoE-connect",
+							PPPOE_CONNECT_TIMEOUT * SECONDS, PppoeConnectTimeout, p);
+						    TimerStart(&p->connectTimer);
+						    
+						    RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
 						    IfaceOpenNcps();
 						    break;
 						};
