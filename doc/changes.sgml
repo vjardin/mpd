@@ -6,6 +6,29 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.9:
+    <itemize>
+    <item>Fixed more bugs when computing the interface MTU
+    </item>
+    <item>Added the <tt>set iface mtu</tt> command.
+    </item>
+    <item>Added troubleshooting chapter to the documentation.
+    </item>
+    <item>Peer authname is appended as an extra parameter to the
+    interface up and down scripts.
+    </item>
+    <item>Fixed broken links to IETR RFC's in the references chapter
+    of the documentation.
+    </item>
+    <item>Fixed bugs that only showed up on non-i386 hardware
+    (mostly alignment bugs).
+    </item>
+    <item>Added new GCC -W flags and fixed lots of GCC warnings.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.8:
     <itemize>
     <item>Added the <tt>set link mtu</tt> command.
