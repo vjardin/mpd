@@ -17,9 +17,25 @@
 
 /*
  * This stuff is described in:
- *	ftp://ietf.org/internet-drafts/draft-ietf-pppext-mschap-00.txt
- *	ftp://ietf.org/internet-drafts/draft-ietf-pppext-mppe-00.txt
+ *
+ * MS-CHAPv1
+ *   http://www.es.net/pub/rfcs/rfc2433.txt
+ *
+ * MS-CHAPv2
+ *   http://www.es.net/pub/rfcs/rfc2759.txt
+ *
+ * Deriving MPPE keys from MS-CHAPv1 and MS-CHAPv2
+ *   http://www.es.net/pub/rfcs/rfc3079.txt
  */
+
+/* Magic constants */
+#define MS_MAGIC_1	"This is the MPPE Master Key"
+#define MS_MAGIC_2	"On the client side, this is the send key;" \
+			" on the server side, it is the receive key."
+#define MS_MAGIC_3	"On the client side, this is the receive key;" \
+			" on the server side, it is the send key."
+#define MS_AR_MAGIC_1	"Magic server to client signing constant"
+#define MS_AR_MAGIC_2	"Pad to make it do more than one iteration"
 
 /*
  * INTERNAL FUNCTIONS
@@ -224,6 +240,43 @@ ChallengeHash(const u_char *peerchal, const u_char *authchal,
   memcpy(hash, digest, 8);
 }
 
+/*
+ * Generate response to MS-CHAPv2 piggy-backed challenge.
+ *
+ * "authresp" must point to a 20 byte buffer.
+ */
+void
+GenerateAuthenticatorResponse(const char *password,
+  const u_char *ntresp, const u_char *peerchal,
+  const u_char *authchal, const char *username, u_char *authresp)
+{
+  u_char hash[16];
+  u_char digest[SHA_DIGEST_LENGTH];
+  u_char chal[8];
+  MD4_CTX md4ctx;
+  SHA1_CTX shactx;
+
+  NTPasswordHash(password, hash);
+
+  MD4Init(&md4ctx);
+  MD4Update(&md4ctx, hash, 16);
+  MD4Final(hash, &md4ctx);
+
+  SHA1Init(&shactx);
+  SHA1Update(&shactx, hash, 16);
+  SHA1Update(&shactx, ntresp, 24);
+  SHA1Update(&shactx, MS_AR_MAGIC_1, 39);
+  SHA1Final(digest, &shactx);
+
+  ChallengeHash(peerchal, authchal, username, chal);
+
+  SHA1Init(&shactx);
+  SHA1Update(&shactx, digest, sizeof(digest));
+  SHA1Update(&shactx, chal, 8);
+  SHA1Update(&shactx, MS_AR_MAGIC_2, 41);
+  SHA1Final(authresp, &shactx);
+}
+
 #ifdef ENCRYPTION_MPPE
 
 /*
@@ -235,12 +288,11 @@ MsoftGetMasterKey(u_char *resp, u_char *h)
 {
   SHA1_CTX	c;
   u_char	hash[20];
-  static char Magic1[] = "This is the MPPE Master Key";
 
   SHA1Init(&c);
   SHA1Update(&c, h, 16);
   SHA1Update(&c, resp, 24);
-  SHA1Update(&c, Magic1, sizeof(Magic1) - 1);
+  SHA1Update(&c, MS_MAGIC_1, 27);
   SHA1Final(hash, &c);
   memcpy(h, hash, 16);
 }
@@ -253,31 +305,16 @@ void
 MsoftGetAsymetricStartKey(u_char *h, int xmit)
 {
   SHA1_CTX		c;
+  u_char		pad[40];
   u_char		hash[20];
-  static const char	Magic2[] =
-    "On the client side, this is the send key;"
-    " on the server side, it is the receive key.";
-  static const char	Magic3[] =
-    "On the client side, this is the receive key;"
-    " on the server side, it is the send key.";
-
-  /* pads used in key derivation - from sha1dgst.c */
-  static const u_char SHApad1[40] =
-    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  static const u_char SHApad2[40] =
-    {0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2,
-     0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2,
-     0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2,
-     0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2};
 
   SHA1Init(&c);
   SHA1Update(&c, h, 16);
-  SHA1Update(&c, SHApad1, 40);
-  SHA1Update(&c, xmit ? Magic2 : Magic3, 84);
-  SHA1Update(&c, SHApad2, 40);
+  memset(pad, 0x00, sizeof(pad));
+  SHA1Update(&c, pad, sizeof(pad));
+  SHA1Update(&c, xmit ? MS_MAGIC_2 : MS_MAGIC_3, 84);
+  memset(pad, 0xf2, sizeof(pad));
+  SHA1Update(&c, pad, sizeof(pad));
   SHA1Final(hash, &c);
   memcpy(h, hash, 16);
 }

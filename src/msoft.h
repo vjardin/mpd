@@ -31,7 +31,7 @@
   extern void	GenerateAuthenticatorResponse(const char *password,
 		  const u_char *nthash, const u_char *peerchal,
 		  const u_char *authchal, const char *username,
-		  char *hash);
+		  u_char *authresp);
   extern int	CheckAuthenticatorResponse(const char *password,
 		  const u_char *nthash, const u_char *peerchal,
 		  const u_char *authchal, const char *username,
