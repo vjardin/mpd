@@ -118,9 +118,7 @@
 #ifdef COMPRESSION_DEFLATE
     &gCompDeflateInfo,
 #endif
-#ifdef COMPRESSION_MPPC
     &gCompMppcInfo,
-#endif
   };
   #define CCP_NUM_PROTOS	(sizeof(gCompTypes) / sizeof(*gCompTypes))
 
@@ -247,7 +245,6 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
   Fsm		const fp = &ccp->fsm;
 
   switch (msg->header.typecookie) {
-#ifdef COMPRESSION_MPPC
     case NGM_MPPC_COOKIE:
       switch (msg->header.cmd) {
 	case NGM_MPPC_RESETREQ: {
@@ -265,7 +262,6 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
 	  break;
       }
       break;
-#endif
     default:
       break;
   }
@@ -613,7 +609,7 @@ CcpCheckEncryption(void)
   ccp->crypt_check = 1;
 
   /* Is encryption required? */
-  if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+  if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
     if (rad->mppe.policy != MPPE_POLICY_REQUIRED) 
       return(0);
   } else {
@@ -621,7 +617,6 @@ CcpCheckEncryption(void)
       return(0);
   }
 
-#ifdef COMPRESSION_MPPC
   /* Was MPPE encryption enabled? If not, ignore requirement */
   if (!Enabled(&ccp->options, gMppe40)
       && !Enabled(&ccp->options, gMppe56)
@@ -646,9 +641,6 @@ fail:
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
   FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
   return(-1);
-#else
-  return (0);
-#endif
 }
 
 /*
