@@ -20,6 +20,22 @@
 	Mpd uses a "Giant Mutex" for protecting its resources.
     </item>
     <item>
+        Major new features:
+	<itemize>
+	<item>
+	Implemented the Extensible Authentication Protocol RFC 2284 (EAP). Currently only
+	EAP-MD5 is supported (client and server side).
+	EAP negotiaton can be enabled at link level.
+        </item>
+	<item>
+	Implemented OPIE (One-time Passwords In Everything).
+	</item>
+	<item>
+	Implemented authentication against systems password database <tt>master.passwd</tt>.
+	</item>
+	</itemize>
+    </item>
+    <item>
 	Rewrites of the authentication subsystem:
 	<itemize>
 	<item>
@@ -36,6 +52,19 @@
 	<item>
         Generate a session-id at bundle and link level for using with accounting requests.
 	</item>
+	</itemize>
+    </item>
+    <item>
+	RADIUS related changes:
+	<itemize>
+	<item>
+	<bf>IMPORTANT</bf>: Mpd needs now an enhanced libradius, here are the patchsets:
+	<tt><htmlurl url='http://www.bretterklieber.com/freebsd/libradius.diff' name='4-STABLE'></tt>
+	<tt><htmlurl url='http://www.bretterklieber.com/freebsd/libradius5.diff' name='5-CURRENT'></tt>
+	</item>
+	<item>Remember and send the RAD_STATE attribute.</item>
+	<item>Message-Authenticator support.</item>
+	<item>EAP Proxy Support.</item>
 	</itemize>
     </item>
     <item>
@@ -82,6 +111,13 @@
 	(internal authentication backend).
         </item>
 	<item>
+	auth: <tt>opie</tt>, enables/disables the OPIE authentication backend.
+        </item>
+	<item>
+	auth: <tt>system</tt>, enables/disables authentication against systems password 
+	database.
+        </item>
+	<item>
 	auth: <tt>timeout</tt>, configureable timeout for the authentication phase.
         </item>
 	<item>
@@ -101,31 +137,6 @@
     </item>
     <item>
 	Get rid of <tt>IA_CUSTOM</tt> define.
-    </item>
-    <item>
-	RADIUS related changes:
-	<itemize>
-	<item>
-	<bf>IMPORTANT</bf>: Mpd needs now an enhanced libradius, here are the patchsets:
-	<tt><htmlurl url='http://www.bretterklieber.com/freebsd/libradius.diff' name='4-STABLE'></tt>
-	<tt><htmlurl url='http://www.bretterklieber.com/freebsd/libradius5.diff' name='5-CURRENT'></tt>
-	</item>
-	<item>
-	Internals: Cleanup <tt>struct radius</tt>, moved <tt>struct radius</tt> from
-	the bundle to the link.
-	</item>
-	<item>
-	Remember and send the RAD_STATE attribute.
-	</item>
-	<item>
-	EAP Proxy Support.
-	</item>
-	</itemize>
-    </item>
-    <item>
-	Implemented the Extensible Authentication Protocol RFC 2284 (EAP). Currently only
-	EAP-MD5 is supported (client and server side).
-	EAP negotiaton can be enabled at link level.
     </item>
     </itemize>
   </p>
