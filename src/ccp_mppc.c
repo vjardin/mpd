@@ -12,7 +12,6 @@
 #include "msoft.h"
 #include "ngfunc.h"
 #include "bund.h"
-#include "radius.h"
 #include <md4.h>
 
 #include <netgraph/ng_message.h>
@@ -88,6 +87,7 @@ static int
 MppcInit(int dir)
 {
   MppcInfo		const mppc = &bund->ccp.mppc;
+  Auth			const a = &lnk->lcp.auth;
   struct ng_mppc_config	conf;
   struct ngm_mkpeer	mp;
   char			path[NG_PATHLEN + 1];
@@ -110,8 +110,8 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_COMPRESS;
       mppchook = NG_MPPC_HOOK_COMP;
       conf.bits = mppc->xmit_bits;
-      /* If RADIUS was used, then the MPPE-Keys are already set */
-      if (!lnk->radius.authenticated || mschap == CHAP_ALG_MSOFT) {
+      /* Check, whether the MPPE-Keys are already set */
+      if (!a->mppc.has_keys || mschap == CHAP_ALG_MSOFT) {
 	if (mschap == CHAP_ALG_MSOFTv2) {
 	  MppeInitKeyv2(mppc, dir);
 	} else {
@@ -125,8 +125,8 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_DECOMPRESS;
       mppchook = NG_MPPC_HOOK_DECOMP;
       conf.bits = mppc->recv_bits;
-      /* If RADIUS was used, then the MPPE-Keys are already set */
-      if (!lnk->radius.authenticated || mschap == CHAP_ALG_MSOFT) {
+      /* Check, whether the MPPE-Keys are already set */
+      if (!a->mppc.has_keys || mschap == CHAP_ALG_MSOFT) {
 	if (mschap == CHAP_ALG_MSOFTv2) {
 	  MppeInitKeyv2(mppc, dir);
 	} else {
@@ -455,14 +455,14 @@ static short
 MppcEnabledMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
-  struct radius	*rad = &lnk->radius;
-  short		ret, radius = FALSE;
+  Auth		const a = &lnk->lcp.auth;
+  short		ret, policy_auth = FALSE;
  
   switch (type) {
   case 40:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
-      radius = TRUE;
-      ret = (rad->mppe.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
+    if (Enabled(&ccp->options, gCcpAuth)) {
+      policy_auth = TRUE;
+      ret = (a->mppc.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
       ret = Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
     }
@@ -470,9 +470,9 @@ MppcEnabledMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
-      radius = TRUE;    
-      ret = (rad->mppe.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
+    if (Enabled(&ccp->options, gCcpAuth)) {
+      policy_auth = TRUE;    
+      ret = (a->mppc.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
       ret = Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
     }
@@ -482,15 +482,15 @@ MppcEnabledMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
-      radius = TRUE;    
-      ret = (rad->mppe.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
+    if (Enabled(&ccp->options, gCcpAuth)) {
+      policy_auth = TRUE;    
+      ret = (a->mppc.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
     }
   }
   Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are enabled -> %s%s", 
-    lnk->name, type, ret ? "yes" : "no", radius ? " (RADIUS)" : "" ));
+    lnk->name, type, ret ? "yes" : "no", policy_auth ? " (AUTH)" : "" ));
   return ret;
 }
 
@@ -498,14 +498,14 @@ static short
 MppcAcceptableMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
-  struct radius	*rad = &lnk->radius;
-  short		ret, radius = FALSE;
+  Auth		const a = &lnk->lcp.auth;
+  short		ret, policy_auth = FALSE;
   
   switch (type) {
   case 40:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
-      radius = TRUE;
-      ret = rad->mppe.types & MPPE_TYPE_40BIT;
+    if (Enabled(&ccp->options, gCcpAuth)) {
+      policy_auth = TRUE;
+      ret = a->mppc.types & MPPE_TYPE_40BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe40);
     }
@@ -513,9 +513,9 @@ MppcAcceptableMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
-      radius = TRUE;
-      ret = rad->mppe.types & MPPE_TYPE_56BIT;
+    if (Enabled(&ccp->options, gCcpAuth)) {
+      policy_auth = TRUE;
+      ret = a->mppc.types & MPPE_TYPE_56BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe56);
     }
@@ -525,16 +525,16 @@ MppcAcceptableMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
-      radius = TRUE;    
-      ret = rad->mppe.types & MPPE_TYPE_128BIT;
+    if (Enabled(&ccp->options, gCcpAuth)) {
+      policy_auth = TRUE;    
+      ret = a->mppc.types & MPPE_TYPE_128BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe128);
     }
   }
 
   Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are acceptable -> %s%s",
-    lnk->name, type, ret ? "yes" : "no", radius ? " (RADIUS)" : "" ));
+    lnk->name, type, ret ? "yes" : "no", policy_auth ? " (AUTH)" : "" ));
   return ret;
 
 }
@@ -564,8 +564,8 @@ MppeInitKey(MppcInfo mppc, int dir)
   if (bits & MPPE_128) {
     MD4_CTX	c;
 
-    if (lnk->radius.authenticated)
-      memcpy(hash, lnk->radius.mppe.nt_hash, sizeof(hash));
+    if (lnk->lcp.auth.mppc.has_nt_hash)
+      memcpy(hash, lnk->lcp.auth.mppc.nt_hash, sizeof(hash));
     else {
       NTPasswordHash(pass, hash);
       KEYDEBUG((hash, sizeof(hash), "NTPasswordHash"));
@@ -578,8 +578,8 @@ MppeInitKey(MppcInfo mppc, int dir)
     MsoftGetStartKey(chal, hash);
     KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    if (lnk->radius.authenticated)
-      memcpy(hash, lnk->radius.mppe.lm_key, 8);
+    if (lnk->lcp.auth.mppc.has_lm_key)
+      memcpy(hash, lnk->lcp.auth.mppc.lm_key, 8);
     else
       LMPasswordHash(pass, hash);
     KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
@@ -598,8 +598,8 @@ MppeInitKey(MppcInfo mppc, int dir)
 static int
 MppeGetKeyInfo(char **secretp, u_char **challengep)
 {
-  CcpState		const ccp = &bund->ccp;
-  u_char		*challenge;
+  CcpState	const ccp = &bund->ccp;
+  u_char	*challenge;
 
   /* The secret comes from the originating caller's credentials */
   switch (lnk->originate) {

@@ -61,6 +61,12 @@
   #define AUTH_MAX_AUTHNAME	64
   #define AUTH_MAX_PASSWORD	64
   #define AUTH_MAX_EXTCMD	128
+  /* Max. len of the uniq session id, shouldn't exceed the max. 
+   * RADIUS attribute len, wich is 253
+   */
+  #define AUTH_MAX_SESSIONID	253
+
+  #define LINK_MAX_NAME		20
 
   #define DEFAULT_CONSOLE_PORT	5005
 

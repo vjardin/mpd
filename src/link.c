@@ -161,7 +161,6 @@ LinkMsg(int type, void *arg)
   switch (type) {
     case MSG_OPEN:
       lnk->num_redial = 0;
-      lnk->radius.authenticated = 0;
       LcpOpen();
       break;
     case MSG_CLOSE:
@@ -290,14 +289,12 @@ LinkCopy(void)
   Link	nlnk;
   
   nlnk = Malloc(MB_BUND, sizeof(*nlnk));
-  if (nlnk == NULL)
-    return NULL;
   memcpy(nlnk, lnk, sizeof(*lnk));
   return nlnk;
 }
 
 /*
- * LinkShow()
+ * LinkCommand()
  */
 
 int
@@ -308,8 +305,8 @@ LinkCommand(int ac, char *av[], void *arg)
   if (ac != 1)
     return(-1);
 
-  k=gNumLinks;
-  if ((sscanf(av[0],"[%x]",&k)!=1)||(k<0)||(k>=gNumLinks)) {
+  k = gNumLinks;
+  if ((sscanf(av[0], "[%x]", &k) != 1) || (k < 0) || (k >= gNumLinks)) {
      /* Find link */
     for (k = 0;
 	k < gNumLinks && (!gLinks[k] || strcmp(gLinks[k]->name, av[0]));

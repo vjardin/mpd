@@ -28,8 +28,6 @@
  */
 
   /* Bounds */
-  #define LINK_MAX_NAME		20
-
   /* Default bundle-layer FSM retry timeout */
   #define LINK_DEFAULT_RETRY	2
 
@@ -112,6 +110,7 @@
   /* Total state of a link */
   struct linkst {
     char		name[LINK_MAX_NAME];	/* Human readable name */
+    char		session_id[AUTH_MAX_SESSIONID];	/* a uniq session-id */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
     MsgHandler		msgs;			/* Link events */
@@ -140,9 +139,6 @@
     struct in_range	peer_allow;	/* Range from /etc/ppp/secrets */
     struct discrim	peer_discrim;
     char		peer_authname[AUTH_MAX_AUTHNAME];
-    
-    /* some Infos needed for RADIUS */
-    struct radius	radius;
   };
 
   

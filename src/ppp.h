@@ -50,13 +50,13 @@
 #include "defs.h"
 #include "event.h"
 #include "msgdef.h"
+#include "vars.h"
 #include "bund.h"
 #include "link.h"
 #include "proto.h"
 #include "util.h"
 #include "log.h"
 #include "mbuf.h"
-#include "vars.h"
 #include "phys.h"
 
 /*

@@ -13,7 +13,6 @@
 
 #include "ppp.h"
 #include "auth.h"
-#include "radius.h"
 
 /*
  * INTERNAL FUNCTIONS
@@ -77,9 +76,9 @@ PapSendRequest(PapInfo pap)
 
   /* Get password corresponding to my authname */
   memset(&auth, 0, sizeof(auth));
-  strlcpy(auth.authname, bund->conf.authname, sizeof(auth.authname));
+  strlcpy(auth.authname, bund->conf.auth.authname, sizeof(auth.authname));
   Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", lnk->name, auth.authname));
-  if (AuthGetData(&auth, 1, NULL) < 0)
+  if (AuthGetData(&auth, 1) < 0)
     Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth.authname));
 
   /* Build response packet */
@@ -105,34 +104,28 @@ PapSendRequest(PapInfo pap)
  */
 
 void
-PapInput(u_char code, u_char id, const u_char *pkt, u_short len)
+PapInput(AuthData auth, const u_char *pkt, u_short len)
 {
   Auth			const a = &lnk->lcp.auth;
-  struct authdata	auth;
   PapInfo		const pap = &a->pap;
-
-  /* Initialize 'auth' info */
-  memset(&auth, 0, sizeof(auth));
 
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] PAP: rec'd %s #%d",
-    lnk->name, PapCode(code), id));
-  switch (code) {
+    lnk->name, PapCode(auth->code), auth->id));
+  switch (auth->code) {
     case PAP_REQUEST:
       {
 	char		*name_ptr, name[256];
 	char		*pass_ptr, pass[256];
-	const char	*failMesg;
 	int		name_len, pass_len;
-	int		whyFail;
-	int		radRes = RAD_NACK;
 
 	/* Is this appropriate? */
 	if (a->peer_to_self != PROTO_PAP) {
 	  Log(LG_AUTH, ("[%s] PAP: %s not expected",
-	    lnk->name, PapCode(code)));
-	  whyFail = AUTH_FAIL_NOT_EXPECTED;
-	  goto badRequest;
+	    lnk->name, PapCode(auth->code)));
+	  auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+	  PapInputFinish(auth);
+	  break;
 	}
 
 	name_len = pkt[0];
@@ -145,59 +138,22 @@ PapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	  || name_len + 1 + pass_len + 1 > len)
 	{
 	  Log(LG_AUTH, (" Bad packet"));
-	  whyFail = AUTH_FAIL_INVALID_PACKET;
-	  goto badRequest;
+	  auth->why_fail = AUTH_FAIL_INVALID_PACKET;
+	  PapInputFinish(auth);
+	  break;
 	}
 	memcpy(name, name_ptr, name_len);
 	name[name_len] = 0;
 	memcpy(pass, pass_ptr, pass_len);
 	pass[pass_len] = 0;
 
-	strlcpy(auth.authname, name, sizeof(auth.authname));
+	strlcpy(pap->peer_name, name, sizeof(pap->peer_name));
+	strlcpy(pap->peer_pass, pass, sizeof(pap->peer_pass));
+	strlcpy(auth->authname, name, sizeof(auth->authname));
 
-	/* perform pre authentication checks (single-login, etc.) */
-	if (AuthPreChecks(&auth, 1, &whyFail) < 0) {
-	  Log(LG_AUTH, (" AuthPreCheck failed for \"%s\"", auth.authname));
-	  goto badRequest;
-	}
+	auth->finish = PapInputFinish;
+	AuthAsyncStart(auth);
 
-	/* Try RADIUS auth if configured */
-	if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) {
-	  radRes = RadiusPAPAuthenticate(name, pass);
-	  if (radRes == RAD_ACK) {
-	    RadiusSetAuth(&auth);
-	    goto goodRequest;
-	  }
-	  if (!Enabled(&bund->conf.options, BUND_CONF_RADIUSFALLBACK)) {
-	    whyFail = AUTH_FAIL_INVALID_LOGIN;
-	    goto badRequest;
-	  }
-	}
-
-	/* Get auth data for this system */
-	Log(LG_AUTH, (" Peer name: \"%s\"", auth.authname));
-	if (AuthGetData(&auth, 1, &whyFail) < 0) {
-	  Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth.authname));
-	  goto badRequest;
-	}
-
-	/* Do name & password match? */
-	if (strcmp(auth.authname, name) || strcmp(auth.password, pass)) {
-	  Log(LG_AUTH, (" Invalid response"));
-	  whyFail = AUTH_FAIL_INVALID_LOGIN;
-badRequest:
-	  failMesg = AuthFailMsg(PROTO_PAP, 0, whyFail);
-	  AuthOutput(PROTO_PAP, PAP_NAK, id, failMesg, strlen(failMesg), 1, 0);
-	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, &auth);
-	  break;
-	}
-
-goodRequest:
-	/* Login accepted */
-	Log(LG_AUTH, (" Response is valid"));
-	AuthOutput(PROTO_PAP, PAP_ACK, id, AUTH_MSG_WELCOME,
-	  strlen(AUTH_MSG_WELCOME), 1, 0);
-	AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
       }
       break;
 
@@ -210,7 +166,7 @@ goodRequest:
 	/* Is this appropriate? */
 	if (a->self_to_peer != PROTO_PAP) {
 	  Log(LG_AUTH, ("[%s] PAP: %s not expected",
-	    lnk->name, PapCode(code)));
+	    lnk->name, PapCode(auth->code)));
 	  break;
 	}
 
@@ -225,7 +181,7 @@ goodRequest:
 	ShowMesg(LG_AUTH, msg, msg_len);
 
 	/* Done with my auth to peer */
-	AuthFinish(AUTH_SELF_TO_PEER, code == PAP_ACK, NULL);	
+	AuthFinish(AUTH_SELF_TO_PEER, auth->code == PAP_ACK, NULL);	
       }
       break;
 
@@ -233,6 +189,52 @@ goodRequest:
       Log(LG_AUTH, ("[%s] PAP: unknown code", lnk->name));
       break;
   }
+}
+
+/*
+ * ChapInputFinish()
+ *
+ * Possible return point from the asynch auth handler.
+ * 
+ */
+ 
+void PapInputFinish(AuthData auth)
+{
+  PapInfo	pap = &lnk->lcp.auth.pap;
+  const char	*failMesg;
+  
+  Log(LG_AUTH, ("[%s] PAP: PapInputFinish: status %s", 
+    lnk->name, AuthStatusText(auth->status)));
+
+  if (auth->status == AUTH_STATUS_FAIL)
+    goto badRequest;
+  else if (auth->status == AUTH_STATUS_SUCCESS)
+    goto goodRequest;
+  
+  /* Do name & password match? */
+  if (strcmp(auth->authname, pap->peer_name) ||
+      strcmp(auth->password, pap->peer_pass)) {
+    Log(LG_AUTH, (" Invalid response"));
+    auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+    goto badRequest;
+  }
+  
+  goto goodRequest;
+
+badRequest:
+  failMesg = AuthFailMsg(auth, 0);
+  AuthOutput(PROTO_PAP, PAP_NAK, auth->id, failMesg, strlen(failMesg), 1, 0);
+  AuthFinish(AUTH_PEER_TO_SELF, FALSE, auth);
+  AuthDataDestroy(auth);  
+  return;
+  
+goodRequest:
+  /* Login accepted */
+  Log(LG_AUTH, (" Response is valid"));
+  AuthOutput(PROTO_PAP, PAP_ACK, auth->id, AUTH_MSG_WELCOME,
+    strlen(AUTH_MSG_WELCOME), 1, 0);
+  AuthFinish(AUTH_PEER_TO_SELF, TRUE, auth);  
+  AuthDataDestroy(auth);
 }
 
 /*

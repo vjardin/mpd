@@ -19,7 +19,8 @@
   static void	EapSendIdentRequest(EapInfo pap);
   static void	EapIdentTimeout(void *ptr);
   static char	EapTypeSupported(u_char type);
-  static void	EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len);
+  static void	EapRadiusProxy(AuthData auth, const u_char *pkt, u_short len);
+  static void	EapRadiusProxyFinish(AuthData auth);
   static void	EapRadiusSendMsg(void *ptr);
   static void	EapRadiusSendMsgTimeout(void *ptr);
   static int	EapSetCommand(int ac, char *av[], void *arg);
@@ -137,6 +138,7 @@ void
 EapStop(EapInfo eap)
 {
   TimerStop(&eap->identTimer);
+  TimerStop(&eap->reqTimer);
 }
 
 /*
@@ -262,7 +264,7 @@ EapSendIdentRequest(EapInfo eap)
  */
 
 void
-EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
+EapInput(AuthData auth, const u_char *pkt, u_short len)
 {
   Auth		const a = &lnk->lcp.auth;
   EapInfo	const eap = &a->eap;
@@ -270,25 +272,25 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
   int		data_len = len - 1, i, acc_type;
   u_char	*data = NULL, type = 0;
   
-  if (Enabled(&eap->conf.options, EAP_CONF_RADIUS))
-    return EapRadiusProxy(code, id, pkt, len);
-
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
     type = pkt[0];
     Log(LG_AUTH, ("[%s] EAP: rec'd %s Type %s #%d len:%d",
-      lnk->name, EapCode(code), EapType(type), id, len));
+      lnk->name, EapCode(auth->code), EapType(type), auth->id, len));
   } else {
     Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len:%d",
-      lnk->name, EapCode(code), id, len));
+      lnk->name, EapCode(auth->code), auth->id, len));
   }
+  
+  if (Enabled(&eap->conf.options, EAP_CONF_RADIUS))
+    return EapRadiusProxy(auth, pkt, len);
 
-  switch (code) {
+  switch (auth->code) {
     case EAP_REQUEST:
       switch (type) {
 	case EAP_TYPE_IDENT:
-	  AuthOutput(PROTO_EAP, EAP_RESPONSE, id, bund->conf.authname,
-	    strlen(bund->conf.authname), 0, EAP_TYPE_IDENT);
+	  AuthOutput(PROTO_EAP, EAP_RESPONSE, auth->id, auth->conf.authname,
+	    strlen(auth->conf.authname), 0, EAP_TYPE_IDENT);
 	  break;
 
 	case EAP_TYPE_NAK:
@@ -312,14 +314,15 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	    if (acc_type == 0) {
 	      Log(LG_AUTH, ("[%s] EAP: Type %s not acceptable", lnk->name,
 	        EapType(type)));
-	      EapSendNak(id, type);
+	      EapSendNak(auth->id, type);
 	      break;
 	    }
 
 	    switch (type) {
 	      case EAP_TYPE_MD5CHAL:
 		chap->xmit_alg = CHAP_ALG_MD5;
-		ChapInput(PROTO_EAP, CHAP_CHALLENGE, id, &pkt[1], len - 1);
+		auth->code = CHAP_CHALLENGE;
+		ChapInput(auth, &pkt[1], len - 1);
 		break;
 
 	      default:
@@ -327,7 +330,7 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	    }
 	  } else {
 	    Log(LG_AUTH, ("[%s] EAP: Type %s not supported", lnk->name, EapType(type)));
-	    EapSendNak(id, type);
+	    EapSendNak(auth->id, type);
 	  }
       }
       break;
@@ -356,7 +359,8 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	  break;
 
 	case EAP_TYPE_MD5CHAL:
-	  ChapInput(PROTO_EAP, CHAP_RESPONSE, id, &pkt[1], len - 1);
+	  auth->code = CHAP_RESPONSE;
+	  ChapInput(auth, &pkt[1], len - 1);
 	  break;
 
 	default:
@@ -374,7 +378,7 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
       return;
 
     default:
-      Log(LG_AUTH, ("[%s] EAP: unknown code %d", lnk->name, code));
+      Log(LG_AUTH, ("[%s] EAP: unknown code %d", lnk->name, auth->code));
       AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
   }
 
@@ -387,31 +391,25 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
  */
 
 static void
-EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len)
+EapRadiusProxy(AuthData auth, const u_char *pkt, u_short len)
 {
-  int		data_len = len - 1, res;
-  u_char	*data = NULL, *ppkt, type = 0;
+  int		data_len = len - 1;
+  u_char	*data = NULL, type = 0;
   Auth		const a = &lnk->lcp.auth;
   EapInfo	const eap = &a->eap;
   struct fsmheader	lh;
-  struct radius		*rad = &lnk->radius;
 
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
     type = pkt[0];
-    Log(LG_AUTH, ("[%s] EAP-RADIUS: rec'd %s Type %s #%d len:%d",
-      lnk->name, EapCode(code), EapType(type), id, len));
-  } else {
-    Log(LG_AUTH, ("[%s] EAP-RADIUS: rec'd %s #%d len:%d",
-      lnk->name, EapCode(code), id, len));
   }
 
-  if (code == EAP_RESPONSE && type == EAP_TYPE_IDENT) {
+  if (auth->code == EAP_RESPONSE && type == EAP_TYPE_IDENT) {
     TimerStop(&eap->identTimer);
-    if (data_len >= EAP_MAX_IDENTITY) {
+    if (data_len >= AUTH_MAX_AUTHNAME) {
       Log(LG_AUTH, ("[%s] EAP-RADIUS: Identity to big (%d), truncating",
 	lnk->name, data_len));
-        data_len = EAP_MAX_IDENTITY - 1;
+        data_len = AUTH_MAX_AUTHNAME - 1;
     }
     memset(eap->identity, 0, sizeof(eap->identity));
     strncpy(eap->identity, data, data_len);
@@ -421,31 +419,57 @@ EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len)
   TimerStop(&eap->reqTimer);
 
   /* prepare packet */
-  lh.code = code;
-  lh.id = id;
+  lh.code = auth->code;
+  lh.id = auth->id;
   lh.length = htons(len + sizeof(lh));
 
-  ppkt = Malloc(MB_AUTH, len + sizeof(lh));
-  memcpy(ppkt, &lh, sizeof(lh));
-  memcpy(&ppkt[sizeof(lh)], pkt, len);
+  auth->radius.eapmsg = Malloc(MB_AUTH, len + sizeof(lh));
+  memcpy(auth->radius.eapmsg, &lh, sizeof(lh));
+  memcpy(&auth->radius.eapmsg[sizeof(lh)], pkt, len);
 
-  res = RadiusEAPProxy(eap->identity, ppkt, len + sizeof(lh));
-  Freee(MB_AUTH, ppkt);
+  auth->radius.eapmsg_len = len + sizeof(lh);
+  strlcpy(auth->authname, eap->identity, sizeof(auth->authname));
 
-  /* send out the data packet */
-  if (rad->eapmsg != NULL) {
+  auth->finish = EapRadiusProxyFinish;
+  AuthAsyncStart(auth);
+  
+}
+
+/*
+ * RadiusEapProxyFinish()
+ *
+ * Return point from the asynch RADIUS EAP Proxy Handler.
+ * 
+ */
+ 
+static void
+EapRadiusProxyFinish(AuthData auth)
+{
+  Auth		const a = &lnk->lcp.auth;
+  EapInfo	eap = &a->eap;
+  
+  Log(LG_AUTH, ("[%s] EAP-RADIUS: RadiusEapProxyFinish: status %s", 
+    lnk->name, AuthStatusText(auth->status)));
+
+  if (a->radius.eapmsg != NULL) {
     eap->retry = AUTH_RETRIES;
-    TimerStart(&eap->reqTimer);
-    EapRadiusSendMsg(eap);
-    if (res != RAD_NACK)
-      return;
-  }
-
-  if (res == RAD_NACK) {
+    
+    EapRadiusSendMsg(eap);    
+    if (auth->status == AUTH_STATUS_UNDEF)
+      TimerStart(&eap->reqTimer);
+  } else {
+    Log(LG_AUTH, ("[%s] EAP-RADIUS: PANIC, rec'd empty EAP-Message", 
+      lnk->name));
     AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
   }
 
-  return;
+  if (auth->status == AUTH_STATUS_FAIL) {
+    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+  } else if (auth->status == AUTH_STATUS_SUCCESS) {
+    AuthFinish(AUTH_PEER_TO_SELF, TRUE, auth);
+  } 
+
+  AuthDataDestroy(auth);  
 }
 
 /*
@@ -457,24 +481,16 @@ EapRadiusProxy(u_char code, u_char id, const u_char *pkt, u_short len)
 static void
 EapRadiusSendMsg(void *ptr)
 {
-  EapInfo	const eap = (EapInfo) ptr;
   Mbuf		bp;
-  struct radius		*rad = &lnk->radius;
-  struct authdata	auth;
+  Auth		const a = &lnk->lcp.auth;
 
   Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  Type %s #%d len:%d ",
-    lnk->name, EapCode(rad->eapmsg[0]), EapType(rad->eapmsg[4]),
-    rad->eapmsg[1], htons(*((u_short *)&rad->eapmsg[2]))));
+    lnk->name, EapCode(a->radius.eapmsg[0]), EapType(a->radius.eapmsg[4]),
+    a->radius.eapmsg[1], htons(*((u_short *)&a->radius.eapmsg[2]))));
 
-  bp = mballoc(MB_AUTH, rad->eapmsg_len);
-  memcpy(MBDATA(bp), rad->eapmsg, rad->eapmsg_len);
+  bp = mballoc(MB_AUTH, a->radius.eapmsg_len);
+  memcpy(MBDATA(bp), a->radius.eapmsg, a->radius.eapmsg_len);
   NgFuncWritePppFrame(lnk->bundleIndex, PROTO_EAP, bp);
-  if (lnk->radius.authenticated) {
-    TimerStop(&eap->reqTimer);
-    strncpy(auth.authname, eap->identity, AUTH_MAX_AUTHNAME);
-    RadiusSetAuth(&auth);
-    AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
-  }
 }
 
 /*
@@ -575,6 +591,8 @@ EapType(u_char type)
       return("One Time Password");
     case EAP_TYPE_GTC:
       return("Generic Token Card");
+    case EAP_TYPE_EAP_TLS:
+      return("TLS");
     case EAP_TYPE_MSCHAP_V2:
       return("MS-CHAPv2");
     case EAP_TYPE_EAP_TTLS:

@@ -130,7 +130,6 @@
     { 0,	IPCP_CONF_REQPRINBNS,	"req-pri-nbns"	},
     { 0,	IPCP_CONF_REQSECNBNS,	"req-sec-nbns"	},
     { 0,	IPCP_CONF_PRETENDIP,	"pretend-ip"	},
-    { 0,	IPCP_CONF_RADIUSIP,	"radius-ip"	},
     { 0,	0,			NULL		},
   };
 

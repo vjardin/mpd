@@ -18,7 +18,6 @@
 
   #define EAP_NUM_TYPES		EAP_TYPE_MSCHAP_V2
   #define EAP_NUM_STDTYPES	3
-  #define EAP_MAX_IDENTITY	255
 
   /* Configuration options */
   enum {
@@ -89,14 +88,14 @@
     short		retry;			/* Resend count */
     struct pppTimer	identTimer;		/* Identity timer */
     struct pppTimer	reqTimer;		/* Request timer */
-    u_char		identity[EAP_MAX_IDENTITY];	/* Identity */
+    u_char		identity[AUTH_MAX_AUTHNAME];	/* Identity */
     u_char		peer_types[EAP_NUM_TYPES];	/* list of acceptable types */
     u_char		want_types[EAP_NUM_TYPES];	/* list of requestable types */
     struct eapconf	conf;			/* Configured options */
   };
   typedef struct eapinfo	*EapInfo;
 
-  struct auth_targs;
+  struct authdata;
 /*
  * FUNCTIONS
  */
@@ -104,7 +103,7 @@
   extern void	EapInit(void);
   extern void	EapStart(EapInfo eap, int which);
   extern void	EapStop(EapInfo eap);
-  extern void	EapInput(u_char code, u_char id, const u_char *pkt, u_short len);
+  extern void	EapInput(struct authdata *auth, const u_char *pkt, u_short len);
   extern const	char *EapCode(u_char code);
   extern const	char *EapType(u_char type);
   extern int	EapStat(int ac, char *av[], void *arg);

@@ -18,7 +18,6 @@
 #include "custom.h"
 #include "ngfunc.h"
 #include "netgraph.h"
-#include "radius.h"
 #include "util.h"
 #include <sys/sockio.h>
 #include <net/if.h>
@@ -60,11 +59,6 @@
   enum {
     IFACE_CONF_ONDEMAND,
     IFACE_CONF_PROXY,
-    IFACE_CONF_RADIUSMTU,
-    IFACE_CONF_RADIUSIDLE,
-    IFACE_CONF_RADIUSSESSION,
-    IFACE_CONF_RADIUSROUTE,
-    IFACE_CONF_RADIUSACL,
     IFACE_CONF_TCPMSSFIX,
   };
 
@@ -123,11 +117,6 @@
   static const struct confinfo	gConfList[] = {
     { 0,	IFACE_CONF_ONDEMAND,		"on-demand"	},
     { 0,	IFACE_CONF_PROXY,		"proxy-arp"	},
-    { 0,	IFACE_CONF_RADIUSMTU,		"radius-mtu"	},
-    { 0,	IFACE_CONF_RADIUSIDLE,		"radius-idle"	},
-    { 0,	IFACE_CONF_RADIUSSESSION,	"radius-session"},
-    { 0,	IFACE_CONF_RADIUSROUTE,		"radius-route"	},
-    { 0,	IFACE_CONF_RADIUSACL,		"radius-acl"	},
     { 0,	IFACE_CONF_TCPMSSFIX,           "tcpmssfix"	},
     { 0,	0,				NULL		},
   };
@@ -233,7 +222,8 @@ void
 IfaceUp(struct in_addr self, struct in_addr peer)
 {
   IfaceState	const iface = &bund->iface;
-  struct radius	*rad = &lnk->radius;
+  Auth		const a = &lnk->lcp.auth;
+  int		session_timeout = 0, idle_timeout = 0;
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
   SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
@@ -247,32 +237,37 @@ IfaceUp(struct in_addr self, struct in_addr peer)
   /* Start Session timer */
   TimerStop(&iface->sessionTimer);
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSSESSION) && rad->authenticated) {
-    iface->session_timeout = rad->session_timeout;
-    Log(LG_IFACE, ("[%s] IFACE: using RADIUS session-timeout: %d seconds", 
-      bund->name, iface->session_timeout));
+  if (a->params.session_timeout > 0) {
+    session_timeout = a->params.session_timeout;
+  } else if (iface->session_timeout > 0) {
+    session_timeout = iface->session_timeout;
   }
 
-  if (iface->session_timeout > 0) {
+  if (session_timeout > 0) {
+    Log(LG_IFACE, ("[%s] IFACE: session-timeout: %d seconds", 
+      bund->name, session_timeout));
     TimerInit(&iface->sessionTimer, "IfaceSession",
-      iface->session_timeout * SECONDS, IfaceSessionTimeout, NULL);
+      session_timeout * SECONDS, IfaceSessionTimeout, NULL);
     TimerStart(&iface->sessionTimer);
   }
 
   /* Start idle timer */
   TimerStop(&iface->idleTimer);
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSIDLE) && rad->authenticated) {
-    iface->idle_timeout = rad->idle_timeout;
-    Log(LG_IFACE, ("[%s] IFACE: using RADIUS idle-timeout: %d seconds", 
-      bund->name, iface->idle_timeout));
+  if (a->params.idle_timeout > 0) {
+    idle_timeout = a->params.idle_timeout;
+  } else if (iface->idle_timeout > 0) {
+    idle_timeout = iface->idle_timeout;
   }
-
-  if (iface->idle_timeout > 0) {
+    
+  if (idle_timeout > 0) {
     char	path[NG_PATHLEN + 1];
 
+    Log(LG_IFACE, ("[%s] IFACE: idle-timeout: %d seconds", 
+      bund->name, idle_timeout));
+    
     TimerInit(&iface->idleTimer, "IfaceIdle",
-      iface->idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, NULL);
+      idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, NULL);
     TimerStart(&iface->idleTimer);
     iface->traffic[1] = TRUE;
     iface->traffic[0] = FALSE;
@@ -541,6 +536,7 @@ static void
 IfaceIpIfaceUp(int ready)
 {
   IfaceState		const iface = &bund->iface;
+  Auth			const a = &lnk->lcp.auth;
   int			k,i;
   struct sockaddr_dl	hwa;
   char			hisaddr[20];
@@ -587,13 +583,10 @@ IfaceIpIfaceUp(int ready)
   ExecCmd(LG_IFACE, "%s add %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE)) {
-    for (i=0; (i < lnk->radius.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
-      memcpy(&(iface->routes[iface->n_routes++]), &(lnk->radius.routes[i]), sizeof(struct ifaceroute));
-    };
-    Log(LG_IFACE, ("[%s] IFACE: using %d RADIUS routes", 
-      bund->name, lnk->radius.n_routes));
-  }
+  for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
+    memcpy(&(iface->routes[iface->n_routes++]), 
+      &(a->params.routes[i]), sizeof(struct ifaceroute));
+  };
   
   /* Add routes */
   for (k = 0; k < iface->n_routes; k++) {
@@ -610,55 +603,48 @@ IfaceIpIfaceUp(int ready)
       PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf) == 0);
   }
 
-  /* Add ACLs */
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSACL)) {
-    Log(LG_IFACE, ("[%s] IFACE: using RADIUS ACLs", 
-      bund->name));
-    /* Allocate ACLs */
-    acls = lnk->radius.acl_pipe;
-    while (acls != NULL) {
-	IfaceAllocACL(&pipe_pool, pipe_pool_start, iface->ifname, acls->number);
-	acls = acls->next;
-    };
-    acls = lnk->radius.acl_queue;
-    while (acls != NULL) {
-	IfaceAllocACL(&queue_pool, queue_pool_start, iface->ifname, acls->number);
-	acls = acls->next;
-    };
-    acls = lnk->radius.acl_rule;
-    while (acls != NULL) {
-	IfaceAllocACL(&rule_pool, rule_pool_start, iface->ifname, acls->number);
-	acls = acls->next;
-    };
+  /* Allocate ACLs */
+  acls = a->radius.acl_pipe;
+  while (acls != NULL) {
+    IfaceAllocACL(&pipe_pool, pipe_pool_start, iface->ifname, acls->number);
+    acls = acls->next;
+  };
+  acls = a->radius.acl_queue;
+  while (acls != NULL) {
+    IfaceAllocACL(&queue_pool, queue_pool_start, iface->ifname, acls->number);
+    acls = acls->next;
+  };
+  acls = a->radius.acl_rule;
+  while (acls != NULL) {
+    IfaceAllocACL(&rule_pool, rule_pool_start, iface->ifname, acls->number);
+    acls = acls->next;
+  };
 
-    /* Set ACLs */
-    acls = lnk->radius.acl_pipe;
-    while (acls != NULL) {
-	i = IfaceFindACL(pipe_pool, iface->ifname, acls->number);
-	buf = IFaceParseACL(acls->rule, iface->ifname);
-	ExecCmd(LG_IFACE, "%s pipe %d config %s", PATH_IPFW, i, acls->rule);
-	Freee(MB_UTIL, buf);
-	acls = acls->next;
-    }
-
-    acls = lnk->radius.acl_queue;
-    while (acls != NULL) {
-	i = IfaceFindACL(queue_pool, iface->ifname, acls->number);
-	buf = IFaceParseACL(acls->rule,iface->ifname);
-	ExecCmd(LG_IFACE, "%s queue %d config %s", PATH_IPFW, i, buf);
-	Freee(MB_UTIL, buf);
-	acls = acls->next;
-    }
-
-    acls = lnk->radius.acl_rule;
-    while (acls != NULL) {
-	i = IfaceFindACL(rule_pool, iface->ifname, acls->number);
-	buf = IFaceParseACL(acls->rule, iface->ifname);
-	ExecCmd(LG_IFACE, "%s add %d %s via %s", PATH_IPFW, i, buf, iface->ifname);
-	Freee(MB_UTIL, buf);
-	acls = acls->next;
-    };
+  /* Set ACLs */
+  acls = a->radius.acl_pipe;
+  while (acls != NULL) {
+    i = IfaceFindACL(pipe_pool, iface->ifname, acls->number);
+    buf = IFaceParseACL(acls->rule, iface->ifname);
+    ExecCmd(LG_IFACE, "%s pipe %d config %s", PATH_IPFW, i, acls->rule);
+    Freee(MB_UTIL, buf);
+    acls = acls->next;
   }
+  acls = a->radius.acl_queue;
+  while (acls != NULL) {
+    i = IfaceFindACL(queue_pool, iface->ifname, acls->number);
+    buf = IFaceParseACL(acls->rule,iface->ifname);
+    ExecCmd(LG_IFACE, "%s queue %d config %s", PATH_IPFW, i, buf);
+    Freee(MB_UTIL, buf);
+    acls = acls->next;
+  }
+  acls = a->radius.acl_rule;
+  while (acls != NULL) {
+    i = IfaceFindACL(rule_pool, iface->ifname, acls->number);
+    buf = IFaceParseACL(acls->rule, iface->ifname);
+    ExecCmd(LG_IFACE, "%s add %d %s via %s", PATH_IPFW, i, buf, iface->ifname);
+    Freee(MB_UTIL, buf);
+    acls = acls->next;
+  };
 
   /* Call "up" script */
   if (*iface->up_script) {
@@ -712,6 +698,7 @@ static void
 IfaceIpIfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
+  Auth		const a = &lnk->lcp.auth;
   int		k;
   struct acl_pool	**rp, *rp1;
 
@@ -724,47 +711,44 @@ IfaceIpIfaceDown(void)
       iface->down_script, iface->ifname, bund->peer_authname);
   }
 
-  /* Remove ACLs */
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSACL)) {
-	/* Remove rule ACLs */
-	rp = &rule_pool;
-	while (*rp != NULL) {
-	    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-		ExecCmd(LG_IFACE, "%s delete %d",
-    		    PATH_IPFW, (*rp)->real_number);
-		rp1 = *rp;
-		*rp = (*rp)->next;
-		Freee(MB_UTIL, rp1);
-	    } else {
-		rp = &((*rp)->next);
-	    };
-	};
-	/* Remove queue ACLs */
-	rp = &queue_pool;
-	while (*rp != NULL) {
-	    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-		ExecCmd(LG_IFACE, "%s queue %d delete",
-    		    PATH_IPFW, (*rp)->real_number);
-		rp1 = *rp;
-		*rp = (*rp)->next;
-		Freee(MB_UTIL, rp1);
-	    } else {
-		rp = &((*rp)->next);
-	    };
-	};
-	/* Remove pipe ACLs */
-	rp = &pipe_pool;
-	while (*rp != NULL) {
-	    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-		ExecCmd(LG_IFACE, "%s pipe %d delete",
-    		    PATH_IPFW, (*rp)->real_number);
-		rp1 = *rp;
-		*rp = (*rp)->next;
-		Freee(MB_UTIL, rp1);
-	    } else {
-		rp = &((*rp)->next);
-	    };
-	};
+  /* Remove rule ACLs */
+  rp = &rule_pool;
+  while (*rp != NULL) {
+    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
+      ExecCmd(LG_IFACE, "%s delete %d",
+	PATH_IPFW, (*rp)->real_number);
+      rp1 = *rp;
+      *rp = (*rp)->next;
+      Freee(MB_UTIL, rp1);
+    } else {
+      rp = &((*rp)->next);
+    };
+  };
+  /* Remove queue ACLs */
+  rp = &queue_pool;
+  while (*rp != NULL) {
+    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
+      ExecCmd(LG_IFACE, "%s queue %d delete",
+	PATH_IPFW, (*rp)->real_number);
+      rp1 = *rp;
+      *rp = (*rp)->next;
+      Freee(MB_UTIL, rp1);
+    } else {
+      rp = &((*rp)->next);
+    };
+  };
+  /* Remove pipe ACLs */
+  rp = &pipe_pool;
+  while (*rp != NULL) {
+    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
+      ExecCmd(LG_IFACE, "%s pipe %d delete",
+	PATH_IPFW, (*rp)->real_number);
+      rp1 = *rp;
+      *rp = (*rp)->next;
+      Freee(MB_UTIL, rp1);
+    } else {
+      rp = &((*rp)->next);
+    };
   };
 
   /* Delete routes */
@@ -785,8 +769,9 @@ IfaceIpIfaceDown(void)
     r->ok = 0;
   }
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE)) {
-    iface->n_routes=0;
+  /* XXX mbretter why? */
+  if (a->params.n_routes > 0) {
+    iface->n_routes = 0;
   };
 
   /* Delete loopback route */
@@ -1225,9 +1210,9 @@ void
 IfaceSetMTU(int mtu, int speed)
 {
   IfaceState	const iface = &bund->iface;
+  Auth		const a = &lnk->lcp.auth;
   struct ifreq	ifr;
   int		s;
-  struct radius	*rad = &lnk->radius;
 
   /* Get socket */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -1235,9 +1220,9 @@ IfaceSetMTU(int mtu, int speed)
     DoExit(EX_ERRDEAD);
   }
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSMTU) && rad->authenticated && (rad->mtu > 0)) {
-    iface->max_mtu = rad->mtu;
-    Log(LG_IFACE, ("[%s] IFACE: using RADIUS max. mtu: %d",
+  if (a->params.mtu > 0) {
+    iface->max_mtu = a->params.mtu;
+    Log(LG_IFACE, ("[%s] IFACE: using max. mtu: %d",
       bund->name, iface->max_mtu));
   }
 

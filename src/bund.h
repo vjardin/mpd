@@ -18,9 +18,8 @@
 #include "chap.h"
 #include "ccp.h"
 #include "ecp.h"
-#include "vars.h"
 #include "msg.h"
-#include "radius.h"
+#include "auth.h"
 #include "command.h"
 #include <netgraph/ng_message.h>
 
@@ -103,8 +102,6 @@
   /* Configuration for a bundle */
   struct bundconf {
     int			mrru;			/* Initial MRU value */
-    char		authname[AUTH_MAX_AUTHNAME];
-    char		password[AUTH_MAX_PASSWORD];
     u_long		max_logins;		/* max. number of concurrent logins */
     short		retry_timeout;		/* Timeout for retries */
     u_short		bm_S;			/* Bandwidth mgmt constants */
@@ -118,12 +115,13 @@
     struct optinfo	custopt;		/* Custom options */
     char		netname[8];		/* Custom network name */
 #endif
+    struct authconf	auth;			/* Auth backends, RADIUS, etc. */
   };
-  
   
   /* Total state of a bundle */
   struct bundle {
-    char		name[20];		/* Name of this bundle */
+    char		name[LINK_MAX_NAME];	/* Name of this bundle */
+    char		session_id[AUTH_MAX_SESSIONID];	/* a uniq session-id */    
     MsgHandler		msgs;			/* Bundle events */
     char		interface[10];		/* Interface I'm using */
     short		n_links;		/* Number of links in bundle */
@@ -137,9 +135,6 @@
     struct in_range	peer_allow;		/* Peer's allowed IP (if any) */
     struct discrim	peer_discrim;		/* Peer's discriminator */
     u_char		numRecordUp;		/* # links recorded up */
-
-    /* RADIUS configuration */
-    struct radiusconf	radiusconf;
 
     /* PPP node config */
 #if NGM_PPP_COOKIE < 940897794

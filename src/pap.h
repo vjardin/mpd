@@ -29,17 +29,21 @@
     short		next_id;			/* Packet id */
     short		retry;				/* Resend count */
     struct pppTimer	timer;				/* Resend timer */
+    char		peer_pass[AUTH_MAX_PASSWORD];
+    char		peer_name[AUTH_MAX_AUTHNAME];    
   };
   typedef struct papinfo	*PapInfo;
 
-    
+  struct authdata;
+  
 /*
  * FUNCTIONS
  */
 
   extern void	PapStart(PapInfo pap, int which);
   extern void	PapStop(PapInfo pap);
-  extern void	PapInput(u_char code, u_char id, const u_char *pkt, u_short len);
+  extern void	PapInput(struct authdata *auth, const u_char *pkt, u_short len);
+  extern void	PapInputFinish(struct authdata *auth);
   extern const	char *PapCode(int code);
 
 #endif

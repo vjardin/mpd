@@ -5,9 +5,13 @@
  *
  */
 
-#include "ppp.h"
-#include "auth.h"
+#include <netgraph/ng_mppc.h>
 #include <radlib.h>
+
+#include <net/if.h>
+#include <net/if_types.h>
+
+#include "iface.h"
 
 #ifndef _RADIUS_H_
 #define _RADIUS_H_
@@ -56,10 +60,10 @@
   #define MPPE_POLICY_ALLOWED	1
   #define MPPE_POLICY_REQUIRED	2
 
-  #define MPPE_TYPE_0BIT		0	/* No encryption required */
-  #define MPPE_TYPE_40BIT		2
+  #define MPPE_TYPE_0BIT	0	/* No encryption required */
+  #define MPPE_TYPE_40BIT	2
   #define MPPE_TYPE_128BIT	4
-  #define MPPE_TYPE_56BIT		8
+  #define MPPE_TYPE_56BIT	8
 
   /* max. length of RAD_ACCT_SESSION_ID, RAD_ACCT_MULTI_SESSION_ID */
   #define RAD_ACCT_MAX_SESSIONID	256
@@ -106,57 +110,6 @@
     struct radius_acl *next;
   };
 
-  /* persistent info, not free'd before making a new request */
-  struct radius_persistent {
-    int		state_len;
-    char	*state;
-  };
-
-  struct radius {
-    /* internal vars */
-    struct rad_handle	*radh;		/* RadLib Handle */
-    struct pppTimer 	radUpdate;	/* Accounting Update Timer */
-    int			authenticated;	/* whether RADIUS authentication was used and successful */
-    int			response_type;	/* Type of response, i.e. Reject, Access, Challenge, ... */
-    short		auth_type;	/* PAP, CHAP, MS-CHAP, EAP */
-    char		authname[AUTH_MAX_AUTHNAME];
-    char		*reply_message;	/* Text wich may displayed to the user */
-    char		multi_session_id[RAD_ACCT_MAX_SESSIONID];	/* Multi-Session-Id needed for accounting */
-    char		session_id[RAD_ACCT_MAX_SESSIONID];
-    char		*eapmsg;
-    int			eapmsg_len;
-    /* RADIUS attributes */
-    unsigned		vj:1;		/* FRAMED Compression */
-    struct in_addr	ip;		/* FRAMED IP */
-    struct in_addr	mask;		/* FRAMED Netmask */
-    short		n_routes;
-    struct ifaceroute	routes[IFACE_MAX_ROUTES];
-    unsigned long	class;			/* Class */
-    unsigned long	mtu;			/* FRAMED MTU */
-    unsigned long	session_timeout;	/* Session-Timeout */
-    unsigned long	idle_timeout;		/* Idle-Timeout */
-    unsigned long	protocol;		/* FRAMED Protocol */
-    unsigned long	service_type;		/* Service Type */
-    unsigned long	interim_interval;	/* interval for accouting updates */
-    char		*filterid;		/* FRAMED Filter Id */
-    char		*msdomain;		/* Microsoft domain */
-    char		*mschap_error;		/* MSCHAP Error Message */
-    char		*mschapv2resp;		/* Response String for MSCHAPv2 */
-    struct {
-      int	policy;			/* MPPE_POLICY_* */
-      int	types;			/* MPPE_TYPE_*BIT bitmask */
-      u_char	lm_key[8];		/* MS-CHAP v1 Keys 40 or 56 Bit */
-      u_char	nt_hash[MPPE_KEY_LEN];	/* MS-CHAP v1 calculating 128 Bit Key */
-      u_char	padding[8];		/* Padding to fit in 16 byte boundary */
-    } mppe;
-    struct radius_acl 	*acl_rule;
-    struct radius_acl 	*acl_pipe;
-    struct radius_acl 	*acl_queue;
-    /* Only free'd after the link-down, not freed between
-     * multiple RADIUS requests */
-    struct radius_persistent	pers;
-  };
-
   struct rad_chapvalue {
     u_char	ident;
     u_char	response[CHAP_MAX_VAL];
@@ -176,43 +129,17 @@
     u_char	reserved[8];
     u_char	response[24];
   };
-  
-  struct rad_mschapv2value_cpw {
-    u_char	code;
-    u_char	ident;
-    u_char	encryptedHash[16];
-    u_char	pchallenge[16];
-    u_char	reserved[8];    
-    u_char	nt_response[24];
-    u_char	flags[2]; 
-  };
-  
-  struct rad_mschap_new_nt_pw {
-    u_char	ident;
-    short	chunk;
-    u_char	data[129];
-  };
+
+  struct authdata;
 
 /*
  * FUNCTIONS
  */
 
-  extern int	RadiusPAPAuthenticate(const char *name, const char *password);
-  extern int	RadiusCHAPAuthenticate(const char *name, const char *password,
-			int passlen, const char *challenge, int challenge_size,
-			u_char chapid, int chap_type);
-  extern int	RadiusStart(short request_type);
-  extern int	RadiusPutAuth(const char *name, const char *password,
-			int passlen, const char *challenge, int challenge_size,
-			u_char chapid, int auth_type);
-  extern int	RadiusSendRequest(void);
-  extern int	RadiusGetParams(int eap_proxy);
-  extern int	RadiusAccount(short acct_type);
-  extern void	RadiusSetAuth(AuthData auth);
+  extern int	RadiusAuthenticate(struct authdata *auth);
+  extern void	RadiusAccount(struct authdata *auth);
+  extern void	RadiusClose(struct authdata *auth);
+  extern void	RadiusEapProxy(void *arg);
   extern int	RadStat(int ac, char *av[], void *arg);
-  extern void	RadiusDestroy(void);
-  extern void	RadiusDown(void);
-  extern void	RadiusAcctUpdate(void *a);
-  extern int	RadiusEAPProxy(const char *identity, const char *pkt, int len);
 
 #endif

@@ -260,27 +260,20 @@ BundJoin(void)
     bund->pppConfig.bund.enableRoundRobin =
       Enabled(&bund->conf.options, BUND_CONF_ROUNDROBIN);
 #endif
+
+    /* generate a uniq session id */
+    snprintf(bund->session_id, LINK_MAX_NAME, "%ld-%s",
+      time(NULL) % 10000000, bund->name);
   }
 
   /* Update PPP node configuration */
   NgFuncSetConfig();
-  
-  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) {
-    u_long updateInterval = 0;
 
-    RadiusAccount(RAD_START);
+  /* generate a uniq session id */
+  snprintf(lnk->session_id, LINK_MAX_NAME, "%ld-%s",
+    time(NULL) % 10000000, lnk->name);
 
-    if (lnk->radius.interim_interval > 0)
-      updateInterval = lnk->radius.interim_interval;
-    else if (bund->radiusconf.acct_update > 0)
-      updateInterval = bund->radiusconf.acct_update;
-
-    if (updateInterval > 0) {
-      TimerInit(&lnk->radius.radUpdate, "RadiusAcctUpdate",
-	updateInterval * SECONDS, RadiusAcctUpdate, NULL);
-      TimerStart(&lnk->radius.radUpdate);
-    }
-  }
+  AuthAccountStart(AUTH_ACCT_START);
 
   /* starting link statistics timer */
   TimerInit(&lnk->stats.updateTimer, "LinkUpdateStats", 
@@ -308,15 +301,8 @@ BundLeave(void)
   /* stopping link statistics timer */
   TimerStop(&lnk->stats.updateTimer);
 
-  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT))
-  {
-    TimerStop(&lnk->radius.radUpdate);
-    RadiusAccount(RAD_STOP);
-  }
-
-  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH) ||
-      Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT))
-    RadiusDown();
+  AuthAccountStart(AUTH_ACCT_STOP);
+  AuthCleanup();
 
   BundReasses(0);
   
@@ -761,7 +747,7 @@ fail:
   Disable(&bund->conf.options, BUND_CONF_RADIUSAUTH);
   Disable(&bund->conf.options, BUND_CONF_RADIUSFALLBACK);
 
-  Disable(&bund->radiusconf.options, RADIUS_CONF_MESSAGE_AUTHENTIC);
+  Disable(&bund->conf.auth.radius.options, RADIUS_CONF_MESSAGE_AUTHENTIC);
 
   /* Init NCP's */
   IpcpInit();
@@ -819,7 +805,7 @@ BundStat(int ac, char *av[], void *arg)
 
   /* Show configuration */
   printf("Configuration:\n");
-  printf("\tMy auth name   : \"%s\"\n", sb->conf.authname);
+  printf("\tMy auth name   : \"%s\"\n", sb->conf.auth.authname);
   printf("\tMy MRRU        : %d bytes\n", sb->conf.mrru);
   printf("\tRetry timeout  : %d seconds\n", sb->conf.retry_timeout);
   printf("\tSample period  : %d seconds\n", sb->conf.bm_S);
@@ -1120,11 +1106,17 @@ BundSetCommand(int ac, char *av[], void *arg)
       break;
 
     case SET_AUTHNAME:
-      snprintf(bund->conf.authname, sizeof(bund->conf.authname), "%s", *av);
+      Log(LG_ERR, ("[%s] 'set bundle authname' is deprecated, use 'set auth authname' instead", 
+        bund->name));
+      snprintf(bund->conf.auth.authname, sizeof(bund->conf.auth.authname), 
+        "%s", *av);
       break;
 
     case SET_PASSWORD:
-      snprintf(bund->conf.password, sizeof(bund->conf.password), "%s", *av);
+      Log(LG_ERR, ("[%s] 'set bundle password' is deprecated, use 'set auth password' instead", 
+        bund->name));
+      snprintf(bund->conf.auth.password, sizeof(bund->conf.auth.password), 
+        "%s", *av);
       break;
 
     case SET_MAX_LOGINS:

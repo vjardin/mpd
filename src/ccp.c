@@ -11,7 +11,6 @@
 #include "ccp.h"
 #include "fsm.h"
 #include "ngfunc.h"
-#include "radius.h"
 
 /*
  * DEFINITIONS
@@ -87,7 +86,7 @@
   int		gMppcStateless;
   
   /* whether to enable radius for ccp layer */
-  int		gCcpRadius;
+  int		gCcpAuth;
 
 /*
  * INTERNAL VARIABLES
@@ -103,7 +102,7 @@
     { "mpp-e56",	&gMppe56 },
     { "mpp-e128",	&gMppe128 },
     { "mpp-stateless",	&gMppcStateless },
-    { "radius",		&gCcpRadius },    
+    { "auth",		&gCcpAuth },    
   };
   #define CCP_NUM_MPPC_OPT	(sizeof(gMppcOptions) / sizeof(*gMppcOptions))
 
@@ -601,7 +600,7 @@ static int
 CcpCheckEncryption(void)
 {
   CcpState	const ccp = &bund->ccp;
-  struct radius	*rad = &lnk->radius;
+  Auth		const a = &lnk->lcp.auth;
 
   /* Already checked? */
   if (ccp->crypt_check)
@@ -609,8 +608,8 @@ CcpCheckEncryption(void)
   ccp->crypt_check = 1;
 
   /* Is encryption required? */
-  if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
-    if (rad->mppe.policy != MPPE_POLICY_REQUIRED) 
+  if (Enabled(&ccp->options, gCcpAuth)) {
+    if (a->mppc.policy != MPPE_POLICY_REQUIRED) 
       return(0);
   } else {
     if (!Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD))
@@ -621,7 +620,7 @@ CcpCheckEncryption(void)
   if (!Enabled(&ccp->options, gMppe40)
       && !Enabled(&ccp->options, gMppe56)
       && !Enabled(&ccp->options, gMppe128)
-      && !Enabled(&ccp->options, gCcpRadius))
+      && !Enabled(&ccp->options, gCcpAuth))
     return(0);
 
   /* Make sure MPPE was negotiated in both directions */

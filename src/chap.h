@@ -53,13 +53,15 @@
     struct pppTimer	chalTimer;			/* Challenge timer */
     struct pppTimer	respTimer;			/* Reponse timer */
     char		chal_data[CHAP_MAX_VAL];	/* Challenge sent */
+    short		chal_len;			/* Challenge length */
     u_char		xmit_alg;			/* Peer auth us with */
     u_char		recv_alg;			/* We auth peer with */
     u_char		resp_id;			/* Response ID */
-    short		chal_len;			/* Challenge length */
-    short		resp_len;			/* Response length */
     u_char		*resp;				/* Response packet */
-    int			proto;				/* Protocol EAP or CHAP */
+    short		resp_len;			/* Response length */
+    u_char		value[CHAP_MAX_VAL];		/* Chap packet */
+    int			value_len;			/* Packet length */
+    int			proto;				/* CHAP, EAP */
   };
   typedef struct chapinfo	*ChapInfo;
 
@@ -85,17 +87,18 @@
     u_char	flags[2];
   };
  
+  struct authdata;
 /*
  * FUNCTIONS
  */
 
   extern void	ChapStart(ChapInfo chap, int which);
   extern void	ChapStop(ChapInfo chap);
-  extern void	ChapInput(int proto, u_char code, u_char id,
-		  const u_char *pkt, u_short len);
+  extern void	ChapInput(struct authdata *auth, const u_char *pkt, u_short len);
   extern void	ChapSendChallenge(ChapInfo chap);
   extern void	ChapChalTimeout(void *ptr);
   extern const	char *ChapCode(int code);
+  extern void	ChapInputFinish(struct authdata *auth);
 
 #endif
 
