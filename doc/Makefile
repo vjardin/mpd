@@ -17,6 +17,7 @@ SRCS+=		modem.sgml netgraph.sgml tcp.sgml udp.sgml pptp.sgml pppoe.sgml
 SRCS+=		chat.sgml
 SRCS+=		trouble.sgml
 SRCS+=		refs.sgml
+SRCS+=		int-auth.sgml
 
 CLEANFILES+=	version.sgml mpd.8 mpd.ps
 

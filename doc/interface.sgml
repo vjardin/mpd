@@ -79,6 +79,12 @@ When the idle timeout occurs, if the dial-on-demand option is
 enabled, mpd goes back into dial-on-demand mode. Otherwise, the
 interface is brought down and all associated routes removed.
 
+<tag><tt>
+set iface session <em>seconds</em>
+</tt></tag>
+
+Sets the session timeout value for the bundle.
+
 <tag><tt>set iface up-script <em>script</em> </tt></tag><p>
 <tag><tt>set iface down-script <em>script</em> </tt></tag><p>
 
@@ -142,6 +148,11 @@ It has the same as effect as <tt>set iface mtu</tt>.
 
 This option causes mpd to use the idle timeout from the RADIUS server.
 It has the same as effect as <tt>set iface idle</tt>.
+
+<tag><tt>radius-session</tt></tag>
+
+This option causes mpd to use the session timeout from the RADIUS server.
+It has the same as effect as <tt>set iface session</tt>.
 
 <tag><tt>radius-route</tt></tag>
 

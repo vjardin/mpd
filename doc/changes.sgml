@@ -8,9 +8,18 @@
   <p>
     Changes since version 3.13:
     <itemize>
-    <item>More RADIUS fixes from Michael Bretterklieber
-    <tt><htmlurl url='mailto:mbretter@jawa.at' name='&lt;mbretter@jawa.at&gt;'></tt>:
+    <item>Added session timeout, configurable at iface level.
+    </item>
+    <item>Added new configuration params: <tt>chap-md5</tt> <tt>chap-msv1</tt> <tt>chap-msv2</tt> at 
+	link level for explicitely configuring the different CHAP methods. The formerly "chap" 
+	parameter is now an alias for "chap-md5 chap-msv1 chap-msv2".
+	MS-CHAPv1 is now disabled and denied by default.
+	A better fallback mechanism through the different auth-methods was implemented.
+    </item>
+    <item>More RADIUS fixes/features:
     <itemize>
+    	<item>Use also the RAD_SESSION_TIMEOUT.</item>
+    	<item>Fixed RAD_ACCT_TERMINATE_CAUSE.</item>
     	<item>Fixed MPPE-Types negotiation.</item>
     	<item>Session time is now calculated per link.</item>
     	<item>Use RAD_FRAMED_ROUTE attribute.</item>

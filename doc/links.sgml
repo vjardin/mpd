@@ -199,9 +199,26 @@ Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
 CHAP style authentication. This style of authentication is safer
 than PAP, because only a hash of the password is passed over the
 link.  Mpd supports MD5 style CHAP and Microsoft style CHAP versions
-1 and 2.  Mpd will prefer MD5 CHAP over Microsoft CHAP, unless MPPE
-encryption is compiled in, as Microsoft CHAP is required for MPPE
-encryption to work.
+1 and 2.  Mpd will prefer MD5 CHAP over Microsoft CHAP, unless the
+link is a pptp link.
+
+This parameter is an alias for <tt>md5-chap</tt> <tt>ms-chapv1</tt> <tt>ms-chapv2</tt>
+
+<tag><tt>chap-md5</tt></tag>
+
+Traditional CHAP MD5 style authentication.
+
+Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
+
+<tag><tt>chap-msv1</tt></tag>
+
+Microsoft CHAP style authentication.
+
+Default <tt><bf>disable</bf></tt> and <tt><bf>deny</bf></tt>.
+
+<tag><tt>chap-msv2</tt></tag>
+
+Microsoft CHAP style authentication Version 2.
 
 Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
 
