@@ -25,6 +25,9 @@
 #endif
 #include <netgraph.h>
 
+#include <sys/param.h>
+#include <sys/linker.h>
+
 /*
  * DEFINITIONS
  */
@@ -189,7 +192,7 @@ PppoeInit(PhysInfo p)
 	pe->incoming = 0;
 	snprintf(pe->path, sizeof(pe->path), "undefined:");
 	snprintf(pe->hook, sizeof(pe->hook), "undefined");
-	snprintf(pe->session, sizeof(pe->session), "undefined");
+	snprintf(pe->session, sizeof(pe->session), "*");
 	for (i=0; i<6; i++)
 	    pe->peeraddr[i]=0x00;
 	pe->link = lnk;
@@ -467,15 +470,18 @@ PppoePeerAddr(PhysInfo p, void *buf, int buf_len)
 }
 
 static int 
-CreatePppoeNode(const char *path, const char *hook) {
-
+CreatePppoeNode(const char *path, const char *hook)
+{
 	u_char rbuf[2048];
 	struct ng_mesg *resp;
+	const struct typelist *tlist;
 	const struct hooklist *hlist;
 	const struct nodeinfo *ninfo;
 	const struct linkinfo *nlink;
 	int f;
 	int csock;
+	int kldload_tried = 0;
+	static int check_ng_ether = 1;
 
 	/* Make sure interface is up */
 	char iface[IFNAMSIZ + 1];
@@ -496,6 +502,56 @@ CreatePppoeNode(const char *path, const char *hook) {
 		return(0);
 	}
 	(void)fcntl(csock, F_SETFD, 1);
+
+	/* Check if NG_ETHER_NODE_TYPE is available */
+	for (kldload_tried=0; check_ng_ether;) {
+		/* Ask for a list of available node types */
+		if (NgSendMsg(csock, "", NGM_GENERIC_COOKIE, NGM_LISTTYPES,				NULL, 0) < 0) {
+			Log(LG_ERR, ("[%s] Cannot send a netgraph message: %s",
+				lnk->name, strerror(errno)));
+			close(csock);
+			return(0);
+		}
+
+		/* Get response */
+		resp = (struct ng_mesg *)rbuf;
+		if (NgRecvMsg(csock, resp, sizeof rbuf, NULL) <= 0) {
+			Log(LG_ERR, ("[%s] Cannot get netgraph response: %s",
+				lnk->name, strerror(errno)));
+			close(csock);
+			return(0);
+		}
+
+		/* Look for NG_ETHER_NODE_TYPE */
+		tlist = (const struct typelist*) resp->data;
+		for (f=0; f<tlist->numtypes; ++f)
+			if (!strncmp(tlist->typeinfo[f].type_name,
+			    NG_ETHER_NODE_TYPE, sizeof NG_ETHER_NODE_TYPE - 1))
+				break;
+
+		/* If found do not run this check anymore */
+		if (f < tlist->numtypes) {
+			check_ng_ether=0;
+			break;
+		}
+
+		/* If not found try to load ng_ether and repeat the check */
+		if (kldload_tried) {
+			Log(LG_ERR, ("[%s] Still no NG_ETHER_NODE_TYPE after kldload(\"ng_ether\")", lnk->name));
+			close(csock);
+			return(0);
+		}
+
+		if (kldload("ng_ether") < 0) {
+			if (errno == EEXIST)
+				Log(LG_ERR, ("[%s] ng_ether already loaded but NG_ETHER_NODE_TYPE is not available", lnk->name));
+			else
+				Log(LG_ERR, ("[%s] Cannot load ng_ether: %s", lnk->name, strerror(errno)));
+			close(csock);
+			return(0);
+		}
+		kldload_tried = 1;
+	}
 
 	/*
 	* Ask for a list of hooks attached to the "ether" node.  This node should
@@ -807,11 +863,14 @@ PppoeNodeUpdate(void)
 
   /* Examine all PPPoE links */
   for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && gLinks[k]->phys->type == &gPppoePhysType 
-      && strcmp(((PppoeInfo)(gLinks[k]->phys->info))->path,"undefined:") 
-      && strcmp(((PppoeInfo)(gLinks[k]->phys->info))->session,"undefined")) {
-
+    if (gLinks[k] && gLinks[k]->phys->type == &gPppoePhysType) {
         PppoeInfo	const p = (PppoeInfo)gLinks[k]->phys->info;
+
+	if (!strcmp(p->path, "undefined:")) {
+		Log(LG_PHYS, ("[%s] Skipping link %s with undefined interface",
+			lnk->name, gLinks[k]->name));
+		continue;
+	}
 
 	j=-1;
 	for (i=0;i<PppoeIfCount;i++) {
@@ -852,11 +911,14 @@ PppoeListenUpdate(void *arg)
 
   /* Examine all PPPoE links */
   for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && gLinks[k]->phys->type == &gPppoePhysType 
-      && strcmp(((PppoeInfo)(gLinks[k]->phys->info))->path,"undefined:") 
-      && strcmp(((PppoeInfo)(gLinks[k]->phys->info))->session,"undefined")) {
-
+    if (gLinks[k] && gLinks[k]->phys->type == &gPppoePhysType ) {
         PppoeInfo	const p = (PppoeInfo)gLinks[k]->phys->info;
+
+	if (!strcmp(p->path, "undefined:")) {
+		Log(LG_PHYS, ("[%s] Skipping link %s with undefined interface",
+			lnk->name, gLinks[k]->name));
+		continue;
+	}
 
     	if (Enabled(&p->options, PPPOE_CONF_INCOMING)) {
 	    j=-1;

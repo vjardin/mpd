@@ -6,9 +6,12 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
-    Changes since version 4.0b1:
+    Changes since version 4.0b2:
     <itemize>
 	<item>Fix <tt>va_args</tt> bug on certain non-i386 platforms.
+	</item>
+	<item>Auto-load <tt>ng_ether</tt> for PPPoE connections;
+		fix default path for undefined service.
 	</item>
     </itemize>
   </p>
