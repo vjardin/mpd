@@ -10,11 +10,12 @@
     <itemize>
     <item>Added session timeout, configurable at iface level.
     </item>
-    <item>Added new configuration params: <tt>chap-md5</tt> <tt>chap-msv1</tt> <tt>chap-msv2</tt> at 
-	link level for explicitely configuring the different CHAP methods. The formerly "chap" 
-	parameter is now an alias for "chap-md5 chap-msv1 chap-msv2".
-	MS-CHAPv1 is now disabled and denied by default.
-	A better fallback mechanism through the different auth-methods was implemented.
+    <item>Added new configuration params: <tt>chap-md5</tt> <tt>chap-msv1</tt>
+	<tt>chap-msv2</tt> at link level for explicitly configuring
+	the different CHAP methods. The formerly <tt>chap</tt> parameter
+	is now an alias for <tt>chap-md5 chap-msv1 chap-msv2</tt>.
+	MS-CHAPv1 is now disabled and denied by default. A better fallback
+	mechanism through the different auth-methods was implemented.
     </item>
     <item>More RADIUS fixes/features:
     <itemize>

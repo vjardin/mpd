@@ -5,19 +5,24 @@
 
   <sect><heading>ToDo<label id="todo"></heading>
 
-  <p>
-  A list of open tasks for MPD. This is a good startpoint if you wan't to support actively the development of MPD. After completing a task post it to MPD's maling list.
+<p>
+A list of open tasks for MPD. This is a good startpoint if you
+wan't to support actively the development of MPD. After completing
+a task post it to MPD's maling list.
 
 <descrip>
 
 <tag>callback (client & server)</tag>
 <p>
-Currently MPD doesen't support callback, but he should.
+Currently MPD doesen't support callback, but it should.
 </p>
 
 <tag>NAT</tag>
 <p>
-MPD has currently no support for NAT, but it would be great, if he can support this. We intend not simply using libalias for this, instead a new netgraph node ng_nat would be the right way for doing this.
+MPD has currently no support for NAT, but it would be great, if he
+can support this. We intend not simply using libalias for this,
+instead a new netgraph node ng_nat would be the right way for doing
+this.
 </p>
 
 <tag>EAP</tag>
@@ -27,17 +32,21 @@ Extensible Authentication Protocol. <htmlurl url="http://www.faqs.org/rfcs/rfc22
 
 <tag>Unimplemented Protocols</tag>
 <p>
-lcp.c contains a list of protocols (gLcpConfOpts), each protocol with "false" is not implemented, so just choose one and implement it!
+lcp.c contains a list of protocols (gLcpConfOpts), each protocol with
+"false" is not implemented.
 </p>
 
 <tag>MPD GUI</tag>
 <p>
-A GUI wich connects to the terminal port of mpd and is able to configure MPD. If possible platform independent.
+A GUI which connects to the terminal port of mpd and is able to configure MPD.
+If possible platform independent.
 </p>
 
 <tag>MPD Client-GUI</tag>
 <p>
-A GUI wich is able to initiate client-side connections. This should add the possibility for end-users (not admins) to start MPD connections from other clients (usualy Windows clients).
+A GUI which is able to initiate client-side connections. This should
+add the possibility for end-users (not admins) to start MPD connections
+from other clients (usualy Windows clients).
 </p>
 
 </descrip>
