@@ -509,9 +509,9 @@ badResponse:
 
 	/* Response is good */
 	Log(LG_AUTH, (" Response is valid"));
-	if (chap->recv_alg != CHAP_ALG_MSOFTv2) {
-	  snprintf(ackMesg, sizeof(ackMesg), "%s", AUTH_MSG_WELCOME);
-	} else {
+	snprintf(ackMesg, sizeof(ackMesg), "%s", AUTH_MSG_WELCOME);
+#ifdef MICROSOFT_CHAP
+	if (chap->recv_alg == CHAP_ALG_MSOFTv2) {
 	  struct mschapv2value *const pv = (struct mschapv2value *)chap_value;
 	  u_char authresp[20];
 	  char hex[41];
@@ -524,6 +524,7 @@ badResponse:
 	    sprintf(hex + (i * 2), "%02X", authresp[i]);
 	  snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
 	}
+#endif
 	ChapOutput(CHAP_SUCCESS, chp.id, ackMesg, strlen(ackMesg));
 	AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
       }
