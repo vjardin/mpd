@@ -9,6 +9,18 @@
   This chapter describes commands that are specific to UDP type links.
   These commands apply to the currently active link, and are only
   valid if the currently active link has type <bf>udp</bf>.
+  It is suggested that the <tt>set iface mtu</tt> command be used
+  when this link type is in use to avoid IP fragmentation.
+  </p>
+
+  <p>
+  <bf>Note:</bf> Technically this device type is broken, because
+  PPP links are not allowed to re-order frames, yet UDP packets can
+  be delivered out of order. Therefore, if you use this link type you
+  should not enable multi-link PPP, PPP encryption, or PPP compression.
+  Otherwise, out of order frames will be dropped, leading to performance
+  degradation.
+  </p>
 
 <descrip>
 
@@ -25,6 +37,18 @@ set udp peer <em>ipaddr</em> [ <em>port</em> ]
 
 Sets the peer IP address and port for the UDP connection.
 If none is specified, any peer may talk to us.
+
+<tag><tt>
+set udp origination local
+<newline>set udp origination remote
+</tt></tag>
+
+This command is only required if MPPE encryption is used on the bundle.
+MPPE requires knowledge of which peer ``originated'' the connection
+and which peer ``answered'' the connection. Since UDP is connectionless,
+there's no way for mpd to determine this reliably. Therefore one peer
+must be configured with <tt>local</tt> origination and the other with
+with <tt>remote</tt> origination. The default is unknown.
 
 </descrip>
 
