@@ -211,7 +211,7 @@ to authenticate using the traditional method using <tt>mpd.secrets</tt>.
 
 <tag><tt>radius-acct</tt></tag>
 
-Enable accounting via RADIUS. Accounting is implemented at bundle-level  
+Enable accounting via RADIUS. Accounting is implemented at bundle-level
 (in BundJoin() and BundLeave()). Accounting is done per link.
 There are some minor problems:
 

@@ -5,12 +5,21 @@
 
   <sect><heading>Change history<label id="changes"></heading>
 
-
   <p>
     Changes since version 3.14:
     <itemize>
+    <item>Implemented a workaround for weird crashes when using RADIUS and PAP.
+    Thanx to Alexey Popov for helping debugging this problem.
+    </item>
+    <item>Added the possibility of sending periodic RADIUS Accounting updates.
+    Submitted by Vitaliy Akimov
+    <tt><htmlurl url='mailto:vx@bigline.net' name='&lt;vx@bigline.net&gt;'></tt>.
+    </item>
+    <item>Fixed usage of RAD_FRAMED_MTU, it is now interpreted as an upper limit and
+	not as absolute value.
+    </item>
     <item><tt>set iface enable tcpmssfix</tt> option added.
-    Submitted by Sergey Korolew 
+    Submitted by Sergey Korolew
     <tt><htmlurl url='mailto:dsATbittu.org.ru' name='&lt;dsATbittu.org.ru&gt;'></tt>.
     </item>
     </itemize>
