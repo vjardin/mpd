@@ -182,6 +182,9 @@ sync:
 #	
 # See also the 'pptp' link entry in mpd.links.sample.
 #
+# Note: If you cut & paste from the above example, be sure to left-justify
+# the labels or else mpd won't parse them correctly.
+#
 
 pptp:
 	new -i ng0 pptp pptp
