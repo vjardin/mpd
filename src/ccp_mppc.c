@@ -46,9 +46,7 @@
 
   /* Encryption stuff */
   static void	MppeInitKey(MppcInfo mppc, int dir);
-  static int	MppeGetKeyInfo(u_char **challengep);
   static void	MppeInitKeyv2(MppcInfo mppc, int dir);
-  static int	MppeGetKeyInfov2(u_char **responsep);
   static short	MppcEnabledMppeType(short type);
   static short	MppcAcceptableMppeType(short type);
 
@@ -109,10 +107,10 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_COMPRESS;
       mppchook = NG_MPPC_HOOK_COMP;
       conf.bits = mppc->xmit_bits;
-      if (mschap == CHAP_ALG_MSOFTv2)
-	MppeInitKeyv2(mppc, dir);
-      else
+      if (mschap == CHAP_ALG_MSOFT)
 	MppeInitKey(mppc, dir);
+      else
+        MppeInitKeyv2(mppc, dir);
       memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
       break;
     case COMP_DIR_RECV:
@@ -120,10 +118,10 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_DECOMPRESS;
       mppchook = NG_MPPC_HOOK_DECOMP;
       conf.bits = mppc->recv_bits;
-      if (mschap == CHAP_ALG_MSOFTv2)
-	MppeInitKeyv2(mppc, dir);
-      else
+      if (mschap == CHAP_ALG_MSOFT)
 	MppeInitKey(mppc, dir);
+      else
+	MppeInitKeyv2(mppc, dir);
       memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
       break;
     default:
@@ -539,6 +537,7 @@ MppcAcceptableMppeType(short type)
 static void
 MppeInitKey(MppcInfo mppc, int dir)
 {
+  CcpState	const ccp = &bund->ccp;
   u_int32_t	const bits = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_bits : mppc->recv_bits;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
@@ -546,59 +545,13 @@ MppeInitKey(MppcInfo mppc, int dir)
   u_char	hash[16];
   u_char	*chal;
 
-  /* Get credential info */
-  if (MppeGetKeyInfo(&chal) < 0)
-    return;
-
-  /* Compute basis for the session key (ie, "start key" or key0) */
-  if (bits & MPPE_128) {
-    memcpy(hash, lnk->lcp.auth.msoft.nt_hash_hash, sizeof(hash));
-    KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
-    KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
-    MsoftGetStartKey(chal, hash);
-    KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
-  } else {
-    memcpy(hash, lnk->lcp.auth.msoft.lm_hash, 8);
-    KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
-  }
-  memcpy(key0, hash, MPPE_KEY_LEN);
-  KEYDEBUG((key0, (bits & MPPE_128) ? 16 : 8, "InitialKey"));
-}
-
-/*
- * MppeGetKeyInfo()
- *
- * This is described in:
- *   draft-ietf-pppext-mschapv1-keys-00.txt
- */
-
-static int
-MppeGetKeyInfo(u_char **challengep)
-{
-  CcpState	const ccp = &bund->ccp;
-  u_char	*challenge;
-
   /* The secret comes from the originating caller's credentials */
   switch (lnk->originate) {
     case LINK_ORIGINATE_LOCAL:
-      if (lnk->lcp.peer_auth != PROTO_CHAP
-	  || (lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFT
-	    && lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFTv2)) {
-	Log(LG_ERR,
-	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
-	goto fail;
-      }
-      challenge = bund->ccp.mppc.peer_msChal;
+      chal = bund->ccp.mppc.peer_msChal;
       break;
     case LINK_ORIGINATE_REMOTE:
-      if (lnk->lcp.want_auth != PROTO_CHAP
-	  || (lnk->lcp.want_chap_alg != CHAP_ALG_MSOFT
-	    && lnk->lcp.want_chap_alg != CHAP_ALG_MSOFTv2)) {
-	Log(LG_ERR,
-	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
-	goto fail;
-      }
-      challenge = bund->ccp.mppc.self_msChal;
+      chal = bund->ccp.mppc.self_msChal;
       break;
     case LINK_ORIGINATE_UNKNOWN:
     default:
@@ -606,14 +559,35 @@ MppeGetKeyInfo(u_char **challengep)
       goto fail;
   }
 
-  /* Return info */
-  *challengep = challenge;
-  return(0);
+  /* Compute basis for the session key (ie, "start key" or key0) */
+  if (bits & MPPE_128) {
+    if (!lnk->lcp.auth.msoft.has_nt_hash) {
+      Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv1 and MPPE 128", 
+        lnk->name));
+      goto fail;
+    }
+    memcpy(hash, lnk->lcp.auth.msoft.nt_hash_hash, sizeof(hash));
+    KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
+    KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
+    MsoftGetStartKey(chal, hash);
+    KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
+  } else {
+    if (!lnk->lcp.auth.msoft.has_lm_hash) {
+      Log(LG_ERR, ("[%s] The LM-Hash is not set, but needed for MS-CHAPv1 and MPPE 40, 56", 
+        lnk->name));
+      goto fail;
+    }
+
+    memcpy(hash, lnk->lcp.auth.msoft.lm_hash, 8);
+    KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
+  }
+  memcpy(key0, hash, MPPE_KEY_LEN);
+  KEYDEBUG((key0, (bits & MPPE_128) ? 16 : 8, "InitialKey"));
+  return;
 
 fail:
-  Log(LG_ERR, ("[%s] can't determine credentials for MPPE", bund->name));
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
-  return(-1);
+  FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
 }
 
 /*
@@ -623,6 +597,7 @@ fail:
 static void
 MppeInitKeyv2(MppcInfo mppc, int dir)
 {
+  CcpState	const ccp = &bund->ccp;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_key0 : mppc->recv_key0;
   u_char	hash[16];
@@ -635,9 +610,25 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
     return;
   }
 
-  /* Get credential info */
-  if (MppeGetKeyInfov2(&resp) < 0)
-    return;
+  /* The secret comes from the originating caller's credentials */
+  switch (lnk->originate) {
+    case LINK_ORIGINATE_LOCAL:
+      resp = bund->ccp.mppc.self_ntResp;
+      break;
+    case LINK_ORIGINATE_REMOTE:
+      resp = bund->ccp.mppc.peer_ntResp;
+      break;
+    case LINK_ORIGINATE_UNKNOWN:
+    default:
+      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", lnk->name));
+      goto fail;
+  }
+
+  if (!lnk->lcp.auth.msoft.has_nt_hash) {
+    Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv2 and MPPE", 
+      lnk->name));
+    goto fail;
+  }
 
   /* Compute basis for the session key (ie, "start key" or key0) */
   memcpy(hash, lnk->lcp.auth.msoft.nt_hash_hash, sizeof(hash));
@@ -651,54 +642,11 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   KEYDEBUG((hash, sizeof(hash), "GetAsymmetricKey"));
   memcpy(key0, hash, MPPE_KEY_LEN);
   KEYDEBUG((key0, MPPE_KEY_LEN, "InitialKey"));
-}
-
-/*
- * MppeGetKeyInfov2()
- */
-
-static int
-MppeGetKeyInfov2(u_char **responsep)
-{
-  CcpState		const ccp = &bund->ccp;
-  u_char		*response;
-
-  /* The secret comes from the originating caller's credentials */
-  switch (lnk->originate) {
-    case LINK_ORIGINATE_LOCAL:
-      if (lnk->lcp.peer_auth != PROTO_CHAP
-	  || (lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFT
-	    && lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFTv2)) {
-	Log(LG_ERR,
-	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
-	goto fail;
-      }
-      response = bund->ccp.mppc.self_ntResp;
-      break;
-    case LINK_ORIGINATE_REMOTE:
-      if (lnk->lcp.want_auth != PROTO_CHAP
-	  || (lnk->lcp.want_chap_alg != CHAP_ALG_MSOFT
-	    && lnk->lcp.want_chap_alg != CHAP_ALG_MSOFTv2)) {
-	Log(LG_ERR,
-	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
-	goto fail;
-      }
-      response = bund->ccp.mppc.peer_ntResp;
-      break;
-    case LINK_ORIGINATE_UNKNOWN:
-    default:
-      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", lnk->name));
-      goto fail;
-  }
-
-  /* Return info */
-  *responsep = response;
-  return(0);
+  return;
 
 fail:
-  Log(LG_ERR, ("[%s] can't determine credentials for MPPE", bund->name));
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
-  return(-1);
+  FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
 }
 
 #ifdef DEBUG_KEYS
