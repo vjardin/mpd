@@ -1,9 +1,8 @@
-
 /*
- * event.h
- * 
- * Copyright (C) 1996-1999 by Whistle Communications Corp.
- * All rights reserved.
+ * See ``COPYRIGHT.mpd''
+ *
+ * $Id$
+ *
  */
 
 #ifndef _EVENT_H_
