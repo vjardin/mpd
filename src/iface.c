@@ -791,6 +791,7 @@ IfaceSetCommand(int ac, char *av[], void *arg)
 	}
 	iface->max_mtu = max_mtu;
       }
+      break;
 
     case SET_UP_SCRIPT:
       switch (ac) {
