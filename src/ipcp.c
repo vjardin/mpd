@@ -295,7 +295,7 @@ IpcpConfigure(Fsm fp)
   ipcp->want_addr = ipcp->conf.self_allow.ipaddr;
   ipcp->peer_addr = ipcp->conf.peer_allow.ipaddr;
 
-  /* Van Jacobsen compression */
+  /* Van Jacobson compression */
   ipcp->peer_comp.proto = 0;
   ipcp->peer_comp.maxchan = IPCP_VJCOMP_DEFAULT_MAXCHAN;
   ipcp->peer_comp.compcid = 0;
