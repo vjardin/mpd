@@ -889,7 +889,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		break;
 	      }
 
-	      /* let us check, wether the requested auth-proto is acceptable */
+	      /* let us check, whether the requested auth-proto is acceptable */
 	      if (Acceptable(&lnk->conf.options, authProto->conf)) {
 		lcp->peer_auth = proto;
 	        if (proto == PROTO_CHAP)
@@ -916,7 +916,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      if (authProto == NULL)
 		break;
 
-	      /* let us check, wether the requested auth-proto is enabled */
+	      /* let us check, whether the requested auth-proto is enabled */
 	      if (Enabled(&lnk->conf.options, authProto->conf)) {
 	        lcp->want_auth = proto;
 	        if (proto == PROTO_CHAP)

@@ -501,7 +501,7 @@ MppcEnabledMppeType(short type)
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
     }
   }
-  Log(LG_CCP, ("[%s] CCP: Checking wether %d bits are enabled -> %s%s", 
+  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are enabled -> %s%s", 
     lnk->name, type, ret ? "yes" : "no", radius ? " (RADIUS)" : "" ));
   return ret;
 }
@@ -545,7 +545,7 @@ MppcAcceptableMppeType(short type)
     }
   }
 
-  Log(LG_CCP, ("[%s] CCP: Checking wether %d bits are acceptable -> %s%s", 
+  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are acceptable -> %s%s", 
     lnk->name, type, ret ? "yes" : "no", radius ? " (RADIUS)" : "" ));
   return ret;
 

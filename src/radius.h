@@ -125,7 +125,7 @@ extern const	struct cmdtab RadiusSetCmds[];
   };
   
   struct radius_linkinfo {
-    int			authentic;	/* wether RADIUS authentication was used */
+    int			authentic;	/* whether RADIUS authentication was used */
     char		session_id[RAD_ACCT_MAX_SESSIONID];
     struct pppTimer 	radUpdate;	/* Accounting Update Timer */
   };

@@ -86,7 +86,7 @@
   int		gMppe128;
   int		gMppcStateless;
   
-  /* wether to enable radius for ccp layer */
+  /* whether to enable radius for ccp layer */
   int		gCcpRadius;
 
 /*
