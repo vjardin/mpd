@@ -561,8 +561,11 @@ ChapGetSecret(AuthData auth)
   Auth		a = &lnk->lcp.auth;
   ChapInfo	chap = &a->chap;
   char		*pw;
-
-  if (chap->recv_alg == CHAP_ALG_MD5)
+  int		alg;
+  
+  alg = auth->code == CHAP_CHALLENGE ? chap->xmit_alg : chap->recv_alg;
+  
+  if (alg == CHAP_ALG_MD5)
     pw = auth->password;
   else {
     if (!a->msoft.has_nt_hash)
