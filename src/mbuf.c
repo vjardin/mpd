@@ -42,6 +42,7 @@ Freee(const char *type, const void *ptr)
 
   if (ptr == NULL)
     return;
+
   bp = *((Mbuf *) ptr - 1);
   PFREE(bp);
 }
@@ -68,7 +69,7 @@ mballoc(const char *type, int size)
   }
   memset(memory, 0, amount);
 
-/* Put mbuf at front of memory region */
+  /* Put mbuf at front of memory region */
 
   bp = (Mbuf)(void *)memory;
   bp->size = bp->cnt = size;
@@ -105,7 +106,7 @@ mbfree(Mbuf bp)
 	+ bp->size)) == MBUF_MAGIC_2);
     #endif
 
-  /* Free it */
+   /* Free it */
 
     next = bp->next;
     bp->base = NULL;
@@ -321,30 +322,7 @@ mbsplit(Mbuf bp, int cnt)
 int
 MemStat(int ac, char *av[], void *arg)
 {
-  int		i;
-  struct	typed_mem_stats stats;
-
-  if (typed_mem_usage(&stats) == -1) {
-    Log(LG_ERR, ("%s", strerror(errno)));
-    return(-1);
-  }
-
-  for (i = 0; i < structs_array_length(&typed_mem_stats_type, NULL, &stats); i++) {
-    char	f[10];
-    struct	typed_mem_typestats *s = NULL;
-
-    snprintf(f, sizeof(f), "%d", i);
-
-    if (structs_get(&typed_mem_stats_type, f, &stats, s) == -1) {
-      Log(LG_ERR, ("%s", strerror(errno)));
-      return(-1);
-    }
-
-    printf("%20s %8d Bytes %8d Blocks\n", s->type, s->bytes, s->allocs);
-    FREE("typed_mem_stats", s);
-  }
-
-  structs_free(&typed_mem_stats_type, NULL, &stats);
+  typed_mem_dump(stdout);
   return(0);
 }
 
