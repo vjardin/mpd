@@ -32,8 +32,7 @@
   };
   typedef struct papinfo	*PapInfo;
 
-  struct authprot;
-
+    
 /*
  * FUNCTIONS
  */
