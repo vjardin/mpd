@@ -6,6 +6,10 @@
   <sect><heading>TCP device type commands<label id="tcp"></heading>
 
   <p>
+  <bf>Note:</bf> The TCP device type is currently broken and will
+  not compile (it needs to be updated to support netgraph).
+
+  <p>
   This chapter describes commands that are specific to TCP type links.
   These commands apply to the currently active link, and are only
   valid if the currently active link has type <bf>tcp</bf>.

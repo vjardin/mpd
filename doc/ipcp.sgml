@@ -94,7 +94,7 @@ The options available at the IPCP layer are:
 
 <tag><tt>vjcomp</tt></tag>
 
-This option enables Van Jacobsen TCP header compression, which saves
+This option enables Van Jacobson TCP header compression, which saves
 several bytes per TCP data packet. You almost always want this option.
 
 Default <tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
