@@ -522,8 +522,7 @@ badResponse:
 	    pv->peerChal, chap->chal_data, peer_name, authresp);
 	  for (i = 0; i < 20; i++)
 	    sprintf(hex + (i * 2), "%02X", authresp[i]);
-	  snprintf(ackMesg, sizeof(ackMesg),
-	    "S=%s M=%s", hex, AUTH_MSG_WELCOME);
+	  snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
 	}
 	ChapOutput(CHAP_SUCCESS, chp.id, ackMesg, strlen(ackMesg));
 	AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
