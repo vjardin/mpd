@@ -21,6 +21,13 @@
  * DEFINITIONS
  */
 
+  #define CHAP_CHALLENGE	1
+  #define CHAP_RESPONSE		2
+  #define CHAP_SUCCESS		3
+  #define CHAP_FAILURE		4
+  #define CHAP_MS_V1_CHANGE_PW	5
+  #define CHAP_MS_V2_CHANGE_PW	7
+
   #define CHAP_MAX_NAME		64
   #define CHAP_MAX_VAL		64
 
@@ -37,7 +44,7 @@
   #define MSCHAP_ERROR_PASSWD_EXPIRED		648 
   #define MSCHAP_ERROR_NO_DIALIN_PERMISSION	649 
   #define MSCHAP_ERROR_AUTHENTICATION_FAILURE	691 
-  #define MSCHAP_ERROR_CHANGING_PASSWORD	709 
+  #define MSCHAP_ERROR_CHANGING_PASSWORD	709
 
   struct chapinfo
   {
@@ -52,6 +59,7 @@
     short		chal_len;			/* Challenge length */
     short		resp_len;			/* Response length */
     u_char		*resp;				/* Response packet */
+    int			proto;				/* Protocol EAP or CHAP */
   };
   typedef struct chapinfo	*ChapInfo;
 
@@ -83,7 +91,11 @@
 
   extern void	ChapStart(ChapInfo chap, int which);
   extern void	ChapStop(ChapInfo chap);
-  extern void	ChapInput(Mbuf bp);
+  extern void	ChapInput(int proto, u_char code, u_char id,
+		  const u_char *pkt, u_short len);
+  extern void	ChapSendChallenge(ChapInfo chap);
+  extern void	ChapChalTimeout(void *ptr);
+  extern const	char *ChapCode(int code);
 
 #endif
 

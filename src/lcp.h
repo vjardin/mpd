@@ -63,7 +63,7 @@
     u_int16_t	want_mru;		/* My MRU */
     u_int16_t	want_auth;		/* Auth I require of peer, or zero */
     u_int16_t	want_mrru;		/* My MRRU, or zero if no MP */
-    LcpAuthProto	want_protos[LCP_NUM_AUTH_PROTOS];	/* list of enabled auth-protos */
+    LcpAuthProto	want_protos[LCP_NUM_AUTH_PROTOS];	/* list of reqeustable auth-protos */
 
 
     /* More params */

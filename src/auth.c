@@ -14,6 +14,7 @@
 #include "lcp.h"
 #include "custom.h"
 #include "log.h"
+#include "ngfunc.h"
 
 /*
  * INTERNAL FUNCTIONS
@@ -21,6 +22,7 @@
 
   static void	AuthTimeout(void *arg);
   static int	AuthGetExternalPassword(AuthData auth);
+  static const char *AuthCode(int proto, u_char code);
 
 /*
  * AuthStart()
@@ -65,6 +67,9 @@ AuthStart(void)
     case PROTO_CHAP:
       ChapStart(&a->chap, AUTH_SELF_TO_PEER);
       break;
+    case PROTO_EAP:
+      EapStart(&a->eap, AUTH_SELF_TO_PEER);
+      break;
     default:
       assert(0);
   }
@@ -76,15 +81,135 @@ AuthStart(void)
     case PROTO_PAP:
       PapStart(&a->pap, AUTH_PEER_TO_SELF);
       break;
-    case PROTO_EAP:
-      assert(0);
-      break;
     case PROTO_CHAP:
       ChapStart(&a->chap, AUTH_PEER_TO_SELF);
+      break;
+    case PROTO_EAP:
+      EapStart(&a->eap, AUTH_PEER_TO_SELF);
       break;
     default:
       assert(0);
   }
+}
+
+/*
+ * AuthInput()
+ *
+ * Deal with PAP/CHAP/EAP packet
+ */
+
+void
+AuthInput(int proto, Mbuf bp)
+{
+  int			len;
+  struct fsmheader	fsmh;
+  u_char		*pkt;
+
+  /* Sanity check */
+  if (lnk->lcp.phase != PHASE_AUTHENTICATE && lnk->lcp.phase != PHASE_NETWORK) {
+    Log(LG_AUTH, ("[%s] AUTH: rec'd stray packet", lnk->name));
+    PFREE(bp);
+    return;
+  }
+
+  /* Make packet a single mbuf */
+  len = plength(bp = mbunify(bp));
+
+  /* Sanity check length */
+  if (len < sizeof(fsmh)) {
+    Log(LG_AUTH, ("[%s] AUTH: rec'd runt packet: %d bytes",
+      lnk->name, len));
+    PFREE(bp);
+    return;
+  }
+
+  bp = mbread(bp, (u_char *) &fsmh, sizeof(fsmh), NULL);
+  len -= sizeof(fsmh);
+  if (len > ntohs(fsmh.length))
+    len = ntohs(fsmh.length);
+
+  if (bp == NULL && proto != PROTO_EAP)
+  {
+    const char	*failMesg;
+    u_char	code = 0;
+
+    Log(LG_AUTH, (" Bad packet"));
+    failMesg = AuthFailMsg(proto, 0, AUTH_FAIL_INVALID_PACKET);
+    if (proto == PROTO_PAP)
+      code = PAP_NAK;
+    else if (proto == PROTO_CHAP)
+      code = CHAP_FAILURE;
+    else
+      assert(0);
+    AuthOutput(proto, code, fsmh.id, failMesg, strlen(failMesg), 1, 0);
+    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+    return;
+  }
+
+  pkt = MBDATA(bp);
+
+  switch (proto) {
+    case PROTO_PAP:
+      PapInput(fsmh.code, fsmh.id, pkt, len);
+      break;
+    case PROTO_CHAP:
+      ChapInput(proto, fsmh.code, fsmh.id, pkt, len);
+      break;
+    case PROTO_EAP:
+      EapInput(fsmh.code, fsmh.id, pkt, len);
+      break;
+    default:
+      assert(0);
+  }
+
+  PFREE(bp);
+}
+
+/*
+ * AuthOutput()
+ *
+ */
+
+void
+AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
+	int len, int add_len, u_char eap_type)
+{
+  struct fsmheader	lh;
+  Mbuf			bp;
+  int			plen;
+
+  add_len = !!add_len;
+  /* Setup header */
+  if (proto == PROTO_EAP)
+    plen = sizeof(lh) + len + add_len + 1;
+  else
+    plen = sizeof(lh) + len + add_len;
+  lh.code = code;
+  lh.id = id;
+  lh.length = htons(plen);
+
+  /* Build packet */
+  bp = mballoc(MB_AUTH, plen);
+  memcpy(MBDATA(bp), &lh, sizeof(lh));
+  if (proto == PROTO_EAP)
+    memcpy(MBDATA(bp) + sizeof(lh), &eap_type, 1);
+
+  if (add_len)
+    *(MBDATA(bp) + sizeof(lh)) = (u_char)len;
+
+  if (proto == PROTO_EAP) {
+    memcpy(MBDATA(bp) + sizeof(lh) + add_len + 1, ptr, len);
+    Log(LG_AUTH, ("[%s] %s: sending %s Type %s len:%d", lnk->name,
+      ProtoName(proto), AuthCode(proto, code), EapType(eap_type), len));
+  } else {
+    memcpy(MBDATA(bp) + sizeof(lh) + add_len, ptr, len);
+    Log(LG_AUTH, ("[%s] %s: sending %s len:%d", lnk->name,
+      ProtoName(proto), AuthCode(proto, code), len));
+  }
+
+  /* Send it out */
+
+  NgFuncWritePppFrame(lnk->bundleIndex, proto, bp);
 }
 
 /*
@@ -121,10 +246,12 @@ AuthFinish(int which, int ok, AuthData auth)
       assert(0);
   }
 
-  /* Notify external auth program if needed */
-  if (which == AUTH_PEER_TO_SELF && auth->external) {
-    ExecCmd(LG_AUTH, "%s %s %s", auth->extcmd,
-      ok ? "-y" : "-n", auth->authname);
+  if (auth != NULL) {
+    /* Notify external auth program if needed */
+    if (which == AUTH_PEER_TO_SELF && auth->external) {
+      ExecCmd(LG_AUTH, "%s %s %s", auth->extcmd,
+        ok ? "-y" : "-n", auth->authname);
+    }
   }
 
   /* Did auth fail (in either direction)? */
@@ -377,3 +504,27 @@ AuthGetExternalPassword(AuthData a)
   return (ok ? 0 : -1);
 }
 
+/*
+ * AuthCode()
+ */
+
+static const char *
+AuthCode(int proto, u_char code)
+{
+  static char	buf[12];
+
+  switch (proto) {
+    case PROTO_EAP:
+      return EapCode(code);
+
+    case PROTO_CHAP:
+      return ChapCode(code);
+
+    case PROTO_PAP:
+      return PapCode(code);
+
+    default:
+      snprintf(buf, sizeof(buf), "code %d", code);
+      return(buf);
+  }
+}

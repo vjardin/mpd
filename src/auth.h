@@ -67,6 +67,9 @@
 
   extern void	AuthStart(void);
   extern void	AuthStop(void);
+  extern void	AuthInput(int proto, Mbuf bp);
+  extern void	AuthOutput(int proto, u_int code, u_int id,
+	const u_char *ptr, int len, int add_len, u_char eap_type);
   extern void	AuthFinish(int which, int ok, AuthData auth);
   extern int	AuthGetData(AuthData auth, int complain, int *whyFail);
   extern int	AuthPreChecks(AuthData auth, int complain, int *whyFail);

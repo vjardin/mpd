@@ -125,13 +125,9 @@ InputDispatch(const char *label, int linkNum, int proto, Mbuf bp)
       LcpInput(bp, linkNum);
       return(0);
     case PROTO_PAP:
-      PapInput(bp);
-      return(0);
     case PROTO_CHAP:
-      ChapInput(bp);
-      return(0);
     case PROTO_EAP:
-      assert(0);
+      AuthInput(proto, bp);
       return(0);
     case PROTO_IPCP:
       IpcpInput(bp, linkNum);

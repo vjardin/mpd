@@ -194,6 +194,7 @@ main(int ac, char *av[])
   /* Catastrophic signals */
   signal(SIGSEGV, SendSignal);
   signal(SIGBUS, SendSignal);
+  signal(SIGABRT, SendSignal);
 
   /* Other signals make us do things */
   signal(SIGUSR1, SendSignal);
@@ -331,7 +332,7 @@ DoExit(int code)
 static void
 SendSignal(sig)
 {
-  if (sig == SIGSEGV || sig == SIGBUS) {
+  if (sig == SIGSEGV || sig == SIGBUS || sig == SIGABRT) {
     FatalSignal(sig);
   }
   write(gSignalPipe[1], &sig, 1);
