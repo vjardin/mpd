@@ -74,7 +74,7 @@ dialin:
 	set iface enable on-demand
 	set ipcp ranges 1.1.1.1/32 2.2.2.2/32
 	set ipcp yes vjcomp
-	set link enable chap pap
+	set link enable chap
 	set link disable pap
 	set link deny chap pap
 	set link yes acfcomp protocomp
