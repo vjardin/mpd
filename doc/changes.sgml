@@ -1,0 +1,25 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Change history<label id="changes"></heading>
+
+  <p>
+    Changes since version 3.2:
+    <itemize>
+    <item>
+	Support for authenticating to the peer using Microsoft CHAP Version 2
+	has been added.
+    <bf>Note:</bf>
+	When authenticating the peer, only Version 1 is requested.
+    </item>
+    <item>Hostnames are allowed in the configuration files.
+    </item>
+    </itemize>
+
+  These enhancements are thanks to Franco Venturi
+    <tt><htmlurl url='mailto:fventuri@mediaone.net'
+	  name='&lt;fventuri@mediaone.net&gt;'></tt>
+  </p>
+

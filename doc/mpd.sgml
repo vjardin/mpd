@@ -9,6 +9,7 @@
 <!ENTITY overview SYSTEM "overview.sgml">
 <!ENTITY layers SYSTEM "layers.sgml">
 <!ENTITY manorg SYSTEM "manorg.sgml">
+<!ENTITY changes SYSTEM "changes.sgml">
 
 <!ENTITY getting SYSTEM "getting.sgml">
 <!ENTITY building SYSTEM "building.sgml">
@@ -74,6 +75,7 @@ You must be running FreeBSD version 3.4 or higher.
 	&overview;
 	&layers;
 	&manorg;
+	&changes;
 
     <chapt><heading>Installation</heading>
 

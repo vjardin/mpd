@@ -8,7 +8,7 @@ DOC=		mpd
 FORMATS=	html
 
 SRCS+=		mpd.sgml version.sgml
-SRCS+=		overview.sgml layers.sgml manorg.sgml
+SRCS+=		overview.sgml layers.sgml manorg.sgml changes.sgml
 SRCS+=		getting.sgml building.sgml installing.sgml
 SRCS+=		invoke.sgml configfmt.sgml cli.sgml
 SRCS+=		gencmd.sgml bundle.sgml interface.sgml links.sgml
