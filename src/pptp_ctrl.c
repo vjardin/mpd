@@ -1888,7 +1888,7 @@ PptpStartCtrlConnReply(PptpCtrl c, struct pptpStartCtrlConnReply *rep)
 {
 
   /* Is peer happy? */
-  if (rep->result != PPTP_SCCR_RESL_OK) {
+  if (rep->result != 0 && rep->result != PPTP_SCCR_RESL_OK) {
     Log(LG_PPTP, ("pptp%d: my %s failed, result=%s err=%s",
       c->id, gPptpMsgInfo[PPTP_StartCtrlConnRequest].name,
       PPTP_SCCR_RESL_CODE(rep->result), PPTP_ERROR_CODE(rep->err)));
