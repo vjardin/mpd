@@ -145,6 +145,7 @@
     struct radius	radius;
   };
 
+  
 /*
  * VARIABLES
  */
@@ -161,6 +162,7 @@
   extern void	LinkClose(Link l);
 
   extern Link	LinkNew(char *name);
+  extern Link	LinkCopy(void);
   extern int	LinkNuke(Link link);
   extern int	LinkStat(int ac, char *av[], void *arg);
   extern void	LinkUpdateStats(void);

@@ -279,6 +279,24 @@ LinkNew(char *name)
 }
 
 /*
+ * LinkCopy()
+ *
+ * Makes a copy of the active Link.
+ */
+
+Link
+LinkCopy(void)
+{
+  Link	nlnk;
+  
+  nlnk = Malloc(MB_BUND, sizeof(*nlnk));
+  if (nlnk == NULL)
+    return NULL;
+  memcpy(nlnk, lnk, sizeof(*lnk));
+  return nlnk;
+}
+
+/*
  * LinkShow()
  */
 
