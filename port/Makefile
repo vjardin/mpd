@@ -8,6 +8,7 @@ PLIST=		${PDIR}/pkg-plist
 DESCR=		${PDIR}/pkg-descr
 MD5=		${PDIR}/distinfo
 MTREE=		${PDIR}/files/mpd.mtree
+RCSCRIPT=	${PDIR}/files/mpd.sh
 
 port:
 		rm -rf ${PDIR}
@@ -19,6 +20,7 @@ port:
 		cat PLIST.tail >> ${PLIST}
 		cp DESCR ${DESCR}
 		cp mpd.mtree ${MTREE}
+		cp mpd.sh ${RCSCRIPT}
 		( cd .. && md5 mpd-${VERSION}.tar.gz ) > ${MD5}
 		sed 's/@VERSION@/${VERSION}/g' < Makefile.in > ${MAKEFILE}
 		( cd ${PDIR} && tar cvf - * | gzip --best ) > ../port.tgz
