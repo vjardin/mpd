@@ -18,6 +18,7 @@
 .Op Fl f Ar file
 .Op Fl p Ar pid-file
 .Op Fl s Ar ident
+.Op Fl t Ar add ng_tee
 .Op Ar configuration
 .Sh DESCRIPTION
 .Nm
@@ -147,6 +148,13 @@ Display the program version and exit.
 .It Fl -help
 .Pp
 Display invocation usage and exit.
+.Pp
+.It Fl t
+.It Fl -tee
+.Pp
+Add 
+.Xr ng_tee 4
+into the netgraph for debugging and accounting purposes.
 .Sh FILES
 .Bl -tag -width /usr/local/share/doc/mpdXX -compact
 .It Pa @PREFIX@/share/doc/mpd

@@ -81,6 +81,10 @@
     <tt>set pptp disable windowing</tt>
     </item>
     <item>
+    Added a new commandline option <tt>-t</tt> for adding ng_tee into the netgraph.<newline>
+    Submitted by: Gleb Smirnoff, glebius at cell dot sick dot ru
+    </item>
+    <item>
 	Removed configuration parameters:
 	<itemize>
 	<item>
