@@ -62,8 +62,7 @@
  * INTERNAL VARIABLES
  */
 
-  static const u_char	gMsoftZeros[CHAP_MSOFT_CHAL_LEN];
-  static const u_char	gMsoftZeros24[CHAP_MSOFTv2_RESP_LEN];
+  static const u_char	gMsoftZeros[32];
   static const u_char	gIdBytes[] = { 0x3b, 0x1e, 0x68 };
 
 /*
@@ -128,15 +127,18 @@ ChapSendChallenge(ChapInfo chap)
   switch (chap->recv_alg) {
     case CHAP_ALG_MSOFT: {
 	chap->chal_len = CHAP_MSOFT_CHAL_LEN;
-	if (!memcmp(bund->self_msChal, gMsoftZeros, sizeof(gMsoftZeros))) {
+	if (!memcmp(bund->self_msChal, gMsoftZeros, chap->chal_len)) {
 	  ChapGenRandom(chap->chal_data, chap->chal_len);
-	  memcpy(bund->self_msChal, chap->chal_data, sizeof(bund->self_msChal));
+	  memcpy(bund->self_msChal, chap->chal_data, chap->chal_len);
 	}
       }
       break;
     case CHAP_ALG_MSOFTv2:
       chap->chal_len = CHAP_MSOFTv2_CHAL_LEN;
-      ChapGenRandom(chap->chal_data, chap->chal_len);
+      if (!memcmp(bund->self_msChal, gMsoftZeros, chap->chal_len)) {
+	ChapGenRandom(chap->chal_data, chap->chal_len);
+	memcpy(bund->self_msChal, chap->chal_data, chap->chal_len);
+      }
       break;
     case CHAP_ALG_MD5:
       chap->chal_len = random() % 32 + 16;
@@ -403,18 +405,21 @@ ChapInput(Mbuf bp)
 	  break;
 	}
 
-	/* Need to remember CHAP challenge for use with MPPE encryption */
-	if (chap->xmit_alg == CHAP_ALG_MSOFT
-	    && !memcmp(bund->peer_msChal, gMsoftZeros, sizeof(gMsoftZeros)))
-	  memcpy(bund->peer_msChal, chap_value, sizeof(gMsoftZeros));
-
-	/* Need to remember CHAP hash for use with MPPE encryption with v2 */
-	if (chap->xmit_alg == CHAP_ALG_MSOFTv2
-	    && !memcmp(bund->msNTresponse,
-	     gMsoftZeros24, sizeof(gMsoftZeros24))) {
-	  memcpy(bund->msNTresponse,
-	    hash_value + offsetof(struct mschapv2value, ntHash),
-	    sizeof(gMsoftZeros24));
+	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
+	switch (chap->xmit_alg) {
+	case CHAP_ALG_MSOFT:
+	  if (!memcmp(bund->peer_msChal, gMsoftZeros, CHAP_MSOFT_CHAL_LEN))
+	    memcpy(bund->peer_msChal, chap_value, CHAP_MSOFT_CHAL_LEN);
+	  break;
+	case CHAP_ALG_MSOFTv2:
+	  if (!memcmp(bund->peer_msChal, gMsoftZeros, CHAP_MSOFTv2_CHAL_LEN))
+	    memcpy(bund->peer_msChal, chap_value, CHAP_MSOFTv2_CHAL_LEN);
+	  if (!memcmp(bund->msNTresponse, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
+	    memcpy(bund->msNTresponse,
+	      hash_value + offsetof(struct mschapv2value, ntHash),
+	      CHAP_MSOFTv2_RESP_LEN);
+	  }
+	  break;
 	}
 
 	/* Build response packet */
@@ -435,6 +440,7 @@ ChapInput(Mbuf bp)
     case CHAP_RESPONSE:
       {
 	const char	*failMesg;
+	char		ackMesg[128];
 	int		whyFail;
 
 	/* Stop challenge timer */
@@ -466,7 +472,11 @@ ChapInput(Mbuf bp)
 	  goto badResponse;
 	}
 
-	/* Get hash value */
+	/* Copy in peer challenge for MS-CHAPv2 */
+	if (chap->recv_alg == CHAP_ALG_MSOFTv2)
+	  memcpy(hash_value, chap_value, 16);
+
+	/* Get expected hash value */
 	if ((hash_value_size = ChapHash(chap->recv_alg, hash_value, chp.id,
 	    peer_name, auth.password, chap->chal_data, chap->chal_len,
 	    0)) < 0) {
@@ -475,7 +485,7 @@ ChapInput(Mbuf bp)
 	  goto badResponse;
 	}
 
-	/* Compare with his response */
+	/* Compare with peer's response */
 	if (chap->chal_len == 0
 	    || !ChapHashAgree(chap->recv_alg, hash_value, hash_value_size,
 	      chap_value, chap_value_size)) {
@@ -488,10 +498,34 @@ badResponse:
 	  break;
 	}
 
+	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
+	if (chap->recv_alg == CHAP_ALG_MSOFTv2) {
+	  if (!memcmp(bund->msNTresponse, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
+	    memcpy(bund->msNTresponse,
+	      chap_value + offsetof(struct mschapv2value, ntHash),
+	      CHAP_MSOFTv2_RESP_LEN);
+	  }
+	}
+
 	/* Response is good */
 	Log(LG_AUTH, (" Response is valid"));
-	ChapOutput(CHAP_SUCCESS, chp.id,
-	  AUTH_MSG_WELCOME, strlen(AUTH_MSG_WELCOME));
+	if (chap->recv_alg != CHAP_ALG_MSOFTv2) {
+	  snprintf(ackMesg, sizeof(ackMesg), "%s", AUTH_MSG_WELCOME);
+	} else {
+	  struct mschapv2value *const pv = (struct mschapv2value *)chap_value;
+	  u_char authresp[20];
+	  char hex[41];
+	  int i;
+
+	  /* Generate MS-CHAPv2 'authenticator response' */
+	  GenerateAuthenticatorResponse(auth.password, pv->ntHash,
+	    pv->peerChal, chap->chal_data, peer_name, authresp);
+	  for (i = 0; i < 20; i++)
+	    sprintf(hex + (i * 2), "%02X", authresp[i]);
+	  snprintf(ackMesg, sizeof(ackMesg),
+	    "S=%s M=%s", hex, AUTH_MSG_WELCOME);
+	}
+	ChapOutput(CHAP_SUCCESS, chp.id, ackMesg, strlen(ackMesg));
 	AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
       }
       break;
@@ -555,7 +589,7 @@ static int
 ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
 	const char *secret, const u_char *challenge, int clen, int local)
 {
-  int	hash_size, off, len;
+  int	hash_size;
 
   switch (alg) {
     case CHAP_ALG_MD5:
@@ -568,8 +602,6 @@ ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
 	MD5Update(&md5ctx, challenge, clen);
 	MD5Final(hash_value, &md5ctx);
 	hash_size = 16;
-	off = 0;
-	len = hash_size;
       }
       break;
 #ifdef MICROSOFT_CHAP
@@ -582,23 +614,23 @@ ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
 	NTChallengeResponse(challenge, secret, val->ntHash);
 	val->useNT = 1;
 	hash_size = 49;
-	off = offsetof(struct mschapvalue, ntHash);
-	len = sizeof(val->ntHash);
       }
       break;
     case CHAP_ALG_MSOFTv2:
       {
-	struct mschapv2value *const val =(struct mschapv2value *) hash_value;
-	const char *strippedusername = strrchr(username, '\\');
+	struct mschapv2value *const val = (struct mschapv2value *) hash_value;
+	const char *s;
 
-	ChapGenRandom(val->peerChal, sizeof(val->peerChal));
-	memset(val->reserved, 0, sizeof(val->reserved));
-	val->flags = 0x04;
-	GenerateNTResponse(challenge, val->peerChal, strippedusername ?
-	  strippedusername + 1 : username, secret, val->ntHash);
+	if ((s = strrchr(username, '\\')) != NULL)
+	  username = s + 1;
+	if (local) {			/* generate reverse 'peer challenge' */
+	  ChapGenRandom(val->peerChal, sizeof(val->peerChal));
+	  memset(val->reserved, 0, sizeof(val->reserved));
+	}
+	GenerateNTResponse(challenge,
+	  val->peerChal, username, secret, val->ntHash);
+
 	hash_size = 49;
-	off = offsetof(struct mschapv2value, ntHash);
-	len = sizeof(val->ntHash);
       }
       break;
 #endif
@@ -631,6 +663,15 @@ ChapHashAgree(int alg, const u_char *self, int slen,
 	if (slen != 49 || plen != 49)
 	  return(0);
 	if (sv->useNT != 1 || pv->useNT != 1)
+	  return(0);
+	return(!memcmp(&sv->ntHash, &pv->ntHash, sizeof(sv->ntHash)));
+      }
+    case CHAP_ALG_MSOFTv2:
+      {
+	struct mschapv2value	*const sv =(struct mschapv2value *) self;
+	struct mschapv2value	*const pv =(struct mschapv2value *) peer;
+
+	if (slen != 49 || plen != 49)
 	  return(0);
 	return(!memcmp(&sv->ntHash, &pv->ntHash, sizeof(sv->ntHash)));
       }

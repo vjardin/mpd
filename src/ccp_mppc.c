@@ -95,7 +95,14 @@ MppcInit(int dir)
   struct ngm_mkpeer	mp;
   char			path[NG_PATHLEN + 1];
   const char		*mppchook, *ppphook;
+  int			mschap;
   int			cmd;
+
+  /* Which type of MS-CHAP did we do? */
+  if (bund->links[0]->originate == LINK_ORIGINATE_LOCAL)
+    mschap = lnk->lcp.peer_chap_alg;
+  else
+    mschap = lnk->lcp.want_chap_alg;
 
   /* Initialize configuration structure */
   memset(&conf, 0, sizeof(conf));
@@ -107,7 +114,7 @@ MppcInit(int dir)
       mppchook = NG_MPPC_HOOK_COMP;
       conf.bits = mppc->xmit_bits;
 #ifdef ENCRYPTION_MPPE
-      if (lnk->lcp.peer_chap_alg == CHAP_ALG_MSOFTv2) {
+      if (mschap == CHAP_ALG_MSOFTv2) {
         MppeInitKeyv2(mppc, dir);
       } else {
         MppeInitKey(mppc, dir);
@@ -121,7 +128,7 @@ MppcInit(int dir)
       mppchook = NG_MPPC_HOOK_DECOMP;
       conf.bits = mppc->recv_bits;
 #ifdef ENCRYPTION_MPPE
-      if (lnk->lcp.peer_chap_alg == CHAP_ALG_MSOFTv2) {
+      if (mschap == CHAP_ALG_MSOFTv2) {
         MppeInitKeyv2(mppc, dir);
       } else {
         MppeInitKey(mppc, dir);
@@ -470,7 +477,7 @@ MppeInitKey(MppcInfo mppc, int dir)
     KEYDEBUG((hash, sizeof(hash), "LMPasswordHash"));
   }
   memcpy(key0, hash, MPPE_KEY_LEN);
-  KEYDEBUG((key0, keylen, "InitialKey"));
+  KEYDEBUG((key0, (bits & MPPE_128) ? 16 : 8, "InitialKey"));
 }
 
 /*
@@ -493,7 +500,8 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
   switch (lnk->originate) {
     case LINK_ORIGINATE_LOCAL:
       if (lnk->lcp.peer_auth != PROTO_CHAP
-	  || lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFT) {
+	  || (lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFT
+	    && lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFTv2)) {
 	Log(LG_ERR,
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
 	goto fail;
@@ -503,7 +511,8 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
       break;
     case LINK_ORIGINATE_REMOTE:
       if (lnk->lcp.want_auth != PROTO_CHAP
-	  || lnk->lcp.want_chap_alg != CHAP_ALG_MSOFT) {
+	  || (lnk->lcp.want_chap_alg != CHAP_ALG_MSOFT
+	    && lnk->lcp.want_chap_alg != CHAP_ALG_MSOFTv2)) {
 	Log(LG_ERR,
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
 	goto fail;
@@ -563,13 +572,15 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   MD4Update(&c, hash, 16);
   MD4Final(hash, &c);
   KEYDEBUG((hash, sizeof(hash), "MD4 of that"));
-  KEYDEBUG((resp, CHAP_MSOFT_CHAL_LEN, "Response"));
+  KEYDEBUG((resp, CHAP_MSOFTv2_CHAL_LEN, "Response"));
   MsoftGetMasterKey(resp, hash);
   KEYDEBUG((hash, sizeof(hash), "GetMasterKey"));
-  MsoftGetAsymetricStartKey(hash, dir == COMP_DIR_XMIT);
+  MsoftGetAsymetricStartKey(hash,
+    (dir == COMP_DIR_RECV) ^
+      (bund->links[0]->originate == LINK_ORIGINATE_LOCAL));
   KEYDEBUG((hash, sizeof(hash), "GetAsymmetricKey"));
   memcpy(key0, hash, MPPE_KEY_LEN);
-  KEYDEBUG((key0, keylen, "InitialKey"));
+  KEYDEBUG((key0, MPPE_KEY_LEN, "InitialKey"));
 }
 
 /*
@@ -589,7 +600,8 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
   switch (lnk->originate) {
     case LINK_ORIGINATE_LOCAL:
       if (lnk->lcp.peer_auth != PROTO_CHAP
-	  || lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFTv2) {
+	  || (lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFT
+	    && lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFTv2)) {
 	Log(LG_ERR,
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
 	goto fail;
@@ -599,7 +611,8 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
       break;
     case LINK_ORIGINATE_REMOTE:
       if (lnk->lcp.want_auth != PROTO_CHAP
-	  || lnk->lcp.want_chap_alg != CHAP_ALG_MSOFTv2) {
+	  || (lnk->lcp.want_chap_alg != CHAP_ALG_MSOFT
+	    && lnk->lcp.want_chap_alg != CHAP_ALG_MSOFTv2)) {
 	Log(LG_ERR,
 	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
 	goto fail;

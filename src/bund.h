@@ -127,8 +127,8 @@
     Link		*links;			/* Real links in this bundle */
     char		peer_authname[AUTH_MAX_AUTHNAME]; /* Peer's authname */
     struct discrim	peer_discrim;		/* Peer's discriminator */
-    u_char		self_msChal[CHAP_MSOFT_CHAL_LEN]; /* MSOFT challenge */
-    u_char		peer_msChal[CHAP_MSOFT_CHAL_LEN]; /* MSOFT challenge */
+    u_char		self_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
+    u_char		peer_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
     u_char		msNTresponse[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT resp */
     u_char		numRecordUp;		/* # links recorded up */
 
