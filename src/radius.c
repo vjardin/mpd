@@ -1,7 +1,7 @@
 /*
  * radius.c
  *
- * Written by Michael Bretterklieber <mbretter@jawa.at>
+ * Written by Michael Bretterklieber <michael@bretterklieber.com>
  * Written by Brendan Bank <brendan@gnarst.net>
  */
 
@@ -1024,9 +1024,14 @@ RadiusAccount(short acct_type)
     int				termCause = RAD_TERM_USER_REQUEST;
     
     if (lnk->downReason != NULL) {
-      if (!strcmp(lnk->downReason, STR_QUIT))		termCause = RAD_TERM_ADMIN_RESET;
-      if (!strcmp(lnk->downReason, STR_PEER_DISC))	termCause = RAD_TERM_USER_REQUEST;
-      if (!strcmp(lnk->downReason, STR_IDLE_TIMEOUT)) 	termCause = RAD_TERM_IDLE_TIMEOUT;
+      if (!strncmp(lnk->downReason, STR_QUIT, strlen(lnk->downReason) - 1)) 
+	termCause = RAD_TERM_ADMIN_RESET;
+      if (!strncmp(lnk->downReason, STR_PEER_DISC, strlen(lnk->downReason) - 1)) 
+	termCause = RAD_TERM_USER_REQUEST;
+      if (!strncmp(lnk->downReason, STR_IDLE_TIMEOUT, strlen(lnk->downReason) - 1))
+	termCause = RAD_TERM_IDLE_TIMEOUT;
+      if (!strncmp(lnk->downReason, STR_SESSION_TIMEOUT, strlen(lnk->downReason) - 1))
+	termCause = RAD_TERM_SESSION_TIMEOUT;
     }
 
     if (rad_put_int(rad->radh, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
