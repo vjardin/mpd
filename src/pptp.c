@@ -519,7 +519,8 @@ PptpHookUp(PptpInfo pptp)
 
   /* Connect ksocket socket to remote IP address */
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
-      NGM_KSOCKET_CONNECT, &peer_addr, sizeof(peer_addr)) < 0) {
+      NGM_KSOCKET_CONNECT, &peer_addr, sizeof(peer_addr)) < 0
+      && errno != EINPROGRESS) {	/* happens in -current (weird) */
     Log(LG_PHYS, ("[%s] can't connect %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
