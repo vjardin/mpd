@@ -33,6 +33,9 @@
 	<item>
 	Implemented authentication against systems password database <tt>master.passwd</tt>.
 	</item>
+	<item>
+	utmp/wtmp logging.
+	</item>
 	</itemize>
     </item>
     <item>
@@ -118,6 +121,10 @@
 	database.
         </item>
 	<item>
+	auth: <tt>utmp-wtmp</tt>, enables/disables utmp/wtmp logging. 
+	database.
+        </item>
+	<item>
 	auth: <tt>timeout</tt>, configureable timeout for the authentication phase.
         </item>
 	<item>
@@ -137,6 +144,9 @@
     </item>
     <item>
 	Get rid of <tt>IA_CUSTOM</tt> define.
+    </item>
+    <item>
+    BugFix: Fixed a mem-leak in the pptp-ctrl stuff.
     </item>
     </itemize>
   </p>

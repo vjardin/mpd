@@ -67,7 +67,7 @@ There are some minor problems:
 Mpd automatically uses attributes like MTU, Idle-Timeout, IP-Address, etc. if they are 
 transmitted by the RADIUS server.
 
-Note: Its possible to use RADIUS-accounting without RADIUS-authentication.
+Note: Its possible to use RADIUS-Accounting without RADIUS-Authentication.
 
 The following attributes are set when doing accounting requests:
 
