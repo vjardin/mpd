@@ -186,6 +186,8 @@ RadiusAccount(AuthData auth)
   }
 
   username = auth->radius.username != NULL ? auth->radius.username : auth->authname;
+  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string (RAD_USER_NAME): %s", 
+    lnk->name, function, username));
   if (rad_put_string(auth->radius.handle, RAD_USER_NAME, username) != 0) {
       /*rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ac->mask) != 0) {*/
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string (RAD_USER_NAME): %s", 
@@ -637,7 +639,7 @@ RadiusStart(AuthData auth, short request_type)
   }
 
   if (auth->radius.state != NULL) {
-      Log(LG_RADIUS, ("[%s] RADIUS: putting RAD_STATE", lnk->name));
+    Log(LG_RADIUS, ("[%s] RADIUS: putting RAD_STATE", lnk->name));
 
     if (rad_put_attr(auth->radius.handle, RAD_STATE, auth->radius.state, auth->radius.state_len) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_STATE) failed %s", 
@@ -646,13 +648,15 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 
-  if (strlen(auth->info.peeraddr))
+  if (strlen(auth->info.peeraddr)) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) %s", 
+      lnk->name, function, auth->info.peeraddr));
     if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, auth->info.peeraddr) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", 
 	lnk->name, function, rad_strerror(auth->radius.handle)));
       return (RAD_NACK);
     }  
- 
+  }
   return RAD_ACK;
 }
 
@@ -972,11 +976,12 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
       case RAD_USER_NAME:
 	tmpval = rad_cvt_string(data, len);
-	auth->radius.username = Malloc(MB_AUTH, strlen(tmpval) + 1);
-	strcpy(auth->radius.username, tmpval);
+	/* copy it into the persistent data struct */
+	a->radius.username = Malloc(MB_AUTH, strlen(tmpval) + 1);
+	strcpy(a->radius.username, tmpval);
 	free(tmpval);
 	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_USER_NAME: %s ",
-	  lnk->name, function, auth->radius.username));
+	  lnk->name, function, a->radius.username));
         break;
 
       case RAD_FRAMED_IP_NETMASK:

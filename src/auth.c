@@ -470,7 +470,7 @@ AuthDataNew(void)
   }
   
   if (a->radius.username != NULL) {
-    auth->radius.username = Malloc(MB_AUTH, strlen(a->radius.username));
+    auth->radius.username = Malloc(MB_AUTH, strlen(a->radius.username) + 1);
     strcpy(auth->radius.username, a->radius.username);
   }
   
@@ -914,7 +914,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
   lnk->lcp.auth.authentic = auth->lnk->lcp.auth.authentic;
   lnk->lcp.auth.params = auth->lnk->lcp.auth.params;
   lnk->lcp.auth.radius = auth->lnk->lcp.auth.radius;  
-  lnk->lcp.auth.msoft = auth->lnk->lcp.auth.msoft;  
+  lnk->lcp.auth.msoft = auth->lnk->lcp.auth.msoft;
   
   if (auth->mschapv2resp != NULL)
     strcpy(auth->ack_mesg, auth->mschapv2resp);
