@@ -14,23 +14,6 @@
 #include "ppp.h"
 
 /*
- * DEFINITIONS
- */
-
-  //#define MBUF_CHECK_OVERRUNS
-
-  #define MBUF_MAGIC_1	0x99999999
-  #define MBUF_MAGIC_2	0xaaaaaaaa
-
-  struct typestat
-  {
-    const short	type;
-    const char	*name;
-    int		count;
-  };
-
-
-/*
  * Malloc()
  *
  * Replacement for the ususal malloc()
@@ -76,11 +59,7 @@ mballoc(const char *type, int size)
   u_long	amount;
   Mbuf		bp;
 
-  #ifdef MBUF_CHECK_OVERRUNS
-    amount = sizeof(*bp) + size + (2 * sizeof(u_int32_t));
-  #else
-    amount = sizeof(*bp) + size;
-  #endif
+  amount = sizeof(*bp) + size;
 
   if ((memory = MALLOC(type, amount)) == NULL)
   {
@@ -96,16 +75,6 @@ mballoc(const char *type, int size)
   bp->type = type;
 
   bp->base = memory + sizeof(*bp);
-
-/* Straddle buffer with magic values to detect overruns */
-
-  #ifdef MBUF_CHECK_OVERRUNS
-    *((u_int32_t *)(void *)(memory + sizeof(*bp))) = MBUF_MAGIC_1;
-    *((u_int32_t *)(void *)(memory + sizeof(*bp)
-	+ sizeof(u_int32_t) + size)) = MBUF_MAGIC_2;
-  #endif
-
-/* Done */
 
   return(bp);
 }
@@ -127,11 +96,7 @@ mbfree(Mbuf bp)
    /* Sanity checks */
 
     assert(bp->base);
-    #ifdef MBUF_CHECK_OVERRUNS
-      assert(bp == (Mbuf)(void *)(bp->base - sizeof(u_int32_t) - sizeof(*bp)));
-    #else
-      assert(bp == (Mbuf)(void *)(bp->base - sizeof(*bp)));
-    #endif
+    assert(bp == (Mbuf)(void *)(bp->base - sizeof(*bp)));
 
     #ifdef MBUF_CHECK_OVERRUNS
       assert(*((u_int32_t *)(void *)(bp->base
