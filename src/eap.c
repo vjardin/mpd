@@ -6,7 +6,6 @@
  */
 
 #include "ppp.h"
-#include "eap.h"
 #include "radius.h"
 #include "auth.h"
 #include "ngfunc.h"
@@ -62,7 +61,6 @@
   static struct confinfo	gConfList[] = {
     { 0,	EAP_CONF_RADIUS,	"radius-proxy"	},
     { 1,	EAP_CONF_MD5,		"md5"		},
-    { 1,	EAP_CONF_CHAPMSv2,	"chap-msv2"	},
     { 0,	0,			NULL		},
   };
 
@@ -80,8 +78,6 @@ EapInit()
   eap = &lnk->lcp.auth.eap;
   Disable(&eap->conf.options, EAP_CONF_MD5);
   Accept(&eap->conf.options, EAP_CONF_MD5);
-  Disable(&eap->conf.options, EAP_CONF_CHAPMSv2);
-  Accept(&eap->conf.options, EAP_CONF_CHAPMSv2);
 }
 
 /*
@@ -99,14 +95,10 @@ EapStart(EapInfo eap, int which)
   /* fill a list of requestable auth types */
   if (Enabled(&eap->conf.options, EAP_CONF_MD5))
     eap->want_types[0] = EAP_TYPE_MD5CHAL;
-  if (Enabled(&eap->conf.options, EAP_CONF_CHAPMSv2))
-    eap->want_types[1] = EAP_TYPE_MSCHAP_V2;
 
   /* fill a list of acceptable auth types */
   if (Acceptable(&eap->conf.options, EAP_CONF_MD5))
     eap->peer_types[0] = EAP_TYPE_MD5CHAL;
-  if (Acceptable(&eap->conf.options, EAP_CONF_CHAPMSv2))
-    eap->peer_types[1] = EAP_TYPE_MSCHAP_V2;
 
   switch (which) {
     case AUTH_PEER_TO_SELF:
@@ -185,7 +177,6 @@ EapSendRequest(u_char type)
   switch (req_type) {
 
     case EAP_TYPE_MD5CHAL:
-    case EAP_TYPE_MSCHAP_V2:
 
       /* Invalidate any old challenge data */
       chap->chal_len = 0;
@@ -273,12 +264,12 @@ EapSendIdentRequest(EapInfo eap)
 void
 EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 {
-  int		data_len = len - 1, i, acc_type;
-  u_char	*data = NULL, type = 0;
   Auth		const a = &lnk->lcp.auth;
   EapInfo	const eap = &a->eap;
   ChapInfo	const chap = &a->chap;
-
+  int		data_len = len - 1, i, acc_type;
+  u_char	*data = NULL, type = 0;
+  
   if (Enabled(&eap->conf.options, EAP_CONF_RADIUS))
     return EapRadiusProxy(code, id, pkt, len);
 
@@ -319,15 +310,15 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	    }
 
 	    if (acc_type == 0) {
-	      Log(LG_AUTH, ("[%s] EAP: Type %s not acceptable", lnk->name, EapType(type)));
+	      Log(LG_AUTH, ("[%s] EAP: Type %s not acceptable", lnk->name,
+	        EapType(type)));
 	      EapSendNak(id, type);
 	      break;
 	    }
 
 	    switch (type) {
 	      case EAP_TYPE_MD5CHAL:
-	      case EAP_TYPE_MSCHAP_V2:
-		chap->xmit_alg = type == EAP_TYPE_MD5CHAL ? CHAP_ALG_MD5 : CHAP_ALG_MSOFTv2;
+		chap->xmit_alg = CHAP_ALG_MD5;
 		ChapInput(PROTO_EAP, CHAP_CHALLENGE, id, &pkt[1], len - 1);
 		break;
 
@@ -365,7 +356,6 @@ EapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	  break;
 
 	case EAP_TYPE_MD5CHAL:
-	case EAP_TYPE_MSCHAP_V2:
 	  ChapInput(PROTO_EAP, CHAP_RESPONSE, id, &pkt[1], len - 1);
 	  break;
 
@@ -607,7 +597,6 @@ EapTypeSupported(u_char type)
     case EAP_TYPE_NOTIF:
     case EAP_TYPE_NAK:
     case EAP_TYPE_MD5CHAL:
-    case EAP_TYPE_MSCHAP_V2:
       return 1;
 
     default:

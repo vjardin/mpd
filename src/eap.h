@@ -24,7 +24,6 @@
   enum {
     EAP_CONF_RADIUS,
     EAP_CONF_MD5,
-    EAP_CONF_CHAPMSv2,
   };
 
   enum {
@@ -49,7 +48,7 @@
     EAP_TYPE_DEFENDER_TOKEN,	/* Defender Token (AXENT) */
     EAP_TYPE_RSA_SECURID,	/* RSA Security SecurID EAP */
     EAP_TYPE_ARCOT,		/* Arcot Systems EAP */
-    EAP_TYPE_CISCO_WIRELESS,	/* EAP-Cisco Wireless */
+    EAP_TYPE_LEAP,		/* EAP-Cisco LEAP (MS-CHAP) */
     EAP_TYPE_NOKIA_IP_SC,	/* Nokia IP smart card authentication */
     EAP_TYPE_SRP_SHA1_1,	/* SRP-SHA1 Part 1 */
     EAP_TYPE_SRP_SHA1_2,	/* SRP-SHA1 Part 2 */
@@ -97,6 +96,7 @@
   };
   typedef struct eapinfo	*EapInfo;
 
+  struct auth_targs;
 /*
  * FUNCTIONS
  */
