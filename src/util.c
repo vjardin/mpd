@@ -1055,6 +1055,26 @@ ShowMesg(int log, const char *buf, int len)
 }
 
 /*
+ * Bin2Hex()
+ */
+
+char *
+Bin2Hex(const unsigned char *bin, int len)
+{
+  static char	hexconvtab[] = "0123456789abcdef";
+  int		i, j;
+  char		*buf;
+  
+  buf = Malloc(MB_UTIL, len * 2 + 1);
+  for (i = j = 0; i < len; i++) {
+    buf[j++] = hexconvtab[bin[i] >> 4];
+    buf[j++] = hexconvtab[bin[i] & 15];
+  }
+  buf[j] = 0;
+  return buf;
+}
+
+/*
  * Crc16()
  *
  * Compute the 16 bit frame check value, per RFC 1171 Appendix B,
