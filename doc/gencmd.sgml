@@ -71,12 +71,11 @@ protocol associated with the currently active bundle.
 <tag>ccp</tag>
 Show status information about the compression control
 protocol associated with the currently active bundle.
-<tag>ecp</tag>
-Show status information about the encryption control
-protocol associated with the currently active bundle.
 <tag>lcp</tag>
 Show status information about the link control
 protocol associated with the currently active link.
+<tag>eap</tag>
+Show status information about EAP.
 <tag>radius</tag>
 Information relating to RADIUS authentication.
 <tag>proto</tag>
@@ -139,6 +138,16 @@ from the default <tt>/etc/radius.conf</tt>.
 Send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server.
 <tag><tt>set radius acct-update <em>seconds</em></tt></tag>
 Set the accounting update interval.
+<tag><tt>set radius enable message-authentic</tt></tag>
+Adds the Message-Authenticator attribute to the RADIUS request.
+</descrip>
+<tag><tt>set eap ...</tt></tag>
+Configures the EAP:
+<descrip>
+<tag><tt>set eap enable radius-proxy</tt></tag>
+Causes Mpd to proxy all EAP requests to the RADIUS server.
+<tag><tt>set eap enable md5</tt></tag>
+Enables the EAP-Type MD5.
 </descrip>
 <tag><tt>set debug ...<em>level</em></tt></tag>
 Sets the <tt>netgraph(3)</tt> debugging level. Default is zero.

@@ -53,6 +53,14 @@
 	<newline><tt><htmlurl url='mailto:archie@freebsd.org'
 	  name='&lt;archie@freebsd.org&gt;'></tt>
 	</name>
+	<name>Michael Bretterklieber
+	<newline><tt><htmlurl url='mailto:michael@bretterklieber.com'
+	  name='&lt;michael@bretterklieber.com&gt;'></tt>
+	</name>
+	<name>Alexander Motin
+	<newline><tt><htmlurl url='mailto:mav@alkar.net'
+	  name='&lt;mav@alkar.net&gt;'></tt>
+	</name>
       </author>
       <date>&date;</date>
 

@@ -222,6 +222,12 @@ Microsoft CHAP style authentication Version 2.
 
 Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
 
+<tag><tt>eap</tt></tag>
+
+Extensible Authentication Protocol.
+
+Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
+
 <tag><tt>acfcomp</tt></tag>
 
 Address and control field compression. This option only applies
@@ -284,6 +290,14 @@ temporarily disables this requirement if we are the one who originated
 the connection and the peer rejects our request for a login.
 
 This is useful when the same link is used for both dial-in and dial-out.
+
+Default <tt><bf>disable</bf></tt>.
+
+<tag><tt>keep-ms-domain</tt></tag>
+
+Normally, if using MS-CHAP, the MS-Domain is stripped and only the plain
+username is used. Under certain circumstances the MS-Domain should be kept,
+for instance if IAS is used as RADIUS server.
 
 Default <tt><bf>disable</bf></tt>.
 

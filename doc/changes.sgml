@@ -9,15 +9,47 @@
     Changes since version 3:
     <itemize>
     <item>
+	Added new option <tt>keep-ms-domain</tt> at link level, this prevents Mpd from
+	stripping the MS-Domain, this is can be useful when using IAS as RADIUS server.
+    </item>
+    <item>
+	RADIUS related changes:
+	<itemize>
+	<item>
+	Added new option <tt>message-authentic</tt>, this adds the Message-Authenticator
+	attribute to the RADIUS request.
+	NOTE: This needs an updated libradius, or apply	this patchset:
+	<tt><htmlurl url='http://www.bretterklieber.com/freebsd/libradius.diff' name='libradius.diff'></tt>
+	</item>
+	<item>
+	Remember and send the RAD_STATE attribute.
+	</item>
+	<item>
+	EAP Proxy Support.
+	</item>
+	</itemize>
+    </item>
+    <item>
+	Implemented the Extensible Authentication Protocol RFC 2284 (EAP). Currently only
+	EAP-MD5 is supported (client and server side).
+	EAP negotiaton can be enabled at link level.
+    </item>
+    <item>
+	Implemented an EAP-RADIUS-Proxy, wich can be activated with
+	<tt>set eap enable radius-proxy</tt>. This causes Mpd to proxy all EAP requests to
+	the RADIUS server, Mpd only makes the initial Identity-Request
+	(this saves one round-trip), every other requests are forwarded to the RADIUS server.
+	This adds the possibility supporting every EAP-Type of the RADIUS server, without
+	implementing each EAP-Type into Mpd.
+	When enabling this option, you need also the updated libradius.
+    </item>
+    <item>
 	Integrated libpdel
 	<itemize>
 	<item>typed_mem(3)</item>
 	<item>pevent(3)</item>
 	<item>alog(3)</item>
         </itemize>
-    </item>
-    <item>
-	Negotiate EAP at LCP level.
     </item>
     </itemize>
   </p>

@@ -41,19 +41,25 @@
 
 <htmlurl url="http://www.ietf.org/rfc/rfc1994.txt" name="RFC 1994 PPP Challenge Handshake Authentication Protocol (CHAP)">
 
+<htmlurl url="http://www.ietf.org/rfc/rfc2284.txt" name="RFC 2284 EAP">
+
 <htmlurl url="http://www.ietf.org/rfc/rfc2427.txt" name="RFC 2427 Multiprotocol Interconnect over Frame Relay">
 
 <htmlurl url="http://www.ietf.org/rfc/rfc2433.txt" name="RFC 2433 Microsoft PPP CHAP Extensions">
 
-<!--
 <htmlurl url="http://www.ietf.org/rfc/rfc2516.txt" name="RFC 2516 A Method for Transmitting PPP Over Ethernet (PPPoE)">
--->
+
+<htmlurl url="http://www.ietf.org/rfc/rfc2548.txt" name="RFC 2548 Microsoft Vendor-specific RADIUS Attributes">
+
+<htmlurl url="http://www.ietf.org/rfc/rfc2637.txt" name="RFC 2637 Point-to-Point Tunneling Protocol (PPTP)">
 
 <htmlurl url="http://www.ietf.org/rfc/rfc2865.txt" name="RFC 2865 Remote Authentication Dial In User Service (RADIUS)">
 
 <htmlurl url="http://www.ietf.org/rfc/rfc2866.txt" name="RFC 2866 RADIUS Accounting">
 
-<htmlurl url="http://www.ietf.org/rfc/rfc2548.txt" name="RFC 2548 Microsoft Vendor-specific RADIUS Attributes">
+<htmlurl url="http://www.ietf.org/rfc/rfc2869.txt" name="RFC 2869 RADIUS Extensions">
+
+<htmlurl url="http://www.ietf.org/rfc/rfc3579.txt" name="RFC 3579 RADIUS EAP">
 
 
 

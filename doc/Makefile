@@ -18,6 +18,7 @@ SRCS+=		chat.sgml
 SRCS+=		trouble.sgml
 SRCS+=		refs.sgml
 SRCS+=		int-auth.sgml
+SRCS+=		todo.sgml
 
 CLEANFILES+=	version.sgml mpd.8 mpd.ps
 

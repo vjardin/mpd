@@ -15,6 +15,7 @@
 	<itemize>
 	<item>Multi-link PPP capability
 	<item>PAP, CHAP, and MS-CHAP authentication
+	<item>EAP (EAP-MD5), EAP-RADIUS Proxy
 	<item>RADIUS authentication and accounting
 	<item>DES and MPPE encryption
 	<item>Stac<bf>*</bf>, and MPPC<bf>*</bf> compression

@@ -19,15 +19,10 @@ Currently MPD doesen't support callback, but it should.
 
 <tag>NAT</tag>
 <p>
-MPD has currently no support for NAT, but it would be great, if he
+Mpd has currently no support for NAT, but it would be great, if he
 can support this. We intend not simply using libalias for this,
 instead a new netgraph node ng_nat would be the right way for doing
 this.
-</p>
-
-<tag>EAP</tag>
-<p>
-Extensible Authentication Protocol. <htmlurl url="http://www.faqs.org/rfcs/rfc2284.html" name="RFC 2284 EAP">
 </p>
 
 <tag>Unimplemented Protocols</tag>
@@ -36,17 +31,10 @@ lcp.c contains a list of protocols (gLcpConfOpts), each protocol with
 "false" is not implemented.
 </p>
 
-<tag>MPD GUI</tag>
+<tag>Integrated Webserver</tag>
 <p>
-A GUI which connects to the terminal port of mpd and is able to configure MPD.
-If possible platform independent.
-</p>
-
-<tag>MPD Client-GUI</tag>
-<p>
-A GUI which is able to initiate client-side connections. This should
-add the possibility for end-users (not admins) to start MPD connections
-from other clients (usualy Windows clients).
+libpdel offers integrating a webserver into Mpd, it could be used for
+configuration and diagnostic purposes.
 </p>
 
 </descrip>
