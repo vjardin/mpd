@@ -1017,9 +1017,9 @@ IfaceSetMTU(int mtu, int speed)
   }
 
   if (Enabled(&iface->options, IFACE_CONF_RADIUSMTU) && rad->valid && (rad->mtu > 0)) {
-    mtu = rad->mtu;
-    Log(LG_IFACE, ("[%s] IFACE: using RADIUS mtu: %d", 
-      bund->name, mtu));
+    iface->max_mtu = rad->mtu;
+    Log(LG_IFACE, ("[%s] IFACE: using RADIUS max. mtu: %d",
+      bund->name, iface->max_mtu));
   }
 
   /* Limit MTU to configured maximum */
