@@ -275,8 +275,14 @@ AuthFailMsg(int proto, int alg, int whyFail)
 	mscode = MSCHAP_ERROR_AUTHENTICATION_FAILURE;
 	break;
     }
-    snprintf(buf, sizeof(buf), "E=%d R=0", mscode);
+
+    if (bund->radius.mschap_error != NULL) {
+      snprintf(buf, sizeof(buf), bund->radius.mschap_error);
+    } else {
+      snprintf(buf, sizeof(buf), "E=%d R=0", mscode);
+    }
     mesg = buf;
+    
   } else {
     switch (whyFail) {
       case AUTH_FAIL_ACCT_DISABLED:

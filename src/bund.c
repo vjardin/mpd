@@ -128,7 +128,9 @@
     { 0,	BUND_CONF_ROUNDROBIN,	"round-robin"	},
     { 0,	BUND_CONF_RADIUSAUTH,	"radius-auth"	},
     { 0,	BUND_CONF_RADIUSFALLBACK,	"radius-fallback"	},
+    { 0,	BUND_CONF_RADIUSACCT,	"radius-acct"	},    
     { 0,	BUND_CONF_NORETRY,	"noretry"	},
+    { 0,	BUND_CONF_TCPWRAPPER,	"tcp-wrapper"	},
     { 0,	0,			NULL		},
   };
 
@@ -257,6 +259,9 @@ BundJoin(void)
 
   /* Update PPP node configuration */
   NgFuncSetConfig();
+  
+  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
+    RadiusAccount(RAD_START);
 
   /* Done */
   return(bm->n_up);
@@ -275,8 +280,12 @@ BundLeave(void)
 
   /* Elvis has left the bundle */
   assert(bm->n_up > 0);
-  BundReasses(0);
+  
+  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT)) 
+    RadiusAccount(RAD_STOP);
 
+  BundReasses(0);
+  
   /* Disable link */
   bund->pppConfig.links[lnk->bundleIndex].enableLink = 0;
   NgFuncSetConfig();

@@ -53,7 +53,7 @@ SYSLOG_FACILITY=	LOG_DAEMON
 
 # Compiler & linker flags
 
-LDADD+=		-lmd
+LDADD+=		-lmd -lwrap
 DPADD+=		${LIBMD}
 LDADD+=		-lnetgraph
 DPADD+=		${LIBNETGRAPH}

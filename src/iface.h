@@ -30,6 +30,9 @@
   #define IFACE_MAX_SCRIPT	128
 
   #define IFACE_IDLE_SPLIT	4
+  
+  #define IFACE_MIN_MTU		296
+  #define IFACE_MAX_MTU		65536
 
   /* Dial-on-demand packet cache */
   struct dodcache {
@@ -53,7 +56,7 @@
     u_short		mtu;			/* Interface MTU */
     u_short		max_mtu;		/* Configured maximum MTU */
     struct optinfo	options;		/* Configuration options */
-    short		idle_timeout;		/* Idle timeout */
+    u_int		idle_timeout;		/* Idle timeout */
     short		n_routes;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
     struct in_addr	self_addr;		/* Interface's IP address */

@@ -11,6 +11,8 @@
 #include "ccp.h"
 #include "msoft.h"
 #include "ngfunc.h"
+#include "bund.h"
+#include "radius.h"
 #include <md4.h>
 
 #include <netgraph/ng_message.h>
@@ -53,6 +55,7 @@
   static int	MppeGetKeyInfo(char **secretp, u_char **challengep);
   static void	MppeInitKeyv2(MppcInfo mppc, int dir);
   static int	MppeGetKeyInfov2(char **secretp, u_char **responsep);
+  static short	MppcEnabledMppeType(short type);
 
 #ifdef DEBUG_KEYS
   static void	KeyDebug(const u_char *data, int len, const char *fmt, ...);
@@ -283,14 +286,11 @@ MppcBuildConfigReq(u_char *cp)
 
 #ifdef ENCRYPTION_MPPE
   /* Encryption */
-  if (Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40))
-    bits |= MPPE_40;
+  if (MppcEnabledMppeType(40)) bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-  if (Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56))
-    bits |= MPPE_56;
+  if (MppcEnabledMppeType(56)) bits |= MPPE_56;
 #endif
-  if (Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128))
-    bits |= MPPE_128;
+  if (MppcEnabledMppeType(128)) bits |= MPPE_128;
 #endif
 
   /* Stateless mode */
@@ -373,17 +373,11 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 	 if the remote side doesn't request encryption, try to prompt it.
 	 This is broken wrt. normal PPP negotiation: typical Microsoft. */
       if ((bits & MPPE_BITS) == 0) {
-	if (Enabled(&ccp->options, gMppe40)
-	    && !CCP_PEER_REJECTED(ccp, gMppe40))
-	  bits |= MPPE_40;
+	if (MppcEnabledMppeType(40)) bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-	if (Enabled(&ccp->options, gMppe56)
-	    && !CCP_PEER_REJECTED(ccp, gMppe56))
-	  bits |= MPPE_56;
+	if (MppcEnabledMppeType(56)) bits |= MPPE_56;
 #endif
-	if (Enabled(&ccp->options, gMppe128)
-	    && !CCP_PEER_REJECTED(ccp, gMppe128))
-	  bits |= MPPE_128;
+	if (MppcEnabledMppeType(128)) bits |= MPPE_128;
       }
 #endif
 
@@ -466,6 +460,43 @@ MppcDescribeBits(u_int32_t bits)
       snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", stateless");
   }
   return(buf);
+}
+
+static short
+MppcEnabledMppeType(short type)
+{
+  CcpState	const ccp = &bund->ccp;
+  struct radius	*rad = &bund->radius;
+  
+  switch (type) {
+  case 40:
+    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+      return (rad->mppe.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
+    } else {
+      return Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
+    }
+    break;
+
+#ifndef MPPE_56_UNSUPPORTED
+  case 56:
+    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+      return (rad->mppe.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
+    } else {
+      return Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
+    }
+
+    break;
+#endif
+      
+  case 128:
+  default:
+    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+      return (rad->mppe.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
+    } else {
+      return Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
+    }
+  }
+
 }
 
 #ifdef ENCRYPTION_MPPE

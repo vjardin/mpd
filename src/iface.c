@@ -14,6 +14,7 @@
 #include "custom.h"
 #include "ngfunc.h"
 #include "netgraph.h"
+#include "radius.h"
 #include <sys/sockio.h>
 #include <net/if.h>
 #include <net/if_types.h>
@@ -28,8 +29,6 @@
  */
 
   #define MAX_INTERFACES	32
-  #define IFACE_MIN_MTU		296
-  #define IFACE_MAX_MTU		65536
 
 /* Set menu options */
 
@@ -49,6 +48,8 @@
   enum {
     IFACE_CONF_ONDEMAND,
     IFACE_CONF_PROXY,
+    IFACE_CONF_RADIUSMTU,
+    IFACE_CONF_RADIUSIDLE,
   };
 
 /*
@@ -97,6 +98,8 @@
   static const struct confinfo	gConfList[] = {
     { 0,	IFACE_CONF_ONDEMAND,	"on-demand"	},
     { 0,	IFACE_CONF_PROXY,	"proxy-arp"	},
+    { 0,	IFACE_CONF_RADIUSMTU,	"radius-mtu"	},
+    { 0,	IFACE_CONF_RADIUSIDLE,	"radius-idle"	},        
     { 0,	0,			NULL		},
   };
 
@@ -193,6 +196,7 @@ void
 IfaceUp(struct in_addr self, struct in_addr peer)
 {
   IfaceState	const iface = &bund->iface;
+  struct radius	*rad = &bund->radius;  
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
   SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
@@ -205,6 +209,13 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 
   /* Start idle timer */
   TimerStop(&iface->idleTimer);
+  
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSIDLE) && rad->valid) {
+    iface->idle_timeout = rad->idle_timeout;
+    Log(LG_IFACE, ("[%s] IFACE: using RADIUS idle-timeout: %d seconds", 
+      bund->name, iface->idle_timeout));
+  }
+
   if (iface->idle_timeout > 0) {
     char	path[NG_PATHLEN + 1];
 
@@ -275,6 +286,9 @@ IfaceDown(void)
   TimerStop(&iface->idleTimer);
   if (!iface->open)
     return;
+    
+  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) 
+    RadiusDown();
 
   /* If dial-on-demand, this is OK; just listen for future demand */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
@@ -887,6 +901,7 @@ IfaceSetMTU(int mtu, int speed)
   IfaceState	const iface = &bund->iface;
   struct ifreq	ifr;
   int		s;
+  struct radius	*rad = &bund->radius;
 
   /* Get socket */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -895,8 +910,18 @@ IfaceSetMTU(int mtu, int speed)
   }
 
   /* Limit MTU to configured maximum */
-  if (mtu > iface->max_mtu)
-    mtu = iface->max_mtu;
+  if (mtu > iface->max_mtu) {
+  
+    if (Enabled(&iface->options, IFACE_CONF_RADIUSMTU) && rad->valid && (rad->mtu > 0)) {
+      mtu = rad->mtu;
+      Log(LG_IFACE, ("[%s] IFACE: using RADIUS mtu: %d", 
+        bund->name, mtu));
+        
+    } else {
+      mtu = iface->max_mtu;
+    }
+    
+  }
 
   /* Set MTU on interface */
   memset(&ifr, 0, sizeof(ifr));

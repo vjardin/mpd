@@ -88,6 +88,7 @@
   extern int			gMppe56;
   extern int			gMppe128;
   extern int			gMppcStateless;
+  extern int			gCcpRadius;
 
 /*
  * FUNCTIONS

@@ -27,6 +27,8 @@
   #define CHAP_RESPONSE		2
   #define CHAP_SUCCESS		3
   #define CHAP_FAILURE		4
+  #define CHAP_MS_V1_CHANGE_PW	5
+  #define CHAP_MS_V2_CHANGE_PW	7
 
 /*
  * INTERNAL FUNCTIONS
@@ -508,7 +510,12 @@ ChapInput(Mbuf bp)
 badResponse:
 	  failMesg = AuthFailMsg(PROTO_CHAP, chap->recv_alg, whyFail);
 	  ChapOutput(CHAP_FAILURE, chp.id, failMesg, strlen(failMesg));
-	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, &auth);
+/* XXX mbretter: HACK look if the peer should change the password 
+          if (strstr(failMesg, "E=648") != NULL) {
+	    Log(LG_AUTH, (" Password change requested"));
+          } else {*/
+	    AuthFinish(AUTH_PEER_TO_SELF, FALSE, &auth);
+/*          }*/
 	  break;
 	}
 
@@ -573,6 +580,35 @@ goodResponse:
       if (bp)
 	ShowMesg(LG_AUTH, (char *) MBDATA(bp), len);
       AuthFinish(AUTH_SELF_TO_PEER, chp.code == CHAP_SUCCESS, NULL);
+      break;
+      
+    case CHAP_MS_V1_CHANGE_PW:
+      Log(LG_AUTH, ("[%s] CHAP: Sorry changing passwords using MS-CHAPv1 is not yet implemented", lnk->name));
+      goto badResponse;
+      break;
+
+    case CHAP_MS_V2_CHANGE_PW:
+      {
+/* XXX mbretter: HACK */
+/*        u_char	*const mschap_cpw = bp ? MBDATA(bp) : NULL;
+        int	res;
+	int	whyFail;        
+*/
+
+	Log(LG_AUTH, ("[%s] CHAP: Sorry changing passwords using MS-CHAPv2 is not yet implemented", lnk->name));
+        goto badResponse;
+        
+/*	res = RadiusMSCHAPChangePassword(mschap_cpw, len, chap->chal_data, chap->chal_len, chp.id, chap->recv_alg);
+        if (res == RAD_NACK) {
+	  whyFail = AUTH_FAIL_INVALID_LOGIN;
+	  goto badResponse;
+        } else {
+	  RadiusSetAuth(&auth);
+	  goto goodResponse;
+        }*/
+
+      }
+
       break;
 
     default:

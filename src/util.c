@@ -9,7 +9,9 @@
 
 #include "ppp.h"
 #include <termios.h>
+
 #include <netdb.h>
+#include <tcpd.h>
 
 /*
  * DEFINITIONS
@@ -1000,6 +1002,7 @@ TcpAcceptConnection(int sock, struct sockaddr_in *addr)
 {
   int	new_sock;
   int	size = sizeof(*addr);
+  struct request_info req;
 
 /* Accept incoming connection */
 
@@ -1008,6 +1011,18 @@ TcpAcceptConnection(int sock, struct sockaddr_in *addr)
     Perror("accept");
     return(-1);
   }
+  
+  if (Enabled(&bund->conf.options, BUND_CONF_TCPWRAPPER)) {
+    request_init(&req, RQ_DAEMON, "mpd", RQ_FILE, new_sock, NULL);
+    fromhost(&req);
+    if (!hosts_access(&req)) {
+      Log(LG_ERR, ("[%s] refused connection (tcp-wrapper) from %s", 
+        bund->name, eval_client(&req)));
+      close(new_sock);
+      return(-1);
+    }
+  }
+  
   (void) fcntl(new_sock, F_SETFD, 1);
   if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0) {
     Perror("fcntl");

@@ -25,6 +25,7 @@
 #define AUTH_LEN		16
 #define SALT_LEN		2
 
+#define MPPE_POLICY_NONE	0
 #define MPPE_POLICY_ALLOWED	1
 #define MPPE_POLICY_REQUIRED	2
 
@@ -37,16 +38,24 @@
  * FUNCTIONS
  */
 
-extern int	RadiusAuthenticate(const char *name, const char *password,
-			int passlen, const char *challenge, int challenge_size,
-			u_char chapid, int auth_type);
 extern int	RadiusPAPAuthenticate(const char *name, const char *password);
 extern int	RadiusCHAPAuthenticate(const char *name, const char *password,
 			int passlen, const char *challenge, int challenge_size,
 			u_char chapid, int chap_type);
+extern int	RadiusMSCHAPChangePassword(const char *mschapvalue, int mschapvaluelen, const char *challenge, 
+			int challenge_size, u_char chapid, int chap_type);
+extern int	RadiusStart(short request_type);
+extern int	RadiusPutAuth(const char *name, const char *password,
+			int passlen, const char *challenge, int challenge_size,
+			u_char chapid, int auth_type);
+extern int	RadiusPutChangePassword(const char *mschapvalue, int mschapvaluelen, u_char chapid, int chap_type); 
+extern int	RadiusSendRequest(void);
 extern int	RadiusGetParams(void);
+extern int	RadiusAccount(short acct_type);
 extern void	RadiusSetAuth(AuthData auth);
 extern int	RadStat(int ac, char *av[], void *arg);
+extern void	RadiusDestroy(void);
+extern void	RadiusDown(void);
 
 extern const	struct cmdtab RadiusSetCmds[];
 
@@ -71,13 +80,23 @@ extern const	struct cmdtab RadiusSetCmds[];
   struct radius {
     struct rad_handle	*radh;		/* RadLib Handle */
     short		valid;		/* Auth was successful */
+    char		*reply_message;	/* Text wich may displayed to the user */
     char		authname[AUTH_MAX_AUTHNAME];
+    char		session_id[256];	/* Session-Id needed for accounting */
+    char		multi_session_id[256];	/* Multi-Session-Id needed for accounting */
+    time_t		acct_start;	/* Accounting start-time */
     unsigned		vj:1;		/* FRAMED Compression */
     struct in_addr	ip;		/* FRAMED IP */
     struct in_addr	mask;	/* FRAMED Netmask */
+    unsigned long	class;		/* Class */
     unsigned long	mtu;		/* FRAMED MTU */
-    unsigned long	sessiontime;	/* Session-Timeout */
+    unsigned long	session_timeout;/* Session-Timeout */
+    unsigned long	idle_timeout;	/* Idle-Timeout */
+    unsigned long	protocol;	/* FRAMED Protocol */
+    unsigned long	service_type;	/* Service Type */
     char		*filterid;	/* FRAMED Filter Id */
+    char		*msdomain;	/* Microsoft domain */
+    char		*mschap_error;	/* MSCHAP Error Message */    
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */
     struct {
       int	policy;			/* MPPE_POLICY_* */
@@ -93,24 +112,40 @@ extern const	struct cmdtab RadiusSetCmds[];
     struct radiusconf	conf;
   };
 
-  struct chap_response {
+  struct rad_chapvalue {
     u_char	ident;
     u_char	response[CHAP_MAX_VAL];
   };
 
-  struct mschap_response {
+  struct rad_mschapvalue {
     u_char	ident;
     u_char	flags;
     u_char	lm_response[24];
     u_char	nt_response[24];
   };
 
-  struct mschapv2_response {
+  struct rad_mschapv2value {
     u_char	ident;
     u_char	flags;
     u_char	pchallenge[16];
     u_char	reserved[8];
     u_char	response[24];
   };
-
+  
+  struct rad_mschapv2value_cpw {
+    u_char	code;
+    u_char	ident;
+    u_char	encryptedHash[16];
+    u_char	pchallenge[16];
+    u_char	reserved[8];    
+    u_char	nt_response[24];
+    u_char	flags[2]; 
+  };
+  
+  struct rad_mschap_new_nt_pw {
+    u_char	ident;
+    short	chunk;
+    u_char	data[129];
+  };
+  
 #endif

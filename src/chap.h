@@ -67,7 +67,16 @@
     u_char	ntHash[24];
     u_char	flags;
   };
-	
+  
+  struct mschapv2value_cpw {
+    u_char	encryptedPass[516];
+    u_char	encryptedHash[16];
+    u_char	peerChal[16];
+    u_char	reserved[8];
+    u_char	ntResponse[24];    
+    u_char	flags[2];
+  };
+ 
 /*
  * FUNCTIONS
  */
