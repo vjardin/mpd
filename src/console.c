@@ -213,8 +213,9 @@ GetConsoleInput(void)
 	  while (line[strlen(line) - 1] == '\n'
 	      || line[strlen(line) - 1] == '\r')
 	    line[strlen(line) - 1] = 0;
-	  if (AuthGetData(gLoginAuthName, &auth, 1, NULL) < 0
-	    || strcmp(line, auth.password))
+	  memset(&auth, 0, sizeof(auth));
+	  strlcpy(auth.authname, gLoginAuthName, sizeof(auth.authname));
+	  if (AuthGetData(&auth, 1, NULL) < 0 || strcmp(line, auth.password))
 	  {
 	    printf("Login incorrect.\n");
 	    exitflag = TRUE;

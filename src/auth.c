@@ -119,7 +119,7 @@ AuthFinish(int which, int ok, AuthData auth)
   }
 
   /* Notify external auth program if needed */
-  if (auth->external) {
+  if (which == AUTH_PEER_TO_SELF && auth->external) {
     ExecCmd(LG_AUTH, "%s %s %s", auth->extcmd,
       ok ? "-y" : "-n", auth->authname);
   }
@@ -162,7 +162,7 @@ AuthStop(void)
  */
 
 int
-AuthGetData(const char *authname, AuthData auth, int complain, int *whyFail)
+AuthGetData(AuthData auth, int complain, int *whyFail)
 {
   FILE		*fp;
   int		ac;
@@ -174,15 +174,14 @@ AuthGetData(const char *authname, AuthData auth, int complain, int *whyFail)
     *whyFail = AUTH_FAIL_INVALID_LOGIN;
 
   /* Check authname, must be non-empty */
-  if (!authname || *authname == 0) {
+  if (*auth->authname == 0) {
     if (complain)
       Log(LG_AUTH, ("mpd: empty auth name"));
     return(-1);
   }
 
   /* Use manually configured login and password, if given */
-  if (*bund->conf.password && !strcmp(authname, bund->conf.authname)) {
-    snprintf(auth->authname, sizeof(auth->authname), "%s", authname);
+  if (*bund->conf.password && !strcmp(auth->authname, bund->conf.authname)) {
     snprintf(auth->password, sizeof(auth->password), "%s", bund->conf.password);
     memset(&auth->range, 0, sizeof(auth->range));
     auth->range_valid = auth->external = FALSE;
@@ -197,9 +196,8 @@ AuthGetData(const char *authname, AuthData auth, int complain, int *whyFail)
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
     Freee(line);
     if (ac >= 2
-	&& (strcmp(av[0], authname) == 0
+	&& (strcmp(av[0], auth->authname) == 0
 	 || (av[1][0] == '!' && strcmp(av[0], "*") == 0))) {
-      snprintf(auth->authname, sizeof(auth->authname), "%s", av[0]);
       if (av[1][0] == '!') {		/* external auth program */
 	snprintf(auth->extcmd, sizeof(auth->extcmd), "%s", av[1] + 1);
 	auth->external = TRUE;
@@ -226,7 +224,7 @@ AuthGetData(const char *authname, AuthData auth, int complain, int *whyFail)
   fclose(fp);
 
 #ifdef IA_CUSTOM
-  return(CustomAuthData(authname, auth, whyFail));
+  return(CustomAuthData(auth, whyFail));
 #else
   return(-1);		/* Invalid */
 #endif

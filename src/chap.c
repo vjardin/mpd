@@ -380,9 +380,13 @@ ChapInput(Mbuf bp)
 	name_len = strlen(name);
 	Log(LG_AUTH, (" Using authname \"%s\"", name));
 
+	/* Initialize 'auth' info */
+	memset(&auth, 0, sizeof(auth));
+	strlcpy(auth.authname, name, sizeof(auth.authname));
+
 	/* Get the corresponding secret */
-	if (AuthGetData(name, &auth, 1, NULL) < 0) {
-	  Log(LG_AUTH, (" Warning: no secret for \"%s\" found", name));
+	if (AuthGetData(&auth, 1, NULL) < 0) {
+	  Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth.authname));
 	  break;
 	}
 
@@ -458,6 +462,11 @@ ChapInput(Mbuf bp)
 	if (chap->recv_alg == CHAP_ALG_MSOFTv2)
 	  memcpy(hash_value, chap_value, 16);
 
+	/* Initialize 'auth' info */
+	memset(&auth, 0, sizeof(auth));
+	strlcpy(auth.authname, peer_name, sizeof(auth.authname));
+
+	/* Try RADIUS auth if configured */
 	if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) {
 	  radRes = RadiusCHAPAuthenticate(peer_name, chap_value,
 	    chap_value_size, chap->chal_data, chap->chal_len, chp.id,
@@ -473,9 +482,9 @@ ChapInput(Mbuf bp)
 	}
 
 	/* Get peer's secret key */
-	Log(LG_AUTH, (" Peer name: \"%s\"", peer_name));
-	if (AuthGetData(peer_name, &auth, 1, &whyFail) < 0) {
-	  Log(LG_AUTH, (" Can't get credentials for \"%s\"", peer_name));
+	Log(LG_AUTH, (" Peer name: \"%s\"", auth.authname));
+	if (AuthGetData(&auth, 1, &whyFail) < 0) {
+	  Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth.authname));
 	  goto badResponse;
 	}
 
@@ -497,7 +506,7 @@ ChapInput(Mbuf bp)
 badResponse:
 	  failMesg = AuthFailMsg(PROTO_CHAP, chap->recv_alg, whyFail);
 	  ChapOutput(CHAP_FAILURE, chp.id, failMesg, strlen(failMesg));
-	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, &auth);
 	  break;
 	}
 

@@ -89,11 +89,11 @@ PapSendRequest(PapInfo pap)
   u_char		*pkt;
 
   /* Get password corresponding to my authname */
-  snprintf(auth.authname, sizeof(auth.authname), "%s", bund->conf.authname);
-  *auth.password = 0;
+  memset(&auth, 0, sizeof(auth));
+  strlcpy(auth.authname, bund->conf.authname, sizeof(auth.authname));
   Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", lnk->name, auth.authname));
-  if (AuthGetData(auth.authname, &auth, 1, NULL) < 0)
-    Log(LG_AUTH, (" Warning: no secret for \"%s\" found", bund->conf.authname));
+  if (AuthGetData(&auth, 1, NULL) < 0)
+    Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth.authname));
 
   /* Build response packet */
   name_len = strlen(auth.authname);
@@ -189,6 +189,11 @@ PapInput(Mbuf bp)
 	memcpy(pass, pass_ptr, pass_len);
 	pass[pass_len] = 0;
 
+	/* Initialize 'auth' info */
+	memset(&auth, 0, sizeof(auth));
+	strlcpy(auth.authname, name, sizeof(auth.authname));
+
+	/* Try RADIUS auth if configured */
 	if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) {
 	  radRes = RadiusPAPAuthenticate(name, pass);
 	  if (radRes == RAD_ACK) {
@@ -202,9 +207,9 @@ PapInput(Mbuf bp)
 	}
 
 	/* Get auth data for this system */
-	Log(LG_AUTH, (" Peer name: \"%s\"", name));
-	if (AuthGetData(name, &auth, 1, &whyFail) < 0) {
-	  Log(LG_AUTH, (" Can't get credentials for \"%s\"", name));
+	Log(LG_AUTH, (" Peer name: \"%s\"", auth.authname));
+	if (AuthGetData(&auth, 1, &whyFail) < 0) {
+	  Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth.authname));
 	  goto badRequest;
 	}
 
@@ -215,7 +220,7 @@ PapInput(Mbuf bp)
 badRequest:
 	  failMesg = AuthFailMsg(PROTO_PAP, 0, whyFail);
 	  PapOutput(PAP_NAK, php.id, failMesg, strlen(failMesg), 1);
-	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, &auth);
 	  break;
 	}
 

@@ -898,7 +898,7 @@ IfaceSetMTU(int mtu, int speed)
   Log(LG_BUND|LG_IFACE, ("[%s] setting interface %s MTU to %d bytes",
     bund->name, bund->iface.ifname, mtu));
   if (ioctl(s, SIOCSIFMTU, (char *)&ifr) < 0)
-    Perror("ioctl(%s)", "SIOCSIFMTU");
+    Perror("ioctl(%s, %s)", bund->iface.ifname, "SIOCSIFMTU");
   close(s);
 
   /* Save MTU */
