@@ -102,6 +102,8 @@ AuthInit(void)
   Disable(&ac->radius.options, AUTH_CONF_RADIUS_ACCT);
   
   Enable(&ac->options, AUTH_CONF_INTERNAL);
+
+  Enable(&ac->options, AUTH_CONF_MPPC_POL);
   
   /* default auth timeout */
   ac->timeout = 40;
