@@ -521,84 +521,6 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
 
 }
 
-/* XXX mbretter: b0rked */
-int
-RadiusPutChangePassword(const char *mschapvalue, int mschapvaluelen, u_char chapid, int chap_type) 
-{
-  static char			function[] = "RadiusPutChangePassword";
-  struct radius			*rad = &bund->radius;
-  struct mschapv2value_cpw	*mschapv2val_cpw;
-  struct rad_mschapv2value_cpw	rad_mschapv2val_cpw;
-  struct rad_mschap_new_nt_pw	new_nt_pw;
-  int				chunk;
-
-  switch (chap_type) {
-
-    case CHAP_ALG_MSOFT:
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: Password changing using MS-CHAPv1 not implemented",
-	lnk->name, function));
-      return (RAD_NACK);
-      break;
-    
-    case CHAP_ALG_MSOFTv2:
-    
-      mschapv2val_cpw = (struct mschapv2value_cpw *)mschapvalue;
-      if (mschapvaluelen != sizeof(*mschapv2val_cpw)) {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d",
-	  lnk->name, function,
-          mschapvaluelen, sizeof(*mschapv2val_cpw)));
-        return RAD_NACK;
-      }
-      
-      rad_mschapv2val_cpw.code = 7;
-      rad_mschapv2val_cpw.ident = chapid;
-      memcpy(rad_mschapv2val_cpw.encryptedHash,	mschapv2val_cpw->encryptedHash,
-	sizeof rad_mschapv2val_cpw.encryptedHash);
-      memcpy(rad_mschapv2val_cpw.pchallenge,	mschapv2val_cpw->peerChal,
-	sizeof rad_mschapv2val_cpw.pchallenge);
-      memset(rad_mschapv2val_cpw.reserved,	'\0',
-	sizeof rad_mschapv2val_cpw.reserved);
-      memcpy(rad_mschapv2val_cpw.nt_response,	mschapv2val_cpw->ntResponse,
-	sizeof rad_mschapv2val_cpw.nt_response);
-      memcpy(rad_mschapv2val_cpw.flags,		mschapv2val_cpw->flags,
-	sizeof rad_mschapv2val_cpw.flags);
-
-      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP2_PW,
-	  &rad_mschapv2val_cpw, sizeof rad_mschapv2val_cpw) == -1)  {
-        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP2_PW) failed %s",
-	  lnk->name, function, rad_strerror(rad->radh)));
-	RadiusClose();        
-        return (RAD_NACK);
-      }
-
-      new_nt_pw.ident = chapid;
-        
-      for (chunk = 0; chunk < 4; chunk++) {
-        new_nt_pw.chunk = chunk;
-        printf("Chunk:%d\n",chunk);
-        memcpy(new_nt_pw.data, &mschapv2val_cpw->encryptedPass[(sizeof new_nt_pw.data) * chunk],
-	  sizeof new_nt_pw.data);
-
-        if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_NT_ENC_PW,
-	    &new_nt_pw, sizeof new_nt_pw) == -1)  {
-          Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_NT_ENC_PW) failed %s",
-	    lnk->name, function, rad_strerror(rad->radh)));
-	  RadiusClose();
-          return (RAD_NACK);
-        }
-      }
-      break;
-  
-    default:
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS auth type unkown", lnk->name, function));
-      RadiusClose();      
-      return (RAD_NACK);
-      break;
-  }
-
-  return RAD_ACK;
-}
-
 int RadiusSendRequest(void)
 {
   static char		function[] = "RadiusSendRequest";
@@ -736,49 +658,6 @@ RadiusCHAPAuthenticate(const char *name, const char *password, int passlen,
   if (RadiusSendRequest() == RAD_NACK) 
     return RAD_NACK;
 
-  if (RadiusGetParams() == RAD_NACK) 
-    return RAD_NACK;
-  
-  if (rad->valid) {
-    lnk->radius.authentic = 1;
-    return RAD_ACK;
-  } else {
-    return RAD_NACK;
-  }
-  
-}
-
-/* XXX mbretter: b0rked */
-int
-RadiusMSCHAPChangePassword(const char *mschapvalue, int mschapvaluelen, const char *challenge, 
-	int challenge_size, u_char chapid, int chap_type) 
-{
-  static char			function[] = "RadiusMSCHAPChangePassword";
-  struct radius			*rad = &bund->radius;
-  struct mschapv2value_cpw	*mschapv2val_cpw;
-  struct mschapv2value		*mschapv2val;
-  
-  if (chap_type != CHAP_ALG_MSOFTv2) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: must use MS-CHAPv2 for changing passwords", lnk->name, function));
-    return RAD_NACK;
-  }
-
-  if (RadiusStart(RAD_ACCESS_REQUEST) == RAD_NACK) 
-    return RAD_NACK;
-  
-  mschapv2val_cpw = (struct mschapv2value_cpw *)mschapvalue;
-  mschapv2val = (struct mschapv2value *)mschapv2val_cpw->encryptedHash;
-
-  if (RadiusPutChangePassword(mschapvalue, mschapvaluelen, chapid, chap_type) == RAD_NACK) 
-    return RAD_NACK;
-
-  if (RadiusPutAuth(rad->authname, (const char *)mschapv2val, sizeof *mschapv2val, challenge,
-      challenge_size, chapid, chap_type) == RAD_NACK)
-      return RAD_NACK;
-
-  if (RadiusSendRequest() == RAD_NACK) 
-    return RAD_NACK;
-    
   if (RadiusGetParams() == RAD_NACK) 
     return RAD_NACK;
   

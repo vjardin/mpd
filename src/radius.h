@@ -69,13 +69,10 @@ extern int	RadiusPAPAuthenticate(const char *name, const char *password);
 extern int	RadiusCHAPAuthenticate(const char *name, const char *password,
 			int passlen, const char *challenge, int challenge_size,
 			u_char chapid, int chap_type);
-extern int	RadiusMSCHAPChangePassword(const char *mschapvalue, int mschapvaluelen, const char *challenge, 
-			int challenge_size, u_char chapid, int chap_type);
 extern int	RadiusStart(short request_type);
 extern int	RadiusPutAuth(const char *name, const char *password,
 			int passlen, const char *challenge, int challenge_size,
 			u_char chapid, int auth_type);
-extern int	RadiusPutChangePassword(const char *mschapvalue, int mschapvaluelen, u_char chapid, int chap_type); 
 extern int	RadiusSendRequest(void);
 extern int	RadiusGetParams(void);
 extern int	RadiusAccount(short acct_type);
