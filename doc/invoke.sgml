@@ -64,6 +64,13 @@
 	<tt>/usr/local/etc/mpd</tt>.
 
 	<tag><tt>
+	-f  --file <em>filename</em>
+	</tt></tag>
+
+	Specify an initial configuration file other than the default,
+	<tt>mpd.conf</tt>.
+
+	<tag><tt>
 	-p  --pidfile <em>filename</em>
 	</tt></tag>
 
