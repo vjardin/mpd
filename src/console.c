@@ -123,6 +123,7 @@ ConsoleConnect(int type, void *cookie)
 {
   struct sockaddr_in	addr;
   char			filename[30];
+  int fdi=-1, fdo=-1;
 
   assert(gConsoleFd < 0);
   if ((gConsoleFd = TcpAcceptConnection(gListenFd, &addr)) < 0)
@@ -149,23 +150,33 @@ ConsoleConnect(int type, void *cookie)
 
 /* Associate stdin and stdout with this new socket */
 
-  snprintf(filename, sizeof(filename), "/dev/fd/%d", gConsoleFd);
-  if (freopen(filename, "r", stdin) == NULL)
-  {
-    (void) close(gConsoleFd);
-    gConsoleFd = -1;
-    Perror("freopen(%s)", filename);
-    Log(LG_ERR, ("mpd: can't freopen() stdin"));
-    goto done;
-  }
-  if (freopen(filename, "w", stdout) == NULL)
-  {
-    (void) close(gConsoleFd);
-    gConsoleFd = -1;
-    Perror("freopen(%s)", filename);
-    Log(LG_ERR, ("mpd: can't freopen() stdout"));
-    goto done;
-  }
+    if (stdin != NULL) {
+	fclose(stdin);
+	stdin = NULL;
+    }
+    fdi = dup(gConsoleFd);
+    if ((stdin = fdopen(fdi, "r")) == NULL) {
+	Perror("fdopen(%d)", fdi);
+	Log(LG_ERR, ("mpd: can't fdopen() stdin"));
+	(void) close(fdi);
+	(void) close(gConsoleFd);
+	gConsoleFd = -1;
+	goto done;
+    }
+    
+    if (stdout != NULL) {
+	fclose(stdout);
+	stdout = NULL;
+    }
+    fdo = dup(gConsoleFd);
+    if ((stdout = fdopen(fdo, "w")) == NULL) {
+	Perror("fdopen(%d)", gConsoleFd);
+	Log(LG_ERR, ("mpd: can't fdopen() stdout"));
+	(void) close(fdo);
+	(void) close(gConsoleFd);
+	gConsoleFd = -1;
+	goto done;
+    }
 
 /* Login required? */
 
