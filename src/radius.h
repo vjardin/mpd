@@ -97,7 +97,6 @@ extern const	struct cmdtab RadiusSetCmds[];
     unsigned		vj:1;		/* FRAMED Compression */
     struct in_addr	ip;		/* FRAMED IP */
     struct in_addr	mask;	/* FRAMED Netmask */
-    short		was_n_routes;	/* Number of existing iface-routes */
     short		n_routes;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
     unsigned long	class;		/* Class */

@@ -461,8 +461,7 @@ IfaceIpIfaceUp(int ready)
   ExecCmd(LG_IFACE, "%s add %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE) && (bund->radius.n_routes > 0)) {
-    bund->radius.was_n_routes = iface->n_routes;
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE)) {
     for (i=0; (i < bund->radius.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
       memcpy(&(iface->routes[iface->n_routes++]), &(bund->radius.routes[i]), sizeof(struct ifaceroute));
     };
@@ -566,8 +565,8 @@ IfaceIpIfaceDown(void)
     r->ok = 0;
   }
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE) && (bund->radius.n_routes > 0)) {
-    iface->n_routes = bund->radius.was_n_routes;
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSROUTE)) {
+    iface->n_routes=0;
   };
 
   /* Delete loopback route */
