@@ -70,6 +70,9 @@
 #if NGM_PPTPGRE_COOKIE >= 942783547
     PPTP_CONF_ALWAYS_ACK,	/* include ack with all outgoing data packets */
 #endif
+#if NGM_PPTPGRE_COOKIE >= 1082548365
+    PPTP_CONF_WINDOWING,	/* control (stupid) windowing algorithm */
+#endif
   };
 
 /*
@@ -82,6 +85,7 @@
   static void	PptpShutdown(PhysInfo p);
   static void	PptpStat(PhysInfo p);
   static int	PptpOriginated(PhysInfo p);
+  static int	PptpPeerAddr(PhysInfo p, void *buf, int buf_len);
 
   static void	PptpInitCtrl(void);
   static int	PptpOriginate(PptpInfo pptp);
@@ -123,6 +127,7 @@
     PptpShutdown,
     PptpStat,
     PptpOriginated,
+    PptpPeerAddr,
   };
 
   const struct cmdtab	PptpSetCmds[] = {
@@ -153,6 +158,9 @@
     { 0,	PPTP_CONF_DELAYED_ACK,	"delayed-ack"	},
 #if NGM_PPTPGRE_COOKIE >= 942783547
     { 0,	PPTP_CONF_ALWAYS_ACK,	"always-ack"	},
+#endif
+#if NGM_PPTPGRE_COOKIE >= 1082548365
+    { 0,	PPTP_CONF_WINDOWING,	"windowing"	},
 #endif
     { 0,	0,			NULL		},
   };
@@ -185,6 +193,9 @@ PptpInit(PhysInfo p)
   pptp = (PptpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pptp)));
   Enable(&pptp->options, PPTP_CONF_OUTCALL);
   Enable(&pptp->options, PPTP_CONF_DELAYED_ACK);
+#if NGM_PPTPGRE_COOKIE >= 1082548365
+  Enable(&pptp->options, PPTP_CONF_WINDOWING);
+#endif
   return(0);
 }
 
@@ -341,26 +352,6 @@ PptpKillNode(PptpInfo pptp)
   NgFuncShutdownNode(bund, lnk->name, path);
 }
 
-/*
- * PptpGetPeerIp()
- */
-
-struct in_addr *
-PptpGetPeerIp(void)
-{
-  PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
-
-  if (lnk->phys->type == &gPptpPhysType) {
-     return(&(pptp->peer_addr));
-  } else {
-     return((struct in_addr *)NULL);
-  };
-}
-
-/*
- * PptpOriginated()
- */
-
 static int
 PptpOriginated(PhysInfo p)
 {
@@ -368,6 +359,22 @@ PptpOriginated(PhysInfo p)
 
   return(pptp->originate ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
 }
+
+static int
+PptpPeerAddr(PhysInfo p, void *buf, int buf_len)
+{
+  PptpInfo	const pptp = (PptpInfo) p;
+
+  if (inet_ntop(AF_INET, &pptp->peer_addr, buf, buf_len))
+    return(0);
+  else
+    return(-1);
+}
+
+/*
+ * PptpOriginated()
+ */
+
 
 /*
  * PptpStat()
@@ -540,6 +547,10 @@ PptpHookUp(PptpInfo pptp)
 #if NGM_PPTPGRE_COOKIE >= 942783547
   gc.enableAlwaysAck = Enabled(&pptp->options, PPTP_CONF_ALWAYS_ACK);
 #endif
+#if NGM_PPTPGRE_COOKIE >= 1082548365
+  gc.enableWindowing = Enabled(&pptp->options, PPTP_CONF_WINDOWING);
+#endif
+
   if (NgSendMsg(bund->csock, pptppath, NGM_PPTPGRE_COOKIE,
       NGM_PPTPGRE_SET_CONFIG, &gc, sizeof(gc)) < 0) {
     Log(LG_PHYS, ("[%s] can't config %s node: %s",
