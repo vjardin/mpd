@@ -267,18 +267,19 @@ LogPrintf(const char *fmt, ...)
 {
   va_list	args;
 
-  va_start(args, fmt);
-
   LogTimeStamp(logprintf);
+  va_start(args, fmt);
   vlogprintf(fmt, args);
+  va_end(args);
 
   if (gLogOptions & LG_CONSOLE)
   {
+    va_start(args, fmt);
     vfprintf(stdout, fmt, args);
+    va_end(args);
     putc('\n', stdout);
     fflush(stdout);
   }
-  va_end(args);
 }
 
 /*
@@ -318,12 +319,16 @@ LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
 
 /* Dump it */
 
-  va_start(ap, fmt);
-  if (console)
+  if (console) {
+    va_start(ap, fmt);
     LogDoDumpBp(printf, vprintf, FALSE, bp, fmt, ap);
-  if (log)
+    va_end(ap);
+  }
+  if (log) {
+    va_start(ap, fmt);
     LogDoDumpBp(logprintf, vlogprintf, TRUE, bp, fmt, ap);
-  va_end(ap);
+    va_end(ap);
+  }
 }
 
 /*
@@ -345,11 +350,16 @@ LogDumpBuf(int level, const u_char *buf, int count, const char *fmt, ...)
 
 /* Dump it */
 
-  va_start(ap, fmt);
-  if (console)
+  if (console) {
+    va_start(ap, fmt);
     LogDoDumpBuf(printf, vprintf, FALSE, buf, count, fmt, ap);
-  if (log)
+    va_end(ap);
+  }
+  if (log) {
+    va_start(ap, fmt);
     LogDoDumpBuf(logprintf, vlogprintf, TRUE, buf, count, fmt, ap);
+    va_end(ap);
+  }
 }
 
 /*
