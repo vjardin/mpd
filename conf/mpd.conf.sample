@@ -303,8 +303,8 @@ radius:
 	set bundle enable radius-auth radius-fallback
 # enable RADIUS accounting
 	set bundle enable radius-acct
-# use idle-timeout and mtu from the RADIUS server
-	set iface enable radius-idle radius-mtu
+# use idle-timeout, mtu, and routes list from the RADIUS server
+	set iface enable radius-idle radius-mtu radius-route
 # let the RADIUS server assign MPPE-types and MPPE-policies
 	set ccp enable radius
 
