@@ -219,13 +219,16 @@ vpn:
 	set link keep-alive 10 75
 	set ipcp yes vjcomp
 	set ipcp ranges 192.168.1.1/32 192.168.2.1/32
-# If you wanted MPPE encryption and had ng_mppc(8)...
-#	set bundle enable compression
-#	set ccp yes mppc
-#	set ccp yes mpp-e40
-#	set ccp yes mpp-e128
-#	set bundle enable crypt-reqd
-#	set ccp yes mpp-stateless
+#
+# The five lines below enable Microsoft Point-to-Point encryption
+# (MPPE) using the ng_mppc(8) netgraph node type.
+#
+	set bundle enable compression
+	set ccp yes mppc
+	set ccp yes mpp-e40
+	set ccp yes mpp-e128
+	set bundle enable crypt-reqd
+	set ccp yes mpp-stateless
 	open
 
 #
