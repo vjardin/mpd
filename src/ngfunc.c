@@ -753,11 +753,11 @@ NgFuncCtrlEvent(int type, void *cookie)
 
   /* Examine message */
   switch (u.msg.header.typecookie) {
-#ifdef COMPRESSION_MPPC
+
     case NGM_MPPC_COOKIE:
       CcpRecvMsg(&u.msg, len);
       return;
-#endif
+
     case NGM_KSOCKET_COOKIE:		/* XXX ignore NGM_KSOCKET_CONNECT */
       if (u.msg.header.cmd == NGM_KSOCKET_CONNECT)
 	return;
