@@ -15,7 +15,9 @@
 .Op Fl a Ar IP-address
 .Op Fl d Ar directory
 .Op Fl c Ar tcp-port
+.Op Fl f Ar file
 .Op Fl p Ar pid-file
+.Op Fl s Ar ident
 .Op Ar configuration
 .Sh DESCRIPTION
 .Nm
@@ -130,8 +132,8 @@ Kill any existing
 .Nm
 daemon currently running. The same pidfile must be used.
 .Pp
-.It Fl s
-.It Fl -syslog-ident
+.It Fl s Ar ident
+.It Fl -syslog-ident Ar ident
 .Pp
 Identifier to use for
 .Xr syslog 3 .
