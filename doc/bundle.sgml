@@ -180,18 +180,16 @@ all the links in the bundle, each packet is delivered whole
 over single link.  The link is chosen by rotating in round-robin
 fashion over all the links in the bundle.
 
-This option normally would result in less throughput; however,
-it may help in certain situations of high packet loss or
-broken peer equipment.
+This option normally would result in higher latency and
+possible delays due to TCP packets being received out of order;
+however, it may help in certain situations of high packet
+loss or broken peer equipment.
 
 The default for this option is off.
 
 <tag><tt>radius-auth</tt></tag>
 
 Enable authentication via RADIUS.
-Note: If authenticating via RADIUS and using MPPE encryption,
-MS-CHAP version 2 is required; support for RADIUS + MPPE + MS-CHAP version 1
-is not yet implemented.
 
 <tag><tt>radius-fallback</tt></tag>
 

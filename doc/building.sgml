@@ -45,18 +45,13 @@
   <tag><tt>ENCRYPTION_MPPE</tt></tag><p>
 
   These enable support for the corresponding encryption types.
-  Note that MPPE requires certain crypto kernel sources (for RC4 and SHA1)
-  that must be installed on your system. DES requires that <tt>libdes</tt>
-  is installed on your system.
 
   <tag><tt>
   MICROSOFT_CHAP
   </tt></tag>
 
-  Enables support for Microsoft style CHAP (version 1).
-  This option also requires that <tt>libdes</tt> is installed
-  on your system. Note that this option is implied by the
-  <tt>ENCRYPTION_MPPE</tt> option.
+  Enables support for Microsoft style CHAP (versions 1 and 2).
+  Note that this option is implied by the <tt>ENCRYPTION_MPPE</tt> option.
 
   <tag><tt>
   SYSLOG_FACILITY

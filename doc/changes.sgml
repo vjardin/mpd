@@ -40,6 +40,8 @@
     </item>
     <item>Log the MTU being used each time an interface is configured.
     </item>
+    <item>Link with libcrypto instead of the obsolete libdes.
+    </item>
     </itemize>
   </p>
 
