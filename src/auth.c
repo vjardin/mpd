@@ -582,8 +582,8 @@ AuthAccountStart(int type)
 
   if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
     AuthAccountFinish, auth) == -1) {
-    Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
-      lnk->name, errno));
+    Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d %s", 
+      lnk->name, errno, strerror(errno)));
     AuthDataDestroy(auth);
   }
 
@@ -622,7 +622,7 @@ AuthAccount(void *arg)
   Link		const lnk = auth->lnk;	/* hide the global "lnk" */
   
   Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", lnk->name));
-  
+
   if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
     RadiusAccount(auth);
 
