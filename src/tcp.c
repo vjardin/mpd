@@ -65,6 +65,7 @@
   static Mbuf	TcpOutput(PhysInfo p, Mbuf bp, int proto);
   static void	TcpStat(PhysInfo p);
   static int	TcpOriginated(PhysInfo p);
+  static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
 
   static void	TcpDoClose(TcpInfo tcp);
   static void	TcpWrite(int type, void *cookie);
@@ -89,6 +90,7 @@
     TcpShutdown,
     TcpStat,
     TcpOriginated,
+    TcpPeerAddr,
   };
 
   const struct cmdtab TcpSetCmds[] =
@@ -391,6 +393,17 @@ TcpOriginated(PhysInfo p)
   TcpInfo	const tcp = (TcpInfo) lnk->phys->info;
 
   return(tcp->active ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
+}
+
+static int
+TcpPeerAddr(PhysInfo p, void *buf, int buf_len)
+{
+  TcpInfo	const tcp = (TcpInfo) p;
+
+  if (inet_ntop(AF_INET, &tcp->peer_addr, buf, buf_len))
+    return(0);
+  else
+    return(-1);
 }
 
 /*

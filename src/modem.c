@@ -97,6 +97,7 @@
   static void		ModemUpdate(PhysInfo p);
   static void		ModemStat(PhysInfo p);
   static int		ModemOriginated(PhysInfo p);
+  static int		ModemPeerAddr(PhysInfo p, void *buf, int buf_len);
 
   static void		ModemStart(void *arg);
   static void		ModemDoClose(ModemInfo m, int opened);
@@ -134,6 +135,7 @@
     NULL,
     ModemStat,
     ModemOriginated,
+    ModemPeerAddr,
   };
 
   const struct cmdtab ModemSetCmds[] = {
@@ -855,6 +857,21 @@ ModemOriginated(PhysInfo p)
 
   return(m->originated ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
 }
+
+/* XXX mbretter: the phone-number would be correct */
+static int
+ModemPeerAddr(PhysInfo p, void *buf, int buf_len)
+{
+  ModemInfo	const m = (ModemInfo) p;
+
+  if (buf_len < sizeof(m->ttynode))
+    return(-1);
+
+  memcpy(buf, m->ttynode, sizeof(m->ttynode));
+
+  return(0);
+}
+
 
 /*
  * ModemStat()

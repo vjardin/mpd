@@ -49,6 +49,7 @@
   static void	NgClose(PhysInfo p);
   static void	NgStat(PhysInfo p);
   static int	NgSetCommand(int ac, char *av[], void *arg);
+  static int	NgPeerAddr(PhysInfo p, void *buf, int buf_len);
 
 /*
  * GLOBAL VARIABLES
@@ -65,6 +66,7 @@
     NULL,
     NgStat,
     NULL,
+    NgPeerAddr,
   };
 
   const struct cmdtab NgSetCmds[] = {
@@ -170,3 +172,19 @@ NgSetCommand(int ac, char *av[], void *arg)
   return(0);
 }
 
+/*
+ * NgPeerAddr()
+ */
+
+static int
+NgPeerAddr(PhysInfo p, void *buf, int buf_len)
+{
+  NgInfo	const ng = (NgInfo) p;
+
+  if (buf_len < sizeof(ng->path))
+    return(-1);
+
+  memcpy(buf, ng->path, sizeof(ng->path));
+
+  return(0);
+}

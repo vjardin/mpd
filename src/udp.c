@@ -62,6 +62,7 @@
   static void	UdpClose(PhysInfo p);
   static void	UdpStat(PhysInfo p);
   static int	UdpOrigination(PhysInfo p);
+  static int	UdpPeerAddr(PhysInfo p, void *buf, int buf_len);
 
   static void	UdpDoClose(UdpInfo udp);
   static int	UdpSetCommand(int ac, char *av[], void *arg);
@@ -81,6 +82,7 @@
     NULL,	/* XXX when another node is involved, need a function here */
     UdpStat,
     UdpOrigination,
+	UdpPeerAddr,
   };
 
   const struct cmdtab UdpSetCmds[] = {
@@ -250,6 +252,17 @@ UdpOrigination(PhysInfo p)
   UdpInfo	const udp = (UdpInfo) lnk->phys->info;
 
   return (udp->origination);
+}
+
+static int
+UdpPeerAddr(PhysInfo p, void *buf, int buf_len)
+{
+  UdpInfo	const udp = (UdpInfo) p;
+
+  if (inet_ntop(AF_INET, &udp->peer_addr, buf, buf_len))
+    return(0);
+  else
+    return(-1);
 }
 
 /*

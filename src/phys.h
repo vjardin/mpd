@@ -33,6 +33,8 @@
     void	(*shutdown)(PhysInfo p);	/* Destroy all nodes */
     void	(*showstat)(PhysInfo p);	/* Shows type specific stats */
     int		(*originate)(PhysInfo p);	/* We originated connection? */
+    int		(*peeraddr)(PhysInfo p, void *buf, int buf_len); 
+						/* returns the peer-address (IP, MAC, whatever) */
   };
   typedef struct phystype	*PhysType;
 

@@ -102,6 +102,7 @@ static int	PppoeInit(PhysInfo p);
 static void	PppoeOpen(PhysInfo p);
 static void	PppoeClose(PhysInfo p);
 static void	PppoeShutdown(PhysInfo p);
+static int	PppoePeerAddr(PhysInfo p, void *buf, int buf_len);
 static void	PppoeCtrlReadEvent(int type, void *arg);
 static void	PppoeConnectTimeout(void *arg);
 static void	PppoeStat(PhysInfo p);
@@ -125,6 +126,7 @@ const struct phystype gPppoePhysType = {
 	PppoeShutdown,
 	PppoeStat,
 	PppoeOriginated,
+	PppoePeerAddr,
 };
 
 const struct cmdtab PppoeSetCmds[] = {
@@ -440,30 +442,25 @@ PppoeStat(PhysInfo p)
 }
 
 /*
- * PppoeGetPeerAddr()
- */
-
-u_char *
-PppoeGetPeerAddr(void)
-{
-  PppoeInfo	const p = (PppoeInfo) lnk->phys->info;
-
-  if (lnk->phys->type == &gPppoePhysType) {
-     return(p->peeraddr);
-  } else {
-     return((u_char *)0);
-  };
-}
-
-/*
  * PppoeOriginated()
  */
 static int
 PppoeOriginated(PhysInfo p)
 {
-	PppoeInfo      const pppoe = (PppoeInfo)p->info;
+  PppoeInfo      const pppoe = (PppoeInfo)p->info;
 
-    	return(pppoe->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+  return(pppoe->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+}
+
+static int
+PppoePeerAddr(PhysInfo p, void *buf, int buf_len)
+{
+  PppoeInfo	const pppoe = (PppoeInfo) p;
+
+  snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
+    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
+    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+  return(0);
 }
 
 static int 
