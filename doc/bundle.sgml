@@ -48,8 +48,8 @@ These commands are only meaningful when bandwidth management is enabled.
 Mpd will attempt to bring up a new link or take down an existing link
 when the utilization goes above <tt><em>hiwat</em></tt> or
 below <tt><em>lowat</em></tt> percent, respectively. The utilization is
-sampled every <tt><em>lowat</em></tt> divided by 6 seconds, and
-is averaged over the past <tt><em>lowat</em></tt> seconds.
+sampled every <tt><em>period</em></tt> divided by 6 seconds, and
+is averaged over the past <tt><em>period</em></tt> seconds.
 
 Mpd will not attempt to reconnect a link unless it has been disconnected
 for at least <tt><em>min-dis</em></tt> seconds. Similarly, mpd will
