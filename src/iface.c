@@ -395,9 +395,9 @@ IfaceIpIfaceUp(int ready)
     char	peerbuf[40];
 
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    ExecCmd(LG_IFACE, "%s %s inet %s %s",
-      iface->up_script, iface->ifname,
-      inet_ntoa(iface->self_addr), peerbuf);
+    ExecCmd(LG_IFACE, "%s %s inet %s %s %s",
+      iface->up_script, iface->ifname, inet_ntoa(iface->self_addr),
+      peerbuf, bund->peer_authname);
   }
 
   /* Done */
@@ -438,8 +438,10 @@ IfaceIpIfaceDown(void)
   assert(iface->ip_up);
 
   /* Call "down" script */
-  if (*iface->down_script)
-    ExecCmd(LG_IFACE, "%s %s inet", iface->down_script, iface->ifname);
+  if (*iface->down_script) {
+    ExecCmd(LG_IFACE, "%s %s inet %s",
+      iface->down_script, iface->ifname, bund->peer_authname);
+  }
 
   /* Delete routes */
   for (k = 0; k < iface->n_routes; k++) {
