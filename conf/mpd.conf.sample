@@ -71,6 +71,7 @@ dialin:
 	new -i ng0 dialin usr
 	set iface addrs 1.1.1.1 2.2.2.2
 	set iface idle 900
+	set iface enable on-demand
 	set ipcp ranges 1.1.1.1/32 2.2.2.2/32
 	set ipcp yes vjcomp
 	set link enable chap pap
