@@ -8,6 +8,7 @@
   <p>
     Changes since version 4.0b1:
     <itemize>
+    <item>Fixed a race-condition wich caused a dead-lock.</item>
     <item>
       RADIUS    
       <itemize>
