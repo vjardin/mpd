@@ -1,0 +1,66 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Troubleshooting<label id="trouble"></heading>
+
+  <p>
+  Some tips for troubleshooting.
+  (This section is under construction).
+
+<descrip>
+
+<tag><bf>
+Packets won't flow.
+</bf></tag>
+
+Make sure you have set <tt><bf>gateway_enable="YES"</bf></tt>
+in <tt>/etc/rc.conf</tt>, otherwise your FreeBSD box will not
+route packets.
+Alternately, invoke <tt>sysctl -w net.inet.ip.forwarding=1</tt>
+for immediate effect.
+
+Also, check your firewall settings. Mpd will create new interfaces
+which may need to be incorporated into your firewall rules.
+If you're doing PPTP, you need to allow TCP port 1723 and IP protocol
+47 (GRE).
+
+<tag><bf>
+It doesn't work, and there are strange netgraph-related errors in the log.
+</bf></tag>
+
+Make sure you have all the required netgraph KLD's loaded.
+You can check them by doing <tt> kldstat -v | grep ng_ </tt>.
+
+Usually these are loaded on demand. If not, you can load them
+manually using <tt>kldload(8)</tt>.
+
+The following node types are or may be needed:
+
+<itemize>
+<item><tt>ng_ppp</tt></item>
+<item><tt>ng_socket</tt></item>
+<item><tt>ng_iface</tt></item>
+<item><tt>ng_bpf</tt></item>
+<item><tt>ng_vjc</tt></item>
+<item><tt>ng_mppc</tt></item>
+<item><tt>ng_pptpgre</tt></item>
+<item><tt>ng_ksocket</tt></item>
+<item><tt>ng_tty</tt></item>
+<item><tt>ng_pppoe</tt></item>
+</itemize>
+
+<tag><bf>
+Poor performance with Mac OS X PPTP clients.
+</bf></tag>
+
+Upgrade to a version of FreeBSD newer than 4.7-RELEASE.  Or apply
+<htmlurl url="http://www.freebsd.org/cgi/cvsweb.cgi/src/sys/netgraph/ng_pptpgre.c.diff?r1=1.25&amp;r2=1.26" name="this patch">
+manually.
+
+
+</descrip>
+
+</p>
+

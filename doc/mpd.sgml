@@ -36,6 +36,8 @@
 
 <!ENTITY chat SYSTEM "chat.sgml">
 
+<!ENTITY trouble SYSTEM "trouble.sgml">
+
 <!ENTITY refs SYSTEM "refs.sgml">
 
 ]>
@@ -109,6 +111,10 @@ You must be running FreeBSD version 3.4 or higher.
 	&pppoe;
 
 	&chat;
+
+    <chapt><heading>Troubleshooting</heading>
+
+	&trouble;
 
     <chapt><heading>References</heading>
 

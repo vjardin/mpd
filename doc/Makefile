@@ -15,6 +15,7 @@ SRCS+=		gencmd.sgml bundle.sgml interface.sgml links.sgml
 SRCS+=		ipcp.sgml compression.sgml encryption.sgml
 SRCS+=		modem.sgml netgraph.sgml tcp.sgml udp.sgml pptp.sgml pppoe.sgml
 SRCS+=		chat.sgml
+SRCS+=		trouble.sgml
 SRCS+=		refs.sgml
 
 CLEANFILES+=	version.sgml mpd.8
