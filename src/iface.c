@@ -86,7 +86,7 @@
 
   static int	IfaceAllocACL (struct acl_pool **ap, int start, char * ifname, int number);
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
-  static char *	IfaceParceACL (char * src, char * ifname);
+  static char *	IFaceParseACL (char * src, char * ifname);
 
   static void	IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss);
   
@@ -475,14 +475,14 @@ IfaceFindACL (struct acl_pool *ap, char * ifname, int number)
 };
 
 /*
- * IfaceParceACL ()
+ * IFaceParseACL ()
  *
  * Parces ACL and replaces %r, %p and %q macroses 
  * by the real numbers of rules, queues and pipes.
  */
 
 static char *
-IfaceParceACL (char * src, char * ifname)
+IFaceParseACL (char * src, char * ifname)
 {
     char *buf,*buf1;
     char *begin,*param,*end;
@@ -634,7 +634,7 @@ IfaceIpIfaceUp(int ready)
     while (acls != NULL) {
 	i=IfaceFindACL(pipe_pool,iface->ifname,acls->number);
 
-	buf=IfaceParceACL(acls->rule,iface->ifname);
+	buf=IFaceParseACL(acls->rule,iface->ifname);
 	ExecCmd(LG_IFACE, "%s pipe %d config %s",
     	    PATH_IPFW, i, acls->rule);
 	Freee(buf);
@@ -645,7 +645,7 @@ IfaceIpIfaceUp(int ready)
     while (acls != NULL) {
 	i = IfaceFindACL(queue_pool,iface->ifname,acls->number);
 
-	buf = IfaceParceACL(acls->rule,iface->ifname);
+	buf = IFaceParseACL(acls->rule,iface->ifname);
 	ExecCmd(LG_IFACE, "%s queue %d config %s",
     	    PATH_IPFW, i, buf);
 	Freee(buf);
@@ -656,7 +656,7 @@ IfaceIpIfaceUp(int ready)
     while (acls != NULL) {
 	i = IfaceFindACL(rule_pool,iface->ifname,acls->number);
 
-	buf = IfaceParceACL(acls->rule,iface->ifname);
+	buf = IFaceParseACL(acls->rule,iface->ifname);
 	ExecCmd(LG_IFACE, "%s add %d %s via %s",
     	    PATH_IPFW, i, buf, iface->ifname);
 	Freee(buf);
