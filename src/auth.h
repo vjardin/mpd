@@ -95,6 +95,7 @@
       int		eapmsg_len;
       char		*state;
       int		state_len;      
+      char		*username;	/* Inner Username, e.g. when using TTLS */
       struct radius_acl	*acl_rule;
       struct radius_acl	*acl_pipe;
       struct radius_acl	*acl_queue;
@@ -163,6 +164,9 @@
       struct rad_handle	*handle;	/* the RADIUS handle */
       char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
       int		eapmsg_len;
+      char		*state;		/* copy of the state attribute, needed for accounting */
+      int		state_len;
+      char		*username;	/* copy of the Inner Username */
     } radius;
     struct {
       struct opie	data;

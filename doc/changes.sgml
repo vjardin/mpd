@@ -6,6 +6,21 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.0b1:
+    <itemize>
+    <item>
+      RADIUS    
+      <itemize>
+      <item>Fixed several race-conditions when sending accounting requests.
+      </item>
+      <item>Use the username from the access-accept packet (if present) for 
+      accounting requests.</item>
+      </itemize>
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3:
     <itemize>
     <item>

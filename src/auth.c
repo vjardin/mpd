@@ -430,6 +430,7 @@ AuthCleanup(void)
   
   Freee(MB_AUTH, a->params.msdomain);
   Freee(MB_AUTH, a->radius.state);
+  Freee(MB_AUTH, a->radius.username);
   Freee(MB_AUTH, a->radius.eapmsg);
   a->authentic = 0;
   memset(&a->radius, 0, sizeof(a->radius));
@@ -448,6 +449,7 @@ AuthData
 AuthDataNew(void) 
 {
   AuthData	auth;
+  Auth		a = &lnk->lcp.auth;  
 
   auth = Malloc(MB_AUTH, sizeof(*auth));
   auth->conf = bund->conf.auth;
@@ -460,6 +462,18 @@ AuthDataNew(void)
 
   auth->info.n_links = bund->n_links;
   auth->info.peer_addr = bund->ipcp.peer_addr;
+
+  if (a->radius.state != NULL) {
+    auth->radius.state = Malloc(MB_AUTH, a->radius.state_len);
+    memcpy(auth->radius.state, a->radius.state, a->radius.state_len);
+    auth->radius.state_len = a->radius.state_len;
+  }
+  
+  if (a->radius.username != NULL) {
+    auth->radius.username = Malloc(MB_AUTH, strlen(a->radius.username));
+    strcpy(auth->radius.username, a->radius.username);
+  }
+  
   return auth;
 }
 
@@ -478,6 +492,8 @@ AuthDataDestroy(AuthData auth)
   Freee(MB_AUTH, auth->mschap_error);
   Freee(MB_AUTH, auth->mschapv2resp);
   Freee(MB_AUTH, auth->radius.eapmsg);
+  Freee(MB_AUTH, auth->radius.state);
+  Freee(MB_AUTH, auth->radius.username);  
   Freee(MB_AUTH, auth);
 }
 
