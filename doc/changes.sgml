@@ -6,6 +6,14 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.11:
+    <itemize>
+    <item>Fixed bug in client-side MPPE key generation.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.10:
     <itemize>
     <item>Support for authentication and IP address assignment via
