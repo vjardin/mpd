@@ -729,12 +729,8 @@ ModemGetNgStats(ModemInfo m, struct ng_async_stat *sp)
 
   /* Get stats */
   snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
-  if (NgSendMsg(bund->csock, path,
-    NGM_ASYNC_COOKIE, NGM_ASYNC_CMD_GET_STATS, NULL, 0) < 0) {
-    Log(LG_PHYS, ("[%s] can't get stats: %s", lnk->name, strerror(errno)));
-    return(-1);
-  }
-  if (NgRecvMsg(bund->csock, &u.resp, sizeof(u), NULL) < 0) {
+  if (NgFuncSendQuery(path, NGM_ASYNC_COOKIE, NGM_ASYNC_CMD_GET_STATS,
+      NULL, 0, &u.resp, sizeof(u), NULL) < 0) {
     Log(LG_PHYS, ("[%s] can't get stats: %s", lnk->name, strerror(errno)));
     return(-1);
   }

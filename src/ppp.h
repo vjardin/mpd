@@ -23,6 +23,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/uio.h>
+#include <sys/queue.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>

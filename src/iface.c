@@ -802,15 +802,10 @@ IfaceIdleTimeout(void *arg)
   /* Get updated bpf node traffic statistics */
   oldStats = iface->idleStats;
   snprintf(path, sizeof(path), "%s:%s", iface->ifname, NG_IFACE_HOOK_INET);
-  if (NgSendMsg(bund->csock, path, NGM_BPF_COOKIE,
-      NGM_BPF_GET_STATS, BPF_HOOK_IFACE, sizeof(BPF_HOOK_IFACE)) < 0) {
+  if (NgFuncSendQuery(path, NGM_BPF_COOKIE, NGM_BPF_GET_STATS, BPF_HOOK_IFACE,
+      sizeof(BPF_HOOK_IFACE), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get %s stats: %s",
       bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
-    return;
-  }
-  if (NgRecvMsg(bund->csock, &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
-      bund->name, path, strerror(errno)));
     return;
   }
   memcpy(&iface->idleStats, u.reply.data, sizeof(iface->idleStats));

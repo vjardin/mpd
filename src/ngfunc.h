@@ -44,6 +44,9 @@
   extern int	NgFuncWriteFrame(const char *label, const char *hook, Mbuf bp);
   extern int	NgFuncGetStats(u_int16_t linkNum,
 			int clear, struct ng_ppp_link_stat *s);
+  extern int	NgFuncSendQuery(const char *path, int cookie, int cmd,
+			const void *args, size_t arglen, struct ng_mesg *rbuf,
+			size_t replen, char *raddr);
 
   extern int	NgFuncConnect(const char *path, const char *hook,
 			const char *path2, const char *hook2);

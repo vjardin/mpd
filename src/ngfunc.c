@@ -749,6 +749,9 @@ NgFuncDataEvent(int type, void *cookie)
 
 /*
  * NgFuncCtrlEvent()
+ *
+ * NOTE: This is the only place we are allowed to read from a bundle's
+ * control socket once NgFuncInit() has returned. See NgFuncSendQuery().
  */
 
 static void
@@ -772,6 +775,28 @@ NgFuncCtrlEvent(int type, void *cookie)
     return;
   }
 
+  /* If message is a reply, wake up requesting thread */
+  if ((u.msg.header.flags & NGF_RESP) != 0) {
+    struct ngmsg_reply *reply;
+
+    TAILQ_FOREACH(reply, &bund->ngreplies, next) {
+      if (reply->cookie == u.msg.header.typecookie
+	  && reply->cmd == u.msg.header.cmd
+	  && reply->token == u.msg.header.token) {
+	if (len > reply->replen)
+	  len = reply->replen;
+	reply->replen = len;
+	memcpy(reply->reply, &u.msg, len);
+	if (reply->raddr != NULL)
+	  strncpy(reply->raddr, raddr, NG_PATHLEN);
+	reply->received = TRUE;
+	pthread_cond_broadcast(&bund->ngreply_cond);
+	return;
+      }
+    }
+    goto unknown;
+  }
+
   /* Examine message */
   switch (u.msg.header.typecookie) {
 
@@ -787,9 +812,48 @@ NgFuncCtrlEvent(int type, void *cookie)
       break;
   }
 
+unknown:
   /* Unknown message */
   Log(LG_ERR, ("[%s] rec'd unknown ctrl message, cookie=%d cmd=%d",
     bund->name, u.msg.header.typecookie, u.msg.header.cmd));
+}
+
+/*
+ * NgFuncSendQuery()
+ */
+
+int
+NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
+	size_t arglen, struct ng_mesg *rbuf, size_t replen, char *raddr)
+{
+  struct ngmsg_reply *reply;
+  int token;
+
+  /* Send message */
+  if ((token = NgSendMsg(bund->csock, path, cookie, cmd, args, arglen)) < 0)
+    return -1;
+
+  /* Register to receive reply */
+  reply = Malloc(MB_BUND, sizeof(*reply));
+  reply->cookie = cookie;
+  reply->token = token;
+  reply->cmd = cmd;
+  reply->reply = rbuf;
+  reply->replen = replen;
+  reply->raddr = raddr;
+  reply->received = FALSE;
+  TAILQ_INSERT_TAIL(&bund->ngreplies, reply, next);
+
+  /* Wait for reply; we will be woken up by NgFuncCtrlEvent() */
+  while (!reply->received)
+    assert(pthread_cond_wait(&bund->ngreply_cond, &gGiantMutex) == 0);
+
+  /* Destroy pending reply structure */
+  TAILQ_REMOVE(&bund->ngreplies, reply, next);
+  Freee(MB_BUND, reply);
+
+  /* Done */
+  return 0;
 }
 
 /*
@@ -917,18 +981,13 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
 
   /* Suspend the read event for avoiding race conditions */
   EventUnRegister(&bund->ctrlEvent);
+
   /* Get stats */
   cmd = clear ? NGM_PPP_GETCLR_LINK_STATS : NGM_PPP_GET_LINK_STATS;
-  if (NgSendMsg(bund->csock, MPD_HOOK_PPP,
-      NGM_PPP_COOKIE, cmd, &linkNum, sizeof(linkNum)) < 0) {
+  if (NgFuncSendQuery(MPD_HOOK_PPP, NGM_PPP_COOKIE, cmd,
+       &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
       bund->name, linkNum, strerror(errno)));
-    ret = -1;
-    goto done;
-  }
-  if (NgRecvMsg(bund->csock, &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
-      bund->name, MPD_HOOK_PPP, strerror(errno)));
     ret = -1;
     goto done;
   }

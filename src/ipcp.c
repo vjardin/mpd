@@ -213,15 +213,9 @@ IpcpStat(int ac, char *av[], void *arg)
 
   /* Get VJC state */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
-  if (NgSendMsg(bund->csock, path,
-      NGM_VJC_COOKIE, NGM_VJC_GET_STATE, NULL, 0) < 0) {
+  if (NgFuncSendQuery(path, NGM_VJC_COOKIE, NGM_VJC_GET_STATE,
+      NULL, 0, &u.reply, sizeof(u), NULL) < 0)
     return(0);
-  }
-  if (NgRecvMsg(bund->csock, &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
-      bund->name, path, strerror(errno)));
-    return(0);
-  }
 
   printf("VJ Compression:\n");
   printf("\tOut comp : %d\n", sls->sls_compressed);

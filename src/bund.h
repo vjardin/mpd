@@ -109,6 +109,18 @@
     struct optinfo	options;		/* Configured options */
     struct authconf	auth;			/* Auth backends, RADIUS, etc. */
   };
+
+  /* A pending reply on the bundle's netgraph control socket */
+  struct ngmsg_reply {
+    u_int32_t			cookie;
+    u_int32_t			cmd;
+    u_int32_t			token;
+    struct ng_mesg		*reply;
+    size_t			replen;
+    char			*raddr;
+    u_char			received;
+    TAILQ_ENTRY(ngmsg_reply)	next;
+  };
   
   /* Total state of a bundle */
   struct bundle {
@@ -152,6 +164,10 @@
     /* Boolean variables */
     u_char		open:1;		/* In the open state */
     u_char		multilink:1;	/* Doing multi-link on this bundle */
+
+    /* Netgraph control message replies */
+    pthread_cond_t	ngreply_cond;
+    TAILQ_HEAD(, ngmsg_reply) ngreplies;
   };
   
 /*

@@ -668,6 +668,8 @@ BundCreateCmd(int ac, char *av[], void *arg)
   bund = Malloc(MB_BUND, sizeof(*bund));
   snprintf(bund->name, sizeof(bund->name), "%s", av[0]);
   bund->csock = bund->dsock = -1;
+  assert(pthread_cond_init(&bund->ngreply_cond, NULL) == 0);
+  TAILQ_INIT(&bund->ngreplies);
 
   /* Setup netgraph stuff */
   if (NgFuncInit(bund, reqIface) < 0) {
@@ -694,6 +696,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
     Freee(MB_BUND, bund->links);
     NgFuncShutdown(bund);
 fail2:
+    assert(pthread_cond_destroy(&bund->ngreply_cond) == 0);
     Freee(MB_BUND, bund);
 fail:
     bund = old_bund;
