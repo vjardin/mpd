@@ -900,7 +900,9 @@ PptpCtrlReadCtrl(int type, void *cookie)
     }
     if (hdr->resv0 != 0) {
       Log(LG_PPTP, ("pptp%d: non-zero reserved field in header", c->id));
+#if 0
       goto abort;
+#endif
     }
     if (hdr->length != sizeof(*hdr) + gPptpMsgInfo[hdr->type].length) {
       Log(LG_PPTP, ("pptp%d: invalid length %d for type %d",
@@ -945,8 +947,10 @@ PptpCtrlMsg(PptpCtrl c, int type, void *msg)
 	&& memcmp((u_char *) msg + off, zeros, field->length)) {
       Log(LG_PPTP, ("pptp%d: non-zero reserved field %s in %s",
 	c->id, field->name, mi->name));
+#if 0
       PptpCtrlKillCtrl(c);
       return;
+#endif
     }
   }
 
