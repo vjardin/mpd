@@ -9,7 +9,7 @@
 # This file should only contain configuration for a link if
 # that configuration is specific to that particular link. That
 # is, things like device name and bandwidth. Other generic link
-# options # like LCP paramters belong in "mpd.conf".
+# options like LCP parameters belong in "mpd.conf".
 #
 # The first command for each link should be "set link type ..."
 #
