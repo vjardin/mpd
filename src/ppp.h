@@ -66,6 +66,10 @@
   /* Do our own version of assert() so it shows up in the logs */
   #define assert(e)	((e) ? (void)0 : DoAssert(__FILE__, __LINE__, #e))
 
+  /* Giant Mutex handling */
+  #define GIANT_MUTEX_LOCK()	assert(pthread_mutex_lock(&gGiantMutex) == 0)
+  #define GIANT_MUTEX_UNLOCK()	assert(pthread_mutex_unlock(&gGiantMutex) == 0)
+
 /* Wrappers for strings, other hacks */
 
   #define lcats(x)		x
