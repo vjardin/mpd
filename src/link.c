@@ -168,7 +168,12 @@ LinkMsg(int type, void *arg)
     case MSG_DOWN:
       LcpDown();
       if (OPEN_STATE(lnk->lcp.fsm.state)) {
-	if (!lnk->conf.max_redial || lnk->num_redial < lnk->conf.max_redial) {
+	if (lnk->conf.max_redial == -1) {
+	  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
+	  LcpClose();
+	  BundLinkGaveUp();
+	} else if (!lnk->conf.max_redial
+	    || lnk->num_redial < lnk->conf.max_redial) {
 	  lnk->num_redial++;
 	  RecordLinkUpDownReason(lnk, 1, STR_REDIAL, NULL);
 	  PhysOpen();					/* Try again */
