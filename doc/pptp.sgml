@@ -109,6 +109,16 @@ client.
 
 Mpd will accept either type of call on an incoming PPTP connection.
 
+<tag><tt>delayed-ack</tt></tag>
+
+Enable delayed ACK's. This can improve throughput on reliable links.
+Default is on.
+
+<tag><tt>always-ack</tt></tag>
+
+Always include ACK even if already sent. This can improve throughput
+on unreliable links. Default is off.
+
 </descrip>
 
   <sect1><heading>PPTP setup hints</heading>
