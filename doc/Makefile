@@ -5,7 +5,7 @@
 all:		mpd.8
 
 DOC=		mpd
-FORMATS=	html
+FORMATS=	html ps
 
 SRCS+=		mpd.sgml version.sgml
 SRCS+=		overview.sgml layers.sgml manorg.sgml changes.sgml
@@ -30,4 +30,4 @@ CLEANFILES+=	version.sgml mpd.8
 	  -e "s/@VERSION@/$$VERSION/g" \
 	  < ${.ALLSRC} > ${.TARGET}
 
-.include <bsd.sgml.mk>
+.include "bsd.sgml.mk"
