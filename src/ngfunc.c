@@ -168,7 +168,7 @@ NgFuncInit(Bund b, const char *reqIface)
   if (NgMkSockNode(NULL, &b->csock, &b->dsock) < 0) {
     Log(LG_ERR, ("[%s] can't create %s node: %s",
       b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
-    return(NULL);
+    return(0);
   }
   (void) fcntl(b->csock, F_SETFD, 1);
   (void) fcntl(b->dsock, F_SETFD, 1);

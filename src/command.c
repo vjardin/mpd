@@ -275,7 +275,7 @@ FindCommand(CmdTab cmds, char *str, CmdTab *cmdp, int complain)
   int		len = strlen(str);
   const char	*fmt;
 
-  for (nmatch = 0, found = NULL; cmds->name; cmds++) {
+  for (nmatch = 0, found = 0; cmds->name; cmds++) {
     if (cmds->name && !strncmp(str, cmds->name, len)) {
       *cmdp = cmds;
       nmatch++;
