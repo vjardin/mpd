@@ -57,6 +57,9 @@
   static int	gSanityCheck = 1;
   static void	(*gWarnx)(const char *fmt, ...) = warnx;
 
+  static struct timeval *top;
+  static struct timeval tv_zero = { 0, 0 };
+
 /*
  * INTERNAL FUNCTIONS
  */
@@ -158,8 +161,8 @@ EventStart(void)
   for (gServiceOn = 1; gServiceOn; )
   {
     Event		event;
-    int			rtn, maxfd;
-    struct timeval	to, *top;
+    int			rtn, maxfd, select_errno;
+    struct timeval	to;
     struct timeval	now, diff;
     fd_set		rfds, wfds, efds;
     sigset_t		sigs;
@@ -253,6 +256,7 @@ problem:
     sigprocmask(SIG_UNBLOCK, &sigs, NULL);
 
     rtn = select(maxfd, &rfds, &wfds, &efds, top);
+    select_errno = errno;
 
     sigprocmask(SIG_BLOCK, &sigs, NULL);
     gEventOk = 0;
@@ -265,7 +269,7 @@ problem:
 
   /* Check return value */
 
-    if (rtn == -1 && errno != EINTR)	/* should never happen! */
+    if (rtn == -1 && select_errno != EINTR)	/* should never happen! */
     {
       MyWarn("select");
       MyWarnx("select args: %d [%ld, %ld]", maxfd,
@@ -626,6 +630,10 @@ EventCatchSignal(int sig)
 /* Mark signal as having occurred */
 
   gSigsCaught[sig] = 1;
+
+/* Fall out of the select */
+
+  top = &tv_zero;
 }
 
 /*
