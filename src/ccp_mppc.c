@@ -29,11 +29,7 @@
 
   /* #define DEBUG_KEYS */
 
-#ifdef ENCRYPTION_MPPE
 #define MPPC_SUPPORTED	(MPPC_BIT | MPPE_BITS | MPPE_STATELESS)
-#else
-#define MPPC_SUPPORTED	(MPPC_BIT | MPPE_STATELESS)
-#endif
 
 /*
  * INTERNAL FUNCTIONS
@@ -50,13 +46,12 @@
   static int	MppcNegotiated(int xmit);
 
   /* Encryption stuff */
-#ifdef ENCRYPTION_MPPE
   static void	MppeInitKey(MppcInfo mppc, int dir);
   static int	MppeGetKeyInfo(char **secretp, u_char **challengep);
   static void	MppeInitKeyv2(MppcInfo mppc, int dir);
   static int	MppeGetKeyInfov2(char **secretp, u_char **responsep);
   static short	MppcEnabledMppeType(short type);
-  static short	MppcAcceptableMppeType(short type);  
+  static short	MppcAcceptableMppeType(short type);
 
 #ifdef DEBUG_KEYS
   static void	KeyDebug(const u_char *data, int len, const char *fmt, ...);
@@ -64,8 +59,6 @@
 #else
   #define KEYDEBUG(x)
 #endif
-
-#endif	/* ENCRYPTION_MPPE */
 
 /*
  * GLOBAL VARIABLES
@@ -117,28 +110,30 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_COMPRESS;
       mppchook = NG_MPPC_HOOK_COMP;
       conf.bits = mppc->xmit_bits;
-#ifdef ENCRYPTION_MPPE
-      if (mschap == CHAP_ALG_MSOFTv2) {
-        MppeInitKeyv2(mppc, dir);
-      } else {
-        MppeInitKey(mppc, dir);
+      /* If RADIUS was used, then the MPPE-Keys are already set */
+      if (!lnk->radius.authenticated || mschap == CHAP_ALG_MSOFT) {
+	if (mschap == CHAP_ALG_MSOFTv2) {
+	  MppeInitKeyv2(mppc, dir);
+	} else {
+	  MppeInitKey(mppc, dir);
+	}
       }
       memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
-#endif
       break;
     case COMP_DIR_RECV:
       cmd = NGM_MPPC_CONFIG_DECOMP;
       ppphook = NG_PPP_HOOK_DECOMPRESS;
       mppchook = NG_MPPC_HOOK_DECOMP;
       conf.bits = mppc->recv_bits;
-#ifdef ENCRYPTION_MPPE
-      if (mschap == CHAP_ALG_MSOFTv2) {
-        MppeInitKeyv2(mppc, dir);
-      } else {
-        MppeInitKey(mppc, dir);
+      /* If RADIUS was used, then the MPPE-Keys are already set */
+      if (!lnk->radius.authenticated || mschap == CHAP_ALG_MSOFT) {
+	if (mschap == CHAP_ALG_MSOFTv2) {
+	  MppeInitKeyv2(mppc, dir);
+	} else {
+	  MppeInitKey(mppc, dir);
+	}
       }
       memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
-#endif
       break;
     default:
       assert(0);
@@ -285,14 +280,12 @@ MppcBuildConfigReq(u_char *cp)
       && !CCP_PEER_REJECTED(ccp, gMppcCompress))
     bits |= MPPC_BIT;
 
-#ifdef ENCRYPTION_MPPE
   /* Encryption */
   if (MppcEnabledMppeType(40)) bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
   if (MppcEnabledMppeType(56)) bits |= MPPE_56;
 #endif
   if (MppcEnabledMppeType(128)) bits |= MPPE_128;
-#endif
 
   /* Stateless mode */
   if (Enabled(&ccp->options, gMppcStateless)
@@ -349,8 +342,6 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
       if ((bits & MPPC_BIT) && !Acceptable(&ccp->options, gMppcCompress))
 	bits &= ~MPPC_BIT;
 
-#ifdef ENCRYPTION_MPPE
-
       /* Check encryption */
       if ((bits & MPPE_40) && !MppcAcceptableMppeType(40))
 	bits &= ~MPPE_40;
@@ -380,7 +371,6 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 #endif
 	if (MppcEnabledMppeType(128)) bits |= MPPE_128;
       }
-#endif
 
       /* Stateless mode */
       if ((bits & MPPE_STATELESS) && !Acceptable(&ccp->options, gMppcStateless))
@@ -400,14 +390,12 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
     case MODE_NAK:
       if (!(bits & MPPC_BIT))
 	CCP_PEER_REJ(ccp, gMppcCompress);
-#ifdef ENCRYPTION_MPPE
       if (!(bits & MPPE_40))
 	CCP_PEER_REJ(ccp, gMppe40);
       if (!(bits & MPPE_56))
 	CCP_PEER_REJ(ccp, gMppe56);
       if (!(bits & MPPE_128))
 	CCP_PEER_REJ(ccp, gMppe128);
-#endif
       if (!(bits & MPPE_STATELESS))
 	CCP_PEER_REJ(ccp, gMppcStateless);
       break;
@@ -472,7 +460,7 @@ MppcEnabledMppeType(short type)
  
   switch (type) {
   case 40:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
       radius = TRUE;
       ret = (rad->mppe.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
@@ -482,7 +470,7 @@ MppcEnabledMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
       radius = TRUE;    
       ret = (rad->mppe.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
@@ -494,7 +482,7 @@ MppcEnabledMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
       radius = TRUE;    
       ret = (rad->mppe.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
@@ -515,7 +503,7 @@ MppcAcceptableMppeType(short type)
   
   switch (type) {
   case 40:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
       radius = TRUE;
       ret = rad->mppe.types & MPPE_TYPE_40BIT;
     } else {
@@ -525,7 +513,7 @@ MppcAcceptableMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
       radius = TRUE;
       ret = rad->mppe.types & MPPE_TYPE_56BIT;
     } else {
@@ -537,7 +525,7 @@ MppcAcceptableMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&ccp->options, gCcpRadius) && rad->valid) {
+    if (Enabled(&ccp->options, gCcpRadius) && rad->authenticated) {
       radius = TRUE;    
       ret = rad->mppe.types & MPPE_TYPE_128BIT;
     } else {
@@ -545,12 +533,11 @@ MppcAcceptableMppeType(short type)
     }
   }
 
-  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are acceptable -> %s%s", 
+  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are acceptable -> %s%s",
     lnk->name, type, ret ? "yes" : "no", radius ? " (RADIUS)" : "" ));
   return ret;
 
 }
-#ifdef ENCRYPTION_MPPE
 
 #define KEYLEN(b)	(((b) & MPPE_128) ? 16 : 8)
 
@@ -577,7 +564,7 @@ MppeInitKey(MppcInfo mppc, int dir)
   if (bits & MPPE_128) {
     MD4_CTX	c;
 
-    if (lnk->radius.valid)
+    if (lnk->radius.authenticated)
       memcpy(hash, lnk->radius.mppe.nt_hash, sizeof(hash));
     else {
       NTPasswordHash(pass, hash);
@@ -591,7 +578,7 @@ MppeInitKey(MppcInfo mppc, int dir)
     MsoftGetStartKey(chal, hash);
     KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    if (lnk->radius.valid)
+    if (lnk->radius.authenticated)
       memcpy(hash, lnk->radius.mppe.lm_key, 8);
     else
       LMPasswordHash(pass, hash);
@@ -644,7 +631,7 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
 
   /* Return info */
   *secretp = bund->msPassword;
-  *challengep = challenge;  
+  *challengep = challenge;
   return(0);
 
 fail:
@@ -666,16 +653,6 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   char		*pass;
   u_char	*resp;
   MD4_CTX	c;
-
-  /* If using RADIUS, key info comes from the server */
-  if (lnk->radius.valid) {
-    if (dir == COMP_DIR_XMIT) {
-      memcpy(mppc->xmit_key0, lnk->radius.mppe.sendkey, MPPE_KEY_LEN);
-    } else {
-      memcpy(mppc->recv_key0, lnk->radius.mppe.recvkey, MPPE_KEY_LEN);
-    }
-    return;
-  }
 
   /* Get credential info */
   if (MppeGetKeyInfov2(&pass, &resp) < 0)
@@ -747,8 +724,6 @@ fail:
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
   return(-1);
 }
-
-#endif	/* ENCRYPTION_MPPE */
 
 #ifdef DEBUG_KEYS
 
