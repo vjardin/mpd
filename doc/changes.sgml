@@ -6,6 +6,37 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.7:
+    <itemize>
+    <item>Now setting <tt>max-redial</tt> to -1 means mpd will never redial.
+	This is useful for dial-in servers.
+    </item>
+    <item>Increased the default <tt>FD_SETSIZE</tt> to 2048 so we can
+	handle lots of bundles, and made it compile-time adjustable.
+    </item>
+    <item>Allow multiple PPTP connections from the same IP address
+	when this is OK to do (no explicit peer IP addresses configured).
+	This allows multiple incoming connections through a remote NAT device.
+    </item>
+    <item>Added support for 56-bit MPPE encryption.
+    </item>
+    <item>Allow the inner and outer PPTP IP addresses to be the same,
+	relying on the kernel to return an error if it needs to.
+	This reverts the change put into version 3.3.
+    </item>
+    <item>Fixed bug in MTU calculation when doing MPPC/MPPE.
+    </item>
+    <item>Added the <tt>set pptp phonenum <em>number</em></tt> command.
+    </item>
+    <item>Added documentation for the <tt>delayed-ack</tt>
+	and <tt>always-ack</tt> PPTP device configuration options.
+    </item>
+    <item>Minor tweaks to the sample config files.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.6:
     <itemize>
     <item>Fix a bug where the MPPE keys were being incorrectly generated
