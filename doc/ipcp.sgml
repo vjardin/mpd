@@ -106,7 +106,12 @@ Default <tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
 
 Enabling these options causes mpd to request primary and/or secondary
 DNS and/or NBNS servers from the remote peer during negotiation.
-Currently, mpd does not use these values for anything; they just
+
+If any DNS servers are supplied by the peer, they will appear as
+parameters to the script specified by the <tt>set iface up-script</tt>
+command, if any.
+
+Currently, mpd does not use the NBNS values for anything; they just
 appear in the log. A future revision may actually do something with them.
 
 <tag><tt>radius-ip</tt></tag>

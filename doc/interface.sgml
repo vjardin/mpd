@@ -86,7 +86,7 @@ Mpd can optionally run a user program every time the interface
 is brought up or down.
 The <tt><bf>up-script</bf></tt> is called like this:
 <tscreen><tt>
-<em>script</em> <em>interface</em> inet <em>local-ip</em> <em>remote-ip</em> <em>authname</em>
+<em>script</em> <em>interface</em> inet <em>local-ip</em> <em>remote-ip</em> <em>authname</em> [ dns1 <em>server-ip</em> ] [ dns2 <em>server-ip</em> ]
 </tt></tscreen>
 
 The <tt><bf>down-script</bf></tt> is called like this:
@@ -142,6 +142,11 @@ It has the same as effect as <tt>set iface mtu</tt>.
 
 This option causes mpd to use the idle timeout from the RADIUS server.
 It has the same as effect as <tt>set iface idle</tt>.
+
+<tag><tt>radius-route</tt></tag>
+
+This option causes mpd to use the routes list from the RADIUS server.
+It has the same as effect as <tt>set iface route</tt>.
 
 </descrip>
 
