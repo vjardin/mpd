@@ -63,3 +63,12 @@
 
 
 
+  <sect><heading>Credits<label id="credits"></heading>
+
+  <p>
+  <itemize>
+  <item>
+EAP, RADIUS enhancements, basework for Mpd-4 was sponsored by SURFnet <htmlurl url="http://www.surfnet.nl/" name="SURFnet">.
+  </item>
+  </itemize>
+  <p>
