@@ -162,6 +162,11 @@ PppoeOpen(PhysInfo p)
 	struct ngpppoe_init_data *const idata = &u.poeid;
 	char path[NG_PATHLEN + 1];
 	char linkHook[NG_HOOKLEN + 1];
+	u_char rbuf[2048];
+	struct ng_mesg *resp;
+	const struct hooklist *hlist;
+	const struct nodeinfo *ninfo;
+	int f;
 
 	/* Sanity */
 	if (pe->state != PPPOE_DOWN)
@@ -189,6 +194,63 @@ PppoeOpen(PhysInfo p)
 		goto fail;
 	}
 	(void)fcntl(pe->csock, F_SETFD, 1);
+
+	/*
+	 * Ask for a list of hooks attached to the "ether" node.
+	 * This node should magically exist as a way of hooking stuff
+	 * onto an ethernet device.
+	 */
+	if (NgSendMsg(bund->csock, pe->path,
+	    NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL, 0) < 0) {
+		Log(LG_ERR, ("[%s] Cannot send a netgraph message: %s:%s",
+		    lnk->name, pe->path, strerror(errno)));
+		goto fail2;
+	}
+
+	/* Get our list back */
+	resp = (struct ng_mesg *)rbuf;
+	if (NgRecvMsg(bund->csock, resp, sizeof rbuf, NULL) <= 0) {
+		Log(LG_ERR, ("[%s] Cannot get netgraph response: %s",
+		    lnk->name, strerror(errno)));
+		goto fail2;
+	}
+	hlist = (const struct hooklist *)resp->data;
+	ninfo = &hlist->nodeinfo;
+
+	/* Make sure we've got the right type of node */
+	if (strncmp(ninfo->type, NG_ETHER_NODE_TYPE,
+		sizeof NG_ETHER_NODE_TYPE - 1)) {
+		Log(LG_ERR, ("[%s] Unexpected node type ``%s''"
+		    " (wanted ``%s'') on %s", lnk->name, ninfo->type,
+		    NG_ETHER_NODE_TYPE, pe->path));
+		goto fail2;
+	}
+
+	/* Look for a hook already attached */
+	for (f = 0; f < ninfo->hooks; f++) {
+		const struct linkinfo *const nlink = &hlist->link[f];
+
+		/* Ignore other hooks besides orphans and divert */
+		if (strcmp(nlink->ourhook, NG_ETHER_HOOK_ORPHAN) != 0
+		    && strcmp(nlink->ourhook, NG_ETHER_HOOK_DIVERT) != 0)
+			continue;
+
+		/*
+		 * Something is using the data coming out of this ``ether''
+		 * node. If it's a PPPoE node, we use that node, otherwise
+		 * we complain that someone else is using the node.
+		 */
+		if (strcmp(nlink->nodeinfo.type, NG_PPPOE_NODE_TYPE) == 0) {
+			snprintf(path, sizeof(path),
+			    "[%x]:", nlink->nodeinfo.id);
+			goto got_node;
+		}
+
+		/* Node is already in use */
+		Log(LG_ERR, ("%s node ``%s'' already being used",
+		    path, nlink->nodeinfo.type));
+		goto fail2;
+	}
 
 #if 0	/**** BUG IN NgSendAsciiMsg(), fixed in rev. 1.3 ****/
 	/* Attach a new ng_pppoe(4) node to the Ethernet node */
@@ -229,6 +291,7 @@ PppoeOpen(PhysInfo p)
 	if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path, session_hook) < 0)
 		goto fail3;
 
+got_node:
 	/* Tell the PPPoE node to try to connect to a server */
 	memset(idata, 0, sizeof(idata));
 	snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
