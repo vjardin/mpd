@@ -193,6 +193,10 @@ pptp:
 	set iface enable proxy-arp
 	set iface idle 1800
 	set bundle enable multilink
+# enable TCP-Wrapper (hosts_access(5)) to block unfriendly clients
+#	set bundle enable tcp-wrapper
+# use RADIUS servers 
+#	load radius
 	set link yes acfcomp protocomp
 	set link no pap chap
 	set link enable chap
@@ -284,4 +288,23 @@ PPPoE:
 	set ipcp yes vjcomp
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	open iface
+
+radius:
+# You can use radius.conf(5), its useful, because you can share the
+# same config with userland-ppp and other apps.
+	set radius config /etc/radius.conf
+# and/or specify the server directly here
+	set radius retries 3
+	set radius timeout 3
+	set radius server localhost testing123 1812 1813
+# let the RADIUS server assign the IP
+	set ipcp enable radius-ip
+# enable RADIUS, and fallback to mpd.secret, if RADIUS auth failed
+	set bundle enable radius-auth radius-fallback
+# enable RADIUS accounting
+	set bundle enable radius-acct
+# use idle-timeout and mtu from the RADIUS server
+	set iface enable radius-idle radius-mtu
+# let the RADIUS server assign MPPE-types and MPPE-policies
+	set ccp enable radius
 
