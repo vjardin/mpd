@@ -63,6 +63,13 @@ Upgrade to a version of FreeBSD newer than 4.7-RELEASE.  Or apply
 <htmlurl url="http://www.freebsd.org/cgi/cvsweb.cgi/src/sys/netgraph/ng_pptpgre.c.diff?r1=1.25&amp;r2=1.26" name="this patch">
 manually.
 
+<tag><bf>
+My configuration doesn't seem to be working as expected.
+</bf></tag>
+
+Make sure your <tt>mpd.conf</tt> and <tt>mpd.links</tt> files are
+formatted properly. Labels must be left-justified, and blank lines
+must exist between sections to separate them.
 
 </descrip>
 
