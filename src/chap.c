@@ -28,6 +28,7 @@
   static int	ChapParsePkt(const u_char *pkt, const int pkt_len,
 		  char *peer_name, u_char *chap_value,
 		  int *chap_value_size);
+  static char	*ChapGetSecret(AuthData auth);
   static void	ChapGenRandom(u_char *buf, int len);
 
 /*
@@ -239,7 +240,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
   switch (auth->code) {
     case CHAP_CHALLENGE:
       {
-	char	*name;
+	char	*name, *secret;
 	int	name_len, idFail;
 
 	/* Check packet */
@@ -327,9 +328,11 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	  break;
 	}
 
+	secret = ChapGetSecret(auth);
+
 	/* Get hash value */
 	if ((hash_value_size = ChapHash(chap->xmit_alg, hash_value, auth->id,
-	    name, auth->password, chap->value, chap->value_len, 1)) < 0) {
+	    name, secret, chap->value, chap->value_len, 1)) < 0) {
 	  Log(LG_AUTH, (" Hash failure"));
 	  break;
 	}
@@ -339,7 +342,6 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	case CHAP_ALG_MSOFT:
   	  if (!memcmp(bund->ccp.mppc.peer_msChal, gMsoftZeros, CHAP_MSOFT_CHAL_LEN))
 	    memcpy(bund->ccp.mppc.peer_msChal, chap->value, CHAP_MSOFT_CHAL_LEN);
-	  strlcpy(bund->ccp.mppc.msPassword, auth->password, sizeof(bund->ccp.mppc.msPassword));
 	  break;
 	case CHAP_ALG_MSOFTv2:
   	  if (!memcmp(bund->ccp.mppc.peer_msChal, gMsoftZeros, CHAP_MSOFTv2_CHAL_LEN))
@@ -348,7 +350,6 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	    memcpy(bund->ccp.mppc.self_ntResp,
 	      hash_value + offsetof(struct mschapv2value, ntHash),
 	      CHAP_MSOFTv2_RESP_LEN);
-	  strlcpy(bund->ccp.mppc.msPassword, auth->password, sizeof(bund->ccp.mppc.msPassword));
 	  break;
 	}
 
@@ -466,7 +467,7 @@ ChapInputFinish(AuthData auth)
   const char	*failMesg;
   u_char	hash_value[CHAP_MAX_VAL];
   int		hash_value_size;
-  char		ackMesg[128];
+  char		ackMesg[128], *secret;
    
   Log(LG_AUTH, ("[%s] CHAP: ChapInputFinish: status %s", 
     lnk->name, AuthStatusText(auth->status)));
@@ -480,9 +481,11 @@ ChapInputFinish(AuthData auth)
   if (chap->recv_alg == CHAP_ALG_MSOFTv2)
     memcpy(hash_value, chap->value, 16);
     
+  secret = ChapGetSecret(auth);
+
   /* Get expected hash value */
   if ((hash_value_size = ChapHash(chap->recv_alg, hash_value, auth->id,
-    auth->authname, auth->password, chap->chal_data, chap->chal_len,
+    auth->authname, secret, chap->chal_data, chap->chal_len,
     0)) < 0) {
     Log(LG_AUTH, (" Hash failure"));
     auth->why_fail = AUTH_FAIL_INVALID_PACKET;
@@ -509,7 +512,7 @@ ChapInputFinish(AuthData auth)
     int i;
 
     /* Generate MS-CHAPv2 'authenticator response' */
-    GenerateAuthenticatorResponse(auth->password, pv->ntHash,
+    GenerateAuthenticatorResponse(a->msoft.nt_hash, pv->ntHash,
       pv->peerChal, chap->chal_data, auth->authname, authresp);
     for (i = 0; i < 20; i++)
       sprintf(hex + (i * 2), "%02X", authresp[i]);
@@ -527,17 +530,54 @@ badResponse:
   return;  
 
 goodResponse:
+  /* make a dummy verify to force an update of the opiekeys database */
+  if (a->authentic == AUTH_CONF_OPIE)
+    opieverify(&auth->opie.data, auth->password);
+
   /* Need to remember MS-CHAP stuff for use with MPPE encryption */
-  if (chap->recv_alg == CHAP_ALG_MSOFTv2) {
-    memcpy(auth->mppc.peer_ntResp,
+  if (chap->recv_alg == CHAP_ALG_MSOFTv2 
+    && !memcmp(bund->ccp.mppc.peer_ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN))
+    memcpy(bund->ccp.mppc.peer_ntResp,
       chap->value + offsetof(struct mschapv2value, ntHash),
       CHAP_MSOFTv2_RESP_LEN);
-  }
   
   AuthOutput(chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
     auth->id, auth->ack_mesg, strlen(auth->ack_mesg), 0, EAP_TYPE_MD5CHAL);
   AuthFinish(AUTH_PEER_TO_SELF, TRUE, auth);
   AuthDataDestroy(auth);
+}
+
+/*
+ * ChapGetSecret()
+ * 
+ * returns either the plaintext pass for CHAP-MD5
+ * or the NT-Hash for MS-CHAP. Set's credentials for
+ * MPPE-Key derivation
+ */
+
+static char *
+ChapGetSecret(AuthData auth)
+{
+  Auth		a = &lnk->lcp.auth;
+  ChapInfo	chap = &a->chap;
+  char		*pw;
+
+  if (chap->recv_alg == CHAP_ALG_MD5)
+    pw = auth->password;
+  else {
+    if (!a->msoft.has_nt_hash)
+    {
+      NTPasswordHash(auth->password, a->msoft.nt_hash);
+      NTPasswordHashHash(a->msoft.nt_hash, a->msoft.nt_hash_hash);
+      LMPasswordHash(auth->password, a->msoft.lm_hash);
+      a->msoft.has_nt_hash = TRUE;
+      a->msoft.has_lm_hash = TRUE;
+    }
+
+    pw = a->msoft.nt_hash;
+  }
+
+  return pw;
 }
 
 /*
@@ -682,4 +722,3 @@ ChapCode(int code)
       return(buf);
   }
 }
-

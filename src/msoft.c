@@ -95,20 +95,34 @@ NTPasswordHash(const char *password, u_char *hash)
 }
 
 /*
+ * NTPasswordHashHash()
+ *
+ * nthash	16 bytes NT-Hash
+ * hash		16 bytes MD4 of NT-hash
+ */
+
+void
+NTPasswordHashHash(const char *nthash, u_char *hash)
+{
+  MD4_CTX	md4ctx;
+
+  MD4_Init(&md4ctx);
+  MD4_Update(&md4ctx, (u_char *) nthash, 16);
+  MD4_Final(hash, &md4ctx);
+}
+
+/*
  * NTChallengeResponse()
  *
  * chal		8 byte challenge
- * password	ASCII (NOT Unicode) password
+ * nthash	NT-Hash
  * hash		24 byte response
  */
 
 void
-NTChallengeResponse(const u_char *chal, const char *password, u_char *hash)
+NTChallengeResponse(const u_char *chal, const char *nthash, u_char *hash)
 {
-  u_char	pwHash[16];
-
-  NTPasswordHash(password, pwHash);
-  ChallengeResponse(chal, pwHash, hash);
+  ChallengeResponse(chal, nthash, hash);
 }
 
 /*
@@ -194,20 +208,18 @@ MsoftGetStartKey(u_char *chal, u_char *h)
  * authchal	16 byte authenticator challenge
  * peerchal	16 byte peer challenge
  * username	ASCII username
- * password	ASCII (NOT Unicode) password
+ * nthash	NT-Hash
  * hash		24 byte response
  */
 
 void
 GenerateNTResponse(const u_char *authchal, const u_char *peerchal,
-  const char *username, const char *password, u_char *hash)
+  const char *username, const char *nthash, u_char *hash)
 {
   u_char	chal[8];
-  u_char	pwHash[16];
 
   ChallengeHash(peerchal, authchal, username, chal);
-  NTPasswordHash(password, pwHash);
-  ChallengeResponse(chal, pwHash, hash);
+  ChallengeResponse(chal, nthash, hash);
 }
 
 /*
@@ -240,7 +252,7 @@ ChallengeHash(const u_char *peerchal, const u_char *authchal,
  * "authresp" must point to a 20 byte buffer.
  */
 void
-GenerateAuthenticatorResponse(const char *password,
+GenerateAuthenticatorResponse(const char *nthash,
   const u_char *ntresp, const u_char *peerchal,
   const u_char *authchal, const char *username, u_char *authresp)
 {
@@ -250,10 +262,8 @@ GenerateAuthenticatorResponse(const char *password,
   MD4_CTX md4ctx;
   SHA_CTX shactx;
 
-  NTPasswordHash(password, hash);
-
   MD4_Init(&md4ctx);
-  MD4_Update(&md4ctx, hash, 16);
+  MD4_Update(&md4ctx, nthash, 16);
   MD4_Final(hash, &md4ctx);
 
   SHA1_Init(&shactx);

@@ -46,9 +46,9 @@
 
   /* Encryption stuff */
   static void	MppeInitKey(MppcInfo mppc, int dir);
-  static int	MppeGetKeyInfo(char **secretp, u_char **challengep);
+  static int	MppeGetKeyInfo(u_char **challengep);
   static void	MppeInitKeyv2(MppcInfo mppc, int dir);
-  static int	MppeGetKeyInfov2(char **secretp, u_char **responsep);
+  static int	MppeGetKeyInfov2(u_char **responsep);
   static short	MppcEnabledMppeType(short type);
   static short	MppcAcceptableMppeType(short type);
 
@@ -87,7 +87,6 @@ static int
 MppcInit(int dir)
 {
   MppcInfo		const mppc = &bund->ccp.mppc;
-  Auth			const a = &lnk->lcp.auth;
   struct ng_mppc_config	conf;
   struct ngm_mkpeer	mp;
   char			path[NG_PATHLEN + 1];
@@ -110,14 +109,10 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_COMPRESS;
       mppchook = NG_MPPC_HOOK_COMP;
       conf.bits = mppc->xmit_bits;
-      /* Check, whether the MPPE-Keys are already set */
-      if (!a->mppc.has_keys || mschap == CHAP_ALG_MSOFT) {
-	if (mschap == CHAP_ALG_MSOFTv2) {
-	  MppeInitKeyv2(mppc, dir);
-	} else {
-	  MppeInitKey(mppc, dir);
-	}
-      }
+      if (mschap == CHAP_ALG_MSOFTv2)
+	MppeInitKeyv2(mppc, dir);
+      else
+	MppeInitKey(mppc, dir);
       memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
       break;
     case COMP_DIR_RECV:
@@ -125,14 +120,10 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_DECOMPRESS;
       mppchook = NG_MPPC_HOOK_DECOMP;
       conf.bits = mppc->recv_bits;
-      /* Check, whether the MPPE-Keys are already set */
-      if (!a->mppc.has_keys || mschap == CHAP_ALG_MSOFT) {
-	if (mschap == CHAP_ALG_MSOFTv2) {
-	  MppeInitKeyv2(mppc, dir);
-	} else {
-	  MppeInitKey(mppc, dir);
-	}
-      }
+      if (mschap == CHAP_ALG_MSOFTv2)
+	MppeInitKeyv2(mppc, dir);
+      else
+	MppeInitKey(mppc, dir);
       memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
       break;
     default:
@@ -462,7 +453,7 @@ MppcEnabledMppeType(short type)
   case 40:
     if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;
-      ret = (a->mppc.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
+      ret = (a->msoft.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
       ret = Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
     }
@@ -472,7 +463,7 @@ MppcEnabledMppeType(short type)
   case 56:
     if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;    
-      ret = (a->mppc.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
+      ret = (a->msoft.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
       ret = Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
     }
@@ -484,7 +475,7 @@ MppcEnabledMppeType(short type)
   default:
     if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;    
-      ret = (a->mppc.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
+      ret = (a->msoft.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
     }
@@ -505,7 +496,7 @@ MppcAcceptableMppeType(short type)
   case 40:
     if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;
-      ret = a->mppc.types & MPPE_TYPE_40BIT;
+      ret = a->msoft.types & MPPE_TYPE_40BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe40);
     }
@@ -515,7 +506,7 @@ MppcAcceptableMppeType(short type)
   case 56:
     if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;
-      ret = a->mppc.types & MPPE_TYPE_56BIT;
+      ret = a->msoft.types & MPPE_TYPE_56BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe56);
     }
@@ -527,7 +518,7 @@ MppcAcceptableMppeType(short type)
   default:
     if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;    
-      ret = a->mppc.types & MPPE_TYPE_128BIT;
+      ret = a->msoft.types & MPPE_TYPE_128BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe128);
     }
@@ -553,35 +544,21 @@ MppeInitKey(MppcInfo mppc, int dir)
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_key0 : mppc->recv_key0;
   u_char	hash[16];
-  char		*pass;
   u_char	*chal;
 
   /* Get credential info */
-  if (MppeGetKeyInfo(&pass, &chal) < 0)
+  if (MppeGetKeyInfo(&chal) < 0)
     return;
 
   /* Compute basis for the session key (ie, "start key" or key0) */
   if (bits & MPPE_128) {
-    MD4_CTX	c;
-
-    if (lnk->lcp.auth.mppc.has_nt_hash)
-      memcpy(hash, lnk->lcp.auth.mppc.nt_hash, sizeof(hash));
-    else {
-      NTPasswordHash(pass, hash);
-      KEYDEBUG((hash, sizeof(hash), "NTPasswordHash"));
-      MD4Init(&c);
-      MD4Update(&c, hash, 16);
-      MD4Final(hash, &c);
-      KEYDEBUG((hash, sizeof(hash), "MD4 of that"));
-      KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
-    }
+    memcpy(hash, lnk->lcp.auth.msoft.nt_hash_hash, sizeof(hash));
+    KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
+    KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
     MsoftGetStartKey(chal, hash);
     KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    if (lnk->lcp.auth.mppc.has_lm_key)
-      memcpy(hash, lnk->lcp.auth.mppc.lm_key, 8);
-    else
-      LMPasswordHash(pass, hash);
+    memcpy(hash, lnk->lcp.auth.msoft.lm_hash, 8);
     KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
   }
   memcpy(key0, hash, MPPE_KEY_LEN);
@@ -596,7 +573,7 @@ MppeInitKey(MppcInfo mppc, int dir)
  */
 
 static int
-MppeGetKeyInfo(char **secretp, u_char **challengep)
+MppeGetKeyInfo(u_char **challengep)
 {
   CcpState	const ccp = &bund->ccp;
   u_char	*challenge;
@@ -630,7 +607,6 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
   }
 
   /* Return info */
-  *secretp = bund->ccp.mppc.msPassword;
   *challengep = challenge;
   return(0);
 
@@ -650,21 +626,22 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_key0 : mppc->recv_key0;
   u_char	hash[16];
-  char		*pass;
   u_char	*resp;
-  MD4_CTX	c;
+
+  if (lnk->lcp.auth.msoft.has_keys)
+  { 
+    memcpy(mppc->xmit_key0, lnk->lcp.auth.msoft.xmit_key, MPPE_KEY_LEN);
+    memcpy(mppc->recv_key0, lnk->lcp.auth.msoft.recv_key, MPPE_KEY_LEN);
+    return;
+  }
 
   /* Get credential info */
-  if (MppeGetKeyInfov2(&pass, &resp) < 0)
+  if (MppeGetKeyInfov2(&resp) < 0)
     return;
 
   /* Compute basis for the session key (ie, "start key" or key0) */
-  NTPasswordHash(pass, hash);
-  KEYDEBUG((hash, sizeof(hash), "NTPasswordHash"));
-  MD4Init(&c);
-  MD4Update(&c, hash, 16);
-  MD4Final(hash, &c);
-  KEYDEBUG((hash, sizeof(hash), "MD4 of that"));
+  memcpy(hash, lnk->lcp.auth.msoft.nt_hash_hash, sizeof(hash));
+  KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
   KEYDEBUG((resp, CHAP_MSOFTv2_CHAL_LEN, "Response"));
   MsoftGetMasterKey(resp, hash);
   KEYDEBUG((hash, sizeof(hash), "GetMasterKey"));
@@ -681,7 +658,7 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
  */
 
 static int
-MppeGetKeyInfov2(char **secretp, u_char **responsep)
+MppeGetKeyInfov2(u_char **responsep)
 {
   CcpState		const ccp = &bund->ccp;
   u_char		*response;
@@ -715,7 +692,6 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
   }
 
   /* Return info */
-  *secretp = bund->ccp.mppc.msPassword;
   *responsep = response;
   return(0);
 

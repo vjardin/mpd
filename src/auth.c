@@ -15,7 +15,14 @@
 #include "custom.h"
 #include "log.h"
 #include "ngfunc.h"
+#include "msoft.h"
 
+/*
+ * DEFINITIONS
+ */
+    
+  #define OPIE_ALG_MD5	5
+  
 /*
  * INTERNAL FUNCTIONS
  */
@@ -28,6 +35,8 @@
   static void	AuthAccountTimeout(void *a);
   static void	AuthAccount(void *arg);
   static void	AuthAccountFinish(void *arg, int was_canceled);
+  static void	AuthSystem(AuthData auth);
+  static void	AuthOpie(AuthData auth);
   static const char *AuthCode(int proto, u_char code);
   static int	AuthSetCommand(int ac, char *av[], void *arg);
 
@@ -84,6 +93,8 @@
     { 0,	AUTH_CONF_RADIUS_AUTH,	"radius-auth"	},
     { 0,	AUTH_CONF_RADIUS_ACCT,	"radius-acct"	},
     { 0,	AUTH_CONF_INTERNAL,	"internal"	},
+    { 0,	AUTH_CONF_SYSTEM,	"system"	},
+    { 0,	AUTH_CONF_OPIE,		"opie"		},
     { 0,	AUTH_CONF_MPPC_POL,	"mppc-pol"	},
     { 0,	0,			NULL		},
   };
@@ -103,7 +114,9 @@ AuthInit(void)
   
   Enable(&ac->options, AUTH_CONF_INTERNAL);
 
-  Enable(&ac->options, AUTH_CONF_MPPC_POL);
+  /* Disable MPPE Policies, because not all backends 
+   * supports this */
+  Disable(&ac->options, AUTH_CONF_MPPC_POL);
   
   /* default auth timeout */
   ac->timeout = 40;
@@ -330,7 +343,6 @@ void
 AuthFinish(int which, int ok, AuthData auth)
 {
   Auth		const a = &lnk->lcp.auth;
-  ChapInfo	const chap = &a->chap;
 
   switch (which) {
     case AUTH_SELF_TO_PEER:
@@ -348,22 +360,6 @@ AuthFinish(int which, int ok, AuthData auth)
 	/* Save IP address info for this peer */
 	lnk->peer_allow = auth->range;
 	lnk->range_valid = auth->range_valid;
-	
-	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
-	strlcpy(bund->ccp.mppc.msPassword, auth->password, 
-	  sizeof(bund->ccp.mppc.msPassword));
-	  
-	if (chap->recv_alg == CHAP_ALG_MSOFTv2)
-	  memcpy(bund->ccp.mppc.peer_ntResp,
-	    auth->mppc.peer_ntResp,
-	    CHAP_MSOFTv2_RESP_LEN);
-	    
-	/* If MPPE keys are not set, copy these from the auth-container */
-	if (!memcmp(bund->ccp.mppc.xmit_key0, gMsoftZeros, MPPE_KEY_LEN)) {
-	  memcpy(bund->ccp.mppc.xmit_key0, auth->mppc.xmit_key0, MPPE_KEY_LEN);
-	  memcpy(bund->ccp.mppc.recv_key0, auth->mppc.recv_key0, MPPE_KEY_LEN);	  
-	}
-
       }
       break;
 
@@ -432,8 +428,9 @@ AuthCleanup(void)
   Freee(MB_AUTH, a->params.msdomain);
   Freee(MB_AUTH, a->radius.state);
   Freee(MB_AUTH, a->radius.eapmsg);
+  a->authentic = 0;
   memset(&a->radius, 0, sizeof(a->radius));
-  memset(&a->mppc, 0, sizeof(a->mppc));
+  memset(&a->msoft, 0, sizeof(a->msoft));
   memset(&a->params, 0, sizeof(a->params));    
 }
 
@@ -500,11 +497,9 @@ AuthStat(int ac, char *av[], void *arg)
   printf("\tAcct-Update     : %ld\n", a->params.acct_update);
   printf("\tNum Routes      : %d\n", a->params.n_routes);
   printf("\tMS-Domain       : %s\n", a->params.msdomain);  
-  printf("\tMPPE Types      : %s\n", AuthMPPEPolicyname(a->mppc.policy));
-  printf("\tMPPE Policy     : %s\n", AuthMPPETypesname(a->mppc.types));
-  printf("\tMPPE Keys       : %s\n", a->mppc.has_keys ? "yes" : "no");
-  printf("\tMPPE LM-Key     : %s\n", a->mppc.has_lm_key ? "yes" : "no");  
-  printf("\tMPPE NT-Hash    : %s\n", a->mppc.has_nt_hash ? "yes" : "no");    
+  printf("\tMPPE Types      : %s\n", AuthMPPEPolicyname(a->msoft.policy));
+  printf("\tMPPE Policy     : %s\n", AuthMPPETypesname(a->msoft.types));
+  printf("\tMPPE Keys       : %s\n", a->msoft.has_keys ? "yes" : "no");
 
   return (0);
 }
@@ -745,7 +740,8 @@ AuthAsync(void *arg)
 {
   AuthData	const auth = (AuthData)arg;
   Link		const lnk = auth->lnk;	/* hide the global "lnk" */
-  EapInfo	const eap = &lnk->lcp.auth.eap;
+  Auth		const a = &lnk->lcp.auth;
+  EapInfo	const eap = &a->eap;
 
   Log(LG_AUTH, ("[%s] AUTH: Auth-Thread started", lnk->name));
 
@@ -758,34 +754,48 @@ AuthAsync(void *arg)
     RadiusAuthenticate(auth);
     Log(LG_AUTH, ("[%s] AUTH: RADIUS returned %s", 
       lnk->name, AuthStatusText(auth->status)));
-    if (auth->status == AUTH_STATUS_SUCCESS) {
+    if (auth->status == AUTH_STATUS_SUCCESS)
       return;
-    }
-  
-    if (!Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
-      auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
-      return;
-    }
   }
 
+  if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM)) {
+    Log(LG_AUTH, ("[%s] AUTH: Trying SYSTEM", lnk->name));
+    AuthSystem(auth);
+    Log(LG_AUTH, ("[%s] AUTH: SYSTEM returned %s", 
+      lnk->name, AuthStatusText(auth->status)));
+    if (auth->status == AUTH_STATUS_SUCCESS 
+      || auth->status == AUTH_STATUS_UNDEF)
+      return;
+  }
+  
+  if (Enabled(&auth->conf.options, AUTH_CONF_OPIE)) {
+    Log(LG_AUTH, ("[%s] AUTH: Trying OPIE ", lnk->name));
+    AuthOpie(auth);
+    Log(LG_AUTH, ("[%s] AUTH: OPIE returned %s", 
+      lnk->name, AuthStatusText(auth->status)));
+    if (auth->status == AUTH_STATUS_SUCCESS 
+      || auth->status == AUTH_STATUS_UNDEF)
+      return;
+  }    
   
   if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
+    a->authentic = AUTH_CONF_INTERNAL;
     Log(LG_AUTH, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
-    /* The default action, simply fetch the secret pass and return */
     Log(LG_AUTH, (" Peer name: \"%s\"", auth->authname));
     if (AuthGetData(auth, 1) < 0) {
       Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->authname));
       auth->status = AUTH_STATUS_FAIL;
       return;
     }
-  } else {
-    if (auth->status == AUTH_STATUS_UNDEF) {
-      Log(LG_ERR, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
-    }
-  }
-  
-  /* the finish handler make's the validation */
-  auth->status = AUTH_STATUS_UNDEF;
+
+    /* the finish handler make's the validation */
+    auth->status = AUTH_STATUS_UNDEF;
+    return;
+  } 
+
+  Log(LG_ERR, ("[%s] AUTH: ran out of backends", lnk->name));
+  auth->status = AUTH_STATUS_FAIL;
+  auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
 }
 
 /*
@@ -821,14 +831,162 @@ AuthAsyncFinish(void *arg, int was_canceled)
   a = &lnk->lcp.auth;
 
   /* copy back modified data */
+  lnk->lcp.auth.authentic = auth->lnk->lcp.auth.authentic;
   lnk->lcp.auth.params = auth->lnk->lcp.auth.params;
   lnk->lcp.auth.radius = auth->lnk->lcp.auth.radius;  
-  lnk->lcp.auth.mppc = auth->lnk->lcp.auth.mppc;  
+  lnk->lcp.auth.msoft = auth->lnk->lcp.auth.msoft;  
   
   if (auth->mschapv2resp != NULL)
     strcpy(auth->ack_mesg, auth->mschapv2resp);
   
   auth->finish(auth);
+}
+
+/*
+ * AuthSystem()
+ * 
+ * Authenticate against Systems password database
+ */
+ 
+static void
+AuthSystem(AuthData auth)
+{
+  Link		const lnk = auth->lnk;	/* hide the global "lnk" */
+  Auth		const a = &lnk->lcp.auth;
+  ChapInfo	chap = &a->chap;
+  PapInfo	pap = &a->pap;
+  struct passwd	*pw;
+  u_char	*bin;
+  
+  /* protect getpwnam and errno 
+   * NOTE: getpwnam_r doesen't exists on FreeBSD < 5.1 */
+  pthread_mutex_lock(&gGiantMutex);
+  errno = 0;
+  pw = getpwnam(auth->authname);
+  if (!pw) {
+    if (errno)
+      Log(LG_ERR, (" Error retrieving passwd %s", strerror(errno)));
+    else
+      Log(LG_AUTH, (" User %s not found in the systems database", auth->authname));
+    auth->status = AUTH_STATUS_FAIL;
+    auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+    pthread_mutex_unlock(&gGiantMutex);
+    return;
+  }
+  pthread_mutex_unlock(&gGiantMutex);
+  
+  Log(LG_AUTH, (" Found user %s Uid:%d Gid:%d Fmt:%*.*s", pw->pw_name, 
+    pw->pw_uid, pw->pw_gid, 3, 3, pw->pw_passwd));
+
+  if (auth->proto == PROTO_PAP) {
+    /* protect non-ts crypt() */
+    pthread_mutex_lock(&gGiantMutex);
+    if (strcmp(crypt(pap->peer_pass, pw->pw_passwd), pw->pw_passwd) == 0) {
+      auth->status = AUTH_STATUS_SUCCESS;
+      a->authentic = AUTH_CONF_OPIE;      
+    } else {
+      auth->status = AUTH_STATUS_FAIL;
+      auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+    }
+    pthread_mutex_unlock(&gGiantMutex);    
+    return;
+  } else if (auth->proto == PROTO_CHAP 
+      && (chap->recv_alg == CHAP_ALG_MSOFT || chap->recv_alg == CHAP_ALG_MSOFTv2)) {
+
+    if (!strstr(pw->pw_passwd, "$3$$")) {
+      Log(LG_AUTH, (" Password has the wrong format, nth ($3$) is needed"));
+      auth->status = AUTH_STATUS_FAIL;
+      auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+      return;
+    }
+
+    bin = Hex2Bin(&pw->pw_passwd[4]);
+    memcpy(a->msoft.nt_hash, bin, sizeof(a->msoft.nt_hash));
+    Freee(MB_UTIL, bin);
+    NTPasswordHashHash(a->msoft.nt_hash, a->msoft.nt_hash_hash);
+    a->msoft.has_nt_hash = TRUE;
+    auth->status = AUTH_STATUS_UNDEF;
+    a->authentic = AUTH_CONF_OPIE;
+    return;
+
+  } else {
+    Log(LG_ERR, (" Using systems password database only possible for PAP and MS-CHAP"));
+    auth->status = AUTH_STATUS_FAIL;
+    auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+    return;
+  }
+
+}
+
+/*
+ * AuthOpie()
+ */
+
+static void
+AuthOpie(AuthData auth)
+{
+  Link		lnk = auth->lnk;	/* hide the global "lnk" */
+  Auth		const a = &lnk->lcp.auth;
+  PapInfo	const pap = &a->pap;
+  struct	opie_otpkey key;
+  char		opieprompt[OPIE_CHALLENGE_MAX + 1];
+  int		ret, n;
+  char		secret[OPIE_SECRET_MAX + 1];
+  char		english[OPIE_RESPONSE_MAX + 1];
+
+  ret = opiechallenge(&auth->opie.data, auth->authname, opieprompt);
+
+  auth->status = AUTH_STATUS_UNDEF;
+  
+  switch (ret) {
+    case 0:
+      break;
+  
+    case 1:
+      Log(LG_ERR, (" User not found"));
+      auth->status = AUTH_STATUS_FAIL;
+      auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+      return;
+
+    case -1:
+    case 2:
+    default:
+      Log(LG_ERR, (" System error"));
+      auth->status = AUTH_STATUS_FAIL;
+      auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+      return;
+  };
+
+  Log(LG_AUTH, (" Opieprompt:%s", opieprompt));
+
+  if (auth->proto == PROTO_PAP ) {
+    if (!opieverify(&auth->opie.data, pap->peer_pass)) {
+      a->authentic = AUTH_CONF_OPIE;
+      auth->status = AUTH_STATUS_SUCCESS;
+    } else {
+      auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+      auth->status = AUTH_STATUS_FAIL;
+    }
+    return;
+  }
+
+  if (AuthGetData(auth, 1) < 0) {
+    Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->authname));
+    auth->status = AUTH_STATUS_FAIL;
+    auth->why_fail = AUTH_FAIL_INVALID_LOGIN;    
+    return;
+  }
+  
+  strlcpy(secret, auth->password, sizeof(secret));
+  
+  opiekeycrunch(OPIE_ALG_MD5, &key, auth->opie.data.opie_seed, secret);
+  n = auth->opie.data.opie_n - 1;
+  while (n-- > 0)
+    opiehash(&key, OPIE_ALG_MD5);
+
+  opiebtoe(english, &key);
+  strlcpy(auth->password, english, sizeof(auth->password));
+  a->authentic = AUTH_CONF_OPIE;
 }
 
 /*
@@ -881,7 +1039,7 @@ const char *
 AuthFailMsg(AuthData auth, int alg)
 {
   static char	buf[64];
-  const char	*mesg;
+  const char	*mesg, *mesg2;
 
   if (auth->proto == PROTO_CHAP
       && (alg == CHAP_ALG_MSOFT || alg == CHAP_ALG_MSOFTv2)) {
@@ -890,25 +1048,29 @@ AuthFailMsg(AuthData auth, int alg)
     switch (auth->why_fail) {
       case AUTH_FAIL_ACCT_DISABLED:
 	mscode = MSCHAP_ERROR_ACCT_DISABLED;
+	mesg2 = AUTH_MSG_ACCT_DISAB;
 	break;
       case AUTH_FAIL_NO_PERMISSION:
 	mscode = MSCHAP_ERROR_NO_DIALIN_PERMISSION;
+	mesg2 = AUTH_MSG_NOT_ALLOWED;
 	break;
       case AUTH_FAIL_RESTRICTED_HOURS:
 	mscode = MSCHAP_ERROR_RESTRICTED_LOGON_HOURS;
+	mesg2 = AUTH_MSG_RESTR_HOURS;
 	break;
       case AUTH_FAIL_INVALID_PACKET:
       case AUTH_FAIL_INVALID_LOGIN:
       case AUTH_FAIL_NOT_EXPECTED:
       default:
 	mscode = MSCHAP_ERROR_AUTHENTICATION_FAILURE;
+	mesg2 = AUTH_MSG_INVALID;
 	break;
     }
 
     if (auth->mschap_error != NULL) {
       snprintf(buf, sizeof(buf), auth->mschap_error);
     } else {
-      snprintf(buf, sizeof(buf), "E=%d R=0", mscode);
+      snprintf(buf, sizeof(buf), "E=%d R=0 M=%s", mscode, mesg2);
     }
     mesg = buf;
     

@@ -38,7 +38,6 @@
     u_char	peer_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
     u_char	self_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
     u_char	peer_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
-    char	msPassword[AUTH_MAX_PASSWORD];	    /* For MSOFT MPPE */
   };
   typedef struct mppcinfo	*MppcInfo;
 

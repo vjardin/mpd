@@ -606,7 +606,7 @@ CcpCheckEncryption(void)
 
   /* Is encryption required? */
   if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-    if (a->mppc.policy != MPPE_POLICY_REQUIRED) 
+    if (a->msoft.policy != MPPE_POLICY_REQUIRED) 
       return(0);
   } else {
     if (!Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD))

@@ -15,6 +15,9 @@
 #include "chap.h"
 #include "eap.h"
 #include "radius.h"
+
+#include <pwd.h>
+#include <opie.h>
   
 /*
  * DEFINITIONS
@@ -62,9 +65,11 @@
   
   /* Configuration options */
   enum {
-    AUTH_CONF_RADIUS_AUTH,
+    AUTH_CONF_RADIUS_AUTH = 1,
     AUTH_CONF_RADIUS_ACCT,
     AUTH_CONF_INTERNAL,
+    AUTH_CONF_SYSTEM,
+    AUTH_CONF_OPIE,
     AUTH_CONF_MAX_LOGINS,
     AUTH_CONF_MPPC_POL,
   };  
@@ -81,8 +86,8 @@
     struct eapinfo	eap;		/* EAP state */
     struct paction	*thread;	/* async auth thread */
     struct paction	*acct_thread;	/* async accounting auth thread */
+    int			authentic;	/* wich backend was used */
     struct {
-      int		authentic;	/* whether RADIUS auth was used */
       unsigned long	class;      	/* Class */
       char		*eapmsg;	/* recvd EAP Msg for forwarding to the peer */
       int		eapmsg_len;
@@ -93,16 +98,18 @@
       struct radius_acl	*acl_queue;
     } radius;
     struct {
-      int	policy;		/* MPPE_POLICY_* */
-      int	types;		/* MPPE_TYPE_*BIT bitmask */
-      int	has_keys;
-      int	has_lm_key;
+      int	policy;			/* MPPE_POLICY_* */
+      int	types;			/* MPPE_TYPE_*BIT bitmask */
       int	has_nt_hash;
-      /* don't split the next 3 elements */
-      u_char	lm_key[8];	/* LAN-Manager Hash */
-      u_char	nt_hash[16];	/* NT-Hash */
-      u_char	padding[8];	/* Padding to fit in 16 byte boundary */
-    } mppc;
+      u_char	nt_hash[16];		/* NT-Hash */
+      int	has_lm_hash;
+      u_char	lm_hash[16];		/* LM-Hash */
+      int	has_keys;
+      u_char	nt_hash_hash[16];	/* NT-Hash-Hash */
+      /* Keys when using MS-CHAPv2 or EAP */
+      u_char	xmit_key[MPPE_KEY_LEN];	/* xmit start key */
+      u_char	recv_key[MPPE_KEY_LEN];	/* recv start key */
+    } msoft;
     struct {
       unsigned long	mtu;			/* MTU */
       unsigned long	session_timeout;	/* Session-Timeout */
@@ -133,7 +140,6 @@
   struct authdata {
     Link		lnk;		/* a copy of the link */
     struct authconf	conf;		/* a copy of bundle's authconf */
-    struct mppcinfo	mppc;		/* key-material for MPPE */
     int			proto;		/* wich proto are we using, PAP, CHAP, ... */
     u_int		id;		/* Actual, packet id */    
     u_int		code;		/* Proto specific code */
@@ -156,6 +162,9 @@
       char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
       int		eapmsg_len;
     } radius;
+    struct {
+      struct opie	data;
+    } opie;
     struct {		/* list of params obtained from the auth-backend */
       struct in_addr	ip;		/* IP Address */
       struct in_addr	mask;		/* IP Netmask */

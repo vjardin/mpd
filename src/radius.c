@@ -98,7 +98,7 @@ RadiusAuthenticate(AuthData auth)
 void
 RadiusEapProxy(void *arg)
 {
-  static char	function[] = "RadiusEepProxy";
+  static char	function[] = "RadiusEapProxy";
   AuthData	auth = (AuthData)arg;
   Link		lnk = auth->lnk;	/* hide the global "lnk" */
   int		pos = 0, mlen = RAD_MAX_ATTR_LEN;
@@ -160,7 +160,7 @@ RadiusAccount(AuthData auth)
   Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s", 
     lnk->name, function, auth->authname));
 
-  if (a->radius.authentic) {
+  if (a->authentic == AUTH_CONF_RADIUS_AUTH) {
     authentic = RAD_AUTH_RADIUS;
   } else {
     authentic = RAD_AUTH_LOCAL;
@@ -326,7 +326,8 @@ RadStat(int ac, char *av[], void *arg)
   OptStat(&conf->options, gConfList);
 
   printf("Data:\n");
-  printf("\tAuthenticated  : %s\n", a->radius.authentic ? "yes" : "no");
+  printf("\tAuthenticated  : %s\n", a->authentic == AUTH_CONF_RADIUS_AUTH ? 
+  	"yes" : "no");
   printf("\tClass          : %ld\n", a->radius.class);
   printf("\tACL Rule       : %s\n", a->radius.acl_rule ? "yes" : "no");
   printf("\tACL Pipe       : %s\n", a->radius.acl_pipe ? "yes" : "no");
@@ -858,7 +859,7 @@ RadiusSendRequest(AuthData auth)
       Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_ACCEPT for user %s", 
         lnk->name, auth->authname));
       auth->status = AUTH_STATUS_SUCCESS;
-      a->radius.authentic = TRUE;
+      a->authentic = AUTH_CONF_RADIUS_AUTH;
       break;
 
     case RAD_ACCESS_CHALLENGE:
@@ -900,7 +901,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   Link		lnk = auth->lnk;	/* hide the global "lnk" */
   Auth		const a = &lnk->lcp.auth;
   ChapInfo	const chap = &a->chap;
-  MppcInfo	const mppc = &auth->mppc;
   int		res, i, j, tmpkey_len;
   size_t	len;
   const void	*data;
@@ -1154,8 +1154,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		  return RAD_NACK;
 		}
 
-		memcpy(mppc->recv_key0, tmpkey, MPPE_KEY_LEN);
+		memcpy(a->msoft.recv_key, tmpkey, MPPE_KEY_LEN);
 		free(tmpkey);
+		a->msoft.has_keys = TRUE;
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_SEND_KEY:
@@ -1168,9 +1169,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    lnk->name, function, rad_strerror(auth->radius.handle)));
 		  return RAD_NACK;
 		}
-		memcpy(mppc->xmit_key0, tmpkey, MPPE_KEY_LEN);
+		memcpy(a->msoft.xmit_key, tmpkey, MPPE_KEY_LEN);
 		free(tmpkey);
-		a->mppc.has_keys = TRUE;
+		a->msoft.has_keys = TRUE;
 		break;
 
               /* MPPE Keys MS-CHAPv1 */
@@ -1191,23 +1192,22 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    lnk->name, function, rad_strerror(auth->radius.handle)));
 		  return RAD_NACK;
 		}
-		memcpy(a->mppc.lm_key, tmpkey, len);
-		a->mppc.has_lm_key = TRUE;
-		a->mppc.has_nt_hash = TRUE;
+		memcpy(a->msoft.lm_hash, tmpkey, sizeof(a->msoft.lm_hash));
+		a->msoft.has_lm_hash = TRUE;
+		memcpy(a->msoft.nt_hash_hash, &tmpkey[8], sizeof(a->msoft.nt_hash_hash));
 		free(tmpkey);
-		a->mppc.has_keys = TRUE;
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
-		a->mppc.policy = rad_cvt_int(data);
+		a->msoft.policy = rad_cvt_int(data);
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY: %d (%s)",
-		  lnk->name, function, a->mppc.policy, AuthMPPEPolicyname(a->mppc.policy)));
+		  lnk->name, function, a->msoft.policy, AuthMPPEPolicyname(a->msoft.policy)));
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES:
-		a->mppc.types = rad_cvt_int(data);
+		a->msoft.types = rad_cvt_int(data);
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES: %d (%s)",
-		  lnk->name, function, a->mppc.types, AuthMPPETypesname(a->mppc.types)));
+		  lnk->name, function, a->msoft.types, AuthMPPETypesname(a->msoft.types)));
 		break;
 
 	      default:
@@ -1298,18 +1298,18 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   
   /* MPPE allowed or required, but no MPPE keys returned */
   /* print warning, because MPPE doesen't work */
-  if (!got_mppe_keys && a->mppc.policy != MPPE_POLICY_NONE) {
+  if (!got_mppe_keys && a->msoft.policy != MPPE_POLICY_NONE) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: WARNING no MPPE-Keys received, MPPE will not work",
       lnk->name, function));
   }
 
   /* If no MPPE-Infos are returned by the RADIUS server, then allow all */
   /* MSoft IAS sends no Infos if all MPPE-Types are enabled and if encryption is optional */
-  if (a->mppc.policy == MPPE_POLICY_NONE &&
-      a->mppc.types == MPPE_TYPE_0BIT &&
+  if (a->msoft.policy == MPPE_POLICY_NONE &&
+      a->msoft.types == MPPE_TYPE_0BIT &&
       got_mppe_keys) {
-    a->mppc.policy = MPPE_POLICY_ALLOWED;
-    a->mppc.types = MPPE_TYPE_40BIT | MPPE_TYPE_128BIT | MPPE_TYPE_56BIT;
+    a->msoft.policy = MPPE_POLICY_ALLOWED;
+    a->msoft.types = MPPE_TYPE_40BIT | MPPE_TYPE_128BIT | MPPE_TYPE_56BIT;
     Log(LG_RADIUS, ("[%s] RADIUS: %s: MPPE-Keys, but no MPPE-Infos received => allowing MPPE with all types",
       lnk->name, function));
   }

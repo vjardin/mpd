@@ -321,9 +321,8 @@ mbsplit(Mbuf bp, int cnt)
 int
 MemStat(int ac, char *av[], void *arg)
 {
-  int	i;
-
-  struct typed_mem_stats stats;
+  int		i;
+  struct	typed_mem_stats stats;
 
   if (typed_mem_usage(&stats) == -1) {
     Log(LG_ERR, ("%s", strerror(errno)));
@@ -331,8 +330,8 @@ MemStat(int ac, char *av[], void *arg)
   }
 
   for (i = 0; i < structs_array_length(&typed_mem_stats_type, NULL, &stats); i++) {
-    char f[10];
-    struct typed_mem_typestats *s = NULL;
+    char	f[10];
+    struct	typed_mem_typestats *s = NULL;
 
     snprintf(f, sizeof(f), "%d", i);
 
