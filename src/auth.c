@@ -546,7 +546,15 @@ AuthAccountStart(int type)
   Auth		const a = &lnk->lcp.auth;
   AuthData	auth;
   u_long	updateInterval = 0;
-  
+
+  LinkUpdateStats();
+  if (type == AUTH_ACCT_STOP) {
+    Log(LG_LINK, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
+      lnk->name, lnk->peer_authname,
+      (unsigned long) (time(NULL) - lnk->bm.last_open),
+      lnk->stats.recvOctets, lnk->stats.xmitOctets));
+  }
+
   if (!Enabled(&bund->conf.auth.options, AUTH_CONF_RADIUS_ACCT)
       && !Enabled(&bund->conf.auth.options, AUTH_CONF_UTMP_WTMP))
     return;
@@ -568,7 +576,6 @@ AuthAccountStart(int type)
     }
   }
   
-  LinkUpdateStats();
   auth = AuthDataNew();
   strncpy(auth->authname, lnk->peer_authname, sizeof(auth->authname));
   auth->acct_type = type;
