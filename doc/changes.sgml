@@ -6,6 +6,16 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.4:
+    <itemize>
+    <item>Fix an install problem on FreeBSD-current.
+    </item>
+    <item>Display the peer's authname and EID in ``show bundle'' command.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.3:
     <itemize>
     <item>Support for MS-CHAPv2 when we are the server.
