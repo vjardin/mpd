@@ -406,7 +406,8 @@
 				  PptpGetOutLink_t getOutLink,
 				  struct in_addr myip);
 
-  extern int			PptpCtrlListen(int enable, int port);
+  extern int			PptpCtrlListen(int enable, int port,
+				  int allow_multiple);
 
   extern struct pptpctrlinfo	PptpCtrlInCall(struct pptplinkinfo linfo,
 				  struct in_addr ip, int port, int bearType,

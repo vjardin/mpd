@@ -228,6 +228,7 @@
   static u_char			gInitialized;
   static u_long			gStartTime;
   static u_int16_t		gLastCallId;
+  static int			gAllowMultiple;
   static int			gListenSock = -1;
   static struct in_addr		gListenIp;
   static EventRef		gListenRetry;
@@ -518,11 +519,12 @@ PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink,
  */
 
 int
-PptpCtrlListen(int enable, int port)
+PptpCtrlListen(int enable, int port, int allow_multiple)
 {
   assert(gInitialized);
   port = port ? port : PPTP_PORT;
   if (enable) {
+    gAllowMultiple = allow_multiple;
     if (gListenSock >= 0 || EventIsRegistered(gListenRetry))
       return(0);
     if ((gListenSock = TcpGetListenPort(gListenIp, &port)) < 0) {
@@ -536,6 +538,7 @@ PptpCtrlListen(int enable, int port)
     EventRegister(&gListenEvent, EVENT_READ,
       gListenSock, DEV_PRIO, PptpCtrlListenEvent, NULL);
   } else {
+    gAllowMultiple = 0;
     if (gListenSock < 0)
       return(0);
     close(gListenSock);
@@ -557,7 +560,7 @@ PptpCtrlListenRetry(int type, void *cookie)
 {
   const u_short	port = (u_short) (int) cookie;
 
-  PptpCtrlListen(TRUE, port);
+  PptpCtrlListen(TRUE, port, gAllowMultiple);
 }
 
 /*
@@ -1826,6 +1829,10 @@ PptpStartCtrlConnRequest(PptpCtrl c, struct pptpStartCtrlConnRequest *req)
   struct pptpStartCtrlConnReply	reply;
   int				k;
 
+  /* Are we allowing multiple connections from the same IP address? */
+  if (gAllowMultiple)
+    goto reply;
+
   /* Check for a collision */
   for (k = 0; k < gNumPptpCtrl; k++) {
     PptpCtrl	const c2 = gPptpCtrl[k];
@@ -1845,6 +1852,7 @@ PptpStartCtrlConnRequest(PptpCtrl c, struct pptpStartCtrlConnRequest *req)
       PptpCtrlKillCtrl(c2);	/* Kill the connection that I initiated */
   }
 
+reply:
   /* Initialize reply */
   memset(&reply, 0, sizeof(reply));
   reply.vers = PPTP_PROTO_VERS;

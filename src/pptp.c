@@ -680,22 +680,32 @@ PptpCancel(void *cookie)
 static void
 PptpListenUpdate(void)
 {
+  int	allow_incoming = 0;
+  int	allow_multiple = 1;
   int	k;
 
+  /* Examine all PPTP links */
   for (k = 0; k < gNumLinks; k++) {
     if (gLinks[k] && gLinks[k]->phys->type == &gPptpPhysType) {
       PptpInfo	const p = (PptpInfo)gLinks[k]->phys->info;
 
       if (Enabled(&p->options, PPTP_CONF_INCOMING))
-	break;
+	allow_incoming = 1;
+      if (Enabled(&p->options, PPTP_CONF_ORIGINATE)
+	  && p->peer_addr_req.ipaddr.s_addr != 0)
+	allow_multiple = 0;
     }
   }
+
+  /* Initialize first time */
   if (!gInitialized) {
-    if (k == gNumLinks)
+    if (!allow_incoming)
       return;		/* wait till later; we may not have an IP address yet */
     PptpInitCtrl();
   }
-  PptpCtrlListen(k < gNumLinks, gLocalPort);
+
+  /* Set up listening for incoming connections */
+  PptpCtrlListen(allow_incoming, gLocalPort, allow_multiple);
 }
 
 /*
@@ -727,6 +737,7 @@ PptpSetCommand(int ac, char *av[], void *arg)
 	pptp->peer_addr_req = rng;
 	pptp->peer_port_req = port;
       }
+      PptpListenUpdate();
       break;
     case SET_PHONENUM:
       if (ac != 1)
