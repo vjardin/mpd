@@ -233,7 +233,7 @@ const char *
 AuthFailMsg(int proto, int alg, int whyFail)
 {
   static char	buf[64];
-  char		*mesg;
+  const char	*mesg;
 
   if (proto == PROTO_CHAP
       && (alg == CHAP_ALG_MSOFT || alg == CHAP_ALG_MSOFTv2)) {

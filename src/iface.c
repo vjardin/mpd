@@ -382,7 +382,7 @@ IfaceIpIfaceUp(int ready)
 
     if (r->netmask.s_addr) {
       snprintf(nmbuf, sizeof(nmbuf),
-	" -netmask 0x%08lx", ntohl(r->netmask.s_addr));
+	" -netmask 0x%08lx", (u_long)ntohl(r->netmask.s_addr));
     } else
       *nmbuf = 0;
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
@@ -450,7 +450,7 @@ IfaceIpIfaceDown(void)
       continue;
     if (r->netmask.s_addr) {
       snprintf(nmbuf, sizeof(nmbuf),
-	" -netmask 0x%08lx", ntohl(r->netmask.s_addr));
+	" -netmask 0x%08lx", (u_long)ntohl(r->netmask.s_addr));
     } else
       *nmbuf = 0;
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
@@ -482,10 +482,10 @@ IfaceIdleTimeout(void *arg)
   IfaceState			const iface = &bund->iface;
   char				path[NG_PATHLEN + 1];
   struct ng_bpf_hookstat	oldStats;
-  u_char			rbuf[sizeof(struct ng_mesg) + sizeof(oldStats)];
-  struct ng_mesg		*const reply = (struct ng_mesg *)rbuf;
-  struct ng_bpf_hookstat	*const newStats
-				  = (struct ng_bpf_hookstat *)reply->data;
+  union {
+      u_char			buf[sizeof(struct ng_mesg) + sizeof(oldStats)];
+      struct ng_mesg		reply;
+  }				u;
   int				k;
 
   /* Get updated bpf node traffic statistics */
@@ -497,12 +497,12 @@ IfaceIdleTimeout(void *arg)
       bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
     return;
   }
-  if (NgRecvMsg(bund->csock, reply, sizeof(rbuf), NULL) < 0) {
+  if (NgRecvMsg(bund->csock, &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
       bund->name, path, strerror(errno)));
     return;
   }
-  iface->idleStats = *newStats;
+  memcpy(&iface->idleStats, u.reply.data, sizeof(iface->idleStats));
 
   /* Mark current traffic period if there was traffic */
   if (iface->idleStats.recvMatchFrames > oldStats.recvMatchFrames)
@@ -651,8 +651,10 @@ IfaceIsDemand(int proto, Mbuf pkt)
   switch (proto) {
     case PROTO_IP:
       {
-	struct ip	*const ip = (struct ip *) MBDATA(pkt);
+	struct ip	iphdr;
+	struct ip	*const ip = &iphdr;
 
+	memcpy(&iphdr, MBDATA(pkt), sizeof(iphdr));
 	switch (ip->ip_p) {
 	  case IPPROTO_IGMP:		/* No multicast stuff */
 	    return(0);
@@ -713,7 +715,7 @@ IfaceSetCommand(int ac, char *av[], void *arg)
 
   if (ac == 0)
     return(-1);
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_IDLE:
       iface->idle_timeout = atoi(*av);
       break;
@@ -902,9 +904,10 @@ IfaceGetAnyIpAddress(struct in_addr *ipaddr)
     return(-1);
   }
 
-  for (ifend = (struct ifreq *) (ifc.ifc_buf + ifc.ifc_len), ifr = ifc.ifc_req;
+  for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
+	ifr = ifc.ifc_req;
       ifr < ifend;
-      ifr = (struct ifreq *) ((char *) &ifr->ifr_addr
+      ifr = (struct ifreq *)(void *)((char *) &ifr->ifr_addr
 	+ MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)))) {
     if (ifr->ifr_addr.sa_family == AF_INET) {
 
@@ -918,7 +921,7 @@ IfaceGetAnyIpAddress(struct in_addr *ipaddr)
 	continue;
 
       /* Save IP address and interface name */
-      ipa = ((struct sockaddr_in *) &ifr->ifr_addr)->sin_addr;
+      ipa = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr;
       p2p = (ifreq.ifr_flags & IFF_POINTOPOINT) != 0;
     }
   }
@@ -966,14 +969,15 @@ IfaceGetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
    * Scan through looking for an interface with an IP
    * address on same subnet as `addr'.
    */
-  for (ifend = (struct ifreq *) (ifc.ifc_buf + ifc.ifc_len), ifr = ifc.ifc_req;
+  for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
+	ifr = ifc.ifc_req;
       ifr < ifend;
-      ifr = (struct ifreq *) ((char *) &ifr->ifr_addr
+      ifr = (struct ifreq *)(void *)((char *) &ifr->ifr_addr
 	+ MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)))) {
     if (ifr->ifr_addr.sa_family == AF_INET) {
 
       /* Save IP address and interface name */
-      ina = ((struct sockaddr_in *) &ifr->ifr_addr)->sin_addr.s_addr;
+      ina = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr.s_addr;
       strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
 
       /* Check that the interface is up, and not point-to-point or loopback */
@@ -987,7 +991,7 @@ IfaceGetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
       /* Get its netmask and check that it's on the right subnet */
       if (ioctl(s, SIOCGIFNETMASK, &ifreq) < 0)
 	continue;
-      mask = ((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr.s_addr;
+      mask = ((struct sockaddr_in *)(void *)&ifreq.ifr_addr)->sin_addr.s_addr;
       if (addr && (addr->s_addr & mask) != (ina & mask))
 	continue;
 
@@ -1005,10 +1009,11 @@ IfaceGetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
   for (ifp = ifr, ifr = ifc.ifc_req; ifr < ifend; ) {
     if (strcmp(ifp->ifr_name, ifr->ifr_name) == 0
 	&& ifr->ifr_addr.sa_family == AF_LINK) {
-      memcpy(hwaddr, (struct sockaddr_dl *) &ifr->ifr_addr, sizeof(*hwaddr));
+      memcpy(hwaddr, (struct sockaddr_dl *)(void *)&ifr->ifr_addr,
+	sizeof(*hwaddr));
       return(0);
     }
-    ifr = (struct ifreq *) ((char *) &ifr->ifr_addr
+    ifr = (struct ifreq *)(void *)((char *)&ifr->ifr_addr
       + MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)));
   }
 

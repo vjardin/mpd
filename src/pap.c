@@ -32,7 +32,7 @@
   static void	PapOutput(u_int code, u_int id,
 			const u_char *buf, int len, int add_len);
   static void	PapTimeout(void *ptr);
-  static char	*PapCode(int code);
+  static const	char *PapCode(int code);
 
 /*
  * PapStart()
@@ -304,7 +304,7 @@ PapTimeout(void *ptr)
  * PapCode()
  */
 
-static char *
+static const char *
 PapCode(int code)
 {
   static char	buf[12];

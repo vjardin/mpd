@@ -108,7 +108,7 @@ MpDiscrimEqual(Discrim d1, Discrim d2)
  * MpDiscrimName()
  */
 
-static char *
+static const char *
 MpDiscrimName(int class)
 {
   switch (class)

@@ -153,7 +153,7 @@ NgSetCommand(int ac, char *av[], void *arg)
     Log(LG_ERR, ("[%s] link type is not netgraph", lnk->name));
     return(0);
   }
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_NODE:
       if (ac != 1)
 	return(-1);

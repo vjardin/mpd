@@ -21,8 +21,8 @@
   typedef const struct cmdtab	*CmdTab;
   struct cmdtab
   {
-    char	*name;
-    char	*desc;
+    const char	*name;
+    const char	*desc;
     int		(*func)(int ac, char *av[], void *arg);
     int		(*admit)(CmdTab cmd);
     void	*arg;

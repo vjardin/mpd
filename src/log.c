@@ -29,8 +29,8 @@
   struct logopt
   {
     int		mask;
-    char	*name;
-    char	*desc;
+    const char	*name;
+    const char	*desc;
   };
 
 /*

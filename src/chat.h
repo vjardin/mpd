@@ -44,7 +44,7 @@
 
   typedef void	(*chatlogfunc_t)(void *arg, int level, const char *fmt, ...);
   typedef int	(*chatbaudfunc_t)(void *arg, int rate);
-  typedef void	(*chatresultfunc_t)(void *arg, int r, char *msg);
+  typedef void	(*chatresultfunc_t)(void *arg, int r, const char *msg);
   typedef void	*(*chatmallocfunc_t)(void *arg, size_t size);
   typedef void	(*chatfreefunc_t)(void *arg, void *mem);
 

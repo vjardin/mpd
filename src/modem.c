@@ -110,8 +110,10 @@
 				int level, const char *fmt, ...);
   static void		*ModemChatMalloc(void *arg, size_t size);
   static void		ModemChatFree(void *arg, void *mem);
-  static void		ModemChatConnectResult(void *arg, int rslt, char *msg);
-  static void		ModemChatIdleResult(void *arg, int rslt, char *msg);
+  static void		ModemChatConnectResult(void *arg,
+				int rslt, const char *msg);
+  static void		ModemChatIdleResult(void *arg, int rslt,
+				const char *msg);
 
   static int		ModemSetCommand(int ac, char *av[], void *arg);
   static int		ModemInstallNodes(ModemInfo m);
@@ -171,7 +173,8 @@
 static int
 ModemInit(PhysInfo p)
 {
-  char		*defSpeed = MODEM_DEFAULT_SPEED;
+  char		defSpeed[32];
+  char		*s;
   ModemInfo	m;
 
   m = (ModemInfo) (p->info = Malloc(MB_PHYS, sizeof(*m)));
@@ -186,7 +189,9 @@ ModemInit(PhysInfo p)
   lnk->bandwidth = MODEM_DEFAULT_BANDWIDTH;
 
   /* Set default speed */
-  ModemSetCommand(1, &defSpeed, (void *) SET_SPEED);
+  strlcpy(defSpeed, MODEM_DEFAULT_SPEED, sizeof(defSpeed));
+  s = defSpeed;
+  ModemSetCommand(1, &s, (void *) SET_SPEED);
   return(0);
 }
 
@@ -348,7 +353,7 @@ ModemUpdate(PhysInfo p)
  */
 
 static void
-ModemChatConnectResult(void *arg, int result, char *msg)
+ModemChatConnectResult(void *arg, int result, const char *msg)
 {
   ModemInfo	m;
   const char	*cspeed;
@@ -405,7 +410,7 @@ failed:
  */
 
 static void
-ModemChatIdleResult(void *arg, int result, char *msg)
+ModemChatIdleResult(void *arg, int result, const char *msg)
 {
   ModemInfo	m;
   const char	*idleResult;
@@ -716,10 +721,10 @@ static int
 ModemGetNgStats(ModemInfo m, struct ng_async_stat *sp)
 {
   char			path[NG_PATHLEN + 1];
-  u_char		buf[sizeof(struct ng_mesg)
-			  + sizeof(struct ng_async_stat)];
-  struct ng_mesg	*const resp = (struct ng_mesg *) buf;
-  struct ng_async_stat	*const stats = (struct ng_async_stat *) (resp + 1);
+  union {
+    u_char		buf[sizeof(struct ng_mesg) + sizeof(*sp)];
+    struct ng_mesg	resp;
+  } u;
 
   /* Get stats */
   snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
@@ -728,13 +733,13 @@ ModemGetNgStats(ModemInfo m, struct ng_async_stat *sp)
     Log(LG_PHYS, ("[%s] can't get stats: %s", lnk->name, strerror(errno)));
     return(-1);
   }
-  if (NgRecvMsg(bund->csock, resp, sizeof(buf), NULL) < 0) {
+  if (NgRecvMsg(bund->csock, &u.resp, sizeof(u), NULL) < 0) {
     Log(LG_PHYS, ("[%s] can't get stats: %s", lnk->name, strerror(errno)));
     return(-1);
   }
 
   /* Done */
-  *sp = *stats;
+  memcpy(sp, u.resp.data, sizeof(*sp));
   return(0);
 }
 
@@ -751,7 +756,7 @@ ModemSetCommand(int ac, char *av[], void *arg)
     Log(LG_ERR, ("[%s] link type is not modem", lnk->name));
     return(0);
   }
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_DEVICE:
       if (ac == 1)
 	snprintf(m->device, sizeof(m->device), "%s", av[0]);

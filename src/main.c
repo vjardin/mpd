@@ -34,13 +34,13 @@
   struct option {
     short	n_args;	
     char	sflag;
-    char	*lflag;
-    char	*usage;
-    char	*desc;
+    const char	*lflag;
+    const char	*usage;
+    const char	*desc;
   };
   typedef struct option	*Option;
 
-  static char			*UsageStr = "[options] [system]";
+  static const char		*UsageStr = "[options] [system]";
   static struct option		OptList[] = {
     { 0, 'b',	"background",	"",
 				"Run as a background daemon"	},
@@ -80,11 +80,11 @@
   int			gNumLinks;
   int			gNumBundles;
 
-  char			*gConfigFile = CONF_FILE;
-  char			*gConfDirectory = PATH_CONF_DIR;
+  const char		*gConfigFile = CONF_FILE;
+  const char		*gConfDirectory = PATH_CONF_DIR;
 
   char			gLoginAuthName[AUTH_MAX_AUTHNAME];
-  char			*gVersion = MPD_VERSION;
+  const char		*gVersion = MPD_VERSION;
 
 /*
  * INTERNAL FUNCTIONS
@@ -109,8 +109,8 @@
   static int		gConsolePort = -1;
   static int		gBackground = FALSE;
   static int		gKillProc = FALSE;
-  static char		*gPidFile = PID_FILE;
-  static char		*gPeerSystem = NULL;
+  static const char	*gPidFile = PID_FILE;
+  static const char	*gPeerSystem = NULL;
 
   static EventRef	gFatalSigRef;
   static EventRef	gOpenSigRef;
@@ -306,7 +306,7 @@ DoExit(int code)
 static void
 FatalSignal(int type, void *cookie)
 {
-  const int			sig = (int) cookie;
+  const int			sig = (intptr_t)cookie;
   static struct pppTimer	gDeathTimer;
   int				k;
 
@@ -333,7 +333,7 @@ FatalSignal(int type, void *cookie)
 static void
 FatalSignal2(int sig)
 {
-  FatalSignal(EVENT_SIGNAL, (void *) sig);
+  FatalSignal(EVENT_SIGNAL, (void *)(intptr_t)sig);
 }
 
 /*
@@ -343,7 +343,7 @@ FatalSignal2(int sig)
 static void
 OpenSignal(int type, void *cookie)
 {
-  const int	sig = (int) cookie;
+  const int	sig = (intptr_t)cookie;
 
   /* (Re)register */
   EventRegister(&gOpenSigRef, EVENT_SIGNAL, SIGUSR1,
@@ -373,7 +373,7 @@ OpenSignal(int type, void *cookie)
 static void
 CloseSignal(int type, void *cookie)
 {
-  const int	sig = (int) cookie;
+  const int	sig = (intptr_t)cookie;
 
   /* (Re)register */
   EventRegister(&gCloseSigRef, EVENT_SIGNAL, SIGUSR2,

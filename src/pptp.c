@@ -719,7 +719,7 @@ PptpSetCommand(int ac, char *av[], void *arg)
   struct in_range	rng;
   int			port;
 
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_SELFADDR:
     case SET_PEERADDR:
       if (ac < 1 || ac > 2 || !ParseAddr(av[0], &rng))
@@ -730,7 +730,7 @@ PptpSetCommand(int ac, char *av[], void *arg)
       } else {
 	port = 0;
       }
-      if ((int) arg == SET_SELFADDR) {
+      if ((intptr_t)arg == SET_SELFADDR) {
 	gLocalIp = rng.ipaddr;
 	gLocalPort = port;
       } else {

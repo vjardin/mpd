@@ -153,8 +153,12 @@ static void
 PppoeOpen(PhysInfo p)
 {
 	const PppoeInfo pe = (PppoeInfo)p->info;
-	u_char buf[sizeof(struct ngpppoe_init_data) + MAX_SESSION];
-	struct ngpppoe_init_data *const idata = (struct ngpppoe_init_data *)buf;
+	union {
+	    u_char			buf[sizeof(struct ngpppoe_init_data)
+						+ MAX_SESSION];
+	    struct ngpppoe_init_data	poeid;
+	} u;
+	struct ngpppoe_init_data *const idata = &u.poeid;
 	char path[NG_PATHLEN + 1];
 	char linkHook[NG_HOOKLEN + 1];
 
@@ -316,8 +320,10 @@ PppoeShutdown(PhysInfo p)
 static void
 PppoeCtrlReadEvent(int type, void *arg)
 {
-	u_char buf[sizeof(struct ng_mesg) + sizeof(struct ngpppoe_sts)];
-	struct ng_mesg *const reply = (struct ng_mesg *)buf;
+	union {
+	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct ngpppoe_sts)];
+	    struct ng_mesg resp;
+	} u;
 	char path[NG_PATHLEN + 1];
 	PppoeInfo pe;
 
@@ -332,19 +338,19 @@ PppoeCtrlReadEvent(int type, void *arg)
 	    DEV_PRIO, PppoeCtrlReadEvent, lnk);
 
 	/* Read control message */
-	if (NgRecvMsg(pe->csock, reply, sizeof(buf), path) < 0) {
+	if (NgRecvMsg(pe->csock, &u.resp, sizeof(u), path) < 0) {
 		Log(LG_ERR, ("[%s] error reading message from \"%s\": %s",
 		    lnk->name, path, strerror(errno)));
 		goto fail;
 	}
-	if (reply->header.typecookie != NGM_PPPOE_COOKIE) {
+	if (u.resp.header.typecookie != NGM_PPPOE_COOKIE) {
 		Log(LG_ERR, ("[%s] rec'd cookie %lu from \"%s\"",
-		    lnk->name, (u_long)reply->header.typecookie, path));
+		    lnk->name, (u_long)u.resp.header.typecookie, path));
 		return;
 	}
 
 	/* Decode message */
-	switch (reply->header.cmd) {
+	switch (u.resp.header.cmd) {
 	case NGM_PPPOE_SUCCESS:
 		Log(LG_PHYS, ("[%s] connection successful", lnk->name));
 		Disable(&lnk->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
@@ -356,11 +362,11 @@ PppoeCtrlReadEvent(int type, void *arg)
 	case NGM_PPPOE_FAIL:
 	case NGM_PPPOE_CLOSE:
 		Log(LG_PHYS, ("[%s] connection %s", lnk->name,
-		    reply->header.cmd == NGM_PPPOE_FAIL ? "failed" : "closed"));
+		    u.resp.header.cmd == NGM_PPPOE_FAIL ? "failed" : "closed"));
 		break;
 	default:
 		Log(LG_ERR, ("[%s] rec'd command %lu from \"%s\"",
-		    lnk->name, (u_long)reply->header.cmd, path));
+		    lnk->name, (u_long)u.resp.header.cmd, path));
 		return;
 	}
 
@@ -424,7 +430,7 @@ PppoeSetCommand(int ac, char *av[], void *arg)
 		Log(LG_ERR, ("[%s] link type is not pppoe", lnk->name));
 		return(0);
 	}
-	switch ((int)arg) {
+	switch ((intptr_t)arg) {
 	case SET_IFACE:
 		switch (ac) {
 		case 2:

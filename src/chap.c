@@ -56,7 +56,7 @@
   static int	ChapHashAgree(int alg, const u_char *self, int slen,
 		  const u_char *peer, int plen);
   static void	ChapChalTimeout(void *ptr);
-  static char	*ChapCode(int code);
+  static const	char *ChapCode(int code);
 
 /*
  * INTERNAL VARIABLES
@@ -684,7 +684,7 @@ ChapHashAgree(int alg, const u_char *self, int slen,
  * ChapCode()
  */
 
-static char *
+static const char *
 ChapCode(int code)
 {
   static char	buf[12];

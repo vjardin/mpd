@@ -20,6 +20,7 @@
 
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_socket.h>
+#include <netgraph/ng_ksocket.h>
 #include <netgraph/ng_iface.h>
 #include <netgraph/ng_ppp.h>
 #include <netgraph/ng_vjc.h>
@@ -124,9 +125,11 @@
 int
 NgFuncInit(Bund b, const char *reqIface)
 {
-  u_char		nibuf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-  struct ng_mesg	*reply = (struct ng_mesg *)nibuf;
-  struct nodeinfo	*ni = (struct nodeinfo *)reply->data;
+  union {
+      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+      struct ng_mesg	reply;
+  }			u;
+  struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
   struct ngm_mkpeer	mp;
   struct ngm_connect	cn;
   struct ngm_name	nm;
@@ -205,7 +208,7 @@ NgFuncInit(Bund b, const char *reqIface)
     Log(LG_ERR, ("[%s] ppp nodeinfo: %s", b->name, strerror(errno)));
     goto fail;
   }
-  if (NgRecvMsg(b->csock, reply, sizeof(nibuf), NULL) < 0) {
+  if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
       b->name, MPD_HOOK_PPP, strerror(errno)));
     goto fail;
@@ -314,7 +317,10 @@ fail:
 static int
 NgFuncIfaceExists(Bund b, const char *ifname, char *buf, int max)
 {
-  u_char	nibuf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+  union {
+      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+      struct ng_mesg	reply;
+  }			u;
   char		path[NG_PATHLEN + 1];
   char		*eptr;
   int		ifnum;
@@ -330,7 +336,7 @@ NgFuncIfaceExists(Bund b, const char *ifname, char *buf, int max)
   snprintf(path, sizeof(path), "%s%d:", NG_IFACE_IFACE_NAME, ifnum);
   if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0)
     return(0);
-  if (NgRecvMsg(b->csock, (struct ng_mesg *)nibuf, sizeof(nibuf), NULL) < 0) {
+  if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] node \"%s\" reply: %s", b->name, path, strerror(errno)));
     return(-1);
   }
@@ -354,9 +360,11 @@ NgFuncIfaceExists(Bund b, const char *ifname, char *buf, int max)
 static int
 NgFuncCreateIface(Bund b, const char *ifname, char *buf, int max)
 {
-  u_char		nibuf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-  struct ng_mesg	*reply = (struct ng_mesg *)nibuf;
-  struct nodeinfo	*ni = (struct nodeinfo *)reply->data;
+  union {
+      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+      struct ng_mesg	reply;
+  }			u;
+  struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
   struct ngm_rmhook	rm;
   struct ngm_mkpeer	mp;
   int			rtn = 0;
@@ -401,7 +409,7 @@ NgFuncCreateIface(Bund b, const char *ifname, char *buf, int max)
     rtn = -1;
     goto done;
   }
-  if (NgRecvMsg(b->csock, reply, sizeof(nibuf), NULL) < 0) {
+  if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] reply from %s: %s",
       b->name, NG_IFACE_NODE_TYPE, strerror(errno)));
     rtn = -1;
@@ -434,15 +442,18 @@ done:
 void
 NgFuncConfigBPF(Bund b, int mode)
 {
-  u_char			buf[NG_BPF_HOOKPROG_SIZE(DEMAND_PROG_LEN)];
-  struct ng_bpf_hookprog	*const hp = (struct ng_bpf_hookprog *)buf;
+  union {
+      u_char			buf[NG_BPF_HOOKPROG_SIZE(DEMAND_PROG_LEN)];
+      struct ng_bpf_hookprog	hprog;
+  }				u;
+  struct ng_bpf_hookprog	*const hp = &u.hprog;
   char				path[NG_PATHLEN + 1];
 
   /* Get absolute path to bpf node */
   snprintf(path, sizeof(path), "%s:%s", b->iface.ifname, NG_IFACE_HOOK_INET);
 
   /* First, configure the hook on the interface node side of the BPF node */
-  memset(&buf, 0, sizeof(buf));
+  memset(&u, 0, sizeof(u));
   snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_IFACE);
   hp->bpf_prog_len = DEMAND_PROG_LEN;
   memcpy(&hp->bpf_prog, &gDemandProg, DEMAND_PROG_LEN * sizeof(*gDemandProg));
@@ -472,7 +483,7 @@ NgFuncConfigBPF(Bund b, int mode)
   }
 
   /* Now, configure the hook on the PPP node side of the BPF node */
-  memset(&buf, 0, sizeof(buf));
+  memset(&u, 0, sizeof(u));
   snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_PPP);
   hp->bpf_prog_len = NOMATCH_PROG_LEN;
   memcpy(&hp->bpf_prog,
@@ -618,8 +629,10 @@ NgFuncDataEvent(int type, void *cookie)
     u_int16_t	linkNum, proto;
 
     /* Extract link number and protocol */
-    linkNum = ntohs(((u_int16_t *)buf)[0]);
-    proto = ntohs(((u_int16_t *)buf)[1]);
+    memcpy(&linkNum, buf, 2);
+    linkNum = ntohs(linkNum);
+    memcpy(&proto, buf + 2, 2);
+    proto = ntohs(proto);
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
@@ -660,9 +673,11 @@ NgFuncDataEvent(int type, void *cookie)
 static void
 NgFuncCtrlEvent(int type, void *cookie)
 {
-  u_char		buf[8192];
+  union {
+      u_char		buf[8192];
+      struct ng_mesg	msg;
+  }			u;
   char			raddr[NG_PATHLEN + 1];
-  struct ng_mesg	*const msg = (struct ng_mesg *)buf;
   int			len;
 
   /* Set bundle */
@@ -674,26 +689,30 @@ NgFuncCtrlEvent(int type, void *cookie)
     bund->csock, DEV_PRIO, NgFuncCtrlEvent, bund);
 
   /* Read message */
-  if ((len = NgRecvMsg(bund->csock, msg, sizeof(buf), raddr)) < 0) {
+  if ((len = NgRecvMsg(bund->csock, &u.msg, sizeof(u), raddr)) < 0) {
     Log(LG_ERR, ("[%s] can't read unexpected message: %s",
       bund->name, strerror(errno)));
     return;
   }
 
   /* Examine message */
-  switch (msg->header.typecookie) {
+  switch (u.msg.header.typecookie) {
 #ifdef COMPRESSION_MPPC
     case NGM_MPPC_COOKIE:
-      CcpRecvMsg(msg, len);
+      CcpRecvMsg(&u.msg, len);
       return;
 #endif
+    case NGM_KSOCKET_COOKIE:		/* XXX ignore NGM_KSOCKET_CONNECT */
+      if (u.msg.header.cmd == NGM_KSOCKET_CONNECT)
+	return;
+      break;
     default:
       break;
   }
 
   /* Unknown message */
   Log(LG_ERR, ("[%s] rec'd unknown ctrl message, cookie=%d cmd=%d",
-    bund->name, msg->header.typecookie, msg->header.cmd));
+    bund->name, u.msg.header.typecookie, u.msg.header.cmd));
 }
 
 /*
@@ -747,12 +766,15 @@ NgFuncDisconnect(const char *path, const char *hook)
 int
 NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp)
 {
-  Mbuf	hdr;
+  Mbuf		hdr;
+  u_int16_t	temp;
 
   /* Prepend ppp node bypass header */
   hdr = mballoc(bp->type, 4);
-  ((u_int16_t *)MBDATA(hdr))[0] = htons(linkNum);
-  ((u_int16_t *)MBDATA(hdr))[1] = htons(proto);
+  temp = htons(linkNum);
+  memcpy(MBDATA(hdr), &temp, 2);
+  temp = htons(proto);
+  memcpy(MBDATA(hdr) + 2, &temp, 2);
   hdr->next = bp;
   bp = hdr;
 
@@ -809,11 +831,11 @@ NgFuncWriteFrame(const char *label, const char *hookname, Mbuf bp)
 int
 NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
 {
-  u_char			buf[sizeof(struct ng_mesg)
+  union {
+      u_char			buf[sizeof(struct ng_mesg)
 				  + sizeof(struct ng_ppp_link_stat)];
-  struct ng_mesg		*const reply = (struct ng_mesg *)buf;
-  struct ng_ppp_link_stat	*const stats =
-				  (struct ng_ppp_link_stat *)reply->data;
+      struct ng_mesg		reply;
+  }				u;
   int				cmd;
 
   /* Get stats */
@@ -824,13 +846,13 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
       bund->name, linkNum, strerror(errno)));
     return(-1);
   }
-  if (NgRecvMsg(bund->csock, reply, sizeof(buf), NULL) < 0) {
+  if (NgRecvMsg(bund->csock, &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
       bund->name, MPD_HOOK_PPP, strerror(errno)));
     return(-1);
   }
   if (statp != NULL)
-    *statp = *stats;
+    memcpy(statp, u.reply.data, sizeof(*statp));
   return(0);
 }
 

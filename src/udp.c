@@ -242,7 +242,7 @@ UdpSetCommand(int ac, char *av[], void *arg)
   struct in_addr	*ap;
   u_short		*pp;
 
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_PEERADDR:
       ap = &udp->peer_addr;
       pp = &udp->peer_port;

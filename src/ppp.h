@@ -88,9 +88,9 @@
   extern Bund		bund;			/* Current bundle */
   extern Link		lnk;			/* Current link */
 
-  extern char		*gVersion;		/* Program version string */
-  extern char		*gConfigFile;		/* Main config file */
-  extern char		*gConfDirectory;	/* Where the files are */
+  extern const char	*gVersion;		/* Program version string */
+  extern const char	*gConfigFile;		/* Main config file */
+  extern const char	*gConfDirectory;	/* Where the files are */
   extern char		*gLogFileId;		/* Log file identifier */
 
   extern int		gOpenSig;		/* Rec'd open signal */

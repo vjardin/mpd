@@ -29,10 +29,10 @@
  */
 
   struct layer {
-    char	*name;
+    const char	*name;
     void	(*opener)(void);
     void	(*closer)(void);
-    char	*desc;
+    const char	*desc;
   };
   typedef struct layer	*Layer;
 
@@ -59,8 +59,9 @@
 
   /* Other stuff */
   static int	DoCommandTab(CmdTab cmdlist, int ac, char *av[]);
-  static char	*FindCommand(CmdTab cmds, char *str, CmdTab *cp, int complain);
-  static Layer	GetLayer(char *name);
+  static const	char *FindCommand(CmdTab cmds,
+			char* str, CmdTab *cp, int complain);
+  static Layer	GetLayer(const char *name);
 
 /*
  * INTERNAL VARIABLES
@@ -254,12 +255,12 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
  * FindCommand()
  */
 
-static char *
+static const char *
 FindCommand(CmdTab cmds, char *str, CmdTab *cmdp, int complain)
 {
-  int	found, nmatch;
-  int	len = strlen(str);
-  char	*fmt;
+  int		found, nmatch;
+  int		len = strlen(str);
+  const char	*fmt;
 
   for (nmatch = 0, found = NULL; cmds->name; cmds++) {
     if (cmds->name && !strncmp(str, cmds->name, len)) {
@@ -295,7 +296,8 @@ HelpCommand(int ac, char *av[], void *arg)
   int		depth;
   CmdTab	menu, cmd;
   char		*mark, *mark_save;
-  char		*errfmt, buf[100];
+  const char	*errfmt;
+  char		buf[100];
 
   for (mark = buf, depth = *buf = 0, menu = gCommands;
       depth < ac;
@@ -454,8 +456,8 @@ LoadCommand(int ac, char *av[], void *arg)
 static int
 OpenCommand(int ac, char *av[], void *arg)
 {
-  Layer	layer;
-  char	*name;
+  Layer		layer;
+  const char	*name;
 
   switch (ac) {
     case 0:
@@ -479,8 +481,8 @@ OpenCommand(int ac, char *av[], void *arg)
 static int
 CloseCommand(int ac, char *av[], void *arg)
 {
-  Layer	layer;
-  char	*name;
+  Layer		layer;
+  const char	*name;
 
   switch (ac) {
     case 0:
@@ -502,7 +504,7 @@ CloseCommand(int ac, char *av[], void *arg)
  */
 
 static Layer
-GetLayer(char *name)
+GetLayer(const char *name)
 {
   int	k, found;
 

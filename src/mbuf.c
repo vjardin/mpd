@@ -77,7 +77,7 @@ Malloc(int type, int size)
   Mbuf	bp;
 
   bp = mballoc(type, size + sizeof(Mbuf));
-  *((Mbuf *) MBDATA(bp)) = bp;
+  memcpy(MBDATA(bp), &bp, sizeof(bp));
   return(MBDATA(bp) + sizeof(Mbuf));
 }
 
@@ -138,7 +138,7 @@ mballoc(int type, int size)
 /* Get memory */
 
   #ifdef MBUF_CHECK_OVERRUNS
-    amount = sizeof(*bp) + size + (2 * sizeof(u_long));
+    amount = sizeof(*bp) + size + (2 * sizeof(u_int32_t));
   #else
     amount = sizeof(*bp) + size;
   #endif
@@ -152,12 +152,12 @@ mballoc(int type, int size)
 
 /* Put mbuf at front of memory region */
 
-  bp = (Mbuf) memory;
+  bp = (Mbuf)(void *)memory;
   bp->size = bp->cnt = size;
   bp->type = type;
 
   #ifdef MBUF_CHECK_OVERRUNS
-    bp->base = memory + sizeof(*bp) + sizeof(u_long);
+    bp->base = memory + sizeof(*bp) + sizeof(u_int32_t);
   #else
     bp->base = memory + sizeof(*bp);
   #endif
@@ -165,8 +165,9 @@ mballoc(int type, int size)
 /* Straddle buffer with magic values to detect overruns */
 
   #ifdef MBUF_CHECK_OVERRUNS
-    *((u_long *) (memory + sizeof(*bp))) = MBUF_MAGIC_1;
-    *((u_long *) (memory + sizeof(*bp) + sizeof(u_long) + size)) = MBUF_MAGIC_2;
+    *((u_int32_t *)(void *)(memory + sizeof(*bp))) = MBUF_MAGIC_1;
+    *((u_int32_t *)(void *)(memory + sizeof(*bp)
+	+ sizeof(u_int32_t) + size)) = MBUF_MAGIC_2;
   #endif
 
 /* Keep tabs on who's got how much memory */
@@ -196,14 +197,16 @@ mbfree(Mbuf bp)
 
     assert(bp->base);
     #ifdef MBUF_CHECK_OVERRUNS
-      assert(bp == (Mbuf) (bp->base - sizeof(u_long) - sizeof(*bp)));
+      assert(bp == (Mbuf)(void *)(bp->base - sizeof(u_int32_t) - sizeof(*bp)));
     #else
-      assert(bp == (Mbuf) (bp->base - sizeof(*bp)));
+      assert(bp == (Mbuf)(void *)(bp->base - sizeof(*bp)));
     #endif
 
     #ifdef MBUF_CHECK_OVERRUNS
-      assert(*((u_long *) (bp->base - sizeof(u_long))) == MBUF_MAGIC_1);
-      assert(*((u_long *) (bp->base + bp->size)) == MBUF_MAGIC_2);
+      assert(*((u_int32_t *)(void *)(bp->base
+	- sizeof(u_int32_t))) == MBUF_MAGIC_1);
+      assert(*((u_int32_t *)(void *)(bp->base
+	+ bp->size)) == MBUF_MAGIC_2);
     #endif
 
   /* Keep tabs on who's got how much memory */

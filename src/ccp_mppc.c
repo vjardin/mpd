@@ -315,8 +315,13 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 {
   CcpState	const ccp = &bund->ccp;
   MppcInfo	const mppc = &ccp->mppc;
-  u_int32_t	*const bitsp = (u_int32_t *) opt->data;
-  u_int32_t	bits = ntohl(*bitsp);
+  u_int32_t	orig_bits;
+  u_int32_t	bits;
+
+  /* Get bits */
+  memcpy(&orig_bits, opt->data, 4);
+  orig_bits = ntohl(orig_bits);
+  bits = orig_bits;
 
   /* Sanity check */
   if (opt->len != 6) {
@@ -388,8 +393,9 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
       /* See if what we want equals what was sent */
       mppc->xmit_bits = bits;
-      if (bits != ntohl(*bitsp)) {
-	*bitsp = htonl(bits);
+      if (bits != orig_bits) {
+	bits = htonl(bits);
+	memcpy(opt->data, &bits, 4);
 	FsmNak(fp, opt);
       }
       else

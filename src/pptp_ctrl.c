@@ -121,7 +121,10 @@
     u_char		id;		/* channel index */
     u_char		orig:1;		/* we originated connection */
     u_char		killing:1;	/* connection is being killed */
-    u_char		frame[PPTP_CTRL_MAX_FRAME];
+    union {
+	u_char			buf[PPTP_CTRL_MAX_FRAME];
+	struct pptpMsgHead	hdr;
+    }			frame;
     u_int16_t		flen;		/* length of partial frame */
     int			csock;		/* peer control messages */
     struct in_addr	self_addr;	/* local IP address */
@@ -531,7 +534,7 @@ PptpCtrlListen(int enable, int port, int allow_multiple)
       Log(LG_PPTP, ("mpd: can't get PPTP listening socket"));
       if (errno == EADDRINUSE)			/* try again soon */
 	EventRegister(&gListenRetry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
-	  DEV_PRIO, PptpCtrlListenRetry, (void *) port);
+	  DEV_PRIO, PptpCtrlListenRetry, (void *)(intptr_t)port);
       return(-1);
     }
     Log(LG_ERR, ("mpd: local IP address for PPTP is %s", inet_ntoa(gListenIp)));
@@ -558,7 +561,7 @@ PptpCtrlListen(int enable, int port, int allow_multiple)
 static void
 PptpCtrlListenRetry(int type, void *cookie)
 {
-  const u_short	port = (u_short) (int) cookie;
+  const u_short	port = (u_short)(intptr_t)cookie;
 
   PptpCtrlListen(TRUE, port, gAllowMultiple);
 }
@@ -860,7 +863,7 @@ static void
 PptpCtrlReadCtrl(int type, void *cookie)
 {
   PptpCtrl	const c = (PptpCtrl) cookie;
-  PptpMsgHead	const hdr = (PptpMsgHead) c->frame;
+  PptpMsgHead	const hdr = &c->frame.hdr;
   int		nread;
 
   /* Reregister */
@@ -869,7 +872,7 @@ PptpCtrlReadCtrl(int type, void *cookie)
 
   /* Figure how much to read and read it */
   nread = (c->flen < sizeof(*hdr) ? sizeof(*hdr) : hdr->length) - c->flen;
-  if ((nread = read(c->csock, c->frame + c->flen, nread)) <= 0) {
+  if ((nread = read(c->csock, c->frame.buf + c->flen, nread)) <= 0) {
     if (nread < 0) {
       if (errno == EAGAIN)
 	return;
@@ -878,7 +881,7 @@ PptpCtrlReadCtrl(int type, void *cookie)
       Log(LG_PPTP, ("pptp%d: ctrl connection closed by peer", c->id));
     goto abort;
   }
-  LogDumpBuf(LG_PPTP3, c->frame + c->flen, nread,
+  LogDumpBuf(LG_PPTP3, c->frame.buf + c->flen, nread,
     "pptp%d: read ctrl data", c->id);
   c->flen += nread;
 
@@ -1013,8 +1016,11 @@ static void
 PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
 {
   PptpMsgInfo		const mi = &gPptpMsgInfo[type];
-  u_char		buf[PPTP_CTRL_MAX_FRAME];
-  PptpMsgHead		const hdr = (PptpMsgHead) buf;
+  union {
+      u_char			buf[PPTP_CTRL_MAX_FRAME];
+      struct pptpMsgHead	hdr;
+  }			frame;
+  PptpMsgHead		const hdr = &frame.hdr;
   u_char		*const payload = (u_char *) (hdr + 1);
   const int		totlen = sizeof(*hdr) + gPptpMsgInfo[type].length;
   int			nwrote;
@@ -1036,7 +1042,7 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
   PptpCtrlSwap(type, payload);
 
   /* Send it; if TCP buffer is full, we abort the connection */
-  if ((nwrote = write(c->csock, buf, totlen)) != totlen) {
+  if ((nwrote = write(c->csock, frame.buf, totlen)) != totlen) {
     if (nwrote < 0)
       Log(LG_PPTP, ("pptp%d: %s: %s", c->id, "write", strerror(errno)));
     else
@@ -1044,7 +1050,7 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
     PptpCtrlKillCtrl(c);
     return;
   }
-  LogDumpBuf(LG_PPTP3, buf, totlen, "pptp%d: wrote ctrl data", c->id);
+  LogDumpBuf(LG_PPTP3, frame.buf, totlen, "pptp%d: wrote ctrl data", c->id);
 
   /* If we expect a reply to this message, start expecting it now */
   if (PPTP_VALID_CTRL_TYPE(mi->reqrep.reply)) {
@@ -1598,7 +1604,7 @@ PptpCtrlFindChan(PptpCtrl c, int type, void *msg, int incoming)
   if (!fname)
     return(NULL);
   (void) PptpCtrlFindField(type, fname, &off);		/* we know len == 2 */
-  cid = *((u_int16_t *) ((u_char *) msg + off));
+  cid = *((u_int16_t *)(void *)((u_char *) msg + off));
 
   /* Match the CID against our list of active channels */
   for (k = 0; k < c->numChannels; k++) {
@@ -1699,19 +1705,25 @@ PptpCtrlSwap(int type, void *buf)
   int		off;
 
   for (off = 0; field->name; off += field->length, field++) {
+    void *const ptr = (u_char *)buf + off;
+
     switch (field->length) {
       case 4:
 	{
-	  u_int32_t	*const valp = (u_int32_t *) ((u_char *) buf + off);
+	  u_int32_t value;
 
-	  *valp = ntohl(*valp);
+	  memcpy(&value, ptr, field->length);
+	  value = ntohl(value);
+	  memcpy(ptr, &value, field->length);
 	}
 	break;
       case 2:
 	{
-	  u_int16_t	*const valp = (u_int16_t *) ((u_char *) buf + off);
+	  u_int16_t value;
 
-	  *valp = ntohs(*valp);
+	  memcpy(&value, ptr, field->length);
+	  value = ntohs(value);
+	  memcpy(ptr, &value, field->length);
 	}
 	break;
     }
@@ -1740,22 +1752,29 @@ PptpCtrlDump(int level, int type, void *msg)
   for (*line = off = 0; field->name; off += field->length, field++) {
     u_char	*data = (u_char *) msg + off;
     char	buf[DUMP_MAX_BUF];
-    const char	*fmt;
 
     if (!strncmp(field->name, PPTP_RESV_PREF, strlen(PPTP_RESV_PREF)))
       continue;
     snprintf(buf, sizeof(buf), " %s=", field->name);
     switch (field->length) {
       case 4:
-	fmt = (*((u_int16_t *) data) <= DUMP_MAX_DEC) ? "%d" : "0x%x";
+      {
+	u_int32_t value;
+
+	memcpy(&value, data, field->length);
 	snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-	  fmt, *((u_int32_t *) data));
+	  (value <= DUMP_MAX_DEC) ? "%d" : "0x%x", value);
 	break;
+      }
       case 2:
-	fmt = (*((u_int16_t *) data) <= DUMP_MAX_DEC) ? "%d" : "0x%x";
+      {
+	u_int16_t value;
+
+	memcpy(&value, data, field->length);
 	snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-	  fmt, *((u_int16_t *) data));
+	  (value <= DUMP_MAX_DEC) ? "%d" : "0x%x", value);
 	break;
+      }
       case 1:
 	snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
 	  "%d", *((u_int8_t *) data));

@@ -109,7 +109,7 @@ ParseAddr(char *s, struct in_range *r)
   if ((widp = strchr(buf, '/')) != NULL)
     *widp++ = '\0';
   else
-    widp = "";
+    widp = buf + strlen(buf);
 
 /* Get IP address part; if that fails, try looking up hostname */
 
@@ -287,7 +287,8 @@ Escape(char *line)
  */
 
 int
-ReadFile(char *filename, char *target, int (*func)(int ac, char *av[]))
+ReadFile(const char *filename, const char *target,
+	int (*func)(int ac, char *av[]))
 {
   FILE	*fp;
   int	ac;
@@ -797,7 +798,7 @@ GenerateMagic(void)
  */
 
 int
-PIDCheck(char *filename, int killem)
+PIDCheck(const char *filename, int killem)
 {
   int	fd = -1, n_tries;
 

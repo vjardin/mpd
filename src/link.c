@@ -342,12 +342,12 @@ LinkStat(int ac, char *av[], void *arg)
 static int
 LinkSetCommand(int ac, char *av[], void *arg)
 {
-  int	val;
-  char	*name;
+  int		val;
+  const char	*name;
 
   if (ac == 0)
     return(-1);
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_BANDWIDTH:
       val = atoi(*av);
       if (val <= 0)
@@ -368,7 +368,7 @@ LinkSetCommand(int ac, char *av[], void *arg)
     case SET_MRU:
     case SET_MTU:
       val = atoi(*av);
-      name = ((int)arg == SET_MTU) ? "MTU" : "MRU";
+      name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
       if (!lnk->phys->type)
 	Log(LG_ERR, ("[%s] this link has no type set", lnk->name));
       else if (val < LCP_MIN_MRU)
@@ -377,7 +377,7 @@ LinkSetCommand(int ac, char *av[], void *arg)
 	Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
 	  lnk->name, name, lnk->phys->type->name,
 	  lnk->phys->type->mru - LCP_MRU_MARGIN));
-      else if ((int)arg == SET_MTU)
+      else if ((intptr_t)arg == SET_MTU)
 	lnk->conf.mtu = val;
       else
 	lnk->conf.mru = val;

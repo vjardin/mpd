@@ -33,7 +33,7 @@
 
   struct fsmcodedesc {
     void	(*action)(Fsm fp, FsmHeader hdr, Mbuf bp);
-    char	*name;
+    const char	*name;
   };
 
 /* Size of REQ, ACK, NAK, and REJ buffers */
@@ -1033,7 +1033,7 @@ FsmFailure(Fsm fp, enum fsmfail reason)
 const char *
 FsmFailureStr(enum fsmfail reason)
 {
-  char	*string = NULL;
+  const char	*string = NULL;
 
   switch (reason) {
     case FAIL_NEGOT_FAILURE:
@@ -1597,7 +1597,7 @@ Pref(Fsm fp)
  * whatever immediately.
  */
 
-char *
+const char *
 FsmCodeName(int code)
 {
   static char	buf[20];

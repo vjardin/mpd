@@ -690,13 +690,16 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     switch (opt->type) {
       case TY_MRU:		/* link MRU */
 	{
-	  const u_int16_t	mru = ntohs(*((u_int16_t *) opt->data));
+	  u_int16_t	mru;
 
+	  memcpy(&mru, opt->data, 2);
+	  mru = ntohs(mru);
 	  Log(LG_LCP, (" %s %d", oi->name, mru));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (mru < LCP_MIN_MRU) {
-		*((u_int16_t *) opt->data) = htons(LCP_MIN_MRU);
+		mru = htons(LCP_MIN_MRU);
+		memcpy(opt->data, &mru, 2);
 		FsmNak(fp, opt);
 		break;
 	      }
@@ -719,8 +722,10 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
       case TY_ACCMAP:		/* async control character escape map */
 	{
-	  const u_int32_t	accm = ntohl(*((u_int32_t *) opt->data));
+	  u_int32_t	accm;
 
+	  memcpy(&accm, opt->data, 4);
+	  accm = ntohl(accm);
 	  Log(LG_LCP, (" %s 0x%08x", oi->name, accm));
 	  switch (mode) {
 	    case MODE_REQ:
@@ -751,14 +756,18 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	    { PROTO_PAP >> 8, PROTO_PAP & 0xff };
 	  static const struct	fsmoption papNak =
 	    { TY_AUTHPROTO, 2 + sizeof(papcf), (u_char *) papcf };
-	  const u_int16_t	proto = ntohs(*((u_int16_t *) opt->data));
+	  u_int16_t		proto;
 	  int			supported = 0, bogus = 0;
+
+	  memcpy(&proto, opt->data, 2);
+	  proto = ntohs(proto);
 
 	  /* Display it */
 	  switch (proto) {
 	    case PROTO_CHAP:
 	      if (opt->len >= 5) {
-		char	*ts, buf[20];
+		char		buf[20];
+		const char	*ts;
 
 		switch (opt->data[2]) {
 		  case CHAP_ALG_MD5:
@@ -896,8 +905,10 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
       case TY_MRRU:			/* multi-link MRRU */
 	{
-	  u_int16_t	mrru = ntohs(*((u_int16_t *) opt->data));
+	  u_int16_t	mrru;
 
+	  memcpy(&mrru, opt->data, 2);
+	  mrru = ntohs(mrru);
 	  Log(LG_LCP, (" %s %d", oi->name, mrru));
 	  switch (mode) {
 	    case MODE_REQ:
@@ -906,17 +917,20 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		break;
 	      }
 	      if (bund->bm.n_up > 0 && mrru != bund->mp.peer_mrru) {
-		*((u_int16_t *) opt->data) = htons(bund->mp.peer_mrru);
+		mrru = htons(bund->mp.peer_mrru);
+		memcpy(opt->data, &mrru, 2);
 		FsmNak(fp, opt);
 		break;
 	      }
 	      if (mrru > MP_MAX_MRRU) {
-		*((u_int16_t *) opt->data) = htons(MP_MAX_MRRU);
+		mrru = htons(MP_MAX_MRRU);
+		memcpy(opt->data, &mrru, 2);
 		FsmNak(fp, opt);
 		break;
 	      }
 	      if (mrru < MP_MIN_MRRU) {
-		*((u_int16_t *) opt->data) = htons(MP_MIN_MRRU);
+		mrru = htons(MP_MIN_MRRU);
+		memcpy(opt->data, &mrru, 2);
 		FsmNak(fp, opt);
 		break;
 	      }
@@ -1010,15 +1024,18 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
       case TY_MAGICNUM:			/* magic number */
 	{
-	  const u_int32_t	magic = ntohl(*((u_int32_t *) opt->data));
+	  u_int32_t	magic;
 
+	  memcpy(&magic, opt->data, 4);
+	  magic = ntohl(magic);
 	  Log(LG_LCP, (" %s %08x", oi->name, magic));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (lcp->want_magic) {
 		if (magic == lcp->want_magic) {
 		  Log(LG_LCP, ("   Same magic! Detected loopback condition"));
-		  *((u_int32_t *) opt->data) = htonl(~magic);
+		  magic = htonl(~magic);
+		  memcpy(opt->data, &magic, 4);
 		  FsmNak(fp, opt);
 		  break;
 		}

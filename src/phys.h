@@ -22,7 +22,7 @@
   typedef struct physinfo	*PhysInfo;
 
   struct phystype {
-    char	*name;				/* Name of device type */
+    const char	*name;				/* Name of device type */
     u_char	synchronous:1;			/* Link is synchronous */
     short	minReopenDelay;			/* Min seconds between opens */
     u_short	mtu, mru;			/* Not incl. addr/ctrl/fcs */

@@ -178,9 +178,11 @@ IpcpStat(int ac, char *av[], void *arg)
   char			path[NG_PATHLEN + 1];
   IpcpState		const ipcp = &bund->ipcp;
   Fsm			fp = &ipcp->fsm;
-  u_char		buf[sizeof(struct ng_mesg) + sizeof(struct slcompress)];
-  struct ng_mesg	*const reply = (struct ng_mesg *)buf;
-  struct slcompress	*const sls = (struct slcompress *)reply->data;
+  union {
+      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct slcompress)];
+      struct ng_mesg	reply;
+  }			u;
+  struct slcompress	*const sls = (struct slcompress *)(void *)u.reply.data;
 
   printf("%s [%s]\n", Pref(fp), FsmStateName(fp->state));
   printf("Allowed IP address ranges:\n");
@@ -225,7 +227,7 @@ IpcpStat(int ac, char *av[], void *arg)
       NGM_VJC_COOKIE, NGM_VJC_GET_STATE, NULL, 0) < 0) {
     return(0);
   }
-  if (NgRecvMsg(bund->csock, reply, sizeof(buf), NULL) < 0) {
+  if (NgRecvMsg(bund->csock, &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
       bund->name, path, strerror(errno)));
     return(0);
@@ -601,28 +603,29 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     switch (opt->type) {
       case TY_IPADDR:
 	{
-	  struct in_addr	*const ip = (struct in_addr *) opt->data;
+	  struct in_addr	ip;
 
-	  Log(LG_IPCP, (" %s %s", oi->name, inet_ntoa(*ip)));
+	  memcpy(&ip, opt->data, 4);
+	  Log(LG_IPCP, (" %s %s", oi->name, inet_ntoa(ip)));
 	  switch (mode) {
 	    case MODE_REQ:
-	      if (!IpAddrInRange(&ipcp->conf.peer_allow, *ip) || !ip->s_addr) {
+	      if (!IpAddrInRange(&ipcp->conf.peer_allow, ip) || !ip.s_addr) {
 		if (ipcp->peer_addr.s_addr == 0)
 		  Log(LG_IPCP, ("   %s", "no IP address available for peer!"));
 		if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
 		  Log(LG_IPCP, ("   pretending that %s is OK, will ignore",
-		      inet_ntoa(*ip)));
-		  ipcp->peer_addr = *ip;
+		      inet_ntoa(ip)));
+		  ipcp->peer_addr = ip;
 		  FsmAck(fp, opt);
 		  break;
 		}
-		*ip = ipcp->peer_addr;
-		Log(LG_IPCP, ("   NAKing with %s", inet_ntoa(*ip)));
+		memcpy(opt->data, &ipcp->peer_addr, 4);
+		Log(LG_IPCP, ("   NAKing with %s", inet_ntoa(ipcp->peer_addr)));
 		FsmNak(fp, opt);
 		break;
 	      }
-	      Log(LG_IPCP, ("   %s is OK", inet_ntoa(*ip)));
-	      ipcp->peer_addr = *ip;
+	      Log(LG_IPCP, ("   %s is OK", inet_ntoa(ip)));
+	      ipcp->peer_addr = ip;
 	      FsmAck(fp, opt);
 	      break;
 	    case MODE_NAK:
@@ -631,20 +634,20 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 #ifdef IA_CUSTOM
 		if (gIpcpExcludeRange.ipaddr.s_addr != 0
-		    && IpAddrInRange(&gIpcpExcludeRange, *ip)) {
-		  Log(LG_IPCP, ("   %s is on my LAN network!", inet_ntoa(*ip)));
+		    && IpAddrInRange(&gIpcpExcludeRange, ip)) {
+		  Log(LG_IPCP, ("   %s is on my LAN network!", inet_ntoa(ip)));
 		  bogus = 1;
 		}
 #endif
-		if (IpAddrInRange(&ipcp->conf.self_allow, *ip) && !bogus) {
-		  Log(LG_IPCP, ("   %s is OK", inet_ntoa(*ip)));
-		  ipcp->want_addr = *ip;
+		if (IpAddrInRange(&ipcp->conf.self_allow, ip) && !bogus) {
+		  Log(LG_IPCP, ("   %s is OK", inet_ntoa(ip)));
+		  ipcp->want_addr = ip;
 		} else if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
 		  Log(LG_IPCP, ("   pretending that %s is OK, will ignore",
-		      inet_ntoa(*ip)));
-		  ipcp->want_addr = *ip;
+		      inet_ntoa(ip)));
+		  ipcp->want_addr = ip;
 		} else
-		  Log(LG_IPCP, ("   %s is unacceptable", inet_ntoa(*ip)));
+		  Log(LG_IPCP, ("   %s is unacceptable", inet_ntoa(ip)));
 	      }
 	      break;
 	    case MODE_REJ:
@@ -658,45 +661,47 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
       case TY_COMPPROTO:
 	{
-	  struct ipcpvjcomp	*const vj = (struct ipcpvjcomp *) opt->data;
+	  struct ipcpvjcomp	vj;
 
+	  memcpy(&vj, opt->data, sizeof(vj));
 	  Log(LG_IPCP, (" %s %s, %d comp. channels, %s comp-cid",
-	    oi->name, ProtoName(ntohs(vj->proto)),
-	    vj->maxchan + 1, vj->compcid ? "allow" : "no"));
+	    oi->name, ProtoName(ntohs(vj.proto)),
+	    vj.maxchan + 1, vj.compcid ? "allow" : "no"));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (!Acceptable(&ipcp->conf.options, IPCP_CONF_VJCOMP)) {
 		FsmRej(fp, opt);
 		break;
 	      }
-	      if (ntohs(vj->proto) == PROTO_VJCOMP
-		  && vj->maxchan <= IPCP_VJCOMP_MAX_MAXCHAN
-		  && vj->maxchan >= IPCP_VJCOMP_MIN_MAXCHAN) {
-		ipcp->peer_comp = *vj;
+	      if (ntohs(vj.proto) == PROTO_VJCOMP
+		  && vj.maxchan <= IPCP_VJCOMP_MAX_MAXCHAN
+		  && vj.maxchan >= IPCP_VJCOMP_MIN_MAXCHAN) {
+		ipcp->peer_comp = vj;
 		FsmAck(fp, opt);
 		break;
 	      }
-	      vj->proto = htons(PROTO_VJCOMP);
-	      vj->maxchan = IPCP_VJCOMP_MAX_MAXCHAN;
-	      vj->compcid = 0;
+	      vj.proto = htons(PROTO_VJCOMP);
+	      vj.maxchan = IPCP_VJCOMP_MAX_MAXCHAN;
+	      vj.compcid = 0;
+	      memcpy(opt->data, &vj, sizeof(vj));
 	      FsmNak(fp, opt);
 	      break;
 	    case MODE_NAK:
-	      if (ntohs(vj->proto) != PROTO_VJCOMP) {
+	      if (ntohs(vj.proto) != PROTO_VJCOMP) {
 		Log(LG_IPCP, ("  Can't accept proto 0x%04x",
-		  (u_short) ntohs(vj->proto)));
+		  (u_short) ntohs(vj.proto)));
 		break;
 	      }
-	      if (vj->maxchan != ipcp->want_comp.maxchan) {
-		if (vj->maxchan <= IPCP_VJCOMP_MAX_MAXCHAN
-		    && vj->maxchan >= IPCP_VJCOMP_MIN_MAXCHAN) {
+	      if (vj.maxchan != ipcp->want_comp.maxchan) {
+		if (vj.maxchan <= IPCP_VJCOMP_MAX_MAXCHAN
+		    && vj.maxchan >= IPCP_VJCOMP_MIN_MAXCHAN) {
 		  Log(LG_IPCP, ("  Adjusting # compression channels"));
-		  ipcp->want_comp.maxchan = vj->maxchan;
+		  ipcp->want_comp.maxchan = vj.maxchan;
 		} else {
-		  Log(LG_IPCP, ("  Can't handle %d maxchan", vj->maxchan));
+		  Log(LG_IPCP, ("  Can't handle %d maxchan", vj.maxchan));
 		}
 	      }
-	      if (vj->compcid) {
+	      if (vj.compcid) {
 		Log(LG_IPCP, ("  Can't accept comp-cid"));
 		break;
 	      }
@@ -726,8 +731,9 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	wantip = &ipcp->want_nbns[1];
 doDnsNbns:
 	{
-	  const struct in_addr	hisip = *((struct in_addr *) opt->data);
+	  struct in_addr	hisip;
 
+	  memcpy(&hisip, opt->data, 4);
 	  Log(LG_IPCP, (" %s %s", oi->name, inet_ntoa(hisip)));
 	  switch (mode) {
 	    case MODE_REQ:
@@ -783,7 +789,7 @@ IpcpSetCommand(int ac, char *av[], void *arg)
 
   if (ac == 0)
     return(-1);
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_RANGES:
       {
 	struct in_range	self_new_allow;

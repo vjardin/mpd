@@ -59,10 +59,21 @@ DPADD+=		${LIBNETGRAPH}
 
 MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
 
-COPTS+=		-g -Wall -Wmissing-prototypes -Wnested-externs
 COPTS+=		-DPATH_CONF_DIR=\"${MPD_CONF_DIR}\"
 COPTS+=		-DSYSLOG_FACILITY=${SYSLOG_FACILITY}
 COPTS+=		-DMPD_VERSION='"${MPD_VERSION}"'
+COPTS+=		-g
+COPTS+=		-Wall \
+		-Wcast-align \
+		-Wchar-subscripts \
+		-Wformat \
+		-Winline \
+		-Wmissing-declarations \
+		-Wmissing-prototypes \
+		-Wnested-externs \
+		-Wpointer-arith \
+		-Wstrict-prototypes \
+		-Wwrite-strings
 
 # Standard sources
 

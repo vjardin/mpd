@@ -21,7 +21,7 @@
   extern int		SeekToLabel(FILE *fp, const char *label, int *lineNum);
 
   extern char		*ReadFullLine(FILE *fp, int *lineNum);
-  extern int		ReadFile(char *filename, char *target,
+  extern int		ReadFile(const char *filename, const char *target,
 				int (*func)(int ac, char *av[]));
   extern int		ParseLine(char *line, char *vec[], int max_args);
   extern void		FreeArgs(int ac, char *av[]);
@@ -39,7 +39,7 @@
   extern void		ExclusiveCloseDevice(int fd, const char *path);
 
   extern int		WriteMbuf(Mbuf *mp, int fd, const char *label);
-  extern int		PIDCheck(char *lockfile, int killem);
+  extern int		PIDCheck(const char *lockfile, int killem);
 
   extern void		LengthenArray(void *arrayp, int esize,
 				int *alenp, int type);

@@ -86,7 +86,7 @@
 
   struct chatcmd
   {
-    char	*name;
+    const char	*name;
     short	id;
     short	min;
     short	max;
@@ -198,9 +198,10 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void	ChatAddTimer(ChatInfo c, char *set, u_int secs, char *label);
+  static void	ChatAddTimer(ChatInfo c, const char *set,
+			u_int secs, const char *label);
   static void	ChatAddMatch(ChatInfo c, int exact,
-			char *set, char *pat, char *label);
+			const char *set, char *pat, const char *label);
   static void	ChatCancel(ChatInfo c, const char *set);
   static int	ChatGoto(ChatInfo c, const char *label);
   static void	ChatCall(ChatInfo c, const char *label);
@@ -962,7 +963,8 @@ ChatStop(ChatInfo c)
  */
 
 static void
-ChatAddMatch(ChatInfo c, int exact, char *set, char *pat, char *label)
+ChatAddMatch(ChatInfo c, int exact, const char *set,
+	char *pat, const char *label)
 {
   ChatMatch	match, *mp;
 
@@ -1011,7 +1013,7 @@ ChatAddMatch(ChatInfo c, int exact, char *set, char *pat, char *label)
  */
 
 static void
-ChatAddTimer(ChatInfo c, char *set, u_int secs, char *label)
+ChatAddTimer(ChatInfo c, const char *set, u_int secs, const char *label)
 {
   ChatTimer	timer;
 

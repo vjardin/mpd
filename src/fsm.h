@@ -197,7 +197,7 @@
 
   extern FsmOptInfo	FsmFindOptInfo(FsmOptInfo list, u_char type);
   extern const char	*FsmStateName(int state);
-  extern char		*FsmCodeName(int code);
+  extern const char	*FsmCodeName(int code);
   extern char		*Pref(Fsm fp);
 
 #endif	/* _FSM_H_ */
