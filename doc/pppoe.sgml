@@ -10,12 +10,10 @@
   These commands apply to the currently active link, and are only
   valid if the currently active link has type <bf>pppoe</bf>.
 
-  Right now the PPPoE layer only works in client mode. That is,
-  you can connect to a PPPoE server, but cannot act as a server yet.
-  Also, your kernel must be compiled with ``options NETGRAPH'' to
+  Your kernel must be compiled with ``options NETGRAPH'' to
   netgraph-enable the Ethernet interfaces (if your system is new enough
   to have the <tt>/modules/ng_ether.ko</tt> KLD installed, then
-  this is no longer true; you only need load the KLD).
+  this is no longer true; you only need load this KLD).
 
   PPPoE requires two pieces of configuration information: the name
   of the Ethernet interface to use, and a service name, which should
@@ -35,7 +33,32 @@ not affect normal use of the interface.
 set pppoe service <em>service-name</em>
 </tt></tag>
 
-Sets the requested PPPoE service name.
+Sets the requested PPPoE service name. Setting service name to "*" 
+on link with allowed incoming connections allows to accept incoming 
+connection requests with any service name specified.
+
+<tag><tt>set pppoe enable <em>option ...</em> </tt></tag><p>
+<tag><tt>set pppoe disable <em>option ...</em> </tt></tag><p>
+
+Enable and disable PPPoE device type options for the link.
+
+</descrip>
+
+<p>
+The following options are supported:
+
+<descrip>
+
+<tag><tt>originate</tt></tag>
+
+This option enables the initiation of PPPoE connections to the peer.
+If this option is disabled, mpd will not initiate any PPPoE connections.
+
+<tag><tt>incoming</tt></tag>
+
+This option enables the acceptance of incoming PPPoE connections.
+If this option is disabled, mpd will not accept any incoming PPPoE connections.
+You must configure iface and service parameters before using this option.
 
 </descrip>
 

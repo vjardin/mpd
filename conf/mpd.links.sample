@@ -132,4 +132,6 @@ PPPoE:
         set link type pppoe
         set pppoe iface fxp1
         set pppoe service "whatever"
+	set pppoe disable incoming
+	set pppoe enable originate
 

@@ -291,7 +291,8 @@ PPPoE:
 	set link no acfcomp protocomp
 	set link disable pap chap
 	set link accept chap
-	set link mtu 1460
+	set link mtu 1492
+	set link keep-alive 10 60
 	set ipcp yes vjcomp
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	open iface
