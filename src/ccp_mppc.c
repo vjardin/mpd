@@ -193,6 +193,11 @@ MppcDescribe(int dir)
 static int
 MppcSubtractBloat(int size)
 {
+
+  /* Account for MPPC header */
+  size -= 2;
+
+  /* Account for possible expansion with MPPC compression */
   if ((bund->ccp.mppc.xmit_bits & MPPC_BIT) != 0) {
     int	l, h, size0 = size;
 
@@ -209,6 +214,8 @@ MppcSubtractBloat(int size)
       }
     }
   }
+
+  /* Done */
   return(size);
 }
 
