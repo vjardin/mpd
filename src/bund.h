@@ -41,6 +41,7 @@
     BUND_CONF_ROUNDROBIN,	/* round-robin MP scheduling */
     BUND_CONF_RADIUSAUTH,	/* enable radius auth */
     BUND_CONF_RADIUSFALLBACK,	/* enable fallback to mpd.secret */
+    BUND_CONF_NORETRY,		/* don't retry failed links */
   };
 
   /* Default bundle-layer FSM retry timeout */

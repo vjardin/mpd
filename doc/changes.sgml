@@ -44,6 +44,12 @@
     </item>
     <item>Link with libcrypto instead of the obsolete libdes.
     </item>
+    <item>Added new command bundle option <tt>noretry</tt>.
+    </item>
+    <item>Install the PostScript version of the documentation as well.
+    </item>
+    <item>Bumped the max length for an up or down script to 128 (from 32).
+    </item>
     </itemize>
   </p>
 

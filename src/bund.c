@@ -128,6 +128,7 @@
     { 0,	BUND_CONF_ROUNDROBIN,	"round-robin"	},
     { 0,	BUND_CONF_RADIUSAUTH,	"radius-auth"	},
     { 0,	BUND_CONF_RADIUSFALLBACK,	"radius-fallback"	},
+    { 0,	BUND_CONF_NORETRY,	"noretry"	},
     { 0,	0,			NULL		},
   };
 
@@ -295,8 +296,10 @@ BundLeave(void)
     memset(bund->self_ntResp, 0, sizeof(bund->self_ntResp));
 
     /* Close links, or else wait and try to open again later */
-    if (!bund->open) {
+    if (!bund->open || Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
       BundCloseLinks();
+      if (Enabled(&bund->conf.options, BUND_CONF_NORETRY))
+	IfaceCloseNcps();
     } else {		/* wait BUND_REOPEN_DELAY to see if it comes back up */
       TimerStop(&bund->reOpenTimer);
       TimerInit(&bund->reOpenTimer, "BundReOpen",

@@ -187,6 +187,12 @@ loss or broken peer equipment.
 
 The default for this option is off.
 
+<tag><tt>noretry</tt></tag>
+
+This tells mpd to not attempt to reconnect a bundle whose last
+link has closed. This is needed for dialin-only bundles, where
+mpd doesn't know how to initiate an outgoing connection.
+
 <tag><tt>radius-auth</tt></tag>
 
 Enable authentication via RADIUS.
