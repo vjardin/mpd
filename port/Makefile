@@ -6,7 +6,6 @@ PDIR=		port.temp
 MAKEFILE=	${PDIR}/Makefile
 PLIST=		${PDIR}/pkg-plist
 DESCR=		${PDIR}/pkg-descr
-COMMENT=	${PDIR}/pkg-comment
 MD5=		${PDIR}/distinfo
 MTREE=		${PDIR}/files/mpd.mtree
 
@@ -19,7 +18,6 @@ port:
 		  | awk '{ printf "share/doc/mpd/%s\n", $$1 }' >> ${PLIST}
 		cat PLIST.tail >> ${PLIST}
 		cp DESCR ${DESCR}
-		cp COMMENT ${COMMENT}
 		cp mpd.mtree ${MTREE}
 		( cd .. && md5 mpd-${VERSION}.tar.gz ) > ${MD5}
 		sed 's/@VERSION@/${VERSION}/g' < Makefile.in > ${MAKEFILE}
