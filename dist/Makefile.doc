@@ -5,6 +5,7 @@ BINDIR?=	${PREFIX}/share/doc/mpd
 
 MPD_DOC_FILES+=	../README
 MPD_DOC_FILES+=	mpd*.html
+MPD_DOC_FILES+=	mpd.ps
 
 MAN8=		mpd.8
 MANDIR=		${PREFIX}/man/man
