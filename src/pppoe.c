@@ -848,6 +848,8 @@ PppoeListenUpdate(void *arg)
 {
   int	i,j,k;
 
+  PppoeListenUpdateSheduled=0;
+
   /* Examine all PPPoE links */
   for (k = 0; k < gNumLinks; k++) {
     if (gLinks[k] && gLinks[k]->phys->type == &gPppoePhysType 
