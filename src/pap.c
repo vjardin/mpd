@@ -12,10 +12,8 @@
  */
 
 #include "ppp.h"
-#include "pap.h"
-#include "radius.h"
 #include "auth.h"
-#include "ngfunc.h"
+#include "radius.h"
 
 /*
  * INTERNAL FUNCTIONS
@@ -73,7 +71,7 @@ PapStop(PapInfo pap)
 static void
 PapSendRequest(PapInfo pap)
 {
-  struct authdata	auth;
+  struct authdata	auth;    
   int			name_len, pass_len;
   u_char		*pkt;
 
@@ -110,7 +108,11 @@ void
 PapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 {
   Auth			const a = &lnk->lcp.auth;
+  struct authdata	auth;
   PapInfo		const pap = &a->pap;
+
+  /* Initialize 'auth' info */
+  memset(&auth, 0, sizeof(auth));
 
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] PAP: rec'd %s #%d",
@@ -118,7 +120,6 @@ PapInput(u_char code, u_char id, const u_char *pkt, u_short len)
   switch (code) {
     case PAP_REQUEST:
       {
-	struct authdata	auth;
 	char		*name_ptr, name[256];
 	char		*pass_ptr, pass[256];
 	const char	*failMesg;
@@ -152,8 +153,6 @@ PapInput(u_char code, u_char id, const u_char *pkt, u_short len)
 	memcpy(pass, pass_ptr, pass_len);
 	pass[pass_len] = 0;
 
-	/* Initialize 'auth' info */
-	memset(&auth, 0, sizeof(auth));
 	strlcpy(auth.authname, name, sizeof(auth.authname));
 
 	/* perform pre authentication checks (single-login, etc.) */
@@ -226,7 +225,7 @@ goodRequest:
 	ShowMesg(LG_AUTH, msg, msg_len);
 
 	/* Done with my auth to peer */
-	AuthFinish(AUTH_SELF_TO_PEER, code == PAP_ACK, NULL);
+	AuthFinish(AUTH_SELF_TO_PEER, code == PAP_ACK, NULL);	
       }
       break;
 
