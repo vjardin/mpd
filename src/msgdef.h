@@ -11,6 +11,7 @@
 #define STR_REDIAL		"Redial"
 #define STR_DEMAND		"Demand"
 #define STR_IDLE_TIMEOUT	"Idle timeout"
+#define STR_SESSION_TIMEOUT	"Session timeout"
 #define STR_COPY		"%s"
 #define STR_CHAT_SCRIPT_FAILED	"Chat script failed"
 #define STR_CON_FAILED0		"Connection failed"
