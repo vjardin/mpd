@@ -28,6 +28,45 @@ usr:
 	set modem var $DialPrefix "DT"
 
 #
+# An example for Lucent compatible Winmodem (Xircom).
+# Set the country code variable $CountryCode.
+#
+ltmdm:
+	set link type modem
+	set modem device /dev/cual0
+	set modem var $DialPrefix "DT"
+	set modem var $SpeakerOff "no"
+	# Set the country code setting to France
+	#        USA(  1):    b5  (default)
+	#        JPN( 81):    00
+	#        GBR( 44):    b4
+	#        DEU( 49):    42
+	#        SWE( 46):    a5
+	#        DNK( 45):    31
+	#        FIN(358):    3c
+	#        NOR( 47):    82
+	#        AUT( 43):    0a
+	#        CHE( 41):    a6
+	#        RUS(  7):    b8
+	#        AUS( 61):    09
+	#        MYS( 60):    6c
+	#        CHN( 86):    26
+	#        BEL( 32):    0f
+	#        CYP(357):    2d
+	#        FRA( 33):    3d
+	#        GRC( 30):    46
+	#        ISL(354):    52
+	#        IRL(353):    57
+	#        ISR(972):    58
+	#        ITA( 39):    59
+	#        LIE(423):    68
+	#        LUX(352):    69
+	#        NLD( 31):    7b
+	#        PRT(351):    8b
+	#        ESP( 34):    a0
+	set modem var $CountryCode "3d"
+
+#
 # Another example: Motorola Bitsurfer Pro terminal adapter on COM3
 # An ISDN terminal adapter is a "modem" as far as mpd is concerned.
 #

@@ -8,13 +8,14 @@
 #################################################################
 
 ##
-## InterJet modem script variables:
+## MPD Modem script variables:
 ##
 ##  $DialPrefix		Modem dialing prefix (eg. "DT")
 ##  $Telephone		Telephone number to dial (not duplicated using &)
 ##  $ConnectTimeout	Wait-for-connect timeout, in seconds (default 45 secs)
 ##  $SpeakerOff		Set to "yes" to quiet modem speakers
 ##  $Serial230K		If "yes", we can support 230K serial port speed
+##  $CountryCode	Country code for Winmodem (see mpd.links.sample)
 ##
 ## ISDN Terminal Adapter specific variables (all start with "TA_"):
 ##
@@ -328,6 +329,7 @@ ModemIdent:
 	match "3ComImpact IQ" ModemIdentImpactIQ
 	match "U.S. Robotics 56K" ModemIdentUsr
 	match "ZOOM V.90" ModemIdentZoom56
+	match "LT V.90" ModemIdentLucent
 	match "ERR"
 	match "OK\r\n"
 	wait 3
@@ -418,6 +420,13 @@ ModemIdentSmartOne:
 	set $ModemSetupFunc Modem56Setup
 	return
 
+# Support the Lucent Winmodem, Xircom 56k
+ModemIdentLucent:
+	set $ModemDescription "$matchedString"
+	call GetOK
+	set $ModemSetupFunc ModemLucentSetup
+	return
+
 #################################################################
 #
 #	GENERIC MODEM SETUP
@@ -468,6 +477,23 @@ Modem56Setup:
 	set $temp "M1"
 	if $SpeakerOff == "yes" set $temp "M0"
 	set $modemCmd "&FL2W2E0${temp}"
+	call ModemCmd2
+	return
+
+#################################################################
+#
+#	LUCENT WINMODEM AND XIRCOM 56K SETUP
+#
+#################################################################
+
+ModemLucentSetup:
+	set $noDialToneSubr GenericNoDialtone
+	set $temp "M1"
+	if $SpeakerOff == "yes" set $temp "M0"
+	set $tempCountryCode ""
+	if $CountryCode != "" set $tempCountryCode "+GCI=${CountryCode}"
+	if $CountryCode != "" log "Use country ${CountryCode}"
+	set $modemCmd "&FL2W2E0${temp}${tempCountryCode}"
 	call ModemCmd2
 	return
 
