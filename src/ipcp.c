@@ -270,6 +270,13 @@ IpcpConfigure(Fsm fp)
   /* FSM stuff */
   ipcp->peer_reject = 0;
 
+  /* Get allowed IP addresses from config and/or from current bundle */
+  ipcp->self_allow = ipcp->conf.self_allow;
+  if (bund->peer_allow.ipaddr.s_addr != 0 || bund->peer_allow.width != 0)
+    ipcp->peer_allow = bund->peer_allow;
+  else
+    ipcp->peer_allow = ipcp->conf.peer_allow;
+
   /* Dynamically get IP address? */
 #ifdef IA_CUSTOM
   if (ipcp->conf.peer_allow.ipaddr.s_addr == 0) {
@@ -283,9 +290,9 @@ IpcpConfigure(Fsm fp)
   }
 #endif
 
-  /* Initially request addresses as specified by user */
-  ipcp->want_addr = ipcp->conf.self_allow.ipaddr;
-  ipcp->peer_addr = ipcp->conf.peer_allow.ipaddr;
+  /* Initially request addresses as specified by config */
+  ipcp->want_addr = ipcp->self_allow.ipaddr;
+  ipcp->peer_addr = ipcp->peer_allow.ipaddr;
 
   /* Van Jacobson compression */
   ipcp->peer_comp.proto = 0;
@@ -407,22 +414,22 @@ IpcpLayerUp(Fsm fp)
   struct ngm_vjc_config	vjc;
 
   /* Determine actual address we'll use for ourselves */
-  if (!IpAddrInRange(&ipcp->conf.self_allow, ipcp->want_addr)) {
+  if (!IpAddrInRange(&ipcp->self_allow, ipcp->want_addr)) {
     Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
       "self", inet_ntoa(ipcp->want_addr)));
     Log(fp->log, ("        using %s instead.",
-      inet_ntoa(ipcp->conf.self_allow.ipaddr)));
-    ipcp->want_addr = ipcp->conf.self_allow.ipaddr;
+      inet_ntoa(ipcp->self_allow.ipaddr)));
+    ipcp->want_addr = ipcp->self_allow.ipaddr;
   }
 
   /* Determine actual address we'll use for peer */
-  if (!IpAddrInRange(&ipcp->conf.peer_allow, ipcp->peer_addr)
-      && ipcp->conf.peer_allow.ipaddr.s_addr != 0) {
+  if (!IpAddrInRange(&ipcp->peer_allow, ipcp->peer_addr)
+      && ipcp->peer_allow.ipaddr.s_addr != 0) {
     Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
       "peer", inet_ntoa(ipcp->peer_addr)));
     Log(fp->log, ("        using %s instead.",
-      inet_ntoa(ipcp->conf.peer_allow.ipaddr)));
-    ipcp->peer_addr = ipcp->conf.peer_allow.ipaddr;
+      inet_ntoa(ipcp->peer_allow.ipaddr)));
+    ipcp->peer_addr = ipcp->peer_allow.ipaddr;
   }
 
   /* Report */
@@ -600,7 +607,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  Log(LG_IPCP, (" %s %s", oi->name, inet_ntoa(ip)));
 	  switch (mode) {
 	    case MODE_REQ:
-	      if (!IpAddrInRange(&ipcp->conf.peer_allow, ip) || !ip.s_addr) {
+	      if (!IpAddrInRange(&ipcp->peer_allow, ip) || !ip.s_addr) {
 		if (ipcp->peer_addr.s_addr == 0)
 		  Log(LG_IPCP, ("   %s", "no IP address available for peer!"));
 		if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
@@ -630,7 +637,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		  bogus = 1;
 		}
 #endif
-		if (IpAddrInRange(&ipcp->conf.self_allow, ip) && !bogus) {
+		if (IpAddrInRange(&ipcp->self_allow, ip) && !bogus) {
 		  Log(LG_IPCP, ("   %s is OK", inet_ntoa(ip)));
 		  ipcp->want_addr = ip;
 		} else if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {

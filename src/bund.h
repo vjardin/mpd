@@ -132,6 +132,7 @@
     ng_ID_t		nodeID;			/* ID of ppp node */
     Link		*links;			/* Real links in this bundle */
     char		peer_authname[AUTH_MAX_AUTHNAME]; /* Peer's authname */
+    struct in_range	peer_allow;		/* Peer's allowed IP (if any) */
     struct discrim	peer_discrim;		/* Peer's discriminator */
     u_char		self_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
     u_char		peer_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */

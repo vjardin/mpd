@@ -232,7 +232,9 @@ BundJoin(void)
 
     /* Copy over peer's IP address range if specified in secrets file */
     if (lnk->range_valid)
-      bund->ipcp.conf.peer_allow = lnk->peer_allow;
+      bund->peer_allow = lnk->peer_allow;
+    else
+      memset(&bund->peer_allow, 0, sizeof(bund->peer_allow));
 
     /* Make sure IPCP, et.al. renegotiate */
     if (bm->ncps_up)
