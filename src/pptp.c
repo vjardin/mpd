@@ -48,6 +48,7 @@
     u_short		peer_port;	/* Current peer port */
     struct optinfo	options;
     struct pptpctrlinfo	cinfo;
+    char		phonenum[64];	/* PPTP phone number to use */
   };
   typedef struct pptpinfo	*PptpInfo;
 
@@ -55,6 +56,7 @@
   enum {
     SET_SELFADDR,
     SET_PEERADDR,
+    SET_PHONENUM,
     SET_ENABLE,
     SET_DISABLE,
   };
@@ -128,6 +130,8 @@
 	PptpSetCommand, NULL, (void *) SET_SELFADDR },
     { "peer ip [port]",			"Set remote IP address",
 	PptpSetCommand, NULL, (void *) SET_PEERADDR },
+    { "phonenum number",		"Set PPTP telephone number",
+	PptpSetCommand, NULL, (void *) SET_PHONENUM },
     { "enable [opt ...]",		"Enable option",
 	PptpSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
@@ -273,7 +277,7 @@ PptpOriginate(PptpInfo pptp)
   else
     cinfo = PptpCtrlOutCall(linfo, ip, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
-      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, "", "");
+      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, pptp->phonenum, "");
   if (cinfo.cookie == NULL)
     return(-1);
   pptp->peer_addr = ip;
@@ -723,6 +727,11 @@ PptpSetCommand(int ac, char *av[], void *arg)
 	pptp->peer_addr_req = rng;
 	pptp->peer_port_req = port;
       }
+      break;
+    case SET_PHONENUM:
+      if (ac != 1)
+	return(-1);
+      snprintf(pptp->phonenum, sizeof(pptp->phonenum), "%s", av[0]);
       break;
     case SET_ENABLE:
       EnableCommand(ac, av, &pptp->options, gConfList);

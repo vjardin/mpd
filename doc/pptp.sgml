@@ -57,6 +57,15 @@ is optional; if not given, mpd accepts incoming connections from any
 host. Otherwise, only connections from the stated IP address
 (and, optionally, port) are allowed.
 
+<tag><tt>
+set pptp phonenum <em>number</em>
+</tt></tag>
+
+Sets the called telephone number to use when initiating a PPTP
+connection. For most VPN applications this is ignored, but in certain
+cases an actual phone number is required.
+The default is the empty string.
+
 <tag><tt>set pptp enable <em>option ...</em> </tt></tag><p>
 <tag><tt>set pptp disable <em>option ...</em> </tt></tag><p>
 
