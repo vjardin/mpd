@@ -8,6 +8,14 @@
   <p>
     Changes since version 4.0b1:
     <itemize>
+	<item>Fix <tt>va_args</tt> bug on certain non-i386 platforms.
+	</item>
+    </itemize>
+  </p>
+
+  <p>
+    Changes since version 4.0b1:
+    <itemize>
     <item>Fixed a race-condition wich caused a dead-lock.</item>
     <item>
       RADIUS    
