@@ -57,7 +57,7 @@ DPADD+=		${LIBMD}
 LDADD+=		-lnetgraph
 DPADD+=		${LIBNETGRAPH}
 
-MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `date +'%R %v'`)"
+MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
 
 COPTS+=		-g -Wall -Wmissing-prototypes -Wnested-externs
 COPTS+=		-DPATH_CONF_DIR=\"${MPD_CONF_DIR}\"

@@ -496,9 +496,9 @@ EcpLayerDown(Fsm fp)
 {
   EcpState	const ecp = &bund->ecp;
 
-  if (ecp->xmit)
+  if (ecp->xmit && ecp->xmit->Cleanup)
     (ecp->xmit->Cleanup)(TRUE);
-  if (ecp->recv)
+  if (ecp->recv && ecp->recv->Cleanup)
     (ecp->recv->Cleanup)(FALSE);
 }
 
