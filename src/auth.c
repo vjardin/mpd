@@ -405,7 +405,7 @@ AuthCleanup(void)
   Auth			a = &lnk->lcp.auth;
   struct radius_acl	*acls, *acls1;
 
-  Log(LG_RADIUS, ("[%s] AUTH: Cleanup", lnk->name));
+  Log(LG_AUTH, ("[%s] AUTH: Cleanup", lnk->name));
 
   TimerStop(&a->acct_timer);
   
@@ -455,8 +455,6 @@ AuthDataNew(void)
   auth->conf = bund->conf.auth;
   auth->lnk = LinkCopy();
 
-  lnk->phys->type->peeraddr(lnk->phys->info, auth->info.peeraddr, 
-    sizeof(auth->info.peeraddr));
   strlcpy(auth->info.ifname, bund->iface.ifname, sizeof(auth->info.ifname));
   strlcpy(auth->info.session_id, bund->session_id, sizeof(auth->info.session_id));
 
@@ -563,7 +561,7 @@ AuthAccountStart(int type)
   Auth		const a = &lnk->lcp.auth;
   AuthData	auth;
   u_long	updateInterval = 0;
-
+      
   LinkUpdateStats();
   if (type == AUTH_ACCT_STOP) {
     Log(LG_LINK, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
@@ -577,6 +575,9 @@ AuthAccountStart(int type)
     return;
 
   if (type == AUTH_ACCT_START) {
+  
+    /* remember peer's IP address */
+    lnk->phys->type->peeraddr(lnk->phys->info, a->peeraddr, sizeof(a->peeraddr));
   
     /* maybe an outstanding thread is running */
     paction_cancel(&a->acct_thread);
@@ -651,7 +652,7 @@ AuthAccount(void *arg)
 
     if (auth->acct_type == AUTH_ACCT_START) {
 
-      strlcpy(ut.ut_host, auth->info.peeraddr, sizeof(ut.ut_host));
+      strlcpy(ut.ut_host, lnk->lcp.auth.peeraddr, sizeof(ut.ut_host));
       strlcpy(ut.ut_name, auth->authname, sizeof(ut.ut_name));
       time(&ut.ut_time);
       login(&ut);

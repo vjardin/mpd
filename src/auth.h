@@ -89,6 +89,7 @@
     struct paction	*thread;	/* async auth thread */
     struct paction	*acct_thread;	/* async accounting auth thread */
     int			authentic;	/* wich backend was used */
+    char		peeraddr[253];	/* hr representation of the callers address */    
     struct {
       unsigned long	class;      	/* Class */
       char		*eapmsg;	/* recvd EAP Msg for forwarding to the peer */
@@ -176,7 +177,6 @@
       struct in_addr	mask;		/* IP Netmask */
     } params;
     struct {		/* informational (read-only) data needed for e.g. accouting */
-      char		peeraddr[253];	/* hr representation of the callers address */
       struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
       short		n_links;	/* number of links in the bundle */
       char		session_id[AUTH_MAX_SESSIONID];	/* bundle's session-id */
