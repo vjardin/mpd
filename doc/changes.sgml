@@ -8,6 +8,13 @@
   <p>
     Changes since version 3.2:
     <itemize>
+    <item>There is no longer a fixed limit to the number of
+	bundles and/or links that may be created.
+    </item>
+    <item>Better random number generation using <tt>srandomdev(4)</tt>.
+    </item>
+    <item>Miscellaneous minor bug fixes.
+    </item>
     <item>
 	Support for authenticating to the peer using Microsoft CHAP Version 2
 	has been added.
@@ -18,7 +25,7 @@
     </item>
     </itemize>
 
-  These enhancements are thanks to Franco Venturi
+  The latter two are thanks to Franco Venturi
     <tt><htmlurl url='mailto:fventuri@mediaone.net'
 	  name='&lt;fventuri@mediaone.net&gt;'></tt>
   </p>
