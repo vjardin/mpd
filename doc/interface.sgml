@@ -133,6 +133,16 @@ set iface enable proxy-arp
 <newline>set ipcp 192.168.1.10/32 192.168.1.20/32
 </tt></tscreen>
 
+<tag><tt>radius-mtu</tt></tag>
+
+This option causes mpd to use the MTU from the RADIUS server.
+It has the same as effect as <tt>set iface mtu</tt>.
+
+<tag><tt>radius-idle</tt></tag>
+
+This option causes mpd to use the idle timeout from the RADIUS server.
+It has the same as effect as <tt>set iface idle</tt>.
+
 </descrip>
 
 

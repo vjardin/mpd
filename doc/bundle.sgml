@@ -196,6 +196,11 @@ mpd doesn't know how to initiate an outgoing connection.
 <tag><tt>radius-auth</tt></tag>
 
 Enable authentication via RADIUS.
+All authentication methods are supported (PAP, CHAP, MS-CHAPv1,
+MS-CHAPv2). When using IAS as RADIUS server you can not use CHAP,
+because CHAP needs a plaintext password on the server, and
+Windows servers only store the NT-HASH. Password changing is
+currently not supported.
 
 <tag><tt>radius-fallback</tt></tag>
 
@@ -203,6 +208,49 @@ This option is only relevant when <tt>radius-auth</tt> is enabled.
 If disabled, authentication is only attempted via RADIUS.
 Otherwise, if authentication via RADIUS fails, mpd will attempt
 to authenticate using the traditional method using <tt>mpd.secrets</tt>.
+
+<tag><tt>radius-acct</tt></tag>
+
+Enable accounting via RADIUS. Accounting is implemented at bundle-level  
+(in BundJoin() and BundLeave()). Accounting is done per link.
+The session-id has the format <tt>authname:PID-bundlename:linkname</tt>,
+while the multi-session-id has the format <tt>authname:PID-bundlename</tt>,.
+This information is useful if you would like to make reports from the
+accounting log file of the RADIUS server.
+There are some minor problems:
+
+<itemize>
+<item>If user enters <tt>quit</tt> on the console, Account-stop will not be sent.</item>
+<item>If CCP fails but is required, Account-start will sent, but no Account-stop.</item>
+<item>The session time is not calculated per link; it's the same for all links</item>
+</itemize>
+
+Note: Its possible to use RADIUS-accounting without RADIUS-authentication.
+
+The following attributes are set when doing accounting requests:
+
+<tt>RAD_FRAMED_IP_ADDRESS
+<newline>RAD_ACCT_STATUS_TYPE
+<newline>RAD_ACCT_SESSION_ID
+<newline>RAD_ACCT_MULTI_SESSION_ID
+<newline>RAD_ACCT_LINK_COUNT
+<newline>RAD_ACCT_AUTHENTIC
+<newline>RAD_ACCT_TERMINATE_CAUSE
+<newline>RAD_ACCT_INPUT_OCTETS
+<newline>RAD_ACCT_INPUT_PACKETS
+<newline>RAD_ACCT_OUTPUT_OCTETS
+<newline>RAD_ACCT_OUTPUT_PACKETS
+<newline>RAD_ACCT_SESSION_TIME</tt>
+
+<tag><tt>tcp-wrapper</tt></tag>
+
+With this option mpd uses <tt>/etc/hosts.allow</tt> everytime a
+connection is made from the client. This is useful if you would
+like to restrict access to mpd. This option affects all TCP
+connections, including PPTP and the TCP device layer.
+
+The console is also affected, but a bug requires this option to be
+set consistently on all bundles for it to work reliably.
 
 </descrip>
 

@@ -71,6 +71,17 @@ Make sure your <tt>mpd.conf</tt> and <tt>mpd.links</tt> files are
 formatted properly. Labels must be left-justified, and blank lines
 must exist between sections to separate them.
 
+<tag><bf>
+I'm getting no valid response from the RADIUS server.
+</bf></tag>
+
+Double-check the shared secret in the RADIUS servers config and the
+one specified in <tt>mpd.conf</tt> or <tt>radius.conf</tt>.
+Check the ports of the RADIUS server: they should be 1812 (authentication)
+and 1813 (accounting), wich are also the default ports of mpd. In
+the past unofficial port numbers (1645 and 1646) were used for RADIUS,
+but these are deprecated.
+
 </descrip>
 
 </p>
