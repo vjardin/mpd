@@ -37,6 +37,7 @@
   #define PROTO_LQR		0xc025
   #define PROTO_SPAP		0xc027
   #define PROTO_CHAP		0xc223
+  #define PROTO_EAP		0xc227
 
   #define PROTO_UNKNOWN		0x0000
 

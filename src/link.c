@@ -96,6 +96,7 @@
     { 1,	LINK_CONF_CHAPMD5,	"chap-md5"	},
     { 1,	LINK_CONF_CHAPMSv1,	"chap-msv1"	},
     { 1,	LINK_CONF_CHAPMSv2,	"chap-msv2"	},
+    { 1,	LINK_CONF_EAP,		"eap"		},
     { 1,	LINK_CONF_ACFCOMP,	"acfcomp"	},
     { 1,	LINK_CONF_PROTOCOMP,	"protocomp"	},
     { 0,	LINK_CONF_MAGICNUM,	"magicnum"	},
@@ -248,7 +249,11 @@ LinkNew(char *name)
 
   Disable(&lnk->conf.options, LINK_CONF_PAP);
   Accept(&lnk->conf.options, LINK_CONF_PAP);
- 
+
+  Disable(&lnk->conf.options, LINK_CONF_EAP);
+  /* we currently don't support client-side EAP */
+  Deny(&lnk->conf.options, LINK_CONF_EAP);
+
   Enable(&lnk->conf.options, LINK_CONF_ACFCOMP);
   Accept(&lnk->conf.options, LINK_CONF_ACFCOMP);
 
@@ -494,7 +499,7 @@ LinkSetCommand(int ac, char *av[], void *arg)
       if (ac != 1)
 	return(-1);
       if (lnk->conf.ident != NULL) {
-	Freee(lnk->conf.ident);
+	Freee(MB_FSM, lnk->conf.ident);
 	lnk->conf.ident = NULL;
       }
       if (*av[0] != '\0')

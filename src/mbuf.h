@@ -23,7 +23,7 @@
     int			size;		/* size allocated from base */
     int			offset;		/* offset to start position */
     int			cnt;		/* available byte count in buffer */
-    u_char		type;		/* type of mbuf (see below) */
+    const char		*type;		/* type of mbuf (see below) */
     struct mpdmbuf	*next;		/* link to next mbuf in chain */
   };
 
@@ -35,29 +35,28 @@
 
   #define PFREE(bp)	do {			\
 			    while (bp)		\
-			      bp = mbfree(bp);	\
+			    bp = mbfree(bp);	\
 			  } while (0)
 
   /* Types of allocated memory */
-  enum {
-    MB_FSM = 0,
-    MB_PHYS,
-    MB_FRAME_IN,
-    MB_FRAME_OUT,
-    MB_BUND,
-    MB_ECHO,
-    MB_VJCOMP,
-    MB_LOG,
-    MB_IPQ,
-    MB_MP,
-    MB_AUTH,
-    MB_UTIL,
-    MB_CHAT,
-    MB_COMP,
-    MB_CRYPT,
-    MB_PPTP,
-    MB_RADIUS,
-  };
+  #define MB_AUTH	"AUTH"
+  #define MB_BUND	"BUND"
+  #define MB_CHAT	"CHAT"
+  #define MB_COMP	"COMP"
+  #define MB_CRYPT	"CRYPT"
+  #define MB_ECHO	"ECHO"
+  #define MB_EVENT	"EVENT"
+  #define MB_FRAME_IN	"FRAME_IN"
+  #define MB_FRAME_OUT	"FRAME_OUT"
+  #define MB_FSM	"FSM"
+  #define MB_IPQ	"IPQ"
+  #define MB_LOG	"LOG"
+  #define MB_MP		"MP"
+  #define MB_PHYS	"PHYS"
+  #define MB_PPTP	"PPTP"
+  #define MB_RADIUS	"RADIUS"
+  #define MB_UTIL	"UTIL"
+  #define MB_VJCOMP	"VJCOMP"
 
 /*
  * FUNCTIONS
@@ -65,12 +64,12 @@
 
 /* Replacements for malloc() & free() */
 
-  extern void	*Malloc(int type, int size);
-  extern void	Freee(const void *ptr);
+  extern void	*Malloc(const char *type, int size);
+  extern void	Freee(const char *type, const void *ptr);
 
 /* Mbuf manipulation */
 
-  extern Mbuf	mballoc(int type, int size);
+  extern Mbuf	mballoc(const char *type, int size);
   extern Mbuf	mbfree(Mbuf bp);
   extern Mbuf	mbwrite(Mbuf bp, const u_char *ptr, int cnt);
   extern Mbuf	mbread(Mbuf bp, u_char *ptr, int cnt, int *lenp);
@@ -84,7 +83,6 @@
 
   extern int	MemStat(int ac, char *av[], void *arg);
   extern void	DumpBp(Mbuf bp);
-  extern char	*Asprintf(int type, const char *format, ...);
 
 /*
  * INLINE FUNCTIONS

@@ -10,6 +10,14 @@
     <itemize>
     <item>
 	Integrated libpdel
+	<itemize>
+	<item>typed_mem(3)</item>
+	<item>pevent(3)</item>
+	<item>alog(3)</item>
+        </itemize>
+    </item>
+    <item>
+	Negotiate EAP at LCP level.
     </item>
     </itemize>
   </p>

@@ -66,7 +66,7 @@
   extern int		PIDCheck(const char *lockfile, int killem);
 
   extern void		LengthenArray(void *arrayp, int esize,
-				int *alenp, int type);
+				int *alenp, const char *type);
 
   extern int		ExecCmd(int log, const char *fmt, ...)
 				__printflike(2, 3);

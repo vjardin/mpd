@@ -17,7 +17,7 @@
  * DEFINITIONS
  */
 
-  #define MBUF_CHECK_OVERRUNS
+  //#define MBUF_CHECK_OVERRUNS
 
   #define MBUF_MAGIC_1	0x99999999
   #define MBUF_MAGIC_2	0xaaaaaaaa
@@ -29,42 +29,6 @@
     int		count;
   };
 
-/*
- * INTERNAL VARIABLES
- */
-
-  static int		total_alloced;
-
-/* This list must correspond exactly with array in mbuf.h */
-
-  static struct typestat	gMbufStats[] =
-  {
-    { MB_FSM,		"FSM" },
-    { MB_PHYS,		"PHYS" },
-    { MB_FRAME_IN,	"FRAME_IN" },
-    { MB_FRAME_OUT,	"FRAME_OUT" },
-    { MB_BUND,		"BUND" },
-    { MB_ECHO,		"ECHO" },
-    { MB_VJCOMP,	"VJCOMP" },
-    { MB_LOG,		"LOG" },
-    { MB_IPQ,		"IPQ" },
-    { MB_MP,		"MP" },
-    { MB_AUTH,		"AUTH" },
-    { MB_UTIL,		"UTIL" },
-    { MB_CHAT,		"CHAT" },
-    { MB_COMP,		"COMP" },
-    { MB_CRYPT,		"CRYPT" },
-    { MB_PPTP,		"PPTP" },
-    { MB_RADIUS,	"RADIUS" },
-  };
-
-  #define NUM_TYPE_STATS	(sizeof(gMbufStats) / sizeof(*gMbufStats))
-
-/*
- * INTERNAL FUNCTIONS
- */
-
-  static void		MbufTypeCount(int type, int change);
 
 /*
  * Malloc()
@@ -73,7 +37,7 @@
  */
 
 void *
-Malloc(int type, int size)
+Malloc(const char *type, int size)
 {
   Mbuf	bp;
 
@@ -89,7 +53,7 @@ Malloc(int type, int size)
  */
 
 void
-Freee(const void *ptr)
+Freee(const char *type, const void *ptr)
 {
   Mbuf	bp;
 
@@ -100,43 +64,17 @@ Freee(const void *ptr)
 }
 
 /*
- * Asprintf()
- */
-
-char *
-Asprintf(int type, const char *format, ...)
-{
-  char *s;
-  va_list args;
-
-  va_start(args, format);
-  vasprintf(&s, format, args);
-  va_end(args);
-  if (s == NULL) {
-    Perror("%s", __FUNCTION__);
-    DoExit(EX_ERRDEAD);
-  }
-  return strcpy(Malloc(type, strlen(s) + 1), s);
-}
-
-/*
  * mballoc()
  *
  * Allocate an mbuf with memory
  */
 
 Mbuf
-mballoc(int type, int size)
+mballoc(const char *type, int size)
 {
   u_char	*memory;
   u_long	amount;
   Mbuf		bp;
-
-/* Sanity */
-
-  assert(size < ((1 << ((sizeof(short) * 8) - 1)) - 1));
-
-/* Get memory */
 
   #ifdef MBUF_CHECK_OVERRUNS
     amount = sizeof(*bp) + size + (2 * sizeof(u_int32_t));
@@ -144,7 +82,7 @@ mballoc(int type, int size)
     amount = sizeof(*bp) + size;
   #endif
 
-  if ((memory = malloc(amount)) == NULL)
+  if ((memory = MALLOC(type, amount)) == NULL)
   {
     Perror("mballoc: malloc");
     DoExit(EX_ERRDEAD);
@@ -157,11 +95,7 @@ mballoc(int type, int size)
   bp->size = bp->cnt = size;
   bp->type = type;
 
-  #ifdef MBUF_CHECK_OVERRUNS
-    bp->base = memory + sizeof(*bp) + sizeof(u_int32_t);
-  #else
-    bp->base = memory + sizeof(*bp);
-  #endif
+  bp->base = memory + sizeof(*bp);
 
 /* Straddle buffer with magic values to detect overruns */
 
@@ -170,10 +104,6 @@ mballoc(int type, int size)
     *((u_int32_t *)(void *)(memory + sizeof(*bp)
 	+ sizeof(u_int32_t) + size)) = MBUF_MAGIC_2;
   #endif
-
-/* Keep tabs on who's got how much memory */
-
-  MbufTypeCount(bp->type, bp->size);
 
 /* Done */
 
@@ -194,7 +124,7 @@ mbfree(Mbuf bp)
   if (bp)
   {
 
-  /* Sanity checks */
+   /* Sanity checks */
 
     assert(bp->base);
     #ifdef MBUF_CHECK_OVERRUNS
@@ -210,15 +140,11 @@ mbfree(Mbuf bp)
 	+ bp->size)) == MBUF_MAGIC_2);
     #endif
 
-  /* Keep tabs on who's got how much memory */
-
-    MbufTypeCount(bp->type, -bp->size);
-
   /* Free it */
 
     next = bp->next;
     bp->base = NULL;
-    free(bp);
+    FREE(bp->type, bp);
     return(next);
   }
   return(NULL);
@@ -424,44 +350,37 @@ mbsplit(Mbuf bp, int cnt)
 }
 
 /*
- * MbufTypeCount()
- */
-
-static void
-MbufTypeCount(int type, int change)
-{
-  int	index;
-
-/* Find structure for this type */
-
-  for (index = 0;
-    index < NUM_TYPE_STATS && gMbufStats[index].type != type;
-    index++);
-  assert(index < NUM_TYPE_STATS);
-
-/* Update counters */
-
-  gMbufStats[index].count += change;
-  total_alloced += change;
-  assert(total_alloced >= 0);
-}
-
-/*
  * MemStat()
  */
 
 int
 MemStat(int ac, char *av[], void *arg)
 {
-  int	index;
+  int	i;
 
-  for (index = 0; index < NUM_TYPE_STATS; index++)
-    printf("%12s: %8d%c",
-      gMbufStats[index].name, gMbufStats[index].count,
-	(index & 1) ? '\n' : ' ');
-  if (index & 1)
-    printf("\n");
-  printf("Total bytes allocated: %d\n", total_alloced);
+  struct typed_mem_stats stats;
+
+  if (typed_mem_usage(&stats) == -1) {
+    Log(LG_ERR, ("%s", strerror(errno)));
+    return(-1);
+  }
+
+  for (i = 0; i < structs_array_length(&typed_mem_stats_type, NULL, &stats); i++) {
+    char f[10];
+    struct typed_mem_typestats *s = NULL;
+
+    snprintf(f, sizeof(f), "%d", i);
+
+    if (structs_get(&typed_mem_stats_type, f, &stats, s) == -1) {
+      Log(LG_ERR, ("%s", strerror(errno)));
+      return(-1);
+    }
+
+    printf("%20s %8d Bytes %8d Blocks\n", s->type, s->bytes, s->allocs);
+    FREE("typed_mem_stats", s);
+  }
+
+  structs_free(&typed_mem_stats_type, NULL, &stats);
   return(0);
 }
 

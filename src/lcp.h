@@ -29,12 +29,7 @@
   /* Authorization timeout in seconds */
   #define LCP_AUTH_TIMEOUT	20
 
-  #define LCP_CHAPMSv2		1
-  #define LCP_CHAPMSv1		2
-  #define LCP_CHAPMD5		4
-  #define LCP_PAP		8
-
-  #define LCP_NUM_AUTH_PROTOS	4
+  #define LCP_NUM_AUTH_PROTOS	5
 
   struct lcpauthproto {
     ushort		proto;
@@ -59,7 +54,7 @@
     u_int16_t	peer_auth;		/* Auth requested by peer, or zero */
     u_int16_t	peer_mrru;		/* MRRU set by peer, or zero */
     u_char	peer_chap_alg;		/* Peer's CHAP algorithm */
-    LcpAuthProto	peer_protos[4];	/* list of acceptable auth-protos */
+    LcpAuthProto	peer_protos[LCP_NUM_AUTH_PROTOS];	/* list of acceptable auth-protos */
 
     /* My negotiated parameters */
     u_char	want_chap_alg;		/* My CHAP algorithm */
@@ -68,7 +63,7 @@
     u_int16_t	want_mru;		/* My MRU */
     u_int16_t	want_auth;		/* Auth I require of peer, or zero */
     u_int16_t	want_mrru;		/* My MRRU, or zero if no MP */
-    LcpAuthProto	want_protos[4];	/* list of enabled auth-protos */
+    LcpAuthProto	want_protos[LCP_NUM_AUTH_PROTOS];	/* list of enabled auth-protos */
 
 
     /* More params */

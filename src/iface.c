@@ -490,16 +490,16 @@ IFaceParseACL (char * src, char * ifname)
     int num,real_number;
     struct acl_pool *ap;
     
-    buf = Malloc(MB_UTIL,ACL_LEN+1);
-    buf1 = Malloc(MB_UTIL,ACL_LEN+1);
-    
+    buf = Malloc(MB_UTIL, ACL_LEN+1);
+    buf1 = Malloc(MB_UTIL, ACL_LEN+1);
+
     strncpy(buf,src,ACL_LEN);
     do {
         end = buf;
-	begin = strsep(&end,"%");
-	param = strsep(&end," ");
+	begin = strsep(&end, "%");
+	param = strsep(&end, " ");
 	if (param != NULL) {
-	    if (sscanf(param,"%c%d",&t,&num) == 2) {
+	    if (sscanf(param,"%c%d", &t, &num) == 2) {
 		switch (t) {
 		    case 'r':
 			ap = rule_pool;
@@ -515,15 +515,15 @@ IFaceParseACL (char * src, char * ifname)
 		};
 		real_number = IfaceFindACL(ap,ifname,num);
 		if (end != NULL) {
-		    snprintf(buf1,ACL_LEN,"%s%d %s",begin,real_number,end);
+		    snprintf(buf1, ACL_LEN, "%s%d %s", begin, real_number, end);
 		} else {
-		    snprintf(buf1,ACL_LEN,"%s%d",begin,real_number);
+		    snprintf(buf1, ACL_LEN, "%s%d", begin, real_number);
 		};
-		strncpy(buf,buf1,ACL_LEN);
+		strncpy(buf, buf1, ACL_LEN);
 	    };
 	};
     } while (end != NULL);
-    Freee(buf1);
+    Freee(MB_UTIL, buf1);
     return(buf);
 };
 
@@ -634,10 +634,10 @@ IfaceIpIfaceUp(int ready)
     while (acls != NULL) {
 	i=IfaceFindACL(pipe_pool,iface->ifname,acls->number);
 
-	buf=IFaceParseACL(acls->rule,iface->ifname);
+	buf = IFaceParseACL(acls->rule,iface->ifname);
 	ExecCmd(LG_IFACE, "%s pipe %d config %s",
     	    PATH_IPFW, i, acls->rule);
-	Freee(buf);
+	Freee(MB_UTIL, buf);
 
 	acls = acls->next;
     };
@@ -648,7 +648,7 @@ IfaceIpIfaceUp(int ready)
 	buf = IFaceParseACL(acls->rule,iface->ifname);
 	ExecCmd(LG_IFACE, "%s queue %d config %s",
     	    PATH_IPFW, i, buf);
-	Freee(buf);
+	Freee(MB_UTIL, buf);
 	
 	acls = acls->next;
     };
@@ -659,7 +659,7 @@ IfaceIpIfaceUp(int ready)
 	buf = IFaceParseACL(acls->rule,iface->ifname);
 	ExecCmd(LG_IFACE, "%s add %d %s via %s",
     	    PATH_IPFW, i, buf, iface->ifname);
-	Freee(buf);
+	Freee(MB_UTIL, buf);
 	
 	acls = acls->next;
     };
@@ -718,7 +718,7 @@ IfaceIpIfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
   int		k;
-  struct acl_pool	**rp,*rp1;
+  struct acl_pool	**rp, *rp1;
 
   /* Sanity */
   assert(iface->ip_up);
@@ -734,12 +734,12 @@ IfaceIpIfaceDown(void)
 	/* Remove rule ACLs */
 	rp = &rule_pool;
 	while (*rp != NULL) {
-	    if (strncmp((*rp)->ifname,iface->ifname,IFNAMSIZ) == 0) {
+	    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
 		ExecCmd(LG_IFACE, "%s delete %d",
     		    PATH_IPFW, (*rp)->real_number);
 		rp1 = *rp;
 		*rp = (*rp)->next;
-		Freee(rp1);
+		Freee(MB_UTIL, rp1);
 	    } else {
 		rp = &((*rp)->next);
 	    };
@@ -747,12 +747,12 @@ IfaceIpIfaceDown(void)
 	/* Remove queue ACLs */
 	rp = &queue_pool;
 	while (*rp != NULL) {
-	    if (strncmp((*rp)->ifname,iface->ifname,IFNAMSIZ) == 0) {
+	    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
 		ExecCmd(LG_IFACE, "%s queue %d delete",
     		    PATH_IPFW, (*rp)->real_number);
 		rp1 = *rp;
 		*rp = (*rp)->next;
-		Freee(rp1);
+		Freee(MB_UTIL, rp1);
 	    } else {
 		rp = &((*rp)->next);
 	    };
@@ -760,12 +760,12 @@ IfaceIpIfaceDown(void)
 	/* Remove pipe ACLs */
 	rp = &pipe_pool;
 	while (*rp != NULL) {
-	    if (strncmp((*rp)->ifname,iface->ifname,IFNAMSIZ) == 0) {
+	    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
 		ExecCmd(LG_IFACE, "%s pipe %d delete",
     		    PATH_IPFW, (*rp)->real_number);
 		rp1 = *rp;
 		*rp = (*rp)->next;
-		Freee(rp1);
+		Freee(MB_UTIL, rp1);
 	    } else {
 		rp = &((*rp)->next);
 	    };

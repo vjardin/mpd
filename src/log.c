@@ -16,6 +16,8 @@
 #include <syslog.h>
 #endif
 
+#include <pdel/sys/alog.h>
+
 /*
  * DEFINITIONS
  */
@@ -36,6 +38,8 @@
 /*
  * GLOBAL VARIABLES
  */
+
+  struct alog_config	gLogConf;
 
   int	gLogOptions = LG_DEFAULT_OPT | LG_ALWAYS;
 #ifdef SYSLOG_FACILITY
@@ -128,7 +132,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	logprintf(const char *, ...);
+  static int	logprintf(const char *fmt, ...);
   static int	vlogprintf(const char *fmt, va_list ap);
 
   static void	LogDoDumpBuf(int (*func)(const char *fmt, ...),
@@ -152,21 +156,23 @@
 int
 LogOpen(void)
 {
+  memset(&gLogConf, 0, sizeof(gLogConf));
+  if (!*gSysLogIdent)
+    strcpy(gSysLogIdent, "mpd");
 #ifdef SYSLOG_FACILITY
-  if (*gSysLogIdent)
-    openlog(gSysLogIdent, 0, SYSLOG_FACILITY);
-  return(0);
+  gLogConf.name = gSysLogIdent;
+  gLogConf.facility = alog_facility_name(SYSLOG_FACILITY);
+  gLogConf.min_severity = LOG_INFO;
 #else
-  if ((logfp = fopen(LG_FILE, "a")) == NULL)
-  {
-    warn("mpd: can't open log file \"" LG_FILE"\"");
-    if ((logfp = fopen("/dev/null", "w")) == NULL)
-      logfp = stderr;
+  gLogConf.path = LG_FILE;
+#endif
+
+  if (alog_configure(0, &gLogConf) == -1) {
+    warn("mpd: alog_configure failed");
     return(-1);
   }
-  (void) fcntl(fileno(logfp), F_SETFD, 1);
+  alog_set_channel(0);
   return(0);
-#endif
 }
 
 /*
@@ -176,11 +182,7 @@ LogOpen(void)
 void
 LogClose(void)
 {
-#ifndef SYSLOG_FACILITY
-  fflush(logfp);
-  fclose(logfp);
-  logfp = NULL;
-#endif
+  alog_shutdown(0);
 }
 
 /*
@@ -266,9 +268,10 @@ LogPrintf(const char *fmt, ...)
   va_list	args;
 
   va_start(args, fmt);
+
   LogTimeStamp(logprintf);
   vlogprintf(fmt, args);
-  vlogprintf("\n", args);		/* XXX args will be ignored */
+
   if (gLogOptions & LG_CONSOLE)
   {
     vfprintf(stdout, fmt, args);
@@ -495,11 +498,11 @@ Perror(const char *fmt, ...)
 static int
 logprintf(const char *fmt, ...)
 {
-  va_list	ap;
+  va_list	args;
 
-  va_start(ap, fmt);
-  vlogprintf(fmt, ap);
-  va_end(ap);
+  va_start(args, fmt);
+  valog(LOG_INFO, fmt, args);
+  va_end(args);
   return(0);
 }
 
@@ -510,39 +513,6 @@ logprintf(const char *fmt, ...)
 static int
 vlogprintf(const char *fmt, va_list ap)
 {
-  static char	buf[MAX_LOG_LINE];
-  int		len, eol = 0;
-
-/* Add to current line; check for buffer overflow */
-
-  vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, ap);
-  len = strlen(buf);
-  if (len == sizeof(buf) - 1)
-    eol = 1;	/* i guess! */
-  else
-    while (len && buf[len - 1] == '\n')
-    {
-      buf[--len] = 0;
-      eol = 1;
-    }
-
-/* Wait for complete line before outputting it */
-
-  if (*buf == 0 || !eol)
-    return(0);
-
-/* Ok, output it */
-
-#ifdef SYSLOG_FACILITY
-  syslog(SYSLOG_FACILITY|LOG_INFO, "%s\n", buf);
-#else
-  fprintf(logfp, "%s\n", buf);
-  fflush(logfp);
-#endif
-
-/* Reset line */
-
-  *buf = 0;
+  valog(LOG_INFO, fmt, ap);
   return(0);
 }
-

@@ -530,7 +530,7 @@ PptpCtrlListen(int enable, int port, int allow_multiple)
   port = port ? port : PPTP_PORT;
   if (enable) {
     gAllowMultiple = allow_multiple;
-    if (gListenSock >= 0 || EventIsRegistered(gListenRetry))
+    if (gListenSock >= 0 || EventIsRegistered(&gListenRetry))
       return(0);
     if ((gListenSock = TcpGetListenPort(gListenIp, &port)) < 0) {
       Log(LG_PPTP, ("mpd: can't get PPTP listening socket"));
@@ -790,8 +790,12 @@ PptpCtrlInitCtrl(PptpCtrl c, int orig)
 
   /* Good time for a sanity check */
   assert(c->state == PPTP_CTRL_ST_IDLE);
-  assert(!c->connEvent);
-  assert(!c->ctrlEvent);
+  if (c->connEvent != NULL)
+    assert(!(*c->connEvent).pe);
+
+  if (c->ctrlEvent != NULL)
+    assert(!(*c->ctrlEvent).pe);
+
   assert(!c->reps);
   for (k = 0; k < c->numChannels; k++) {
     PptpChan	const ch = c->channels[k];
@@ -987,7 +991,7 @@ PptpCtrlMsg(PptpCtrl c, int type, void *msg)
 
     TimerStop(&prep->timer);
     *pp = prep->next;
-    Freee(prep);
+    Freee(MB_PPTP, prep);
   }
 
   /* Check for invalid message and call or control state combinations */
@@ -1297,7 +1301,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
   for (prep = c->reps; prep; prep = next) {
     next = prep->next;
     TimerStop(&prep->timer);
-    Freee(prep);
+    Freee(MB_PPTP, prep);
   }
   c->reps = NULL;
   PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
@@ -1421,7 +1425,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     if (prep->chan == ch) {
       TimerStop(&prep->timer);
       *pp = prep->next;
-      Freee(prep);
+      Freee(MB_PPTP, prep);
     } else
       pp = &prep->next;
   }
@@ -1480,7 +1484,7 @@ PptpCtrlReplyTimeout(void *arg)
     PptpCtrlCloseChan(ch, PPTP_CDN_RESL_ERR, PPTP_ERROR_PAC_ERROR, 0);
 
   /* Done */
-  Freee(prep);
+  Freee(MB_PPTP, prep);
 }
 
 /*
@@ -1659,7 +1663,7 @@ PptpCtrlNewCtrlState(PptpCtrl c, int new)
   if (new == PPTP_CTRL_ST_FREE) {
     gPptpCtrl[c->id] = NULL;
     memset(c, 0, sizeof(*c));
-    Freee(c);
+    Freee(MB_PPTP, c);
     return;
   }
   c->state = new;
@@ -1681,7 +1685,7 @@ PptpCtrlNewChanState(PptpChan ch, int new)
     case PPTP_CHAN_ST_FREE:
       c->channels[ch->id] = NULL;
       memset(ch, 0, sizeof(*ch));
-      Freee(ch);
+      Freee(MB_PPTP, ch);
       return;
     case PPTP_CHAN_ST_WAIT_IN_REPLY:
     case PPTP_CHAN_ST_WAIT_OUT_REPLY:

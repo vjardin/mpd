@@ -45,6 +45,7 @@
     { PROTO_ECP,	"ECP" },
     { PROTO_SPAP,	"SPAP" },
     { PROTO_ATCP,	"ATCP" },
+    { PROTO_EAP,	"EAP" },
   };
   #define NUM_STAT_PROTOCOLS	(sizeof(statProtos) / sizeof(*statProtos))
 

@@ -722,10 +722,10 @@ BundCreateCmd(int ac, char *av[], void *arg)
   /* We need at least one link in the bundle */
   if (bund->n_links == 0) {
     Log(LG_ERR, ("mpd: bundle \"%s\" creation failed: no links", av[0]));
-    Freee(bund->links);
+    Freee(MB_BUND, bund->links);
     NgFuncShutdown(bund);
 fail2:
-    Freee(bund);
+    Freee(MB_BUND, bund);
 fail:
     bund = old_bund;
     return(0);

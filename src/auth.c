@@ -76,6 +76,9 @@ AuthStart(void)
     case PROTO_PAP:
       PapStart(&a->pap, AUTH_PEER_TO_SELF);
       break;
+    case PROTO_EAP:
+      assert(0);
+      break;
     case PROTO_CHAP:
       ChapStart(&a->chap, AUTH_PEER_TO_SELF);
       break;
@@ -194,7 +197,7 @@ AuthGetData(AuthData auth, int complain, int *whyFail)
   while ((line = ReadFullLine(fp, NULL)) != NULL) {
     memset(av, 0, sizeof(av));
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
-    Freee(line);
+    Freee(MB_UTIL, line);
     if (ac >= 2
 	&& (strcmp(av[0], auth->authname) == 0
 	 || (av[1][0] == '!' && strcmp(av[0], "*") == 0))) {

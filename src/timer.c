@@ -75,6 +75,6 @@ TimerExpires(int type, void *cookie)
 int
 TimerRemain(PppTimer t)
 {
-  return(EventTimerRemain(t->event));
+  return(EventTimerRemain(&t->event));
 }
 

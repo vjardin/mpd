@@ -148,7 +148,13 @@
       PROTO_CHAP,
       CHAP_ALG_MSOFTv2,
       LINK_CONF_CHAPMSv2
+    },
+    {
+      PROTO_EAP,
+      0,
+      LINK_CONF_EAP
     }
+
   };
 
   static const char *PhaseNames[] = {
@@ -218,13 +224,13 @@ LcpConfigure(Fsm fp)
     lcp->want_protos[0] = &gLcpAuthProtos[LINK_CONF_CHAPMSv2];
     lcp->want_protos[1] = &gLcpAuthProtos[LINK_CONF_CHAPMSv1];
     lcp->want_protos[2] = &gLcpAuthProtos[LINK_CONF_CHAPMD5];
-    lcp->want_protos[3] = &gLcpAuthProtos[LINK_CONF_PAP];
   } else {
     lcp->want_protos[0] = &gLcpAuthProtos[LINK_CONF_CHAPMD5];
     lcp->want_protos[1] = &gLcpAuthProtos[LINK_CONF_CHAPMSv2];
     lcp->want_protos[2] = &gLcpAuthProtos[LINK_CONF_CHAPMSv1];
-    lcp->want_protos[3] = &gLcpAuthProtos[LINK_CONF_PAP];
   }
+  lcp->want_protos[3] = &gLcpAuthProtos[LINK_CONF_PAP];
+  lcp->want_protos[4] = &gLcpAuthProtos[LINK_CONF_EAP];
 
   /* Use the same list for the MODE_REQ */
   memcpy(lcp->peer_protos, lcp->want_protos, sizeof lcp->peer_protos);
@@ -244,6 +250,9 @@ LcpConfigure(Fsm fp)
     if (!Acceptable(&lnk->conf.options, lcp->peer_protos[i]->conf))
       lcp->peer_protos[i] = NULL;
   }
+
+  /* XXX We currently don't support client-side EAP */
+  lcp->peer_protos[4] = NULL;
 
   lnk->range_valid = FALSE;
 
@@ -583,6 +592,9 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
     case PROTO_PAP:
       cp = FsmConfValue(cp, TY_AUTHPROTO, -2, &lcp->want_auth);
       break;
+    case PROTO_EAP:
+      cp = FsmConfValue(cp, TY_AUTHPROTO, -2, &lcp->want_auth);
+      break;
     case PROTO_CHAP: {
 	struct {
 	  u_short	want_auth;
@@ -841,6 +853,9 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		break;
 	      }
 	      break;
+	    case PROTO_EAP:
+	      supported = 1;
+	      /* fall through */
 	    case PROTO_PAP:
 	      supported = 1;
 	      /* fall through */
@@ -1211,8 +1226,15 @@ LcpAuthProtoNak(ushort proto, u_char chap_alg)
   static const struct	fsmoption papNak =
     { TY_AUTHPROTO, 2 + sizeof(papcf), (u_char *) papcf };
 
+  static const u_char	eapcf[] =
+    { PROTO_EAP >> 8, PROTO_EAP & 0xff };
+  static const struct	fsmoption eapNak =
+    { TY_AUTHPROTO, 2 + sizeof(eapcf), (u_char *) eapcf };
+
   if (proto == PROTO_PAP) {
     return &papNak;
+  } else if (proto == PROTO_EAP) {
+    return &eapNak;
   } else {
     switch (chap_alg) {
       case CHAP_ALG_MSOFTv2:

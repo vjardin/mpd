@@ -99,7 +99,7 @@ ChapStop(ChapInfo chap)
   TimerStop(&chap->chalTimer);
   TimerStop(&chap->respTimer);
   if (chap->resp) {
-    Freee(chap->resp);
+    Freee(MB_AUTH, chap->resp);
     chap->resp = NULL;
   }
 }
@@ -149,7 +149,7 @@ ChapSendChallenge(ChapInfo chap)
   /* Send it off */
   ChapOutput(CHAP_CHALLENGE, chap->next_id++,
     pkt, 1 + chap->chal_len + strlen(bund->conf.authname));
-  Freee(pkt);
+  Freee(MB_AUTH, pkt);
 }
 
 /*
@@ -420,7 +420,7 @@ ChapInput(Mbuf bp)
 
 	/* Build response packet */
 	if (chap->resp)
-	  Freee(chap->resp);
+	  Freee(MB_AUTH, chap->resp);
 	chap->resp = Malloc(MB_AUTH, 1 + hash_value_size + name_len);
 	chap->resp[0] = hash_value_size;
 	memcpy(&chap->resp[1], hash_value, hash_value_size);
@@ -571,7 +571,7 @@ goodResponse:
       /* Stop response timer */
       TimerStop(&chap->respTimer);
       if (chap->resp) {
-	Freee(chap->resp);
+	Freee(MB_AUTH, chap->resp);
 	chap->resp = NULL;
       }
 

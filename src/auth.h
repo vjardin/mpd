@@ -12,6 +12,7 @@
 
 #include "pap.h"
 #include "chap.h"
+#include "eap.h"
 #include "timer.h"
 
 /*
@@ -45,6 +46,7 @@
     struct pppTimer	timer;		/* Max time to spend doing auth */
     struct papinfo	pap;		/* PAP state */
     struct chapinfo	chap;		/* CHAP state */
+    struct eapinfo	eap;		/* EAP state */
   };
   typedef struct auth	*Auth;
 

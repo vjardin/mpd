@@ -380,7 +380,7 @@ failed:
   if ((cspeed = ChatGetVar(m->chat, CHAT_VAR_CONNECT_SPEED)) != NULL) {
     if ((bw = (int) strtoul(cspeed, NULL, 10)) > 0)
       lnk->bandwidth = bw;
-    Freee(cspeed);
+    Freee(MB_CHAT, cspeed);
   }
 
   /* Do async <-> sync conversion via netgraph node */
@@ -454,7 +454,7 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
       lnk->name, idleResult));
     ModemDoClose(m, FALSE);
   }
-  Freee(idleResult);
+  Freee(MB_CHAT, idleResult);
 }
 
 /*
@@ -638,7 +638,7 @@ ModemChatMalloc(void *arg, size_t size)
 static void
 ModemChatFree(void *arg, void *mem)
 {
-  Freee(mem);
+  Freee(MB_CHAT, mem);
 }
 
 /*

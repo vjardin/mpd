@@ -237,7 +237,7 @@ StacCleanup(int xmit)
     stac->in_active = FALSE;
   if (!stac->in_active && !stac->out_active)
   {
-    Freee(stac->history);
+    Freee(MB_COMP, stac->history);
     stac->history = NULL;
   }
 }

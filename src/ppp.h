@@ -40,9 +40,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <pthread.h>
 #include <pdel/structs/structs.h>
 #include <pdel/structs/type/array.h>
 #include <pdel/util/typed_mem.h>
+#include <pdel/util/pevent.h>
 
 #include "defs.h"
 #include "event.h"
@@ -88,6 +90,8 @@
 
   extern int		gNumLinks;		/* Total number of links */
   extern int		gNumBundles;		/* Total number of bundles */
+
+  extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
 
   extern Bund		bund;			/* Current bundle */
   extern Link		lnk;			/* Current link */

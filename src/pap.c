@@ -107,7 +107,7 @@ PapSendRequest(PapInfo pap)
 
   /* Send it off */
   PapOutput(PAP_REQUEST, pap->next_id++, pkt, 1 + name_len + 1 + pass_len, 0);
-  Freee(pkt);
+  Freee(MB_AUTH, pkt);
 }
 
 /*
