@@ -688,7 +688,13 @@ IfaceSessionTimeout(void *arg)
   Log(LG_BUND, ("[%s] session timeout ", bund->name));
 
   RecordLinkUpDownReason(NULL, 0, STR_SESSION_TIMEOUT, NULL);
-  IfaceCloseNcps();
+
+  if (Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
+    IfaceCloseNcps();
+  } else {
+    BundCloseLinks();
+  }
+
 }
 
 /*

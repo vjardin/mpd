@@ -191,6 +191,7 @@
   extern int	BundJoin(void);
   extern void	BundLeave(void);
   extern void	BundLinkGaveUp(void);
+  extern void	BundCloseLinks(void);
 
 #endif
 

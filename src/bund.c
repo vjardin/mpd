@@ -71,7 +71,6 @@
   static void	BundOpenLinks(void);
   static void	BundOpenLink(Link l);
   static void	BundReOpenLinks(void *arg);
-  static void	BundCloseLinks(void);
   static void	BundCloseLink(Link l);
 
   static void	BundMsg(int type, void *cookie);
@@ -444,7 +443,7 @@ BundOpenLink(Link l)
  * Close all links
  */
 
-static void
+void
 BundCloseLinks(void)
 {
   int	k;
