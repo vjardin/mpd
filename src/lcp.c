@@ -156,7 +156,7 @@ LcpConfigure(Fsm fp)
   lcp->peer_reject = 0;
 
   /* Initialize normal LCP stuff */
-  lcp->peer_mru = LCP_DEFAULT_MRU;
+  lcp->peer_mru = lnk->conf.mtu;
   lcp->want_mru = lnk->conf.mru;
   if (lcp->want_mru > lnk->phys->type->mru)
     lcp->want_mru = lnk->phys->type->mru;
@@ -700,7 +700,8 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		FsmNak(fp, opt);
 		break;
 	      }
-	      lcp->peer_mru = mru;
+	      if (mru < lcp->peer_mru)
+		lcp->peer_mru = mru;
 	      FsmAck(fp, opt);
 	      break;
 	    case MODE_NAK:

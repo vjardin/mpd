@@ -53,6 +53,7 @@
 
   /* Configuration for a link */
   struct linkconf {
+    int			mtu;		/* Initial MTU value */
     int			mru;		/* Initial MRU value */
     int			accmap;		/* Initial ACCMAP value */
     short		retry_timeout;	/* FSM timeout for retries */

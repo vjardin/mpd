@@ -27,6 +27,7 @@
     SET_LATENCY,
     SET_ACCMAP,
     SET_MRU,
+    SET_MTU,
     SET_FSM_RETRY,
     SET_MAX_RETRY,
     SET_KEEPALIVE,
@@ -61,6 +62,8 @@
 	LinkSetCommand, NULL, (void *) SET_ACCMAP },
     { "mru value",			"Link MRU value",
 	LinkSetCommand, NULL, (void *) SET_MRU },
+    { "mtu value",			"Link MTU value",
+	LinkSetCommand, NULL, (void *) SET_MTU },
     { "fsm-timeout seconds",		"FSM retry timeout",
 	LinkSetCommand, NULL, (void *) SET_FSM_RETRY },
     { "max-redial num",			"Max connect attempts",
@@ -223,6 +226,7 @@ LinkNew(char *name)
 
   /* Initialize link configuration with defaults */
   lnk->conf.mru = LCP_DEFAULT_MRU;
+  lnk->conf.mtu = LCP_DEFAULT_MRU;
   lnk->conf.accmap = 0x000a0000;
   lnk->conf.retry_timeout = LINK_DEFAULT_RETRY;
   lnk->bandwidth = LINK_DEFAULT_BANDWIDTH;
@@ -339,6 +343,7 @@ static int
 LinkSetCommand(int ac, char *av[], void *arg)
 {
   int	val;
+  char	*name;
 
   if (ac == 0)
     return(-1);
@@ -361,15 +366,19 @@ LinkSetCommand(int ac, char *av[], void *arg)
       break;
 
     case SET_MRU:
+    case SET_MTU:
       val = atoi(*av);
+      name = ((int)arg == SET_MTU) ? "MTU" : "MRU";
       if (!lnk->phys->type)
 	Log(LG_ERR, ("[%s] this link has no type set", lnk->name));
       else if (val < LCP_MIN_MRU)
-	Log(LG_ERR, ("[%s] the min MRU is %d", lnk->name, LCP_MIN_MRU));
+	Log(LG_ERR, ("[%s] the min %s is %d", lnk->name, name, LCP_MIN_MRU));
       else if (val + LCP_MRU_MARGIN > lnk->phys->type->mru)
-	Log(LG_ERR, ("[%s] the max MRU on type \"%s\" links is %d",
-	  lnk->name, lnk->phys->type->name,
+	Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
+	  lnk->name, name, lnk->phys->type->name,
 	  lnk->phys->type->mru - LCP_MRU_MARGIN));
+      else if ((int)arg == SET_MTU)
+	lnk->conf.mtu = val;
       else
 	lnk->conf.mru = val;
       break;

@@ -52,14 +52,36 @@ just not configured at all, since all links default to the same
 values anyway). Then mpd will distribute packets in equal sized
 fragments over the links.
 
-<tag><tt>
-set link mru <em>numbytes</em>
-</tt></tag>
+<tag><tt>set link mtu <em>numbytes</em></tt></tag>
+<tag><tt>set link mru <em>numbytes</em></tt></tag>
 
-This command sets maximum receive unit (MRU) value for the link.
-This is the size of the largest single frame (minus PPP header)
-that this link is capable of receiving. Usually the default value
-of 1500 bytes is acceptable.
+The <tt>set link mtu</tt> command sets the maximum transmit unit
+(MTU) value for the link.  This is the size of the largest single
+PPP frame (minus PPP header) that this link will transmit, unless
+the peer requests an even lower value. The default value is 1500 bytes.
+
+The <tt>set link mru</tt> command sets maximum receive unit (MRU)
+value for the link, which is the size of the largest single PPP frame
+(minus PPP header) that this link is capable of receiving. The default
+value is 1500 bytes.
+
+If PPP multilink is negotiated on a link, then these values are
+less important, because multilink allows PPP frames themselves to
+be fragmented, so a PPP frame can always pass through no matter how
+small the MTU is in a particular direction.
+
+Otherwise, mpd is responsible for making sure that the MTU configured
+on the system networking interface is low enough so that the largest
+transmitted IP packet does not exceed the peer's negotiated MRU after
+it becomes a PPP frame. This includes e.g. PPP encryption and/or
+compression overhead.
+
+However, mpd does not account for overhead that occurs ``outside''
+of the PPP frame. For example, when using link types such as PPTP
+that encapsulate PPP frames within IP packets, a large outgoing
+``inner'' IP packet can result in a fragmented ``outer'' IP packet,
+resulting in suboptimal performance. In this situation it may be
+useful to set the link MTU to a lower value to avoid fragmentation.
 
 <tag><tt>
 set link accmap <em>value</em>
