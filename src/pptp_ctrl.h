@@ -410,15 +410,17 @@
 				  int allow_multiple);
 
   extern struct pptpctrlinfo	PptpCtrlInCall(struct pptplinkinfo linfo,
-				  struct in_addr ip, int port, int bearType,
-				  int frameType, int minBps, int maxBps,
+				  struct in_addr locip, struct in_addr ip,
+				  int port, int bearType, int frameType,
+				  int minBps, int maxBps,
 				  const char *callingNum,
 				  const char *calledNum,
 				  const char *subAddress);
 
   extern struct pptpctrlinfo	PptpCtrlOutCall(struct pptplinkinfo linfo,
-				  struct in_addr ip, int port, int bearType,
-				  int frameType, int minBps, int maxBps,
+				  struct in_addr locip, struct in_addr ip,
+				  int port, int bearType, int frameType,
+				  int minBps, int maxBps,
 				  const char *calledNum,
 				  const char *subAddress);
 

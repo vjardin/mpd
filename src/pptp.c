@@ -271,11 +271,11 @@ PptpOriginate(PptpInfo pptp)
   linfo.setLinkInfo = NULL;
   linfo.cancel = PptpCancel;
   if (pptp->incoming)
-    cinfo = PptpCtrlInCall(linfo, ip, port,
+    cinfo = PptpCtrlInCall(linfo, gLocalIp, ip, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, inet_ntoa(gLocalIp), "", "");
   else
-    cinfo = PptpCtrlOutCall(linfo, ip, port,
+    cinfo = PptpCtrlOutCall(linfo, gLocalIp, ip, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, pptp->phonenum, "");
   if (cinfo.cookie == NULL)

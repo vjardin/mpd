@@ -209,13 +209,15 @@
 
   static struct pptpctrlinfo
 			PptpCtrlOrigCall(int incoming,
-			  struct pptplinkinfo linfo, struct in_addr ip,
-			  int port, int bearType, int frameType, int minBps,
-			  int maxBps, const char *callingNum,
-			  const char *calledNum, const char *subAddress);
+			  struct pptplinkinfo linfo, struct in_addr locip,
+			  struct in_addr ip, int port, int bearType,
+			  int frameType, int minBps, int maxBps,
+			  const char *callingNum, const char *calledNum,
+			  const char *subAddress);
 
-  static PptpCtrl	PptpCtrlGetCtrl(int orig, struct in_addr peer_addr,
-			  int peer_port, char *buf, int bsiz);
+  static PptpCtrl	PptpCtrlGetCtrl(int orig, struct in_addr locip,
+			  struct in_addr peer_addr, int peer_port,
+			  char *buf, int bsiz);
   static PptpChan	PptpCtrlGetChan(PptpCtrl c, int chanState, int orig,
 			  int incoming, int bearType, int frameType, int minBps,
 			  int maxBps, const char *callingNum,
@@ -573,11 +575,12 @@ PptpCtrlListenRetry(int type, void *cookie)
  */
 
 struct pptpctrlinfo
-PptpCtrlInCall(struct pptplinkinfo linfo, struct in_addr ip, int port,
-	int bearType, int frameType, int minBps, int maxBps,
-	const char *callingNum, const char *calledNum, const char *subAddress)
+PptpCtrlInCall(struct pptplinkinfo linfo, struct in_addr locip,
+	struct in_addr ip, int port, int bearType, int frameType,
+	int minBps, int maxBps, const char *callingNum,
+	const char *calledNum, const char *subAddress)
 {
-  return(PptpCtrlOrigCall(TRUE, linfo, ip, port,
+  return(PptpCtrlOrigCall(TRUE, linfo, locip, ip, port,
     bearType, frameType, minBps, maxBps,
     callingNum, calledNum, subAddress));
 }
@@ -589,12 +592,12 @@ PptpCtrlInCall(struct pptplinkinfo linfo, struct in_addr ip, int port,
  */
 
 struct pptpctrlinfo
-PptpCtrlOutCall(struct pptplinkinfo linfo,
+PptpCtrlOutCall(struct pptplinkinfo linfo, struct in_addr locip,
 	struct in_addr ip, int port, int bearType,
 	int frameType, int minBps, int maxBps,
 	const char *calledNum, const char *subAddress)
 {
-  return(PptpCtrlOrigCall(FALSE, linfo, ip, port,
+  return(PptpCtrlOrigCall(FALSE, linfo, locip, ip, port,
     bearType, frameType, minBps, maxBps,
     PPTP_STR_INTERNAL_CALLING, calledNum, subAddress));
 }
@@ -612,7 +615,7 @@ PptpCtrlOutCall(struct pptplinkinfo linfo,
 
 static struct pptpctrlinfo
 PptpCtrlOrigCall(int incoming, struct pptplinkinfo linfo,
-	struct in_addr ip, int port, int bearType,
+	struct in_addr locip, struct in_addr ip, int port, int bearType,
 	int frameType, int minBps, int maxBps, const char *callingNum,
 	const char *calledNum, const char *subAddress)
 {
@@ -627,7 +630,8 @@ PptpCtrlOrigCall(int incoming, struct pptplinkinfo linfo,
   memset(&cinfo, 0, sizeof(cinfo));
 
   /* Find/create control block */
-  if ((c = PptpCtrlGetCtrl(TRUE, ip, port, ebuf, sizeof(ebuf))) == NULL) {
+  if ((c = PptpCtrlGetCtrl(TRUE, locip, ip, port,
+      ebuf, sizeof(ebuf))) == NULL) {
     Log(LG_PPTP, ("%s", ebuf));
     return(cinfo);
   }
@@ -710,10 +714,11 @@ PptpCtrlGetSessionInfo(struct pptpctrlinfo *cp,
 static void
 PptpCtrlListenEvent(int type, void *cookie)
 {
-  struct sockaddr_in	peer;
-  char			ebuf[100];
-  PptpCtrl		c;
-  int			sock;
+  struct sockaddr_in		peer;
+  static const struct in_addr	any = { 0 };
+  char				ebuf[100];
+  PptpCtrl			c;
+  int				sock;
 
   /* Reregister for more connections */
   EventRegister(&gListenEvent, EVENT_READ,
@@ -726,7 +731,7 @@ PptpCtrlListenEvent(int type, void *cookie)
     inet_ntoa(peer.sin_addr), (u_short) ntohs(peer.sin_port)));
 
   /* Initialize a new control block */
-  if ((c = PptpCtrlGetCtrl(FALSE, peer.sin_addr, ntohs(peer.sin_port),
+  if ((c = PptpCtrlGetCtrl(FALSE, any, peer.sin_addr, ntohs(peer.sin_port),
     ebuf, sizeof(ebuf))) == NULL) {
     Log(LG_PPTP, ("mpd: pptp connection failed: %s", ebuf));
     close(sock);
@@ -1084,12 +1089,11 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
  */
 
 static PptpCtrl
-PptpCtrlGetCtrl(int orig,
+PptpCtrlGetCtrl(int orig, struct in_addr locip,
 	struct in_addr peer_addr, int peer_port, char *buf, int bsiz)
 {
   PptpCtrl			c;
   struct sockaddr_in		peer;
-  static const struct in_addr	any = { 0 };
   int				k;
 
   /* See if we're already have a control block matching this address and port */
@@ -1129,7 +1133,7 @@ PptpCtrlGetCtrl(int orig,
     return(c);
 
   /* Connect to peer */
-  if ((c->csock = GetInetSocket(SOCK_STREAM, any, 0, buf, bsiz)) < 0) {
+  if ((c->csock = GetInetSocket(SOCK_STREAM, locip, 0, buf, bsiz)) < 0) {
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
     return(NULL);
   }
