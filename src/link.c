@@ -282,10 +282,13 @@ LinkCommand(int ac, char *av[], void *arg)
   if (ac != 1)
     return(-1);
 
-  /* Find link */
-  for (k = 0;
-    k < gNumLinks && (!gLinks[k] || strcmp(gLinks[k]->name, av[0]));
-    k++);
+  k=gNumLinks;
+  if ((sscanf(av[0],"[%x]",&k)!=1)||(k<0)||(k>=gNumLinks)) {
+     /* Find link */
+    for (k = 0;
+	k < gNumLinks && (!gLinks[k] || strcmp(gLinks[k]->name, av[0]));
+	k++);
+  };
   if (k == gNumLinks) {
     printf("Link \"%s\" is not defined\n", av[0]);
     return(0);

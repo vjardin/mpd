@@ -25,11 +25,16 @@ The new bundle will be reflected in the prompt.
 <tag><tt>link <em>name</em></tt>
 </tag>
 
+<tag><tt>link [<em>number</em>] </tt>
+</tag>
+
 This command changes the currenly active link to the link named
 <tt><em>name</em></tt>. If this link does not belong to
 the currently active bundle, then the currently active bundle
 is changed to the bundle that owns link <tt><em>name</em></tt>.
 The new link will be reflected in the prompt.
+Link <em>number</em> (RAD_NAS_PORT) can be specified in hex form in 
+square brackets in place of name.
 
 <tag><tt>load <em>configuration</em></tt>
 </tag>

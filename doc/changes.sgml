@@ -10,6 +10,8 @@
     <itemize>
     <item>Implemented PPPoE server functionality
     </item>
+    <item>Added the possibility of choosing link by it's number (same as RAD_NAS_PORT) instead of name
+    </item>
     </itemize>
   </p>
 
