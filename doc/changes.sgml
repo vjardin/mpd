@@ -6,6 +6,35 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.3:
+    <itemize>
+    <item>Support for MS-CHAPv2 when we are the server.
+	Always request MS-CHAPv2 first, then accept MS-CHAPv1
+	if the peer requests that instead.
+    </item>
+    <item>Fix for possible core dump in ECP code.
+    </item>
+    <item>Fix for bug in event library when an invalid file
+	descriptor is passed.
+    </item>
+    <item>Disallow allow PPTP peer inside and outside IP addresses
+	from being the same; we know this won't work.
+    </item>
+    <item>Fixed bug in PAP code where the PAP response packet would
+	be improperly formatted.
+    <item>Accept EINPROGRESS error from ng_ksocket connect message.
+	This happens on FreeBSD-current for some reason.
+    </item>
+    <item>Accept PPTP messages with non-zero values in reserved
+	fields. They violate the specification but some peers
+	send them anyway.
+    </item>
+    <item>Remove bogus extra field in definition of PPTP StopCtrlConnReply.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.2:
     <itemize>
     <item>There is no longer a fixed limit to the number of
