@@ -22,6 +22,7 @@ mpd.8:          mpd.8.in
 
 .if !defined(NOPORTDOCS)
 afterinstall:
+	[ -d ${BINDIR} ] || mkdir ${BINDIR}
 	${INSTALL} -c -o ${DOCOWN} -g ${DOCGRP} -m ${DOCMODE} ${MPD_DOC_FILES} \
 		${BINDIR}
 .endif
