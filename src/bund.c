@@ -765,6 +765,8 @@ BundStat(int ac, char *av[], void *arg)
   printf("\tStatus         : %s\n", sb->open ? "OPEN" : "CLOSED");
   printf("\tTotal bandwidth: %u\n", tbw);
   printf("\tAvail bandwidth: %u\n", bw);
+  printf("\tPeer authname  : \"%s\"\n", sb->peer_authname);
+  printf("\tPeer discrim.  : %s\n", MpDiscrimText(&sb->peer_discrim));
 
   /* Show configuration */
   printf("Configuration:\n");
