@@ -11,7 +11,6 @@
   valid if the currently active link has type <bf>udp</bf>.
   It is suggested that the <tt>set iface mtu</tt> command be used
   when this link type is in use to avoid IP fragmentation.
-  </p>
 
   <p>
   <bf>Note:</bf> Technically this device type is broken, because
@@ -20,7 +19,6 @@
   should not enable multi-link PPP, PPP encryption, or PPP compression.
   Otherwise, out of order frames will be dropped, leading to performance
   degradation.
-  </p>
 
 <descrip>
 
