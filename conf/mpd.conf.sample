@@ -44,8 +44,8 @@ myisp:
 	set iface route default
 	set iface enable on-demand
 	set iface idle 900
-# Configure the bundle account name.
-	set bundle authname MyLogin
+# Configure the account name.
+	set auth authname MyLogin
 # Configure IP addressing -- we get both endpoint assignments from peer.
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	set ipcp yes vjcomp
@@ -98,7 +98,7 @@ multi:
 	set iface route default
 	set iface disable on-demand
 	set iface idle 900
-	set bundle authname MyLogin
+	set auth authname MyLogin
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	set ipcp yes vjcomp
 	set link disable chap pap
@@ -253,8 +253,8 @@ vpn:
 	set iface session 28800
 	set iface route 192.168.2.0/24
 	set bundle disable multilink
-	set bundle authname "VpnLogin"
-	set bundle password "VpnPassword"
+	set auth authname "VpnLogin"
+	set auth password "VpnPassword"
 	set link yes acfcomp protocomp
 	set link no pap
 	set link yes chap
@@ -287,7 +287,7 @@ PPPoE:
 	set iface disable on-demand
 	set iface idle 0
 	set bundle disable multilink
-	set bundle authname MyLogin
+	set auth authname MyLogin
 	set link no acfcomp protocomp
 	set link disable pap chap
 	set link accept chap
@@ -308,19 +308,47 @@ radius:
 # send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server.
 	set radius me 1.1.1.1
 # send accounting updates every 5 minutes
-	set radius acct-update 300
-# let the RADIUS server assign the IP
-	set ipcp enable radius-ip
+	set auth acct-update 300
 # enable RADIUS, and fallback to mpd.secret, if RADIUS auth failed
-	set bundle enable radius-auth radius-fallback
+	set auth enable radius-auth
 # enable RADIUS accounting
-	set bundle enable radius-acct
-# use idle-timeout, session-timeout, routes list and mtu from the RADIUS server
-	set iface enable radius-idle radius-session radius-mtu radius-route 
+	set auth enable radius-acct
 # activate MPPE and let the RADIUS server assign MPPE-types and MPPE-policies
 	set bundle enable compression
 	set ccp yes mppc
-	set ccp enable radius
+	set auth enable mppc-pol
+# protect our requests with the message-authenticator
+	set radius enable message-authentic
+
+# EAP stuff
+eap:
+	set link enable eap
+# enable CHAP-MD5 inside EAP frames
+	set eap enable md5
+# if we are just a relay between the PEER and our RADIUS server, then set this
+#	set eap enable radius-proxy
+
+# Advanced authentication options
+advanced-auth:
+# disable traditional mpd.secrets file
+	set auth disable internal
+# enable RADIUS
+	set auth enable radius-auth
+# enable OPIE
+	set auth enable opie
+# enable master.passwd (only possible with MS-CHAP and PAP)
+	set link no chap-md5
+	set auth enable system
+# enable accounting via UTMP/WTMP
+	set auth enable utmp-wtmp
+# increase our timeout to 60 secs. for authentication requests
+	set auth timeout 60
+# allow only one concurrent connection per username
+	set auth max-logins 1
+# send accounting updates every 5 minutes
+	set auth acct-update 300
+# we get our MPPE types and policy from the authentication backend
+	set auth enable mppc-pol
 
 #
 # Country specific configuration examples
@@ -334,8 +362,8 @@ adslat:
 	set iface session 0
 	set iface route default
 	set bundle disable multilink
-	set bundle authname "<change_this>"
-	set bundle password "<change_this>"
+	set auth authname "<change_this>"
+	set auth password "<change_this>"
 	set link yes acfcomp protocomp
 	set link no pap chap
 	set link accept chap
