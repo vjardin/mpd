@@ -10,10 +10,10 @@
 #ifndef _AUTH_H_
 #define	_AUTH_H_
 
+#include "timer.h"
 #include "pap.h"
 #include "chap.h"
 #include "eap.h"
-#include "timer.h"
 
 /*
  * DEFINITIONS
@@ -38,7 +38,7 @@
   #define AUTH_FAIL_RESTRICTED_HOURS	3
   #define AUTH_FAIL_INVALID_PACKET	4
   #define AUTH_FAIL_NOT_EXPECTED	5
-
+  
   /* State of authorization process during authorization phase */
   struct auth {
     u_short		peer_to_self;	/* What I need from peer */
@@ -60,6 +60,11 @@
     u_int		external:1;
   };
   typedef struct authdata	*AuthData;
+  
+/*
+ * GLOBAL VARIABLES
+ */
+  const u_char	gMsoftZeros[32];
 
 /*
  * FUNCTIONS
@@ -74,6 +79,7 @@
   extern int	AuthGetData(AuthData auth, int complain, int *whyFail);
   extern int	AuthPreChecks(AuthData auth, int complain, int *whyFail);
   extern const	char *AuthFailMsg(int proto, int alg, int whyFail);
+
 
 #endif
 
