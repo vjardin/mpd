@@ -135,3 +135,12 @@ PPPoE:
 	set pppoe disable incoming
 	set pppoe enable originate
 
+#
+# Country specific configuration examples
+#
+
+# Austria ADSL
+adslat:
+	set link type pptp
+	set pptp peer 10.0.0.138
+	set pptp enable originate outcall

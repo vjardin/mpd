@@ -322,3 +322,25 @@ radius:
 	set ccp yes mppc
 	set ccp enable radius
 
+#
+# Country specific configuration examples
+#
+
+# Austria ADSL
+adslat:
+	new -i ng0 adslat adslat
+	set iface disable on-demand
+	set iface idle 0
+	set iface session 0
+	set iface route default
+	set bundle disable multilink
+	set bundle authname "<change_this>"
+	set bundle password "<change_this>"
+	set link yes acfcomp protocomp
+	set link no pap chap
+	set link accept chap
+	set link mtu 1460
+	set link keep-alive 10 75
+	set ipcp yes vjcomp
+	set ipcp ranges 0/0 10.0.0.138/0
+	open
