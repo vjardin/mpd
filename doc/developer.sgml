@@ -34,7 +34,7 @@ you must not access the global <tt>bund</tt>, <tt>link</tt> or any other
 global ressource of Mpd, because 
 the authentication process is started in its own thread (you have to 
 take care about thread-safety). An <tt>AuthData</tt> object is passed 
-to your authenticating-function wich carries a copy of the link and other 
+to your authenticating function which carries a copy of the link and other 
 parameters. If your backend provides other parameters, like MTU, IP, etc. 
 then put these at the appropriate place into <tt>AuthData</tt> or 
 <tt>Auth</tt>. To be sure to not accidentally accessing the global 
@@ -47,7 +47,7 @@ WhateverAuthenticate(AuthData auth)
   Auth		const a = &amp;lnk->lcp.auth;
 [...]
 </code>
-If you can't avoid reading from Mpd's internal data, then use acquire the 
+If you can't avoid reading from Mpd's internal data, then acquire the 
 Giant Mutex:
 <code>
 [...]

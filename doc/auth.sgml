@@ -47,10 +47,11 @@ zero.
 
 <tag><tt>timeout <em>seconds</em></tt></tag>
 
-Sets the timeout for the whole authenication process. It defaults to 40 seconds. 
-Under some circumstances, the value should be changed, it usually 
-depends on the used authentication backend and protocol, p.ex. when using EAP with 
-slow RADIUS server this value should be increased.
+Sets the timeout for the whole authentication process.
+It defaults to 40 seconds. 
+Under some circumstances the value should be changed; it usually 
+depends on the authentication backend and protocol.
+E.g. when using EAP with a slow RADIUS server this value should be increased.
 
 <tag><tt>
 <newline>set auth enable <em>option ...</em>

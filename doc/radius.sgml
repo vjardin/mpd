@@ -18,7 +18,7 @@ set radius server <em>name</em> <em>secret</em> [ <em>auth-port</em> [ <em>acct-
 </tt></tag>
 
 Configure RADIUS server parameters. Multiple RADIUS servers may be configured 
-by repeating this command, up to 10 servers may be specified.
+by repeating this command, and up to 10 servers may be specified.
 
 <tag><tt>
 set radius timeout <em>seconds</em>
@@ -46,7 +46,7 @@ Adds the Message-Authenticator attribute to the RADIUS request.
 The Message-Authenticator is an HMAC-MD5 checksum of the entire 
 Access-Request packet using the shared secret as the key. This 
 should protect the RADIUS server against online dictionary attacks.
-This is mandatory when using the EAP-RADIUS-Proxy and it's implicitely 
+This is mandatory when using the EAP-RADIUS-Proxy and it's implicitly 
 added to the request by Mpd.
 
 </p>
