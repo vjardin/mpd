@@ -33,7 +33,7 @@ By convention, the <tt><em>local</em></tt> address may be
 address. Of course, for this to work the remote side must know
 <em>a priori</em> what our local IP address should be.
 
-The <tt><em>remote</em></tt> address may <em>not</em> be
+The <tt><em>remote</em></tt> address should <em>not</em> be
 <tt>0.0.0.0</tt>. This is so if the peer requests <tt>0.0.0.0</tt>,
 we have some address to give him.  The <tt><em>width</em></tt> may
 of course be zero.
