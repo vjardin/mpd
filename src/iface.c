@@ -34,6 +34,7 @@
 
   enum {
     SET_IDLE,
+    SET_SESSION,
     SET_ADDRS,
     SET_ROUTE,
     SET_MTU,
@@ -50,6 +51,7 @@
     IFACE_CONF_PROXY,
     IFACE_CONF_RADIUSMTU,
     IFACE_CONF_RADIUSIDLE,
+    IFACE_CONF_RADIUSSESSION,
     IFACE_CONF_RADIUSROUTE,
   };
 
@@ -61,6 +63,7 @@
   static void	IfaceIpIfaceUp(int ready);
   static void	IfaceIpIfaceDown(void);
   static void	IfaceIpIfaceReady(int ready);
+  static void	IfaceSessionTimeout(void *arg);
   static void	IfaceIdleTimeout(void *arg);
   static void	IfaceIdleTimerExpired(void *arg);
 
@@ -85,6 +88,8 @@
 	IfaceSetCommand, NULL, (void *) SET_DOWN_SCRIPT },
     { "idle seconds",			"Idle timeout",
 	IfaceSetCommand, NULL, (void *) SET_IDLE },
+    { "session seconds",		"Session timeout",
+	IfaceSetCommand, NULL, (void *) SET_SESSION },
     { "enable [opt ...]",		"Enable option",
 	IfaceSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
@@ -97,12 +102,13 @@
  */
 
   static const struct confinfo	gConfList[] = {
-    { 0,	IFACE_CONF_ONDEMAND,	"on-demand"	},
-    { 0,	IFACE_CONF_PROXY,	"proxy-arp"	},
-    { 0,	IFACE_CONF_RADIUSMTU,	"radius-mtu"	},
-    { 0,	IFACE_CONF_RADIUSIDLE,	"radius-idle"	},        
-    { 0,	IFACE_CONF_RADIUSROUTE,	"radius-route"	},
-    { 0,	0,			NULL		},
+    { 0,	IFACE_CONF_ONDEMAND,		"on-demand"	},
+    { 0,	IFACE_CONF_PROXY,		"proxy-arp"	},
+    { 0,	IFACE_CONF_RADIUSMTU,		"radius-mtu"	},
+    { 0,	IFACE_CONF_RADIUSIDLE,		"radius-idle"	},
+    { 0,	IFACE_CONF_RADIUSSESSION,	"radius-session"},
+    { 0,	IFACE_CONF_RADIUSROUTE,		"radius-route"	},
+    { 0,	0,				NULL		},
   };
 
 /*
@@ -209,9 +215,24 @@ IfaceUp(struct in_addr self, struct in_addr peer)
     iface->open = TRUE;		/* Would call IfaceOpen(); effect is same */
   }
 
+  /* Start Session timer */
+  TimerStop(&iface->sessionTimer);
+
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSSESSION) && rad->valid) {
+    iface->session_timeout = rad->session_timeout;
+    Log(LG_IFACE, ("[%s] IFACE: using RADIUS session-timeout: %d seconds", 
+      bund->name, iface->session_timeout));
+  }
+
+  if (iface->session_timeout > 0) {
+    TimerInit(&iface->sessionTimer, "IfaceSession",
+      iface->session_timeout * SECONDS, IfaceSessionTimeout, NULL);
+    TimerStart(&iface->sessionTimer);
+  }
+
   /* Start idle timer */
   TimerStop(&iface->idleTimer);
-  
+
   if (Enabled(&iface->options, IFACE_CONF_RADIUSIDLE) && rad->valid) {
     iface->idle_timeout = rad->idle_timeout;
     Log(LG_IFACE, ("[%s] IFACE: using RADIUS idle-timeout: %d seconds", 
@@ -618,6 +639,19 @@ IfaceIdleTimerExpired(void *arg)
 }
 
 /*
+ * IfaceSessionTimeout()
+ */
+
+static void
+IfaceSessionTimeout(void *arg)
+{
+  Log(LG_BUND, ("[%s] session timeout ", bund->name));
+
+  RecordLinkUpDownReason(NULL, 0, STR_SESSION_TIMEOUT, NULL);
+  IfaceCloseNcps();
+}
+
+/*
  * IfaceOpenNcps()
  */
 
@@ -637,6 +671,7 @@ IfaceCloseNcps(void)
   IfaceState	const iface = &bund->iface;
 
   TimerStop(&iface->idleTimer);
+  TimerStop(&iface->sessionTimer);
   IpcpClose();
 }
 
@@ -773,6 +808,9 @@ IfaceSetCommand(int ac, char *av[], void *arg)
     case SET_IDLE:
       iface->idle_timeout = atoi(*av);
       break;
+    case SET_SESSION:
+      iface->session_timeout = atoi(*av);
+      break;
     case SET_ADDRS:
       {
 	struct in_addr	self_addr;
@@ -895,6 +933,7 @@ IfaceStat(int ac, char *av[], void *arg)
   printf("\tMaximum MTU  : %d bytes\n", iface->max_mtu);
   printf("\tCurrent MTU  : %d bytes\n", iface->mtu);
   printf("\tIdle timeout : %d seconds\n", iface->idle_timeout);
+  printf("\tSession timeout : %d seconds\n", iface->session_timeout);
   printf("\tEvent scripts: UP: \"%s\"  DOWN: \"%s\"\n",
     *iface->up_script ? iface->up_script : "<none>",
     *iface->down_script ? iface->down_script : "<none>");

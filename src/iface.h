@@ -57,12 +57,14 @@
     u_short		max_mtu;		/* Configured maximum MTU */
     struct optinfo	options;		/* Configuration options */
     u_int		idle_timeout;		/* Idle timeout */
+    u_int		session_timeout;	/* Session timeout */
     short		n_routes;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
     struct in_addr	self_addr;		/* Interface's IP address */
     struct in_addr	peer_addr;		/* Peer's IP address */
     struct in_addr	proxy_addr;		/* Proxied IP address */
     struct pppTimer	idleTimer;		/* Idle timer */
+    struct pppTimer	sessionTimer;		/* Session timer */
     char		up_script[IFACE_MAX_SCRIPT];
     char		down_script[IFACE_MAX_SCRIPT];
     u_char		open:1;			/* In an open state */
