@@ -20,5 +20,11 @@
   extern const struct cmdtab	PppoeSetCmds[];
   extern const struct phystype	gPppoePhysType;
 
+/* 
+ * FUNCTIONS 
+ */
+
+  extern u_char * PppoeGetPeerAddr(void);
+
 #endif
 
