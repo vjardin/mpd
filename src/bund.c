@@ -289,7 +289,8 @@ BundLeave(void)
     memset(bund->peer_msChal, 0, sizeof(bund->peer_msChal));
     memset(bund->self_msChal, 0, sizeof(bund->self_msChal));
     memset(bund->peer_authname, 0, sizeof(bund->peer_authname));
-    memset(bund->msNTresponse, 0, sizeof(bund->msNTresponse));
+    memset(bund->peer_ntResp, 0, sizeof(bund->peer_ntResp));
+    memset(bund->self_ntResp, 0, sizeof(bund->self_ntResp));
 
     /* Close links, or else wait and try to open again later */
     if (!bund->open) {

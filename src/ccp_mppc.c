@@ -607,7 +607,7 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
 	goto fail;
       }
       authname = bund->conf.authname;
-      response = bund->msNTresponse;
+      response = bund->self_ntResp;
       break;
     case LINK_ORIGINATE_REMOTE:
       if (lnk->lcp.want_auth != PROTO_CHAP
@@ -618,7 +618,7 @@ MppeGetKeyInfov2(char **secretp, u_char **responsep)
 	goto fail;
       }
       authname = bund->peer_authname;
-      response = bund->msNTresponse;
+      response = bund->peer_ntResp;
       break;
     case LINK_ORIGINATE_UNKNOWN:
     default:

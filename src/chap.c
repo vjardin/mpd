@@ -414,8 +414,8 @@ ChapInput(Mbuf bp)
 	case CHAP_ALG_MSOFTv2:
 	  if (!memcmp(bund->peer_msChal, gMsoftZeros, CHAP_MSOFTv2_CHAL_LEN))
 	    memcpy(bund->peer_msChal, chap_value, CHAP_MSOFTv2_CHAL_LEN);
-	  if (!memcmp(bund->msNTresponse, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
-	    memcpy(bund->msNTresponse,
+	  if (!memcmp(bund->self_ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
+	    memcpy(bund->self_ntResp,
 	      hash_value + offsetof(struct mschapv2value, ntHash),
 	      CHAP_MSOFTv2_RESP_LEN);
 	  }
@@ -500,8 +500,8 @@ badResponse:
 
 	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
 	if (chap->recv_alg == CHAP_ALG_MSOFTv2) {
-	  if (!memcmp(bund->msNTresponse, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
-	    memcpy(bund->msNTresponse,
+	  if (!memcmp(bund->peer_ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
+	    memcpy(bund->peer_ntResp,
 	      chap_value + offsetof(struct mschapv2value, ntHash),
 	      CHAP_MSOFTv2_RESP_LEN);
 	  }

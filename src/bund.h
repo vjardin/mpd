@@ -129,7 +129,8 @@
     struct discrim	peer_discrim;		/* Peer's discriminator */
     u_char		self_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
     u_char		peer_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
-    u_char		msNTresponse[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT resp */
+    u_char		self_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
+    u_char		peer_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
     u_char		numRecordUp;		/* # links recorded up */
 
     /* PPP node config */
