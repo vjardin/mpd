@@ -1015,14 +1015,16 @@ TcpAcceptConnection(int sock, struct sockaddr_in *addr)
     return(-1);
   }
   
-  if (Enabled(&bund->conf.options, BUND_CONF_TCPWRAPPER)) {
-    request_init(&req, RQ_DAEMON, "mpd", RQ_FILE, new_sock, NULL);
-    fromhost(&req);
-    if (!hosts_access(&req)) {
-      Log(LG_ERR, ("[%s] refused connection (tcp-wrapper) from %s", 
-        bund->name, eval_client(&req)));
-      close(new_sock);
-      return(-1);
+  if (bund) {
+    if (Enabled(&bund->conf.options, BUND_CONF_TCPWRAPPER)) {
+      request_init(&req, RQ_DAEMON, "mpd", RQ_FILE, new_sock, NULL);
+      fromhost(&req);
+      if (!hosts_access(&req)) {
+	Log(LG_ERR, ("[%s] refused connection (tcp-wrapper) from %s", 
+	  bund->name, eval_client(&req)));
+	close(new_sock);
+	return(-1);
+      }
     }
   }
   
