@@ -25,10 +25,6 @@
   static void RadiusClose(void);
   static const char * RadiusMPPEPolicyname(int policy);
   static const char * RadiusMPPETypesname(int types);
-  /* compatibility functions until libradius has these builtin */
-  static int rad_demangle(struct rad_handle *, const void *, size_t, u_char *);
-  static int rad_demangle_mppe_key(struct rad_handle *, const void *, size_t, u_char *, size_t *);
-
 
 /* Set menu options */
 
@@ -507,9 +503,10 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
 
     case CHAP_ALG_MSOFTv2:
       
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) peer name: %s", lnk->name, function, name));
-      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE, challenge,
-	challenge_size) == -1)  {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) peer name: %s",
+	lnk->name, function, name));
+      if (rad_put_vendor_attr(rad->radh, RAD_VENDOR_MICROSOFT,
+	  RAD_MICROSOFT_MS_CHAP_CHALLENGE, challenge, challenge_size) == -1)  {
         Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s",
 	  lnk->name, function, rad_strerror(rad->radh)));
 	RadiusClose();
@@ -541,8 +538,7 @@ RadiusPutAuth(const char *name, const char *password, int passlen,
       break;
 
     case CHAP_ALG_MD5:
-
-      /* Radius wants the CHAP Ident in the first byte of the CHAP-Password */
+      /* RADIUS requires the CHAP Ident in the first byte of the CHAP-Password */
       rad_chapval.ident = chapid;
       memcpy(rad_chapval.response, password, passlen);
       Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MD5) peer name: %s", lnk->name, function, name));
@@ -630,7 +626,7 @@ int RadiusSendRequest(void)
     case RAD_ACCESS_ACCEPT:
       Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCESS_ACCEPT for user %s", lnk->name,
         function, rad->authname));
-      rad->valid = 1;
+      rad->authenticated = 1;
       break;
 
     case RAD_ACCESS_CHALLENGE:
@@ -641,7 +637,7 @@ int RadiusSendRequest(void)
     case RAD_ACCESS_REJECT:
       Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCESS_REJECT for user %s", lnk->name,
         function, rad->authname));
-      rad->valid = 0;
+      rad->authenticated = 0;
       break;
 
     case RAD_ACCOUNTING_RESPONSE:
@@ -685,8 +681,7 @@ RadiusPAPAuthenticate(const char *name, const char *password)
   if (RadiusGetParams(FALSE) == RAD_NACK)
     return RAD_NACK;
 
-  if (rad->valid) {
-    lnk->radius.authentic = 1;
+  if (rad->authenticated) {
     return RAD_ACK;
   } else {
     return RAD_NACK;
@@ -713,8 +708,7 @@ RadiusCHAPAuthenticate(const char *name, const char *password, int passlen,
   if (RadiusGetParams(FALSE) == RAD_NACK)
     return RAD_NACK;
   
-  if (rad->valid) {
-    lnk->radius.authentic = 1;
+  if (rad->authenticated) {
     return RAD_ACK;
   } else {
     return RAD_NACK;
@@ -727,6 +721,7 @@ RadiusEAPProxy(const char *identity, const char *pkt, int len)
 {
   static char function[] = "RadiusEAPProxy";
   struct radius	*rad = &lnk->radius;
+  int		pos = 0, mlen = RAD_MAX_ATTR_LEN;
 
   RadiusDestroy();
   if (RadiusStart(RAD_ACCESS_REQUEST) == RAD_NACK)
@@ -736,17 +731,29 @@ RadiusEAPProxy(const char *identity, const char *pkt, int len)
   strncpy(rad->authname, identity, AUTH_MAX_AUTHNAME);
 
   if (rad_put_string(rad->radh, RAD_USER_NAME, identity) == -1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(identity) failed %s", lnk->name,
+    Log(LG_RADIUS, ("[%s] RADIUS-EAP: %s: rad_put_string(identity) failed %s", lnk->name,
       function, rad_strerror(rad->radh)));
     RadiusClose();
     return (RAD_NACK);
   }
 
-  if (rad_put_attr(rad->radh, RAD_EAP_MESSAGE, pkt, len) == -1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_attr(RAD_EAP_MESSAGE) failed %s", lnk->name,
-      function, rad_strerror(rad->radh)));
-    RadiusClose();
-    return (RAD_NACK);
+  for (pos = 0; pos <= len; pos += RAD_MAX_ATTR_LEN) {
+    char	chunk[RAD_MAX_ATTR_LEN];
+
+    if (pos + RAD_MAX_ATTR_LEN > len)
+      mlen = len - pos;
+
+    memcpy(chunk, &pkt[pos], mlen);
+    if (rad_put_attr(rad->radh, RAD_EAP_MESSAGE, chunk, mlen) == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS-EAP: %s: rad_put_attr(RAD_EAP_MESSAGE) failed %s",
+	lnk->name, function, rad_strerror(rad->radh)));
+      RadiusClose();
+      return (RAD_NACK);
+    }
+#ifdef DEBUG
+    Log(LG_RADIUS, ("[%s] RADIUS-EAP: chunk:%d len:%d",
+      lnk->name, pos / RAD_MAX_ATTR_LEN, mlen));
+#endif
   }
 
   rad->auth_type = RADIUS_EAP;
@@ -757,7 +764,6 @@ RadiusEAPProxy(const char *identity, const char *pkt, int len)
   switch (rad->response_type) {
 
     case RAD_ACCESS_ACCEPT:
-      lnk->radius.authentic = 1;
       return RadiusGetParams(FALSE);
       break;
 
@@ -765,6 +771,7 @@ RadiusEAPProxy(const char *identity, const char *pkt, int len)
       break;
 
     case RAD_ACCESS_REJECT:
+      RadiusGetParams(FALSE);
       return RAD_NACK;
   }
   return RadiusGetParams(TRUE);
@@ -775,12 +782,13 @@ RadiusGetParams(int eap_proxy)
 {
   char		function[] = "RadiusGetParams";
   struct radius	*rad = &lnk->radius;
-  int		res, i, j;
+  MppcInfo	const mppc = &bund->ccp.mppc;
+  int		res, i, j, tmpkey_len;
   size_t	len;
   const void	*data;
   u_int32_t	vendor;
-  char		*route;
-  char		*acl1, *acl2;
+  char		*route, *acl1, *acl2;
+  u_char	*tmpkey;
   short		got_mppe_keys = FALSE;
   struct radius_acl	**acls, *acls1;
   struct ifaceroute	r;
@@ -805,12 +813,24 @@ RadiusGetParams(int eap_proxy)
 	continue;
 
       case RAD_EAP_MESSAGE:
-	Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE", lnk->name, function));
-	if (rad->eapmsg != NULL)
+	if (rad->eapmsg != NULL) {
+	  char *tbuf;
+#ifdef DEBUG
+	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE (continued) Len:%d",
+	    lnk->name, function, rad->eapmsg_len + len));
+#endif
+	  tbuf = Malloc(MB_RADIUS, rad->eapmsg_len + len);
+	  memcpy(tbuf, rad->eapmsg, rad->eapmsg_len);
+	  memcpy(&tbuf[rad->eapmsg_len], data, len);
+	  rad->eapmsg_len += len;
 	  Freee(MB_RADIUS, rad->eapmsg);
-	rad->eapmsg = Malloc(MB_RADIUS, len);
-	memcpy(rad->eapmsg, data, len);
-	rad->eapmsg_len = len;
+	  rad->eapmsg = tbuf;
+	} else {
+	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE", lnk->name, function));
+	  rad->eapmsg = Malloc(MB_RADIUS, len);
+	  memcpy(rad->eapmsg, data, len);
+	  rad->eapmsg_len = len;
+	}
 	continue;
     }
 
@@ -935,8 +955,6 @@ RadiusGetParams(int eap_proxy)
 
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: MS-CHAP-Error: %s",
 		  lnk->name, function, rad->mschap_error));
-		rad->valid = 0;
-		return RAD_NACK;
 		break;
 
 	      /* this was taken from userland ppp */
@@ -972,19 +990,35 @@ RadiusGetParams(int eap_proxy)
 		  lnk->name, function, rad->msdomain));
 		break;
 
-              /* MPPE Keys MS-CHAPv2 */
+              /* MPPE Keys MS-CHAPv2 and EAP-TLS */
 	      case RAD_MICROSOFT_MS_MPPE_RECV_KEY:
 		got_mppe_keys = TRUE;
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_RECV_KEY",
 		  lnk->name, function));
-		rad_demangle_mppe_key(rad->radh, data, len, rad->mppe.recvkey, &rad->mppe.recvkeylen);
+		tmpkey = rad_demangle_mppe_key(rad->radh, data, len, &tmpkey_len);
+		if (!tmpkey) {
+		  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_demangle_mppe_key failed: %s",
+		    lnk->name, function, rad_strerror(rad->radh)));
+		  return RAD_NACK;
+		}
+
+		memcpy(mppc->recv_key0, tmpkey, MPPE_KEY_LEN);
+		free(tmpkey);
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_SEND_KEY:
 		got_mppe_keys = TRUE;
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_SEND_KEY",
 		  lnk->name, function));
-		rad_demangle_mppe_key(rad->radh, data, len, rad->mppe.sendkey, &rad->mppe.sendkeylen);
+		tmpkey = rad_demangle_mppe_key(rad->radh, data, len, &tmpkey_len);
+		if (!tmpkey) {
+		  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_demangle_mppe_key failed: %s",
+		    lnk->name, function, rad_strerror(rad->radh)));
+		  return RAD_NACK;
+		}
+
+		memcpy(mppc->xmit_key0, tmpkey, MPPE_KEY_LEN);
+		free(tmpkey);
 		break;
 
               /* MPPE Keys MS-CHAPv1 */
@@ -999,11 +1033,14 @@ RadiusGetParams(int eap_proxy)
 		  return RAD_NACK;
 		}
 
-		if (rad_demangle(rad->radh, data, len, rad->mppe.lm_key) == -1) {
+		tmpkey = rad_demangle(rad->radh, data, len);
+		if (tmpkey == NULL) {
 		  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_demangle failed: %s",
 		    lnk->name, function, rad_strerror(rad->radh)));
 		  return RAD_NACK;
 		}
+		memcpy(rad->mppe.lm_key, tmpkey, len);
+		free(tmpkey);
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
@@ -1022,8 +1059,10 @@ RadiusGetParams(int eap_proxy)
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping MICROSOFT vendor specific attribute: %d ",
 		  lnk->name, function, res));
 		break;
-	  }
-          case RAD_VENDOR_MPD:
+	    }
+	    break;
+
+	  case RAD_VENDOR_MPD:
 
 	    if (res == RAD_MPD_RULE) {
 	      acl2 = rad_cvt_string(data, len);
@@ -1105,17 +1144,18 @@ RadiusGetParams(int eap_proxy)
     Log(LG_RADIUS, ("[%s] RADIUS: %s: WARNING no MPPE-Keys received, MPPE will not work",
       lnk->name, function));
   }
-  
+
   /* If no MPPE-Infos are returned by the RADIUS server, then allow all */
   /* MSoft IAS sends no Infos if all MPPE-Types are enabled and if encryption is optional */
-  if (rad->mppe.policy == MPPE_POLICY_NONE && 
-      rad->mppe.types == MPPE_TYPE_0BIT && 
+  if (rad->mppe.policy == MPPE_POLICY_NONE &&
+      rad->mppe.types == MPPE_TYPE_0BIT &&
       got_mppe_keys) {
     rad->mppe.policy = MPPE_POLICY_ALLOWED;
     rad->mppe.types = MPPE_TYPE_40BIT | MPPE_TYPE_128BIT | MPPE_TYPE_56BIT;
     Log(LG_RADIUS, ("[%s] RADIUS: %s: MPPE-Keys, but no MPPE-Infos received => allowing MPPE with all types",
       lnk->name, function));
   }
+
   return RAD_ACK;
 }
 
@@ -1146,7 +1186,7 @@ RadiusAccount(short acct_type)
   
   Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s", lnk->name, function, rad->authname));
 
-  if (lnk->radius.authentic) {
+  if (lnk->radius.authenticated) {
     authentic = RAD_AUTH_RADIUS;
   } else {
     authentic = RAD_AUTH_LOCAL;
@@ -1388,7 +1428,7 @@ RadStat(int ac, char *av[], void *arg)
   OptStat(&bund->radiusconf.options, gConfList);
 
   printf("\t---------------  Radius Data ---------------\n");
-  printf("\tAuthenticated   : %s\n", rad->valid ? "yes" : "no");
+  printf("\tAuthenticated   : %s\n", rad->authenticated ? "yes" : "no");
   printf("\tAuthname        : %s\n", rad->authname);
   printf("\tReply-message   : %s\n", rad->reply_message == NULL ? "" : rad->reply_message);
   printf("\tIP              : %s\n", inet_ntoa(rad->ip));
@@ -1454,131 +1494,3 @@ RadiusMPPETypesname(int types) {
 
 }
 
-/* compatibility functions until libradius has these builtin */
-static int
-rad_demangle(struct rad_handle *h, const void *mangled, size_t mlen, u_char *demangled) 
-{
-  char  function[] = "rad_demangle";
-  char R[AUTH_LEN];
-  const char *S;
-  int i, Ppos;
-  MD5_CTX Context;
-  u_char b[16], *C;
-
-  if ((mlen % 16 != 0) || (mlen > 128)) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: Cannot interpret mangled data of length %ld",
-      lnk->name, function, (u_long)mlen));
-    return -1;
-  }
-
-  C = (u_char *)mangled;
-
-  /* We need the shared secret as Salt */
-  S = rad_server_secret(h);
-
-  /* We need the request authenticator */
-  if (rad_request_authenticator(h, R, sizeof R) != AUTH_LEN) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: Cannot obtain the RADIUS request authenticator",
-      lnk->name, function));
-    return -1;
-  }
-
-  MD5Init(&Context);
-  MD5Update(&Context, S, strlen(S));
-  MD5Update(&Context, R, AUTH_LEN);
-  MD5Final(b, &Context);
-  Ppos = 0;
-  while (mlen) {
-
-    mlen -= 16;
-    for (i = 0; i < 16; i++)
-      demangled[Ppos++] = C[i] ^ b[i];
-
-    if (mlen) {
-      MD5Init(&Context);
-      MD5Update(&Context, S, strlen(S));
-      MD5Update(&Context, C, 16);
-      MD5Final(b, &Context);
-    }
-
-    C += 16;
-  }
-
-  return 0;
-}
-
-static int
-rad_demangle_mppe_key(struct rad_handle *h, const void *mangled, size_t mlen, u_char *demangled, size_t *len)
-{
-  char  function[] = "rad_demangle_mppe_key";
-  char R[AUTH_LEN];    /* variable names as per rfc2548 */
-  const char *S;
-  u_char b[16];
-  const u_char *A, *C;
-  MD5_CTX Context;
-  int Slen, i, Clen, Ppos;
-  u_char *P;
-
-  if (mlen % 16 != SALT_LEN) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: Cannot interpret mangled data of length %ld",
-      lnk->name, function, (u_long)mlen));
-    return -1;
-  }
-
-  /* We need the RADIUS Request-Authenticator */
-  if (rad_request_authenticator(h, R, sizeof R) != AUTH_LEN) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: Cannot obtain the RADIUS request authenticator",
-      lnk->name, function));
-    return -1;
-  }
-
-  A = (const u_char *)mangled;      /* Salt comes first */
-  C = (const u_char *)mangled + SALT_LEN;  /* Then the ciphertext */
-  Clen = mlen - SALT_LEN;
-  S = rad_server_secret(h);    /* We need the RADIUS secret */
-  Slen = strlen(S);
-  P = alloca(Clen);        /* We derive our plaintext */
-
-  MD5Init(&Context);
-  MD5Update(&Context, S, Slen);
-  MD5Update(&Context, R, AUTH_LEN);
-  MD5Update(&Context, A, SALT_LEN);
-  MD5Final(b, &Context);
-  Ppos = 0;
-
-  while (Clen) {
-    Clen -= 16;
-
-    for (i = 0; i < 16; i++)
-      P[Ppos++] = C[i] ^ b[i];
-
-    if (Clen) {
-      MD5Init(&Context);
-      MD5Update(&Context, S, Slen);
-      MD5Update(&Context, C, 16);
-      MD5Final(b, &Context);
-    }
-                
-    C += 16;
-  }
-
-  /*
-   * The resulting plain text consists of a one-byte length, the text and
-   * maybe some padding.
-   */
-  *len = *P;
-  if (*len > mlen - 1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: Mangled data seems to be garbage %d %d",
-      lnk->name, function, *len, mlen-1));
-    return -1;
-  }
-
-  if (*len > MPPE_KEY_LEN) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: Key to long (%d) for me max. %d",
-      lnk->name, function, *len, MPPE_KEY_LEN));
-    return -1;
-  }
-
-  memcpy(demangled, P + 1, *len);
-  return 0;
-}

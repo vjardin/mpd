@@ -117,8 +117,7 @@
     /* internal vars */
     struct rad_handle	*radh;		/* RadLib Handle */
     struct pppTimer 	radUpdate;	/* Accounting Update Timer */
-    short		valid;		/* Auth was successful */
-    int			authentic;	/* whether RADIUS authentication was used */
+    int			authenticated;	/* whether RADIUS authentication was used and successful */
     int			response_type;	/* Type of response, i.e. Reject, Access, Challenge, ... */
     short		auth_type;	/* PAP, CHAP, MS-CHAP, EAP */
     char		authname[AUTH_MAX_AUTHNAME];
@@ -147,10 +146,6 @@
     struct {
       int	policy;			/* MPPE_POLICY_* */
       int	types;			/* MPPE_TYPE_*BIT bitmask */
-      u_char	recvkey[MPPE_KEY_LEN];	/* MS-CHAP v2 Keys */
-      size_t	recvkeylen;
-      u_char	sendkey[MPPE_KEY_LEN];
-      size_t	sendkeylen;
       u_char	lm_key[8];		/* MS-CHAP v1 Keys 40 or 56 Bit */
       u_char	nt_hash[MPPE_KEY_LEN];	/* MS-CHAP v1 calculating 128 Bit Key */
       u_char	padding[8];		/* Padding to fit in 16 byte boundary */
