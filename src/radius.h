@@ -7,7 +7,6 @@
 
 #include "ppp.h"
 #include "auth.h"
-#include "ccp_mppc.h"
 #include <radlib.h>
 
 #ifndef _RADIUS_H_
