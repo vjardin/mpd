@@ -383,6 +383,10 @@ IfaceIpIfaceUp(int ready)
     }
   }
 
+  /* Add loopback route */
+  ExecCmd(LG_IFACE, "%s add %s -iface lo0",
+    PATH_ROUTE, inet_ntoa(iface->self_addr));
+  
   /* Add routes */
   for (k = 0; k < iface->n_routes; k++) {
     IfaceRoute	const r = &iface->routes[k];
@@ -468,6 +472,10 @@ IfaceIpIfaceDown(void)
       PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf);
     r->ok = 0;
   }
+
+  /* Delete loopback route */
+  ExecCmd(LG_IFACE, "%s delete %s -iface lo0",
+    PATH_ROUTE, inet_ntoa(iface->self_addr));
 
   /* Delete any proxy arp entry */
   if (iface->proxy_addr.s_addr)
