@@ -9,6 +9,7 @@
 
 #include "ppp.h"
 #include <termios.h>
+#include <netdb.h>
 
 /*
  * DEFINITIONS
@@ -110,10 +111,18 @@ ParseAddr(char *s, struct in_range *r)
   else
     widp = "";
 
-/* Get IP address part */
+/* Get IP address part; if that fails, try looking up hostname */
 
   if (!inet_aton(buf, &address))
-    return(FALSE);
+  {
+    struct hostent	*hptr;
+    int			k;
+
+    if ((hptr = gethostbyname(buf)) == NULL)
+      return (FALSE);
+    for (k = 0; hptr->h_addr_list[k]; k++);
+    memcpy(&address, hptr->h_addr_list[random() % k], sizeof(address));
+  }
 
 /* Get mask width */
 
