@@ -13,6 +13,11 @@
     <tt><htmlurl url='mailto:mbretter@jawa.at' name='&lt;mbretter@jawa.at&gt;'></tt>
     for submitting the patches.
     </item>
+    <item>Support for finding passwords using an external authentication
+	script was added.  Thanks to Gregory Bond
+    <tt><htmlurl url='mailto:gnb@itga.com.au' name='&lt;gnb@itga.com.au&gt;'></tt>
+    for submitting the patches.
+    </item>
     <item>Fixed build failure when MICROSOFT_CHAP is not enabled.
     </item>
     <item>Enabled support for DES encryption by default in the build.
