@@ -49,17 +49,10 @@
 
       <title>Mpd &version; User Manual</title>
       <author>
-	<name>Archie Cobbs
-	<newline><tt><htmlurl url='mailto:archie@freebsd.org'
-	  name='&lt;archie@freebsd.org&gt;'></tt>
-	</name>
-	<name>Michael Bretterklieber
-	<newline><tt><htmlurl url='mailto:michael@bretterklieber.com'
-	  name='&lt;michael@bretterklieber.com&gt;'></tt>
-	</name>
-	<name>Alexander Motin
-	<newline><tt><htmlurl url='mailto:mav@alkar.net'
-	  name='&lt;mav@alkar.net&gt;'></tt>
+	<name>Archie Cobbs, Michael Bretterklieber, Alexander Motin
+	<newline><newline>
+	<tt><htmlurl url='mailto:mpd-users@lists.sourceforge.net'
+	  name='&lt;mpd-users@lists.sourceforge.net&gt;'></tt>
 	</name>
       </author>
       <date>&date;</date>
