@@ -81,6 +81,7 @@
   /* MPPE option indicies */
   int		gMppcCompress;
   int		gMppe40;
+  int		gMppe56;
   int		gMppe128;
   int		gMppcStateless;
 
@@ -95,6 +96,7 @@
   } gMppcOptions[] = {
     { "mpp-compress",	&gMppcCompress },
     { "mpp-e40",	&gMppe40 },
+    { "mpp-e56",	&gMppe56 },
     { "mpp-e128",	&gMppe128 },
     { "mpp-stateless",	&gMppcStateless },
   };
@@ -608,7 +610,9 @@ CcpCheckEncryption(void)
 
 #ifdef COMPRESSION_MPPC
   /* Was MPPE encryption enabled? If not, ignore requirement */
-  if (!Enabled(&ccp->options, gMppe40) && !Enabled(&ccp->options, gMppe128))
+  if (!Enabled(&ccp->options, gMppe40)
+      && !Enabled(&ccp->options, gMppe56)
+      && !Enabled(&ccp->options, gMppe128))
     return(0);
 
   /* Make sure MPPE was negotiated in both directions */

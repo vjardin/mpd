@@ -17,6 +17,14 @@
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_mppc.h>
 
+/* 56 bit MPPE support was only added in FreeBSD 4.5 */
+#ifndef MPPE_56
+#define MPPE_56_UNSUPPORTED
+#define MPPE_56		0x00000080
+#undef MPPE_BITS
+#define MPPE_BITS	0x000000e0
+#endif
+
 /*
  * DEFINITIONS
  */

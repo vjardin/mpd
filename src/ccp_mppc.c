@@ -285,6 +285,10 @@ MppcBuildConfigReq(u_char *cp)
   /* Encryption */
   if (Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40))
     bits |= MPPE_40;
+#ifndef MPPE_56_UNSUPPORTED
+  if (Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56))
+    bits |= MPPE_56;
+#endif
   if (Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128))
     bits |= MPPE_128;
 #endif
@@ -344,23 +348,34 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
       /* Check encryption */
       if ((bits & MPPE_40) && !Acceptable(&ccp->options, gMppe40))
 	bits &= ~MPPE_40;
+#ifndef MPPE_56_UNSUPPORTED
+      if ((bits & MPPE_56) && !Acceptable(&ccp->options, gMppe56))
+#endif
+	bits &= ~MPPE_56;
       if ((bits & MPPE_128) && !Acceptable(&ccp->options, gMppe128))
 	bits &= ~MPPE_128;
 
       /* Choose the strongest encryption available */
       if (bits & MPPE_128)
-	bits &= ~MPPE_40;
+	bits &= ~(MPPE_40|MPPE_56);
+      else if (bits & MPPE_56)
+	bits &= ~(MPPE_40|MPPE_128);
       else if (bits & MPPE_40)
-	bits &= ~MPPE_128;
+	bits &= ~(MPPE_56|MPPE_128);
 
       /* It doesn't really make sense to encrypt in only one direction.
 	 Also, Win95/98 PPTP can't handle uni-directional encryption. So
 	 if the remote side doesn't request encryption, try to prompt it.
 	 This is broken wrt. normal PPP negotiation: typical Microsoft. */
-      if (!(bits & MPPE_BITS)) {
+      if ((bits & MPPE_BITS) == 0) {
 	if (Enabled(&ccp->options, gMppe40)
 	    && !CCP_PEER_REJECTED(ccp, gMppe40))
 	  bits |= MPPE_40;
+#ifndef MPPE_56_UNSUPPORTED
+	if (Enabled(&ccp->options, gMppe56)
+	    && !CCP_PEER_REJECTED(ccp, gMppe56))
+	  bits |= MPPE_56;
+#endif
 	if (Enabled(&ccp->options, gMppe128)
 	    && !CCP_PEER_REJECTED(ccp, gMppe128))
 	  bits |= MPPE_128;
@@ -387,6 +402,8 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 #ifdef ENCRYPTION_MPPE
       if (!(bits & MPPE_40))
 	CCP_PEER_REJ(ccp, gMppe40);
+      if (!(bits & MPPE_56))
+	CCP_PEER_REJ(ccp, gMppe56);
       if (!(bits & MPPE_128))
 	CCP_PEER_REJ(ccp, gMppe128);
 #endif
@@ -435,6 +452,8 @@ MppcDescribeBits(u_int32_t bits)
     snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " MPPE");
     if (bits & MPPE_40)
       snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", 40 bit");
+    if (bits & MPPE_56)
+      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", 56 bit");
     if (bits & MPPE_128)
       snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", 128 bit");
     if (bits & MPPE_STATELESS)
