@@ -15,6 +15,7 @@
 	<itemize>
 	<item>Multi-link PPP capability
 	<item>PAP, CHAP, and MS-CHAP authentication
+	<item>RADIUS authentication and accounting
 	<item>DES and MPPE encryption
 	<item>Stac<bf>*</bf>, and MPPC<bf>*</bf> compression
 	<item>Point-to-Point Tunnelling Protocol (PPTP)
@@ -67,6 +68,8 @@
 	for use in the Whistle InterJet.
 	It is based on the original <tt>iij-ppp</tt> user-mode PPP code,
 	though it has pretty much been completely rewritten since then.
+	Mpd is now hosted on sourceforge.net
+	<htmlurl url="http://sourceforge.net/projects/mpd/" name="MPD Project Page">.
 
       <p>
 	<bf>*</bf> These protocols require source files that
