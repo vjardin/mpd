@@ -658,6 +658,7 @@ FsmRecvConfigAck(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmInitRestartCounter(fp, fp->conf.maxconfig);
       FsmInitMaxFailure(fp, fp->conf.maxfailure);
       FsmInitMaxConfig(fp, fp->conf.maxconfig);
+      TimerStart(&fp->timer);		/* Start restart timer */
       break;
     case ST_ACKRCVD:
       FsmNewState(fp, ST_REQSENT);
