@@ -86,6 +86,8 @@
    * limitation for ng_ppp_link_stat
    */
   struct linkstats {
+	struct ng_ppp_link_stat
+			oldStats;
 	struct pppTimer	updateTimer;	/* update Timer */
 	u_int64_t 	xmitFrames;	/* xmit frames on link */
 	u_int64_t 	xmitOctets;	/* xmit octets on link */
@@ -94,7 +96,7 @@
 	u_int64_t 	badProtos;	/* frames rec'd with bogus protocol */
 	u_int64_t 	runts;		/* Too short MP fragments */
 	u_int64_t 	dupFragments;	/* MP frames with duplicate seq # */
-	u_int64_t dropFragments;	/* MP fragments we had to drop */
+	u_int64_t	dropFragments;	/* MP fragments we had to drop */
   };
   typedef struct linkstat *LinkStats;
 
