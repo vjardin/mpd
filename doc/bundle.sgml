@@ -218,7 +218,6 @@ There are some minor problems:
 <itemize>
 <item>If user enters <tt>quit</tt> on the console, Account-stop will not be sent.</item>
 <item>If CCP fails but is required, Account-start and Account-stop are sent, but they shouldn't be.</item>
-<item>The session time is not calculated per link; it's the same for all links</item>
 </itemize>
 
 Note: Its possible to use RADIUS-accounting without RADIUS-authentication.
