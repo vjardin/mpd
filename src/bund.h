@@ -38,9 +38,6 @@
     BUND_CONF_CRYPT_REQD,	/* encryption is required */
     BUND_CONF_BWMANAGE,		/* dynamic bandwidth */
     BUND_CONF_ROUNDROBIN,	/* round-robin MP scheduling */
-    BUND_CONF_RADIUSAUTH,	/* enable radius auth */
-    BUND_CONF_RADIUSFALLBACK,	/* enable fallback to mpd.secret */
-    BUND_CONF_RADIUSACCT,	/* enable radius accounting */
     BUND_CONF_NORETRY,		/* don't retry failed links */
     BUND_CONF_TCPWRAPPER,	/* enable tcp-wrapper */
   };
@@ -102,7 +99,6 @@
   /* Configuration for a bundle */
   struct bundconf {
     int			mrru;			/* Initial MRU value */
-    u_long		max_logins;		/* max. number of concurrent logins */
     short		retry_timeout;		/* Timeout for retries */
     u_short		bm_S;			/* Bandwidth mgmt constants */
     u_short		bm_Hi;

@@ -25,8 +25,6 @@
   static int	RadiusPutAuth(AuthData auth);
   static int	RadiusGetParams(AuthData auth, int eap_proxy);
   static int	RadiusSendRequest(AuthData auth);
-  static const char * RadiusMPPEPolicyname(int policy);
-  static const char * RadiusMPPETypesname(int types);
 
 /* Set menu options */
 
@@ -36,7 +34,6 @@
     SET_TIMEOUT,
     SET_RETRIES,
     SET_CONFIG,
-    SET_UPDATE,
     SET_ENABLE,
     SET_DISABLE,
   };
@@ -56,8 +53,6 @@
 	RadiusSetCommand, NULL, (void *) SET_RETRIES },
     { "config <path to radius.conf>",	"set path to config file for libradius",
 	RadiusSetCommand, NULL, (void *) SET_CONFIG },
-    { "acct-update <seconds>",		"set update interval",
-	RadiusSetCommand, NULL, (void *) SET_UPDATE },
     { "enable [opt ...]",		"Enable option",
 	RadiusSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
@@ -183,6 +178,7 @@ RadiusAccount(AuthData auth)
     }
   }
 
+  /* XXX ToDo access to global bund Race Condition! */
   if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->authname) != 0 ||
       rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_ADDRESS, bund->ipcp.peer_addr)) { /*!= 0 ||
       rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ac->mask) != 0) {*/
@@ -198,6 +194,7 @@ RadiusAccount(AuthData auth)
     return;
   }
 
+  /* XXX ToDo access to global bund Race Condition! */
   if (rad_put_int(auth->radius.handle, RAD_ACCT_LINK_COUNT, bund->n_links) != 0) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_LINK_COUNT) failed: %s", 
       lnk->name, function, rad_strerror(auth->radius.handle)));
@@ -296,15 +293,17 @@ RadiusClose(AuthData auth)
 int
 RadStat(int ac, char *av[], void *arg)
 {
-  int		i;
   RadConf	const conf = &bund->conf.auth.radius;
+  Auth		const a = &lnk->lcp.auth;
+  int		i;
+  char		*buf;
   RadServe_Conf	server;
 
+  printf("Configuration:\n");
   printf("\tTimeout      : %d\n", conf->radius_timeout);
   printf("\tRetries      : %d\n", conf->radius_retries);
   printf("\tConfig-file  : %s\n", conf->file);
   printf("\tMe (NAS-IP)  : %s\n", inet_ntoa(conf->radius_me));
-  printf("\tAcct-Interval: %d\n", conf->acct_update);
   
   if (conf->server != NULL) {
 
@@ -326,6 +325,17 @@ RadStat(int ac, char *av[], void *arg)
   printf("RADIUS options\n");
   OptStat(&conf->options, gConfList);
 
+  printf("Data:\n");
+  printf("\tAuthenticated  : %s\n", a->radius.authentic ? "yes" : "no");
+  printf("\tClass          : %ld\n", a->radius.class);
+  printf("\tACL Rule       : %s\n", a->radius.acl_rule ? "yes" : "no");
+  printf("\tACL Pipe       : %s\n", a->radius.acl_pipe ? "yes" : "no");
+  printf("\tACL Queue      : %s\n", a->radius.acl_queue ? "yes" : "no");
+  
+  buf = Bin2Hex(a->radius.state, a->radius.state_len); 
+  printf("\tState          : %s\n", buf);
+  Freee(MB_UTIL, buf);
+  
   return (0);
 }
 
@@ -459,14 +469,6 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 	    Log(LG_ERR, ("Timeout must be positive."));
 	  else
 	    conf->radius_timeout = val;
-	break;
-
-      case SET_UPDATE:
-	val = atoi(*av);
-	  if (val <= 0)
-	    Log(LG_ERR, ("Update interval must be positive."));
-	   else
-	     conf->acct_update = val;
 	break;
 
       case SET_RETRIES:
@@ -1021,9 +1023,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
         break;
 
      case RAD_ACCT_INTERIM_INTERVAL:
-	a->params.interim_interval = rad_cvt_int(data);
+	a->params.acct_update = rad_cvt_int(data);
         Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_ACCT_INTERIM_INTERVAL: %lu ",
-          lnk->name, function, a->params.interim_interval));
+          lnk->name, function, a->params.acct_update));
 	break;
 
       case RAD_FRAMED_MTU:
@@ -1199,13 +1201,13 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
 		a->mppc.policy = rad_cvt_int(data);
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY: %d (%s)",
-		  lnk->name, function, a->mppc.policy, RadiusMPPEPolicyname(a->mppc.policy)));
+		  lnk->name, function, a->mppc.policy, AuthMPPEPolicyname(a->mppc.policy)));
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES:
 		a->mppc.types = rad_cvt_int(data);
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES: %d (%s)",
-		  lnk->name, function, a->mppc.types, RadiusMPPETypesname(a->mppc.types)));
+		  lnk->name, function, a->mppc.types, AuthMPPETypesname(a->mppc.types)));
 		break;
 
 	      default:
@@ -1315,42 +1317,4 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   return RAD_ACK;
 }
 
-static const char *
-RadiusMPPEPolicyname(int policy) 
-{
-  switch(policy) {
-    case MPPE_POLICY_ALLOWED:
-      return "Allowed";
-    case MPPE_POLICY_REQUIRED:
-      return "Required";
-    case MPPE_POLICY_NONE:
-      return "Not available";
-    default:
-      return "Unknown Policy";
-  }
 
-}
-
-static const char *
-RadiusMPPETypesname(int types) {
-  static char res[30];
-
-  memset(res, 0, sizeof res);
-  if (types == 0) {
-    sprintf(res, "no encryption required");
-    return res;
-  }
-
-  if (types & MPPE_TYPE_40BIT) sprintf (res, "40 ");
-  if (types & MPPE_TYPE_56BIT) sprintf (&res[strlen(res)], "56 ");
-  if (types & MPPE_TYPE_128BIT) sprintf (&res[strlen(res)], "128 ");
-
-  if (strlen(res) == 0) {
-    sprintf (res, "unknown types");
-  } else {
-    sprintf (&res[strlen(res)], "bit");
-  }
-
-  return res;
-
-}

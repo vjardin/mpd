@@ -56,15 +56,6 @@
   #define AUTH_LEN		16
   #define SALT_LEN		2
 
-  #define MPPE_POLICY_NONE	0
-  #define MPPE_POLICY_ALLOWED	1
-  #define MPPE_POLICY_REQUIRED	2
-
-  #define MPPE_TYPE_0BIT	0	/* No encryption required */
-  #define MPPE_TYPE_40BIT	2
-  #define MPPE_TYPE_128BIT	4
-  #define MPPE_TYPE_56BIT	8
-
   /* max. length of RAD_ACCT_SESSION_ID, RAD_ACCT_MULTI_SESSION_ID */
   #define RAD_ACCT_MAX_SESSIONID	256
 

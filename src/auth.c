@@ -29,6 +29,86 @@
   static void	AuthAccount(void *arg);
   static void	AuthAccountFinish(void *arg, int was_canceled);
   static const char *AuthCode(int proto, u_char code);
+  static int	AuthSetCommand(int ac, char *av[], void *arg);
+
+  /* Set menu options */
+  enum {
+    SET_ACCEPT,
+    SET_DENY,
+    SET_ENABLE,
+    SET_DISABLE,
+    SET_YES,
+    SET_NO,
+    SET_AUTHNAME,
+    SET_PASSWORD,
+    SET_MAX_LOGINS,
+    SET_ACCT_UPDATE,
+    SET_TIMEOUT,
+  };
+
+/*
+ * GLOBAL VARIABLES
+ */
+
+  const struct cmdtab AuthSetCmds[] = {
+    { "max-logins num",			"Max concurrent logins",
+	AuthSetCommand, NULL, (void *) SET_MAX_LOGINS },
+    { "authname name",			"Authentication name",
+	AuthSetCommand, NULL, (void *) SET_AUTHNAME },
+    { "password pass",			"Authentication password",
+	AuthSetCommand, NULL, (void *) SET_PASSWORD },
+    { "acct-update <seconds>",		"set update interval",
+	AuthSetCommand, NULL, (void *) SET_ACCT_UPDATE },
+    { "timeout <seconds>",		"set auth timeout",
+	AuthSetCommand, NULL, (void *) SET_TIMEOUT },
+    { "accept [opt ...]",		"Accept option",
+	AuthSetCommand, NULL, (void *) SET_ACCEPT },
+    { "deny [opt ...]",			"Deny option",
+	AuthSetCommand, NULL, (void *) SET_DENY },
+    { "enable [opt ...]",		"Enable option",
+	AuthSetCommand, NULL, (void *) SET_ENABLE },
+    { "disable [opt ...]",		"Disable option",
+	AuthSetCommand, NULL, (void *) SET_DISABLE },
+    { "yes [opt ...]",			"Enable and accept option",
+	AuthSetCommand, NULL, (void *) SET_YES },
+    { "no [opt ...]",			"Disable and deny option",
+	AuthSetCommand, NULL, (void *) SET_NO },
+    { NULL },
+  };
+
+/*
+ * INTERNAL VARIABLES
+ */
+
+  static struct confinfo	gConfList[] = {
+    { 0,	AUTH_CONF_RADIUS_AUTH,	"radius-auth"	},
+    { 0,	AUTH_CONF_RADIUS_ACCT,	"radius-acct"	},
+    { 0,	AUTH_CONF_INTERNAL,	"internal"	},
+    { 0,	AUTH_CONF_MPPC_POL,	"mppc-pol"	},
+    { 0,	0,			NULL		},
+  };
+
+/*
+ * AuthInit()
+ */
+
+void
+AuthInit(void)
+{
+  AuthConf	const ac = &bund->conf.auth;
+  
+  Disable(&ac->radius.options, RADIUS_CONF_MESSAGE_AUTHENTIC);
+  Disable(&ac->radius.options, AUTH_CONF_RADIUS_AUTH);
+  Disable(&ac->radius.options, AUTH_CONF_RADIUS_ACCT);
+  
+  Enable(&ac->options, AUTH_CONF_INTERNAL);
+  
+  /* default auth timeout */
+  ac->timeout = 40;
+  
+  /* unlimited concurrent logins */
+  ac->max_logins = 0;
+}
 
 /*
  * AuthStart()
@@ -60,7 +140,7 @@ AuthStart(void)
 
   /* Start global auth timer */
   TimerInit(&a->timer, "AuthTimer",
-    LCP_AUTH_TIMEOUT * SECONDS, AuthTimeout, NULL);
+    bund->conf.auth.timeout * SECONDS, AuthTimeout, NULL);
   TimerStart(&a->timer);
 
   /* Start my auth to him */
@@ -391,6 +471,44 @@ AuthStop(void)
 }
 
 /*
+ * AuthStat()
+ *
+ * Show auth stats
+ */
+ 
+int
+AuthStat(int ac, char *av[], void *arg)
+{
+  AuthConf	const conf = &bund->conf.auth;
+  Auth		const a = &lnk->lcp.auth;
+
+  printf("Configuration:\n");
+  printf("\tAuthname        : %s\n", conf->authname);
+  printf("\tMax-Logins      : %d\n", conf->max_logins);
+  printf("\tAcct Update     : %d\n", conf->acct_update);
+  printf("\tTimeout         : %d\n", conf->timeout);
+  
+  printf("Auth options\n");
+  OptStat(&conf->options, gConfList);
+
+  printf("Auth Data\n");
+  printf("\tMTU             : %ld\n", a->params.mtu);
+  printf("\tSession-Timeout : %ld\n", a->params.session_timeout);
+  printf("\tIdle-Timeout    : %ld\n", a->params.idle_timeout);
+  printf("\tAcct-Update     : %ld\n", a->params.acct_update);
+  printf("\tNum Routes      : %d\n", a->params.n_routes);
+  printf("\tMS-Domain       : %s\n", a->params.msdomain);  
+  printf("\tMPPE Types      : %s\n", AuthMPPEPolicyname(a->mppc.policy));
+  printf("\tMPPE Policy     : %s\n", AuthMPPETypesname(a->mppc.types));
+  printf("\tMPPE Keys       : %s\n", a->mppc.has_keys ? "yes" : "no");
+  printf("\tMPPE LM-Key     : %s\n", a->mppc.has_lm_key ? "yes" : "no");  
+  printf("\tMPPE NT-Hash    : %s\n", a->mppc.has_nt_hash ? "yes" : "no");    
+
+  return (0);
+}
+
+
+/*
  * AuthAccount()
  *
  * Accounting stuff, 
@@ -403,7 +521,7 @@ AuthAccountStart(int type)
   AuthData	auth;
   u_long	updateInterval = 0;
   
-  if (!Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT))
+  if (!Enabled(&bund->conf.auth.options, AUTH_CONF_RADIUS_ACCT))
     return;
     
   if (type == AUTH_ACCT_START) {
@@ -411,10 +529,10 @@ AuthAccountStart(int type)
     /* maybe an outstanding thread is running */
     paction_cancel(&a->acct_thread);
     
-    if (a->params.interim_interval > 0)
-      updateInterval = a->params.interim_interval;
-    else if (bund->conf.auth.radius.acct_update > 0)
-      updateInterval = bund->conf.auth.radius.acct_update;
+    if (a->params.acct_update > 0)
+      updateInterval = a->params.acct_update;
+    else if (bund->conf.auth.acct_update > 0)
+      updateInterval = bund->conf.auth.acct_update;
 
     if (updateInterval > 0) {
       TimerInit(&a->acct_timer, "AuthAccountTimer",
@@ -472,7 +590,7 @@ AuthAccount(void *arg)
 
   Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", lnk->name));
   
-  if (Enabled(&bund->conf.options, BUND_CONF_RADIUSACCT))
+  if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
     RadiusAccount(auth);
 
 }
@@ -520,7 +638,8 @@ AuthAccountFinish(void *arg, int was_canceled)
 int
 AuthGetData(AuthData auth, int complain)
 {
-  Link		lnk = auth->lnk;	/* hide the global "lnk" */
+  /* uncomment this, if access to the link is needed */
+  /*Link		lnk = auth->lnk;*/	/* hide the global "lnk" */
   FILE		*fp;
   int		ac;
   char		*av[20];
@@ -632,7 +751,7 @@ AuthAsync(void *arg)
       && Enabled(&eap->conf.options, EAP_CONF_RADIUS)) {
     RadiusEapProxy(auth);
     return;
-  } else if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) {
+  } else if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_AUTH)) {
     Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", lnk->name));
     RadiusAuthenticate(auth);
     Log(LG_AUTH, ("[%s] AUTH: RADIUS returned %s", 
@@ -641,19 +760,26 @@ AuthAsync(void *arg)
       return;
     }
   
-    if (!Enabled(&bund->conf.options, BUND_CONF_RADIUSFALLBACK)) {
+    if (!Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
       return;
     }
   }
 
-  Log(LG_AUTH, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
-  /* The default action, simply fetch the secret pass and return */
-  Log(LG_AUTH, (" Peer name: \"%s\"", auth->authname));
-  if (AuthGetData(auth, 1) < 0) {
-    Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->authname));
-    auth->status = AUTH_STATUS_FAIL;
-    return;
+  
+  if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
+    Log(LG_AUTH, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
+    /* The default action, simply fetch the secret pass and return */
+    Log(LG_AUTH, (" Peer name: \"%s\"", auth->authname));
+    if (AuthGetData(auth, 1) < 0) {
+      Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->authname));
+      auth->status = AUTH_STATUS_FAIL;
+      return;
+    }
+  } else {
+    if (auth->status == AUTH_STATUS_UNDEF) {
+      Log(LG_ERR, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
+    }
   }
   
   /* the finish handler make's the validation */
@@ -711,7 +837,7 @@ static int
 AuthPreChecks(AuthData auth, int complain)
 {
   /* check max. number of logins */
-  if (bund->conf.max_logins != 0) {
+  if (bund->conf.auth.max_logins != 0) {
     int		ac;
     u_long	num = 0;
     for(ac = 0; ac < gNumBundles; ac++)
@@ -719,7 +845,7 @@ AuthPreChecks(AuthData auth, int complain)
 	if (!strcmp(gBundles[ac]->peer_authname, auth->authname))
 	  num++;
 
-    if (num >= bund->conf.max_logins) {
+    if (num >= bund->conf.auth.max_logins) {
       if (complain) {
 	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
 	  auth->authname));
@@ -835,6 +961,55 @@ AuthStatusText(int status)
   }
 }
 
+/* 
+ * AuthMPPEPolicyname()
+ */
+
+const char *
+AuthMPPEPolicyname(int policy) 
+{
+  switch(policy) {
+    case MPPE_POLICY_ALLOWED:
+      return "Allowed";
+    case MPPE_POLICY_REQUIRED:
+      return "Required";
+    case MPPE_POLICY_NONE:
+      return "Not available";
+    default:
+      return "Unknown Policy";
+  }
+
+}
+
+/* 
+ * AuthMPPETypesname()
+ */
+
+const char *
+AuthMPPETypesname(int types) 
+{
+  static char res[30];
+
+  memset(res, 0, sizeof res);
+  if (types == 0) {
+    sprintf(res, "no encryption required");
+    return res;
+  }
+
+  if (types & MPPE_TYPE_40BIT) sprintf (res, "40 ");
+  if (types & MPPE_TYPE_56BIT) sprintf (&res[strlen(res)], "56 ");
+  if (types & MPPE_TYPE_128BIT) sprintf (&res[strlen(res)], "128 ");
+
+  if (strlen(res) == 0) {
+    sprintf (res, "unknown types");
+  } else {
+    sprintf (&res[strlen(res)], "bit");
+  }
+
+  return res;
+
+}
+
 /*
  * AuthGetExternalPassword()
  *
@@ -896,3 +1071,79 @@ AuthCode(int proto, u_char code)
       return(buf);
   }
 }
+
+
+/*
+ * AuthSetCommand()
+ */
+
+static int
+AuthSetCommand(int ac, char *av[], void *arg)
+{
+  AuthConf	const autc = &bund->conf.auth;
+  int		val;
+
+  if (ac == 0)
+    return(-1);
+
+  switch ((intptr_t)arg) {
+
+    case SET_AUTHNAME:
+      snprintf(autc->authname, sizeof(autc->authname), "%s", *av);
+      break;
+
+    case SET_PASSWORD:
+      snprintf(autc->password, sizeof(autc->password), "%s", *av);
+      break;
+      
+    case SET_MAX_LOGINS:
+      autc->max_logins = atoi(*av);
+      break;
+      
+    case SET_ACCT_UPDATE:
+      val = atoi(*av);
+      if (val < 0)
+	Log(LG_ERR, ("Update interval must be positive."));
+      else
+	autc->acct_update = val;
+      break;
+
+    case SET_TIMEOUT:
+      val = atoi(*av);
+      if (val <= 20)
+	Log(LG_ERR, ("Authorization timeout must be greater then 20."));
+      else
+	autc->timeout = val;
+      break;
+      
+    case SET_ACCEPT:
+      AcceptCommand(ac, av, &autc->options, gConfList);
+      break;
+
+    case SET_DENY:
+      DenyCommand(ac, av, &autc->options, gConfList);
+      break;
+
+    case SET_ENABLE:
+      EnableCommand(ac, av, &autc->options, gConfList);
+      break;
+
+    case SET_DISABLE:
+      DisableCommand(ac, av, &autc->options, gConfList);
+      break;
+
+    case SET_YES:
+      YesCommand(ac, av, &autc->options, gConfList);
+      break;
+
+    case SET_NO:
+      NoCommand(ac, av, &autc->options, gConfList);
+      break;
+
+    default:
+      assert(0);
+  }
+
+  return(0);
+}
+

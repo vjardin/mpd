@@ -85,8 +85,6 @@
   int		gMppe128;
   int		gMppcStateless;
   
-  /* whether to enable radius for ccp layer */
-  int		gCcpAuth;
 
 /*
  * INTERNAL VARIABLES
@@ -102,7 +100,6 @@
     { "mpp-e56",	&gMppe56 },
     { "mpp-e128",	&gMppe128 },
     { "mpp-stateless",	&gMppcStateless },
-    { "auth",		&gCcpAuth },    
   };
   #define CCP_NUM_MPPC_OPT	(sizeof(gMppcOptions) / sizeof(*gMppcOptions))
 
@@ -608,7 +605,7 @@ CcpCheckEncryption(void)
   ccp->crypt_check = 1;
 
   /* Is encryption required? */
-  if (Enabled(&ccp->options, gCcpAuth)) {
+  if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
     if (a->mppc.policy != MPPE_POLICY_REQUIRED) 
       return(0);
   } else {
@@ -620,7 +617,7 @@ CcpCheckEncryption(void)
   if (!Enabled(&ccp->options, gMppe40)
       && !Enabled(&ccp->options, gMppe56)
       && !Enabled(&ccp->options, gMppe128)
-      && !Enabled(&ccp->options, gCcpAuth))
+      && !Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL))
     return(0);
 
   /* Make sure MPPE was negotiated in both directions */

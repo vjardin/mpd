@@ -51,6 +51,24 @@
   #define AUTH_ACCT_STOP		2
   #define AUTH_ACCT_UPDATE		3
   
+  #define MPPE_POLICY_NONE	0
+  #define MPPE_POLICY_ALLOWED	1
+  #define MPPE_POLICY_REQUIRED	2
+
+  #define MPPE_TYPE_0BIT	0	/* No encryption required */
+  #define MPPE_TYPE_40BIT	2
+  #define MPPE_TYPE_128BIT	4
+  #define MPPE_TYPE_56BIT	8
+  
+  /* Configuration options */
+  enum {
+    AUTH_CONF_RADIUS_AUTH,
+    AUTH_CONF_RADIUS_ACCT,
+    AUTH_CONF_INTERNAL,
+    AUTH_CONF_MAX_LOGINS,
+    AUTH_CONF_MPPC_POL,
+  };  
+  
   /* State of authorization process during authorization phase,
    * contains params set by the auth-backend */
   struct auth {
@@ -79,8 +97,9 @@
       int	types;		/* MPPE_TYPE_*BIT bitmask */
       int	has_keys;
       int	has_lm_key;
-      u_char	lm_key[8];	/* LAN-Manager Hash */
       int	has_nt_hash;
+      /* don't split the next 3 elements */
+      u_char	lm_key[8];	/* LAN-Manager Hash */
       u_char	nt_hash[16];	/* NT-Hash */
       u_char	padding[8];	/* Padding to fit in 16 byte boundary */
     } mppc;
@@ -88,7 +107,7 @@
       unsigned long	mtu;			/* MTU */
       unsigned long	session_timeout;	/* Session-Timeout */
       unsigned long	idle_timeout;		/* Idle-Timeout */
-      unsigned long	interim_interval;	/* interval for accouting updates */
+      unsigned long	acct_update;		/* interval for accouting updates */
       char		*msdomain;		/* Microsoft domain */
       short		n_routes;
       struct ifaceroute	routes[IFACE_MAX_ROUTES];
@@ -100,6 +119,9 @@
     struct radiusconf	radius;		/* RADIUS configuration */
     char		authname[AUTH_MAX_AUTHNAME];	/* Configured username */
     char		password[AUTH_MAX_PASSWORD];	/* Configured password */
+    int			max_logins;	/* max number of concurrent logins per user */
+    int			acct_update;
+    int			timeout;	/* Authorization timeout in seconds */
     struct optinfo	options;	/* Configured options */
   };
   typedef struct authconf	*AuthConf;
@@ -141,6 +163,8 @@
   };
   typedef struct authdata	*AuthData;
   
+  extern const struct cmdtab AuthSetCmds[];
+
 /*
  * GLOBAL VARIABLES
  */
@@ -150,6 +174,7 @@
  * FUNCTIONS
  */
 
+  extern void	AuthInit(void);
   extern void	AuthStart(void);
   extern void	AuthStop(void);
   extern void	AuthInput(int proto, Mbuf bp);
@@ -157,12 +182,16 @@
 	const u_char *ptr, int len, int add_len, u_char eap_type);
   extern void	AuthFinish(int which, int ok, AuthData auth);
   extern void	AuthCleanup(void);
+  extern int	AuthStat(int ac, char *av[], void *arg);
   extern void	AuthAccountStart(int type);
   extern void	AuthDataDestroy(AuthData auth);
   extern int	AuthGetData(AuthData auth, int complain);
   extern void	AuthAsyncStart(AuthData auth);
   extern const char	*AuthFailMsg(AuthData auth, int alg);
   extern const char	*AuthStatusText(int status);
+  extern const char	*AuthMPPEPolicyname(int policy);
+  extern const char	*AuthMPPETypesname(int types);
+
 
 
 #endif

@@ -460,7 +460,7 @@ MppcEnabledMppeType(short type)
  
   switch (type) {
   case 40:
-    if (Enabled(&ccp->options, gCcpAuth)) {
+    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;
       ret = (a->mppc.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
@@ -470,7 +470,7 @@ MppcEnabledMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&ccp->options, gCcpAuth)) {
+    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;    
       ret = (a->mppc.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
@@ -482,7 +482,7 @@ MppcEnabledMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&ccp->options, gCcpAuth)) {
+    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;    
       ret = (a->mppc.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
@@ -503,7 +503,7 @@ MppcAcceptableMppeType(short type)
   
   switch (type) {
   case 40:
-    if (Enabled(&ccp->options, gCcpAuth)) {
+    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;
       ret = a->mppc.types & MPPE_TYPE_40BIT;
     } else {
@@ -513,7 +513,7 @@ MppcAcceptableMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&ccp->options, gCcpAuth)) {
+    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;
       ret = a->mppc.types & MPPE_TYPE_56BIT;
     } else {
@@ -525,7 +525,7 @@ MppcAcceptableMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&ccp->options, gCcpAuth)) {
+    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
       policy_auth = TRUE;    
       ret = a->mppc.types & MPPE_TYPE_128BIT;
     } else {

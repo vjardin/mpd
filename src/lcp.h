@@ -26,11 +26,6 @@
   #define LCP_DEFAULT_MRU	1500	/* Per RFC 1661 */
   #define LCP_MIN_MRU		296
 
-  /* Authorization timeout in seconds */
-  /* mbretter: increased from 20 to 40 secs, because to low
-   * if Mpd is proxying EAP requests */
-  #define LCP_AUTH_TIMEOUT	40
-
   #define LCP_NUM_AUTH_PROTOS	5
 
   struct lcpauthproto {

@@ -346,6 +346,7 @@ LinkStat(int ac, char *av[], void *arg)
     printf("every %d secs, timeout %d\n",
       lnk->lcp.fsm.conf.echo_int, lnk->lcp.fsm.conf.echo_max);
   printf("\tIdent string   : \"%s\"\n", lnk->conf.ident ? lnk->conf.ident : "");
+  printf("\tSession-Id     : %s\n", lnk->session_id);
   printf("Link level options\n");
   OptStat(&lnk->conf.options, gConfList);
   LinkUpdateStats();

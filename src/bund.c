@@ -43,7 +43,6 @@
     SET_MIN_DISCONNECT,
     SET_AUTHNAME,
     SET_PASSWORD,
-    SET_MAX_LOGINS,
     SET_RETRY,
     SET_ACCEPT,
     SET_DENY,
@@ -94,12 +93,6 @@
 	BundSetCommand, NULL, (void *) SET_MIN_CONNECT },
     { "min-dis seconds",		"BOD min disconnected time",
 	BundSetCommand, NULL, (void *) SET_MIN_DISCONNECT },
-    { "authname name",			"Authentication name",
-	BundSetCommand, NULL, (void *) SET_AUTHNAME },
-    { "password pass",			"Authentication password",
-	BundSetCommand, NULL, (void *) SET_PASSWORD },
-    { "max-logins num",			"Max concurrent logins",
-	BundSetCommand, NULL, (void *) SET_MAX_LOGINS },
     { "retry seconds",			"FSM retry timeout",
 	BundSetCommand, NULL, (void *) SET_RETRY },
     { "accept [opt ...]",		"Accept option",
@@ -129,9 +122,6 @@
     { 0,	BUND_CONF_CRYPT_REQD,	"crypt-reqd"	},
     { 0,	BUND_CONF_BWMANAGE,	"bw-manage"	},
     { 0,	BUND_CONF_ROUNDROBIN,	"round-robin"	},
-    { 0,	BUND_CONF_RADIUSAUTH,	"radius-auth"	},
-    { 0,	BUND_CONF_RADIUSFALLBACK,	"radius-fallback"	},
-    { 0,	BUND_CONF_RADIUSACCT,	"radius-acct"	},
     { 0,	BUND_CONF_NORETRY,	"noretry"	},
     { 0,	BUND_CONF_TCPWRAPPER,	"tcp-wrapper"	},
     { 0,	0,			NULL		},
@@ -730,7 +720,6 @@ fail:
   bund->conf.bm_Lo = BUND_BM_DFL_Lo;
   bund->conf.bm_Mc = BUND_BM_DFL_Mc;
   bund->conf.bm_Md = BUND_BM_DFL_Md;
-  bund->conf.max_logins = 0;	/* unlimited concurrent logins */
 
   Enable(&bund->conf.options, BUND_CONF_MULTILINK);
   Enable(&bund->conf.options, BUND_CONF_SHORTSEQ);
@@ -740,16 +729,14 @@ fail:
   Disable(&bund->conf.options, BUND_CONF_COMPRESSION);
   Disable(&bund->conf.options, BUND_CONF_ENCRYPTION);
   Disable(&bund->conf.options, BUND_CONF_CRYPT_REQD);
-  Disable(&bund->conf.options, BUND_CONF_RADIUSAUTH);
-  Disable(&bund->conf.options, BUND_CONF_RADIUSFALLBACK);
-
-  Disable(&bund->conf.auth.radius.options, RADIUS_CONF_MESSAGE_AUTHENTIC);
 
   /* Init NCP's */
   IpcpInit();
   CcpInit();
   EcpInit();
-
+  
+  AuthInit();
+  
   /* Done */
   return(0);
 }
@@ -794,6 +781,7 @@ BundStat(int ac, char *av[], void *arg)
   printf("\tLinks          : ");
   BundShowLinks(sb);
   printf("\tStatus         : %s\n", sb->open ? "OPEN" : "CLOSED");
+  printf("\tSession-Id     : %s\n", sb->session_id);
   printf("\tTotal bandwidth: %u\n", tbw);
   printf("\tAvail bandwidth: %u\n", bw);
   printf("\tPeer authname  : \"%s\"\n", sb->peer_authname);
@@ -809,7 +797,6 @@ BundStat(int ac, char *av[], void *arg)
   printf("\tHigh water mark: %d%%\n", sb->conf.bm_Hi);
   printf("\tMin connected  : %d seconds\n", sb->conf.bm_Mc);
   printf("\tMax connected  : %d seconds\n", sb->conf.bm_Md);
-  printf("\tMax logins     : %ld\n", sb->conf.max_logins);
   printf("Bundle level options:\n");
   OptStat(&sb->conf.options, gConfList);
 
@@ -1099,24 +1086,6 @@ BundSetCommand(int ac, char *av[], void *arg)
       break;
     case SET_MIN_DISCONNECT:
       bund->conf.bm_Md = atoi(*av);
-      break;
-
-    case SET_AUTHNAME:
-      Log(LG_ERR, ("[%s] 'set bundle authname' is deprecated, use 'set auth authname' instead", 
-        bund->name));
-      snprintf(bund->conf.auth.authname, sizeof(bund->conf.auth.authname), 
-        "%s", *av);
-      break;
-
-    case SET_PASSWORD:
-      Log(LG_ERR, ("[%s] 'set bundle password' is deprecated, use 'set auth password' instead", 
-        bund->name));
-      snprintf(bund->conf.auth.password, sizeof(bund->conf.auth.password), 
-        "%s", *av);
-      break;
-
-    case SET_MAX_LOGINS:
-      bund->conf.max_logins = atoi(*av);
       break;
 
     case SET_RETRY:
