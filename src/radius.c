@@ -277,10 +277,8 @@ int RadiusStart(short request_type)
   char			host[MAXHOSTNAMELEN];
   struct in_addr	*peer_ip;
   char			*peeripname;
-#ifdef PPPOE_PATCHES
   u_char		*peer_mac;
   char			peermacname[18];
-#endif
 
   if (RadiusInit(request_type) == RAD_NACK) 
     return RAD_NACK;
@@ -352,7 +350,6 @@ int RadiusStart(short request_type)
     } 
   }
 
-#ifdef PPPOE_PATCHES
   peer_mac = PppoeGetPeerAddr();
   if ((peer_mac != NULL) && 
       ((peer_mac[0] != 0) || (peer_mac[1] != 0) || (peer_mac[2] != 0) || 
@@ -367,7 +364,6 @@ int RadiusStart(short request_type)
       return (RAD_NACK);
     }
   }
-#endif
   
   return RAD_ACK;
 }
