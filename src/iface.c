@@ -247,7 +247,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
   /* Start Session timer */
   TimerStop(&iface->sessionTimer);
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSSESSION) && rad->valid) {
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSSESSION) && rad->authenticated) {
     iface->session_timeout = rad->session_timeout;
     Log(LG_IFACE, ("[%s] IFACE: using RADIUS session-timeout: %d seconds", 
       bund->name, iface->session_timeout));
@@ -262,7 +262,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
   /* Start idle timer */
   TimerStop(&iface->idleTimer);
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSIDLE) && rad->valid) {
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSIDLE) && rad->authenticated) {
     iface->idle_timeout = rad->idle_timeout;
     Log(LG_IFACE, ("[%s] IFACE: using RADIUS idle-timeout: %d seconds", 
       bund->name, iface->idle_timeout));
@@ -310,8 +310,10 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 #endif
 
   /* Turn on interface traffic flow */
-  if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX))
+  if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
+    Log(LG_ERR, ("[%s] enabling TCPMSSFIX", bund->name));
     NgFuncConfigBPF(bund, BPF_MODE_MSSFIX);
+  }
   else 
     NgFuncConfigBPF(bund, BPF_MODE_ON);
 
@@ -378,7 +380,6 @@ IfaceListenInput(int proto, Mbuf pkt)
   assert(proto == PROTO_IP);
   fsm = &bund->ipcp.fsm;
 
-  /* Maybe do dial-on-demand here */
   if (OPEN_STATE(fsm->state)) {
     if (bund->bm.n_up > 0) {
       if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
@@ -408,6 +409,7 @@ IfaceListenInput(int proto, Mbuf pkt)
     } else {
       IfaceCachePkt(proto, pkt);
     }
+  /* Maybe do dial-on-demand here */
   } else if (iface->open && isDemand) {
     Log(LG_IFACE, ("[%s] outgoing packet is demand", bund->name));
     RecordLinkUpDownReason(NULL, 1, STR_DEMAND, "%s", AsciifyPacket(pkt));
@@ -1233,7 +1235,7 @@ IfaceSetMTU(int mtu, int speed)
     DoExit(EX_ERRDEAD);
   }
 
-  if (Enabled(&iface->options, IFACE_CONF_RADIUSMTU) && rad->valid && (rad->mtu > 0)) {
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSMTU) && rad->authenticated && (rad->mtu > 0)) {
     iface->max_mtu = rad->mtu;
     Log(LG_IFACE, ("[%s] IFACE: using RADIUS max. mtu: %d",
       bund->name, iface->max_mtu));
@@ -1439,7 +1441,7 @@ IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss)
 	  continue;
 	mss = (u_int16_t *)(opt + 2);
 	if (ntohs(*mss) > maxmss) {
-#if 0
+#if 1
 	  Log(LG_IFACE, ("[%s] MSS: %u -> %u",
 	    bund->name, ntohs(*mss), maxmss));
 #endif
