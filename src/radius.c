@@ -18,6 +18,7 @@
   static int RadiusAddServer (void);
   static void RadiusInit(void);
   static void RadiusMPPEExtractKey(const void *mangled, size_t mlen, u_char *buf, size_t *len);
+  static int RadiusDecryptPassword(const void *mangled, size_t clen, u_char *P);
   static const char * RadiusMPPEPolicyname(int policy);
   static const char * RadiusMPPETypesname(int types);
 
@@ -472,6 +473,7 @@ RadiusGetParams() {
                 }
                 break;
 
+              // MPPE Keys MS-CHAPv2
               case RAD_MICROSOFT_MS_MPPE_RECV_KEY:
                 Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_RECV_KEY",
                   lnk->name, function));
@@ -482,6 +484,22 @@ RadiusGetParams() {
                 Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_SEND_KEY",
                   lnk->name, function));
                 RadiusMPPEExtractKey(data, len, rad->mppe.sendkey, &rad->mppe.sendkeylen);
+                break;
+
+              // MPPE Keys MS-CHAPv1
+              case RAD_MICROSOFT_MS_CHAP_MPPE_KEYS:
+                Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP_MPPE_KEYS",
+                  lnk->name, function));
+
+                if (len != 32) {
+                  Log(LG_RADIUS, ("[%s] RADIUS: %s: Server returned garbage %d of expected %d Bytes",
+                    lnk->name, function, len, 32));
+                  return RAD_NACK;
+                }
+
+                if (RadiusDecryptPassword(data, len, rad->mppe.lm_key) == RAD_NACK) {
+                  return RAD_NACK;
+                }
                 break;
 
               case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
@@ -739,4 +757,51 @@ RadiusMPPETypesname(int types) {
 
   return res;
 
+}
+
+/* Decrypting Radius Password */
+/* For exact description see RFC2865 */
+static int
+RadiusDecryptPassword(const void *mangled, size_t clen, u_char *P) {
+  char  function[] = "RadiusDecryptPassword";
+  char R[AUTH_LEN];
+  const char *S;
+  int i, Ppos;
+  MD5_CTX Context;
+  u_char b[16], *C;
+
+  C = (u_char *)mangled;
+
+  /* We need the shared secret as Salt */
+  S = rad_server_secret(bund->radius.radh);
+
+  /* We need the request authenticator */
+  if (rad_request_authenticator(bund->radius.radh, R, sizeof R) != AUTH_LEN) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: Cannot obtain the RADIUS request authenticator",
+      lnk->name, function));
+    return RAD_NACK;
+  }
+
+  MD5Init(&Context);
+  MD5Update(&Context, S, strlen(S));
+  MD5Update(&Context, R, AUTH_LEN);
+  MD5Final(b, &Context);
+  Ppos = 0;
+  while (clen) {
+
+    clen -= 16;
+    for (i = 0; i < 16; i++)
+      P[Ppos++] = C[i] ^ b[i];
+
+    if (clen) {
+      MD5Init(&Context);
+      MD5Update(&Context, S, strlen(S));
+      MD5Update(&Context, C, 16);
+      MD5Final(b, &Context);
+    }
+
+    C += 16;
+  }
+
+  return RAD_ACK;
 }

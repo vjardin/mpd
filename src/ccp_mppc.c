@@ -487,13 +487,6 @@ MppeInitKey(MppcInfo mppc, int dir)
   char		*pass;
   u_char	*chal;
 
-  /* If using RADIUS, key info comes from the server */
-  if (bund->radius.valid) {
-    Log(LG_ERR, ("[%s] RADIUS support for MPPE/MS-CHAPv1 is unimplemented;"
-	" MS-CHAPv2 required", lnk->name));
-    return;
-  }
-
   /* Get credential info */
   if (MppeGetKeyInfo(&pass, &chal) < 0)
     return;
@@ -502,18 +495,25 @@ MppeInitKey(MppcInfo mppc, int dir)
   if (bits & MPPE_128) {
     MD4_CTX	c;
 
-    NTPasswordHash(pass, hash);
-    KEYDEBUG((hash, sizeof(hash), "NTPasswordHash"));
-    MD4Init(&c);
-    MD4Update(&c, hash, 16);
-    MD4Final(hash, &c);
-    KEYDEBUG((hash, sizeof(hash), "MD4 of that"));
-    KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
+    if (bund->radius.valid)
+      memcpy(hash, bund->radius.mppe.nt_hash, sizeof(hash));
+    else {
+      NTPasswordHash(pass, hash);
+      KEYDEBUG((hash, sizeof(hash), "NTPasswordHash"));
+      MD4Init(&c);
+      MD4Update(&c, hash, 16);
+      MD4Final(hash, &c);
+      KEYDEBUG((hash, sizeof(hash), "MD4 of that"));
+      KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
+    }
     MsoftGetStartKey(chal, hash);
-    KEYDEBUG((hash, sizeof(hash), "GetStartKey"));
+    KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    LMPasswordHash(pass, hash);
-    KEYDEBUG((hash, sizeof(hash), "LMPasswordHash"));
+    if (bund->radius.valid)
+      memcpy(hash, bund->radius.mppe.lm_key, 8);
+    else
+      LMPasswordHash(pass, hash);
+    KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
   }
   memcpy(key0, hash, MPPE_KEY_LEN);
   KEYDEBUG((key0, (bits & MPPE_128) ? 16 : 8, "InitialKey"));
