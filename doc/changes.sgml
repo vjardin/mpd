@@ -6,6 +6,24 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 3.8:
+    <itemize>
+    <item>Added the <tt>set link mtu</tt> command.
+    </item>
+    <item>Fixed typo in description of <tt>set bundle period</tt> command.
+    </item>
+    <item>Fixed incorrect description of <tt>set ng hook</tt> command.
+    </item>
+    <item>Updated HTML links to on-line Netgraph documents.
+    </item>
+    <item>Added HTML link to Microsoft update for Windows 95/98.
+    </item>
+    <item>When displaying bundles and links, show the links LCP state as well.
+    </item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 3.7:
     <itemize>
     <item>Now setting <tt>max-redial</tt> to -1 means mpd will never redial.
