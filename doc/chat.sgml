@@ -158,7 +158,7 @@ ${i_am_safely_followed_by_a_letter}
 
     <tag><tt>$Login</tt></tag>
 
-    Authorization login name as set by <tt>set bundle authname</tt>.
+    Authorization login name as set by <tt>set auth authname</tt>.
 
     <tag><tt>$Password</tt></tag>
 
