@@ -49,5 +49,11 @@
 <htmlurl url="http://www.ietf.org/rfc/rfc2516.txt" name="RFC 2516 A Method for Transmitting PPP Over Ethernet (PPPoE)">
 -->
 
-<htmlurl url="http://www.ietf.org/rfc/rfc2637.txt" name="RFC 2637 Point-to-Point Tunnelling Protocol (PPTP)">
+<htmlurl url="http://www.ietf.org/rfc/rfc2865.txt" name="RFC 2865 Remote Authentication Dial In User Service (RADIUS)">
+
+<htmlurl url="http://www.ietf.org/rfc/rfc2866.txt" name="RFC 2866 RADIUS Accounting">
+
+<htmlurl url="http://www.ietf.org/rfc/rfc2548.txt" name="RFC 2548 Microsoft Vendor-specific RADIUS Attributes">
+
+
 
