@@ -29,7 +29,8 @@
  */
 
   static void	PapSendRequest(PapInfo pap);
-  static void	PapOutput(u_int code, u_int id, const u_char *buf, int len);
+  static void	PapOutput(u_int code, u_int id,
+			const u_char *buf, int len, int add_len);
   static void	PapTimeout(void *ptr);
   static char	*PapCode(int code);
 
@@ -104,7 +105,7 @@ PapSendRequest(PapInfo pap)
   memcpy(pkt + 1 + name_len + 1, auth.password, pass_len);
 
   /* Send it off */
-  PapOutput(PAP_REQUEST, pap->next_id++, pkt, 1 + name_len + 1 + pass_len);
+  PapOutput(PAP_REQUEST, pap->next_id++, pkt, 1 + name_len + 1 + pass_len, 0);
   Freee(pkt);
 }
 
@@ -199,14 +200,15 @@ PapInput(Mbuf bp)
 	  whyFail = AUTH_FAIL_INVALID_LOGIN;
 badRequest:
 	  failMesg = AuthFailMsg(PROTO_PAP, 0, whyFail);
-	  PapOutput(PAP_NAK, php.id, failMesg, strlen(failMesg));
+	  PapOutput(PAP_NAK, php.id, failMesg, strlen(failMesg), 1);
 	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
 	  break;
 	}
 
 	/* Login accepted */
 	Log(LG_AUTH, (" Response is valid"));
-	PapOutput(PAP_ACK, php.id, AUTH_MSG_WELCOME, strlen(AUTH_MSG_WELCOME));
+	PapOutput(PAP_ACK, php.id,
+	  AUTH_MSG_WELCOME, strlen(AUTH_MSG_WELCOME), 1);
 	AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
       }
       break;
@@ -255,14 +257,15 @@ badRequest:
  */
 
 static void
-PapOutput(u_int code, u_int id, const u_char *buf, int len)
+PapOutput(u_int code, u_int id, const u_char *buf, int len, int add_len)
 {
   struct fsmheader	lh;
   Mbuf			bp;
   int			plen;
 
   /* Setup header */
-  plen = sizeof(lh) + len;
+  add_len = !!add_len;
+  plen = sizeof(lh) + add_len + len;
   lh.id = id;
   lh.code = code;
   lh.length = htons(plen);
@@ -270,7 +273,9 @@ PapOutput(u_int code, u_int id, const u_char *buf, int len)
   /* Build packet */
   bp = mballoc(MB_AUTH, plen);
   memcpy(MBDATA(bp), &lh, sizeof(lh));
-  memcpy(MBDATA(bp) + sizeof(lh), buf, len);
+  if (add_len)
+	*(MBDATA(bp) + sizeof(lh)) = (u_char)len;
+  memcpy(MBDATA(bp) + sizeof(lh) + add_len, buf, len);
 
   /* Send it out */
   Log(LG_AUTH, ("[%s] PAP: sending %s", lnk->name, PapCode(code)));
