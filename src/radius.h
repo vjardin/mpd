@@ -2,7 +2,7 @@
 /*
  * radius.h
  *
- * Written by Michael Bretterklieber <mbretter@jawa.at>
+ * Written by Michael Bretterklieber <michael@bretterklieber.com>
  * Written by Brendan Bank <brendan@gnarst.net>
  */
 

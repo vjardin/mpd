@@ -93,7 +93,9 @@
 
   static struct confinfo	gConfList[] = {
     { 1,	LINK_CONF_PAP,		"pap"		},
-    { 1,	LINK_CONF_CHAP,		"chap"		},
+    { 1,	LINK_CONF_CHAPMD5,	"chap-md5"	},
+    { 1,	LINK_CONF_CHAPMSv1,	"chap-msv1"	},
+    { 1,	LINK_CONF_CHAPMSv2,	"chap-msv2"	},
     { 1,	LINK_CONF_ACFCOMP,	"acfcomp"	},
     { 1,	LINK_CONF_PROTOCOMP,	"protocomp"	},
     { 0,	LINK_CONF_MAGICNUM,	"magicnum"	},
@@ -235,8 +237,14 @@ LinkNew(char *name)
   lnk->bandwidth = LINK_DEFAULT_BANDWIDTH;
   lnk->latency = LINK_DEFAULT_LATENCY;
 
-  Disable(&lnk->conf.options, LINK_CONF_CHAP);
-  Accept(&lnk->conf.options, LINK_CONF_CHAP);
+  Disable(&lnk->conf.options, LINK_CONF_CHAPMD5);
+  Accept(&lnk->conf.options, LINK_CONF_CHAPMD5);
+
+  Disable(&lnk->conf.options, LINK_CONF_CHAPMSv1);
+  Deny(&lnk->conf.options, LINK_CONF_CHAPMSv1);
+
+  Disable(&lnk->conf.options, LINK_CONF_CHAPMSv2);
+  Accept(&lnk->conf.options, LINK_CONF_CHAPMSv2);
 
   Disable(&lnk->conf.options, LINK_CONF_PAP);
   Accept(&lnk->conf.options, LINK_CONF_PAP);
@@ -345,11 +353,38 @@ LinkStat(int ac, char *av[], void *arg)
 static int
 LinkSetCommand(int ac, char *av[], void *arg)
 {
-  int		val;
+  int		val, nac = 0;
   const char	*name;
+  char		*nav[ac];
+  const char	*av2[] = { "chap-md5", "chap-msv1", "chap-msv2" };
 
   if (ac == 0)
     return(-1);
+
+  /* make "chap" as an alias for all chap-variants, this should keep BC */
+  switch ((intptr_t)arg) {
+    case SET_ACCEPT:
+    case SET_DENY:
+    case SET_ENABLE:
+    case SET_DISABLE:
+    case SET_YES:
+    case SET_NO:
+    {
+      int	i = 0;
+      for ( ; i < ac; i++)
+      {
+	if (strcasecmp(av[i], "chap") == 0) {
+	  LinkSetCommand(3, (char **)av2, arg);
+	} else {
+	  nav[nac++] = av[i];
+	} 
+      }
+      av = nav;
+      ac = nac;
+      break;
+    }
+  }
+
   switch ((intptr_t)arg) {
     case SET_BANDWIDTH:
       val = atoi(*av);
@@ -445,7 +480,7 @@ LinkSetCommand(int ac, char *av[], void *arg)
     default:
       assert(0);
   }
+
   return(0);
 }
-
 

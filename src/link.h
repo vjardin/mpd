@@ -40,7 +40,9 @@
   /* Configuration options */
   enum {
     LINK_CONF_PAP,
-    LINK_CONF_CHAP,
+    LINK_CONF_CHAPMD5,
+    LINK_CONF_CHAPMSv1,
+    LINK_CONF_CHAPMSv2,
     LINK_CONF_ACFCOMP,
     LINK_CONF_PROTOCOMP,
     LINK_CONF_MAGICNUM,

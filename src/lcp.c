@@ -16,6 +16,7 @@
 #include "fsm.h"
 #include "mp.h"
 #include "phys.h"
+#include "pptp.h"
 #include "link.h"
 #include "msg.h"
 
@@ -58,6 +59,8 @@
   static void	LcpLayerFinish(Fsm fp);
   static int	LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp);
   static void	LcpFailure(Fsm fp, enum fsmfail reason);
+  static const struct fsmoption	*LcpAuthProtoNak(ushort proto, u_char chap_alg);
+  static short 	LcpFindAuthProto(ushort proto, u_char chap_alg);
 
   static void	LcpStopActivity(void);
 
@@ -88,10 +91,18 @@
     { "ENDPOINTDISC", TY_ENDPOINTDISC, 1, 255, TRUE },
     { "PROPRIETARY", TY_PROPRIETARY, 0, 0, FALSE },
     { "DCEIDENTIFIER", TY_DCEIDENTIFIER, 0, 0, FALSE },
+    { "MULTILINKPLUS", TY_MULTILINKPLUS, 0, 0, FALSE },
+    { "BACP", TY_BACP, 0, 0, FALSE },
+    { "LCPAUTHOPT", TY_LCPAUTHOPT, 0, 0, FALSE },
+    { "CBOS", TY_COBS, 0, 0, FALSE },
+    { "PREFIXELISION", TY_PREFIXELISION, 0, 0, FALSE },
+    { "MULTILINKHEADERFMT", TY_MULTILINKHEADERFMT, 0, 0, FALSE },
+    { "INTERNAT", TY_INTERNAT, 0, 0, FALSE },
+    { "SDATALINKSONET", TY_SDATALINKSONET, 0, 0, FALSE },
     { NULL }
   };
 
-  static const struct fsmtype gLcpFsmType = {
+  static struct fsmtype gLcpFsmType = {
     "LCP",			/* Name of protocol */
     PROTO_LCP,			/* Protocol Number */
     LCP_KNOWN_CODES,
@@ -114,6 +125,30 @@
     NULL,
     NULL,
     NULL,
+  };
+
+  /* List of possible Authentication Protocols */
+  static struct lcpauthproto gLcpAuthProtos[] = {
+    {
+      PROTO_PAP,
+      0,
+      LINK_CONF_PAP,
+    },
+    {
+      PROTO_CHAP,
+      CHAP_ALG_MD5,
+      LINK_CONF_CHAPMD5
+    },
+    {
+      PROTO_CHAP,
+      CHAP_ALG_MSOFT,
+      LINK_CONF_CHAPMSv1
+    },
+    {
+      PROTO_CHAP,
+      CHAP_ALG_MSOFTv2,
+      LINK_CONF_CHAPMSv2
+    }
   };
 
   static const char *PhaseNames[] = {
@@ -147,7 +182,8 @@ LcpInit(void)
 static void
 LcpConfigure(Fsm fp)
 {
-  LcpState	const lcp = &lnk->lcp;
+  LcpState		const lcp = &lnk->lcp;
+  short			i;
 
   /* FSM stuff */
   lcp->fsm.conf.passive = Enabled(&lnk->conf.options, LINK_CONF_PASSIVE);
@@ -172,17 +208,43 @@ LcpConfigure(Fsm fp)
 
   /* Authentication stuff */
   lcp->peer_auth = 0;
-  if (Enabled(&lnk->conf.options, LINK_CONF_CHAP)) {
-    lcp->want_auth = PROTO_CHAP;
-#ifdef MICROSOFT_CHAP
-    lcp->want_chap_alg = CHAP_ALG_MSOFTv2;	/* need this to get mppe key */
-#else
-    lcp->want_chap_alg = CHAP_ALG_MD5;
-#endif
-  } else if (Enabled(&lnk->conf.options, LINK_CONF_PAP))
-    lcp->want_auth = PROTO_PAP;
-  else
-    lcp->want_auth = 0;
+  lcp->want_auth = 0;
+  lcp->want_chap_alg = 0;
+
+  memset (lcp->want_protos, 0, sizeof lcp->want_protos);
+  /* fill my list of possible auth-protos, most to least secure */
+  /* for pptp prefer MS-CHAP and for all others CHAP-MD5 */
+  if (lnk->phys->type == &gPptpPhysType) {
+    lcp->want_protos[0] = &gLcpAuthProtos[LINK_CONF_CHAPMSv2];
+    lcp->want_protos[1] = &gLcpAuthProtos[LINK_CONF_CHAPMSv1];
+    lcp->want_protos[2] = &gLcpAuthProtos[LINK_CONF_CHAPMD5];
+    lcp->want_protos[3] = &gLcpAuthProtos[LINK_CONF_PAP];
+  } else {
+    lcp->want_protos[0] = &gLcpAuthProtos[LINK_CONF_CHAPMD5];
+    lcp->want_protos[1] = &gLcpAuthProtos[LINK_CONF_CHAPMSv2];
+    lcp->want_protos[2] = &gLcpAuthProtos[LINK_CONF_CHAPMSv1];
+    lcp->want_protos[3] = &gLcpAuthProtos[LINK_CONF_PAP];
+  }
+
+  /* Use the same list for the MODE_REQ */
+  memcpy(lcp->peer_protos, lcp->want_protos, sizeof lcp->peer_protos);
+
+  for (i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
+    if (Enabled(&lnk->conf.options, lcp->want_protos[i]->conf) && lcp->want_auth == 0) {
+      lcp->want_auth = lcp->want_protos[i]->proto;
+      lcp->want_chap_alg = lcp->want_protos[i]->chap_alg;
+      /* avoid re-requesting this proto, if it was nak'd by the peer */
+      lcp->want_protos[i] = NULL;
+    } else if (!Enabled(&lnk->conf.options, lcp->want_protos[i]->conf)) {
+      /* don't request disabled Protos */
+      lcp->want_protos[i] = NULL;
+    }
+
+    /* remove all denied protos */
+    if (!Acceptable(&lnk->conf.options, lcp->peer_protos[i]->conf))
+      lcp->peer_protos[i] = NULL;
+  }
+
   lnk->range_valid = FALSE;
 
   /* Multi-link stuff */
@@ -743,20 +805,9 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
       case TY_AUTHPROTO:		/* authentication protocol */
 	{
-	  static const u_char	chapcf[] =
-#ifdef MICROSOFT_CHAP
-	    { PROTO_CHAP >> 8, PROTO_CHAP & 0xff, CHAP_ALG_MSOFTv2 };
-#else
-	    { PROTO_CHAP >> 8, PROTO_CHAP & 0xff, CHAP_ALG_MD5 };
-#endif
-	  static const struct	fsmoption chapNak =
-	    { TY_AUTHPROTO, 2 + sizeof(chapcf), (u_char *) chapcf };
-	  static const u_char	papcf[] =
-	    { PROTO_PAP >> 8, PROTO_PAP & 0xff };
-	  static const struct	fsmoption papNak =
-	    { TY_AUTHPROTO, 2 + sizeof(papcf), (u_char *) papcf };
 	  u_int16_t		proto;
-	  int			supported = 0, bogus = 0;
+	  int			supported = 0, bogus = 0, i, protoPos;
+	  LcpAuthProto 		authProto;
 
 	  memcpy(&proto, opt->data, 2);
 	  proto = ntohs(proto);
@@ -774,15 +825,11 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		    ts = "MD5";
 		    break;
 		  case CHAP_ALG_MSOFT:
-#ifdef MICROSOFT_CHAP
 		    supported = 1;
-#endif
 		    ts = "MSOFT";
 		    break;
 		  case CHAP_ALG_MSOFTv2:
-#ifdef MICROSOFT_CHAP
 		    supported = 1;
-#endif
 		    ts = "MSOFTv2";
 		    break;
 		  default:
@@ -819,78 +866,77 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  }
 	  if (bogus || !supported) {
 	    if (mode == MODE_REQ) {
-	      if (Acceptable(&lnk->conf.options, LINK_CONF_CHAP))
-		FsmNak(fp, &chapNak);
+	      if (Acceptable(&lnk->conf.options, LINK_CONF_CHAPMD5))
+		FsmNak(fp, LcpAuthProtoNak(PROTO_CHAP, CHAP_ALG_MD5));
 	      else if (Acceptable(&lnk->conf.options, LINK_CONF_PAP))
-		FsmNak(fp, &papNak);
+		FsmNak(fp, LcpAuthProtoNak(PROTO_PAP, 0));
 	      else
 		FsmRej(fp, opt);
 	    }
 	    break;
 	  }
 
+	  protoPos = LcpFindAuthProto(proto, proto == PROTO_CHAP ? opt->data[2] : 0);
+	  authProto = (protoPos == -1) ? NULL : &gLcpAuthProtos[protoPos];
+
 	  /* Deal with it */
 	  switch (mode) {
 	    case MODE_REQ:
-	      switch (proto) {
-		case PROTO_PAP:
-		  if (Acceptable(&lnk->conf.options, LINK_CONF_PAP)) {
-		    lcp->peer_auth = proto;
-		    FsmAck(fp, opt);
-		  }
-		  else if (Acceptable(&lnk->conf.options, LINK_CONF_CHAP))
-		    FsmNak(fp, &chapNak);
-		  else
-		    FsmRej(fp, opt);
-		  break;
-		case PROTO_CHAP:
-		  if (Acceptable(&lnk->conf.options, LINK_CONF_CHAP)) {
-		    switch (opt->data[2]) {
-		      case CHAP_ALG_MD5:
-#ifdef MICROSOFT_CHAP
-		      case CHAP_ALG_MSOFT:
-		      case CHAP_ALG_MSOFTv2:
-#endif
-			lcp->peer_auth = proto;
-			lcp->peer_chap_alg = opt->data[2];
-			FsmAck(fp, opt);
-			break;
-		      default:
-			FsmNak(fp, &chapNak);
-			break;
-		    }
-		  }
-		  else if (Acceptable(&lnk->conf.options, LINK_CONF_PAP))
-		    FsmNak(fp, &papNak);
-		  else
-		    FsmRej(fp, opt);
-		  break;
+
+	      /* this should never happen */
+	      if (authProto == NULL) {
+		FsmRej(fp, opt);
+		break;
 	      }
+
+	      /* let us check, wether the requested auth-proto is acceptable */
+	      if (Acceptable(&lnk->conf.options, authProto->conf)) {
+		lcp->peer_auth = proto;
+	        if (proto == PROTO_CHAP)
+		  lcp->peer_chap_alg = opt->data[2];
+		FsmAck(fp, opt);
+		break;
+	      }
+
+	      /* search an acceptable proto */
+	      for(i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
+		if (lcp->peer_protos[i] != NULL) {
+		  FsmNak(fp, LcpAuthProtoNak(lcp->peer_protos[i]->proto, lcp->peer_protos[i]->chap_alg));
+		  break;
+		}
+	      }
+
+	      /* no other acceptable auth-proto found */
+	      if (i == 4)
+		FsmRej(fp, opt);
 	      break;
+
 	    case MODE_NAK:
-	      switch (proto) {
-		case PROTO_PAP:
-		  if (Enabled(&lnk->conf.options, LINK_CONF_PAP))
-		    lcp->want_auth = proto;
+	      /* this should never happen */
+	      if (authProto == NULL)
+		break;
+
+	      /* let us check, wether the requested auth-proto is enabled */
+	      if (Enabled(&lnk->conf.options, authProto->conf)) {
+	        lcp->want_auth = proto;
+	        if (proto == PROTO_CHAP)
+		  lcp->want_chap_alg = opt->data[2];
+		break;
+	      }
+
+	      /* Remove the disabled proto from my list */
+	      lcp->want_protos[protoPos] = NULL;
+
+	      /* Search the next enabled proto */
+	      for(i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
+		if (lcp->want_protos[i] != NULL) {
+		  lcp->want_auth = lcp->want_protos[i]->proto;
+		  lcp->want_chap_alg = lcp->want_protos[i]->chap_alg;
 		  break;
-		case PROTO_CHAP:
-		  if (Enabled(&lnk->conf.options, LINK_CONF_CHAP)) {
-		    switch (opt->data[2]) {
-		      case CHAP_ALG_MD5:
-#ifdef MICROSOFT_CHAP
-		      case CHAP_ALG_MSOFT:
-		      case CHAP_ALG_MSOFTv2:
-#endif
-			lcp->want_auth = proto;
-			lcp->want_chap_alg = opt->data[2];
-			break;
-		      default:		/* sorry, don't know that one */
-			break;
-		    }
-		  }
-		  break;
+		}
 	      }
 	      break;
+
 	    case MODE_REJ:
 	      LCP_PEER_REJ(lcp, opt->type);
 	      if (lnk->originate == LINK_ORIGINATE_LOCAL
@@ -1142,3 +1188,64 @@ LcpInput(Mbuf bp, int linkNum)
   FsmInput(&lnk->lcp.fsm, bp, linkNum);
 }
 
+static const struct fsmoption *
+LcpAuthProtoNak(ushort proto, u_char chap_alg)
+{
+  static const u_char	chapmd5cf[] =
+    { PROTO_CHAP >> 8, PROTO_CHAP & 0xff, CHAP_ALG_MD5 };
+  static const struct	fsmoption chapmd5Nak =
+    { TY_AUTHPROTO, 2 + sizeof(chapmd5cf), (u_char *) chapmd5cf };
+
+  static const u_char	chapmsv1cf[] =
+    { PROTO_CHAP >> 8, PROTO_CHAP & 0xff, CHAP_ALG_MSOFT };
+  static const struct	fsmoption chapmsv1Nak =
+    { TY_AUTHPROTO, 2 + sizeof(chapmsv1cf), (u_char *) chapmsv1cf };
+
+  static const u_char	chapmsv2cf[] =
+    { PROTO_CHAP >> 8, PROTO_CHAP & 0xff, CHAP_ALG_MSOFTv2 };
+  static const struct	fsmoption chapmsv2Nak =
+    { TY_AUTHPROTO, 2 + sizeof(chapmsv2cf), (u_char *) chapmsv2cf };
+
+  static const u_char	papcf[] =
+    { PROTO_PAP >> 8, PROTO_PAP & 0xff };
+  static const struct	fsmoption papNak =
+    { TY_AUTHPROTO, 2 + sizeof(papcf), (u_char *) papcf };
+
+  if (proto == PROTO_PAP) {
+    return &papNak;
+  } else {
+    switch (chap_alg) {
+      case CHAP_ALG_MSOFTv2:
+        return &chapmsv2Nak;
+
+      case CHAP_ALG_MSOFT:
+        return &chapmsv1Nak;
+
+      case CHAP_ALG_MD5:
+        return &chapmd5Nak;
+
+      default:
+        return NULL;
+    }
+  }
+
+}
+
+/*
+ * LcpFindAuthProto()
+ *
+ */
+static short
+LcpFindAuthProto(ushort proto, u_char chap_alg)
+{
+  int i;
+
+  for(i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
+    if (gLcpAuthProtos[i].proto == proto && gLcpAuthProtos[i].chap_alg == chap_alg) {
+      return i;
+    }
+  }
+
+  return -1;
+
+}

@@ -535,7 +535,7 @@ goodResponse:
 	/* Response is good */
 	Log(LG_AUTH, (" Response is valid"));
 	snprintf(ackMesg, sizeof(ackMesg), "%s", AUTH_MSG_WELCOME);
-#ifdef MICROSOFT_CHAP
+
 	if (chap->recv_alg == CHAP_ALG_MSOFTv2) {
 	  struct mschapv2value *const pv = (struct mschapv2value *)chap_value;
 	  u_char authresp[20];
@@ -553,7 +553,7 @@ goodResponse:
 	    snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
 	  }
 	}
-#endif
+
 	ChapOutput(CHAP_SUCCESS, chp.id, ackMesg, strlen(ackMesg));
 	AuthFinish(AUTH_PEER_TO_SELF, TRUE, &auth);
       }
@@ -662,7 +662,7 @@ ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
 	hash_size = 16;
       }
       break;
-#ifdef MICROSOFT_CHAP
+
     case CHAP_ALG_MSOFT:
       {
 	struct mschapvalue	*const val = (struct mschapvalue *) hash_value;
@@ -691,7 +691,7 @@ ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
 	hash_size = 49;
       }
       break;
-#endif
+
     default:
       return(-1);
   }
@@ -712,7 +712,7 @@ ChapHashAgree(int alg, const u_char *self, int slen,
   {
     case CHAP_ALG_MD5:
       return(slen == plen && !memcmp(self, peer, slen));
-#ifdef MICROSOFT_CHAP
+
     case CHAP_ALG_MSOFT:
       {
 	struct mschapvalue	*const sv = (struct mschapvalue *) self;
@@ -733,7 +733,7 @@ ChapHashAgree(int alg, const u_char *self, int slen,
 	  return(0);
 	return(!memcmp(&sv->ntHash, &pv->ntHash, sizeof(sv->ntHash)));
       }
-#endif
+
     default:
       return(0);
   }
