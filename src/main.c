@@ -42,6 +42,8 @@
 
   static const char		*UsageStr = "[options] [system]";
   static struct option		OptList[] = {
+    { 1, 'a',	"console-address",	"IP-address",
+				"Set console bind IP-address"	},
     { 0, 'b',	"background",	"",
 				"Run as a background daemon"	},
     { 1, 'c',	"console-port",	"port",
@@ -106,7 +108,9 @@
  * INTERNAL VARIABLES
  */
 
-  static int		gConsolePort = -1;
+  static struct in_addr	gConsoleBindAddr;
+  static int		gConsoleBindPort = DEFAULT_CONSOLE_PORT;
+  static int		gConsoleListen = FALSE;
   static int		gBackground = FALSE;
   static int		gKillProc = FALSE;
   static const char	*gPidFile = PID_FILE;
@@ -183,14 +187,15 @@ main(int ac, char *av[])
   signal(SIGPIPE, SIG_IGN);
 
   /* Get console telnet port */
-  if (gConsolePort >= 0) {
-    struct in_addr	any = { htons(INADDR_ANY) };
-
-    if ((listen_fd = TcpGetListenPort(any, &gConsolePort)) < 0) {
-      Log(LG_ERR, ("mpd: can't get console telnet port"));
+  if (gConsoleListen) {
+    if ((listen_fd = TcpGetListenPort(gConsoleBindAddr,
+	&gConsoleBindPort)) < 0) {
+      Log(LG_ERR, ("mpd: can't bind console telnet port on %s:%d",
+	inet_ntoa(gConsoleBindAddr), gConsoleBindPort));
       DoExit(EX_UNAVAILABLE);
     }
-    Log(LG_ALWAYS, ("mpd: console telnet port is %d", gConsolePort));
+    Log(LG_ALWAYS, ("mpd: telnet console address is %s:%d",
+      inet_ntoa(gConsoleBindAddr), gConsoleBindPort));
   } else
     listen_fd = -1;
 
@@ -473,11 +478,19 @@ OptApply(Option opt, int ac, char *av[])
   if (ac < opt->n_args)
     Usage(EX_USAGE);
   switch (opt->sflag) {
+    case 'a':
+      if (!inet_aton(*av, &gConsoleBindAddr)) {
+	fprintf(stderr, "invalid IP address %s\n", *av);
+	Usage(EX_USAGE);
+      }
+      gConsoleListen = TRUE;
+      return(1);
     case 'b':
       gBackground = TRUE;
       return(0);
     case 'c':
-      gConsolePort = atoi(*av);
+      gConsoleBindPort = atoi(*av);
+      gConsoleListen = TRUE;
       return(1);
     case 'd':
       gConfDirectory = *av;

@@ -61,6 +61,8 @@
   #define AUTH_MAX_PASSWORD	64
   #define AUTH_MAX_EXTCMD	128
 
+  #define DEFAULT_CONSOLE_PORT	5005
+
   /* Forward decl's */
   struct linkst;
   typedef struct linkst *Link;
