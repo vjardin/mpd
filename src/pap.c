@@ -193,6 +193,12 @@ PapInput(Mbuf bp)
 	memset(&auth, 0, sizeof(auth));
 	strlcpy(auth.authname, name, sizeof(auth.authname));
 
+	/* perform pre authentication checks (single-login, etc.) */
+	if (AuthPreChecks(&auth, 1, &whyFail) < 0) {
+	  Log(LG_AUTH, (" AuthPreCheck failed for \"%s\"", auth.authname));
+	  goto badRequest;
+	}
+
 	/* Try RADIUS auth if configured */
 	if (Enabled(&bund->conf.options, BUND_CONF_RADIUSAUTH)) {
 	  radRes = RadiusPAPAuthenticate(name, pass);

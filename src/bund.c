@@ -43,6 +43,7 @@
     SET_MIN_DISCONNECT,
     SET_AUTHNAME,
     SET_PASSWORD,
+    SET_MAX_LOGINS,
     SET_RETRY,
     SET_ACCEPT,
     SET_DENY,
@@ -97,6 +98,8 @@
 	BundSetCommand, NULL, (void *) SET_AUTHNAME },
     { "password pass",			"Authentication password",
 	BundSetCommand, NULL, (void *) SET_PASSWORD },
+    { "max-logins num",			"Max concurrent logins",
+	BundSetCommand, NULL, (void *) SET_MAX_LOGINS },
     { "retry seconds",			"FSM retry timeout",
 	BundSetCommand, NULL, (void *) SET_RETRY },
     { "accept [opt ...]",		"Accept option",
@@ -748,6 +751,7 @@ fail:
   bund->conf.bm_Lo = BUND_BM_DFL_Lo;
   bund->conf.bm_Mc = BUND_BM_DFL_Mc;
   bund->conf.bm_Md = BUND_BM_DFL_Md;
+  bund->conf.max_logins = 0;	/* unlimited concurrent logins */
 
   Enable(&bund->conf.options, BUND_CONF_MULTILINK);
   Enable(&bund->conf.options, BUND_CONF_SHORTSEQ);
@@ -824,6 +828,7 @@ BundStat(int ac, char *av[], void *arg)
   printf("\tHigh water mark: %d%%\n", sb->conf.bm_Hi);
   printf("\tMin connected  : %d seconds\n", sb->conf.bm_Mc);
   printf("\tMax connected  : %d seconds\n", sb->conf.bm_Md);
+  printf("\tMax logins     : %ld\n", sb->conf.max_logins);
   printf("Bundle level options:\n");
   OptStat(&sb->conf.options, gConfList);
 
@@ -1121,6 +1126,10 @@ BundSetCommand(int ac, char *av[], void *arg)
 
     case SET_PASSWORD:
       snprintf(bund->conf.password, sizeof(bund->conf.password), "%s", *av);
+      break;
+
+    case SET_MAX_LOGINS:
+      bund->conf.max_logins = atoi(*av);
       break;
 
     case SET_RETRY:

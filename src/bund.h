@@ -105,6 +105,7 @@
     int			mrru;			/* Initial MRU value */
     char		authname[AUTH_MAX_AUTHNAME];
     char		password[AUTH_MAX_PASSWORD];
+    u_long		max_logins;		/* max. number of concurrent logins */
     short		retry_timeout;		/* Timeout for retries */
     u_short		bm_S;			/* Bandwidth mgmt constants */
     u_short		bm_Hi;

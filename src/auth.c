@@ -231,6 +231,35 @@ AuthGetData(AuthData auth, int complain, int *whyFail)
 }
 
 /*
+ * AuthPreChecks()
+ *
+ */
+
+int
+AuthPreChecks(AuthData auth, int complain, int *whyFail)
+{
+  /* check max. number of logins */
+  if (bund->conf.max_logins != 0) {
+    int		ac;
+    u_long	num = 0;
+    for(ac = 0; ac < gNumBundles; ac++)
+      if (gBundles[ac]->open)
+	if (!strcmp(gBundles[ac]->peer_authname, auth->authname))
+	  num++;
+
+    if (num >= bund->conf.max_logins) {
+      if (complain) {
+	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
+	  auth->authname));
+      }
+      *whyFail = AUTH_FAIL_ACCT_DISABLED;
+      return (-1);
+    }
+  }
+  return (0);
+}
+
+/*
  * AuthTimeout()
  *
  * Timer expired for the whole authorization process

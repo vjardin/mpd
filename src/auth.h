@@ -67,6 +67,7 @@
   extern void	AuthStop(void);
   extern void	AuthFinish(int which, int ok, AuthData auth);
   extern int	AuthGetData(AuthData auth, int complain, int *whyFail);
+  extern int	AuthPreChecks(AuthData auth, int complain, int *whyFail);
   extern const	char *AuthFailMsg(int proto, int alg, int whyFail);
 
 #endif
