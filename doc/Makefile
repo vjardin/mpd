@@ -18,7 +18,7 @@ SRCS+=		chat.sgml
 SRCS+=		trouble.sgml
 SRCS+=		refs.sgml
 
-CLEANFILES+=	version.sgml mpd.8
+CLEANFILES+=	version.sgml mpd.8 mpd.ps
 
 .SUFFIXES:	.in
 
