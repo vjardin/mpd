@@ -51,6 +51,8 @@
 #ifdef ENCRYPTION_MPPE
   static void	MppeInitKey(MppcInfo mppc, int dir);
   static int	MppeGetKeyInfo(char **secretp, u_char **challengep);
+  static void	MppeInitKeyv2(MppcInfo mppc, int dir);
+  static int	MppeGetKeyInfov2(char **secretp, u_char **responsep);
 
 #ifdef DEBUG_KEYS
   static void	KeyDebug(const u_char *data, int len, const char *fmt, ...);
@@ -105,7 +107,11 @@ MppcInit(int dir)
       mppchook = NG_MPPC_HOOK_COMP;
       conf.bits = mppc->xmit_bits;
 #ifdef ENCRYPTION_MPPE
-      MppeInitKey(mppc, dir);
+      if (lnk->lcp.peer_chap_alg == CHAP_ALG_MSOFTv2) {
+        MppeInitKeyv2(mppc, dir);
+      } else {
+        MppeInitKey(mppc, dir);
+      }
       memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
 #endif
       break;
@@ -115,7 +121,11 @@ MppcInit(int dir)
       mppchook = NG_MPPC_HOOK_DECOMP;
       conf.bits = mppc->recv_bits;
 #ifdef ENCRYPTION_MPPE
-      MppeInitKey(mppc, dir);
+      if (lnk->lcp.peer_chap_alg == CHAP_ALG_MSOFTv2) {
+        MppeInitKeyv2(mppc, dir);
+      } else {
+        MppeInitKey(mppc, dir);
+      }
       memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
 #endif
       break;
@@ -519,6 +529,102 @@ MppeGetKeyInfo(char **secretp, u_char **challengep)
   /* Return info */
   *secretp = password;
   *challengep = challenge;
+  return(0);
+
+fail:
+  Log(LG_ERR, ("[%s] can't determine credentials for MPPE", bund->name));
+  FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
+  return(-1);
+}
+
+/*
+ * MppeInitKeyv2()
+ */
+
+static void
+MppeInitKeyv2(MppcInfo mppc, int dir)
+{
+  u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
+			mppc->xmit_key0 : mppc->recv_key0;
+  u_char	hash[16];
+  char		*pass;
+  u_char	*resp;
+
+  MD4_CTX	c;
+
+  /* Get credential info */
+  if (MppeGetKeyInfov2(&pass, &resp) < 0)
+    return;
+
+  /* Compute basis for the session key (ie, "start key" or key0) */
+  NTPasswordHash(pass, hash);
+  KEYDEBUG((hash, sizeof(hash), "NTPasswordHash"));
+  MD4Init(&c);
+  MD4Update(&c, hash, 16);
+  MD4Final(hash, &c);
+  KEYDEBUG((hash, sizeof(hash), "MD4 of that"));
+  KEYDEBUG((resp, CHAP_MSOFT_CHAL_LEN, "Response"));
+  MsoftGetMasterKey(resp, hash);
+  KEYDEBUG((hash, sizeof(hash), "GetMasterKey"));
+  MsoftGetAsymetricStartKey(hash, dir == COMP_DIR_XMIT);
+  KEYDEBUG((hash, sizeof(hash), "GetAsymmetricKey"));
+  memcpy(key0, hash, MPPE_KEY_LEN);
+  KEYDEBUG((key0, keylen, "InitialKey"));
+}
+
+/*
+ * MppeGetKeyInfov2()
+ */
+
+static int
+MppeGetKeyInfov2(char **secretp, u_char **responsep)
+{
+  CcpState		const ccp = &bund->ccp;
+  static char		password[AUTH_MAX_PASSWORD];
+  char			*authname;
+  u_char		*response;
+  struct authdata	auth;
+
+  /* The secret comes from the originating caller's credentials */
+  switch (lnk->originate) {
+    case LINK_ORIGINATE_LOCAL:
+      if (lnk->lcp.peer_auth != PROTO_CHAP
+	  || lnk->lcp.peer_chap_alg != CHAP_ALG_MSOFTv2) {
+	Log(LG_ERR,
+	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "accept"));
+	goto fail;
+      }
+      authname = bund->conf.authname;
+      response = bund->msNTresponse;
+      break;
+    case LINK_ORIGINATE_REMOTE:
+      if (lnk->lcp.want_auth != PROTO_CHAP
+	  || lnk->lcp.want_chap_alg != CHAP_ALG_MSOFTv2) {
+	Log(LG_ERR,
+	  ("[%s] \"%s chap\" required for MPPE", lnk->name, "enable"));
+	goto fail;
+      }
+      authname = bund->peer_authname;
+      response = bund->msNTresponse;
+      break;
+    case LINK_ORIGINATE_UNKNOWN:
+    default:
+      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", lnk->name));
+      goto fail;
+  }
+
+  /* Get password corresponding to whichever account name */
+  if (AuthGetData(authname, &auth, 1, NULL) >= 0) {
+    snprintf(password, sizeof(password), "%s", auth.password);
+  } else {
+    LogPrintf("[%s] unable to get data for authname \"%s\"",
+      bund->name, authname);
+    goto fail;
+  }
+
+  /* Return info */
+  *secretp = password;
+  *responsep = response;
   return(0);
 
 fail:

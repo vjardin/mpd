@@ -144,6 +144,9 @@ main(int ac, char *av[])
   if (LogOpen())
     exit(EX_ERRDEAD);
 
+  /* Randomize */
+  srandomdev();
+
   /* Welcome */
   Greetings();
 

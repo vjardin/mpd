@@ -771,6 +771,9 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		    ts = "MSOFT";
 		    break;
 		  case CHAP_ALG_MSOFTv2:
+#ifdef MICROSOFT_CHAP
+		    supported = 1;
+#endif
 		    ts = "MSOFTv2";
 		    break;
 		  default:
@@ -837,6 +840,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		      case CHAP_ALG_MD5:
 #ifdef MICROSOFT_CHAP
 		      case CHAP_ALG_MSOFT:
+		      case CHAP_ALG_MSOFTv2:
 #endif
 			lcp->peer_auth = proto;
 			lcp->peer_chap_alg = opt->data[2];
@@ -866,6 +870,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		      case CHAP_ALG_MD5:
 #ifdef MICROSOFT_CHAP
 		      case CHAP_ALG_MSOFT:
+		      case CHAP_ALG_MSOFTv2:
 #endif
 			lcp->want_auth = proto;
 			lcp->want_chap_alg = opt->data[2];

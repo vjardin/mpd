@@ -33,6 +33,13 @@
     u_char	useNT;
   };
 
+  struct mschapv2value {
+    u_char	peerChal[16];
+    u_char	reserved[8];
+    u_char	ntHash[24];
+    u_char	flags;
+  };
+
 /*
  * INTERNAL FUNCTIONS
  */
@@ -44,8 +51,8 @@
 		  int *chap_value_size);
   static void	ChapGenRandom(u_char *buf, int len);
   static int	ChapHash(int alg, u_char *hash_value, u_char id,
-		  const char *secret, const u_char *challenge,
-		  int clen, int local);
+		  const char *username, const char *secret,
+		  const u_char *challenge, int clen, int local);
   static int	ChapHashAgree(int alg, const u_char *self, int slen,
 		  const u_char *peer, int plen);
   static void	ChapChalTimeout(void *ptr);
@@ -56,6 +63,7 @@
  */
 
   static const u_char	gMsoftZeros[CHAP_MSOFT_CHAL_LEN];
+  static const u_char	gMsoftZeros24[CHAP_MSOFTv2_RESP_LEN];
   static const u_char	gIdBytes[] = { 0x3b, 0x1e, 0x68 };
 
 /*
@@ -125,6 +133,10 @@ ChapSendChallenge(ChapInfo chap)
 	  memcpy(bund->self_msChal, chap->chal_data, sizeof(bund->self_msChal));
 	}
       }
+      break;
+    case CHAP_ALG_MSOFTv2:
+      chap->chal_len = CHAP_MSOFTv2_CHAL_LEN;
+      ChapGenRandom(chap->chal_data, chap->chal_len);
       break;
     case CHAP_ALG_MD5:
       chap->chal_len = random() % 32 + 16;
@@ -386,7 +398,7 @@ ChapInput(Mbuf bp)
 
 	/* Get hash value */
 	if ((hash_value_size = ChapHash(chap->xmit_alg, hash_value, chp.id,
-	    auth.password, chap_value, chap_value_size, 1)) < 0) {
+	    name, auth.password, chap_value, chap_value_size, 1)) < 0) {
 	  Log(LG_AUTH, (" Hash failure"));
 	  break;
 	}
@@ -395,6 +407,15 @@ ChapInput(Mbuf bp)
 	if (chap->xmit_alg == CHAP_ALG_MSOFT
 	    && !memcmp(bund->peer_msChal, gMsoftZeros, sizeof(gMsoftZeros)))
 	  memcpy(bund->peer_msChal, chap_value, sizeof(gMsoftZeros));
+
+	/* Need to remember CHAP hash for use with MPPE encryption with v2 */
+	if (chap->xmit_alg == CHAP_ALG_MSOFTv2
+	    && !memcmp(bund->msNTresponse,
+	     gMsoftZeros24, sizeof(gMsoftZeros24))) {
+	  memcpy(bund->msNTresponse,
+	    hash_value + offsetof(struct mschapv2value, ntHash),
+	    sizeof(gMsoftZeros24));
+	}
 
 	/* Build response packet */
 	if (chap->resp)
@@ -430,7 +451,8 @@ ChapInput(Mbuf bp)
 	}
 
 	/* Strip MS domain if any */
-	if (chap->recv_alg == CHAP_ALG_MSOFT) {
+	if (chap->recv_alg == CHAP_ALG_MSOFT
+	    || chap->recv_alg == CHAP_ALG_MSOFTv2) {
 	  char	*s;
 
 	  if ((s = strrchr(peer_name, '\\')))
@@ -446,7 +468,8 @@ ChapInput(Mbuf bp)
 
 	/* Get hash value */
 	if ((hash_value_size = ChapHash(chap->recv_alg, hash_value, chp.id,
-	    auth.password, chap->chal_data, chap->chal_len, 0)) < 0) {
+	    peer_name, auth.password, chap->chal_data, chap->chal_len,
+	    0)) < 0) {
 	  Log(LG_AUTH, (" Hash failure"));
 	  whyFail = AUTH_FAIL_INVALID_PACKET;
 	  goto badResponse;
@@ -520,7 +543,6 @@ ChapGenRandom(u_char *buf, int len)
   buf[0] |= (lnk->originate & 0x03) << 6;
 
   /* Fill the rest with semi-random bytes */
-  srandom(time(NULL) ^ (getpid() << 17));
   for (; k < len; k++)
     buf[k] = random() & 0xff;
 }
@@ -530,8 +552,8 @@ ChapGenRandom(u_char *buf, int len)
  */
 
 static int
-ChapHash(int alg, u_char *hash_value, u_char id, const char *secret,
-	const u_char *challenge, int clen, int local)
+ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
+	const char *secret, const u_char *challenge, int clen, int local)
 {
   int	hash_size, off, len;
 
@@ -560,7 +582,22 @@ ChapHash(int alg, u_char *hash_value, u_char id, const char *secret,
 	NTChallengeResponse(challenge, secret, val->ntHash);
 	val->useNT = 1;
 	hash_size = 49;
-	off = (u_char *) val->ntHash - (u_char *) val;
+	off = offsetof(struct mschapvalue, ntHash);
+	len = sizeof(val->ntHash);
+      }
+      break;
+    case CHAP_ALG_MSOFTv2:
+      {
+	struct mschapv2value *const val =(struct mschapv2value *) hash_value;
+	const char *strippedusername = strrchr(username, '\\');
+
+	ChapGenRandom(val->peerChal, sizeof(val->peerChal));
+	memset(val->reserved, 0, sizeof(val->reserved));
+	val->flags = 0x04;
+	GenerateNTResponse(challenge, val->peerChal, strippedusername ?
+	  strippedusername + 1 : username, secret, val->ntHash);
+	hash_size = 49;
+	off = offsetof(struct mschapv2value, ntHash);
 	len = sizeof(val->ntHash);
       }
       break;

@@ -25,5 +25,20 @@
   extern void	MsoftGetKey(const u_char *h, u_char *h2, int len);
   extern void	MsoftGetStartKey(u_char *chal, u_char *h);
 
+  extern void	GenerateNTResponse(const u_char *authchal,
+		  const u_char *peerchal, const char *username,
+		  const char *password, u_char *hash);
+  extern void	GenerateAuthenticatorResponse(const char *password,
+		  const u_char *nthash, const u_char *peerchal,
+		  const u_char *authchal, const char *username,
+		  char *hash);
+  extern int	CheckAuthenticatorResponse(const char *password,
+		  const u_char *nthash, const u_char *peerchal,
+		  const u_char *authchal, const char *username,
+		  const char *rechash);
+
+  extern void	MsoftGetMasterKey(u_char *resp, u_char *h);
+  extern void	MsoftGetAsymetricStartKey(u_char *h, int xmit);
+
 #endif
 

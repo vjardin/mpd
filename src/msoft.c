@@ -28,6 +28,8 @@
   static void	ChallengeResponse(const u_char *chal,
 			const char *pwHash, u_char *hash);
   static void	DesEncrypt(const u_char *clear, u_char *key0, u_char *cypher);
+  static void	ChallengeHash(const u_char *peerchal, const u_char *authchal,
+			const char *username, u_char *hash);
 
 /*
  * LMPasswordHash()
@@ -176,3 +178,108 @@ MsoftGetStartKey(u_char *chal, u_char *h)
 
 #endif
 
+/*
+ * GenerateNTResponse()
+ *
+ * authchal	16 byte authenticator challenge
+ * peerchal	16 byte peer challenge
+ * username	ASCII username
+ * password	ASCII (NOT Unicode) password
+ * hash		24 byte response
+ */
+
+void
+GenerateNTResponse(const u_char *authchal, const u_char *peerchal,
+  const char *username, const char *password, u_char *hash)
+{
+  u_char	chal[8];
+  u_char	pwHash[16];
+
+  ChallengeHash(peerchal, authchal, username, chal);
+  NTPasswordHash(password, pwHash);
+  ChallengeResponse(chal, pwHash, hash);
+}
+
+/*
+ * ChallengeHash()
+ *
+ * peerchal	16 byte peer challenge
+ * authchal	16 byte authenticator challenge
+ * username	ASCII username
+ * hash		8 byte response
+ */
+
+static void
+ChallengeHash(const u_char *peerchal, const u_char *authchal,
+  const char *username, u_char *hash)
+{
+  SHA1_CTX	c;
+  u_char	digest[20];
+
+  SHA1Init(&c);
+  SHA1Update(&c, peerchal, 16);
+  SHA1Update(&c, authchal, 16);
+  SHA1Update(&c, username, strlen(username));
+  SHA1Final(digest, &c);
+  memcpy(hash, digest, 8);
+}
+
+#ifdef ENCRYPTION_MPPE
+
+/*
+ * MsoftGetMasterKey()
+ */
+
+void
+MsoftGetMasterKey(u_char *resp, u_char *h)
+{
+  SHA1_CTX	c;
+  u_char	hash[20];
+  static char Magic1[] = "This is the MPPE Master Key";
+
+  SHA1Init(&c);
+  SHA1Update(&c, h, 16);
+  SHA1Update(&c, resp, 24);
+  SHA1Update(&c, Magic1, sizeof(Magic1) - 1);
+  SHA1Final(hash, &c);
+  memcpy(h, hash, 16);
+}
+
+/*
+ * MsoftGetAsymetricStartKey()
+ */
+
+void
+MsoftGetAsymetricStartKey(u_char *h, int xmit)
+{
+  SHA1_CTX		c;
+  u_char		hash[20];
+  static const char	Magic2[] =
+    "On the client side, this is the send key;"
+    " on the server side, it is the receive key.";
+  static const char	Magic3[] =
+    "On the client side, this is the receive key;"
+    " on the server side, it is the send key.";
+
+  /* pads used in key derivation - from sha1dgst.c */
+  static const u_char SHApad1[40] =
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  static const u_char SHApad2[40] =
+    {0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2,
+     0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2,
+     0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2,
+     0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2, 0xf2};
+
+  SHA1Init(&c);
+  SHA1Update(&c, h, 16);
+  SHA1Update(&c, SHApad1, 40);
+  SHA1Update(&c, xmit ? Magic2 : Magic3, 84);
+  SHA1Update(&c, SHApad2, 40);
+  SHA1Final(hash, &c);
+  memcpy(h, hash, 16);
+}
+
+#endif
