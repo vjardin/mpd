@@ -152,6 +152,7 @@ PppoeInit(PhysInfo p)
 static void
 PppoeOpen(PhysInfo p)
 {
+	char session_hook[NG_HOOKLEN + 1];
 	const PppoeInfo pe = (PppoeInfo)p->info;
 	union {
 	    u_char			buf[sizeof(struct ngpppoe_init_data)
@@ -203,13 +204,14 @@ PppoeOpen(PhysInfo p)
     {
 	struct ngm_mkpeer mp;
 
-	/* Create new PPP node */
+	/* Create new PPPoE node */
 	snprintf(mp.type, sizeof(mp.type), "%s", NG_PPPOE_NODE_TYPE);
 	snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", pe->hook);
 	snprintf(mp.peerhook, sizeof(mp.peerhook),
 	    "%s", NG_PPPOE_HOOK_ETHERNET);
 	if (NgSendMsg(bund->csock, pe->path,
-	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0
+	  && errno != EEXIST) {
 		Log(LG_ERR, ("[%s] can't create %s peer to %s,%s: %s",
 		    lnk->name, NG_PPPOE_NODE_TYPE,
 		    pe->path, pe->hook, strerror(errno)));
@@ -222,12 +224,14 @@ PppoeOpen(PhysInfo p)
 	snprintf(path, sizeof(path), "%s%s", pe->path, pe->hook);
 	snprintf(linkHook, sizeof(linkHook),
 	    "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-	if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path, PPPOE_SESSION_HOOK) < 0)
+	snprintf(session_hook, sizeof(session_hook),
+	  "%s-%s", PPPOE_SESSION_HOOK, bund->name);
+	if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path, session_hook) < 0)
 		goto fail3;
 
 	/* Tell the PPPoE node to try to connect to a server */
 	memset(idata, 0, sizeof(idata));
-	snprintf(idata->hook, sizeof(idata->hook), "%s", PPPOE_SESSION_HOOK);
+	snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
 	idata->data_len = strlen(pe->session);
 	strncpy(idata->data, pe->session, MAX_SESSION);
 	if (NgSendMsg(pe->csock, path, NGM_PPPOE_COOKIE, NGM_PPPOE_CONNECT,
@@ -364,6 +368,10 @@ PppoeCtrlReadEvent(int type, void *arg)
 		Log(LG_PHYS, ("[%s] connection %s", lnk->name,
 		    u.resp.header.cmd == NGM_PPPOE_FAIL ? "failed" : "closed"));
 		break;
+	case NGM_PPPOE_ACNAME:
+		Log(LG_PHYS, ("[%s] rec'd ACNAME \"%s\"", lnk->name, 
+		  ((struct ngpppoe_sts *)u.resp.data)->hook));
+		return;
 	default:
 		Log(LG_ERR, ("[%s] rec'd command %lu from \"%s\"",
 		    lnk->name, (u_long)u.resp.header.cmd, path));
