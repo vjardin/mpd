@@ -164,22 +164,62 @@ This option is disabled by default.
 <tag><tt>radius-mtu</tt></tag>
 
 This option causes mpd to use the MTU from the RADIUS server.
-It has the same as effect as <tt>set iface mtu</tt>.
+It has the same effect as <tt>set iface mtu</tt>.
 
 <tag><tt>radius-idle</tt></tag>
 
 This option causes mpd to use the idle timeout from the RADIUS server.
-It has the same as effect as <tt>set iface idle</tt>.
+It has the same effect as <tt>set iface idle</tt>.
 
 <tag><tt>radius-session</tt></tag>
 
 This option causes mpd to use the session timeout from the RADIUS server.
-It has the same as effect as <tt>set iface session</tt>.
+It has the same effect as <tt>set iface session</tt>.
 
 <tag><tt>radius-route</tt></tag>
 
 This option causes mpd to use the routes list from the RADIUS server.
-It has the same as effect as <tt>set iface route</tt>.
+It has the same effect as <tt>set iface route</tt>.
+
+<tag><tt>radius-acl</tt></tag>
+
+This option causes mpd to use the Access Control Lists (ACLs) taken from the RADIUS server.
+This ACLs may include ipfw rules, dummynet pipes and dummynet queues.
+To use this feature you should add to your RADIUS server such dictionary:
+<verb>#----------------------------------------------------------
+# dictionary.mpd                                                                                   
+                                                                                                   
+VENDOR          mpd             12341                                                              
+                                                                                                   
+ATTRIBUTE       mpd-rule        1       string          mpd                                        
+ATTRIBUTE       mpd-pipe        2       string          mpd                                        
+ATTRIBUTE       mpd-queue       3       string          mpd 
+#----------------------------------------------------------
+</verb>
+After this you can write in your RADIUS configuration something like:
+<verb>
+mpd-pipe += "1=bw 10Kbyte/s",
+mpd-pipe += "5=bw 20Kbyte/s",
+mpd-rule += "1=pipe %p1 all from any to any in",
+mpd-rule += "2=pipe %p5 all from any to any out",
+mpd-rule += "100=allow all from any to any",
+</verb>
+
+When mpd receives these parameters it will <verb>ipfw(8)</verb> to create
+firewall rules, pipes and queues with unique numbers starting from 10000.
+To the end of each rule will be added "via ngX" to make the rule apply
+only to that client's networking interface.
+
+As a result of this example we would get these commands executed:
+<verb>
+ipfw pipe 10000 config bw 10Kbyte/s
+ipfw pipe 10001 config bw 20Kbyte/s
+ipfw add 10000 pipe 10000 all from any to any in via ng0
+ipfw add 10001 pipe 10001 all from any to any out via ng0
+ipfw add 10002 allow all from any to any via ng0
+</verb>
+
+When the link goes down, all created rules will be removed.
 
 </descrip>
 

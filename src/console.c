@@ -122,7 +122,6 @@ static void
 ConsoleConnect(int type, void *cookie)
 {
   struct sockaddr_in	addr;
-  char			filename[30];
   int fdi=-1, fdo=-1;
 
   assert(gConsoleFd < 0);

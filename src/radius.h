@@ -41,6 +41,14 @@
 /* max. length of RAD_ACCT_SESSION_ID, RAD_ACCT_MULTI_SESSION_ID */
 #define RAD_ACCT_MAX_SESSIONID	256
 
+/* max. length of acl rule, */
+#define ACL_LEN	256
+
+#define RAD_VENDOR_MPD 12341
+#define RAD_MPD_RULE 1
+#define RAD_MPD_PIPE 2
+#define RAD_MPD_QUEUE 3
+
 /*
  * FUNCTIONS
  */
@@ -87,6 +95,12 @@ extern const	struct cmdtab RadiusSetCmds[];
   };
   typedef struct radiusconf *RadConf;
 
+  struct radius_acl {	/* List of ACLs received from RADIUS */
+    int number;		/* ACL number given by RADIUS server */
+    char rule[ACL_LEN]; /* Text of ACL */
+    struct radius_acl *next;
+  };
+
   struct radius {
     struct rad_handle	*radh;		/* RadLib Handle */
     short		valid;		/* Auth was successful */
@@ -99,6 +113,9 @@ extern const	struct cmdtab RadiusSetCmds[];
     struct in_addr	mask;	/* FRAMED Netmask */
     short		n_routes;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
+    struct radius_acl 	*acl_rule;
+    struct radius_acl 	*acl_pipe;
+    struct radius_acl 	*acl_queue;
     unsigned long	class;		/* Class */
     unsigned long	mtu;		/* FRAMED MTU */
     unsigned long	session_timeout;/* Session-Timeout */

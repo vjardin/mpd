@@ -64,6 +64,7 @@
     IFACE_CONF_RADIUSIDLE,
     IFACE_CONF_RADIUSSESSION,
     IFACE_CONF_RADIUSROUTE,
+    IFACE_CONF_RADIUSACL,
     IFACE_CONF_TCPMSSFIX,
   };
 
@@ -82,6 +83,10 @@
   static void	IfaceCacheSend(void);
   static void	IfaceCachePkt(int proto, Mbuf pkt);
   static int	IfaceIsDemand(int proto, Mbuf pkt);
+
+  static int	IfaceAllocACL (struct acl_pool **ap, int start, char * ifname, int number);
+  static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
+  static char *	IfaceParceACL (char * src, char * ifname);
 
   static void	IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss);
   
@@ -122,9 +127,17 @@
     { 0,	IFACE_CONF_RADIUSIDLE,		"radius-idle"	},
     { 0,	IFACE_CONF_RADIUSSESSION,	"radius-session"},
     { 0,	IFACE_CONF_RADIUSROUTE,		"radius-route"	},
+    { 0,	IFACE_CONF_RADIUSACL,		"radius-acl"	},
     { 0,	IFACE_CONF_TCPMSSFIX,           "tcpmssfix"	},
     { 0,	0,				NULL		},
   };
+
+  struct acl_pool * rule_pool = NULL; /* Pointer to the first element in the list of rules */
+  struct acl_pool * pipe_pool = NULL; /* Pointer to the first element in the list of pipes */
+  struct acl_pool * queue_pool = NULL; /* Pointer to the first element in the list of queues */
+  int rule_pool_start = 10000; /* Initial number of ipfw rules pool */
+  int pipe_pool_start = 10000; /* Initial number of ipfw dummynet pipe pool */
+  int queue_pool_start = 10000; /* Initial number of ipfw dummynet queue pool */
 
 /*
  * IfaceInit()
@@ -406,6 +419,115 @@ IfaceListenInput(int proto, Mbuf pkt)
 }
 
 /*
+ * IfaceAllocACL ()
+ *
+ * Allocates unique real number for new ACL and adds it to the list of used ones.
+ */
+
+static int
+IfaceAllocACL(struct acl_pool **ap, int start, char *ifname, int number)
+{
+    int	i;
+    struct acl_pool **rp,*rp1;
+
+    rp1 = Malloc(MB_UTIL, sizeof(struct acl_pool));
+    strncpy(rp1->ifname, ifname, IFNAMSIZ);
+    rp1->acl_number = number;
+
+    rp = ap;
+    i = start;
+    while (*rp != NULL && (*rp)->real_number <= i) {
+        i = (*rp)->real_number+1;
+        rp = &((*rp)->next);
+    };
+    if (*rp == NULL) {
+        rp1->next = NULL;
+    } else {
+        rp1->next = *rp;
+    };
+    rp1->real_number = i;
+    *rp = rp1;
+    return(i);
+};
+
+/*
+ * IfaceFindACL ()
+ *
+ * Finds ACL in the list and gets its real number.
+ */
+
+static int
+IfaceFindACL (struct acl_pool *ap, char * ifname, int number)
+{
+    int	i;
+    struct acl_pool *rp;
+
+    rp=ap;
+    i=-1;
+    while (rp != NULL) {
+	if ((rp->acl_number == number) && (strncmp(rp->ifname,ifname,IFNAMSIZ) == 0)) {
+    	    i = rp->real_number;
+	    break;
+	};
+        rp = rp->next;
+    };
+    return(i);
+};
+
+/*
+ * IfaceParceACL ()
+ *
+ * Parces ACL and replaces %r, %p and %q macroses 
+ * by the real numbers of rules, queues and pipes.
+ */
+
+static char *
+IfaceParceACL (char * src, char * ifname)
+{
+    char *buf,*buf1;
+    char *begin,*param,*end;
+    char t;
+    int num,real_number;
+    struct acl_pool *ap;
+    
+    buf = Malloc(MB_UTIL,ACL_LEN+1);
+    buf1 = Malloc(MB_UTIL,ACL_LEN+1);
+    
+    strncpy(buf,src,ACL_LEN);
+    do {
+        end = buf;
+	begin = strsep(&end,"%");
+	param = strsep(&end," ");
+	if (param != NULL) {
+	    if (sscanf(param,"%c%d",&t,&num) == 2) {
+		switch (t) {
+		    case 'r':
+			ap = rule_pool;
+			break;
+		    case 'p':
+			ap = pipe_pool;
+			break;
+		    case 'q':
+			ap = queue_pool;
+			break;
+		    default:
+			ap = NULL;
+		};
+		real_number = IfaceFindACL(ap,ifname,num);
+		if (end != NULL) {
+		    snprintf(buf1,ACL_LEN,"%s%d %s",begin,real_number,end);
+		} else {
+		    snprintf(buf1,ACL_LEN,"%s%d",begin,real_number);
+		};
+		strncpy(buf,buf1,ACL_LEN);
+	    };
+	};
+    } while (end != NULL);
+    Freee(buf1);
+    return(buf);
+};
+
+/*
  * IfaceIpIfaceUp()
  *
  * Bring up the IP interface. The "ready" flag means that
@@ -421,6 +543,8 @@ IfaceIpIfaceUp(int ready)
   struct sockaddr_dl	hwa;
   char			hisaddr[20];
   u_char		*ether;
+  struct radius_acl	*acls;
+  char			*buf;
 
   /* Sanity */
   assert(!iface->ip_up);
@@ -484,6 +608,63 @@ IfaceIpIfaceUp(int ready)
       PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf) == 0);
   }
 
+  /* Add ACLs */
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSACL)) {
+    Log(LG_IFACE, ("[%s] IFACE: using RADIUS ACLs", 
+      bund->name));
+    /* Allocate ACLs */
+    acls = bund->radius.acl_pipe;
+    while (acls != NULL) {
+	IfaceAllocACL(&pipe_pool,pipe_pool_start,iface->ifname,acls->number);
+	acls = acls->next;
+    };
+    acls = bund->radius.acl_queue;
+    while (acls != NULL) {
+	IfaceAllocACL(&queue_pool,queue_pool_start,iface->ifname,acls->number);
+	acls = acls->next;
+    };
+    acls = bund->radius.acl_rule;
+    while (acls != NULL) {
+	IfaceAllocACL(&rule_pool,rule_pool_start,iface->ifname,acls->number);
+	acls = acls->next;
+    };
+
+    /* Set ACLs */
+    acls = bund->radius.acl_pipe;
+    while (acls != NULL) {
+	i=IfaceFindACL(pipe_pool,iface->ifname,acls->number);
+
+	buf=IfaceParceACL(acls->rule,iface->ifname);
+	ExecCmd(LG_IFACE, "%s pipe %d config %s",
+    	    PATH_IPFW, i, acls->rule);
+	Freee(buf);
+
+	acls = acls->next;
+    };
+    acls = bund->radius.acl_queue;
+    while (acls != NULL) {
+	i = IfaceFindACL(queue_pool,iface->ifname,acls->number);
+
+	buf = IfaceParceACL(acls->rule,iface->ifname);
+	ExecCmd(LG_IFACE, "%s queue %d config %s",
+    	    PATH_IPFW, i, buf);
+	Freee(buf);
+	
+	acls = acls->next;
+    };
+    acls = bund->radius.acl_rule;
+    while (acls != NULL) {
+	i = IfaceFindACL(rule_pool,iface->ifname,acls->number);
+
+	buf = IfaceParceACL(acls->rule,iface->ifname);
+	ExecCmd(LG_IFACE, "%s add %d %s via %s",
+    	    PATH_IPFW, i, buf, iface->ifname);
+	Freee(buf);
+	
+	acls = acls->next;
+    };
+  }
+
   /* Call "up" script */
   if (*iface->up_script) {
     char	peerbuf[40];
@@ -537,6 +718,7 @@ IfaceIpIfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
   int		k;
+  struct acl_pool	**rp,*rp1;
 
   /* Sanity */
   assert(iface->ip_up);
@@ -546,6 +728,49 @@ IfaceIpIfaceDown(void)
     ExecCmd(LG_IFACE, "%s %s inet %s",
       iface->down_script, iface->ifname, bund->peer_authname);
   }
+
+  /* Remove ACLs */
+  if (Enabled(&iface->options, IFACE_CONF_RADIUSACL)) {
+	/* Remove rule ACLs */
+	rp = &rule_pool;
+	while (*rp != NULL) {
+	    if (strncmp((*rp)->ifname,iface->ifname,IFNAMSIZ) == 0) {
+		ExecCmd(LG_IFACE, "%s delete %d",
+    		    PATH_IPFW, (*rp)->real_number);
+		rp1 = *rp;
+		*rp = (*rp)->next;
+		Freee(rp1);
+	    } else {
+		rp = &((*rp)->next);
+	    };
+	};
+	/* Remove queue ACLs */
+	rp = &queue_pool;
+	while (*rp != NULL) {
+	    if (strncmp((*rp)->ifname,iface->ifname,IFNAMSIZ) == 0) {
+		ExecCmd(LG_IFACE, "%s queue %d delete",
+    		    PATH_IPFW, (*rp)->real_number);
+		rp1 = *rp;
+		*rp = (*rp)->next;
+		Freee(rp1);
+	    } else {
+		rp = &((*rp)->next);
+	    };
+	};
+	/* Remove pipe ACLs */
+	rp = &pipe_pool;
+	while (*rp != NULL) {
+	    if (strncmp((*rp)->ifname,iface->ifname,IFNAMSIZ) == 0) {
+		ExecCmd(LG_IFACE, "%s pipe %d delete",
+    		    PATH_IPFW, (*rp)->real_number);
+		rp1 = *rp;
+		*rp = (*rp)->next;
+		Freee(rp1);
+	    } else {
+		rp = &((*rp)->next);
+	    };
+	};
+  };
 
   /* Delete routes */
   for (k = 0; k < iface->n_routes; k++) {

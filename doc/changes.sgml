@@ -10,6 +10,10 @@
     <itemize>
     <item>Implemented PPPoE server functionality
     </item>
+    <item>Added ability to configure ipfw firewall for clients using
+	vendor specific RADIUS attributes. Submitted by Alexander Motin
+    <tt><htmlurl url='mailto:mav@alkar.net' name='&lt;mav@alkar.net&gt;'></tt>.
+    </item>
     <item>Added the possibility of choosing link by it's number (same as RAD_NAS_PORT) instead of name
     </item>
     </itemize>

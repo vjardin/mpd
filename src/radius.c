@@ -257,6 +257,7 @@ void
 RadiusDestroy(void) 
 {
   struct radius 	*rad = &bund->radius;
+  struct radius_acl	*acls, *acls1;
 
   RadiusClose();
   free(rad->msdomain);
@@ -267,6 +268,24 @@ RadiusDestroy(void)
   rad->mschapv2resp = NULL;
   free(rad->reply_message);
   rad->reply_message = NULL;  
+  acls = rad->acl_rule;
+  while (acls != NULL) {
+    acls1 = acls->next;
+    free(acls);
+    acls = acls1;
+  };
+  acls = rad->acl_pipe;
+  while (acls != NULL) {
+    acls1 = acls->next;
+    free(acls);
+    acls = acls1;
+  };
+  acls = rad->acl_queue;
+  while (acls != NULL) {
+    acls1 = acls->next;
+    free(acls);
+    acls = acls1;
+  };
   memset(rad, 0, sizeof(struct radius) - sizeof(struct radiusconf));
 }
 
@@ -782,6 +801,8 @@ RadiusGetParams()
   const void *data;
   u_int32_t vendor;
   char *route;
+  char *acl1,*acl2;
+  struct radius_acl **acls, *acls1;
   struct ifaceroute r;
   struct in_range range;
   short got_mppe_keys = FALSE;
@@ -991,6 +1012,66 @@ RadiusGetParams()
 		  lnk->name, function, res));
 		break;
 	  }
+          case RAD_VENDOR_MPD:
+
+        	if (res == RAD_MPD_RULE) {
+		    acl2 = rad_cvt_string(data, len);
+            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_RULE: %s",
+            		lnk->name, function, acl2));
+		    acls = &(rad->acl_rule);
+	    	} else if (res == RAD_MPD_PIPE) {
+		    acl2 = rad_cvt_string(data, len);
+            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_PIPE: %s",
+                	lnk->name, function, acl2));
+		    acls = &(rad->acl_pipe);
+	        } else if (res == RAD_MPD_QUEUE) {
+		    acl2 = rad_cvt_string(data, len);
+            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MPD_QUEUE: %s",
+            		lnk->name, function, acl2));
+		    acls = &(rad->acl_queue);
+		} else {
+    		    Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ", lnk->name, function, res));
+		    break;
+	        };
+		
+		acl1 = strsep(&acl2,"=");
+		i = atol(acl1);
+		if (i <= 0) {
+            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl number: %i",
+                	lnk->name, function,i));
+		    free(acl1);
+		    break;
+		};
+		if ((acl2 == NULL) && (acl2[0] == 0)) {
+            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl",
+                	lnk->name, function));
+		    free(acl1);
+		    break;
+		};
+		acls1 = malloc(sizeof(struct radius_acl));
+		acls1->number = i;
+		strncpy(acls1->rule,acl2,ACL_LEN);
+		while ((*acls != NULL)&&((*acls)->number < i)) {
+		    acls = &((*acls)->next);
+		};
+		if (*acls == NULL) {
+		    acls1->next = NULL;
+		} else if ((*acls)->number == i) {
+            	    Log(LG_RADIUS, ("[%s] RADIUS: %s: duplicate acl",
+                	lnk->name, function));
+		    free(acl1);
+		    break;
+		} else {			
+		    acls1->next = *acls;
+		};
+		*acls = acls1;
+		
+		free(acl1);
+		break;
+
+    	  default:
+    	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Dropping vendor %d  attribute: %d ", lnk->name, function, vendor, res));
+    	    break;
 	}
 	break;
 

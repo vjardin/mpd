@@ -76,6 +76,13 @@
   };
   typedef struct ifacestate	*IfaceState;
 
+  struct acl_pool {			/* Pool of used ACL numbers */
+    char	ifname[IFNAMSIZ+1];     /* Name of interface */
+    int		acl_number;		/* ACL number given by RADIUS unique on this interface */
+    int		real_number;		/* Real ACL number unique on this system */
+    struct acl_pool *next;
+  };
+
 /*
  * VARIABLES
  */
