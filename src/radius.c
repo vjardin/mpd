@@ -1199,19 +1199,34 @@ RadiusAccount(short acct_type)
   }
 
   if (acct_type == RAD_STOP || acct_type == RAD_UPDATE) {
-    int	termCause = RAD_TERM_USER_REQUEST;
 
     if (acct_type == RAD_STOP) {
+      int	termCause = RAD_TERM_PORT_ERROR;
 
       if (lnk->downReason != NULL) {
-	if (!strncmp(lnk->downReason, STR_QUIT, strlen(lnk->downReason) - 1))
-	  termCause = RAD_TERM_ADMIN_RESET;
-	if (!strncmp(lnk->downReason, STR_PEER_DISC, strlen(lnk->downReason) - 1))
+	if (!strcmp(lnk->downReason, "")) {
+	  termCause = RAD_TERM_NAS_REQUEST;
+	} else if (!strncmp(lnk->downReason, STR_PEER_DISC, strlen(STR_PEER_DISC))) {
 	  termCause = RAD_TERM_USER_REQUEST;
-	if (!strncmp(lnk->downReason, STR_IDLE_TIMEOUT, strlen(lnk->downReason) - 1))
+	} else if (!strncmp(lnk->downReason, STR_QUIT, strlen(STR_QUIT))) {
+	  termCause = RAD_TERM_ADMIN_REBOOT;
+	} else if (!strncmp(lnk->downReason, STR_PORT_SHUTDOWN, strlen(STR_PORT_SHUTDOWN))) {
+	  termCause = RAD_TERM_NAS_REBOOT;
+	} else if (!strncmp(lnk->downReason, STR_IDLE_TIMEOUT, strlen(STR_IDLE_TIMEOUT))) {
 	  termCause = RAD_TERM_IDLE_TIMEOUT;
-	if (!strncmp(lnk->downReason, STR_SESSION_TIMEOUT, strlen(lnk->downReason) - 1))
+	} else if (!strncmp(lnk->downReason, STR_SESSION_TIMEOUT, strlen(STR_SESSION_TIMEOUT))) {
 	  termCause = RAD_TERM_SESSION_TIMEOUT;
+	} else if (!strncmp(lnk->downReason, STR_DROPPED, strlen(STR_DROPPED))) {
+	  termCause = RAD_TERM_LOST_CARRIER;
+	} else if (!strncmp(lnk->downReason, STR_ECHO_TIMEOUT, strlen(STR_ECHO_TIMEOUT))) {
+	  termCause = RAD_TERM_LOST_SERVICE;
+	} else if (!strncmp(lnk->downReason, STR_PROTO_ERR, strlen(STR_PROTO_ERR))) {
+	  termCause = RAD_TERM_SERVICE_UNAVAILABLE;
+	} else if (!strncmp(lnk->downReason, STR_LOGIN_FAIL, strlen(STR_LOGIN_FAIL))) {
+	  termCause = RAD_TERM_USER_ERROR;
+	};
+	Log(LG_RADIUS, ("[%s] RADIUS: Termination cause: %s, RADIUS: %d",
+	  lnk->name, lnk->downReason, termCause));
       }
 
       if (rad_put_int(rad->radh, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
