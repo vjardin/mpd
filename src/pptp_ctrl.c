@@ -197,7 +197,7 @@
   /* Misc routines */
   static void	PptpCtrlInitCtrl(PptpCtrl c, int orig);
   static void	PptpCtrlMsg(PptpCtrl c, int type, void *msg);
-  static void	PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg);
+  static int	PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg);
 
   static void	PptpCtrlSwap(int type, void *buf);
   static void	PptpCtrlDump(int level, int type, void *msg);
@@ -1013,7 +1013,7 @@ PptpCtrlMsg(PptpCtrl c, int type, void *msg)
  * NOTE: calling this function can result in the connection being shutdown!
  */
 
-static void
+static int
 PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
 {
   PptpMsgInfo		const mi = &gPptpMsgInfo[type];
@@ -1049,7 +1049,7 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
     else
       Log(LG_PPTP, ("pptp%d: only wrote %d/%d", c->id, nwrote, totlen));
     PptpCtrlKillCtrl(c);
-    return;
+    return -1;
   }
   LogDumpBuf(LG_PPTP3, frame.buf, totlen, "pptp%d: wrote ctrl data", c->id);
 
@@ -1066,6 +1066,9 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
     prep->next = c->reps;
     c->reps = prep;
   }
+
+  /* Done */
+  return 0;
 }
 
 /*************************************************************************
@@ -1896,7 +1899,8 @@ reply:
   if (req->vers != PPTP_PROTO_VERS) {
     Log(LG_PPTP, ("pptp%d: incompatible protocol 0x%04x", c->id, req->vers));
     reply.result = PPTP_SCCR_RESL_VERS;
-    PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply);
+    if (PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply) == -1)
+	return;
 abort:
     PptpCtrlKillCtrl(c);
     return;
@@ -1956,7 +1960,8 @@ PptpStopCtrlConnRequest(PptpCtrl c, struct pptpStopCtrlConnRequest *req)
   memset(&rep, 0, sizeof(rep));
   rep.result = PPTP_SCCR_RESL_OK;
   PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_IDLE);
-  PptpCtrlWriteMsg(c, PPTP_StopCtrlConnReply, &rep);
+  if (PptpCtrlWriteMsg(c, PPTP_StopCtrlConnReply, &rep) == -1)
+    return;
   PptpCtrlKillCtrl(c);
 }
 
@@ -2168,7 +2173,8 @@ PptpInCallRequest(PptpCtrl c, struct pptpInCallRequest *req)
 
   /* Return result */
 done:
-  PptpCtrlWriteMsg(c, PPTP_InCallReply, &reply);
+  if (PptpCtrlWriteMsg(c, PPTP_InCallReply, &reply) == -1)
+    return;
   if (reply.result != PPTP_ICR_RESL_OK)
     PptpCtrlKillChan(ch, "peer incoming call failed");
 }
