@@ -384,7 +384,7 @@ SetDebugCommand(int ac, char *av[], void *arg)
 static int
 ShowVersion(int ac, char *av[], void *arg)
 {
-  Log(LG_ERR, ("Version: %s", gVersion));
+  printf("MPD version: %s\n", gVersion);
   return(0);
 }
 
