@@ -19,6 +19,7 @@
 #include "custom.h"
 #include "msg.h"
 #include "ngfunc.h"
+#include "pptp.h"
 
 #include <netgraph.h>
 #include <sys/mbuf.h>
@@ -607,7 +608,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (!IpAddrInRange(&ipcp->conf.peer_allow, *ip) || !ip->s_addr) {
-		if (ipcp->peer_addr.s_addr == 0)
+nak_ip:		if (ipcp->peer_addr.s_addr == 0)
 		  Log(LG_IPCP, ("   %s", "no IP address available for peer!"));
 		if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
 		  Log(LG_IPCP, ("   pretending that %s is OK, will ignore",
@@ -620,6 +621,17 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		Log(LG_IPCP, ("   NAKing with %s", inet_ntoa(*ip)));
 		FsmNak(fp, opt);
 		break;
+	      }
+	      if (bund->links[0]->phys->type == &gPptpPhysType) {
+		struct in_addr pip;
+
+		lnk = bund->links[0];
+		pip = PptpGetPeerIp();
+		if (ip->s_addr == pip.s_addr) {
+		  Log(LG_IPCP,
+		    ("   Same as PPTP IP; would cause routing loop"));
+		  goto nak_ip;
+		}
 	      }
 	      Log(LG_IPCP, ("   %s is OK", inet_ntoa(*ip)));
 	      ipcp->peer_addr = *ip;
