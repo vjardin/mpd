@@ -22,7 +22,6 @@
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_iface.h>
 #include <netgraph/ng_bpf.h>
-#include <md5.h>
 
 /*
  * DEFINITIONS

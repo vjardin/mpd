@@ -17,7 +17,7 @@
 #include "msoft.h"
 #include "ngfunc.h"
 #include "radius.h"
-#include <md5.h>
+#include <openssl/md5.h>
 
 /*
  * DEFINITIONS
@@ -616,11 +616,11 @@ ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
       {
 	MD5_CTX	md5ctx;
 
-	MD5Init(&md5ctx);
-	MD5Update(&md5ctx, &id, 1);
-	MD5Update(&md5ctx, secret, strlen(secret));
-	MD5Update(&md5ctx, challenge, clen);
-	MD5Final(hash_value, &md5ctx);
+	MD5_Init(&md5ctx);
+	MD5_Update(&md5ctx, &id, 1);
+	MD5_Update(&md5ctx, secret, strlen(secret));
+	MD5_Update(&md5ctx, challenge, clen);
+	MD5_Final(hash_value, &md5ctx);
 	hash_size = 16;
       }
       break;

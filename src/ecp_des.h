@@ -12,7 +12,7 @@
 
 #include "defs.h"
 #include "mbuf.h"
-#include <des.h>
+#include <openssl/des.h>
 
 /*
  * DEFINITIONS

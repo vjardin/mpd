@@ -10,10 +10,10 @@
 #include "ppp.h"
 #include "msoft.h"
 #ifdef ENCRYPTION_MPPE
-#include "sha-1.h"
+#include <openssl/sha.h>
 #endif
-#include <md4.h>
-#include <des.h>
+#include <openssl/md4.h>
+#include <openssl/des.h>
 
 /*
  * This stuff is described in:
@@ -91,9 +91,9 @@ NTPasswordHash(const char *password, u_char *hash)
 
 /* Compute MD4 of Unicode password */
 
-  MD4Init(&md4ctx);
-  MD4Update(&md4ctx, (u_char *) unipw, unipwLen * sizeof(*unipw));
-  MD4Final(hash, &md4ctx);
+  MD4_Init(&md4ctx);
+  MD4_Update(&md4ctx, (u_char *) unipw, unipwLen * sizeof(*unipw));
+  MD4_Final(hash, &md4ctx);
 }
 
 /*
@@ -181,14 +181,14 @@ DesEncrypt(const u_char *clear, u_char *key0, u_char *cypher)
 void
 MsoftGetStartKey(u_char *chal, u_char *h)
 {
-  SHA1_CTX	c;
+  SHA_CTX	c;
   u_char	hash[20];
 
-  SHA1Init(&c);
-  SHA1Update(&c, h, 16);
-  SHA1Update(&c, h, 16);
-  SHA1Update(&c, chal, 8);
-  SHA1Final(hash, &c);
+  SHA1_Init(&c);
+  SHA1_Update(&c, h, 16);
+  SHA1_Update(&c, h, 16);
+  SHA1_Update(&c, chal, 8);
+  SHA1_Final(hash, &c);
   memcpy(h, hash, 16);
 }
 
@@ -229,14 +229,14 @@ static void
 ChallengeHash(const u_char *peerchal, const u_char *authchal,
   const char *username, u_char *hash)
 {
-  SHA1_CTX	c;
+  SHA_CTX	c;
   u_char	digest[20];
 
-  SHA1Init(&c);
-  SHA1Update(&c, peerchal, 16);
-  SHA1Update(&c, authchal, 16);
-  SHA1Update(&c, username, strlen(username));
-  SHA1Final(digest, &c);
+  SHA1_Init(&c);
+  SHA1_Update(&c, peerchal, 16);
+  SHA1_Update(&c, authchal, 16);
+  SHA1_Update(&c, username, strlen(username));
+  SHA1_Final(digest, &c);
   memcpy(hash, digest, 8);
 }
 
@@ -254,27 +254,27 @@ GenerateAuthenticatorResponse(const char *password,
   u_char digest[SHA_DIGEST_LENGTH];
   u_char chal[8];
   MD4_CTX md4ctx;
-  SHA1_CTX shactx;
+  SHA_CTX shactx;
 
   NTPasswordHash(password, hash);
 
-  MD4Init(&md4ctx);
-  MD4Update(&md4ctx, hash, 16);
-  MD4Final(hash, &md4ctx);
+  MD4_Init(&md4ctx);
+  MD4_Update(&md4ctx, hash, 16);
+  MD4_Final(hash, &md4ctx);
 
-  SHA1Init(&shactx);
-  SHA1Update(&shactx, hash, 16);
-  SHA1Update(&shactx, ntresp, 24);
-  SHA1Update(&shactx, MS_AR_MAGIC_1, 39);
-  SHA1Final(digest, &shactx);
+  SHA1_Init(&shactx);
+  SHA1_Update(&shactx, hash, 16);
+  SHA1_Update(&shactx, ntresp, 24);
+  SHA1_Update(&shactx, MS_AR_MAGIC_1, 39);
+  SHA1_Final(digest, &shactx);
 
   ChallengeHash(peerchal, authchal, username, chal);
 
-  SHA1Init(&shactx);
-  SHA1Update(&shactx, digest, sizeof(digest));
-  SHA1Update(&shactx, chal, 8);
-  SHA1Update(&shactx, MS_AR_MAGIC_2, 41);
-  SHA1Final(authresp, &shactx);
+  SHA1_Init(&shactx);
+  SHA1_Update(&shactx, digest, sizeof(digest));
+  SHA1_Update(&shactx, chal, 8);
+  SHA1_Update(&shactx, MS_AR_MAGIC_2, 41);
+  SHA1_Final(authresp, &shactx);
 }
 
 #ifdef ENCRYPTION_MPPE
@@ -286,14 +286,14 @@ GenerateAuthenticatorResponse(const char *password,
 void
 MsoftGetMasterKey(u_char *resp, u_char *h)
 {
-  SHA1_CTX	c;
+  SHA_CTX	c;
   u_char	hash[20];
 
-  SHA1Init(&c);
-  SHA1Update(&c, h, 16);
-  SHA1Update(&c, resp, 24);
-  SHA1Update(&c, MS_MAGIC_1, 27);
-  SHA1Final(hash, &c);
+  SHA1_Init(&c);
+  SHA1_Update(&c, h, 16);
+  SHA1_Update(&c, resp, 24);
+  SHA1_Update(&c, MS_MAGIC_1, 27);
+  SHA1_Final(hash, &c);
   memcpy(h, hash, 16);
 }
 
@@ -304,18 +304,18 @@ MsoftGetMasterKey(u_char *resp, u_char *h)
 void
 MsoftGetAsymetricStartKey(u_char *h, int server_recv)
 {
-  SHA1_CTX		c;
+  SHA_CTX		c;
   u_char		pad[40];
   u_char		hash[20];
 
-  SHA1Init(&c);
-  SHA1Update(&c, h, 16);
+  SHA1_Init(&c);
+  SHA1_Update(&c, h, 16);
   memset(pad, 0x00, sizeof(pad));
-  SHA1Update(&c, pad, sizeof(pad));
-  SHA1Update(&c, server_recv ? MS_MAGIC_2 : MS_MAGIC_3, 84);
+  SHA1_Update(&c, pad, sizeof(pad));
+  SHA1_Update(&c, server_recv ? MS_MAGIC_2 : MS_MAGIC_3, 84);
   memset(pad, 0xf2, sizeof(pad));
-  SHA1Update(&c, pad, sizeof(pad));
-  SHA1Final(hash, &c);
+  SHA1_Update(&c, pad, sizeof(pad));
+  SHA1_Final(hash, &c);
   memcpy(h, hash, 16);
 }
 

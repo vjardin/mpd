@@ -10,7 +10,7 @@
 #include "chap.h"
 #include <radlib.h>
 #include <radlib_vs.h>
-#include <md5.h>
+#include <openssl/md5.h>
 
 /* Global variables */
 
@@ -676,11 +676,11 @@ RadiusMPPEExtractKey(const void *mangled, size_t mlen, u_char *buf, size_t *len)
   Slen = strlen(S);
   P = alloca(Clen);        /* We derive our plaintext */
 
-  MD5Init(&Context);
-  MD5Update(&Context, S, Slen);
-  MD5Update(&Context, R, AUTH_LEN);
-  MD5Update(&Context, A, SALT_LEN);
-  MD5Final(b, &Context);
+  MD5_Init(&Context);
+  MD5_Update(&Context, S, Slen);
+  MD5_Update(&Context, R, AUTH_LEN);
+  MD5_Update(&Context, A, SALT_LEN);
+  MD5_Final(b, &Context);
   Ppos = 0;
 
   while (Clen) {
@@ -690,10 +690,10 @@ RadiusMPPEExtractKey(const void *mangled, size_t mlen, u_char *buf, size_t *len)
       P[Ppos++] = C[i] ^ b[i];
 
     if (Clen) {
-      MD5Init(&Context);
-      MD5Update(&Context, S, Slen);
-      MD5Update(&Context, C, 16);
-      MD5Final(b, &Context);
+      MD5_Init(&Context);
+      MD5_Update(&Context, S, Slen);
+      MD5_Update(&Context, C, 16);
+      MD5_Final(b, &Context);
     }
 
     C += 16;
@@ -782,10 +782,10 @@ RadiusDecryptPassword(const void *mangled, size_t clen, u_char *P) {
     return RAD_NACK;
   }
 
-  MD5Init(&Context);
-  MD5Update(&Context, S, strlen(S));
-  MD5Update(&Context, R, AUTH_LEN);
-  MD5Final(b, &Context);
+  MD5_Init(&Context);
+  MD5_Update(&Context, S, strlen(S));
+  MD5_Update(&Context, R, AUTH_LEN);
+  MD5_Final(b, &Context);
   Ppos = 0;
   while (clen) {
 
@@ -794,10 +794,10 @@ RadiusDecryptPassword(const void *mangled, size_t clen, u_char *P) {
       P[Ppos++] = C[i] ^ b[i];
 
     if (clen) {
-      MD5Init(&Context);
-      MD5Update(&Context, S, strlen(S));
-      MD5Update(&Context, C, 16);
-      MD5Final(b, &Context);
+      MD5_Init(&Context);
+      MD5_Update(&Context, S, strlen(S));
+      MD5_Update(&Context, C, 16);
+      MD5_Final(b, &Context);
     }
 
     C += 16;
