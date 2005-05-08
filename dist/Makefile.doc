@@ -17,7 +17,7 @@ clean cleandir:
 
 all:		mpd4.8
 
-mpd4.8:          mpd.8.in
+mpd4.8:          mpd4.8.in
 	sed -e "s,@PREFIX@,${PREFIX},g" < ${.ALLSRC} > ${.TARGET}
 
 .if !defined(NOPORTDOCS)
