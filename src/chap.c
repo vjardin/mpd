@@ -97,6 +97,10 @@ ChapSendChallenge(ChapInfo chap)
 {
   u_char	*pkt;
 
+  /* don't generate new challenges on re-transmit */
+  if (chap->chal_len)
+    goto send_pkt;
+
   /* Put random challenge data in buffer (only once for Microsoft CHAP) */
   switch (chap->recv_alg) {
     case CHAP_ALG_MSOFT: {
@@ -123,6 +127,7 @@ ChapSendChallenge(ChapInfo chap)
   }
   assert(chap->chal_len <= sizeof(chap->chal_data));
 
+send_pkt:
   /* Build a challenge packet */
   pkt = Malloc(MB_AUTH, 1 + chap->chal_len + strlen(bund->conf.auth.authname) + 1);
   pkt[0] = chap->chal_len;
