@@ -8,8 +8,17 @@
   <p>
     Changes since version 4.0b2:
     <itemize>
+        <item>BugFix: make PPPoE interface control events recurring, PPPoE is
+		not broken anymore.
+        </item>
+        <item>Added a new <tt>startup</tt> section to the config-file, wich
+		is loaded once at startup.
+        </item>
+        <item>Added a new <tt>global</tt> config space for all the global 
+		settings.
+        </item>
         <item>BugFix: don't generate new challenges, while retransmitting
-        them.
+        	them.
         </item>
 	<item>Fix <tt>va_args</tt> bug on certain non-i386 platforms.
 	</item>

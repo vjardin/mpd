@@ -665,9 +665,11 @@ PppoeListenEvent(int type, void *arg)
 
 	if (sz >= sizeof(struct ether_header)) {
     	    macaddr = ((struct ether_header *)response)->ether_shost;
-	    Log(LG_PHYS, ("Incoming PPPoE connection request via %s for service \"%s\" from %s", PIf->ifnodepath, PIf->session, ether_ntoa((const struct ether_addr *)macaddr)));
+	    Log(LG_PHYS, ("Incoming PPPoE connection request via %s for service \"%s\" from %s", 
+		PIf->ifnodepath, PIf->session, ether_ntoa((const struct ether_addr *)macaddr)));
 	} else {
-	    Log(LG_PHYS, ("Incoming PPPoE connection request via %s for service \"%s\"", PIf->ifnodepath, PIf->session));
+	    Log(LG_PHYS, ("Incoming PPPoE connection request via %s for service \"%s\"", 
+		PIf->ifnodepath, PIf->session));
 	    macaddr = (u_char *)NULL;
 	}
 
@@ -796,6 +798,7 @@ PppoeListenEvent(int type, void *arg)
 	if (k == gNumLinks) {
 	    Log(LG_PHYS, ("No free PPPoE link with requested parameters was found"));
 	}
+
 };
 
 static int 
@@ -846,8 +849,8 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf, const c
 	}
 
 	/* Register an event listening to the control socket */
-	EventRegister(&(PIf->ctrlEvent), EVENT_RECURRING|EVENT_READ, PIf->dsock,
-	    0, PppoeListenEvent, PIf);
+	EventRegister(&(PIf->ctrlEvent), EVENT_READ, PIf->dsock,
+	    EVENT_RECURRING, PppoeListenEvent, PIf);
 	    
 	return(1);
 };
@@ -887,12 +890,12 @@ PppoeNodeUpdate(void)
 		return;
 	    };
 	};
-    	if (Enabled(&p->options, PPPOE_CONF_INCOMING)&&(!PppoeListenUpdateSheduled)) {
+    	if (Enabled(&p->options, PPPOE_CONF_INCOMING) && (!PppoeListenUpdateSheduled)) {
 	    /* Set a timer to run PppoeListenUpdate */
 	    TimerInit(&PppoeListenUpdateTimer, "PppoeListenUpdate",
 		0, PppoeListenUpdate, NULL);
 	    TimerStart(&PppoeListenUpdateTimer);
-	    PppoeListenUpdateSheduled=1;
+	    PppoeListenUpdateSheduled = 1;
 	};
     }
   }
