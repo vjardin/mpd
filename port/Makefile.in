@@ -5,24 +5,26 @@
 # %%%%%%%%%%%%%%%
 #
 
-PORTNAME=	mpd
+PORTNAME=	mpd4
 PORTVERSION=	@VERSION@
 CATEGORIES=	net
 MASTER_SITES=	${MASTER_SITE_LOCAL}
 MASTER_SITE_SUBDIR=	archie
-DIST_SUBDIR=	mpd
+DIST_SUBDIR=	mpd4
 
 MAINTAINER=	archie@freebsd.org
 COMMENT=	Multi-link PPP daemon based on netgraph(4)
 
-MTREE_FILE=	${FILESDIR}/mpd.mtree
-MAN8=		mpd.8
+LIB_DEPENDS=    pdel.0:${PORTSDIR}/devel/libpdel
+
+MTREE_FILE=	${FILESDIR}/mpd4.mtree
+MAN8=		mpd4.8
 MANCOMPRESSED=	maybe
 
 USE_OPENSSL=	yes
 MAKE_ENV=	COPTS=-I${OPENSSLINC} LDADD=-L${OPENSSLLIB}
 
 post-install:
-	@${INSTALL_SCRIPT} -m 751 ${FILESDIR}/mpd.sh ${PREFIX}/etc/rc.d/mpd.sh.sample
+	@${INSTALL_SCRIPT} -m 751 ${FILESDIR}/mpd4.sh ${PREFIX}/etc/rc.d/mpd4.sh.sample
 
 .include <bsd.port.mk>

@@ -1,20 +1,20 @@
 #!/bin/sh
 # $FreeBSD: ports/net/mpd/files/mpd.sh,v 1.1 2003/11/22 20:51:05 archie Exp $
 
-DAEMON=/usr/local/sbin/mpd
-PIDFILE=/var/run/mpd.pid
+DAEMON=/usr/local/sbin/mpd4
+PIDFILE=/var/run/mpd4.pid
 
 case "$1" in
 start)
 	if [ -f "${DAEMON}" -a -x "${DAEMON}" ]; then
 		if [ -f "${PIDFILE}" ]; then
-			echo ' mpd PID file found - not starting'
+			echo ' mpd4 PID file found - not starting'
 		else
 			"${DAEMON}" -b -p "${PIDFILE}"
-			echo -n ' mpd'
+			echo -n ' mpd4'
 		fi
 	else
-		echo ' "${DAEMON}" executable not found - mpd not starting'
+		echo ' "${DAEMON}" executable not found - mpd4 not starting'
 	fi
 	;;
 stop)
@@ -22,7 +22,7 @@ stop)
 		read -r pid junk < "${PIDFILE}"
 		kill ${pid}
 	else
-		echo ' mpd PID file not found - not killing'
+		echo ' mpd4 PID file not found - not killing'
 	fi
 	;;
 restart)

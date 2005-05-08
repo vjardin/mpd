@@ -7,15 +7,15 @@
 # See ``COPYRIGHT.whistle''
 #
 
-PROG?=			mpd
+PROG?=			mpd4
 PREFIX?=		/usr/local
 BINDIR?=		${PREFIX}/sbin
-VERSION=		4.0b2
+VERSION=		4.0b3
 NOMAN=
 
 # Default configuration directory
 
-MPD_CONF_DIR?=		${PREFIX}/etc/mpd
+MPD_CONF_DIR?=		${PREFIX}/etc/mpd4
 
 # Define supported physical layer types
 

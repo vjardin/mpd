@@ -2,7 +2,7 @@
 
 VERSION!=	cat src/Makefile | grep ^VERSION | awk '{ print $$2 }'
 
-DISTNAME=	mpd-${VERSION}
+DISTNAME=	mpd4-${VERSION}
 TARBALL=	${DISTNAME}.tar.gz
 PORTBALL=	port.tgz
 
@@ -24,7 +24,7 @@ ${PORTBALL}:	.dist-done
 	cp src/COPYRIGHT* src/Makefile src/[a-z]* ${DISTNAME}/src
 	sed 's/@VERSION@/${VERSION}/g' < src/Makefile > ${DISTNAME}/src/Makefile
 	cp doc/mpd*.html doc/mpd.ps ${DISTNAME}/doc
-	cp doc/mpd.8 ${DISTNAME}/doc/mpd.8.in
+	cp doc/mpd.8 ${DISTNAME}/doc/mpd4.8.in
 	cp conf/[a-z]* ${DISTNAME}/conf
 	sed 's/@VERSION@/${VERSION}/g' < dist/README > ${DISTNAME}/README
 	touch ${.TARGET}
