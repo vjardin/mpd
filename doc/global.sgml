@@ -1,0 +1,40 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Global commands<label id="global"></heading>
+
+<p>
+
+  This chapter describes options that are affecting Mpd's
+  behavior globaly.
+
+<descrip>
+
+<tag><tt>
+set global enable <em>option ...</em>
+<newline>set global disable <em>option ...</em>
+</tt></tag>
+
+These commands configure various console options.
+
+<p>
+The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands determine
+whether we want the corresponding option.
+
+
+The options available are:
+
+<tag><tt>tcp-wrapper</tt></tag>
+
+With this option mpd uses <tt>/etc/hosts.allow</tt> everytime a
+connection is made from the client. This is useful if you would
+like to restrict access to mpd. This option affects all TCP
+connections, including PPTP and the TCP device layer.
+
+</descrip>
+
+
+</p>
+

@@ -20,6 +20,8 @@
 <!ENTITY cli SYSTEM "cli.sgml">
 
 <!ENTITY gencmd SYSTEM "gencmd.sgml">
+<!ENTITY global SYSTEM "global.sgml">
+<!ENTITY console SYSTEM "console.sgml">
 <!ENTITY bundle SYSTEM "bundle.sgml">
 <!ENTITY interface SYSTEM "interface.sgml">
 <!ENTITY ipcp SYSTEM "ipcp.sgml">
@@ -101,6 +103,8 @@ You must be running FreeBSD version 3.4 or higher.
     <chapt><heading>Configuring Mpd</heading>
 
 	&gencmd;
+	&global;
+	&console;
 	&bundle;
 	&interface;
 	&ipcp;

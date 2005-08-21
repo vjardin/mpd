@@ -29,6 +29,11 @@
 		allowed. There is no input-console anymore, must use telnet
 		instead.
 	</item>
+	<item>BugFix: The directly configured password wasn't taken into
+		account when using PAP.
+	</item>
+	<item>Disallow empty usernames safely.
+	</item>
     </itemize>
   </p>
 
@@ -49,7 +54,8 @@
   </p>
 
   <p>
-    Changes since version 3:
+    Changes since version 3 (most of this work was sponsored by 
+    SURFnet <htmlurl url="http://www.surfnet.nl/" name="SURFnet">):
     <itemize>
     <item>
 	Design changes:

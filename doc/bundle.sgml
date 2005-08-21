@@ -171,16 +171,6 @@ This tells mpd to not attempt to reconnect a bundle whose last
 link has closed. This is needed for dialin-only bundles, where
 mpd doesn't know how to initiate an outgoing connection.
 
-<tag><tt>tcp-wrapper</tt></tag>
-
-With this option mpd uses <tt>/etc/hosts.allow</tt> everytime a
-connection is made from the client. This is useful if you would
-like to restrict access to mpd. This option affects all TCP
-connections, including PPTP and the TCP device layer.
-
-The console is also affected, but a bug requires this option to be
-set consistently on all bundles for it to work reliably.
-
 </descrip>
 
 
