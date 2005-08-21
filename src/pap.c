@@ -76,6 +76,7 @@ PapSendRequest(PapInfo pap)
 
   /* Get password corresponding to my authname */
   memset(&auth, 0, sizeof(auth));
+  auth.conf = bund->conf.auth;
   strlcpy(auth.authname, bund->conf.auth.authname, sizeof(auth.authname));
   Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", lnk->name, auth.authname));
   if (AuthGetData(&auth, 1) < 0)
