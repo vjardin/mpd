@@ -1077,6 +1077,14 @@ AuthOpie(AuthData auth)
 static int
 AuthPreChecks(AuthData auth, int complain)
 {
+
+  if (!strlen(auth->authname)) {
+    if (complain)
+      Log(LG_AUTH, (" We don't accept empty usernames"));
+    auth->status = AUTH_STATUS_FAIL;
+    auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+    return (-1);
+  }
   /* check max. number of logins */
   if (bund->conf.auth.max_logins != 0) {
     int		ac;
@@ -1091,7 +1099,8 @@ AuthPreChecks(AuthData auth, int complain)
 	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
 	  auth->authname));
       }
-      auth->why_fail = AUTH_FAIL_ACCT_DISABLED;
+      auth->status = AUTH_STATUS_FAIL;
+      auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
       return (-1);
     }
   }
