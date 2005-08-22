@@ -7,8 +7,7 @@
 
 <p>
 
-  This chapter describes options that are affecting Mpd's
-  behavior globaly.
+  This chapter describes options that affect Mpd's behavior globally.
 
 <descrip>
 
@@ -17,12 +16,11 @@ set global enable <em>option ...</em>
 <newline>set global disable <em>option ...</em>
 </tt></tag>
 
-These commands configure various console options.
+These commands configure various global options.
 
 <p>
-The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands determine
-whether we want the corresponding option.
-
+The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands
+determine whether or not we want the corresponding option.
 
 The options available are:
 

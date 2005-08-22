@@ -8,8 +8,8 @@
 <p>
 
   This chapter describes commands for configuring Mpd's console.
-  The console can be accessed using telnet, multiple telnet connections
-  are allowed.
+  The console can be accessed using telnet.
+  Multiple telnet connections are allowed.
 
 <descrip>
 
@@ -18,30 +18,30 @@
 set console open
 </tt></tag>
 
-Opens the console, i.e. opens the listener.
+Opens the console, i.e., creates the listening TCP socket.
 
 <tag><tt>
 set console close
 </tt></tag>
 
-Closes the console, i.e. closes the listening socket. Only the listeners is 
-affected, active sessions are not closed.
+Closes the console, i.e., closes the listening TCP socket.
+Only the listener is affected; active sessions are not closed.
 
 <tag><tt>
 set console port <em>port</em>
 <newline>set console ip <em>ip</em>
 </tt></tag>
 
-Sets the credentials for the console-listener. After changing one of this 
-options, the console must be closed and re-opened.
+Sets the credentials for the console-listener. After changing one of these
+options, the console must be closed and re-opened for the changes to
+take effect.
 
 <tag><tt>
 set console user <em>username</em> <em>password</em>
 </tt></tag>
 
-This configures users that are allowed connecting to the console.
-This command may be invoked multiple times with different 
-usernames.
+This configures which users are allowed to connect to the console.
+This command may be invoked multiple times with different usernames.
 
 </descrip>
 
@@ -60,19 +60,13 @@ These commands configure various console options.
 The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands determine
 whether we want the corresponding option.
 
-
-
 The options available for the console are:
 
 <tag><tt>logging</tt></tag>
 
-This options enables writing of logging-messages to the console.
-
-
-
+This options enables writing of logging messages to the console.
 
 </descrip>
-
 
 </p>
 
