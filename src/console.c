@@ -319,7 +319,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
       }
     }
 
-    Logc(LG_CONSOLE, ("%c/%d", c, c));
+    /*Logc(LG_CONSOLE, ("%c/%d", c, c));*/
     switch(c) {
     case 0:
     case '\n':
