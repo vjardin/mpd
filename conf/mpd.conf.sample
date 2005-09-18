@@ -14,6 +14,16 @@
 #
 #################################################################
 
+startup:
+	# enable TCP-Wrapper (hosts_access(5)) to block unfriendly clients
+	set global enable tcp-wrapper
+	# configure the console
+	set console port 5005
+	set console ip 0.0.0.0
+	set console user foo bar
+	set console user foo1 bar1
+	set console open
+
 #
 # Default configuration is "myisp"
 
@@ -198,8 +208,6 @@ pptp:
 	set iface idle 1800
 	set iface enable tcpmssfix
 	set bundle enable multilink
-# enable TCP-Wrapper (hosts_access(5)) to block unfriendly clients
-#	set bundle enable tcp-wrapper
 # use RADIUS servers 
 #	load radius
 	set link yes acfcomp protocomp
