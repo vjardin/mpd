@@ -6,6 +6,7 @@ the numerous PPP sub-protocols and extensions, such as:
 
       Multi-link PPP capability 
       PAP, CHAP, and MS-CHAP authentication 
+      EAP authentication
       PPP compression and encryption
       Point-to-Point Tunnelling Protocol (PPTP)
       PPP over Ethernet (PPPoE)
