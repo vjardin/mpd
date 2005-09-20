@@ -22,7 +22,6 @@ MAN8=		mpd4.8
 MANCOMPRESSED=	maybe
 
 USE_OPENSSL=	yes
-MAKE_ENV=	COPTS=-I${OPENSSLINC} LDADD=-L${OPENSSLLIB}
 
 post-install:
 	@${INSTALL_SCRIPT} -m 751 ${FILESDIR}/mpd4.sh ${PREFIX}/etc/rc.d/mpd4.sh.sample
