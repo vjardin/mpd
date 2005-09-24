@@ -136,7 +136,7 @@ and using the LAN address 192.168.1.20. Then these commands would
 set up proxy ARP for the remote machine:
 <tscreen><tt>
 set iface enable proxy-arp
-<newline>set ipcp 192.168.1.10/32 192.168.1.20/32
+<newline>set ipcp ranges 192.168.1.10/32 192.168.1.20/32
 </tt></tscreen>
 
 <tag><tt>tcpmssfix</tt></tag>
