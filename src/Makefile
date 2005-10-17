@@ -61,7 +61,7 @@ DPADD+=		${LIBNETGRAPH}
 LDADD+=		-L/usr/lib -lradius
 DPADD+=		${LIBRADIUS}
 
-LDADD+=		-L/usr/local/lib -lpdel -lssl -lexpat
+LDADD+=		-L${PREFIX}/lib -lpdel -lssl -lexpat
 
 MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
 
@@ -80,7 +80,7 @@ COPTS+=		-Wall \
 		-Wpointer-arith \
 		-Wwrite-strings \
 		-pthread \
-		-I/usr/local/include
+		-I${PREFIX}/include
 
 # Standard sources
 
