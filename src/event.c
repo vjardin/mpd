@@ -182,7 +182,13 @@ EventUnRegister(EventRef *refp)
 int
 EventIsRegistered(EventRef *ref)
 {
-  return *ref != NULL;
+  if (*ref == NULL)
+    return FALSE;
+
+  if ((*ref)->pe == NULL)
+    return FALSE;
+
+  return TRUE;
 }
 
 /*
