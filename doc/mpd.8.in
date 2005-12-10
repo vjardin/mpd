@@ -11,14 +11,13 @@
 .Nd netgraph multi-link PPP daemon
 .Sh SYNOPSIS
 .Nm
-.Op Fl kbv
+.Op Fl kbtv
 .Op Fl a Ar IP-address
 .Op Fl d Ar directory
 .Op Fl c Ar tcp-port
 .Op Fl f Ar file
 .Op Fl p Ar pid-file
 .Op Fl s Ar ident
-.Op Fl t Ar add ng_tee
 .Op Ar configuration
 .Sh DESCRIPTION
 .Nm
