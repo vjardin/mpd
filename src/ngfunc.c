@@ -273,23 +273,26 @@ NgFuncInit(Bund b, const char *reqIface)
 	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
       goto fail;
     }
-
     snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
 	BPF_HOOK_IFACE);
+    snprintf(nm.name, sizeof(nm.name), "%s-tee", b->iface.ifname);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+      Log(LG_ERR, ("[%s] can't name %s node: %s",
+	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
+      goto fail;
+    }
     snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_LEFT);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
-
   } else {
-
-    /* Connect the other side of the bpf node to the iface node */
     snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
     snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
-
   }
 
+  /* Connect the other side of the bpf (or tee) node to the iface node. */
   if (NgSendMsg(b->csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
