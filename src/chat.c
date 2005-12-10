@@ -592,7 +592,7 @@ ChatRun(ChatInfo c)
       ChatFailure(c);
       break;
     case CHAT_WAIT:
-      if (c->rdEvent == NULL || c->rdEvent->pe == NULL)
+      if (!EventIsRegistered(&c->rdEvent))
 	EventRegister(&c->rdEvent, EVENT_READ, c->fd, 0, ChatRead, c);
       break;
     case CHAT_IDLE:
