@@ -185,11 +185,18 @@ RadiusAccount(AuthData auth)
     return;
   }
 
+#if 0
+  if (rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ac->mask) != 0) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_addr (RAD_FRAMED_IP_NETMASK): %s",
+      lnk->name, function, rad_strerror(auth->radius.handle)));
+    return;
+  }
+#endif
+
   username = auth->radius.username != NULL ? auth->radius.username : auth->authname;
   Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string (RAD_USER_NAME): %s", 
     lnk->name, function, username));
   if (rad_put_string(auth->radius.handle, RAD_USER_NAME, username) != 0) {
-      /*rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ac->mask) != 0) {*/
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string (RAD_USER_NAME): %s", 
       lnk->name, function, rad_strerror(auth->radius.handle)));
     return;
