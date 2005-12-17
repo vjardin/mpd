@@ -255,7 +255,7 @@ BundJoin(void)
 #endif
 
     /* generate a uniq session id */
-    snprintf(bund->session_id, LINK_MAX_NAME, "%ld-%s",
+    snprintf(bund->session_id, LINK_MAX_NAME, "%d-%s",
       time(NULL) % 10000000, bund->name);
   }
 
@@ -263,7 +263,7 @@ BundJoin(void)
   NgFuncSetConfig();
 
   /* generate a uniq session id */
-  snprintf(lnk->session_id, LINK_MAX_NAME, "%ld-%s",
+  snprintf(lnk->session_id, LINK_MAX_NAME, "%d-%s",
     time(NULL) % 10000000, lnk->name);
 
   AuthAccountStart(AUTH_ACCT_START);
