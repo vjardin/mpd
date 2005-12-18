@@ -140,7 +140,7 @@ set iface enable proxy-arp
 </tt></tscreen>
 
 <tag><tt>tcpmssfix</tt></tag>
-This option causes mpd to adjust outgoing TCP data so that the
+This option causes mpd to adjust incoming TCP data so that the
 requested segment size is not greater than the amount allowed by
 the interface MTU.
 
