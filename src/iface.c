@@ -89,7 +89,7 @@
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
   static char *	IFaceParseACL (char * src, char * ifname);
 
-  static void	IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss);
+  static void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
   
 /*
  * GLOBAL VARIABLES
@@ -380,25 +380,8 @@ IfaceListenInput(int proto, Mbuf pkt)
   if (OPEN_STATE(fsm->state)) {
     if (bund->bm.n_up > 0) {
       if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
-	struct ip	*iphdr;
-	int		plen, hlen;
-
-        if (proto == PROTO_IP) {
-	  iphdr = (struct ip *)MBDATA(pkt);
-	  hlen = iphdr->ip_hl << 2;
-	  plen = plength(pkt);
-	  /*
-	   * Check for MSS option only for TCP packets with zero fragment offsets
-	   * and correct total and header lengths.
-	   */
-	  if (iphdr->ip_p == IPPROTO_TCP
-	      && (ntohs(iphdr->ip_off) & IP_OFFMASK) == 0
-	      &&  ntohs(iphdr->ip_len) == plen
-	      && hlen <= plen
-	      && plen - hlen >= sizeof(struct tcphdr))
-	    IfaceCorrectMSS((struct tcphdr *)(MBDATA(pkt) + hlen), plen - hlen,
-	      MAXMSS(iface->mtu));
-        }
+	if (proto == PROTO_IP)
+	  IfaceCorrectMSS(pkt, MAXMSS(iface->mtu));
       } else
 	Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
 	  bund->name, MBLEN(pkt)));
@@ -415,6 +398,26 @@ IfaceListenInput(int proto, Mbuf pkt)
   } else {
     PFREE(pkt);
   }
+}
+
+/*
+ * IfaceListenOutput()
+ *
+ * Now used only for TCP MSS hacking.
+ */
+
+void
+IfaceListenOutput(int proto, Mbuf pkt)
+{
+  IfaceState	const iface = &bund->iface;
+
+  if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
+    if (proto == PROTO_IP)
+      IfaceCorrectMSS(pkt, MAXMSS(iface->mtu));
+  } else
+    Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
+       bund->name, MBLEN(pkt)));
+  NgFuncWriteFrame(bund->name, MPD_HOOK_MSSFIX_OUT, pkt);
 }
 
 /*
@@ -1387,13 +1390,18 @@ IfaceGetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
 }
 
 static void
-IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss)
+IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
 {
-  int hlen, olen, optlen;
-  u_char *opt;
-  u_int16_t *mss;
-  int accumulate;
+  struct ip	*iphdr;
+  struct tcphdr	*tc;
+  int		pktlen, hlen, olen, optlen, accumulate;
+  uint16_t	*mss;
+  u_char	*opt;
 
+  iphdr = (struct ip *)MBDATA(pkt);
+  hlen = iphdr->ip_hl << 2;
+  pktlen = plength(pkt) - hlen;
+  tc = (struct tcphdr *)(MBDATA(pkt) + hlen);
   hlen = tc->th_off << 2;
 
   /* Invalid header length or header without options. */
@@ -1432,4 +1440,3 @@ IfaceCorrectMSS(struct tcphdr *tc, ssize_t pktlen, u_int16_t maxmss)
     }
   }
 }
-                                                                                                 

@@ -306,6 +306,17 @@ NgFuncInit(Bund b, const char *reqIface)
     goto fail;
   }
 
+  /* Connect a second hook from the bpf node to our socket node. */
+  snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_MSSFIX_OUT);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", BPF_HOOK_MPD_OUT);
+  if (NgSendMsg(b->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
+      b->name, BPF_HOOK_MPD_OUT, MPD_HOOK_MSSFIX_OUT, strerror(errno)));
+    goto fail;
+  }
+
   /* Configure bpf(8) node */
   NgFuncConfigBPF(b, BPF_MODE_OFF);
 
@@ -516,19 +527,32 @@ NgFuncConfigBPF(Bund b, int mode)
   /* First, configure the hook on the interface node side of the BPF node */
   memset(&u, 0, sizeof(u));
   snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_IFACE);
-  hp->bpf_prog_len = DEMAND_PROG_LEN;
-  memcpy(&hp->bpf_prog, &gDemandProg, DEMAND_PROG_LEN * sizeof(*gDemandProg));
   switch (mode) {
     case BPF_MODE_OFF:
+      hp->bpf_prog_len = NOMATCH_PROG_LEN;
+      memcpy(&hp->bpf_prog, &gNoMatchProg,
+        NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
       memset(&hp->ifMatch, 0, sizeof(hp->ifMatch));
       memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
       break;
     case BPF_MODE_ON:
-    case BPF_MODE_MSSFIX:
+      hp->bpf_prog_len = NOMATCH_PROG_LEN;
+      memcpy(&hp->bpf_prog, &gNoMatchProg,
+        NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
       snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_PPP);
       snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_PPP);
       break;
+    case BPF_MODE_MSSFIX:
+      hp->bpf_prog_len = TCPSYN_PROG_LEN;
+      memcpy(&hp->bpf_prog, &gTCPSYNProg,
+        TCPSYN_PROG_LEN * sizeof(*gTCPSYNProg));
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_MPD_OUT);
+      snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_PPP);
+      break;
     case BPF_MODE_DEMAND:
+      hp->bpf_prog_len = DEMAND_PROG_LEN;
+      memcpy(&hp->bpf_prog, &gDemandProg,
+        DEMAND_PROG_LEN * sizeof(*gDemandProg));
       snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_MPD);
       memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
       break;
@@ -576,7 +600,7 @@ NgFuncConfigBPF(Bund b, int mode)
     DoExit(EX_ERRDEAD);
   }
 
-  /* Configure the hook on the MPD node side of the BPF node */
+  /* Configure the hook on the MPD demand/tap node side of the BPF node */
   memset(&u, 0, sizeof(u));
   snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_MPD);
   hp->bpf_prog_len = NOMATCH_PROG_LEN;
@@ -592,6 +616,35 @@ NgFuncConfigBPF(Bund b, int mode)
     case BPF_MODE_MSSFIX:
       snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_IFACE);
       snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_IFACE);
+      break;
+    default:
+      assert(0);
+  }
+
+  /* Set new program on the BPF_HOOK_MPD hook */
+  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+      NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+    Log(LG_ERR, ("[%s] can't set %s node program: %s",
+      b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    DoExit(EX_ERRDEAD);
+  }
+
+  /* Configure the hook on the MPD mssfix-out node side of the BPF node */
+  memset(&u, 0, sizeof(u));
+  snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_MPD_OUT);
+  hp->bpf_prog_len = NOMATCH_PROG_LEN;
+  memcpy(&hp->bpf_prog,
+    &gNoMatchProg, NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
+  switch (mode) {
+    case BPF_MODE_OFF:
+    case BPF_MODE_DEMAND:
+      memset(&hp->ifMatch, 0, sizeof(hp->ifMatch));
+      memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
+      break;
+    case BPF_MODE_ON:
+    case BPF_MODE_MSSFIX:
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_PPP);
+      snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_PPP);
       break;
     default:
       assert(0);
@@ -745,8 +798,18 @@ NgFuncDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd outgoing IP frame", bund->name);
+      "[%s] rec'd IP frame on demand/mssfix-in hook", bund->name);
     IfaceListenInput(PROTO_IP,
+      mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
+    return;
+  }
+
+  /* A snooped, outgoing TCP SYN frame? */
+  if (strcmp(naddr.sg_data, MPD_HOOK_MSSFIX_OUT) == 0) {
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd IP frame on mssfix-out hook", bund->name);
+    IfaceListenOutput(PROTO_IP,
       mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
     return;
   }
