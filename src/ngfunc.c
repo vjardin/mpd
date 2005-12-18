@@ -126,18 +126,13 @@
 
   /* A BPF filter that matches TCP SYN packets */
   static const struct bpf_insn gTCPSYNProg[] = {
-
-	/* Load IP protocol number and IP header length */
 /*00*/	BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 9),		/* A <- IP protocol */
-/*01*/	BPF_STMT(BPF_LDX+BPF_B+BPF_MSH, 0),		/* X <- header len */
-
-/*02*/	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, IPPROTO_TCP, 1, 0),	/* -> 04 */
-/*03*/	BPF_STMT(BPF_RET+BPF_K, 0),			/* reject packet */
-
-	/* Protocol is TCP -> accept if TH_SYN bit set */
-/*04*/	BPF_STMT(BPF_LD+BPF_B+BPF_IND, 13),		/* A <- TCP flags */
-/*05*/	BPF_STMT(BPF_ALU+BPF_AND+BPF_K, TH_SYN),	/* A <- A & TH_SYN */
-/*06*/	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 0, 1, 0),	/* compare to zero */
+/*01*/	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, IPPROTO_TCP, 0, 6), /* !TCP => 8 */
+/*02*/	BPF_STMT(BPF_LD+BPF_H+BPF_ABS, 6),	/* A <- fragmentation offset */
+/*03*/	BPF_JUMP(BPF_JMP+BPF_JSET+BPF_K, 0x1fff, 4, 0),	/* fragment => 8 */
+/*04*/	BPF_STMT(BPF_LDX+BPF_B+BPF_MSH, 0),		/* X <- header len */
+/*05*/	BPF_STMT(BPF_LD+BPF_B+BPF_IND, 13),		/* A <- TCP flags */
+/*06*/	BPF_JUMP(BPF_JMP+BPF_JSET+BPF_K, TH_SYN, 0, 1),	/* !TH_SYN => 8 */
 /*07*/	BPF_STMT(BPF_RET+BPF_K, (u_int)-1),		/* accept packet */
 /*08*/	BPF_STMT(BPF_RET+BPF_K, 0),			/* reject packet */
   };
