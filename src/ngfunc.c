@@ -1201,7 +1201,7 @@ NgFuncErr(const char *fmt, ...)
   Log(LG_ERR, ("[%s] netgraph: %s: %s", bund ? bund->name : "",
     buf, strerror(errno)));
 }
-
+#ifdef USE_NG_TCPMSS
 /*
  * NgFuncConfigTCPMSS()
  *
@@ -1237,3 +1237,4 @@ NgFuncConfigTCPMSS(Bund b, uint16_t maxMSS)
     DoExit(EX_ERRDEAD);
   }
 }
+#endif
