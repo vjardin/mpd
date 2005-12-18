@@ -568,13 +568,14 @@ NgFuncConfigBPF(Bund b, int mode)
       assert(0);
   }
 
-  /* Set new program on the BPF_HOOK_IFACE hook */
+  /* Set new program on the BPF_HOOK_PPP hook */
   if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
     DoExit(EX_ERRDEAD);
   }
+
   /* Configure the hook on the MPD node side of the BPF node */
   memset(&u, 0, sizeof(u));
   snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_MPD);
@@ -596,7 +597,7 @@ NgFuncConfigBPF(Bund b, int mode)
       assert(0);
   }
 
-  /* Set new program on the BPF_HOOK_IFACE hook */
+  /* Set new program on the BPF_HOOK_MPD hook */
   if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
