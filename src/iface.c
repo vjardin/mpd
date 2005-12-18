@@ -11,7 +11,6 @@
  *
  */
 
-#include "defs.h"
 #include "ppp.h"
 #include "iface.h"
 #include "ipcp.h"
