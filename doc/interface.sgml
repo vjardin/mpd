@@ -140,9 +140,9 @@ set iface enable proxy-arp
 </tt></tscreen>
 
 <tag><tt>tcpmssfix</tt></tag>
-This option causes mpd to adjust incoming TCP data so that the
-requested segment size is not greater than the amount allowed by
-the interface MTU.
+This option causes mpd to adjust incoming and outgoing TCP SYN
+segments so that the requested maximum segment size is not greater
+than the amount allowed by the interface MTU.
 
 This is necessary in many setups to avoid problems caused by routers
 that drop ICMP Datagram Too Big messages.  Without these messages,
