@@ -10,12 +10,18 @@
 #ifndef _DEFS_H_
 #define _DEFS_H_
 
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sysexits.h>
 
 /*
  * DEFINITIONS
  */
+
+  /* Compile time configuring. */
+  #if (__FreeBSD_version >= 600000)
+  #define      USE_NG_TCPMSS
+  #endif
 
   /* Boolean */
 #ifndef TRUE

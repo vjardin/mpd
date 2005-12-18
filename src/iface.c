@@ -11,6 +11,7 @@
  *
  */
 
+#include "defs.h"
 #include "ppp.h"
 #include "iface.h"
 #include "ipcp.h"
@@ -88,8 +89,9 @@
   static int	IfaceAllocACL (struct acl_pool **ap, int start, char * ifname, int number);
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
   static char *	IFaceParseACL (char * src, char * ifname);
-
+  #ifndef USE_NG_TCPMSS
   static void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
+  #endif
   
 /*
  * GLOBAL VARIABLES
@@ -315,6 +317,9 @@ IfaceUp(struct in_addr self, struct in_addr peer)
   if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
     Log(LG_ERR, ("[%s] enabling TCPMSSFIX", bund->name));
     NgFuncConfigBPF(bund, BPF_MODE_MSSFIX);
+#ifdef USE_NG_TCPMSS
+    NgFuncConfigTCPMSS(bund, MAXMSS(iface->mtu));
+#endif
   }
   else 
     NgFuncConfigBPF(bund, BPF_MODE_ON);
@@ -379,12 +384,14 @@ IfaceListenInput(int proto, Mbuf pkt)
 
   if (OPEN_STATE(fsm->state)) {
     if (bund->bm.n_up > 0) {
+#ifndef USE_NG_TCPMSS
       if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
 	if (proto == PROTO_IP)
 	  IfaceCorrectMSS(pkt, MAXMSS(iface->mtu));
       } else
 	Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
 	  bund->name, MBLEN(pkt)));
+#endif
       NgFuncWriteFrame(bund->name, MPD_HOOK_DEMAND_TAP, pkt);
     } else {
       IfaceCachePkt(proto, pkt);
@@ -400,6 +407,7 @@ IfaceListenInput(int proto, Mbuf pkt)
   }
 }
 
+#ifndef USE_NG_TCPMSS
 /*
  * IfaceListenOutput()
  *
@@ -419,6 +427,7 @@ IfaceListenOutput(int proto, Mbuf pkt)
        bund->name, MBLEN(pkt)));
   NgFuncWriteFrame(bund->name, MPD_HOOK_MSSFIX_OUT, pkt);
 }
+#endif
 
 /*
  * IfaceAllocACL ()
@@ -1389,6 +1398,7 @@ IfaceGetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
   return(-1);
 }
 
+#ifndef USE_NG_TCPMSS
 static void
 IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
 {
@@ -1440,3 +1450,4 @@ IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
     }
   }
 }
+#endif

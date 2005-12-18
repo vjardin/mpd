@@ -35,12 +35,19 @@
    */
   #define MPD_HOOK_PPP		"bypass"
   #define MPD_HOOK_DEMAND_TAP	"demand"
+  #ifndef USE_NG_TCPMSS
   #define MPD_HOOK_MSSFIX_OUT	"mssfix-out"
+  #endif
 
   #define BPF_HOOK_PPP		"ppp"
   #define BPF_HOOK_IFACE	"iface"
   #define BPF_HOOK_MPD		"mpd"
+  #ifdef USE_NG_TCPMSS
+  #define BPF_HOOK_TCPMSS_IN	"tcpmss-in"
+  #define BPF_HOOK_TCPMSS_OUT	"tcpmss-out"
+  #else
   #define BPF_HOOK_MPD_OUT	"mpd-out"
+  #endif
 
   #define BPF_MODE_OFF		0	/* no BPF node traffic gets through */
   #define BPF_MODE_ON		1	/* normal BPF node traffic flow */
@@ -69,6 +76,9 @@
 			const char *path2, const char *hook2);
   extern int	NgFuncDisconnect(const char *path, const char *hook);
   extern int	NgFuncShutdownNode(Bund b, const char *label, const char *path);
+  #ifdef USE_NG_TCPMSS
+  extern void	NgFuncConfigTCPMSS(Bund b, uint16_t maxMSS);
+  #endif
 
 #endif
 

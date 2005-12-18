@@ -40,6 +40,9 @@
 #include <netgraph/ng_bpf.h>
 #include <netgraph/ng_tee.h>
 #endif
+#ifdef USE_NG_TCPMSS
+#include <netgraph/ng_tcpmss.h>
+#endif
 
 /*
  * DEFINITIONS
@@ -138,6 +141,10 @@
   };
 
   #define TCPSYN_PROG_LEN	(sizeof(gTCPSYNProg) / sizeof(*gTCPSYNProg))
+
+  #ifdef USE_NG_TCPMSS
+  static u_char gTcpMSSNode = FALSE;
+  #endif
 
 /*
  * NgFuncInit()
@@ -306,6 +313,65 @@ NgFuncInit(Bund b, const char *reqIface)
     goto fail;
   }
 
+#ifdef USE_NG_TCPMSS
+  /* Create global ng_tcpmss(4) node if not yet. */
+  if (gTcpMSSNode == FALSE) {
+    struct ngm_mkpeer	mp;
+    struct ngm_name	nm;
+
+    /* Create a global tcpmss node. */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_TCPMSS_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", TEMPHOOK);
+    if (NgSendMsg(b->csock, ".",
+        NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+      Log(LG_ERR, ("can't create %s node: %s", NG_TCPMSS_NODE_TYPE,
+        strerror(errno)));
+      goto fail;
+    }
+
+    /* Set the new node's name. */
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-mss", getpid());
+    if (NgSendMsg(b->csock, TEMPHOOK,
+        NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+      Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
+        strerror(errno)));
+      goto fail;
+    }
+    Log(LG_ALWAYS, ("%s node is \"%s\"", NG_TCPMSS_NODE_TYPE, nm.name));
+  }
+  /* Connect ng_bpf(4) node to the ng_tcpmss(4) node. */
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+  snprintf(cn.path, sizeof(cn.path), "mpd%d-mss:", getpid());
+  snprintf(cn.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_TCPMSS_IN);
+  snprintf(cn.peerhook, sizeof(mp.peerhook), "%s-in", b->name);
+  if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+      sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s-in: %s", b->name,
+      BPF_HOOK_TCPMSS_IN, b->name, strerror(errno)));
+    goto fail;
+  }
+  snprintf(cn.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_TCPMSS_OUT);
+  snprintf(cn.peerhook, sizeof(mp.peerhook), "%s-out", b->name);
+  if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+      sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s-out: %s", b->name,
+      BPF_HOOK_TCPMSS_OUT, b->name, strerror(errno)));
+    goto fail;
+  }
+  if (gTcpMSSNode == FALSE) {
+    struct ngm_rmhook	rm;
+
+    /* Disconnect temporary hook */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
+    if (NgSendMsg(b->csock, ".",
+        NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+      Log(LG_ERR, ("can't remove hook %s: %s", TEMPHOOK, strerror(errno)));
+      goto fail;
+    }
+    gTcpMSSNode = TRUE;
+  }
+#else
   /* Connect a second hook from the bpf node to our socket node. */
   snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
   snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_MSSFIX_OUT);
@@ -316,6 +382,7 @@ NgFuncInit(Bund b, const char *reqIface)
       b->name, BPF_HOOK_MPD_OUT, MPD_HOOK_MSSFIX_OUT, strerror(errno)));
     goto fail;
   }
+#endif
 
   /* Configure bpf(8) node */
   NgFuncConfigBPF(b, BPF_MODE_OFF);
@@ -504,7 +571,7 @@ done:
  *
  * Configure the BPF node for one of three modes: either total pass through,
  * total blockage, or else block all traffic and redirect outgoing demand
- * to mpd's socket node.
+ * to mpd's socket node or ng_tcpmss(4) node.
  */
 
 void
@@ -546,7 +613,11 @@ NgFuncConfigBPF(Bund b, int mode)
       hp->bpf_prog_len = TCPSYN_PROG_LEN;
       memcpy(&hp->bpf_prog, &gTCPSYNProg,
         TCPSYN_PROG_LEN * sizeof(*gTCPSYNProg));
+#ifdef USE_NG_TCPMSS
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_TCPMSS_OUT);
+#else
       snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_MPD_OUT);
+#endif
       snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_PPP);
       break;
     case BPF_MODE_DEMAND:
@@ -585,7 +656,11 @@ NgFuncConfigBPF(Bund b, int mode)
       snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_IFACE);
       break;
     case BPF_MODE_MSSFIX:
+#ifdef USE_NG_TCPMSS
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_TCPMSS_IN);
+#else
       snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_MPD);
+#endif
       snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_IFACE);
       break;
     default:
@@ -629,6 +704,61 @@ NgFuncConfigBPF(Bund b, int mode)
     DoExit(EX_ERRDEAD);
   }
 
+#ifdef USE_NG_TCPMSS
+  /* Configure hooks between global TCPMSS node and the BPF node. */
+  memset(&u, 0, sizeof(u));
+  snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_TCPMSS_IN);
+  hp->bpf_prog_len = NOMATCH_PROG_LEN;
+  memcpy(&hp->bpf_prog,
+    &gNoMatchProg, NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
+  switch (mode) {
+    case BPF_MODE_OFF:
+    case BPF_MODE_DEMAND:
+    case BPF_MODE_ON:
+      memset(&hp->ifMatch, 0, sizeof(hp->ifMatch));
+      memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
+      break;
+    case BPF_MODE_MSSFIX:
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_IFACE);
+      snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_IFACE);
+      break;
+    default:
+      assert(0);
+  }
+  /* Set new program on the BPF_HOOK_TCPMSS hook. */
+  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+      NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+    Log(LG_ERR, ("[%s] can't set %s node program: %s",
+      b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    DoExit(EX_ERRDEAD);
+  }
+  memset(&u, 0, sizeof(u));
+  snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_TCPMSS_OUT);
+  hp->bpf_prog_len = NOMATCH_PROG_LEN;
+  memcpy(&hp->bpf_prog,
+    &gNoMatchProg, NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
+  switch (mode) {
+    case BPF_MODE_OFF:
+    case BPF_MODE_DEMAND:
+    case BPF_MODE_ON:
+      memset(&hp->ifMatch, 0, sizeof(hp->ifMatch));
+      memset(&hp->ifNotMatch, 0, sizeof(hp->ifNotMatch));
+      break;
+    case BPF_MODE_MSSFIX:
+      snprintf(hp->ifMatch, sizeof(hp->ifMatch), "%s", BPF_HOOK_PPP);
+      snprintf(hp->ifNotMatch, sizeof(hp->ifNotMatch), "%s", BPF_HOOK_PPP);
+      break;
+    default:
+      assert(0);
+  }
+  /* Set new program on the BPF_HOOK_TCPMSS hook. */
+  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+      NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+    Log(LG_ERR, ("[%s] can't set %s node program: %s",
+      b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    DoExit(EX_ERRDEAD);
+  }
+#else
   /* Configure the hook on the MPD mssfix-out node side of the BPF node */
   memset(&u, 0, sizeof(u));
   snprintf(hp->thisHook, sizeof(hp->thisHook), "%s", BPF_HOOK_MPD_OUT);
@@ -657,6 +787,7 @@ NgFuncConfigBPF(Bund b, int mode)
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
     DoExit(EX_ERRDEAD);
   }
+#endif
 }
 
 /*
@@ -803,7 +934,7 @@ NgFuncDataEvent(int type, void *cookie)
       mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
     return;
   }
-
+#ifndef USE_NG_TCPMSS
   /* A snooped, outgoing TCP SYN frame? */
   if (strcmp(naddr.sg_data, MPD_HOOK_MSSFIX_OUT) == 0) {
     /* Debugging */
@@ -813,7 +944,7 @@ NgFuncDataEvent(int type, void *cookie)
       mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
     return;
   }
-
+#endif
   /* Unknown hook! */
   LogDumpBuf(LG_FRAME, buf, nread,
     "[%s] rec'd data on unknown hook \"%s\"", bund->name, naddr.sg_data);
@@ -1071,5 +1202,38 @@ NgFuncErr(const char *fmt, ...)
     buf, strerror(errno)));
 }
 
+/*
+ * NgFuncConfigTCPMSS()
+ *
+ * Configure the tcpmss node to reduce MSS to given value.
+ */
 
+void
+NgFuncConfigTCPMSS(Bund b, uint16_t maxMSS)
+{
+  struct	ng_tcpmss_config tcpmsscfg;
+  char		path[NG_PATHLEN];
 
+  snprintf(path, sizeof(path), "mpd%d-mss:", getpid());
+
+  /* Send configure message. */
+  memset(&tcpmsscfg, 0, sizeof(tcpmsscfg));
+  tcpmsscfg.maxMSS = maxMSS;
+
+  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-in", b->name);
+  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-in", b->name);
+  if (NgSendMsg(bund->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
+      &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
+    Log(LG_ERR, ("[%s] can't set %s node program: %s", b->name,
+      NG_TCPMSS_NODE_TYPE, strerror(errno)));
+    DoExit(EX_ERRDEAD);
+  }
+  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-out", b->name);
+  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-out", b->name);
+  if (NgSendMsg(bund->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
+      &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
+    Log(LG_ERR, ("[%s] can't set %s node program: %s", b->name,
+      NG_TCPMSS_NODE_TYPE, strerror(errno)));
+    DoExit(EX_ERRDEAD);
+  }
+}

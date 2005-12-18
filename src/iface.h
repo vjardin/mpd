@@ -114,7 +114,9 @@
 		  struct sockaddr_dl *hwaddr);
 
   extern void	IfaceListenInput(int proto, Mbuf pkt);
+  #ifndef USE_NG_TCPMSS
   extern void	IfaceListenOutput(int proto, Mbuf pkt);
+  #endif
   extern void	IfaceSetMTU(int mtu, int speed);
 
 #endif
