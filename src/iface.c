@@ -1437,10 +1437,6 @@ IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
 	  continue;
 	mss = (u_int16_t *)(opt + 2);
 	if (ntohs(*mss) > maxmss) {
-#if 1
-	  Log(LG_IFACE, ("[%s] MSS: %u -> %u",
-	    bund->name, ntohs(*mss), maxmss));
-#endif
 	  accumulate = *mss;
 	  *mss = htons(maxmss);
 	  accumulate -= *mss;
