@@ -132,6 +132,8 @@
     char		password[AUTH_MAX_PASSWORD];	/* Configured password */
     int			max_logins;	/* max number of concurrent logins per user */
     int			acct_update;
+    int			acct_update_lim_recv;
+    int			acct_update_lim_xmit;
     int			timeout;	/* Authorization timeout in seconds */
     struct optinfo	options;	/* Configured options */
   };

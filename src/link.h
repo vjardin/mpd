@@ -99,6 +99,8 @@
 	u_int64_t 	runts;		/* Too short MP fragments */
 	u_int64_t 	dupFragments;	/* MP frames with duplicate seq # */
 	u_int64_t	dropFragments;	/* MP fragments we had to drop */
+	u_int64_t	old_xmitOctets;	/* last sent to RADIUS xmitOctets */
+	u_int64_t	old_recvOctets;	/* last sent to RADIUS recvOctets */
   };
   typedef struct linkstat *LinkStats;
 

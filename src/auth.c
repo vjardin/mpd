@@ -55,6 +55,8 @@
     SET_PASSWORD,
     SET_MAX_LOGINS,
     SET_ACCT_UPDATE,
+    SET_ACCT_UPDATE_LIMIT_IN,
+    SET_ACCT_UPDATE_LIMIT_OUT,
     SET_TIMEOUT,
   };
 
@@ -71,6 +73,10 @@
 	AuthSetCommand, NULL, (void *) SET_PASSWORD },
     { "acct-update <seconds>",		"set update interval",
 	AuthSetCommand, NULL, (void *) SET_ACCT_UPDATE },
+    { "update-limit-in <bytes>",	"set update suppresion limit",
+	AuthSetCommand, NULL, (void *) SET_ACCT_UPDATE_LIMIT_IN },
+    { "update-limit-out <bytes>",	"set update suppresion limit",
+	AuthSetCommand, NULL, (void *) SET_ACCT_UPDATE_LIMIT_OUT },
     { "timeout <seconds>",		"set auth timeout",
 	AuthSetCommand, NULL, (void *) SET_TIMEOUT },
     { "accept [opt ...]",		"Accept option",
@@ -699,6 +705,11 @@ AuthAccountFinish(void *arg, int was_canceled)
 
   Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
     auth->lnk->name));
+
+  /* Copy back modified data. */
+  lnk->stats.old_recvOctets = auth->lnk->stats.old_recvOctets;
+  lnk->stats.old_xmitOctets = auth->lnk->stats.old_xmitOctets;
+
   AuthDataDestroy(auth);
 }
 
@@ -1360,6 +1371,19 @@ AuthSetCommand(int ac, char *av[], void *arg)
 	Log(LG_ERR, ("Update interval must be positive."));
       else
 	autc->acct_update = val;
+      break;
+
+    case SET_ACCT_UPDATE_LIMIT_IN:
+    case SET_ACCT_UPDATE_LIMIT_OUT:
+      val = atoi(*av);
+      if (val < 0)
+	Log(LG_ERR, ("Update suppression limit must be positive."));
+      else {
+	if ((intptr_t)arg == SET_ACCT_UPDATE_LIMIT_IN)
+	  autc->acct_update_lim_recv = val;
+	else
+	  autc->acct_update_lim_xmit = val;
+      }
       break;
 
     case SET_TIMEOUT:
