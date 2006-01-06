@@ -658,12 +658,21 @@ BundCreateCmd(int ac, char *av[], void *arg)
   /* Args */
   if (ac < 2)
     return(-1);
-  if (ac > 0 && !strcmp(av[0], "-i")) {
-    ac--, av++;
-    if (ac == 0)
-      return(-1);
-    reqIface = av[0];
-    ac--, av++;
+
+  if (ac > 0 && av[0][0] == '-') {
+    optreset = 1; 
+    optind = 0;
+    while ((k = getopt(ac, av, "i:")) != -1) {
+      switch (k) {
+      case 'i':
+	reqIface = optarg;
+	break;
+      default:
+	return (-1);
+      }
+    }
+    ac -= optind;
+    av += optind;
   }
 
   /* See if bundle name already taken */
