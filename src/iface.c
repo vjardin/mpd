@@ -28,11 +28,9 @@
 #ifdef __DragonFly__
 #include <netgraph/iface/ng_iface.h>
 #include <netgraph/bpf/ng_bpf.h>
-#include <netgraph/tee/ng_tee.h>
 #else
 #include <netgraph/ng_iface.h>
 #include <netgraph/ng_bpf.h>
-#include <netgraph/ng_tee.h>
 #endif
 
 /*
@@ -282,12 +280,8 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 
     /* Reset bpf node statistics */
     memset(&iface->idleStats, 0, sizeof(iface->idleStats));
-    if (bund->tee) {
-       snprintf(path, sizeof(path), "%s:%s.%s", iface->ifname,
-	NG_IFACE_HOOK_INET, NG_TEE_HOOK_RIGHT);
-    } else {
-      snprintf(path, sizeof(path), "%s:%s", iface->ifname, NG_IFACE_HOOK_INET);
-    }
+    snprintf(path, sizeof(path), "mpd%d-%s:%s", getpid(), b->name,
+	NG_PPP_HOOK_INET);
     if (NgSendMsg(bund->csock, path, NGM_BPF_COOKIE,
 	NGM_BPF_CLR_STATS, BPF_HOOK_IFACE, sizeof(BPF_HOOK_IFACE)) < 0)
       Log(LG_ERR, ("[%s] can't clear %s stats: %s",
@@ -824,12 +818,8 @@ IfaceIdleTimeout(void *arg)
 
   /* Get updated bpf node traffic statistics */
   oldStats = iface->idleStats;
-  if (bund->tee) {
-    snprintf(path, sizeof(path), "%s:%s.%s", iface->ifname,
-      NG_IFACE_HOOK_INET, NG_TEE_HOOK_RIGHT);
-  } else {
-    snprintf(path, sizeof(path), "%s:%s", iface->ifname, NG_IFACE_HOOK_INET);
-  }
+  snprintf(path, sizeof(path), "mpd%d-%s:%s", getpid(), b->name,
+      NG_PPP_HOOK_INET);
   if (NgFuncSendQuery(path, NGM_BPF_COOKIE, NGM_BPF_GET_STATS, BPF_HOOK_IFACE,
       sizeof(BPF_HOOK_IFACE), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get %s stats: %s",
