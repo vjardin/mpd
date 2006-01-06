@@ -150,6 +150,39 @@ ParseAddr(char *s, struct in_range *r)
 }
 
 /*
+ * ParseAddrPort()
+ *
+ * Parse an IP address & port of the form X.Y.Z.W P.
+ * Returns pointer to sockaddr_in. Not thread safe!
+ */
+
+struct sockaddr_in *
+ParseAddrPort(int ac, char *av[])
+{
+  static struct sockaddr_in sin;
+
+  if (ac < 1 || ac > 2)
+    return (NULL);
+
+  memset(&sin, 0, sizeof(sin));
+  if (!inet_aton(av[0], &sin.sin_addr)) {
+    Log(LG_ERR, ("Bad ip address \"%s\"", av[0]));
+    return (NULL);
+  }
+  if (ac > 1) {
+    if (atoi(av[1]) <= 0) {
+      Log(LG_ERR, ("Bad port \"%s\"", av[1]));
+      return (NULL);
+    }
+    sin.sin_port = htons(atoi(av[1]));
+  }
+  sin.sin_len = sizeof(sin);
+  sin.sin_family = AF_INET;
+
+  return (&sin);
+}
+
+/*
  * ParseLine()
  *
  * Parse arguments, respecting double quotes and backslash escapes.

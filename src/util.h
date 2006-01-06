@@ -51,6 +51,7 @@
   extern void		FreeArgs(int ac, char *av[]);
 
   extern int		ParseAddr(char *s, struct in_range *range);
+  extern struct sockaddr_in * ParseAddrPort(int ac, char *av[]);
 
   extern int		TcpGetListenPort(struct in_addr ip, int *port, int block);
   extern int		TcpAcceptConnection(int sock, struct sockaddr_in *addr, int block);

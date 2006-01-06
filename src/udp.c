@@ -12,6 +12,7 @@
 #include "mbuf.h"
 #include "udp.h"
 #include "ngfunc.h"
+#include "util.h"
 
 #ifdef __DragonFly__
 #include <netgraph/socket/ng_socket.h>
@@ -279,31 +280,20 @@ static int
 UdpSetCommand(int ac, char *av[], void *arg)
 {
   UdpInfo		const udp = (UdpInfo) lnk->phys->info;
-  struct in_addr	*ap;
-  u_short		*pp;
+  struct sockaddr_in	*sin;
 
   switch ((intptr_t)arg) {
     case SET_PEERADDR:
-      ap = &udp->peer_addr;
-      pp = &udp->peer_port;
-      goto getAddrPort;
+      if ((sin = ParseAddrPort(ac, av)) == NULL)
+	return (-1);
+      udp->peer_addr = sin->sin_addr;
+      udp->peer_port = ntohs(sin->sin_port);
+      break;
     case SET_SELFADDR:
-      ap = &udp->self_addr;
-      pp = &udp->self_port;
-getAddrPort:
-      if (ac < 1 || ac > 2)
-	return(-1);
-      if (!inet_aton(av[0], ap)) {
-	Log(LG_ERR, ("Bad ip address \"%s\"", av[0]));
-	return(-1);
-      }
-      if (ac > 1) {
-	if (atoi(av[1]) <= 0) {
-	  Log(LG_ERR, ("Bad port \"%s\"", av[1]));
-	  return(-1);
-	}
-	*pp = atoi(av[1]);
-      }
+      if ((sin = ParseAddrPort(ac, av)) == NULL)
+	return (-1);
+      udp->self_addr = sin->sin_addr;
+      udp->self_port = ntohs(sin->sin_port);
       break;
     case SET_ORIGINATION:
       if (ac != 1)
