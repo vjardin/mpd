@@ -14,7 +14,7 @@
 
 <descrip>
 
-<tag><tt>new </tt>[<tt> -i <em>iface</em> </tt>]<tt> 
+<tag><tt>new </tt>[<tt> -t </tt>][<tt> -i <em>iface</em> </tt>]<tt> 
  <em>bundle</em> <em>link1</em> 
  </tt>[<tt> <em>link2</em> </tt> ... ]
 </tag>
@@ -29,6 +29,10 @@ lower numbered <tt>ng*</tt> interfaces as well).  If no
 Specifying an interface explicitly is advised, as otherwise a
 new interface will be created on your system every time mpd is
 invoked.
+
+If <tt>-t</tt> option is specified, a ng_tee(4) node will be inserted
+into the bundle graph, right after the interface node. The tee node
+can be useful for debugging or traffic accounting.
 
 The links that constitute the bundle are created and named
 <tt><em>link1</em></tt>, <tt><em>link2</em></tt>, etc.  For each
