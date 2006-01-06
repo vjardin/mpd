@@ -282,7 +282,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 
     /* Reset bpf node statistics */
     memset(&iface->idleStats, 0, sizeof(iface->idleStats));
-    if (gEnableTee) {
+    if (bund->tee) {
        snprintf(path, sizeof(path), "%s:%s.%s", iface->ifname,
 	NG_IFACE_HOOK_INET, NG_TEE_HOOK_RIGHT);
     } else {
@@ -824,7 +824,7 @@ IfaceIdleTimeout(void *arg)
 
   /* Get updated bpf node traffic statistics */
   oldStats = iface->idleStats;
-  if (gEnableTee) {
+  if (bund->tee) {
     snprintf(path, sizeof(path), "%s:%s.%s", iface->ifname,
       NG_IFACE_HOOK_INET, NG_TEE_HOOK_RIGHT);
   } else {

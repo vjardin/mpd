@@ -264,7 +264,7 @@ NgFuncInit(Bund b, const char *reqIface)
   }
 
   /* Add a tee node between bpf and interface if configured */
-  if(gEnableTee) {
+  if(b->tee) {
     snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_IFACE);
@@ -585,9 +585,9 @@ NgFuncConfigBPF(Bund b, int mode)
   char				path[NG_PATHLEN + 1];
 
   /* Get absolute path to bpf node */
-  if (gEnableTee)
-    snprintf(path, sizeof(path), "%s:%s.%s", b->iface.ifname, NG_IFACE_HOOK_INET,
-	NG_TEE_HOOK_RIGHT);
+  if (b->tee)
+    snprintf(path, sizeof(path), "%s:%s.%s", b->iface.ifname,
+	NG_IFACE_HOOK_INET, NG_TEE_HOOK_RIGHT);
   else
     snprintf(path, sizeof(path), "%s:%s", b->iface.ifname, NG_IFACE_HOOK_INET);
 

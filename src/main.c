@@ -79,7 +79,6 @@
   Bund			*gBundles;
   int			gNumLinks;
   int			gNumBundles;
-  int			gEnableTee = FALSE;
   ConsoleSession	gConsoleSession;
   struct console	gConsole;
 
@@ -526,9 +525,6 @@ OptApply(Option opt, int ac, char *av[])
       exit(EX_NORMAL);
     case 'h':
       Usage(EX_NORMAL);
-    case 't':
-      gEnableTee = TRUE;
-      return(0);
     default:
       assert(0);
   }

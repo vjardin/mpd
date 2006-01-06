@@ -653,6 +653,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   Bund	old_bund = bund;
   Link	new_link;
   char	*reqIface = NULL;
+  u_char tee = 0;
   int	k;
 
   /* Args */
@@ -662,10 +663,13 @@ BundCreateCmd(int ac, char *av[], void *arg)
   if (ac > 0 && av[0][0] == '-') {
     optreset = 1; 
     optind = 0;
-    while ((k = getopt(ac, av, "i:")) != -1) {
+    while ((k = getopt(ac, av, "ti:")) != -1) {
       switch (k) {
       case 'i':
 	reqIface = optarg;
+	break;
+      case 't':
+	tee = 1;
 	break;
       default:
 	return (-1);
@@ -685,6 +689,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   bund = Malloc(MB_BUND, sizeof(*bund));
   snprintf(bund->name, sizeof(bund->name), "%s", av[0]);
   bund->csock = bund->dsock = -1;
+  bund->tee = tee;
 
   /* Setup netgraph stuff */
   if (NgFuncInit(bund, reqIface) < 0) {

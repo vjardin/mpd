@@ -103,7 +103,6 @@
 
   extern int		gNumLinks;		/* Total number of links */
   extern int		gNumBundles;		/* Total number of bundles */
-  extern int		gEnableTee;		/* Insert ng_tee into netgraph */
   extern struct console	gConsole;
   extern ConsoleSession	gConsoleSession;	/* currently active console-session */
 
