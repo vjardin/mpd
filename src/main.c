@@ -296,8 +296,19 @@ DoExit(int code)
 
   /* Blow away all netgraph nodes */
   for (k = 0; k < gNumBundles; k++) {
-    if ((bund = gBundles[k]) != NULL)
+    int global = 0;
+
+    if ((bund = gBundles[k]) != NULL) {
+      if (global == 0) {
+	/*
+	 * XXX: We can't move NgFuncShutdownGlobal() out of cycle,
+	 * because we need active netgraph socket to perform shutdown.
+	 */
+        NgFuncShutdownGlobal(bund);
+	global = 1;
+      }
       NgFuncShutdown(bund);
+    }
   }
 
   /* Remove our PID file and exit */

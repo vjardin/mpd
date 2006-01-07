@@ -152,6 +152,7 @@
     u_char		open:1;		/* In the open state */
     u_char		multilink:1;	/* Doing multi-link on this bundle */
     u_char		tee:1;		/* Bundle has ng_tee(4). */
+    u_char		netflow:1;	/* Bundle connects to ng_netflow(4). */
   };
   
 /*

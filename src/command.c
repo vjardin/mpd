@@ -25,6 +25,7 @@
 #include "devices.h"
 #include "netgraph.h"
 #include "custom.h"
+#include "ngfunc.h"
 
 /*
  * DEFINITIONS
@@ -156,6 +157,10 @@
 	CMD_SUBMENU, NULL, (void *) ConsoleSetCmds },
     { "global ...",			"Global settings",
 	CMD_SUBMENU, NULL, (void *) GlobalSetCmds },
+#ifdef USE_NG_NETFLOW
+    { "netflow ...", 			"NetFlow settings",
+	CMD_SUBMENU, NULL, (void *) NetflowSetCmds },
+#endif
     { "debug level",			"Set netgraph debug level",
 	SetDebugCommand, NULL, NULL },
 #define _WANT_DEVICE_CMDS
@@ -164,7 +169,7 @@
   };
 
   const struct cmdtab gCommands[] = {
-    { "new [-i ng#] bundle link ...",	"Create new bundle",
+    { "new [-nti ng#] bundle link ...",	"Create new bundle",
     	BundCreateCmd, NULL, NULL },
     { "bundle [name]",			"Choose/list bundles",
 	BundCommand, AdmitBund, NULL },

@@ -57,11 +57,19 @@
   #define BPF_MODE_MSSFIX_OUT	5	/* redirect outgoing TCP SYN packets */
 
 /*
+ * VARIABLES
+ */
+  #ifdef USE_NG_NETFLOW
+  extern const struct cmdtab NetflowSetCmds[];
+  #endif
+
+/*
  * FUNCTIONS
  */
 
   extern int	NgFuncInit(Bund b, const char *reqIface);
   extern void	NgFuncShutdown(Bund b);
+  extern void	NgFuncShutdownGlobal(Bund b);
   extern void	NgFuncSetConfig(void);
   extern void	NgFuncConfigBPF(Bund b, int mode);
   extern int	NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp);

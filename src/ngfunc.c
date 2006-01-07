@@ -18,8 +18,11 @@
 #include "input.h"
 #include "ccp.h"
 #include "netgraph.h"
+#include "command.h"
+#include "util.h"
 
 #include <net/bpf.h>
+#include <arpa/inet.h>
 
 #include <netgraph/ng_message.h>
 
@@ -43,6 +46,9 @@
 #ifdef USE_NG_TCPMSS
 #include <netgraph/ng_tcpmss.h>
 #endif
+#ifdef USE_NG_NETFLOW
+#include <netgraph/netflow/ng_netflow.h>
+#endif
 
 /*
  * DEFINITIONS
@@ -50,6 +56,13 @@
 
   #define TEMPHOOK		"temphook"
   #define MAX_IFACE_CREATE	128
+
+  /* Set menu options */
+  enum {
+    SET_EXPORT,
+    SET_SOURCE,
+    SET_TIMEOUTS,
+  };
 
 /*
  * INTERNAL FUNCTIONS
@@ -65,6 +78,25 @@
 
   static void	NgFuncErrx(const char *fmt, ...);
   static void	NgFuncErr(const char *fmt, ...);
+#ifdef USE_NG_NETFLOW
+  static int	NetflowSetCommand(int ac, char *av[], void *arg);
+#endif
+
+/*
+ * GLOBAL VARIABLES
+ */
+
+#ifdef USE_NG_NETFLOW
+  const struct cmdtab NetflowSetCmds[] = {
+    { "export <ip> <port>",	"Set export destination" ,
+        NetflowSetCommand, NULL, (void *) SET_EXPORT },
+    { "source <ip> <port>",	"Set local binding" ,
+        NetflowSetCommand, NULL, (void *) SET_SOURCE },
+    { "timeouts <inactive> <active>", "Set NetFlow timeouts" ,
+        NetflowSetCommand, NULL, (void *) SET_TIMEOUTS },
+    { NULL },
+  };
+#endif
 
 /*
  * INTERNAL VARIABLES
@@ -144,6 +176,14 @@
 
   #ifdef USE_NG_TCPMSS
   static u_char gTcpMSSNode = FALSE;
+  #endif
+  #ifdef USE_NG_NETFLOW
+  static u_char gNetflowNode = FALSE;
+  static u_int gNetflowIface = 0;
+  static struct sockaddr_in gNetflowExport = { 0, 0, 0, { 0 }, { 0 } };
+  static struct sockaddr_in gNetflowSource = { 0, 0, 0, { 0 }, { 0 } };
+  static uint32_t gNetflowInactive = 0;
+  static uint32_t gNetflowActive = 0;
   #endif
 
 /*
@@ -264,7 +304,7 @@ NgFuncInit(Bund b, const char *reqIface)
   }
 
   /* Add a tee node between bpf and interface if configured */
-  if(b->tee) {
+  if (b->tee) {
     snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_IFACE);
@@ -284,17 +324,162 @@ NgFuncInit(Bund b, const char *reqIface)
 	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
       goto fail;
     }
-    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_LEFT);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
-  } else {
-    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
   }
 
-  /* Connect the other side of the bpf (or tee) node to the iface node. */
+#ifdef USE_NG_NETFLOW
+  if (b->netflow) {
+    struct ng_netflow_setdlt	 nf_setdlt;
+    struct ng_netflow_setifindex nf_setidx;
+
+    /* Create global ng_netflow(4) node if not yet. */
+    if (gNetflowNode == FALSE) {
+      struct ngm_mkpeer	mp;
+      struct ngm_rmhook	rm;
+      struct ngm_name	nm;
+
+      /* Create a global tcpmss node. */
+      snprintf(mp.type, sizeof(mp.type), "%s", NG_NETFLOW_NODE_TYPE);
+      snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
+      snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
+      if (NgSendMsg(b->csock, ".",
+	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+	Log(LG_ERR, ("can't create %s node: %s", NG_NETFLOW_NODE_TYPE,
+	  strerror(errno)));
+	goto fail;
+      }
+
+      /* Set the new node's name. */
+      snprintf(nm.name, sizeof(nm.name), "mpd%d-netflow", getpid());
+      if (NgSendMsg(b->csock, TEMPHOOK,
+          NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+	Log(LG_ERR, ("can't name %s node: %s", NG_NETFLOW_NODE_TYPE,
+          strerror(errno)));
+	goto fail;
+      }
+      Log(LG_ALWAYS, ("%s node is \"%s\"", NG_NETFLOW_NODE_TYPE, nm.name));
+
+      /* Connect ng_ksocket(4) node for export. */
+      snprintf(mp.type, sizeof(mp.type), "%s", NG_KSOCKET_NODE_TYPE);
+      snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_NETFLOW_HOOK_EXPORT);
+      snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", "inet/dgram/udp");
+      snprintf(path, sizeof(path), "%s:", nm.name);
+      if (NgSendMsg(b->csock, path,
+	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+	Log(LG_ERR, ("can't create %s node: %s", NG_KSOCKET_NODE_TYPE,
+	  strerror(errno)));
+	goto fail;
+      }
+
+      /* Configure timeouts for ng_netflow(4). */
+      if (gNetflowInactive != 0 && gNetflowActive != 0) {
+	struct ng_netflow_settimeouts nf_settime;
+
+	nf_settime.inactive_timeout = gNetflowInactive;
+	nf_settime.active_timeout = gNetflowActive;
+
+	if (NgSendMsg(bund->csock, path, NGM_NETFLOW_COOKIE,
+	    NGM_NETFLOW_SETTIMEOUTS, &nf_settime, sizeof(nf_settime)) < 0) {
+	  Log(LG_ERR, ("[%s] can't set timeouts on netflow %s node: %s",
+	    b->name, NG_NETFLOW_NODE_TYPE, strerror(errno)));
+	  goto fail;
+	}
+      }
+
+      /* Configure export destination and source on ng_ksocket(4). */
+      snprintf(path, sizeof(path), "mpd%d-netflow:%s", getpid(),
+	    NG_NETFLOW_HOOK_EXPORT);
+      if (gNetflowSource.sin_len != 0) {
+	if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
+	    NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
+	  Log(LG_ERR, ("[%s] can't bind export %s node: %s",
+	    b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	  goto fail;
+	}
+      }
+      if (gNetflowExport.sin_len != 0) {
+	if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
+	    NGM_KSOCKET_CONNECT, &gNetflowExport, sizeof(gNetflowExport)) < 0) {
+	  Log(LG_ERR, ("[%s] can't connect export %s node: %s",
+	    b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	  goto fail;
+	}
+      }
+
+      /* Disconnect temporary hook. */
+      snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
+      if (NgSendMsg(b->csock, ".",
+	  NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", TEMPHOOK, strerror(errno)));
+	goto fail;
+      }
+      gNetflowNode = TRUE;
+    }
+
+    /* Connect ng_netflow(4) node to the ng_bpf(4)/ng_tee(4) node. */
+    if (b->tee) {
+      snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
+	BPF_HOOK_IFACE);
+      snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_LEFT);
+    } else {
+      snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+      snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
+    }
+    snprintf(cn.path, sizeof(cn.path), "mpd%d-netflow:", getpid());
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
+	++gNetflowIface);
+    if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+	sizeof(cn)) < 0) {
+      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
+	cn.path, path, strerror(errno)));
+      goto fail;
+    }
+
+    /* Configure data link type and interface index. */
+    snprintf(path, sizeof(path), "mpd%d-netflow:", getpid());
+    nf_setdlt.iface = gNetflowIface;
+    nf_setdlt.dlt = DLT_RAW;
+    if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
+	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
+      Log(LG_ERR, ("[%s] can't configure data link type on %s: %s", b->name,
+	path, strerror(errno)));
+      goto fail;
+    }
+    nf_setidx.iface = gNetflowIface;
+    nf_setidx.index = if_nametoindex(b->iface.ifname);
+    if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
+	&nf_setidx, sizeof(nf_setidx)) < 0) {
+      Log(LG_ERR, ("[%s] can't configure interface index on %s: %s", b->name,
+	path, strerror(errno)));
+      goto fail;
+    }
+  }
+
+  if (b->tee && b->netflow) {
+    snprintf(path, sizeof(path), "%s.%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
+	BPF_HOOK_IFACE, NG_TEE_HOOK_LEFT);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	gNetflowIface);
+  } else
+#endif	/* USE_NG_NETFLOW */
+  if (b->tee) {
+    snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
+	BPF_HOOK_IFACE);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_LEFT);
+#ifdef USE_NG_NETFLOW
+  } else if (b->netflow) {
+    snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
+	BPF_HOOK_IFACE);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	gNetflowIface);
+#endif /* USE_NG_NETFLOW */
+  } else {
+    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
+  }
+  snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
+
+  /* Connect the entire graph to the iface node. */
   if (NgSendMsg(b->csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
@@ -343,16 +528,16 @@ NgFuncInit(Bund b, const char *reqIface)
   /* Connect ng_bpf(4) node to the ng_tcpmss(4) node. */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
   snprintf(cn.path, sizeof(cn.path), "mpd%d-mss:", getpid());
-  snprintf(cn.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_TCPMSS_IN);
-  snprintf(cn.peerhook, sizeof(mp.peerhook), "%s-in", b->name);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_TCPMSS_IN);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s-in", b->name);
   if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
       sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect %s and %s-in: %s", b->name,
       BPF_HOOK_TCPMSS_IN, b->name, strerror(errno)));
     goto fail;
   }
-  snprintf(cn.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_TCPMSS_OUT);
-  snprintf(cn.peerhook, sizeof(mp.peerhook), "%s-out", b->name);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_TCPMSS_OUT);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s-out", b->name);
   if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
       sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect %s and %s-out: %s", b->name,
@@ -585,11 +770,8 @@ NgFuncConfigBPF(Bund b, int mode)
   char				path[NG_PATHLEN + 1];
 
   /* Get absolute path to bpf node */
-  if (b->tee)
-    snprintf(path, sizeof(path), "%s:%s.%s", b->iface.ifname,
-	NG_IFACE_HOOK_INET, NG_TEE_HOOK_RIGHT);
-  else
-    snprintf(path, sizeof(path), "%s:%s", b->iface.ifname, NG_IFACE_HOOK_INET);
+  snprintf(path, sizeof(path), "mpd%d-%s:%s", getpid(), b->name,
+      NG_PPP_HOOK_INET);
 
   /* First, configure the hook on the interface node side of the BPF node */
   memset(&u, 0, sizeof(u));
@@ -787,6 +969,27 @@ NgFuncConfigBPF(Bund b, int mode)
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
     DoExit(EX_ERRDEAD);
   }
+#endif
+}
+
+/*
+ * NgFuncShutdownGlobal()
+ *
+ * Shutdown nodes, that are shared between bundles.
+ *
+ */
+
+void
+NgFuncShutdownGlobal(Bund b)
+{
+#ifdef USE_NG_NETFLOW
+  char	path[NG_PATHLEN + 1];
+
+  if (gNetflowNode == FALSE)
+    return;
+
+  snprintf(path, sizeof(path), "mpd%d-netflow:", getpid());
+  NgFuncShutdownNode(b, "netflow", path);
 #endif
 }
 
@@ -1201,6 +1404,47 @@ NgFuncErr(const char *fmt, ...)
   Log(LG_ERR, ("[%s] netgraph: %s: %s", bund ? bund->name : "",
     buf, strerror(errno)));
 }
+
+#ifdef USE_NG_NETFLOW
+/*
+ * NetflowSetCommand()
+ */
+       
+static int
+NetflowSetCommand(int ac, char *av[], void *arg)
+{
+  struct sockaddr_in *sin;
+
+  switch ((int) arg) {
+    case SET_EXPORT: 
+      if ((sin = ParseAddrPort(ac, av)) == NULL)
+	return (-1);
+      gNetflowExport = *sin;
+      break;
+    case SET_SOURCE:
+      if ((sin = ParseAddrPort(ac, av)) == NULL)
+	return (-1);
+      gNetflowSource = *sin;
+      break;
+    case SET_TIMEOUTS:
+      if (ac != 2)
+	return (-1);
+      if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0) {
+	Log(LG_ERR, ("Bad netflow timeouts \"%s %s\"", av[0], av[1]));
+	return (-1);
+      }
+      gNetflowInactive = atoi(av[0]);
+      gNetflowActive = atoi(av[1]);
+      break;
+
+    default:
+	return (-1);
+  }
+
+  return (0);
+}
+#endif /* USE_NG_NETFLOW */
+
 #ifdef USE_NG_TCPMSS
 /*
  * NgFuncConfigTCPMSS()
@@ -1237,4 +1481,4 @@ NgFuncConfigTCPMSS(Bund b, uint16_t maxMSS)
     DoExit(EX_ERRDEAD);
   }
 }
-#endif
+#endif /* USE_NG_TCPMSS */
