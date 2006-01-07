@@ -22,6 +22,7 @@
 <!ENTITY gencmd SYSTEM "gencmd.sgml">
 <!ENTITY global SYSTEM "global.sgml">
 <!ENTITY console SYSTEM "console.sgml">
+<!ENTITY netflow SYSTEM "netflow.sgml">
 <!ENTITY bundle SYSTEM "bundle.sgml">
 <!ENTITY interface SYSTEM "interface.sgml">
 <!ENTITY ipcp SYSTEM "ipcp.sgml">
@@ -105,6 +106,7 @@ You must be running FreeBSD version 3.4 or higher.
 	&gencmd;
 	&global;
 	&console;
+	&netflow;
 	&bundle;
 	&interface;
 	&ipcp;
