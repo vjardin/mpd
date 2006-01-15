@@ -6,6 +6,19 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.0b3:
+    <itemize>
+        <item>BugFix: Allocate mem, before copying in the RAD_MICROSOFT_MS_CHAP_DOMAIN.
+		This caused Mpd to crash, when receiving the RAD_MICROSOFT_MS_CHAP_DOMAIN
+		attribute from the RADIUS-Server.
+		Thanx to: Arcadiy Ivanov arcivanov at mail dot ru
+        </item>
+        <item>BugFix: Check correctly, whether events are registered or not.
+		This fixes some locks in the chat-stuff for modems.
+        </item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 4.0b2:
     <itemize>
 	<item>ng_tee(4) now can be inserted on a per bundle basis.
