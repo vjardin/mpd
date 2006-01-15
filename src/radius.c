@@ -1167,6 +1167,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      case RAD_MICROSOFT_MS_CHAP_DOMAIN:
 		Freee(MB_AUTH, a->params.msdomain);
 		tmpval = rad_cvt_string(data, len);
+		a->params.msdomain = Malloc(MB_AUTH, len + 1);
 		memcpy(a->params.msdomain, tmpval, len + 1);
 		free(tmpval);
 		Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP_DOMAIN: %s",
