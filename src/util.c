@@ -993,12 +993,15 @@ TcpGetListenPort(struct in_addr ip, int *port, int block)
 {
   char	ebuf[100];
   int	sock;
+  int	saverrno;
 
 /* Get socket */
 
   if ((sock = GetInetSocket(SOCK_STREAM, ip, *port, block, ebuf, sizeof(ebuf))) < 0)
   {
+    saverrno = errno;
     Log(LG_ERR, ("mpd: %s", ebuf));
+    errno = saverrno;
     return(-1);
   }
 
