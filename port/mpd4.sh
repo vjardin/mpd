@@ -1,5 +1,5 @@
 #!/bin/sh
-# $FreeBSD: ports/net/mpd/files/mpd.sh,v 1.1 2003/11/22 20:51:05 archie Exp $
+# $FreeBSD$
 
 DAEMON=/usr/local/sbin/mpd4
 PIDFILE=/var/run/mpd4.pid

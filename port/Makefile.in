@@ -1,8 +1,8 @@
 # New ports collection makefile for:	mpd
-# Date created:				25 Feb 1999
+# Date created:				20 Sep 2005
 # Whom:					Archie Cobbs
 #
-# %%%%%%%%%%%%%%%
+# $FreeBSD$
 #
 
 PORTNAME=	mpd4
@@ -13,9 +13,9 @@ MASTER_SITE_SUBDIR=	archie
 DIST_SUBDIR=	mpd4
 
 MAINTAINER=	archie@freebsd.org
-COMMENT=	Multi-link PPP daemon based on netgraph(4)
+COMMENT=	Multi-link PPP daemon based on netgraph(4) [development version]
 
-LIB_DEPENDS=    pdel.0:${PORTSDIR}/devel/libpdel
+LIB_DEPENDS=	pdel.0:${PORTSDIR}/devel/libpdel
 
 MTREE_FILE=	${FILESDIR}/mpd4.mtree
 MAN8=		mpd4.8
