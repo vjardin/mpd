@@ -11,15 +11,15 @@ all:		${TARBALL} ${PORTBALL}
 
 ${TARBALL}:	.export-done
 	cd mpd && ${MAKE} .${TARBALL}
-	mv mpd/.${TARBALL} ./${TARBALL}
+	cp mpd/${TARBALL} ./${TARBALL}
 
 .${TARBALL}:	.dist-done
 	rm -f ${TARBALL}
-	tar cvf - ${DISTNAME} | gzip --best > ${.TARGET}
+	tar cvf - ${DISTNAME} | gzip --best > ${TARBALL}
 
 ${PORTBALL}:	.export-done
 	cd mpd && ${MAKE} .${PORTBALL}
-	mv mpd/${PORTBALL} ./${PORTBALL}
+	cp mpd/${PORTBALL} ./${PORTBALL}
 
 .${PORTBALL}:	.dist-done
 	cd port && ${MAKE} port
