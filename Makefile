@@ -11,7 +11,7 @@ all:		${TARBALL} ${PORTBALL}
 
 ${TARBALL}:	.export
 	cd mpd && ${MAKE} .${TARBALL}
-	mv mpd/${TARBALL} .
+	mv mpd/.${TARBALL} .
 
 .${TARBALL}:	.dist-done
 	rm -f ${TARBALL}
