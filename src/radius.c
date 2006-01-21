@@ -9,6 +9,8 @@
 #include "pptp.h"
 #include "pppoe.h"
 #include "ngfunc.h"
+#include "modem.h"
+#include "ng.h"
 
 #include <sys/types.h>
 
@@ -593,6 +595,7 @@ RadiusStart(AuthData auth, short request_type)
   Link		lnk = auth->lnk;	/* hide the global "lnk" */
   RadConf 	const conf = &auth->conf.radius;  
   char		host[MAXHOSTNAMELEN];
+  int		porttype;
 
   if (RadiusInit(auth, request_type) == RAD_NACK) 
     return RAD_NACK;
@@ -643,7 +646,16 @@ RadiusStart(AuthData auth, short request_type)
     return (RAD_NACK);
   }
 
-  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT_TYPE, RAD_VIRTUAL) == -1) {
+  if (lnk->phys->type == &gModemPhysType) {
+    porttype = RAD_ASYNC;
+  } else if (lnk->phys->type == &gNgPhysType) {
+    porttype = RAD_SYNC;
+  } else if (lnk->phys->type == &gPppoePhysType) {
+    porttype = RAD_ETHERNET;
+  } else {
+    porttype = RAD_VIRTUAL;
+  };
+  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT_TYPE, porttype) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT_TYPE) failed %s", 
       lnk->name, __func__, rad_strerror(auth->radius.handle)));
     return (RAD_NACK);
