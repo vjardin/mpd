@@ -5,15 +5,27 @@ VERSION!=	cat src/Makefile | grep ^VERSION | awk '{ print $$2 }'
 DISTNAME=	mpd4-${VERSION}
 TARBALL=	${DISTNAME}.tar.gz
 PORTBALL=	port.tgz
+CVSROOT?=	cvs.sf.net:/cvsroot/mpd
 
 all:		${TARBALL} ${PORTBALL}
 
-${TARBALL}:	.dist-done
+${TARBALL}:	.export
+	cd mpd && ${MAKE} .${TARBALL}
+	mv mpd/${TARBALL} .
+
+.${TARBALL}:	.dist-done
 	rm -f ${TARBALL}
 	tar cvf - ${DISTNAME} | gzip --best > ${.TARGET}
 
-${PORTBALL}:	.dist-done
+.${PORTBALL}:	.dist-done
 	cd port && ${MAKE} port
+
+.export:
+	@if [ -z ${TAG} ]; then						\
+		echo ERROR: Please specify TAG in environment;		\
+		false;							\
+	fi
+	cvs -d${CVSROOT} export -r ${TAG} mpd
 
 .dist-done:	.doc-done
 	rm -rf ${DISTNAME} ${.TARGET}
