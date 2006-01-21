@@ -8,19 +8,10 @@
   <p>
     Changes since version 4.0b3:
     <itemize>
-        <item>BugFix: Allocate mem, before copying in the RAD_MICROSOFT_MS_CHAP_DOMAIN.
-		This caused Mpd to crash, when receiving the RAD_MICROSOFT_MS_CHAP_DOMAIN
-		attribute from the RADIUS-Server.
-		Thanx to: Arcadiy Ivanov arcivanov at mail dot ru
-        </item>
-        <item>BugFix: Check correctly, whether events are registered or not.
-		This fixes some locks in the chat-stuff for modems.
-        </item>
-    </itemize>
-  </p>
-  <p>
-    Changes since version 4.0b2:
-    <itemize>
+	<item>BugFix: fix crash in processing of MS domain name from
+		RADIUS server.
+	<item>New feature: automatic creation, configuring and attaching
+		of ng_netflow(4) node.
 	<item>ng_tee(4) now can be inserted on a per bundle basis.
 	<item>New feature: on FreeBSD 6.0 and higher ng_tcpmss(4) is
 		utilized if doing TCP MSS fixup.
@@ -34,6 +25,12 @@
 	</item>
 	<item>Fixed chat scripting, modem links not broken anymore.
 	</item>
+    </itemize>
+  </p>
+
+  <p>
+    Changes since version 4.0b2:
+    <itemize>
         <item>BugFix: make PPPoE interface control events recurring, PPPoE is
 		not broken anymore.
         </item>
