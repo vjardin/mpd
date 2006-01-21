@@ -19,7 +19,7 @@ ${TARBALL}:	.export-done
 
 ${PORTBALL}:	.export-done
 	cd mpd && ${MAKE} .${PORTBALL}
-	mv mpd/.${PORTBALL} ./${PORTBALL}
+	mv mpd/${PORTBALL} ./${PORTBALL}
 
 .${PORTBALL}:	.dist-done
 	cd port && ${MAKE} port
