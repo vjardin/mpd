@@ -9,7 +9,7 @@ CVSROOT?=	cvs.sf.net:/cvsroot/mpd
 
 all:		${TARBALL} ${PORTBALL}
 
-${TARBALL}:	.export
+${TARBALL}:	.export-done
 	cd mpd && ${MAKE} .${TARBALL}
 	mv mpd/.${TARBALL} ./${TARBALL}
 
@@ -17,15 +17,20 @@ ${TARBALL}:	.export
 	rm -f ${TARBALL}
 	tar cvf - ${DISTNAME} | gzip --best > ${.TARGET}
 
+${PORTBALL}:	.export-done
+	cd mpd && ${MAKE} .${PORTBALL}
+	mv mpd/.${PORTBALL} ./${PORTBALL}
+
 .${PORTBALL}:	.dist-done
 	cd port && ${MAKE} port
 
-.export:
+.export-done:
 	@if [ -z ${TAG} ]; then						\
 		echo ERROR: Please specify TAG in environment;		\
 		false;							\
 	fi
 	cvs -d${CVSROOT} export -r ${TAG} mpd
+	touch ${.TARGET}
 
 .dist-done:	.doc-done
 	rm -rf ${DISTNAME} ${.TARGET}
@@ -52,6 +57,8 @@ send:	${TARBALL}
 		tar cvf - ${.ALLSRC} | blow gatekeeper
 
 clean cleandir:
+	rm -rf mpd
+	rm -f .export-done
 	cd doc && ${MAKE} clean
 	rm -f .doc-done
 	rm -rf ${DISTNAME} ${TARBALL} ${PORTBALL}
