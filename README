@@ -10,14 +10,16 @@ Checklist for spinning a new release
 
 3. Use "cvs update" to ensure you have checked in all local changes.
 
+4. Use "cvs tag -cR RELEASE_X_XY" to put a tag for the new release.
+
 4. In the top level directory:
 
 	make distclean
-	make
+	TAG=RELEASE_X_XY make
 
 5. Submit the resulting two files to the ports maintainer:
 
-	mpd-x.xx.tar.gz		Distribution file
+	mpd4-x.xy.tar.gz	Distribution file
 	port.tgz		Updated port
 
 
