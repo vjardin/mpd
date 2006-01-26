@@ -760,7 +760,7 @@ PppoeListenEvent(int type, void *arg)
 			Log(LG_ERR, ("[%s] can't send NGM_PPPOE_OFFER to %s,%s "
 			    ": %s",
 			    lnk->name, path, idata->hook, strerror(errno)));
-			continue;
+			goto disconnect_ppp;
 		}
 
 		memset(idata, 0, sizeof(idata));
@@ -774,20 +774,20 @@ PppoeListenEvent(int type, void *arg)
 			Log(LG_ERR, ("[%s] can't send NGM_PPPOE_SERVICE to %s,"
 			    "%s : %s",
 			    lnk->name, path, idata->hook, strerror(errno)));
-			continue;
+			goto disconnect_ppp;
 		}
 
 		/* And send our request data to the waiting node. */
 		if (NgSendData(p->dsock, "data", response, sz) == -1) {
 			Log(LG_ERR, ("[%s] Cannot send original request: %s",
 			    lnk->name, strerror(errno)));
-			continue;
+			goto disconnect_ppp;
 		}
 
 		if (NgFuncShutdownNode(bund, lnk->name, path1) < 0) {
 			Log(LG_ERR, ("[%s] Shutdown ng_tee node %s error: %s",
 			    lnk->name, path1, strerror(errno)));
-			continue;
+			goto disconnect_ppp;
 		}
 
 		p->state = PPPOE_CONNECTING;
@@ -825,9 +825,9 @@ shutdown_tee:
 close_socket:
 		close(p->csock);
 		close(p->dsock);
-		p->csock=-1;
-		p->dsock=-1;
-		Log(LG_PHYS, ("[%s] PPPoE connection not accepted due error",
+		p->csock = -1;
+		p->dsock = -1;
+		Log(LG_PHYS, ("[%s] PPPoE connection not accepted due to error",
 			lnk->name));
 	};
 
