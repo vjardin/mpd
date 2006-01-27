@@ -207,6 +207,7 @@ main(int ac, char *av[])
   /* Signals we ignore */
   signal(SIGPIPE, SIG_IGN);
 
+  GIANT_MUTEX_LOCK();
   ReadFile(gConfigFile, STARTUP_CONF, DoCommand);
   /* Read configuration as specified on the command line, or default */
   if (!gPeerSystem)
@@ -217,6 +218,7 @@ main(int ac, char *av[])
       DoExit(EX_CONFIG);
     }
   }
+  GIANT_MUTEX_UNLOCK();
 
   while(1)
     sleep(10000000);
