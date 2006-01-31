@@ -6,13 +6,25 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.0b4:
+    <itemize>
+	<item>BugFix: fix races between startup process and
+		client connecting.
+	</item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 4.0b3:
     <itemize>
 	<item>BugFix: fix crash in processing of MS domain name from
 		RADIUS server.
+	</item>
 	<item>New feature: automatic creation, configuring and attaching
 		of ng_netflow(4) node.
+	</item>
 	<item>ng_tee(4) now can be inserted on a per bundle basis.
+	</item>
 	<item>New feature: on FreeBSD 6.0 and higher ng_tcpmss(4) is
 		utilized if doing TCP MSS fixup.
 	</item>
