@@ -165,8 +165,7 @@ UdpOpen(PhysInfo p)
     addr.sin_addr = udp->peer_addr;
     addr.sin_port = htons(udp->peer_port);
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
-	NGM_KSOCKET_CONNECT, &addr, sizeof(addr)) < 0
-        && errno != EINPROGRESS) {	/* happens in -current (weird) */
+	NGM_KSOCKET_CONNECT, &addr, sizeof(addr)) < 0) {
       Log(LG_PHYS, ("[%s] can't connect %s node: %s",
 	lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
       UdpDoClose(udp);
