@@ -47,6 +47,7 @@ struct tcpinfo {
 	int			dsock;
 	uint32_t		flags;
 #define	TCPINFO_ASYNC		0x00000001
+#define	TCPINFO_LISTEN		0x00000002
 	struct sockaddr_in	sin_peer;
 	struct ng_async_cfg	acfg;
 	EventRef		ev_connect;
@@ -72,9 +73,10 @@ static void	TcpOpen(PhysInfo p);
 static void	TcpClose(PhysInfo p);
 static void	TcpShutdown(PhysInfo p);
 static void	TcpStat(PhysInfo p);
-static int	TcpOriginated(PhysInfo p);
+static int	TcpOriginate(PhysInfo p);
 static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
 
+static int	TcpListen(TcpInfo tcp);
 static void	TcpDoClose(TcpInfo tcp);
 static int	TcpAsyncConfig(TcpInfo tcp);
 static void	TcpAcceptEvent(int type, void *cookie);
@@ -97,7 +99,7 @@ const struct phystype gTcpPhysType = {
 	.close		= TcpClose,
 	.shutdown	= TcpShutdown,
 	.showstat	= TcpStat,
-	.originate	= TcpOriginated,
+	.originate	= TcpOriginate,
 	.peeraddr	= TcpPeerAddr,
 };
 
@@ -175,7 +177,17 @@ TcpOpen(PhysInfo p)
 	TcpInfo	const tcp = (TcpInfo) lnk->phys->info;
 	struct ngm_mkpeer mkp;
 	char path[NG_PATHLEN + 1];
-	int error;
+	struct sockaddr_in addr;
+	int rval, error;
+
+	if (tcp->origination == LINK_ORIGINATE_REMOTE) {
+		Log(LG_PHYS, ("[%s] %s() on incoming call", lnk->name,
+		    __func__));
+		PhysUp();
+		return;
+	}
+
+	assert (tcp->origination == LINK_ORIGINATE_LOCAL);
 
 	/* Attach async node to PPP node. */
 	if ((tcp->flags & TCPINFO_ASYNC) == 0 &&
@@ -190,112 +202,140 @@ TcpOpen(PhysInfo p)
 		goto fail;
 	}
 
-	/* Connect to peer, actively or passively. */
-	if (tcp->origination == LINK_ORIGINATE_LOCAL) {
-		struct sockaddr_in addr;
-		int rval;
+	/*
+	 * Attach fresh ksocket node next to async node.
+	 * Remove any stale node.
+	 */
+	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
+	snprintf(mkp.ourhook, sizeof(mkp.ourhook), NG_ASYNC_HOOK_ASYNC);
+	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
+	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
+	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
+	NgFuncDisconnect(path, NG_ASYNC_HOOK_ASYNC);
+	if (NgSendMsg(tcp->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER, &mkp,
+	    sizeof(mkp)) < 0) {
+		Log(LG_PHYS, ("[%s] can't attach %s node: %s", lnk->name,
+		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		goto fail;
+	}
 
-		/*
-		 * Attach fresh ksocket node next to async node.
-		 * Remove any stale node.
-		 */
-		snprintf(mkp.type, sizeof(mkp.type), "%s",
-		    NG_KSOCKET_NODE_TYPE);
-		snprintf(mkp.ourhook, sizeof(mkp.ourhook), NG_ASYNC_HOOK_ASYNC);
-		snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
-		snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
-		    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-		NgFuncDisconnect(path, NG_ASYNC_HOOK_ASYNC);
-		if (NgSendMsg(tcp->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER,
-		    &mkp, sizeof(mkp)) < 0) {
-			Log(LG_PHYS, ("[%s] can't attach %s node: %s",
-			    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-			goto fail;
-		}
-
-		/* Start connecting to peer. */
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_len = sizeof(addr);
-		addr.sin_family = AF_INET;
-		addr.sin_addr = tcp->peer_addr;
-		addr.sin_port = htons(tcp->peer_port);
-		snprintf(path, sizeof(path), "[%x]:%s%d.%s", bund->nodeID,
-		    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex,
-		    NG_ASYNC_HOOK_ASYNC);
-		rval = NgSendMsg(tcp->csock, path, NGM_KSOCKET_COOKIE,
-		    NGM_KSOCKET_CONNECT, &addr, sizeof(addr));
-		if (rval < 0 && errno != EINPROGRESS) {
-			Log(LG_PHYS, ("[%s] can't connect %s node: %s",
-			    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno))); 
-			goto fail;
-		}
-		if (rval == 0)	/* Can happen when peer is local. */
-			TcpConnectEvent(EVENT_READ, lnk);
-		else {
-			assert(errno == EINPROGRESS);
-			EventRegister(&tcp->ev_connect, EVENT_READ, tcp->csock,
-			    0, TcpConnectEvent, lnk);
-			Log(LG_PHYS, ("[%s] connecting to %s:%u",
-			    lnk->name, inet_ntoa(tcp->peer_addr),
-			    tcp->peer_port));
-		}
-	} else if (tcp->origination == LINK_ORIGINATE_REMOTE) {
-		struct ngm_mkpeer mkp;
-		struct sockaddr_in addr;
-		int32_t backlog = 1;
-
-		/* Make listening TCP ksocket node. */
-		snprintf(mkp.type, sizeof(mkp.type), "%s",
-		    NG_KSOCKET_NODE_TYPE);
-		snprintf(mkp.ourhook, sizeof(mkp.ourhook), LISTENHOOK);
-		snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
-		if (NgSendMsg(tcp->csock, ".", NGM_GENERIC_COOKIE, NGM_MKPEER,
-		    &mkp, sizeof(mkp)) < 0) {
-			Log(LG_PHYS, ("[%s] can't attach %s node: %s",
-			    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-			goto fail;
-		}
-
-		/* Bind socket. */
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_len = sizeof(addr);
-		addr.sin_family = AF_INET;
-		addr.sin_addr = tcp->self_addr;
-		addr.sin_port = htons(tcp->self_port);
-		if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
-		    NGM_KSOCKET_BIND, &addr, sizeof(addr)) < 0) {
-			Log(LG_PHYS, ("[%s] can't bind %s node: %s",
-			    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-			goto fail;
-		}
-
-		/* Listen. */
-		if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
-		    NGM_KSOCKET_LISTEN, &backlog, sizeof(backlog)) < 0) {
-			Log(LG_PHYS, ("[%s] can't listen on %s node: %s",
-			    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-			goto fail;
-		}
-
-		/* Tell that we are willing to receive accept message. */
-		if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
-		    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
-			Log(LG_PHYS, ("[%s] can't accept on %s node: %s",
-			    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-			goto fail;
-		}
-
-		Log(LG_PHYS, ("[%s] waiting for connection on %s:%u",
-		    lnk->name, inet_ntoa(tcp->self_addr), tcp->self_port));
-		EventRegister(&tcp->ev_accept, EVENT_READ, tcp->csock,
-		    0, TcpAcceptEvent, lnk);
-	} else
-		assert(0);
+	/* Start connecting to peer. */
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_len = sizeof(addr);
+	addr.sin_family = AF_INET;
+	addr.sin_addr = tcp->peer_addr;
+	addr.sin_port = htons(tcp->peer_port);
+	snprintf(path, sizeof(path), "[%x]:%s%d.%s", bund->nodeID,
+	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex, NG_ASYNC_HOOK_ASYNC);
+	rval = NgSendMsg(tcp->csock, path, NGM_KSOCKET_COOKIE,
+	    NGM_KSOCKET_CONNECT, &addr, sizeof(addr));
+	if (rval < 0 && errno != EINPROGRESS) {
+		Log(LG_PHYS, ("[%s] can't connect %s node: %s", lnk->name,
+		    NG_KSOCKET_NODE_TYPE, strerror(errno))); 
+		goto fail;
+	}
+	if (rval == 0)	/* Can happen when peer is local. */
+		TcpConnectEvent(EVENT_READ, lnk);
+	else {
+		assert(errno == EINPROGRESS);
+		EventRegister(&tcp->ev_connect, EVENT_READ, tcp->csock,
+		    0, TcpConnectEvent, lnk);
+		Log(LG_PHYS, ("[%s] connecting to %s:%u", lnk->name,
+		    inet_ntoa(tcp->peer_addr), tcp->peer_port));
+	}
 
 	return;
 fail:
 	TcpDoClose(tcp);
 	PhysDown(STR_ERROR, NULL);
+}
+
+static int
+TcpListen(TcpInfo tcp)
+{
+	struct ngm_mkpeer mkp;
+	struct sockaddr_in addr;
+	int32_t backlog = 1;
+	int error;
+
+	assert(tcp->origination == LINK_ORIGINATE_REMOTE);
+	assert((tcp->flags & TCPINFO_LISTEN) == 0);
+
+	/* Attach async node to PPP node. */
+	if ((tcp->flags & TCPINFO_ASYNC) == 0 &&
+	    (error = TcpAsyncConfig(tcp)) > 0)
+		goto fail;
+
+	/* Create a new netgraph node to control TCP ksocket node. */
+	if (tcp->csock == -1 &&
+	    NgMkSockNode(NULL, &tcp->csock, &tcp->dsock) < 0) {
+		Log(LG_ERR, ("[%s] TCP can't create control socket: %s",
+		    lnk->name, strerror(errno)));
+		error = errno;
+		goto fail;
+	}
+
+	/* Make listening TCP ksocket node. */
+	snprintf(mkp.type, sizeof(mkp.type), "%s",
+	    NG_KSOCKET_NODE_TYPE);
+	snprintf(mkp.ourhook, sizeof(mkp.ourhook), LISTENHOOK);
+	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
+	if (NgSendMsg(tcp->csock, ".", NGM_GENERIC_COOKIE, NGM_MKPEER,
+	    &mkp, sizeof(mkp)) < 0) {
+		Log(LG_PHYS, ("[%s] can't attach %s node: %s",
+		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		error = errno;
+		goto fail2;
+	}
+
+	/* Bind socket. */
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_len = sizeof(addr);
+	addr.sin_family = AF_INET;
+	addr.sin_addr = tcp->self_addr;
+	addr.sin_port = htons(tcp->self_port);
+	if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
+	    NGM_KSOCKET_BIND, &addr, sizeof(addr)) < 0) {
+		Log(LG_PHYS, ("[%s] can't bind %s node: %s",
+		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		error = errno;
+		goto fail2;
+	}
+
+	/* Listen. */
+	if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
+	    NGM_KSOCKET_LISTEN, &backlog, sizeof(backlog)) < 0) {
+		Log(LG_PHYS, ("[%s] can't listen on %s node: %s",
+		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		error = errno;
+		goto fail2;
+	}
+
+	/* Tell that we are willing to receive accept message. */
+	if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
+	    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
+		Log(LG_PHYS, ("[%s] can't accept on %s node: %s",
+		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		error = errno;
+		goto fail2;
+	}
+
+	Log(LG_PHYS, ("[%s] waiting for connection on %s:%u",
+	    lnk->name, inet_ntoa(tcp->self_addr), tcp->self_port));
+	EventRegister(&tcp->ev_accept, EVENT_READ, tcp->csock,
+	    0, TcpAcceptEvent, lnk);
+
+	tcp->flags |= TCPINFO_LISTEN;
+
+	return (0);
+
+fail2:
+	NgSendMsg(tcp->csock, LISTENHOOK, NGM_GENERIC_COOKIE, NGM_SHUTDOWN,
+	    NULL, 0);
+fail:
+	TcpDoClose(tcp);
+	PhysDown(STR_ERROR, NULL);
+	return (error);
 }
 
 /*
@@ -410,7 +450,8 @@ TcpAcceptEvent(int type, void *cookie)
 	/* Report connected. */
 	Log(LG_PHYS, ("[%s] connected with %s:%u", lnk->name,
 	    inet_ntoa(ac.sin.sin_addr), ntohs(ac.sin.sin_port)));
-	PhysUp();
+	RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
+	IfaceOpenNcps();
 
 	return;
 
@@ -461,16 +502,15 @@ TcpDoClose(TcpInfo tcp)
 }
 
 /*
- * TcpOriginated()
+ * TcpOriginate()
  */
 
 static int
-TcpOriginated(PhysInfo p)
+TcpOriginate(PhysInfo p)
 {
 	TcpInfo const tcp = (TcpInfo) lnk->phys->info;
 
-	return (tcp->origination ?
-	    LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
+	return (tcp->origination);
 }
 
 static int
@@ -535,6 +575,7 @@ TcpSetCommand(int ac, char *av[], void *arg)
 		}
 		if (strcasecmp(av[0], "remote") == 0) {
 			tcp->origination = LINK_ORIGINATE_REMOTE;
+			return (TcpListen(tcp));
 			break;
       		}
 		Log(LG_ERR, ("Invalid link origination \"%s\"", av[0]));
