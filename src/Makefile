@@ -20,7 +20,7 @@ MPD_CONF_DIR?=		${PREFIX}/etc/mpd4
 # Define supported physical layer types
 
 PHYSTYPE_MODEM=		yes
-#PHYSTYPE_TCP=		yes
+PHYSTYPE_TCP=		yes
 PHYSTYPE_UDP=		yes
 PHYSTYPE_NG_SOCKET=	yes
 PHYSTYPE_PPTP=		yes
