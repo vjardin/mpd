@@ -30,76 +30,78 @@
  * DEFINITIONS
  */
 
-  #define TCP_MTU		2048
-  #define TCP_MRU		2048
+#define TCP_MTU		2048
+#define TCP_MRU		2048
+#define TCP_REOPEN_PAUSE	10
+#define LISTENHOOK		"listen"
 
-  #define TCP_REOPEN_PAUSE	10
+struct tcpinfo {
+	/* Configuration */
+	struct in_addr	peer_addr;
+	struct in_addr	self_addr;
+	uint16_t		peer_port;
+	uint16_t		self_port;
 
-  #define LISTENHOOK		"listen"
+	/* State */
+	int			csock;
+	int			dsock;
+	uint32_t		flags;
+#define	TCPINFO_ASYNC		0x00000001
+	struct sockaddr_in	sin_peer;
+	struct ng_async_cfg	acfg;
+	EventRef		ev_connect;
+	EventRef		ev_accept;
+	int			origination;
+};
 
-  struct tcpinfo {
-    /* Configuration */
-    struct in_addr	peer_addr;
-    struct in_addr	self_addr;
-    uint16_t		peer_port;
-    uint16_t		self_port;
-
-    /* State */
-    int			csock;
-    int			dsock;
-    struct sockaddr_in	sin_peer;
-    struct ng_async_cfg	acfg;
-    EventRef		ev_connect;
-    EventRef		ev_accept;
-    EventRef		readEvent;
-    EventRef		writeEvent;
-    int			origination;
-  };
-  typedef struct tcpinfo	*TcpInfo;
+typedef struct tcpinfo	*TcpInfo;
 
 /* Set menu options */
-  enum {
-    SET_PEERADDR,
-    SET_SELFADDR,
-    SET_ORIGINATION,
-  };
+enum {
+	SET_PEERADDR,
+	SET_SELFADDR,
+	SET_ORIGINATION,
+};
 
 /*
  * INTERNAL FUNCTIONS
  */
 
-  static int	TcpInit(PhysInfo p);
-  static void	TcpOpen(PhysInfo p);
-  static void	TcpClose(PhysInfo p);
-  static void	TcpStat(PhysInfo p);
-  static int	TcpOriginated(PhysInfo p);
-  static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
+static int	TcpInit(PhysInfo p);
+static void	TcpOpen(PhysInfo p);
+static void	TcpClose(PhysInfo p);
+static void	TcpShutdown(PhysInfo p);
+static void	TcpStat(PhysInfo p);
+static int	TcpOriginated(PhysInfo p);
+static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
 
-  static void	TcpDoClose(TcpInfo tcp);
-  static void	TcpAcceptEvent(int type, void *cookie);
-  static void	TcpConnectEvent(int type, void *cookie);
+static void	TcpDoClose(TcpInfo tcp);
+static int	TcpAsyncConfig(TcpInfo tcp);
+static void	TcpAcceptEvent(int type, void *cookie);
+static void	TcpConnectEvent(int type, void *cookie);
 
-  static int	TcpSetCommand(int ac, char *av[], void *arg);
+static int	TcpSetCommand(int ac, char *av[], void *arg);
 
 /*
  * GLOBAL VARIABLES
  */
 
-  const struct phystype gTcpPhysType = {
-    .name		= "tcp",
-    .synchronous	= FALSE,
-    .minReopenDelay	= TCP_REOPEN_PAUSE,
-    .mtu		= TCP_MTU,
-    .mru		= TCP_MRU,
-    .init		= TcpInit,
-    .open		= TcpOpen,
-    .close		= TcpClose,
-    .showstat		= TcpStat,
-    .originate		= TcpOriginated,
-    .peeraddr		= TcpPeerAddr,
-  };
+const struct phystype gTcpPhysType = {
+	.name		= "tcp",
+	.synchronous	= FALSE,
+	.minReopenDelay	= TCP_REOPEN_PAUSE,
+	.mtu		= TCP_MTU,
+	.mru		= TCP_MRU,
+	.init		= TcpInit,
+	.open		= TcpOpen,
+	.close		= TcpClose,
+	.shutdown	= TcpShutdown,
+	.showstat	= TcpStat,
+	.originate	= TcpOriginated,
+	.peeraddr	= TcpPeerAddr,
+};
 
-  const struct cmdtab TcpSetCmds[] = {
+const struct cmdtab TcpSetCmds[] = {
     { "self ip [port]",			"Set local IP address",
 	TcpSetCommand, NULL, (void *) SET_SELFADDR },
     { "peer ip [port]",			"Set remote IP address",
@@ -107,7 +109,7 @@
     { "origination < local | remote >",	"Set link origination",
 	TcpSetCommand, NULL, (void *) SET_ORIGINATION },
     { NULL },
-  };
+};
 
 
 /*
@@ -121,21 +123,18 @@ TcpInit(PhysInfo p)
 
 	tcp = (TcpInfo) (p->info = Malloc(MB_PHYS, sizeof(*tcp)));
 	tcp->origination = LINK_ORIGINATE_UNKNOWN;
+	tcp->csock = -1;
+	tcp->flags = 0;
+
 	return (0);
 }
 
-/*
- * TcpOpen()
- */
-
-static void
-TcpOpen(PhysInfo p)
+static int
+TcpAsyncConfig(TcpInfo tcp)
 {
-	TcpInfo	const tcp = (TcpInfo) lnk->phys->info;
 	struct ngm_mkpeer mkp;
 	char path[NG_PATHLEN + 1];
 
-	/* Attach async node to PPP node. */
 	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_ASYNC_NODE_TYPE);
 	snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s%d",
 	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
@@ -144,7 +143,7 @@ TcpOpen(PhysInfo p)
 	    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
 		Log(LG_PHYS, ("[%s] can't attach %s node: %s",
 		    lnk->name, NG_ASYNC_NODE_TYPE, strerror(errno)));
-		goto fail;
+		return (errno);
 	}
 	
 	/* Configure the async converter node. */
@@ -158,11 +157,34 @@ TcpOpen(PhysInfo p)
 	if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
 	    NGM_ASYNC_CMD_SET_CONFIG, &tcp->acfg, sizeof(tcp->acfg)) < 0) {
 		Log(LG_PHYS, ("[%s] can't config %s", lnk->name, path));
-		goto fail;
+		return (errno);
 	}
 
+	tcp->flags |= TCPINFO_ASYNC;
+
+	return (0);
+}
+
+/*
+ * TcpOpen()
+ */
+
+static void
+TcpOpen(PhysInfo p)
+{
+	TcpInfo	const tcp = (TcpInfo) lnk->phys->info;
+	struct ngm_mkpeer mkp;
+	char path[NG_PATHLEN + 1];
+	int error;
+
+	/* Attach async node to PPP node. */
+	if ((tcp->flags & TCPINFO_ASYNC) == 0 &&
+	    (error = TcpAsyncConfig(tcp)) > 0)
+		goto fail;
+
 	/* Create a new netgraph node to control TCP ksocket node. */
-	if (NgMkSockNode(NULL, &tcp->csock, &tcp->dsock) < 0) {
+	if (tcp->csock == -1 &&
+	    NgMkSockNode(NULL, &tcp->csock, &tcp->dsock) < 0) {
 		Log(LG_ERR, ("[%s] TCP can't create control socket: %s",
 		    lnk->name, strerror(errno)));
 		goto fail;
@@ -173,15 +195,19 @@ TcpOpen(PhysInfo p)
 		struct sockaddr_in addr;
 		int rval;
 
-		/* Attach ksocket node to next async node. */
+		/*
+		 * Attach fresh ksocket node next to async node.
+		 * Remove any stale node.
+		 */
 		snprintf(mkp.type, sizeof(mkp.type), "%s",
 		    NG_KSOCKET_NODE_TYPE);
 		snprintf(mkp.ourhook, sizeof(mkp.ourhook), NG_ASYNC_HOOK_ASYNC);
 		snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
 		snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
 		    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-		if (NgSendMsg(tcp->csock, path, NGM_GENERIC_COOKIE,
-		    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
+		NgFuncDisconnect(path, NG_ASYNC_HOOK_ASYNC);
+		if (NgSendMsg(tcp->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER,
+		    &mkp, sizeof(mkp)) < 0) {
 			Log(LG_PHYS, ("[%s] can't attach %s node: %s",
 			    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 			goto fail;
@@ -214,6 +240,7 @@ TcpOpen(PhysInfo p)
 			    tcp->peer_port));
 		}
 	} else if (tcp->origination == LINK_ORIGINATE_REMOTE) {
+		struct ngm_mkpeer mkp;
 		struct sockaddr_in addr;
 		int32_t backlog = 1;
 
@@ -404,22 +431,33 @@ TcpClose(PhysInfo p)
 }
 
 /*
+ * TcpShutdown()
+ */
+
+static void
+TcpShutdown(PhysInfo p)
+{
+	TcpInfo const tcp = (TcpInfo) p->info;
+	char path[NG_PATHLEN + 1];
+
+	TcpDoClose(tcp);
+
+	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
+	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
+	NgFuncShutdownNode(bund, bund->name, path);
+	close(tcp->csock);
+	close(tcp->dsock);
+	tcp->csock = -1;
+}
+
+/*
  * TcpDoClose()
  */
 
 static void
 TcpDoClose(TcpInfo tcp)
 {
-	char path[NG_PATHLEN + 1];
-
 	EventUnRegister(&tcp->ev_connect);
-	EventUnRegister(&tcp->readEvent);
-	EventUnRegister(&tcp->writeEvent);
-	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-	NgFuncShutdownNode(bund, bund->name, path);
-	close(tcp->csock);
-	close(tcp->dsock);
 }
 
 /*
