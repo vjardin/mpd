@@ -8,6 +8,7 @@
   <p>
     Changes since version 4.0b4:
     <itemize>
+	<item>New feature: TCP link type is working now!
 	<item>BugFix: fix races between startup process and
 		client connecting.
 	</item>

@@ -6,10 +6,6 @@
   <sect><heading>TCP device type commands<label id="tcp"></heading>
 
   <p>
-  <bf>Note:</bf> The TCP device type is currently broken and will
-  not compile (it needs to be updated to support netgraph).
-
-  <p>
   This chapter describes commands that are specific to TCP type links.
   These commands apply to the currently active link, and are only
   valid if the currently active link has type <bf>tcp</bf>.
@@ -17,13 +13,12 @@
 <descrip>
 
 <tag><tt>
-set tcp mode [ <em>active</em> | <em>passive</em> ]
+set tcp origination [ <em>local</em> | <em>remote</em> ]
 </tt></tag>
 
-Set the link for active or passive mode. In active mode, the local
-side initiates all connections. In passive mode, the local side
-waits for incoming connections (in a future revision bi-directional
-connections will be supported).
+Set the link origination. If configured to remote , the local
+side listens for incoming connection. If origination is local, then
+the local side initates TCP connection to peer.
 
 <tag><tt>
 set tcp self <em>ipaddr</em> [ <em>port</em> ]
