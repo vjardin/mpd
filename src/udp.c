@@ -79,17 +79,17 @@
  */
 
   const struct phystype gUdpPhysType = {
-    "udp",
-    TRUE, UDP_REOPEN_PAUSE,
-    UDP_MTU, UDP_MRU,
-    UdpInit,
-    UdpOpen,
-    UdpClose,
-    NULL,
-    NULL,	/* XXX when another node is involved, need a function here */
-    UdpStat,
-    UdpOrigination,
-	UdpPeerAddr,
+    .name		= "udp",
+    .synchronous	= TRUE,
+    .minReopenDelay	= UDP_REOPEN_PAUSE,
+    .mtu		= UDP_MTU,
+    .mru		= UDP_MRU,
+    .init		= UdpInit,
+    .open		= UdpOpen,
+    .close		= UdpClose,
+    .showstat		= UdpStat,
+    .originate		= UdpOrigination,
+    .peeraddr		= UdpPeerAddr,
   };
 
   const struct cmdtab UdpSetCmds[] = {

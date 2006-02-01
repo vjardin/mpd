@@ -60,17 +60,16 @@
  */
 
   const struct phystype gNgPhysType = {
-    "ng",
-    TRUE, NG_REOPEN_PAUSE,
-    NG_MTU, NG_MRU,
-    NgInit,
-    NgOpen,
-    NgClose,
-    NULL,
-    NULL,
-    NgStat,
-    NULL,
-    NgPeerAddr,
+    .name		= "ng",
+    .synchronous	= TRUE,
+    .minReopenDelay	= NG_REOPEN_PAUSE,
+    .mtu		= NG_MTU,
+    .mru		= NG_MRU,
+    .init		= NgInit,
+    .open		= NgOpen,
+    .close		= NgClose,
+    .showstat		= NgStat,
+    .peeraddr		= NgPeerAddr,
   };
 
   const struct cmdtab NgSetCmds[] = {

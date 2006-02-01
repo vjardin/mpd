@@ -78,19 +78,19 @@
  * GLOBAL VARIABLES
  */
 
-  const struct phystype gTcpPhysType =
-  {
-    "tcp",
-    FALSE, TCP_REOPEN_PAUSE,
-    TCP_MTU, TCP_MRU,
-    TcpInit,
-    TcpOpen,
-    TcpClose,
-    NULL,
-    TcpShutdown,
-    TcpStat,
-    TcpOriginated,
-    TcpPeerAddr,
+  const struct phystype gTcpPhysType = {
+    .name		= "tcp",
+    .synchronous	= FALSE,
+    .minReopenDelay	= TCP_REOPEN_PAUSE,
+    .mtu		= TCP_MTU,
+    .mru		= TCP_MRU,
+    .init		= TcpInit,
+    .open		= TcpOpen,
+    .close		= TcpClose,
+    .shutdown		= TcpShutdown,
+    .showstat		= TcpStat,
+    .originate		= TcpOriginated,
+    .peeraddr		= TcpPeerAddr,
   };
 
   const struct cmdtab TcpSetCmds[] =

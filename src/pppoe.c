@@ -128,17 +128,18 @@ static void	PppoeListenUpdate(void *arg);
  */
 
 const struct phystype gPppoePhysType = {
-	"pppoe",
-	TRUE, PPPOE_REOPEN_PAUSE,
-	PPPOE_MTU, PPPOE_MRU,
-	PppoeInit,
-	PppoeOpen,
-	PppoeClose,
-	NULL,
-	PppoeShutdown,
-	PppoeStat,
-	PppoeOriginated,
-	PppoePeerAddr,
+	.name		= "pppoe",
+	.synchronous	= TRUE,
+	.minReopenDelay = PPPOE_REOPEN_PAUSE,
+	.mtu		= PPPOE_MTU,
+	.mru		= PPPOE_MRU,
+	.init		= PppoeInit,
+	.open		= PppoeOpen,
+	.close		= PppoeClose,
+	.shutdown	= PppoeShutdown,
+	.showstat	= PppoeStat,
+	.originate	= PppoeOriginated,
+	.peeraddr	= PppoePeerAddr,
 };
 
 const struct cmdtab PppoeSetCmds[] = {

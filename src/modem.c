@@ -132,17 +132,18 @@
  */
 
   const struct phystype gModemPhysType = {
-    "modem",
-    FALSE, MODEM_REOPEN_PAUSE,
-    MODEM_MTU, MODEM_MRU,
-    ModemInit,
-    ModemOpen,
-    ModemClose,
-    ModemUpdate,
-    NULL,
-    ModemStat,
-    ModemOriginated,
-    ModemPeerAddr,
+    .name		= "modem",
+    .synchronous	= FALSE,
+    .minReopenDelay	= MODEM_REOPEN_PAUSE,
+    .mtu		= MODEM_MTU,
+    .mru		= MODEM_MRU,
+    .init		= ModemInit,
+    .open		= ModemOpen,
+    .close		= ModemClose,
+    .update 		= ModemUpdate,
+    .showstat		= ModemStat,
+    .originate		= ModemOriginated,
+    .peeraddr		= ModemPeerAddr,
   };
 
   const struct cmdtab ModemSetCmds[] = {

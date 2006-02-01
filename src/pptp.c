@@ -124,17 +124,18 @@
  */
 
   const struct phystype	gPptpPhysType = {
-    "pptp",
-    TRUE, PPTP_REOPEN_PAUSE,
-    PPTP_MTU, PPTP_MRU,
-    PptpInit,
-    PptpOpen,
-    PptpClose,
-    NULL,
-    PptpShutdown,
-    PptpStat,
-    PptpOriginated,
-    PptpPeerAddr,
+    .name		= "pptp",
+    .synchronous	= TRUE,
+    .minReopenDelay	= PPTP_REOPEN_PAUSE,
+    .mtu		= PPTP_MTU,
+    .mru		= PPTP_MRU,
+    .init		= PptpInit,
+    .open		= PptpOpen,
+    .close		= PptpClose,
+    .shutdown		= PptpShutdown,
+    .showstat		= PptpStat,
+    .originate		= PptpOriginated,
+    .peeraddr		= PptpPeerAddr,
   };
 
   const struct cmdtab	PptpSetCmds[] = {
