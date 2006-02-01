@@ -71,16 +71,13 @@
   static int	TcpInit(PhysInfo p);
   static void	TcpOpen(PhysInfo p);
   static void	TcpClose(PhysInfo p);
-  static Mbuf	TcpOutput(PhysInfo p, Mbuf bp, int proto);
   static void	TcpStat(PhysInfo p);
   static int	TcpOriginated(PhysInfo p);
   static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
 
   static void	TcpDoClose(TcpInfo tcp);
-  static void	TcpWrite(int type, void *cookie);
   static void	TcpAcceptEvent(int type, void *cookie);
   static void	TcpConnectEvent(int type, void *cookie);
-  static void	TcpRead(int type, void *cookie);
 
   static int	TcpSetCommand(int ac, char *av[], void *arg);
 
@@ -287,13 +284,13 @@ TcpConnectEvent(int type, void *cookie)
 	TcpInfo	tcp;
 	char path[NG_PATHLEN + 1];
 
-	assert(type == EVENT_READ);
-	assert(tcp->origination == LINK_ORIGINATE_LOCAL);
-
 	/* Restore context. */
 	lnk = (Link) cookie;
 	bund = lnk->bund;
 	tcp = (TcpInfo) lnk->phys->info;
+
+	assert(type == EVENT_READ);
+	assert(tcp->origination == LINK_ORIGINATE_LOCAL);
 
 	/* Get absolute path of TCP ksocket node. */
 	snprintf(path, sizeof(path), "[%x]:%s%d.%s", bund->nodeID,
@@ -340,13 +337,13 @@ TcpAcceptEvent(int type, void *cookie)
 	struct ngm_connect cn;
 	char path[NG_PATHLEN + 1];
 
-	assert(type == EVENT_READ);
-	assert(tcp->origination == LINK_ORIGINATE_REMOTE);
-
 	/* Restore context. */
 	lnk = (Link) cookie;
 	bund = lnk->bund;
 	tcp = (TcpInfo) lnk->phys->info;
+
+	assert(type == EVENT_READ);
+	assert(tcp->origination == LINK_ORIGINATE_REMOTE);
 
 	/* Accept cloned ng_ksocket(4). */
 	if (NgRecvMsg(tcp->csock, &ac.resp, sizeof(ac), NULL) < 0) {
@@ -427,101 +424,6 @@ TcpDoClose(TcpInfo tcp)
 	NgFuncDisconnect(MPD_HOOK_PPP, hook);
 	close(tcp->csock);
 	close(tcp->dsock);
-}
-
-/*
- * TcpRead()
- */
-
-static void
-TcpRead(int type, void *cookie)
-{
-  TcpInfo	tcp;
-  u_char	buf[LCP_DEFAULT_MRU];
-  int		nread;
-
-/* Get event */
-
-  lnk = (Link) cookie;
-  bund = lnk->bund;
-  tcp = (TcpInfo) lnk->phys->info;
-
-/* Read data */
-
-  if ((nread = read(tcp->sock, buf, sizeof(buf))) <= 0)
-  {
-    if (nread < 0)
-    {
-      if (errno == EAGAIN)
-	goto done;
-      Log(LG_LINK, ("[%s] device read: %s", lnk->name, strerror(errno)));
-      PhysDown(STR_READ_ERR, "%s", strerror(errno));
-    }
-    else
-      PhysDown(STR_READ_EOF, NULL);
-    TcpDoClose(tcp);
-    return;
-  }
-
-/* Run bytes through async decoder */
-
-  AsyncDecode(tcp->async, buf, nread);
-
-/* Reregister input event */
-
-done:
-  EventRegister(&tcp->readEvent, EVENT_READ,
-    tcp->sock, 0, TcpRead, lnk);
-}
-
-/*
- * TcpOutput()
- */
-
-static Mbuf
-TcpOutput(PhysInfo p, Mbuf frame, int proto)
-{
-  TcpInfo	const tcp = (TcpInfo) p->info;
-
-  if (proto != PROTO_UNKNOWN
-    && (proto == PROTO_LCP || !lnk->lcp.peer_acfcomp))
-  {
-    Mbuf	hdr;
-
-    hdr = mballoc(MB_FRAME_OUT, 2);
-    MBDATA(hdr)[0] = PPP_ALLSTATIONS;
-    MBDATA(hdr)[1] = PPP_UI;
-    hdr->next = frame;
-    frame = hdr;
-  }
-  if (tcp->out)
-    return(frame);
-  tcp->out = AsyncEncode(tcp->async, frame, proto == PROTO_LCP);
-  TcpWrite(EVENT_WRITE, lnk);
-  return(NULL);
-}
-
-/*
- * TcpWrite()
- */
-
-static void
-TcpWrite(int type, void *cookie)
-{
-  TcpInfo	tcp;
-
-  lnk = (Link) cookie;
-  bund = lnk->bund;
-  tcp = (TcpInfo) lnk->phys->info;
-  if (WriteMbuf(&tcp->out, tcp->sock, "socket") < 0)
-  {
-    PhysDown(STR_WRITE_ERR, "%s", strerror(errno));
-    TcpDoClose(tcp);
-    return;
-  }
-  if (tcp->out)
-    EventRegister(&tcp->writeEvent, EVENT_WRITE,
-      tcp->sock, 0, TcpWrite, lnk);
 }
 
 /*
