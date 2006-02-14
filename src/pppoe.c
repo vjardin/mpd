@@ -222,6 +222,10 @@ PppoeOpen(PhysInfo p)
 
 	if (pe->incoming == 1) {
 		Log(LG_PHYS, ("[%s] PppoeOpen() on incoming call", lnk->name));
+		/* Register an event listening to the control socket. */
+		EventRegister(&pe->ctrlEvent, EVENT_READ, pe->csock,
+		    EVENT_RECURRING, PppoeCtrlReadEvent, lnk);
+		pe->state = PPPOE_CONNECTING;
 		return;
 	}
 
