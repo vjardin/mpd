@@ -42,8 +42,6 @@
 				"Set console bind IP-address"	},
     { 0, 'b',	"background",	"",
 				"Run as a background daemon"	},
-    { 1, 'c',	"console-port",	"port",
-				"Enable telnet console port"	},
     { 1, 'd',	"directory",	"config-dir",
 				"Set config file directory"	},
     { 0, 'k',	"kill",		"",
@@ -60,8 +58,6 @@
 				"Show version information"	},
     { 0, 'h',	"help",		"",
 				"Show usage information"	},
-    { 0, 't',	"tee",		"",
-				"Insert ng_tee into netgraph"	},
   };
 
   #define OPTLIST_SIZE		(sizeof(OptList) / sizeof(*OptList))
