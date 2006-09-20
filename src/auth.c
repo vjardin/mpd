@@ -152,6 +152,9 @@ AuthStart(void)
   a->chap.recv_alg = lnk->lcp.want_chap_alg;
   a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
 
+  /* remember peer's IP address */
+  lnk->phys->type->peeraddr(lnk->phys->info, a->peeraddr, sizeof(a->peeraddr));
+  
   Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
     Pref(&lnk->lcp.fsm),
     a->self_to_peer ? ProtoName(a->self_to_peer) : "nothing",
@@ -581,9 +584,6 @@ AuthAccountStart(int type)
     return;
 
   if (type == AUTH_ACCT_START) {
-  
-    /* remember peer's IP address */
-    lnk->phys->type->peeraddr(lnk->phys->info, a->peeraddr, sizeof(a->peeraddr));
   
     /* maybe an outstanding thread is running */
     paction_cancel(&a->acct_thread);
