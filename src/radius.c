@@ -426,6 +426,7 @@ RadiusSetCommand(int ac, char *av[], void *arg)
   RadServe_Conf	server;
   RadServe_Conf	t_server;
   int		val, count;
+  struct in_range t;
 
   if (ac == 0)
       return(-1);
@@ -492,9 +493,11 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 	break;
 
       case SET_ME:
-	val = inet_aton(*av, &(conf->radius_me));
-	  if (val == 0)
+        if (ParseAddr(*av, &t)) {
+	    conf->radius_me=t.ipaddr;
+	} else {
 	    Log(LG_ERR, ("Bad NAS address."));
+	}
 	break;
 
       case SET_TIMEOUT:
@@ -577,12 +580,12 @@ RadiusInit(AuthData auth, short request_type)
 }
 
 static int 
-GetLinkID(void) {
+GetLinkID(Link lnk) {
     int port, i;
     
     port =- 1;    
     for (i = 0; i < gNumLinks; i++) {
-      if (gLinks[i] && gLinks[i]==lnk) {
+      if (gLinks[i] && !strcmp(gLinks[i]->name, lnk->name)) {
 	port = i;
       }
     }
@@ -640,7 +643,7 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 
-  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT, GetLinkID()) == -1)  {
+  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT, GetLinkID(lnk)) == -1)  {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT) failed %s", 
       lnk->name, __func__, rad_strerror(auth->radius.handle)));
     return (RAD_NACK);
