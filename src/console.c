@@ -418,6 +418,7 @@ failed:
 	Logc(LG_CONSOLE, ("Failed login attempt from %s", 
 		inet_ntoa(cs->peer_addr.sin_addr)));
 	FREE(MB_CONS, cs->user.username);
+	cs->user.username=NULL;
 	cs->state = STATE_USERNAME;
 success:
 	memset(cs->cmd, 0, MAX_CONSOLE_LINE);
