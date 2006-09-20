@@ -62,6 +62,8 @@
     SET_EXPORT,
     SET_SOURCE,
     SET_TIMEOUTS,
+    SET_NODE,
+    SET_HOOK,
   };
 
 /*
@@ -94,6 +96,10 @@
         NetflowSetCommand, NULL, (void *) SET_SOURCE },
     { "timeouts <inactive> <active>", "Set NetFlow timeouts" ,
         NetflowSetCommand, NULL, (void *) SET_TIMEOUTS },
+    { "node <name>", "Set existing NetFlow node name" ,
+        NetflowSetCommand, NULL, (void *) SET_NODE },
+    { "hook <number>", "Set NetFlow initial hook number" ,
+        NetflowSetCommand, NULL, (void *) SET_HOOK },
     { NULL },
   };
 #endif
@@ -179,6 +185,8 @@
   #endif
   #ifdef USE_NG_NETFLOW
   static u_char gNetflowNode = FALSE;
+  static u_char gNetflowNodeShutdown = TRUE;
+  static u_char gNetflowNodeName[64] = "mpd-netflow";
   static u_int gNetflowIface = 0;
   static struct sockaddr_in gNetflowExport = { 0, 0, 0, { 0 }, { 0 } };
   static struct sockaddr_in gNetflowSource = { 0, 0, 0, { 0 }, { 0 } };
@@ -328,16 +336,17 @@ NgFuncInit(Bund b, const char *reqIface)
 
 #ifdef USE_NG_NETFLOW
   if (b->netflow) {
-    struct ng_netflow_setdlt	 nf_setdlt;
-    struct ng_netflow_setifindex nf_setidx;
 
     /* Create global ng_netflow(4) node if not yet. */
     if (gNetflowNode == FALSE) {
+
+      snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-netflow", getpid());
+
       struct ngm_mkpeer	mp;
       struct ngm_rmhook	rm;
       struct ngm_name	nm;
 
-      /* Create a global tcpmss node. */
+      /* Create a global netflow node. */
       snprintf(mp.type, sizeof(mp.type), "%s", NG_NETFLOW_NODE_TYPE);
       snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
       snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
@@ -349,7 +358,7 @@ NgFuncInit(Bund b, const char *reqIface)
       }
 
       /* Set the new node's name. */
-      snprintf(nm.name, sizeof(nm.name), "mpd%d-netflow", getpid());
+      strcpy(nm.name, gNetflowNodeName);
       if (NgSendMsg(b->csock, TEMPHOOK,
           NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("can't name %s node: %s", NG_NETFLOW_NODE_TYPE,
@@ -386,7 +395,7 @@ NgFuncInit(Bund b, const char *reqIface)
       }
 
       /* Configure export destination and source on ng_ksocket(4). */
-      snprintf(path, sizeof(path), "mpd%d-netflow:%s", getpid(),
+      snprintf(path, sizeof(path), "%s:%s", gNetflowNodeName,
 	    NG_NETFLOW_HOOK_EXPORT);
       if (gNetflowSource.sin_len != 0) {
 	if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
@@ -424,9 +433,14 @@ NgFuncInit(Bund b, const char *reqIface)
       snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
       snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
     }
-    snprintf(cn.path, sizeof(cn.path), "mpd%d-netflow:", getpid());
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
-	++gNetflowIface);
+    snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
+    if (b->netflow==2) {
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	    ++gNetflowIface);
+    } else {
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
+	    ++gNetflowIface);
+    }
     if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	sizeof(cn)) < 0) {
       Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
@@ -434,31 +448,18 @@ NgFuncInit(Bund b, const char *reqIface)
       goto fail;
     }
 
-    /* Configure data link type and interface index. */
-    snprintf(path, sizeof(path), "mpd%d-netflow:", getpid());
-    nf_setdlt.iface = gNetflowIface;
-    nf_setdlt.dlt = DLT_RAW;
-    if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
-	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
-      Log(LG_ERR, ("[%s] can't configure data link type on %s: %s", b->name,
-	path, strerror(errno)));
-      goto fail;
-    }
-    nf_setidx.iface = gNetflowIface;
-    nf_setidx.index = if_nametoindex(b->iface.ifname);
-    if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
-	&nf_setidx, sizeof(nf_setidx)) < 0) {
-      Log(LG_ERR, ("[%s] can't configure interface index on %s: %s", b->name,
-	path, strerror(errno)));
-      goto fail;
-    }
   }
 
   if (b->tee && b->netflow) {
     snprintf(path, sizeof(path), "%s.%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
 	BPF_HOOK_IFACE, NG_TEE_HOOK_LEFT);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
-	gNetflowIface);
+    if (b->netflow==2) {
+	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_DATA,
+	    gNetflowIface);
+    } else {
+	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	    gNetflowIface);
+    }
   } else
 #endif	/* USE_NG_NETFLOW */
   if (b->tee) {
@@ -469,8 +470,13 @@ NgFuncInit(Bund b, const char *reqIface)
   } else if (b->netflow) {
     snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
 	BPF_HOOK_IFACE);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
-	gNetflowIface);
+    if (b->netflow==2) {
+	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_DATA,
+	    gNetflowIface);
+    } else {
+	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	    gNetflowIface);
+    }
 #endif /* USE_NG_NETFLOW */
   } else {
     snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
@@ -486,6 +492,34 @@ NgFuncInit(Bund b, const char *reqIface)
       b->name, cn.ourhook, NG_IFACE_HOOK_INET, strerror(errno)));
     goto fail;
   }
+
+#ifdef USE_NG_NETFLOW
+  if (b->netflow) {
+    struct ng_netflow_setdlt	 nf_setdlt;
+    struct ng_netflow_setifindex nf_setidx;
+    
+    /* Configure data link type and interface index. */
+    snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+    nf_setdlt.iface = gNetflowIface;
+    nf_setdlt.dlt = DLT_RAW;
+    if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
+	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
+      Log(LG_ERR, ("[%s] can't configure data link type on %s: %s", b->name,
+	path, strerror(errno)));
+      goto fail;
+    }
+    if (b->netflow!=2) {
+	nf_setidx.iface = gNetflowIface;
+	nf_setidx.index = if_nametoindex(b->iface.ifname);
+	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
+	    &nf_setidx, sizeof(nf_setidx)) < 0) {
+    	  Log(LG_ERR, ("[%s] can't configure interface index on %s: %s", b->name,
+	    path, strerror(errno)));
+    	  goto fail;
+	}
+    }
+  }
+#endif /* USE_NG_NETFLOW */
 
   /* Connect a hook from the bpf node to our socket node */
   snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
@@ -985,10 +1019,10 @@ NgFuncShutdownGlobal(Bund b)
 #ifdef USE_NG_NETFLOW
   char	path[NG_PATHLEN + 1];
 
-  if (gNetflowNode == FALSE)
+  if (gNetflowNode == FALSE || gNetflowNodeShutdown==FALSE)
     return;
 
-  snprintf(path, sizeof(path), "mpd%d-netflow:", getpid());
+  snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
   NgFuncShutdownNode(b, "netflow", path);
 #endif
 }
@@ -1032,6 +1066,10 @@ NgFuncShutdownInternal(Bund b, int iface, int ppp)
   bund = bund_save;
   lnk = lnk_save;
   if (ppp) {
+    if (b->tee) {
+	snprintf(path, sizeof(path), "%s.%s.iface", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+	NgFuncShutdownNode(b, b->name, path);
+    }
     snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
     NgFuncShutdownNode(b, b->name, path);
     NgFuncShutdownNode(b, b->name, MPD_HOOK_PPP);
@@ -1435,6 +1473,26 @@ NetflowSetCommand(int ac, char *av[], void *arg)
       }
       gNetflowInactive = atoi(av[0]);
       gNetflowActive = atoi(av[1]);
+      break;
+    case SET_NODE:
+      if (ac != 1)
+	return (-1);
+      if (strlen(av[0]) == 0 || strlen(av[0]) > 63) {
+	Log(LG_ERR, ("Bad netflow node name \"%s\"", av[0]));
+	return (-1);
+      }
+      strncpy(gNetflowNodeName,av[0],63);
+      gNetflowNode=TRUE;
+      gNetflowNodeShutdown=FALSE;
+      break;
+    case SET_HOOK:
+      if (ac != 1)
+	return (-1);
+      if (atoi(av[0]) <= 0) {
+	Log(LG_ERR, ("Bad netflow hook number \"%s\"", av[0]));
+	return (-1);
+      }
+      gNetflowIface = atoi(av[0])-1;
       break;
 
     default:

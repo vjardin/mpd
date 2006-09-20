@@ -9,8 +9,13 @@
     Changes since version 4.0b4:
     <itemize>
 	<item>New feature: TCP link type is working now!
+	<item>New feature: NetFlow generation on outgoing packets.
+	<item>New feature: usage of specified existing ng_netflow node.
+	<item>New feature: possible to specify network interface names insted of IPs.
 	<item>BugFix: fix races between startup process and
 		client connecting.
+	<item>BugFix: fix crash when disconnecting console after unsuccessful login.
+	<item>BugFix: RAD_NAS_PORT could be wrong fixed.
 	</item>
     </itemize>
   </p>

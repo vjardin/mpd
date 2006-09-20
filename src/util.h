@@ -37,6 +37,8 @@
 
   #define MAX_U_INT32 0xffffffffU
 
+  #define MAX_INTERFACES	2048
+
 /*
  * FUNCTIONS
  */
@@ -76,6 +78,10 @@
   extern u_char		*Hex2Bin(char *hexstr);
   extern u_short	Crc16(u_short fcs, u_char *cp, int len);
   extern u_long		GenerateMagic(void);
+
+  extern int		GetAnyIpAddress(struct in_addr *ipaddr, char *ifname);
+  extern int		GetEther(struct in_addr *addr,
+			    struct sockaddr_dl *hwaddr);
 
 #endif
 

@@ -70,14 +70,14 @@ MpSetDiscrim(void)
   struct sockaddr_dl	hwa;
 
   /* Try Ethernet address first */
-  if (IfaceGetEther(NULL, &hwa) >= 0) {
+  if (GetEther(NULL, &hwa) >= 0) {
     self_discrim.class = DISCRIM_CLASS_802_1;
     memcpy(self_discrim.bytes, LLADDR(&hwa), self_discrim.len = hwa.sdl_alen);
     return;
   }
 
   /* Then try an IP address */
-  if (IfaceGetAnyIpAddress(&ipaddr) >= 0) {
+  if (GetAnyIpAddress(&ipaddr, NULL) >= 0) {
     self_discrim.class = DISCRIM_CLASS_IPADDR;
     memcpy(self_discrim.bytes, &ipaddr, self_discrim.len = sizeof(ipaddr));
     return;

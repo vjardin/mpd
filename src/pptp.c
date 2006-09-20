@@ -415,7 +415,7 @@ PptpInitCtrl(void)
 {
 #if 0
   if (gLocalIp.s_addr == 0)
-    IfaceGetAnyIpAddress(&gLocalIp);
+    GetAnyIpAddress(&gLocalIp, NULL);
 #endif
   if (PptpCtrlInit(PptpIncoming, PptpOutgoing, gLocalIp) < 0) {
     Log(LG_ERR, ("[%s] PPTP ctrl init failed", lnk->name));

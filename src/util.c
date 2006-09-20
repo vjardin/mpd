@@ -120,13 +120,16 @@ ParseAddr(char *s, struct in_range *r)
 
   if (!inet_aton(buf, &address))
   {
-    struct hostent	*hptr;
-    int			k;
+    if (GetAnyIpAddress(&address, buf))
+    {
+  	struct hostent	*hptr;
+	int			k;
 
-    if ((hptr = gethostbyname(buf)) == NULL)
-      return (FALSE);
-    for (k = 0; hptr->h_addr_list[k]; k++);
-    memcpy(&address, hptr->h_addr_list[random() % k], sizeof(address));
+	if ((hptr = gethostbyname(buf)) == NULL)
+    	    return (FALSE);
+	for (k = 0; hptr->h_addr_list[k]; k++);
+	memcpy(&address, hptr->h_addr_list[random() % k], sizeof(address));
+    }
   }
 
 /* Get mask width */
@@ -1208,4 +1211,156 @@ static const u_int16_t Crc16Table[256] = {
 /* f8 */    0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 };
 
+/*
+ * GetAnyIpAddress()
+ *
+ * Get any non-loopback IP address owned by this machine
+ * Prefer addresses from non-point-to-point interfaces.
+ */
+
+int
+GetAnyIpAddress(struct in_addr *ipaddr, char *ifname)
+{
+  int			s, p2p = 0;
+  struct in_addr	ipa = { 0 };
+  struct ifreq		*ifr, *ifend;
+  struct ifreq		ifreq;
+  struct ifconf		ifc;
+  struct ifreq		ifs[MAX_INTERFACES];
+
+  /* Get interface list */
+  if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    Perror("socket");
+    DoExit(EX_ERRDEAD);
+  }
+
+  ifc.ifc_len = sizeof(ifs);
+  ifc.ifc_req = ifs;
+  if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+    Perror("ioctl(SIOCGIFCONF)");
+    close(s);
+    return(-1);
+  }
+
+  for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
+	ifr = ifc.ifc_req;
+      ifr < ifend;
+      ifr = (struct ifreq *)(void *)((char *) &ifr->ifr_addr
+	+ MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)))) {
+    if (ifr->ifr_addr.sa_family == AF_INET) {
+
+      if (ifname!=NULL && strcmp(ifname,ifr->ifr_name))
+        continue;
+
+      /* Check that the interface is up, and not loopback; prefer non-p2p */
+      strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+      if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
+	continue;
+      if ((ifreq.ifr_flags & (IFF_UP|IFF_LOOPBACK)) != IFF_UP)
+	continue;
+      if ((ifreq.ifr_flags & IFF_POINTOPOINT) && ipa.s_addr && !p2p)
+	continue;
+
+      /* Save IP address and interface name */
+      ipa = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr;
+      p2p = (ifreq.ifr_flags & IFF_POINTOPOINT) != 0;
+      
+      if (!p2p) break;
+    }
+  }
+  close(s);
+
+  /* Found? */
+  if (ipa.s_addr == 0)
+    return(-1);
+  *ipaddr = ipa;
+  return(0);
+}
+
+/*
+ * GetEther()
+ *
+ * Get the hardware address of an interface on the the same subnet as addr.
+ * If addr == NULL, finds the address of any local ethernet interface.
+ */
+
+int
+GetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
+{
+  int			s;
+  struct ifreq		*ifr, *ifend, *ifp;
+  u_long		ina, mask;
+  struct ifreq		ifreq;
+  struct ifconf		ifc;
+  struct ifreq		ifs[MAX_INTERFACES];
+
+  /* Get interface list */
+  if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    Perror("socket");
+    DoExit(EX_ERRDEAD);
+  }
+
+  ifc.ifc_len = sizeof(ifs);
+  ifc.ifc_req = ifs;
+  if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+    Perror("ioctl(SIOCGIFCONF)");
+    close(s);
+    return(-1);
+  }
+
+  /*
+   * Scan through looking for an interface with an IP
+   * address on same subnet as `addr'.
+   */
+  for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
+	ifr = ifc.ifc_req;
+      ifr < ifend;
+      ifr = (struct ifreq *)(void *)((char *) &ifr->ifr_addr
+	+ MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)))) {
+    if (ifr->ifr_addr.sa_family == AF_INET) {
+
+      /* Save IP address and interface name */
+      ina = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr.s_addr;
+      strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+
+      /* Check that the interface is up, and not point-to-point or loopback */
+      if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
+	continue;
+      if ((ifreq.ifr_flags &
+	  (IFF_UP|IFF_BROADCAST|IFF_POINTOPOINT|IFF_LOOPBACK|IFF_NOARP))
+	  != (IFF_UP|IFF_BROADCAST))
+	continue;
+
+      /* Get its netmask and check that it's on the right subnet */
+      if (ioctl(s, SIOCGIFNETMASK, &ifreq) < 0)
+	continue;
+      mask = ((struct sockaddr_in *)(void *)&ifreq.ifr_addr)->sin_addr.s_addr;
+      if (addr && (addr->s_addr & mask) != (ina & mask))
+	continue;
+
+      /* OK */
+      break;
+    }
+  }
+  close(s);
+
+  /* Found? */
+  if (ifr >= ifend)
+    return(-1);
+
+  /* Now scan again looking for a link-level address for this interface */
+  for (ifp = ifr, ifr = ifc.ifc_req; ifr < ifend; ) {
+    if (strcmp(ifp->ifr_name, ifr->ifr_name) == 0
+	&& ifr->ifr_addr.sa_family == AF_LINK) {
+      memcpy(hwaddr, (struct sockaddr_dl *)(void *)&ifr->ifr_addr,
+	sizeof(*hwaddr));
+      return(0);
+    }
+    ifr = (struct ifreq *)(void *)((char *)&ifr->ifr_addr
+      + MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)));
+  }
+
+  /* Not found! */
+  return(-1);
+}
 

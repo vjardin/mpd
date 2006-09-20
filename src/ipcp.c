@@ -248,7 +248,7 @@ IpcpInit(void)
 
   /* Come up with a default IP address for my side of the link */
   memset(&ipcp->conf.self_allow, 0, sizeof(ipcp->conf.self_allow));
-  IfaceGetAnyIpAddress(&ipcp->conf.self_allow.ipaddr);
+  GetAnyIpAddress(&ipcp->conf.self_allow.ipaddr, NULL);
 
   /* Default we want VJ comp */
   Enable(&ipcp->conf.options, IPCP_CONF_VJCOMP);

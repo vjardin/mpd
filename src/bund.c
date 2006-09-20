@@ -664,7 +664,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   if (ac > 0 && av[0][0] == '-') {
     optreset = 1; 
     optind = 0;
-    while ((k = getopt(ac, av, "nti:")) != -1) {
+    while ((k = getopt(ac, av, "nNti:")) != -1) {
       switch (k) {
       case 'i':
 	reqIface = optarg;
@@ -675,6 +675,11 @@ BundCreateCmd(int ac, char *av[], void *arg)
       case 'n':
 #ifdef USE_NG_NETFLOW
 	netflow = 1;
+#endif
+	break;
+      case 'N':
+#ifdef USE_NG_NETFLOW
+	netflow = 2;
 #endif
 	break;
       default:

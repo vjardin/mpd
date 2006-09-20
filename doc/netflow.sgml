@@ -40,6 +40,18 @@ set netflow timeouts <em>inactive</em> <em>active</em>
 Modify inactive and active timeout values. For more information, see
 <tt>ng_netflow(4)</tt> manual page.
 
+<tag><tt>
+set netflow node <em>nodename</em>
+</tt></tag>
+
+Use existing ng_netflow node instead of creation of new one.
+
+<tag><tt>
+set netflow hook <em>number</em>
+</tt></tag>
+
+Use ng_netflow node hooks from specified number.
+
 </descrip>
 
 </p>

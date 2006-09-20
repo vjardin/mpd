@@ -109,10 +109,6 @@
   extern void	IfaceOpenNcps(void);
   extern void	IfaceCloseNcps(void);
 
-  extern int	IfaceGetAnyIpAddress(struct in_addr *ipaddr);
-  extern int	IfaceGetEther(struct in_addr *addr,
-		  struct sockaddr_dl *hwaddr);
-
   extern void	IfaceListenInput(int proto, Mbuf pkt);
   #ifndef USE_NG_TCPMSS
   extern void	IfaceListenOutput(int proto, Mbuf pkt);

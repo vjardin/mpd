@@ -33,7 +33,7 @@ set radius retries <em>#retries</em>
 Set the number of retries for RADIUS requests.
 
 <tag><tt>
-set radius me <em>IP</em>
+set radius me <em>IP</em>|<em>ifname</em>|<em>hostname</em>
 </tt></tag>
 
 Send the given IP in the RAD_NAS_IP_ADDRESS attribute to the server
