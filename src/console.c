@@ -489,13 +489,10 @@ ConsoleSessionWriteEvent(int type, void *cookie)
   char			buf[MAX_CONSOLE_BUF_LEN];
 
   if ((written = write(cs->fd, cs->writebuf, cs->writebuf_len)) <= 0) {
-    if (written < 0) {
-      if (errno == EAGAIN)
-	goto out;
+    if (written < 0 && errno != EAGAIN) {
       Logc(LG_ERR, ("Error writing to console %s", strerror(errno)));
-      goto abort;
-    } else
-	goto out;
+    }
+    return;
   }
 
   if (written == cs->writebuf_len) {
@@ -508,12 +505,6 @@ ConsoleSessionWriteEvent(int type, void *cookie)
     EventRegister(&cs->writeEvent, EVENT_WRITE, cs->fd, 
 	0, ConsoleSessionWriteEvent, cs);
   }
-
-out:
-  return;
-
-abort:
-  cs->close(cs);
 }
 
 /*

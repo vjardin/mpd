@@ -306,7 +306,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 
   /* Turn on interface traffic flow */
   if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
-    Log(LG_ERR, ("[%s] enabling TCPMSSFIX", bund->name));
+    Log(LG_IFACE, ("[%s] enabling TCPMSSFIX", bund->name));
     NgFuncConfigBPF(bund, BPF_MODE_MSSFIX);
 #ifdef USE_NG_TCPMSS
     NgFuncConfigTCPMSS(bund, MAXMSS(iface->mtu));
