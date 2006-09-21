@@ -536,10 +536,10 @@ PptpCtrlListen(int enable, int port, int allow_multiple)
       if (errno == EADDRINUSE || errno == EADDRNOTAVAIL)
 	EventRegister(&gListenRetry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
 	  0, PptpCtrlListenRetry, (void *)(intptr_t)port);
-      Log(LG_PPTP, ("mpd: can't get PPTP listening socket"));
+      Log(LG_ERR, ("mpd: can't get PPTP listening socket"));
       return(-1);
     }
-    Log(LG_ERR, ("mpd: local IP address for PPTP is %s", inet_ntoa(gListenIp)));
+    Log(LG_PHYS2, ("mpd: local IP address for PPTP is %s", inet_ntoa(gListenIp)));
     EventRegister(&gListenEvent, EVENT_READ,
       gListenSock, EVENT_RECURRING, PptpCtrlListenEvent, NULL);
   } else {

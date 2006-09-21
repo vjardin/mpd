@@ -567,7 +567,7 @@ OpenSerialDevice(const char *path, int baudrate)
 
   if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
   {
-    Log(LG_PHYS, ("[%s] can't set \"%s\" to non-blocking: %s",
+    Log(LG_ERR, ("[%s] can't set \"%s\" to non-blocking: %s",
       lnk->name, path, strerror(errno)));
     goto failed;
   }

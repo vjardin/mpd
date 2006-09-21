@@ -374,7 +374,7 @@ ModemChatConnectResult(void *arg, int result, const char *msg)
   m = (ModemInfo) lnk->phys->info;
 
   /* Was the connect script successful? */
-  Log(LG_ERR, ("[%s] chat script %s",
+  Log(LG_PHYS, ("[%s] chat script %s",
     lnk->name, result ? "succeeded" : "failed"));
   if (!result) {
 failed:
@@ -491,7 +491,7 @@ ModemInstallNodes(ModemInfo m)
 	NG_TTY_NODE_TYPE, NG_TTY_HOOK);
     }
     if (ioctl(m->fd, TIOCSETD, &ldisc) < 0) {
-      Log(LG_PHYS, ("[%s] ioctl(TIOCSETD, %d): %s",
+      Log(LG_ERR, ("[%s] ioctl(TIOCSETD, %d): %s",
 	lnk->name, ldisc, strerror(errno))); 
       return(-1);
     }
@@ -499,7 +499,7 @@ ModemInstallNodes(ModemInfo m)
 
   /* Get the name of the ng_tty node */
   if (ioctl(m->fd, NGIOCGINFO, &ngtty) < 0) {
-    Log(LG_PHYS, ("[%s] ioctl(NGIOCGINFO): %s", lnk->name, strerror(errno))); 
+    Log(LG_ERR, ("[%s] ioctl(NGIOCGINFO): %s", lnk->name, strerror(errno))); 
     return(-1);
   }
   snprintf(m->ttynode, sizeof(m->ttynode), "%s", ngtty.name);
@@ -508,7 +508,7 @@ ModemInstallNodes(ModemInfo m)
   snprintf(path, sizeof(path), "%s:", ngtty.name);
   if (NgSendMsg(bund->csock, path, NGM_TTY_COOKIE,
       NGM_TTY_SET_HOTCHAR, &hotchar, sizeof(hotchar)) < 0) {
-    Log(LG_PHYS, ("[%s] can't set hotchar", lnk->name));
+    Log(LG_ERR, ("[%s] can't set hotchar", lnk->name));
     return(-1);
   }
 
@@ -518,7 +518,7 @@ ModemInstallNodes(ModemInfo m)
   snprintf(ngm.peerhook, sizeof(ngm.peerhook), "%s", NG_ASYNC_HOOK_ASYNC);
   if (NgSendMsg(bund->csock, path, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &ngm, sizeof(ngm)) < 0) {
-    Log(LG_PHYS, ("[%s] can't connect %s node", lnk->name, NG_ASYNC_NODE_TYPE));
+    Log(LG_ERR, ("[%s] can't connect %s node", lnk->name, NG_ASYNC_NODE_TYPE));
     return(-1);
   }
 
@@ -531,7 +531,7 @@ ModemInstallNodes(ModemInfo m)
   m->acfg.smru = MODEM_MTU;
   if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
       NGM_ASYNC_CMD_SET_CONFIG, &m->acfg, sizeof(m->acfg)) < 0) {
-    Log(LG_PHYS, ("[%s] can't config %s", lnk->name, path));
+    Log(LG_ERR, ("[%s] can't config %s", lnk->name, path));
     return(-1);
   }
 
@@ -673,7 +673,7 @@ ModemCheck(void *arg)
   int		state;
 
   if (ioctl(m->fd, TIOCMGET, &state) < 0) {
-    Log(LG_PHYS, ("[%s] can't ioctl(%s) %s: %s",
+    Log(LG_ERR, ("[%s] can't ioctl(%s) %s: %s",
       lnk->name, "TIOCMGET", m->device, strerror(errno)));
     PhysDown(STR_ERROR, "ioctl(%s): %s", "TIOCMGET", strerror(errno));
     ModemDoClose(m, FALSE);
@@ -741,7 +741,7 @@ ModemGetNgStats(ModemInfo m, struct ng_async_stat *sp)
   snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
   if (NgFuncSendQuery(path, NGM_ASYNC_COOKIE, NGM_ASYNC_CMD_GET_STATS,
       NULL, 0, &u.resp, sizeof(u), NULL) < 0) {
-    Log(LG_PHYS, ("[%s] can't get stats: %s", lnk->name, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't get stats: %s", lnk->name, strerror(errno)));
     return(-1);
   }
 

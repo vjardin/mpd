@@ -97,6 +97,9 @@
 #ifdef LG_PHYS
     ADD_OPT(PHYS,	"Physical layer events")
 #endif
+#ifdef LG_PHYS2
+    ADD_OPT(PHYS2,	"Physical layer debug")
+#endif
 #ifdef LG_CHAT
     ADD_OPT(CHAT,	"Modem chat script")
 #endif

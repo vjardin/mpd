@@ -135,7 +135,7 @@ UdpOpen(PhysInfo p)
   snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/dgram/udp");
   if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-    Log(LG_PHYS, ("[%s] can't attach %s node: %s",
+    Log(LG_ERR, ("[%s] can't attach %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     PhysDown(STR_ERROR, NULL);
     return;
@@ -150,7 +150,7 @@ UdpOpen(PhysInfo p)
   addr.sin_port = htons(udp->self_port);
   if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_BIND, &addr, sizeof(addr)) < 0) {
-    Log(LG_PHYS, ("[%s] can't bind %s node: %s",
+    Log(LG_ERR, ("[%s] can't bind %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     UdpDoClose(udp);
     PhysDown(STR_ERROR, NULL);
@@ -166,7 +166,7 @@ UdpOpen(PhysInfo p)
     addr.sin_port = htons(udp->peer_port);
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
 	NGM_KSOCKET_CONNECT, &addr, sizeof(addr)) < 0) {
-      Log(LG_PHYS, ("[%s] can't connect %s node: %s",
+      Log(LG_ERR, ("[%s] can't connect %s node: %s",
 	lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
       UdpDoClose(udp);
       PhysDown(STR_ERROR, NULL);

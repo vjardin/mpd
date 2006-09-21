@@ -229,7 +229,7 @@ PptpOpen(PhysInfo p)
 	return;
       }
       if (PptpOriginate(pptp) < 0) {
-	Log(LG_ERR, ("[%s] PPTP call failed", lnk->name));
+	Log(LG_PHYS, ("[%s] PPTP call failed", lnk->name));
 	PhysDown(STR_CON_FAILED0, NULL);
 	return;
       }
@@ -513,7 +513,7 @@ PptpHookUp(PptpInfo pptp)
     "%s", NG_PPTPGRE_HOOK_UPPER);
   if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-    Log(LG_PHYS, ("[%s] can't attach %s node: %s",
+    Log(LG_ERR, ("[%s] can't attach %s node: %s",
       lnk->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
     return(-1);
   }
@@ -525,7 +525,7 @@ PptpHookUp(PptpInfo pptp)
   snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/raw/gre");
   if (NgSendMsg(bund->csock, pptppath, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-    Log(LG_PHYS, ("[%s] can't attach %s node: %s",
+    Log(LG_ERR, ("[%s] can't attach %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }
@@ -535,7 +535,7 @@ PptpHookUp(PptpInfo pptp)
   /* Bind ksocket socket to local IP address */
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_BIND, &self_addr, sizeof(self_addr)) < 0) {
-    Log(LG_PHYS, ("[%s] can't bind %s node: %s",
+    Log(LG_ERR, ("[%s] can't bind %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }
@@ -544,7 +544,7 @@ PptpHookUp(PptpInfo pptp)
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_CONNECT, &peer_addr, sizeof(peer_addr)) < 0
       && errno != EINPROGRESS) {	/* happens in -current (weird) */
-    Log(LG_PHYS, ("[%s] can't connect %s node: %s",
+    Log(LG_ERR, ("[%s] can't connect %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }
@@ -561,7 +561,7 @@ PptpHookUp(PptpInfo pptp)
 
   if (NgSendMsg(bund->csock, pptppath, NGM_PPTPGRE_COOKIE,
       NGM_PPTPGRE_SET_CONFIG, &gc, sizeof(gc)) < 0) {
-    Log(LG_PHYS, ("[%s] can't config %s node: %s",
+    Log(LG_ERR, ("[%s] can't config %s node: %s",
       lnk->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
     return(-1);
   }

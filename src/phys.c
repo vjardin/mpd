@@ -207,7 +207,7 @@ PhysMsg(int type, void *arg)
   PhysInfo	const p = lnk->phys;
   time_t	const now = time(NULL);
 
-  Log(LG_PHYS, ("[%s] device: %s event in state %s",
+  Log(LG_PHYS2, ("[%s] device: %s event in state %s",
     lnk->name, MsgName(type), PhysState(p)));
   if (!p->type) {
     Log(LG_ERR, ("[%s] this link has no type set", lnk->name));
@@ -321,7 +321,7 @@ PhysMsg(int type, void *arg)
       break;
   }
 done:
-  Log(LG_PHYS, ("[%s] device is now in state %s",
+  Log(LG_PHYS2, ("[%s] device is now in state %s",
     lnk->name, PhysState(p)));
 }
 

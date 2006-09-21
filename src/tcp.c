@@ -143,7 +143,7 @@ TcpAsyncConfig(TcpInfo tcp)
 	snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_ASYNC_HOOK_SYNC);
 	if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
 	    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-		Log(LG_PHYS, ("[%s] can't attach %s node: %s",
+		Log(LG_ERR, ("[%s] can't attach %s node: %s",
 		    lnk->name, NG_ASYNC_NODE_TYPE, strerror(errno)));
 		return (errno);
 	}
@@ -158,7 +158,7 @@ TcpAsyncConfig(TcpInfo tcp)
 	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
 	if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
 	    NGM_ASYNC_CMD_SET_CONFIG, &tcp->acfg, sizeof(tcp->acfg)) < 0) {
-		Log(LG_PHYS, ("[%s] can't config %s", lnk->name, path));
+		Log(LG_ERR, ("[%s] can't config %s", lnk->name, path));
 		return (errno);
 	}
 
@@ -181,7 +181,7 @@ TcpOpen(PhysInfo p)
 	int rval, error;
 
 	if (tcp->origination == LINK_ORIGINATE_REMOTE) {
-		Log(LG_PHYS, ("[%s] %s() on incoming call", lnk->name,
+		Log(LG_PHYS2, ("[%s] %s() on incoming call", lnk->name,
 		    __func__));
 		PhysUp();
 		return;
@@ -214,7 +214,7 @@ TcpOpen(PhysInfo p)
 	NgFuncDisconnect(path, NG_ASYNC_HOOK_ASYNC);
 	if (NgSendMsg(tcp->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER, &mkp,
 	    sizeof(mkp)) < 0) {
-		Log(LG_PHYS, ("[%s] can't attach %s node: %s", lnk->name,
+		Log(LG_ERR, ("[%s] can't attach %s node: %s", lnk->name,
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		goto fail;
 	}
@@ -230,7 +230,7 @@ TcpOpen(PhysInfo p)
 	rval = NgSendMsg(tcp->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_CONNECT, &addr, sizeof(addr));
 	if (rval < 0 && errno != EINPROGRESS) {
-		Log(LG_PHYS, ("[%s] can't connect %s node: %s", lnk->name,
+		Log(LG_ERR, ("[%s] can't connect %s node: %s", lnk->name,
 		    NG_KSOCKET_NODE_TYPE, strerror(errno))); 
 		goto fail;
 	}
@@ -282,7 +282,7 @@ TcpListen(TcpInfo tcp)
 	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
 	if (NgSendMsg(tcp->csock, ".", NGM_GENERIC_COOKIE, NGM_MKPEER,
 	    &mkp, sizeof(mkp)) < 0) {
-		Log(LG_PHYS, ("[%s] can't attach %s node: %s",
+		Log(LG_ERR, ("[%s] can't attach %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
@@ -296,7 +296,7 @@ TcpListen(TcpInfo tcp)
 	addr.sin_port = htons(tcp->self_port);
 	if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &addr, sizeof(addr)) < 0) {
-		Log(LG_PHYS, ("[%s] can't bind %s node: %s",
+		Log(LG_ERR, ("[%s] can't bind %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
@@ -305,7 +305,7 @@ TcpListen(TcpInfo tcp)
 	/* Listen. */
 	if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_LISTEN, &backlog, sizeof(backlog)) < 0) {
-		Log(LG_PHYS, ("[%s] can't listen on %s node: %s",
+		Log(LG_ERR, ("[%s] can't listen on %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
@@ -314,7 +314,7 @@ TcpListen(TcpInfo tcp)
 	/* Tell that we are willing to receive accept message. */
 	if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
-		Log(LG_PHYS, ("[%s] can't accept on %s node: %s",
+		Log(LG_ERR, ("[%s] can't accept on %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
