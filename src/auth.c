@@ -573,7 +573,7 @@ AuthAccountStart(int type)
       
   LinkUpdateStats();
   if (type == AUTH_ACCT_STOP) {
-    Log(LG_LINK, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
+    Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
       lnk->name, lnk->peer_authname,
       (unsigned long) (time(NULL) - lnk->bm.last_open),
       lnk->stats.recvOctets, lnk->stats.xmitOctets));

@@ -65,28 +65,34 @@
     ADD_OPT(LINK,	"Link events")
 #endif
 #ifdef LG_LCP
-    ADD_OPT(LCP,	"LCP events and negotiation")
+    ADD_OPT(LCP,	"LCP negotiation")
+#endif
+#ifdef LG_LCP2
+    ADD_OPT(LCP2,	"LCP events and debugging")
 #endif
 #ifdef LG_AUTH
     ADD_OPT(AUTH,	"Link authentication events")
 #endif
 #ifdef LG_IPCP
-    ADD_OPT(IPCP,	"IPCP events and negotiation")
+    ADD_OPT(IPCP,	"IPCP negotiation")
+#endif
+#ifdef LG_IPCP2
+    ADD_OPT(IPCP2,	"IPCP events and debugging")
 #endif
 #ifdef LG_CCP
-    ADD_OPT(CCP,	"CCP events and negotiation")
+    ADD_OPT(CCP,	"CCP negotiation")
 #endif
 #ifdef LG_CCP2
-    ADD_OPT(CCP2,	"CCP additional debugging output")
+    ADD_OPT(CCP2,	"CCP events and debugging")
 #endif
 #ifdef LG_CCP3
     ADD_OPT(CCP3,	"CCP complete packet dumps")
 #endif
 #ifdef LG_ECP
-    ADD_OPT(ECP,	"ECP events and negotiation")
+    ADD_OPT(ECP,	"ECP negotiation")
 #endif
 #ifdef LG_ECP2
-    ADD_OPT(ECP2,	"ECP extra debugging output")
+    ADD_OPT(ECP2,	"ECP events and debugging")
 #endif
 #ifdef LG_FSM
     ADD_OPT(FSM,	"All FSM events (except echo & reset)")
@@ -108,6 +114,9 @@
 #endif
 #ifdef LG_IFACE
     ADD_OPT(IFACE,	"IP interface and route management")
+#endif
+#ifdef LG_IFACE2
+    ADD_OPT(IFACE2,	"IP interface and route management debug")
 #endif
 #ifdef LG_FRAME
     ADD_OPT(FRAME,	"Dump all incoming & outgoing frames")

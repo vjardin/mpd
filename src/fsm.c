@@ -138,6 +138,7 @@ FsmInit(Fsm fp, FsmType type)
   memset(fp, 0, sizeof(*fp));
   fp->type = type;
   fp->log = LG_FSM | type->log;
+  fp->log2 = LG_FSM | type->log2;
   fp->conf.maxconfig = FSM_MAXCONFIG;
   fp->conf.maxterminate = FSM_MAXTERMINATE;
   fp->conf.maxfailure = FSM_MAXFAILURE;
@@ -162,7 +163,7 @@ FsmNewState(Fsm fp, int new)
   int	old;
 
   /* Log it */
-  Log(fp->log, ("%s: state change %s --> %s",
+  Log(fp->log2, ("%s: state change %s --> %s",
     Pref(fp), FsmStateName(fp->state), FsmStateName(new)));
 
   /* Change state and call protocol's own handler, if any */
@@ -246,7 +247,7 @@ FsmOutput(Fsm fp, u_int code, u_int id, u_char *ptr, int len)
 void
 FsmOpen(Fsm fp)
 {
-  Log(fp->log, ("%s: Open event", Pref(fp)));
+  Log(fp->log2, ("%s: Open event", Pref(fp)));
   switch (fp->state) {
     case ST_INITIAL:
       FsmNewState(fp, ST_STARTING);
@@ -297,7 +298,7 @@ FsmOpen(Fsm fp)
 void
 FsmUp(Fsm fp)
 {
-  Log(fp->log, ("%s: Up event", Pref(fp)));
+  Log(fp->log2, ("%s: Up event", Pref(fp)));
   switch (fp->state) {
     case ST_INITIAL:
       FsmNewState(fp, ST_CLOSED);
@@ -312,7 +313,7 @@ FsmUp(Fsm fp)
       FsmSendConfigReq(fp);
       break;
     default:
-      Log(fp->log, ("%s: Oops, UP at %s",
+      Log(fp->log2, ("%s: Oops, UP at %s",
 	Pref(fp), FsmStateName(fp->state)));
       break;
   }
@@ -321,7 +322,7 @@ FsmUp(Fsm fp)
 void
 FsmDown(Fsm fp)
 {
-  Log(fp->log, ("%s: Down event", Pref(fp)));
+  Log(fp->log2, ("%s: Down event", Pref(fp)));
   switch (fp->state) {
     case ST_CLOSING:
       FsmLayerFinish(fp);		/* Missing in RFC 1661 */
@@ -353,7 +354,7 @@ FsmDown(Fsm fp)
 void
 FsmClose(Fsm fp)
 {
-  Log(fp->log, ("%s: Close event", Pref(fp)));
+  Log(fp->log2, ("%s: Close event", Pref(fp)));
   switch (fp->state) {
     case ST_STARTING:
       FsmNewState(fp, ST_INITIAL);
@@ -543,7 +544,7 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
   switch (fp->state) {
     case ST_INITIAL:
     case ST_STARTING:
-      Log(fp->log, ("%s: Oops, RCR in %s", Pref(fp), FsmStateName(fp->state)));
+      Log(fp->log2, ("%s: Oops, RCR in %s", Pref(fp), FsmStateName(fp->state)));
       PFREE(bp);
       return;
     case ST_CLOSED:
@@ -1255,7 +1256,7 @@ FsmRecvResetAck(Fsm fp, FsmHeader lhp, Mbuf bp)
 static void
 FsmLayerUp(Fsm fp)
 {
-  Log(fp->log, ("%s: LayerUp", Pref(fp)));
+  Log(fp->log2, ("%s: LayerUp", Pref(fp)));
   if (fp->type->LayerUp)
     (*fp->type->LayerUp)(fp);
 }
@@ -1267,7 +1268,7 @@ FsmLayerUp(Fsm fp)
 static void
 FsmLayerDown(Fsm fp)
 {
-  Log(fp->log, ("%s: LayerDown", Pref(fp)));
+  Log(fp->log2, ("%s: LayerDown", Pref(fp)));
   if (fp->type->LayerDown)
     (*fp->type->LayerDown)(fp);
 }
@@ -1279,7 +1280,7 @@ FsmLayerDown(Fsm fp)
 static void
 FsmLayerStart(Fsm fp)
 {
-  Log(fp->log, ("%s: LayerStart", Pref(fp)));
+  Log(fp->log2, ("%s: LayerStart", Pref(fp)));
   if (fp->type->LayerStart)
     (*fp->type->LayerStart)(fp);
 }
@@ -1291,7 +1292,7 @@ FsmLayerStart(Fsm fp)
 static void
 FsmLayerFinish(Fsm fp)
 {
-  Log(fp->log, ("%s: LayerFinish", Pref(fp)));
+  Log(fp->log2, ("%s: LayerFinish", Pref(fp)));
   if (fp->type->LayerFinish)
     (*fp->type->LayerFinish)(fp);
 }
@@ -1418,7 +1419,7 @@ FsmInput(Fsm fp, Mbuf bp, int linkNum)
   if (hdr.code == CODE_ECHOREQ || hdr.code == CODE_ECHOREP)
     log = LG_ECHO;
   else if (hdr.code == CODE_RESETREQ || hdr.code == CODE_RESETACK)
-    log = fp->type->log2;
+    log = fp->log2;
   else
     log = fp->log;
   Log(log, ("%s: rec'd %s #%d link %d (%s)",

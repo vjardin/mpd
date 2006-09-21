@@ -26,9 +26,12 @@
     LG_I_CHAT,
     LG_I_CHAT2,
     LG_I_IFACE,
+    LG_I_IFACE2,
     LG_I_LCP,
+    LG_I_LCP2,
     LG_I_AUTH,
     LG_I_IPCP,
+    LG_I_IPCP2,
     LG_I_CCP,
     LG_I_CCP2,
     LG_I_CCP3,
@@ -54,9 +57,12 @@
   #define LG_CHAT		(1 << LG_I_CHAT)
   #define LG_CHAT2		(1 << LG_I_CHAT2)
   #define LG_IFACE		(1 << LG_I_IFACE)
+  #define LG_IFACE2		(1 << LG_I_IFACE2)
   #define LG_LCP		(1 << LG_I_LCP)
+  #define LG_LCP2		(1 << LG_I_LCP2)
   #define LG_AUTH		(1 << LG_I_AUTH)
   #define LG_IPCP		(1 << LG_I_IPCP)
+  #define LG_IPCP2		(1 << LG_I_IPCP2)
   #define LG_CCP		(1 << LG_I_CCP)
   #define LG_CCP2		(1 << LG_I_CCP2)
   #define LG_CCP3		(1 << LG_I_CCP3)

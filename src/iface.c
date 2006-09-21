@@ -234,7 +234,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 
   /* Open ourselves if necessary (we in effect slave off IPCP) */
   if (!iface->open) {
-    Log(LG_IFACE, ("[%s] IFACE: Opening", bund->name));
+    Log(LG_IFACE2, ("[%s] IFACE: Opening", bund->name));
     iface->open = TRUE;		/* Would call IfaceOpen(); effect is same */
   }
 
@@ -248,7 +248,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
   }
 
   if (session_timeout > 0) {
-    Log(LG_IFACE, ("[%s] IFACE: session-timeout: %d seconds", 
+    Log(LG_IFACE2, ("[%s] IFACE: session-timeout: %d seconds", 
       bund->name, session_timeout));
     TimerInit(&iface->sessionTimer, "IfaceSession",
       session_timeout * SECONDS, IfaceSessionTimeout, NULL);
@@ -267,7 +267,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
   if (idle_timeout > 0) {
     char	path[NG_PATHLEN + 1];
 
-    Log(LG_IFACE, ("[%s] IFACE: idle-timeout: %d seconds", 
+    Log(LG_IFACE2, ("[%s] IFACE: idle-timeout: %d seconds", 
       bund->name, idle_timeout));
     
     TimerInit(&iface->idleTimer, "IfaceIdle",
@@ -306,7 +306,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 
   /* Turn on interface traffic flow */
   if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
-    Log(LG_IFACE, ("[%s] enabling TCPMSSFIX", bund->name));
+    Log(LG_IFACE2, ("[%s] enabling TCPMSSFIX", bund->name));
     NgFuncConfigBPF(bund, BPF_MODE_MSSFIX);
 #ifdef USE_NG_TCPMSS
     NgFuncConfigTCPMSS(bund, MAXMSS(iface->mtu));
@@ -557,7 +557,7 @@ IfaceIpIfaceUp(int ready)
 
   /* Set addresses and bring interface up */
   snprintf(hisaddr, sizeof(hisaddr), "%s", inet_ntoa(iface->peer_addr));
-  ExecCmd(LG_IFACE, "%s %s %s %s netmask 0xffffffff %slink0",
+  ExecCmd(LG_IFACE2, "%s %s %s %s netmask 0xffffffff %slink0",
     PATH_IFCONFIG, iface->ifname, inet_ntoa(iface->self_addr), hisaddr,
     ready ? "-" : "");
   iface->ready = ready;
@@ -575,7 +575,7 @@ IfaceIpIfaceUp(int ready)
 	bund->name, inet_ntoa(iface->peer_addr)));
     } else {
       ether = (u_char *) LLADDR(&hwa);
-      if (ExecCmd(LG_IFACE,
+      if (ExecCmd(LG_IFACE2,
 	  "%s -s %s %x:%x:%x:%x:%x:%x pub",
 	  PATH_ARP, inet_ntoa(iface->peer_addr),
 	  ether[0], ether[1], ether[2],
@@ -585,7 +585,7 @@ IfaceIpIfaceUp(int ready)
   }
 
   /* Add loopback route */
-  ExecCmd(LG_IFACE, "%s add %s -iface lo0",
+  ExecCmd(LG_IFACE2, "%s add %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
 
   for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
@@ -604,7 +604,7 @@ IfaceIpIfaceUp(int ready)
     } else
       *nmbuf = 0;
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    r->ok = (ExecCmd(LG_IFACE, "%s add %s %s%s",
+    r->ok = (ExecCmd(LG_IFACE2, "%s add %s %s%s",
       PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf) == 0);
   }
 
@@ -630,7 +630,7 @@ IfaceIpIfaceUp(int ready)
   while (acls != NULL) {
     i = IfaceFindACL(pipe_pool, iface->ifname, acls->number);
     buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE, "%s pipe %d config %s", PATH_IPFW, i, acls->rule);
+    ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, i, acls->rule);
     Freee(MB_UTIL, buf);
     acls = acls->next;
   }
@@ -638,7 +638,7 @@ IfaceIpIfaceUp(int ready)
   while (acls != NULL) {
     i = IfaceFindACL(queue_pool, iface->ifname, acls->number);
     buf = IFaceParseACL(acls->rule,iface->ifname);
-    ExecCmd(LG_IFACE, "%s queue %d config %s", PATH_IPFW, i, buf);
+    ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, i, buf);
     Freee(MB_UTIL, buf);
     acls = acls->next;
   }
@@ -646,7 +646,7 @@ IfaceIpIfaceUp(int ready)
   while (acls != NULL) {
     i = IfaceFindACL(rule_pool, iface->ifname, acls->number);
     buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE, "%s add %d %s via %s", PATH_IPFW, i, buf, iface->ifname);
+    ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, i, buf, iface->ifname);
     Freee(MB_UTIL, buf);
     acls = acls->next;
   };
@@ -666,7 +666,7 @@ IfaceIpIfaceUp(int ready)
       ns2buf[0] = '\0';
 
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    ExecCmd(LG_IFACE, "%s %s inet %s %s %s %s %s",
+    ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
       iface->up_script, iface->ifname, inet_ntoa(iface->self_addr),
       peerbuf, *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname, 
       ns1buf, ns2buf);
@@ -689,7 +689,7 @@ IfaceIpIfaceReady(int ready)
 {
   IfaceState	const iface = &bund->iface;
 
-  ExecCmd(LG_IFACE, "%s %s %slink0",
+  ExecCmd(LG_IFACE2, "%s %s %slink0",
     PATH_IFCONFIG, iface->ifname, ready ? "-" : "");
   iface->ready = ready;
 }
@@ -713,7 +713,7 @@ IfaceIpIfaceDown(void)
 
   /* Call "down" script */
   if (*iface->down_script) {
-    ExecCmd(LG_IFACE, "%s %s inet %s",
+    ExecCmd(LG_IFACE2, "%s %s inet %s",
       iface->down_script, iface->ifname, 
       *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname);
   }
@@ -722,7 +722,7 @@ IfaceIpIfaceDown(void)
   rp = &rule_pool;
   while (*rp != NULL) {
     if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      ExecCmd(LG_IFACE, "%s delete %d",
+      ExecCmd(LG_IFACE2, "%s delete %d",
 	PATH_IPFW, (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
@@ -735,7 +735,7 @@ IfaceIpIfaceDown(void)
   rp = &queue_pool;
   while (*rp != NULL) {
     if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      ExecCmd(LG_IFACE, "%s queue %d delete",
+      ExecCmd(LG_IFACE2, "%s queue %d delete",
 	PATH_IPFW, (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
@@ -748,7 +748,7 @@ IfaceIpIfaceDown(void)
   rp = &pipe_pool;
   while (*rp != NULL) {
     if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      ExecCmd(LG_IFACE, "%s pipe %d delete",
+      ExecCmd(LG_IFACE2, "%s pipe %d delete",
 	PATH_IPFW, (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
@@ -771,7 +771,7 @@ IfaceIpIfaceDown(void)
     } else
       *nmbuf = 0;
     snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    ExecCmd(LG_IFACE, "%s delete %s %s%s",
+    ExecCmd(LG_IFACE2, "%s delete %s %s%s",
       PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf);
     r->ok = 0;
   }
@@ -782,16 +782,16 @@ IfaceIpIfaceDown(void)
   };
 
   /* Delete loopback route */
-  ExecCmd(LG_IFACE, "%s delete %s -iface lo0",
+  ExecCmd(LG_IFACE2, "%s delete %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
 
   /* Delete any proxy arp entry */
   if (iface->proxy_addr.s_addr)
-    ExecCmd(LG_IFACE, "%s -d %s", PATH_ARP, inet_ntoa(iface->proxy_addr));
+    ExecCmd(LG_IFACE2, "%s -d %s", PATH_ARP, inet_ntoa(iface->proxy_addr));
   iface->proxy_addr.s_addr = 0;
 
   /* Bring down system interface */
-  ExecCmd(LG_IFACE, "%s %s down delete -link0", PATH_IFCONFIG, iface->ifname);
+  ExecCmd(LG_IFACE2, "%s %s down delete -link0", PATH_IFCONFIG, iface->ifname);
   iface->ready = 0;
 
   /* Done */
@@ -1214,7 +1214,7 @@ IfaceSetMTU(int mtu, int speed)
 
   if (a->params.mtu > 0) {
     iface->max_mtu = a->params.mtu;
-    Log(LG_IFACE, ("[%s] IFACE: using max. mtu: %d",
+    Log(LG_IFACE2, ("[%s] IFACE: using max. mtu: %d",
       bund->name, iface->max_mtu));
   }
 
@@ -1227,7 +1227,7 @@ IfaceSetMTU(int mtu, int speed)
   memset(&ifr, 0, sizeof(ifr));
   strncpy(ifr.ifr_name, bund->iface.ifname, sizeof(ifr.ifr_name));
   ifr.ifr_mtu = mtu;
-  Log(LG_BUND|LG_IFACE, ("[%s] setting interface %s MTU to %d bytes",
+  Log(LG_IFACE2, ("[%s] setting interface %s MTU to %d bytes",
     bund->name, bund->iface.ifname, mtu));
   if (ioctl(s, SIOCSIFMTU, (char *)&ifr) < 0)
     Perror("ioctl(%s, %s)", bund->iface.ifname, "SIOCSIFMTU");

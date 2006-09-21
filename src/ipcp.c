@@ -141,7 +141,7 @@
     "IPCP",
     PROTO_IPCP,
     IPCP_KNOWN_CODES,
-    LG_IPCP, LG_IPCP,
+    LG_IPCP, LG_IPCP2,
     FALSE,
     NULL,
     IpcpLayerUp,

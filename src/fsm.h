@@ -96,7 +96,7 @@
     const char		*name;		/* Name of protocol */
     u_short		proto;		/* Protocol number */
     u_long		known_codes;	/* Accepted FSM codes */
-    short		log, log2;	/* Log levels for FSM events */
+    int			log, log2;	/* Log levels for FSM events */
     u_char		link_layer:1;	/* One FSM for each link */
 
     void		(*NewState)(Fsm f, int old, int new);
@@ -124,7 +124,8 @@
 
   struct fsm {
     FsmType		type;		/* FSM constant stuff */
-    short		log;		/* Current log level */
+    int			log;		/* Current log level */
+    int			log2;		/* Current log2 level */
     struct fsmconf	conf;		/* FSM parameters */
     short		state;		/* State of the machine */
     u_char		reqid;		/* Next request id */

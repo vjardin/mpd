@@ -106,7 +106,7 @@
     "LCP",			/* Name of protocol */
     PROTO_LCP,			/* Protocol Number */
     LCP_KNOWN_CODES,
-    LG_LCP, LG_LCP,
+    LG_LCP, LG_LCP2,
     TRUE,
     LcpNewState,
     NULL,
@@ -389,7 +389,7 @@ LcpNewPhase(int new)
   int		old;
 
   /* Logit */
-  Log(LG_LCP, ("%s: phase shift %s --> %s",
+  Log(LG_LCP2, ("%s: phase shift %s --> %s",
     Pref(&lcp->fsm), PhaseNames[lcp->phase], PhaseNames[new]));
 
   /* Sanity check transition (The picture on RFC 1661 p. 6 is incomplete) */
