@@ -746,7 +746,7 @@ PppoeListenEvent(int type, void *arg)
 		memset(idata, 0, sizeof(idata));
 		snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
 		if (gethostname(idata->data, MAX_SESSION) == -1) {
-			Log(LG_RADIUS, ("[%s] PPPOE: gethostname() failed",
+			Log(LG_ERR, ("[%s] PPPOE: gethostname() failed",
 			    lnk->name));
 			idata->data[0] = 0;
 			/* XXXGL: fail? */

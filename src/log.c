@@ -121,6 +121,9 @@
 #ifdef LG_RADIUS
     ADD_OPT(RADIUS,	"Radius authentication events")
 #endif
+#ifdef LG_RADIUS2
+    ADD_OPT(RADIUS2,	"Radius authentication debug")
+#endif
 #ifdef LG_CONSOLE
     ADD_OPT(CONSOLE,	"Log to the console as well as the log file")
 #endif

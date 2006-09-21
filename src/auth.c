@@ -624,7 +624,7 @@ AuthAccountTimeout(void *arg)
 {
   Auth	const a = &lnk->lcp.auth;
   
-  Log(LG_RADIUS, ("[%s] AUTH: Sending Accounting Update",
+  Log(LG_AUTH, ("[%s] AUTH: Sending Accounting Update",
     lnk->name));
 
   TimerStop(&a->acct_timer);
