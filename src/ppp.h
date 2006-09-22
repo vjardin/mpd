@@ -20,7 +20,7 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <sys/select.h>
+#include <poll.h>
 #include <sys/time.h>
 #include <sys/uio.h>
 #include <sys/queue.h>

@@ -838,6 +838,8 @@ RadiusSendRequest(AuthData auth)
   struct timeval	tv;
   int 			fd, n;
 
+  Log(LG_RADIUS2, ("[%s] RADIUS: %s: username: %s", 
+    lnk->name, __func__, auth->authname));
   n = rad_init_send_request(auth->radius.handle, &fd, &tv);
   if (n != 0) {
     Log(LG_RADIUS, ("[%s] RADIUS: rad_init_send_request failed: %d %s",
@@ -849,20 +851,21 @@ RadiusSendRequest(AuthData auth)
   timeradd(&tv, &timelimit, &timelimit);
 
   for ( ; ; ) {
-    fd_set readfds;
+    struct pollfd fds[1];
 
-    FD_ZERO(&readfds);
-    FD_SET(fd, &readfds);
+    fds[0].fd = fd;
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
 
-    n = select(fd + 1, &readfds, NULL, NULL, &tv);
+    n = poll(fds,1,tv.tv_sec*1000+tv.tv_usec/1000);
 
     if (n == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: select failed %s", lnk->name, 
+      Log(LG_RADIUS, ("[%s] RADIUS: poll failed %s", lnk->name, 
         strerror(errno)));
       return RAD_NACK;
     }
 
-    if (!FD_ISSET(fd, &readfds)) {
+    if (fds[0].revents&POLLIN!=POLLIN) {
       /* Compute a new timeout */
       gettimeofday(&tv, NULL);
       timersub(&timelimit, &tv, &tv);
@@ -871,6 +874,8 @@ RadiusSendRequest(AuthData auth)
 	continue;
     }
 
+    Log(LG_RADIUS2, ("[%s] RADIUS: %s: username: %s trying", 
+      lnk->name, __func__, auth->authname));
     n = rad_continue_send_request(auth->radius.handle, n, &fd, &tv);
     if (n != 0)
       break;
@@ -905,14 +910,14 @@ RadiusSendRequest(AuthData auth)
       return RAD_ACK;
 
     case -1:
-      Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request failed %s", 
+      Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request failed: %s", 
         lnk->name, rad_strerror(auth->radius.handle)));
       return(RAD_NACK);
       break;
       
     default:
-      Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request: unexpected return value %s", 
-        lnk->name, rad_strerror(auth->radius.handle)));
+      Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request: unexpected return value: %d", 
+        lnk->name, n));
       return(RAD_NACK);
   }
 
