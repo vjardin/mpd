@@ -286,20 +286,15 @@ LogPrintf(const char *fmt, ...)
   LogTimeStamp(logprintf);
   va_start(args, fmt);
   vlogprintf(fmt, args);
+  vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
 
   if (gLogOptions & LG_CONSOLE)
   {
-    va_start(args, fmt);
-    vfprintf(stdout, fmt, args);
-    va_end(args);
-    putc('\n', stdout);
+    fputs(buf, stdout);
+    fputc('\n', stdout);
     fflush(stdout);
   } 
-
-  va_start(args, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, args);
-  va_end(args);
 
   if (gConsoleSession) {
     gConsoleSession->write(gConsoleSession, "%s\r\n", buf);

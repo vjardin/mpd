@@ -144,6 +144,7 @@ main(int ac, char *av[])
 
   /* Background mode? */
   if (gBackground) {
+    gLogOptions &= ~LG_CONSOLE;
     if (daemon(TRUE, FALSE) < 0)
       err(1, "daemon");
     (void) chdir(gConfDirectory);
