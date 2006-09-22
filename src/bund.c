@@ -73,7 +73,6 @@
   static void	BundUpNcps(void);
   static void	BundDownNcps(void);
 
-  static void	BundOpenLinks(void);
   static void	BundOpenLink(Link l);
   static void	BundReOpenLinks(void *arg);
   static void	BundCloseLink(Link l);
@@ -226,6 +225,8 @@ BundJoin(void)
   /* What to do when the first link comes up */
   if (bm->n_up == 1) {
 
+    IfaceOpenNcps();
+
     /* Copy over peer's IP address range if specified in secrets file */
     if (lnk->range_valid)
       bund->peer_allow = lnk->peer_allow;
@@ -340,6 +341,7 @@ BundLeave(void)
 static void
 BundReOpenLinks(void *arg)
 {
+  Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening", bund->name));
   BundCloseLinks();
   TimerStop(&bund->reOpenTimer);
   TimerInit(&bund->reOpenTimer, "BundOpen",
@@ -393,7 +395,6 @@ BundMsg(int type, void *arg)
   switch (type) {
     case MSG_OPEN:
       bund->open = TRUE;
-      BundOpenLinks();
       break;
 
     case MSG_CLOSE:
@@ -413,7 +414,7 @@ BundMsg(int type, void *arg)
  * management is in effect or not.
  */
 
-static void
+void
 BundOpenLinks(void)
 {
   TimerStop(&bund->reOpenTimer);

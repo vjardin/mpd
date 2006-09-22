@@ -403,8 +403,7 @@ OpenSignal(int sig)
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
       bund->name, sys_signame[sig]));
     RecordLinkUpDownReason(NULL, 1, STR_MANUALLY, NULL);
-    IfaceOpenNcps();
-    BundOpen();
+    LinkOpen(lnk);
   } else
     Log(LG_ALWAYS, ("mpd: rec'd signal %s, ignored", sys_signame[sig]));
 
@@ -423,7 +422,7 @@ CloseSignal(int sig)
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, closing",
       bund->name, sys_signame[sig]));
     RecordLinkUpDownReason(NULL, 0, STR_MANUALLY, NULL);
-    IpcpClose();
+    LinkClose(lnk);
   } else
     Log(LG_ALWAYS, ("mpd: rec'd signal %s, ignored", sys_signame[sig]));
 

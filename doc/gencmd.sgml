@@ -163,13 +163,11 @@ layer or finite state machine (FSM). The valid layers are:
 
 Interface layer. Opening this layer configures the interface and
 installs any routes. If dial-on-demand is enabled, nothing else
-happens until there is outgoing traffic. Otherwise, the lower layers
-are opened as well in order to establish a connection.
+happens until there is outgoing traffic.
 
 <tag>bund</tag>
 Bundle layer. This layer represents the multi-link bundle ``virtual
-link'' and is normally opened and closed automatically by the
-interface layer.
+link'' and is normally opened and closed automatically.
 
 <tag>ipcp</tag>
 
@@ -183,7 +181,8 @@ This is normally opened and closed automatically.
 <tag>lcp</tag>
 
 Link control protocol FSM.
-This is normally opened and closed automatically.
+This is normally opened and closed automatically. Opening of this layer
+initiates outgoing call by this link.
 
 <tag>phys</tag>
 
@@ -192,11 +191,11 @@ This is normally opened and closed automatically.
 
 </descrip>
 
-Normally, only the <tt>iface</tt> layer should be explicitly
+Normally, only the <tt>iface</tt> and <tt>lcp</tt> layers should be explicitly
 opened or closed. This is because the other layers are programmed
 to automatically open and close when appropriate. Note that
 the <bf>SIGUSR1</bf> and <bf>SIGUSR2</bf> signals are an alternative
-way to open and close the currently active bundle.
+way to open and close the currently active link.
 
 <tag><tt>close [ <em>layer</em> ] </tt>
 </tag>

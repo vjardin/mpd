@@ -653,8 +653,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   lnk = l;
   pptp = pptp;
   bund = lnk->bund;
-  IfaceOpen();
-  IfaceOpenNcps();
+  LinkOpen(lnk);
 
   /* Got one */
   pptp->cinfo = *cinfo;

@@ -263,6 +263,8 @@ PppoeOpen(PhysInfo p)
 	if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path, session_hook) < 0)
 		goto fail2;
 
+	Log(LG_PHYS, ("[%s] PPPoE: Connecting to '%s'", lnk->name, pe->session));
+	
 	/* Tell the PPPoE node to try to connect to a server. */
 	memset(idata, 0, sizeof(idata));
 	snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
@@ -396,7 +398,7 @@ PppoeCtrlReadEvent(int type, void *arg)
 	case NGM_PPPOE_SESSIONID: /* XXX: I do not know what to do with this? */
 		break;
 	case NGM_PPPOE_SUCCESS:
-		Log(LG_PHYS, ("[%s] PPPoE connection successful", lnk->name));
+		Log(LG_PHYS, ("[%s] PPPoE: connection successful", lnk->name));
 		Disable(&lnk->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 		Deny(&lnk->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 		TimerStop(&pe->connectTimer);
@@ -404,21 +406,21 @@ PppoeCtrlReadEvent(int type, void *arg)
 		PhysUp();
 		break;
 	case NGM_PPPOE_FAIL:
-		Log(LG_PHYS, ("[%s] PPPoE connection failed", lnk->name));
+		Log(LG_PHYS, ("[%s] PPPoE: connection failed", lnk->name));
 		PhysDown(STR_CON_FAILED0, NULL);
 		PppoeShutdown(lnk->phys);
 		break;
 	case NGM_PPPOE_CLOSE:
-		Log(LG_PHYS, ("[%s] PPPoE connection closed", lnk->name));
+		Log(LG_PHYS, ("[%s] PPPoE: connection closed", lnk->name));
 		PhysDown(STR_DROPPED, NULL);
 		PppoeShutdown(lnk->phys);
 		break;
 	case NGM_PPPOE_ACNAME:
-		Log(LG_PHYS, ("[%s] rec'd ACNAME \"%s\"", lnk->name, 
+		Log(LG_PHYS, ("[%s] PPPoE: rec'd ACNAME \"%s\"", lnk->name, 
 		  ((struct ngpppoe_sts *)u.resp.data)->hook));
 		break;
 	default:
-		Log(LG_PHYS, ("[%s] rec'd command %lu from \"%s\"",
+		Log(LG_PHYS, ("[%s] PPPoE: rec'd command %lu from \"%s\"",
 		    lnk->name, (u_long)u.resp.header.cmd, path));
 		break;
 	}
@@ -437,6 +439,8 @@ PppoeStat(PhysInfo p)
 	Printf("\tNode    : %s\r\n", pe->path);
 	Printf("\tHook    : %s\r\n", pe->hook);
 	Printf("\tSession : %s\r\n", pe->session);
+	Printf("PPPoE options:\r\n");
+	OptStat(&pe->options, gConfList);
 	Printf("PPPoE status:\r\n");
 	switch (pe->state) {
 	case PPPOE_DOWN:
@@ -803,7 +807,7 @@ PppoeListenEvent(int type, void *arg)
 		TimerStart(&p->connectTimer);
 
 		RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
-		IfaceOpenNcps();
+		LinkOpen(lnk);
 
 		/* Done. */
 		break;

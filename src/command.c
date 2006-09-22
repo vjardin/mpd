@@ -39,7 +39,7 @@
   };
   typedef struct layer	*Layer;
 
-  #define DEFAULT_OPEN_LAYER	"iface"
+  #define DEFAULT_OPEN_LAYER	"lcp"
 
   /* Set menu options */
   enum {

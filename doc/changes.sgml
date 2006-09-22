@@ -18,6 +18,8 @@
 	<item>BugFix: RAD_NAS_PORT could be wrong fixed.
 	<item>BugFix: RADIUS support rewritten from select() to poll() to avoid 
 		problems with big number of links
+	<item>BugFix: Significant rework on incoming calls processing to
+		fix some aspects of multilink server functionality
 	</item>
     </itemize>
   </p>

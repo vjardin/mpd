@@ -391,7 +391,7 @@ IfaceListenInput(int proto, Mbuf pkt)
   } else if (iface->open && isDemand) {
     Log(LG_IFACE, ("[%s] outgoing packet is demand", bund->name));
     RecordLinkUpDownReason(NULL, 1, STR_DEMAND, "%s", AsciifyPacket(pkt));
-    IfaceOpenNcps();
+    BundOpenLinks();
     IfaceCachePkt(proto, pkt);
   } else {
     PFREE(pkt);
