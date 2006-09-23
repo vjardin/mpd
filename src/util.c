@@ -42,6 +42,8 @@
 
   static char		HexVal(char c);
 
+#undef isspace(c)
+#define isspace(c) (((c)==' '||(c)=='\t'||(c)=='\n'||(c)=='\r')?1:0)
 
 /*
  * LengthenArray()
@@ -195,7 +197,7 @@ ParseAddrPort(int ac, char *av[])
  */
 
 int
-ParseLine(char *line, char *av[], int max_args)
+ParseLine(char *line, char *av[], int max_args, int copy)
 {
   int	ac;
   char	*s, *arg;
@@ -255,7 +257,11 @@ ParseLine(char *line, char *av[], int max_args)
 
   /* Make a copy of this arg */
 
-    strcpy(av[ac] = Malloc(MB_UTIL, strlen(arg) + 1), arg);
+    if (copy) {
+	strcpy(av[ac] = Malloc(MB_UTIL, strlen(arg) + 1), arg);
+    }
+    else
+	av[ac] = arg;
   }
 
 #if 0
@@ -333,8 +339,9 @@ ReadFile(const char *filename, const char *target,
 {
   FILE	*fp;
   int	ac;
-  char	*av[MAX_LINE_ARGS], *av_copy[MAX_LINE_ARGS];
+  char	*av[MAX_LINE_ARGS];
   char	*line;
+  char  buf[BIG_LINE_SIZE];
 
 /* Open file */
 
@@ -350,18 +357,14 @@ ReadFile(const char *filename, const char *target,
 
 /* Execute command list */
 
-  while ((line = ReadFullLine(fp, NULL)) != NULL)
+  while ((line = ReadFullLine(fp, NULL, buf, sizeof(buf))) != NULL)
   {
     if (!isspace(*line))
     {
-      Freee(MB_UTIL, line);
       break;
     }
-    ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
-    Freee(MB_UTIL, line);
-    memcpy(av_copy, av, sizeof(av));
+    ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 0);
     (*func)(ac, av);
-    FreeArgs(ac, av_copy);
   }
 
 /* Done */
@@ -380,6 +383,7 @@ int
 SeekToLabel(FILE *fp, const char *label, int *lineNum)
 {
   char	*s, *line;
+  char  buf[BIG_LINE_SIZE];
 
 /* Start at beginning */
 
@@ -389,17 +393,15 @@ SeekToLabel(FILE *fp, const char *label, int *lineNum)
 
 /* Find label */
 
-  while ((line = ReadFullLine(fp, lineNum)) != NULL)
+  while ((line = ReadFullLine(fp, lineNum, buf, sizeof(buf))) != NULL)
   {
     int	found;
 
     if (isspace(*line))
     {
-      Freee(MB_UTIL, line);
       continue;
     }
     found = (s = strtok(line, " \t\f:")) && !strcmp(s, label);
-    Freee(MB_UTIL, line);
     if (found)
       return(0);
   }
@@ -445,13 +447,17 @@ OpenConfFile(const char *name)
  */
 
 char *
-ReadFullLine(FILE *fp, int *lineNum)
+ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen)
 {
-  int		len, continuation;
+  int		len, linelen, continuation;
   char		*real_line;
   static char	line[BIG_LINE_SIZE];
 
-  for (*line = 0, continuation = TRUE; continuation; )
+  line[0] = 0;
+  linelen = 0;
+  continuation = TRUE;
+  
+  while ( continuation )
   {
 
   /* Get next real line */
@@ -467,25 +473,31 @@ ReadFullLine(FILE *fp, int *lineNum)
 
     for (len = strlen(real_line);
 	len > 0 && isspace(real_line[len - 1]);
-	len--)
-      real_line[len - 1] = 0;
+	len--) {};
+    real_line[len] = 0;
+    
     if ((continuation = (*real_line && real_line[len - 1] == '\\')))
-      real_line[len - 1] = ' ';
+	real_line[len - 1] = ' ';
 
   /* Append real line to what we've got so far */
 
-    snprintf(line + strlen(line),
-      sizeof(line) - strlen(line), "%s", real_line);
+    snprintf(line + linelen, sizeof(line) - linelen, "%s", real_line);
+    linelen += len;
+    if (linelen > sizeof(line) - 1)
+	linelen = sizeof(line) - 1;
   }
 
 /* Report any overflow */
 
-  if (strlen(line) >= sizeof(line) - 1)
+  if (linelen >= sizeof(line) - 1)
     Log(LG_ERR, ("mpd: warning: line too long, truncated"));
 
 /* Copy line and return */
 
-  return(strcpy(Malloc(MB_UTIL, strlen(line) + 1), line));
+  if (result!=NULL && resultlen>0)
+     return strncpy(result, line, resultlen);
+  else 
+     return strcpy(Malloc(MB_UTIL, linelen + 1), line);
 }
 
 /*
@@ -504,7 +516,8 @@ ReadLine(FILE *fp, int *lineNum)
 
 /* Get first non-empty, non-commented line */
 
-  for (empty = TRUE; empty; )
+  empty = TRUE;
+  while ( empty )
   {
 
   /* Read next line from file */
@@ -516,10 +529,7 @@ ReadLine(FILE *fp, int *lineNum)
 
   /* Truncate long lines */
 
-    if (line[strlen(line) - 1] == '\n')
-      line[strlen(line) - 1] = 0;
-    else
-    {
+    if (strlen(line) > (sizeof(line) - 2)) {
       Log(LG_ERR, ("mpd: warning: line too long, truncated"));
       while ((ch = getc(fp)) != EOF && ch != '\n');
     }
@@ -532,7 +542,8 @@ ReadLine(FILE *fp, int *lineNum)
 
   /* Is this line empty? */
 
-    for (empty = TRUE, s = line; *s; s++)
+    empty = TRUE;
+    for ( ; *s; s++)
       if (!isspace(*s))
       {
 	empty = FALSE;

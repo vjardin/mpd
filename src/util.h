@@ -46,10 +46,10 @@
   extern FILE		*OpenConfFile(const char *name);
   extern int		SeekToLabel(FILE *fp, const char *label, int *lineNum);
 
-  extern char		*ReadFullLine(FILE *fp, int *lineNum);
+  extern char		*ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen);
   extern int		ReadFile(const char *filename, const char *target,
 				int (*func)(int ac, char *av[]));
-  extern int		ParseLine(char *line, char *vec[], int max_args);
+  extern int		ParseLine(char *line, char *vec[], int max_args, int copy);
   extern void		FreeArgs(int ac, char *av[]);
 
   extern int		ParseAddr(char *s, struct in_range *range);

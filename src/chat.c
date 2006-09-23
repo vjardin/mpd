@@ -1744,7 +1744,7 @@ ChatDecodeTime(ChatInfo c, char *string, u_int *secsp)
 static char *
 ChatReadLine(ChatInfo c)
 {
-  return ReadFullLine(c->fp, &c->lineNum);
+  return ReadFullLine(c->fp, &c->lineNum, NULL, 0);
 }
 
 /*

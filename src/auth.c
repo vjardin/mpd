@@ -750,9 +750,9 @@ AuthGetData(AuthData auth, int complain)
   /* Search secrets file */
   if ((fp = OpenConfFile(SECRET_FILE)) == NULL)
     return(-1);
-  while ((line = ReadFullLine(fp, NULL)) != NULL) {
+  while ((line = ReadFullLine(fp, NULL, NULL, 0)) != NULL) {
     memset(av, 0, sizeof(av));
-    ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
+    ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
     Freee(MB_UTIL, line);
     if (ac >= 2
 	&& (strcmp(av[0], auth->authname) == 0

@@ -333,7 +333,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
     case 253:	/* telnet option-code DO */
       break;
     case 9:	/* TAB */
-      ac = ParseLine(cs->cmd, av, sizeof(av) / sizeof(*av));
+      ac = ParseLine(cs->cmd, av, sizeof(av) / sizeof(*av), 1);
       memset(compl, 0, sizeof(compl));
       tab = gCommands;
       for (i = 0; i < ac; i++) {
@@ -341,7 +341,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
         if (FindCommand(tab, av[i], &cmd, FALSE)) 
 	  goto notfound;
 	strcpy(line, cmd->name);
-        ac2 = ParseLine(line, av2, sizeof(av2) / sizeof(*av2));
+        ac2 = ParseLine(line, av2, sizeof(av2) / sizeof(*av2), 1);
 	snprintf(&compl[strlen(compl)], sizeof(compl) - strlen(compl), "%s ", av2[0]);
 	FreeArgs(ac2, av2);
 	tab = cmd->arg;
@@ -431,7 +431,7 @@ success:
 	cs->user.username, cs->cmd));
       cs->write(cs, "\r\n");
       memcpy(line, cs->cmd, sizeof(line));
-      ac = ParseLine(line, av, sizeof(av) / sizeof(*av));
+      ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
       exitflag = DoCommand(ac, av);
       FreeArgs(ac, av_copy);
