@@ -923,8 +923,10 @@ PppoeNodeUpdate(void)
 		}
 
 		for (i = 0; i < PppoeIfCount ; i++)
-			if (strcmp(PppoeIfs[i].ifnodepath, p->path) == 0)
+			if (strcmp(PppoeIfs[i].ifnodepath, p->path) == 0) {
 				j = i;
+				break;
+			}
 		if (j == -1) {
 			if (CreatePppoeNode(p->path, p->hook)) {
 				snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
