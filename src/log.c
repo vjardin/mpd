@@ -147,17 +147,6 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	logprintf(const char *fmt, ...);
-  static int	vlogprintf(const char *fmt, va_list ap);
-
-  static void	LogDoDumpBuf(int (*func)(const char *fmt, ...),
-  		  int (*vfunc)(const char *fmt, va_list ap),
-		  int timestamp, const u_char *buf, int count,
-		  const char *fmt, va_list ap);
-  static void	LogDoDumpBp(int (*func)(const char *fmt, ...),
-  		  int (*vfunc)(const char *fmt, va_list ap),
-		  int timestamp, Mbuf bp, const char *fmt, va_list ap);
-
 #ifndef SYSLOG_FACILITY
   static void	LogTimeStamp(int (*func)(const char *fmt, ...));
 #else
@@ -280,14 +269,21 @@ LogCommand(int ac, char *av[], void *arg)
 void
 LogPrintf(const char *fmt, ...)
 {
-  va_list	args;
+  va_list       args;
+
+  va_start(args, fmt);
+  vLogPrintf(fmt, args);
+  va_end(args);
+}
+
+void
+vLogPrintf(const char *fmt, va_list args)
+{
   char		buf[MAX_CONSOLE_BUF_LEN];
 
   LogTimeStamp(logprintf);
-  va_start(args, fmt);
-  vlogprintf(fmt, args);
+  valog(LOG_INFO, fmt, args);
   vsnprintf(buf, sizeof(buf), fmt, args);
-  va_end(args);
 
   if (gLogOptions & LG_CONSOLE)
   {
@@ -336,25 +332,66 @@ LogStdout(const char *fmt, ...)
 void
 LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
 {
-  int		log, console;
+  int		k, total;
+  u_char	bytes[DUMP_BYTES_PER_LINE];
+  char		line[256];
+  int		linelen;
   va_list	ap;
 
-/* Where to we log it? */
+  if (level & gLogOptions) {
+/* Do header */
 
-  log = (level & gLogOptions) || (level & LG_ALWAYS);
-  console = (log && (gLogOptions & LG_CONSOLE)) || (level & LG_CONSOLE);
-
-/* Dump it */
-
-  if (console) {
     va_start(ap, fmt);
-    LogDoDumpBp(printf, vprintf, FALSE, bp, fmt, ap);
+    vLogPrintf(fmt, ap);
     va_end(ap);
-  }
-  if (log) {
-    va_start(ap, fmt);
-    LogDoDumpBp(logprintf, vlogprintf, TRUE, bp, fmt, ap);
-    va_end(ap);
+
+/* Do data */
+
+    line[0]=' ';
+    line[1]=' ';
+    line[2]=' ';
+    line[3]=0;
+    linelen=3;
+  
+    for (total = 0; bp; bp = bp->next)
+    {
+      int	start, stop, last = 0;
+
+      stop = bp->next ? total + bp->cnt :
+		ROUNDUP(total + bp->cnt, DUMP_BYTES_PER_LINE);
+      for (start = total; total < stop; )
+      {
+        u_int	const byte = (MBDATA(bp))[total - start];
+
+        if (total < start + bp->cnt)
+        {
+	  sprintf(line+linelen, " %02x", byte);
+	  last = total % DUMP_BYTES_PER_LINE;
+        }
+        else
+	  sprintf(line+linelen, "   ");
+        linelen+=3;
+      
+        bytes[total % DUMP_BYTES_PER_LINE] = byte;
+        total++;
+      
+        if (total % DUMP_BYTES_PER_LINE == 0)
+        {
+	  snprintf(line+linelen, sizeof(line), "  ");
+          linelen+=2;
+	  for (k = 0; k <= last; k++) {
+	    line[linelen++] = isgraph(bytes[k]) ? bytes[k] : '.';
+	    line[linelen] = 0;
+	  }
+	  LogPrintf("%s",line);
+	  line[0]=' ';
+	  line[1]=' ';
+	  line[2]=' ';
+	  line[3]=0;
+	  linelen=3;
+        }
+      }
+    }
   }
 }
 
@@ -367,121 +404,50 @@ LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
 void
 LogDumpBuf(int level, const u_char *buf, int count, const char *fmt, ...)
 {
-  int		log, console;
+  int		k, stop, total;
+  char		line[256];
+  int		linelen;
   va_list	ap;
 
-/* Where to we log it? */
-
-  log = (level & gLogOptions) || (level & LG_ALWAYS);
-  console = (log && (gLogOptions & LG_CONSOLE)) || (level & LG_CONSOLE);
-
-/* Dump it */
-
-  if (console) {
-    va_start(ap, fmt);
-    LogDoDumpBuf(printf, vprintf, FALSE, buf, count, fmt, ap);
-    va_end(ap);
-  }
-  if (log) {
-    va_start(ap, fmt);
-    LogDoDumpBuf(logprintf, vlogprintf, TRUE, buf, count, fmt, ap);
-    va_end(ap);
-  }
-}
-
-/*
- * LogDoDumpBp()
- *
- * Dump the contents of an mbuf
- */
-
-static void
-LogDoDumpBp(int (*func)(const char *fmt, ...),
-  int (*vfunc)(const char *fmt, va_list ap),
-  int timestamp, Mbuf bp, const char *fmt, va_list ap)
-{
-  int		k, total;
-  u_char	bytes[DUMP_BYTES_PER_LINE];
-
+  if (level & gLogOptions) {
 /* Do header */
 
-  if (timestamp)
-    LogTimeStamp(func);
-  (*vfunc)(fmt, ap);
-  (*func)(":\n");
+    va_start(ap, fmt);
+    vLogPrintf(fmt, ap);
+    va_end(ap);
 
 /* Do data */
 
-  for (total = 0; bp; bp = bp->next)
-  {
-    int	start, stop, last = 0;
+    line[0]=' ';
+    line[1]=' ';
+    line[2]=' ';
+    line[3]=0;
+    linelen=3;
 
-    stop = bp->next ? total + bp->cnt :
-		ROUNDUP(total + bp->cnt, DUMP_BYTES_PER_LINE);
-    for (start = total; total < stop; )
+    stop = ROUNDUP(count, DUMP_BYTES_PER_LINE);
+    for (total = 0; total < stop; )
     {
-      u_int	const byte = (MBDATA(bp))[total - start];
-
-      if (total % DUMP_BYTES_PER_LINE == 0 && timestamp)
-	LogTimeStamp(func);
-      if (total < start + bp->cnt)
-      {
-	(*func)(" %02x", byte);
-	last = total % DUMP_BYTES_PER_LINE;
-      }
-      else
-	(*func)("   ");
-      bytes[total % DUMP_BYTES_PER_LINE] = byte;
-      total++;
-      if (total % DUMP_BYTES_PER_LINE == 0)
-      {
-	(*func)("  ");
-	for (k = 0; k <= last; k++)
-	  (*func)("%c", isgraph(bytes[k]) ? bytes[k] : '.');
-	(*func)("\n");
-      }
-    }
-  }
-}
-
-/*
- * LogDoDumpBuf()
- *
- * Dump the contents of a buffer to the log
- */
-
-static void
-LogDoDumpBuf(int (*func)(const char *fmt, ...),
-  int (*vfunc)(const char *fmt, va_list ap),
-  int timestamp, const u_char *buf, int count, const char *fmt, va_list ap)
-{
-  int	k, stop, total;
-
-/* Do header */
-
-  if (timestamp)
-    LogTimeStamp(func);
-  (*vfunc)(fmt, ap);
-  (*func)(":\n");
-
-/* Do data */
-
-  stop = ROUNDUP(count, DUMP_BYTES_PER_LINE);
-  for (total = 0; total < stop; )
-  {
-    if (total % DUMP_BYTES_PER_LINE == 0 && timestamp)
-      LogTimeStamp(func);
-    if (total < count)
-      (*func)(" %02x", buf[total]);
-    else
-      (*func)("   ");
-    total++;
-    if (total % DUMP_BYTES_PER_LINE == 0)
-    {
-      (*func)("  ");
-      for (k = total - DUMP_BYTES_PER_LINE; k < total && k < count; k++)
-	(*func)("%c", isgraph(buf[k]) ? buf[k] : '.');
-      (*func)("\n");
+	if (total < count)
+	    sprintf(line+linelen, " %02x", buf[total]);
+	else
+	    sprintf(line+linelen, "   ");
+        linelen+=3;
+	total++;
+	if (total % DUMP_BYTES_PER_LINE == 0)
+	{
+	    snprintf(line+linelen, sizeof(line), "  ");
+    	    linelen+=2;
+    	    for (k = total - DUMP_BYTES_PER_LINE; k < total && k < count; k++) {
+		line[linelen++] = isgraph(buf[k]) ? buf[k] : '.';
+		line[linelen] = 0;
+	    }
+	    LogPrintf("%s",line);
+	    line[0]=' ';
+	    line[1]=' ';
+	    line[2]=' ';
+	    line[3]=0;
+	    linelen=3;
+	}
     }
   }
 }
@@ -526,30 +492,4 @@ Perror(const char *fmt, ...)
   snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
     ": %s", strerror(errno));
   Log(LG_ERR, ("%s", buf));
-}
-
-/*
- * logprintf()
- */
-
-static int
-logprintf(const char *fmt, ...)
-{
-  va_list	args;
-
-  va_start(args, fmt);
-  valog(LOG_INFO, fmt, args);
-  va_end(args);
-  return(0);
-}
-
-/*
- * vlogprintf()
- */
-
-static int
-vlogprintf(const char *fmt, va_list ap)
-{
-  valog(LOG_INFO, fmt, ap);
-  return(0);
 }

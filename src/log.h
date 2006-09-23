@@ -81,7 +81,7 @@
   #define LG_CONSOLE		(1 << LG_I_CONSOLE)
   #define LG_ALWAYS		(1 << LG_I_ALWAYS)
 
-  #define LG_ERR		(LG_ALWAYS | LG_CONSOLE)
+  #define LG_ERR		(LG_ALWAYS)
 
 /* Default options at startup */
 
@@ -124,6 +124,7 @@
   extern int	LogOpen(void);
   extern void	LogClose(void);
   extern void	LogPrintf(const char *fmt, ...) __printflike(1, 2);
+  extern void	vLogPrintf(const char *fmt, va_list args);
   extern void	LogStdout(const char *fmt, ...) __printflike(1, 2);
   extern int	LogCommand(int ac, char *av[], void *arg);
   extern void	LogDumpBuf(int lev, const u_char *buf,

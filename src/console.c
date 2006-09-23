@@ -18,8 +18,6 @@
   #define CTRL(c) (c - '@')
   #endif
 
-  #define Logc(lev, args)        LogStdout args
-
   #define EchoOff()	cs->write(cs, "\xFF\xFB\x01\xFF\xFD\x01");
   #define EchoOn()	cs->write(cs, "\xFF\xFC\x01\xFF\xFE\x01");
 						  
@@ -119,12 +117,12 @@ int
 ConsoleOpen(Console c)
 {
   if (c->fd) {
-    Log(LG_ERR, ("Console already running"));
+    Log(LG_ERR, ("CONSOLE: Console already running"));
     return -1;
   }
 
   if ((c->fd = TcpGetListenPort(c->addr, &c->port, FALSE)) < 0) {
-    Logc(LG_ERR, ("Can't listen for console connections on %s:%d", 
+    Log(LG_ERR, ("CONSOLE: Can't listen for connections on %s:%d", 
 	inet_ntoa(c->addr), c->port));
     return -1;
   }
@@ -133,7 +131,7 @@ ConsoleOpen(Console c)
 	EVENT_RECURRING, ConsoleConnect, c) < 0)
     return -1;
 
-  Logc(LG_ALWAYS, ("Console listening on %s:%d", 
+  Log(LG_ALWAYS, ("CONSOLE: listening on %s:%d", 
 	inet_ntoa(c->addr), c->port));
   return 0;
 }
@@ -204,7 +202,7 @@ ConsoleConnect(int type, void *cookie)
 	  "\xFF\xFB\x01"	/* WILL echo */
 	  "\xFF\xFD\x01";	/* DO echo */
   
-  Logc(LG_CONSOLE, ("ConsoleConnect"));
+  Log(LG_ALWAYS, ("CONSOLE: Connect"));
   cs = Malloc(MB_CONS, sizeof(*cs));
   memset(cs, 0, sizeof(*cs));
   if ((cs->fd = TcpAcceptConnection(c->fd, &cs->peer_addr, FALSE)) < 0) 
@@ -223,7 +221,7 @@ ConsoleConnect(int type, void *cookie)
   cs->prompt = ConsoleSessionShowPrompt;
   cs->state = STATE_USERNAME;
   ghash_put(c->sessions, cs);
-  Logc(LG_CONSOLE, ("Allocated new console session: %p from:%s", 
+  Log(LG_ALWAYS, ("CONSOLE: Allocated new console session: %p from:%s", 
     cs, inet_ntoa(cs->peer_addr.sin_addr)));
   cs->write(cs, "Multi-link PPP for FreeBSD, by Archie L. Cobbs.\r\n");
   cs->write(cs, "Based on iij-ppp, by Toshiharu OHNO.\r\n\r\n");
@@ -286,9 +284,9 @@ ConsoleSessionReadEvent(int type, void *cookie)
       if (n < 0) {
 	if (errno == EAGAIN)
 	  goto out;
-	Logc(LG_ERR, ("Error while reading from console %s", strerror(errno)));
+	Log(LG_ERR, ("CONSOLE: Error while reading: %s", strerror(errno)));
       } else {
-	Logc(LG_ERR, ("Console connection closed by peer"));
+	Log(LG_ERR, ("CONSOLE: Connection closed by peer"));
       }
       goto abort;
     }
@@ -319,7 +317,6 @@ ConsoleSessionReadEvent(int type, void *cookie)
       }
     }
 
-    /*Logc(LG_CONSOLE, ("%c/%d", c, c));*/
     switch(c) {
     case 0:
     case '\n':
@@ -359,7 +356,7 @@ notfound:
     case CTRL('C'):
       if (cs->telnet)
 	break;
-      Logc(LG_CONSOLE, ("CTRL-C"));
+      Log(LG_ALWAYS, ("CONSOLE: CTRL-C"));
       memset(cs->cmd, 0, MAX_CONSOLE_LINE);
       cs->cmd_len = 0;
       cs->prompt(cs);
@@ -415,7 +412,7 @@ notfound:
 
 failed:
 	cs->write(cs, "Login failed\r\n");
-	Logc(LG_CONSOLE, ("Failed login attempt from %s", 
+	Log(LG_ALWAYS, ("CONSOLE: Failed login attempt from %s", 
 		inet_ntoa(cs->peer_addr.sin_addr)));
 	FREE(MB_CONS, cs->user.username);
 	cs->user.username=NULL;
@@ -427,9 +424,9 @@ success:
 	break;
       }
 
-      Logc(LG_CONSOLE, ("[CONSOLE]%s:%s", 
-	cs->user.username, cs->cmd));
       cs->write(cs, "\r\n");
+      Log(LG_ALWAYS, ("[%s] CONSOLE: %s: %s", 
+	cs->link->name, cs->user.username, cs->cmd));
       memcpy(line, cs->cmd, sizeof(line));
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
@@ -460,7 +457,7 @@ success:
 
       /* XXX ToDo testing */
       if ((cs->cmd_len + 1) >= MAX_CONSOLE_LINE) {
-        Logc(LG_ERR, ("mpd: console input line too long"));
+        Log(LG_ERR, ("CONSOLE: console input line too long"));
         break;
       }
       cs->cmd[cs->cmd_len++] = c;
@@ -490,7 +487,7 @@ ConsoleSessionWriteEvent(int type, void *cookie)
 
   if ((written = write(cs->fd, cs->writebuf, cs->writebuf_len)) <= 0) {
     if (written < 0 && errno != EAGAIN) {
-      Logc(LG_ERR, ("Error writing to console %s", strerror(errno)));
+      Log(LG_ERR, ("CONSOLE: Error writing to console %s", strerror(errno)));
     }
     return;
   }
@@ -501,7 +498,6 @@ ConsoleSessionWriteEvent(int type, void *cookie)
     cs->writebuf_len -= written;
     memcpy(buf, &cs->writebuf[written], cs->writebuf_len);
     memcpy(cs->writebuf, buf, cs->writebuf_len);
-    Logc(LG_CONSOLE, ("ConsoleSessionWriteEvent registered"));
     EventRegister(&cs->writeEvent, EVENT_WRITE, cs->fd, 
 	0, ConsoleSessionWriteEvent, cs);
   }
@@ -647,7 +643,7 @@ ConsoleSetCommand(int ac, char *av[], void *arg)
 
       port =  strtol(av[0], NULL, 10);
       if (port < 1 && port > 65535) {
-	Log(LG_ERR, ("[CONSOLE] Bogus port given %s", av[0]));
+	Log(LG_ERR, ("CONSOLE: Bogus port given %s", av[0]));
 	return(-1);
       }
       c->port = port;
@@ -658,7 +654,7 @@ ConsoleSetCommand(int ac, char *av[], void *arg)
 	return(-1);
 
       if (inet_aton(av[0], &c->addr) == -1) {
-	Log(LG_ERR, ("[CONSOLE] Bogus IP address given %s", av[0]));
+	Log(LG_ERR, ("CONSOLE: Bogus IP address given %s", av[0]));
 	return(-1);
       }
       break;
