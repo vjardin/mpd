@@ -97,6 +97,7 @@
 
   struct radius_acl {	/* List of ACLs received from RADIUS */
     int number;		/* ACL number given by RADIUS server */
+    int real_number;	/* ACL number allocated my mpd */
     char rule[ACL_LEN]; /* Text of ACL */
     struct radius_acl *next;
   };

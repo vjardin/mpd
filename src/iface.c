@@ -611,42 +611,39 @@ IfaceIpIfaceUp(int ready)
   /* Allocate ACLs */
   acls = a->radius.acl_pipe;
   while (acls != NULL) {
-    IfaceAllocACL(&pipe_pool, pipe_pool_start, iface->ifname, acls->number);
+    acls->real_number = IfaceAllocACL(&pipe_pool, pipe_pool_start, iface->ifname, acls->number);
     acls = acls->next;
   };
   acls = a->radius.acl_queue;
   while (acls != NULL) {
-    IfaceAllocACL(&queue_pool, queue_pool_start, iface->ifname, acls->number);
+    acls->real_number = IfaceAllocACL(&queue_pool, queue_pool_start, iface->ifname, acls->number);
     acls = acls->next;
   };
   acls = a->radius.acl_rule;
   while (acls != NULL) {
-    IfaceAllocACL(&rule_pool, rule_pool_start, iface->ifname, acls->number);
+    acls->real_number = IfaceAllocACL(&rule_pool, rule_pool_start, iface->ifname, acls->number);
     acls = acls->next;
   };
 
   /* Set ACLs */
   acls = a->radius.acl_pipe;
   while (acls != NULL) {
-    i = IfaceFindACL(pipe_pool, iface->ifname, acls->number);
     buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, i, acls->rule);
+    ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
     Freee(MB_UTIL, buf);
     acls = acls->next;
   }
   acls = a->radius.acl_queue;
   while (acls != NULL) {
-    i = IfaceFindACL(queue_pool, iface->ifname, acls->number);
     buf = IFaceParseACL(acls->rule,iface->ifname);
-    ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, i, buf);
+    ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
     Freee(MB_UTIL, buf);
     acls = acls->next;
   }
   acls = a->radius.acl_rule;
   while (acls != NULL) {
-    i = IfaceFindACL(rule_pool, iface->ifname, acls->number);
     buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, i, buf, iface->ifname);
+    ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
     Freee(MB_UTIL, buf);
     acls = acls->next;
   };
@@ -707,6 +704,7 @@ IfaceIpIfaceDown(void)
   Auth		const a = &lnk->lcp.auth;
   int		k;
   struct acl_pool	**rp, *rp1;
+  char		cb[32768];
 
   /* Sanity */
   assert(iface->ip_up);
@@ -720,10 +718,10 @@ IfaceIpIfaceDown(void)
 
   /* Remove rule ACLs */
   rp = &rule_pool;
+  cb[0]=0;
   while (*rp != NULL) {
     if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      ExecCmd(LG_IFACE2, "%s delete %d",
-	PATH_IPFW, (*rp)->real_number);
+      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
       Freee(MB_UTIL, rp1);
@@ -731,12 +729,16 @@ IfaceIpIfaceDown(void)
       rp = &((*rp)->next);
     };
   };
+  if (cb[0]!=0)
+    ExecCmd(LG_IFACE2, "%s delete%s",
+      PATH_IPFW, cb);
+
   /* Remove queue ACLs */
   rp = &queue_pool;
+  cb[0]=0;
   while (*rp != NULL) {
     if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      ExecCmd(LG_IFACE2, "%s queue %d delete",
-	PATH_IPFW, (*rp)->real_number);
+      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
       Freee(MB_UTIL, rp1);
@@ -744,12 +746,16 @@ IfaceIpIfaceDown(void)
       rp = &((*rp)->next);
     };
   };
+  if (cb[0]!=0)
+    ExecCmd(LG_IFACE2, "%s queue delete%s",
+      PATH_IPFW, cb);
+
   /* Remove pipe ACLs */
   rp = &pipe_pool;
+  cb[0]=0;
   while (*rp != NULL) {
     if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      ExecCmd(LG_IFACE2, "%s pipe %d delete",
-	PATH_IPFW, (*rp)->real_number);
+      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
       Freee(MB_UTIL, rp1);
@@ -757,6 +763,9 @@ IfaceIpIfaceDown(void)
       rp = &((*rp)->next);
     };
   };
+  if (cb[0]!=0)
+    ExecCmd(LG_IFACE2, "%s pipe delete%s",
+      PATH_IPFW, cb);
 
   /* Delete routes */
   for (k = 0; k < iface->n_routes; k++) {

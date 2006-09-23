@@ -395,14 +395,9 @@ SeekToLabel(FILE *fp, const char *label, int *lineNum)
 
   while ((line = ReadFullLine(fp, lineNum, buf, sizeof(buf))) != NULL)
   {
-    int	found;
-
     if (isspace(*line))
-    {
       continue;
-    }
-    found = (s = strtok(line, " \t\f:")) && !strcmp(s, label);
-    if (found)
+    if ((s = strtok(line, " \t\f:")) && !strcmp(s, label))
       return(0);
   }
 
@@ -447,13 +442,22 @@ OpenConfFile(const char *name)
  */
 
 char *
-ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen)
+ReadFullLine(FILE *fp, int *lineNum, char *result, int resultsize)
 {
-  int		len, linelen, continuation;
+  int		len, linelen, resultlinesize, continuation;
   char		*real_line;
   static char	line[BIG_LINE_SIZE];
+  char		*resultline;
 
-  line[0] = 0;
+  if (result!=NULL && resultsize>0) {
+    resultline=result;
+    resultlinesize=resultsize;
+  } else {
+    resultline=line;
+    resultlinesize=sizeof(line);
+  }
+
+  resultline[0] = 0;
   linelen = 0;
   continuation = TRUE;
   
@@ -463,7 +467,7 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen)
   /* Get next real line */
 
     if ((real_line = ReadLine(fp, lineNum)) == NULL) {
-      if (*line)
+      if (*resultline)
 	break;
       else
 	return(NULL);
@@ -476,12 +480,12 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen)
 	len--) {};
     real_line[len] = 0;
     
-    if ((continuation = (*real_line && real_line[len - 1] == '\\')))
+    if ((continuation = (len && real_line[len - 1] == '\\')))
 	real_line[len - 1] = ' ';
 
   /* Append real line to what we've got so far */
 
-    snprintf(line + linelen, sizeof(line) - linelen, "%s", real_line);
+    snprintf(resultline + linelen, resultlinesize - linelen, "%s", real_line);
     linelen += len;
     if (linelen > sizeof(line) - 1)
 	linelen = sizeof(line) - 1;
@@ -494,10 +498,10 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen)
 
 /* Copy line and return */
 
-  if (result!=NULL && resultlen>0)
-     return strncpy(result, line, resultlen);
+  if (result!=NULL && resultsize>0)
+     return resultline;
   else 
-     return strcpy(Malloc(MB_UTIL, linelen + 1), line);
+     return strcpy(Malloc(MB_UTIL, linelen + 1), resultline);
 }
 
 /*
@@ -537,21 +541,18 @@ ReadLine(FILE *fp, int *lineNum)
   /* Ignore comments */
 
     s = line + strspn(line, " \t");
-    if (*s == '#')
+    if (*s == '#') {
       *s = 0;
-
+      
+    } else {
   /* Is this line empty? */
-
-    empty = TRUE;
-    for ( ; *s; s++)
-      if (!isspace(*s))
-      {
-	empty = FALSE;
-	break;
-      }
+      for ( ; *s; s++)
+        if (!isspace(*s)) {
+          empty = FALSE;
+          break;
+    	}
+    }
   }
-
-/* Done */
 
   return(line);
 }
