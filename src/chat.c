@@ -1754,7 +1754,7 @@ ChatReadLine(ChatInfo c)
 static int
 ChatParseLine(ChatInfo c, char *line, char *av[], int max)
 {
-  return ParseLine(line, av, max);
+  return ParseLine(line, av, max, 1);
 }
 
 /*
