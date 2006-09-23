@@ -77,6 +77,7 @@
   int			gNumBundles;
   ConsoleSession	gConsoleSession;
   struct console	gConsole;
+  int			gBackground = FALSE;
 
   struct globalconf	gGlobalConf;
 
@@ -109,7 +110,6 @@
  * INTERNAL VARIABLES
  */
 
-  static int		gBackground = FALSE;
   static int		gKillProc = FALSE;
   static const char	*gPidFile = PID_FILE;
   static const char	*gPeerSystem = NULL;
@@ -144,7 +144,6 @@ main(int ac, char *av[])
 
   /* Background mode? */
   if (gBackground) {
-    gLogOptions &= ~LG_CONSOLE;
     if (daemon(TRUE, FALSE) < 0)
       err(1, "daemon");
     (void) chdir(gConfDirectory);

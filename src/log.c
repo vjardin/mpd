@@ -137,7 +137,7 @@
     ADD_OPT(RADIUS2,	"Radius authentication debug")
 #endif
 #ifdef LG_CONSOLE
-    ADD_OPT(CONSOLE,	"Log to the console as well as the log file")
+    ADD_OPT(CONSOLE,	"Console events")
 #endif
   };
 
@@ -243,7 +243,6 @@ LogCommand(int ac, char *av[], void *arg)
       {
 	for (bits = k = 0; k < NUM_LOG_LEVELS; k++)
 	  bits |= LogOptionList[k].mask;
-	bits &= ~LG_CONSOLE;
       }
       else
       {
@@ -285,7 +284,7 @@ vLogPrintf(const char *fmt, va_list args)
   valog(LOG_INFO, fmt, args);
   vsnprintf(buf, sizeof(buf), fmt, args);
 
-  if (gLogOptions & LG_CONSOLE)
+  if (!gBackground)
   {
     fputs(buf, stdout);
     fputc('\n', stdout);

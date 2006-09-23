@@ -68,7 +68,7 @@ MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`
 COPTS+=		-DPATH_CONF_DIR=\"${MPD_CONF_DIR}\"
 COPTS+=		-DSYSLOG_FACILITY=${SYSLOG_FACILITY}
 COPTS+=		-DMPD_VERSION='"${MPD_VERSION}"'
-COPTS+=		-g
+COPTS+=		-g -p -O2
 COPTS+=		-Wall \
 		-Wcast-align \
 		-Wchar-subscripts \

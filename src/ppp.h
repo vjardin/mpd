@@ -105,6 +105,7 @@
   extern int		gNumBundles;		/* Total number of bundles */
   extern struct console	gConsole;
   extern ConsoleSession	gConsoleSession;	/* currently active console-session */
+  extern int		gBackground;
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 

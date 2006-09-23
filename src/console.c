@@ -131,7 +131,7 @@ ConsoleOpen(Console c)
 	EVENT_RECURRING, ConsoleConnect, c) < 0)
     return -1;
 
-  Log(LG_ALWAYS, ("CONSOLE: listening on %s:%d", 
+  Log(LG_CONSOLE, ("CONSOLE: listening on %s:%d", 
 	inet_ntoa(c->addr), c->port));
   return 0;
 }
@@ -202,7 +202,7 @@ ConsoleConnect(int type, void *cookie)
 	  "\xFF\xFB\x01"	/* WILL echo */
 	  "\xFF\xFD\x01";	/* DO echo */
   
-  Log(LG_ALWAYS, ("CONSOLE: Connect"));
+  Log(LG_CONSOLE, ("CONSOLE: Connect"));
   cs = Malloc(MB_CONS, sizeof(*cs));
   memset(cs, 0, sizeof(*cs));
   if ((cs->fd = TcpAcceptConnection(c->fd, &cs->peer_addr, FALSE)) < 0) 
@@ -221,7 +221,7 @@ ConsoleConnect(int type, void *cookie)
   cs->prompt = ConsoleSessionShowPrompt;
   cs->state = STATE_USERNAME;
   ghash_put(c->sessions, cs);
-  Log(LG_ALWAYS, ("CONSOLE: Allocated new console session: %p from:%s", 
+  Log(LG_CONSOLE, ("CONSOLE: Allocated new console session: %p from:%s", 
     cs, inet_ntoa(cs->peer_addr.sin_addr)));
   cs->write(cs, "Multi-link PPP for FreeBSD, by Archie L. Cobbs.\r\n");
   cs->write(cs, "Based on iij-ppp, by Toshiharu OHNO.\r\n\r\n");
@@ -356,7 +356,7 @@ notfound:
     case CTRL('C'):
       if (cs->telnet)
 	break;
-      Log(LG_ALWAYS, ("CONSOLE: CTRL-C"));
+      Log(LG_CONSOLE, ("CONSOLE: CTRL-C"));
       memset(cs->cmd, 0, MAX_CONSOLE_LINE);
       cs->cmd_len = 0;
       cs->prompt(cs);
@@ -412,7 +412,7 @@ notfound:
 
 failed:
 	cs->write(cs, "Login failed\r\n");
-	Log(LG_ALWAYS, ("CONSOLE: Failed login attempt from %s", 
+	Log(LG_CONSOLE, ("CONSOLE: Failed login attempt from %s", 
 		inet_ntoa(cs->peer_addr.sin_addr)));
 	FREE(MB_CONS, cs->user.username);
 	cs->user.username=NULL;
@@ -425,7 +425,7 @@ success:
       }
 
       cs->write(cs, "\r\n");
-      Log(LG_ALWAYS, ("[%s] CONSOLE: %s: %s", 
+      Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
 	cs->link->name, cs->user.username, cs->cmd));
       memcpy(line, cs->cmd, sizeof(line));
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
