@@ -676,6 +676,11 @@ PppoeListenEvent(int type, void *arg)
 		    "service \"%s\"", PIf->ifnodepath, PIf->session));
 	}
 
+	if (gShutdownInProgress) {
+		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
+		return;
+	}
+
 	/* Examine all PPPoE links. */
 	for (k = 0; k < gNumLinks; k++) {
 	        PppoeInfo p;

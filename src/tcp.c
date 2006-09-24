@@ -418,6 +418,11 @@ TcpAcceptEvent(int type, void *cookie)
 	Log(LG_PHYS, ("[%s] incoming connection from %s:%u", lnk->name,
 	    inet_ntoa(ac.sin.sin_addr), ntohs(ac.sin.sin_port)));
 
+	if (gShutdownInProgress) {
+		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
+		return;
+	}
+
 	/*
 	 * If passive, and peer address specified,
 	 * only accept from that address. Same check with port.

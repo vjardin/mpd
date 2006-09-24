@@ -78,6 +78,7 @@
   ConsoleSession	gConsoleSession;
   struct console	gConsole;
   int			gBackground = FALSE;
+  int			gShutdownInProgress = FALSE;
 
   struct globalconf	gGlobalConf;
 
@@ -263,6 +264,7 @@ DoExit(int code)
 {
   int	j, k;
 
+  gShutdownInProgress=1;
   /* Weak attempt to record what happened */
   if (code == EX_ERRDEAD)
     Log(LG_ERR, ("mpd: fatal error, exiting"));
@@ -371,8 +373,9 @@ FatalSignal(sig)
   static struct pppTimer	gDeathTimer;
   int				k;
 
-  /* If a SIGTERM, gracefully shutdown; otherwise shutdown now */
+  /* If a SIGTERM or SIGINT, gracefully shutdown; otherwise shutdown now */
   Log(LG_ERR, ("mpd: caught fatal signal %s", sys_signame[sig]));
+  gShutdownInProgress=1;
   for (k = 0; k < gNumBundles; k++) {
     if ((bund = gBundles[k]))
       RecordLinkUpDownReason(NULL, 0, STR_PORT_SHUTDOWN, NULL);
@@ -380,13 +383,13 @@ FatalSignal(sig)
 
   signal(SIGUSR1, SIG_IGN);
   signal(SIGUSR2, SIG_IGN);
-  if (sig != SIGTERM)
+  if (sig != SIGTERM && sig != SIGINT)
     DoExit(EX_ERRDEAD);
 
-  TimerInit(&gDeathTimer, "DeathTimer",
-    TERMINATE_DEATH_WAIT, (void (*)(void *)) DoExit, (void *) &gBackground);
-  TimerStart(&gDeathTimer);
   CloseIfaces();
+  TimerInit(&gDeathTimer, "DeathTimer",
+    TERMINATE_DEATH_WAIT * (gNumLinks/100+1), (void (*)(void *)) DoExit, (void *) &gBackground);
+  TimerStart(&gDeathTimer);
 }
 
 /*

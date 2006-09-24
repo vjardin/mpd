@@ -446,20 +446,28 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
   /* Do whatever */
   Log(LG_PHYS, ("[%s] idle script succeeded, action=%s",
     lnk->name, idleResult));
-  if (strcasecmp(idleResult, MODEM_IDLE_RESULT_ANSWER) == 0) {
-    Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "answer"));
-    RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, msg ? "%s" : "", msg);
-    m->answering = TRUE;
-    BundOpenLink(lnk);
-  } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
-    Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "ringback"));
-    RecordLinkUpDownReason(NULL, 1, STR_RINGBACK, msg ? "%s" : "", msg);
-    m->answering = FALSE;
-    BundOpenLink(lnk);
-  } else {
-    Log(LG_ERR, ("[%s] idle script succeeded, but action \"%s\" unknown",
-      lnk->name, idleResult));
+
+  if (gShutdownInProgress) {
+    Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
     ModemDoClose(m, FALSE);
+  }
+  else
+  {
+    if (strcasecmp(idleResult, MODEM_IDLE_RESULT_ANSWER) == 0) {
+      Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "answer"));
+      RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, msg ? "%s" : "", msg);
+      m->answering = TRUE;
+      BundOpenLink(lnk);
+    } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
+      Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "ringback"));
+      RecordLinkUpDownReason(NULL, 1, STR_RINGBACK, msg ? "%s" : "", msg);
+      m->answering = FALSE;
+      BundOpenLink(lnk);
+    } else {
+      Log(LG_ERR, ("[%s] idle script succeeded, but action \"%s\" unknown",
+        lnk->name, idleResult));
+      ModemDoClose(m, FALSE);
+    }
   }
   Freee(MB_CHAT, idleResult);
 }

@@ -726,6 +726,12 @@ PptpCtrlListenEvent(int type, void *cookie)
   Log(LG_PPTP, ("mpd: PPTP connection from %s:%u",
     inet_ntoa(peer.sin_addr), (u_short) ntohs(peer.sin_port)));
 
+  if (gShutdownInProgress) {
+    Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
+    close(sock);
+    return;
+  }
+
   /* Initialize a new control block */
   if ((c = PptpCtrlGetCtrl(FALSE, any, peer.sin_addr, ntohs(peer.sin_port),
     ebuf, sizeof(ebuf))) == NULL) {
