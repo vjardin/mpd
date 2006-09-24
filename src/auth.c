@@ -583,10 +583,14 @@ AuthAccountStart(int type)
       && !Enabled(&bund->conf.auth.options, AUTH_CONF_UTMP_WTMP))
     return;
 
-  if (type == AUTH_ACCT_START) {
+  if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
   
     /* maybe an outstanding thread is running */
     paction_cancel(&a->acct_thread);
+    
+  }
+
+  if (type == AUTH_ACCT_START) {
     
     if (a->params.acct_update > 0)
       updateInterval = a->params.acct_update;
@@ -686,12 +690,14 @@ AuthAccountFinish(void *arg, int was_canceled)
   AuthData	auth = (AuthData)arg;
   char		*av[1];
 
+  if (was_canceled)
+    Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
+      auth->lnk->name));
+    
   /* Cleanup */
   RadiusClose(auth);
   
   if (was_canceled) {
-    Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread canceled", 
-      auth->lnk->name));
     AuthDataDestroy(auth);
     return;
   }  
@@ -903,11 +909,13 @@ AuthAsyncFinish(void *arg, int was_canceled)
   Auth		a;
   char		*av[1];
 
+  if (was_canceled)
+    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->lnk->name));
+
   /* cleanup */
   RadiusClose(auth);
   
   if (was_canceled) {
-    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread canceled", auth->lnk->name));
     AuthDataDestroy(auth);
     return;
   }  
