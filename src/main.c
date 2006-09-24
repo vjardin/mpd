@@ -216,8 +216,7 @@ main(int ac, char *av[])
   }
   GIANT_MUTEX_UNLOCK();
 
-  while(1)
-    sleep(10000000);
+  pthread_exit(NULL);
 
   assert(0);
   return(1);	/* Never reached, but needed to silence compiler warning */
