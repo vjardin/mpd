@@ -22,26 +22,30 @@
   struct mpmsg
   {
     long	type;
+    void	(*func)(int type, void *arg);
     void	*arg;
+    Bund	bund;
+    Link	lnk;
   };
   typedef struct mpmsg	*Msg;
 
   struct msghandler
   {
-    int		pipe[2];
     int		prio;
     void	(*func)(int type, void *arg);
-    EventRef	event;
     Bund	bund;
     Link	lnk;
   };
+
+  int		msgpipe[2];
+  EventRef	msgevent;
 
 /*
  * INTERNAL FUNCTIONS
  */
 
   static void	MsgEvent(int type, void *cookie);
-  static void	MsgReregister(MsgHandler m);
+  static void	MsgReregister();
 
 /*
  * MsgRegister()
@@ -51,20 +55,23 @@ MsgHandler
 MsgRegister(void (*func)(int type, void *arg), int prio)
 {
   MsgHandler	m;
-
+  
   m = Malloc(MB_UTIL, sizeof(*m));
-  if (pipe(m->pipe) < 0)
-  {
-    Log(LG_ERR, ("mpd: pipe: %s", strerror(errno)));
-    DoExit(EX_ERRDEAD);
-  }
-  fcntl(m->pipe[PIPE_READ], F_SETFD, 1);
-  fcntl(m->pipe[PIPE_WRITE], F_SETFD, 1);
   m->prio = prio;
   m->func = func;
   m->bund = bund;
   m->lnk = lnk;
-  MsgReregister(m);
+
+  if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
+    if (pipe(msgpipe) < 0)
+    {
+	Log(LG_ERR, ("mpd: pipe: %s", strerror(errno)));
+	DoExit(EX_ERRDEAD);
+    }
+    fcntl(msgpipe[PIPE_READ], F_SETFD, 1);
+    fcntl(msgpipe[PIPE_WRITE], F_SETFD, 1);
+    MsgReregister();
+  }
   return(m);
 }
 
@@ -75,9 +82,6 @@ MsgRegister(void (*func)(int type, void *arg), int prio)
 void
 MsgUnRegister(MsgHandler *m)
 {
-  close((*m)->pipe[PIPE_WRITE]);
-  close((*m)->pipe[PIPE_READ]);
-  EventUnRegister(&(*m)->event);
   Freee(MB_UTIL, *m);
   *m = NULL;
 }
@@ -89,15 +93,12 @@ MsgUnRegister(MsgHandler *m)
 static void
 MsgEvent(int type, void *cookie)
 {
-  MsgHandler	const m = (MsgHandler) cookie;
   int		nread, nrode;
   struct mpmsg	msg;
 
-  lnk = m->lnk;
-  bund = m->bund;
   for (nrode = 0; nrode < sizeof(msg); nrode += nread)
   {
-    if ((nread = read(m->pipe[PIPE_READ],
+    if ((nread = read(msgpipe[PIPE_READ],
       (u_char *) &msg + nrode, sizeof(msg) - nrode)) < 0)
     {
       Log(LG_ERR, ("mpd: %s: read: %s", __FUNCTION__, strerror(errno)));
@@ -109,8 +110,10 @@ MsgEvent(int type, void *cookie)
       DoExit(EX_ERRDEAD);
     }
   }
-  (*m->func)(msg.type, msg.arg);
-  MsgReregister(m);
+  lnk = msg.lnk;
+  bund = msg.bund;
+  (*msg.func)(msg.type, msg.arg);
+  MsgReregister();
 }
 
 /*
@@ -126,9 +129,12 @@ MsgSend(MsgHandler m, int type, void *arg)
   if (m == NULL)
     return;
   msg.type = type;
+  msg.func = m->func;
   msg.arg = arg;
+  msg.bund = m->bund;
+  msg.lnk = m->lnk;
   for (nwrote = 0; nwrote < sizeof(msg); nwrote += nw)
-    if ((nw = write(m->pipe[PIPE_WRITE],
+    if ((nw = write(msgpipe[PIPE_WRITE],
       (u_char *) &msg + nwrote, sizeof(msg) - nwrote)) < 0)
     {
       Perror("MsgSend: write");
@@ -141,10 +147,10 @@ MsgSend(MsgHandler m, int type, void *arg)
  */
 
 static void
-MsgReregister(MsgHandler m)
+MsgReregister()
 {
-  if (EventRegister(&m->event, EVENT_READ,
-    m->pipe[PIPE_READ], 0, MsgEvent, m) < 0)
+  if (EventRegister(&msgevent, EVENT_READ,
+    msgpipe[PIPE_READ], 0, MsgEvent, NULL) < 0)
   {
     Log(LG_ERR, ("mpd: can't register event"));
     DoExit(EX_ERRDEAD);
