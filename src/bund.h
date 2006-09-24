@@ -178,6 +178,7 @@
   extern void	BundLinkGaveUp(void);
   extern void	BundOpenLinks(void);
   extern void	BundCloseLinks(void);
+  extern void	BundOpenLink(Link);
 
 #endif
 

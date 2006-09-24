@@ -807,7 +807,7 @@ PppoeListenEvent(int type, void *arg)
 		TimerStart(&p->connectTimer);
 
 		RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
-		LinkOpen(lnk);
+		BundOpenLink(lnk);
 
 		/* Done. */
 		break;

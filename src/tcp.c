@@ -451,7 +451,7 @@ TcpAcceptEvent(int type, void *cookie)
 	Log(LG_PHYS, ("[%s] connected with %s:%u", lnk->name,
 	    inet_ntoa(ac.sin.sin_addr), ntohs(ac.sin.sin_port)));
 	RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
-	LinkOpen(lnk);
+	BundOpenLink(lnk);
 
 	return;
 

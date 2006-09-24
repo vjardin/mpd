@@ -450,12 +450,12 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
     Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "answer"));
     RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, msg ? "%s" : "", msg);
     m->answering = TRUE;
-    LinkOpen(lnk);
+    BundOpenLink(lnk);
   } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
     Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "ringback"));
     RecordLinkUpDownReason(NULL, 1, STR_RINGBACK, msg ? "%s" : "", msg);
     m->answering = FALSE;
-    LinkOpen(lnk);
+    BundOpenLink(lnk);
   } else {
     Log(LG_ERR, ("[%s] idle script succeeded, but action \"%s\" unknown",
       lnk->name, idleResult));

@@ -73,7 +73,6 @@
   static void	BundUpNcps(void);
   static void	BundDownNcps(void);
 
-  static void	BundOpenLink(Link l);
   static void	BundReOpenLinks(void *arg);
   static void	BundCloseLink(Link l);
 
@@ -433,12 +432,12 @@ BundOpenLinks(void)
  * BundOpenLink()
  */
 
-static void
+void
 BundOpenLink(Link l)
 {
-  Log(LG_BUND, ("[%s] opening link \"%s\"...", bund->name, l->name));
+  Log(LG_BUND, ("[%s] opening link \"%s\"...", l->bund->name, l->name));
   LinkOpen(l);
-  bund->bm.links_open = 1;
+  l->bund->bm.links_open = 1;
   l->bm.last_open = time(NULL);
 }
 
@@ -471,9 +470,9 @@ BundCloseLinks(void)
 static void
 BundCloseLink(Link l)
 {
-  Log(LG_BUND, ("[%s] closing link \"%s\"...", bund->name, l->name));
+  Log(LG_BUND, ("[%s] closing link \"%s\"...", l->bund->name, l->name));
   LinkClose(l);
-  bund->bm.last_close = time(NULL);
+  l->bund->bm.last_close = time(NULL);
 }
 
 /*
