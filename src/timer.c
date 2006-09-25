@@ -53,6 +53,28 @@ TimerStart(PppTimer timer)
 }
 
 /*
+ * TimerStartRecurring()
+ */
+
+void
+TimerStartRecurring(PppTimer timer)
+{
+
+  /* Stop timer if running */
+  assert(timer->init);
+  if (timer->event != NULL)
+    EventUnRegister(&timer->event);
+
+  /* Save "context" for this timer */
+  timer->lnk = lnk;
+  timer->bund = bund;
+
+  /* Register timeout event */
+  EventRegister(&timer->event, EVENT_TIMEOUT,
+    timer->load, EVENT_RECURRING, TimerExpires, timer);
+}
+
+/*
  * TimerExpires()
  */
 

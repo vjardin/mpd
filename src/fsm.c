@@ -181,7 +181,7 @@ FsmNewState(Fsm fp, int new)
     memset(&fp->idleStats, 0, sizeof(fp->idleStats));
     TimerInit(&fp->echoTimer, "FsmKeepAlive",
       fp->conf.echo_int * SECONDS, FsmEchoTimeout, fp);
-    TimerStart(&fp->echoTimer);
+    TimerStartRecurring(&fp->echoTimer);
   }
 }
 
@@ -1347,7 +1347,6 @@ FsmEchoTimeout(void *arg)
     fp->quietCount++;
 
   /* See if peer hasn't responded for too many requests */
-  TimerStop(&fp->echoTimer);
   switch (fp->quietCount) {
 
       /* Peer failed to reply to previous echo request */
@@ -1358,6 +1357,7 @@ FsmEchoTimeout(void *arg)
 
       /* Has peer failed to reply for maximum allowable interval? */
       if (fp->quietCount * fp->conf.echo_int >= fp->conf.echo_max) {
+	TimerStop(&fp->echoTimer);
 	FsmFailure(fp, FAIL_ECHO_TIMEOUT);
 	break;
       }
@@ -1366,7 +1366,6 @@ FsmEchoTimeout(void *arg)
       FsmSendEchoReq(fp, NULL);
       /* fall through */
     case 0:
-      TimerStart(&fp->echoTimer);
       break;
   }
 }

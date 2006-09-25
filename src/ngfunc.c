@@ -193,6 +193,8 @@
   static uint32_t gNetflowInactive = 0;
   static uint32_t gNetflowActive = 0;
   #endif
+  
+  static int	gNgStatSock=0;
 
 /*
  * NgFuncInit()
@@ -1249,15 +1251,22 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
   int token, len;
   int ret = 0;
 
-  /* Suspend the read event for avoiding race conditions */
-  EventUnRegister(&bund->ctrlEvent);
+  if (!gNgStatSock) {
+    /* Create a netgraph socket node */
+    if (NgMkSockNode(NULL, &gNgStatSock, NULL) < 0) {
+      Log(LG_ERR, ("can't create %s node: %s",
+    	NG_SOCKET_NODE_TYPE, strerror(errno)));
+      return(0);
+    }
+    (void) fcntl(gNgStatSock, F_SETFD, 1);
+  }
 
   /* Send message */
-  if ((token = NgSendMsg(bund->csock, path, cookie, cmd, args, arglen)) < 0)
+  if ((token = NgSendMsg(gNgStatSock, path, cookie, cmd, args, arglen)) < 0)
     goto fail;
 
   /* Read message */
-  if ((len = NgRecvMsg(bund->csock, rbuf, replen, raddr)) < 0) {
+  if ((len = NgRecvMsg(gNgStatSock, rbuf, replen, raddr)) < 0) {
     Log(LG_ERR, ("[%s] can't read unexpected message: %s",
       bund->name, strerror(errno)));
     goto fail;
@@ -1268,8 +1277,6 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
 fail:
   ret = -1;
 done:
-  EventRegister(&bund->ctrlEvent, EVENT_READ, bund->csock, 
-    EVENT_RECURRING, NgFuncCtrlEvent, bund);
   return ret;
 
 }
@@ -1396,10 +1403,12 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
       struct ng_mesg		reply;
   }				u;
   int				cmd;
+  char                          path[NG_PATHLEN + 1];
 
   /* Get stats */
   cmd = clear ? NGM_PPP_GETCLR_LINK_STATS : NGM_PPP_GET_LINK_STATS;
-  if (NgFuncSendQuery(MPD_HOOK_PPP, NGM_PPP_COOKIE, cmd,
+  snprintf(path, sizeof(path), "mpd%d-%s:", getpid(), bund->name);
+  if (NgFuncSendQuery(path, NGM_PPP_COOKIE, cmd,
        &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
       bund->name, linkNum, strerror(errno)));

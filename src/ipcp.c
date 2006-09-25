@@ -216,7 +216,7 @@ IpcpStat(int ac, char *av[], void *arg)
   OptStat(&ipcp->conf.options, gConfList);
 
   /* Get VJC state */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
+  snprintf(path, sizeof(path), "mpd%d-%s:%s", getpid(), bund->name, NG_PPP_HOOK_VJC_IP);
   if (NgFuncSendQuery(path, NGM_VJC_COOKIE, NGM_VJC_GET_STATE,
       NULL, 0, &u.reply, sizeof(u), NULL) < 0)
     return(0);

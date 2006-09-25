@@ -42,6 +42,7 @@
   extern void	TimerInit(PppTimer timer, const char *desc,
 		  int load, void (*handler)(void *), void *arg);
   extern void	TimerStart(PppTimer t);
+  extern void	TimerStartRecurring(PppTimer t);
   extern int	TimerRemain(PppTimer t);
 
 #endif
