@@ -81,7 +81,7 @@
   static void	IfaceCachePkt(int proto, Mbuf pkt);
   static int	IfaceIsDemand(int proto, Mbuf pkt);
 
-  static int	IfaceAllocACL (struct acl_pool **ap, int start, char * ifname, int number);
+  static int	IfaceAllocACL (struct acl_pool ***ap, int start, char * ifname, int number);
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
   static char *	IFaceParseACL (char * src, char * ifname);
   #ifndef USE_NG_TCPMSS
@@ -427,7 +427,7 @@ IfaceListenOutput(int proto, Mbuf pkt)
  */
 
 static int
-IfaceAllocACL(struct acl_pool **ap, int start, char *ifname, int number)
+IfaceAllocACL(struct acl_pool ***ap, int start, char *ifname, int number)
 {
     int	i;
     struct acl_pool **rp,*rp1;
@@ -436,7 +436,7 @@ IfaceAllocACL(struct acl_pool **ap, int start, char *ifname, int number)
     strncpy(rp1->ifname, ifname, IFNAMSIZ);
     rp1->acl_number = number;
 
-    rp = ap;
+    rp = *ap;
     i = start;
     while (*rp != NULL && (*rp)->real_number <= i) {
         i = (*rp)->real_number+1;
@@ -449,6 +449,7 @@ IfaceAllocACL(struct acl_pool **ap, int start, char *ifname, int number)
     };
     rp1->real_number = i;
     *rp = rp1;
+    *ap = rp;
     return(i);
 };
 
@@ -548,6 +549,8 @@ IfaceIpIfaceUp(int ready)
   u_char		*ether;
   struct radius_acl	*acls;
   char			*buf;
+  struct acl_pool 	**poollast;
+  int 			poollaststart;
 
   /* Sanity */
   assert(!iface->ip_up);
@@ -610,18 +613,27 @@ IfaceIpIfaceUp(int ready)
 
   /* Allocate ACLs */
   acls = a->radius.acl_pipe;
+  poollast = &pipe_pool;
+  poollaststart = pipe_pool_start;
   while (acls != NULL) {
-    acls->real_number = IfaceAllocACL(&pipe_pool, pipe_pool_start, iface->ifname, acls->number);
+    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
+    poollaststart = acls->real_number;
     acls = acls->next;
   };
   acls = a->radius.acl_queue;
+  poollast = &queue_pool;
+  poollaststart = queue_pool_start;
   while (acls != NULL) {
-    acls->real_number = IfaceAllocACL(&queue_pool, queue_pool_start, iface->ifname, acls->number);
+    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
+    poollaststart = acls->real_number;
     acls = acls->next;
   };
   acls = a->radius.acl_rule;
+  poollast = &rule_pool;
+  poollaststart = rule_pool_start;
   while (acls != NULL) {
-    acls->real_number = IfaceAllocACL(&rule_pool, rule_pool_start, iface->ifname, acls->number);
+    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
+    poollaststart = acls->real_number;
     acls = acls->next;
   };
 
