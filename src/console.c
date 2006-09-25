@@ -486,9 +486,9 @@ ConsoleSessionWriteEvent(int type, void *cookie)
   char			buf[MAX_CONSOLE_BUF_LEN];
 
   if ((written = write(cs->fd, cs->writebuf, cs->writebuf_len)) <= 0) {
-    if (written < 0 && errno != EAGAIN) {
-      Log(LG_ERR, ("CONSOLE: Error writing to console %s", strerror(errno)));
-    }
+//    if (written < 0 && errno != EAGAIN) {
+//      Log(LG_ERR, ("CONSOLE: Error writing to console %s", strerror(errno)));
+//    }
     return;
   }
 
