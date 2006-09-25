@@ -485,7 +485,8 @@ static int
 QuitCommand(int ac, char *av[], void *arg)
 {
   RecordLinkUpDownReason(NULL, 0, STR_QUIT, NULL);
-  DoExit(EX_NORMAL);
+  SendSignal(SIGTERM);
+  exitflag = TRUE;
   return(0);
 }
 

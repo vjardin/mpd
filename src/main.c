@@ -99,7 +99,6 @@
   static Option		OptDecode(char *arg, int longform);
   static void		EventWarnx(const char *fmt, ...);
 
-  static void		SendSignal(int sig);
   static void		OpenSignal(int sig);
   static void		CloseSignal(int sig);
   static void		FatalSignal(int sig);
@@ -325,8 +324,8 @@ DoExit(int code)
  * wich isn't re-entrant
  */
 
-static void
-SendSignal(sig)
+void
+SendSignal(int sig)
 {
   if (sig == SIGSEGV || sig == SIGBUS || sig == SIGABRT) {
     FatalSignal(sig);

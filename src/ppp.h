@@ -129,6 +129,7 @@
  */
 
   extern void		Greetings(void);
+  extern void		SendSignal(int sig);
   extern void		DoExit(int code);
   extern void		DoAssert(const char *file, int line, const char *x);
 
