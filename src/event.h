@@ -42,6 +42,7 @@
   extern int	EventUnRegister(EventRef *ref);
   extern int	EventIsRegistered(EventRef *ref);
   extern int	EventTimerRemain(EventRef *ref);
+  extern int    EventIsCtxThread(void);
   extern void	EventDump(const char *msg);
 
   extern void	EventSetLog(int sanity, void (*warnx)(const char *fmt, ...));

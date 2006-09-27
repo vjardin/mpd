@@ -291,17 +291,22 @@ vLogPrintf(const char *fmt, va_list args)
     fflush(stdout);
   } 
 
-  if (gConsoleSession) {
-    gConsoleSession->write(gConsoleSession, "%s\r\n", buf);
+  // Console is not thread safe! 
+  // Do not call it in a different thread!
+  if (EventIsCtxThread()) 
+  {
+    if (gConsoleSession) {
+	gConsoleSession->write(gConsoleSession, "%s\r\n", buf);
     
-  } else {
-    struct ghash_walk	walk;
-    ConsoleSession	s;
+    } else {
+	struct ghash_walk	walk;
+	ConsoleSession	s;
 
-    ghash_walk_init(gConsole.sessions, &walk);
-    while ((s = ghash_walk_next(gConsole.sessions, &walk)) !=  NULL)
-      if (Enabled(&s->options, CONSOLE_LOGGING))
-	s->write(s, "%s\r\n", buf);
+	ghash_walk_init(gConsole.sessions, &walk);
+	while ((s = ghash_walk_next(gConsole.sessions, &walk)) !=  NULL)
+          if (Enabled(&s->options, CONSOLE_LOGGING))
+	    s->write(s, "%s\r\n", buf);
+    }
   }
 }
 

@@ -22,6 +22,7 @@
  */
 
   static struct pevent_ctx *gPeventCtx = NULL;
+  static pthread_t  	gCtxThread = NULL;
 
   static void   (*gWarnx)(const char *fmt, ...) = warnx;
 
@@ -218,5 +219,14 @@ EventHandler(void *arg)
 {
   EventRef	ev = (EventRef) arg;
 
+  gCtxThread = pthread_self();
   (ev->handler)(ev->type, ev->arg);
+}
+
+int
+EventIsCtxThread(void)
+{
+  if (!gCtxThread) 
+    return 0;
+  return pthread_equal(gCtxThread,pthread_self());
 }
