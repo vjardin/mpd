@@ -34,7 +34,6 @@
   static int		AuthGetExternalPassword(AuthData auth);
   static void		AuthAsync(void *arg);
   static void		AuthAsyncFinish(void *arg, int was_canceled);
-  static void		AuthAsyncGetBack(int type, void *cookie);
   static int		AuthPreChecks(AuthData auth, int complain);
   static void		AuthAccountTimeout(void *a);
   static void		AuthAccount(void *arg);
@@ -609,7 +608,7 @@ AuthAccountStart(int type)
   strncpy(auth->authname, lnk->peer_authname, sizeof(auth->authname));
   auth->acct_type = type;
 
-  if (paction_start(&a->acct_thread, NULL, AuthAccount, 
+  if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
     AuthAccountFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
       lnk->name, errno));
@@ -689,7 +688,7 @@ static void
 AuthAccountFinish(void *arg, int was_canceled)
 {
   AuthData	auth = (AuthData)arg;
-  int		k;
+  char		*av[1];
 
   if (was_canceled)
     Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
@@ -703,18 +702,19 @@ AuthAccountFinish(void *arg, int was_canceled)
     return;
   }  
 
-    /* Copy back modified data. */
-  for (k = 0; 
-    k < gNumLinks && (!gLinks[k] || strcmp(gLinks[k]->name, auth->lnk->name));
-    k++);
-
-  if (k != gNumLinks) {
-    gLinks[k]->stats.old_recvOctets = auth->lnk->stats.old_recvOctets;
-    gLinks[k]->stats.old_xmitOctets = auth->lnk->stats.old_xmitOctets;
-  }
+  av[0] = auth->lnk->name;
+  /* Re-Activate lnk and bund */
+  if (LinkCommand(1, av, NULL) == -1) {
+    AuthDataDestroy(auth);
+    return;
+  }    
 
   Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
     auth->lnk->name));
+
+  /* Copy back modified data. */
+  lnk->stats.old_recvOctets = auth->lnk->stats.old_recvOctets;
+  lnk->stats.old_xmitOctets = auth->lnk->stats.old_xmitOctets;
 
   AuthDataDestroy(auth);
 }
@@ -816,7 +816,7 @@ AuthAsyncStart(AuthData auth)
     Freee(MB_AUTH, auth->lnk);
   }
   auth->lnk = LinkCopy();
-  if (paction_start(&a->thread, NULL, AuthAsync, 
+  if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
     AuthAsyncFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Auth-Thread %d", 
       lnk->name, errno));
@@ -894,7 +894,6 @@ AuthAsync(void *arg)
   Log(LG_ERR, ("[%s] AUTH: ran out of backends", lnk->name));
   auth->status = AUTH_STATUS_FAIL;
   auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
- 
 }
 
 /*
@@ -907,42 +906,29 @@ static void
 AuthAsyncFinish(void *arg, int was_canceled)
 {
   AuthData	auth = (AuthData)arg;
+  Auth		a;
+  char		*av[1];
+
+  if (was_canceled)
+    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->lnk->name));
 
   /* cleanup */
   RadiusClose(auth);
   
   if (was_canceled) {
-    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->lnk->name));
     AuthDataDestroy(auth);
     return;
   }  
   
-  EventRegister(&auth->getbackev, EVENT_TIMEOUT,
-      0, 0, AuthAsyncGetBack, auth);
-  Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", auth->lnk->name));
+  av[0] = auth->lnk->name;
+  /* Re-Activate lnk and bund */
+  if (LinkCommand(1, av, NULL) == -1) {
+    AuthDataDestroy(auth);
+    return;
+  }    
 
-}
-
-/*
- * AuthAsyncGetBack()
- * 
- * Return auth from the auth thread to the main
- */
- 
-static void
-AuthAsyncGetBack(int type, void *cookie)
-{
-  AuthData      auth = (AuthData)cookie;
-  int		k;
-
-  EventUnRegister(&auth->getbackev);
-
-    /* Copy back modified data. */
-  for (k = 0; 
-    k < gNumLinks && (!gLinks[k] || strcmp(gLinks[k]->name, auth->lnk->name));
-    k++);
-  lnk = gLinks[k];
-  bund = lnk->bund;
+  Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", lnk->name));
+  a = &lnk->lcp.auth;
 
   /* copy back modified data */
   lnk->lcp.auth.authentic = auth->lnk->lcp.auth.authentic;

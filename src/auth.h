@@ -163,7 +163,6 @@
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */
     void		(*finish)(struct authdata *auth); /* Finish handler */
     int			acct_type;	/* Accounting type, Start, Stop, Update */
-    EventRef        	getbackev;	/* Event to get back to main thread */
     struct {
       struct rad_handle	*handle;	/* the RADIUS handle */
       char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
