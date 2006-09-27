@@ -254,7 +254,7 @@ PppoeOpen(PhysInfo p)
 	(void)fcntl(pe->csock, F_SETFD, 1);
 
 	/* Connect our ng_ppp(4) node link hook to the ng_pppoe(4) node. */
-	snprintf(session_hook, sizeof(session_hook), "mpd%d-%s", getpid(),
+	snprintf(session_hook, sizeof(session_hook), "mpd%d-%s", gPid,
 	    lnk->name);
 	snprintf(path, sizeof(path), "%s%s", pe->path, pe->hook);
 	snprintf(linkHook, sizeof(linkHook), "%s%d", NG_PPP_HOOK_LINK_PREFIX,
@@ -345,7 +345,7 @@ PppoeShutdown(PhysInfo p)
 
 	snprintf(path, sizeof(path), "%s%s", pe->path, pe->hook);
 	snprintf(session_hook, sizeof(session_hook), "mpd%d-%s",
-	    getpid(), lnk->name);
+	    gPid, lnk->name);
 	NgFuncDisconnect(path,session_hook);
 
 	EventUnRegister(&pe->ctrlEvent);
@@ -714,7 +714,7 @@ PppoeListenEvent(int type, void *arg)
 
 		/* Create ng_tee(4) node and connect it to ng_pppoe(4). */
 		snprintf(session_hook, sizeof(session_hook), "mpd%d-%s",
-		    getpid(), lnk->name);
+		    gPid, lnk->name);
 		snprintf(path, sizeof(path), "%s%s", p->path, p->hook);
 		snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
 		snprintf(mp.ourhook, sizeof(mp.ourhook), session_hook);

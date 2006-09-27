@@ -496,7 +496,7 @@ PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink,
 
   /* Generate semi-random call ID */
 #ifdef RANDOMIZE_CID
-  gLastCallId = (u_short) (gStartTime ^ (getpid() << 5));
+  gLastCallId = (u_short) (gStartTime ^ (gPid << 5));
 #endif
 
   /* Sanity check structure lengths and valid state bits */

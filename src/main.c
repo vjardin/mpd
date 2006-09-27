@@ -79,6 +79,7 @@
   struct console	gConsole;
   int			gBackground = FALSE;
   int			gShutdownInProgress = FALSE;
+  pid_t          	gPid;
 
   struct globalconf	gGlobalConf;
 
@@ -125,6 +126,8 @@ main(int ac, char *av[])
 {
   int	ret;
   char	*args[MAX_ARGS];
+
+  gPid=getpid();
 
   /* enable libpdel typed_mem */
   typed_mem_enable();
@@ -231,7 +234,7 @@ Greetings(void)
 {
   LogStdout("Multi-link PPP for FreeBSD, by Archie L. Cobbs.");
   LogStdout("Based on iij-ppp, by Toshiharu OHNO.");
-  Log(LG_ALWAYS, ("mpd: pid %lu, version %s", (u_long) getpid(), gVersion));
+  Log(LG_ALWAYS, ("mpd: pid %lu, version %s", (u_long) gPid, gVersion));
 }
 
 /*
@@ -310,7 +313,7 @@ DoExit(int code)
   }
 
   /* Remove our PID file and exit */
-  Log(LG_ALWAYS, ("mpd: process %d terminated", getpid()));
+  Log(LG_ALWAYS, ("mpd: process %d terminated", gPid));
   LogClose();
   (void) unlink(gPidFile);
   exit(code == EX_TERMINATE ? EX_NORMAL : code);

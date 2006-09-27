@@ -768,7 +768,7 @@ UuLock(const char *ttyname)
 
 /* Finish the locking process */
 
-  sprintf(pid_buf, "%10u\n", (int) getpid());
+  sprintf(pid_buf, "%10u\n", (int) gPid);
   if (write(fd, pid_buf, strlen(pid_buf)) != strlen(pid_buf))
   {
     (void)close(fd);
@@ -840,7 +840,7 @@ GenerateMagic(void)
   time(&now);
   gettimeofday(&tval, NULL);
   now += (tval.tv_sec ^ tval.tv_usec) + getppid();
-  now *= getpid();
+  now *= gPid;
   return(now);
 }
 
@@ -940,7 +940,7 @@ PIDCheck(const char *filename, int killem)
 /* Write my PID in there */
 
   rewind(lockFp);
-  fprintf(lockFp, "%u\n", (u_int) getpid());
+  fprintf(lockFp, "%u\n", (u_int) gPid);
   fflush(lockFp);
   (void) ftruncate(fileno(lockFp), ftell(lockFp));
   return(0);

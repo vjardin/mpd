@@ -220,7 +220,7 @@ PhysMsg(int type, void *arg)
 	if (TimerRemain(&p->openTimer) < 0) {
 	  int	delay = p->type->minReopenDelay - (now - p->lastClose);
 
-	  if ((random() ^ getpid() ^ time(NULL)) & 1)
+	  if ((random() ^ gPid ^ time(NULL)) & 1)
 		delay++;
 	  else if (delay > 1)
 		delay--;

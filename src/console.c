@@ -407,7 +407,7 @@ notfound:
 
 	cs->state = STATE_AUTHENTIC;
 	cs->write(cs, "\r\nmpd: pid %lu, version %s\r\n", 
-		(u_long) getpid(), gVersion);
+		(u_long) gPid, gVersion);
 	goto success;
 
 failed:

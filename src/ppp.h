@@ -107,6 +107,7 @@
   extern ConsoleSession	gConsoleSession;	/* currently active console-session */
   extern int		gBackground;
   extern int		gShutdownInProgress;
+  extern pid_t		gPid;
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 

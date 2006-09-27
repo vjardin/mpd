@@ -278,7 +278,7 @@ IfaceUp(struct in_addr self, struct in_addr peer)
 
     /* Reset bpf node statistics */
     memset(&iface->idleStats, 0, sizeof(iface->idleStats));
-    snprintf(path, sizeof(path), "mpd%d-%s:%s", getpid(), bund->name,
+    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
 	NG_PPP_HOOK_INET);
     if (NgSendMsg(bund->csock, path, NGM_BPF_COOKIE,
 	NGM_BPF_CLR_STATS, BPF_HOOK_IFACE, sizeof(BPF_HOOK_IFACE)) < 0)
@@ -837,7 +837,7 @@ IfaceIdleTimeout(void *arg)
 
   /* Get updated bpf node traffic statistics */
   oldStats = iface->idleStats;
-  snprintf(path, sizeof(path), "mpd%d-%s:%s", getpid(), bund->name,
+  snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
       NG_PPP_HOOK_INET);
   if (NgFuncSendQuery(path, NGM_BPF_COOKIE, NGM_BPF_GET_STATS, BPF_HOOK_IFACE,
       sizeof(BPF_HOOK_IFACE), &u.reply, sizeof(u), NULL) < 0) {

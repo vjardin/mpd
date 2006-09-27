@@ -279,7 +279,7 @@ NgFuncInit(Bund b, const char *reqIface)
   newPpp = 1;
 
   /* Give it a name */
-  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", getpid(), b->name);
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, b->name);
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
     Log(LG_ERR, ("[%s] can't name %s node: %s",
@@ -342,7 +342,7 @@ NgFuncInit(Bund b, const char *reqIface)
     /* Create global ng_netflow(4) node if not yet. */
     if (gNetflowNode == FALSE) {
 
-      snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-netflow", getpid());
+      snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-netflow", gPid);
 
       struct ngm_mkpeer	mp;
       struct ngm_rmhook	rm;
@@ -552,7 +552,7 @@ NgFuncInit(Bund b, const char *reqIface)
     }
 
     /* Set the new node's name. */
-    snprintf(nm.name, sizeof(nm.name), "mpd%d-mss", getpid());
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-mss", gPid);
     if (NgSendMsg(b->csock, TEMPHOOK,
         NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
       Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
@@ -563,7 +563,7 @@ NgFuncInit(Bund b, const char *reqIface)
   }
   /* Connect ng_bpf(4) node to the ng_tcpmss(4) node. */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-  snprintf(cn.path, sizeof(cn.path), "mpd%d-mss:", getpid());
+  snprintf(cn.path, sizeof(cn.path), "mpd%d-mss:", gPid);
   snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_TCPMSS_IN);
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s-in", b->name);
   if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
@@ -806,7 +806,7 @@ NgFuncConfigBPF(Bund b, int mode)
   char				path[NG_PATHLEN + 1];
 
   /* Get absolute path to bpf node */
-  snprintf(path, sizeof(path), "mpd%d-%s:%s", getpid(), b->name,
+  snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, b->name,
       NG_PPP_HOOK_INET);
 
   /* First, configure the hook on the interface node side of the BPF node */
@@ -1407,7 +1407,7 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
 
   /* Get stats */
   cmd = clear ? NGM_PPP_GETCLR_LINK_STATS : NGM_PPP_GET_LINK_STATS;
-  snprintf(path, sizeof(path), "mpd%d-%s:", getpid(), bund->name);
+  snprintf(path, sizeof(path), "mpd%d-%s:", gPid, bund->name);
   if (NgFuncSendQuery(path, NGM_PPP_COOKIE, cmd,
        &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
@@ -1525,7 +1525,7 @@ NgFuncConfigTCPMSS(Bund b, uint16_t maxMSS)
   struct	ng_tcpmss_config tcpmsscfg;
   char		path[NG_PATHLEN];
 
-  snprintf(path, sizeof(path), "mpd%d-mss:", getpid());
+  snprintf(path, sizeof(path), "mpd%d-mss:", gPid);
 
   /* Send configure message. */
   memset(&tcpmsscfg, 0, sizeof(tcpmsscfg));
