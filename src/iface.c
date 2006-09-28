@@ -713,7 +713,6 @@ static void
 IfaceIpIfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
-  Auth		const a = &lnk->lcp.auth;
   int		k;
   struct acl_pool	**rp, *rp1;
   char		cb[32768];
@@ -797,10 +796,7 @@ IfaceIpIfaceDown(void)
     r->ok = 0;
   }
 
-  /* XXX mbretter why? */
-  if (a->params.n_routes > 0) {
-    iface->n_routes = 0;
-  };
+  iface->n_routes = iface->n_routes_static;
 
   /* Delete loopback route */
   ExecCmd(LG_IFACE2, "%s delete %s -iface lo0",
@@ -1121,6 +1117,7 @@ IfaceSetCommand(int ac, char *av[], void *arg)
 	  htonl(~0 << (32 - range.width)) : 0;
 	r.dest.s_addr = (range.ipaddr.s_addr & r.netmask.s_addr);
 	iface->routes[iface->n_routes++] = r;
+	iface->n_routes_static = iface->n_routes;
       }
       break;
 

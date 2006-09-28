@@ -1051,6 +1051,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	for (i = 0;i < a->params.n_routes; i++) {
 	  if ((r.dest.s_addr == a->params.routes[i].dest.s_addr)
 	      && (r.netmask.s_addr == a->params.routes[i].netmask.s_addr))
+	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", lnk->name, __func__));
 	    j = 1;
 	};
 	if (j == 0)

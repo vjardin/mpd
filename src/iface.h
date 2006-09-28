@@ -64,6 +64,7 @@
     u_int		idle_timeout;		/* Idle timeout */
     u_int		session_timeout;	/* Session timeout */
     short		n_routes;
+    short		n_routes_static;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
     struct in_addr	self_addr;		/* Interface's IP address */
     struct in_addr	peer_addr;		/* Peer's IP address */
