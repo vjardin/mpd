@@ -120,7 +120,7 @@ static void	PppoeConnectTimeout(void *arg);
 static void	PppoeStat(PhysInfo p);
 static int	PppoeSetCommand(int ac, char *av[], void *arg);
 static int	PppoeOriginated(PhysInfo p);
-static void	PppoeNodeUpdate(void);
+static void	PppoeNodeUpdate(PhysInfo p);
 static void	PppoeListenUpdate(void *arg);
 
 /*
@@ -213,7 +213,7 @@ PppoeInit(PhysInfo p)
 static void
 PppoeOpen(PhysInfo p)
 {
-	const PppoeInfo pe = (PppoeInfo)p->info;
+	PppoeInfo pe = (PppoeInfo)p->info;
 	union {
 	    u_char buf[sizeof(struct ngpppoe_init_data) + MAX_SESSION];
 	    struct ngpppoe_init_data	poeid;
@@ -251,7 +251,7 @@ PppoeOpen(PhysInfo p)
 	};
 
 	/* Create PPPoE node if necessary. */
-	PppoeNodeUpdate();
+	PppoeNodeUpdate(p);
 
 	if (!pe->PIf) {
 	    Log(LG_ERR, ("[%s] PPPoE node for link is not initialized",
@@ -747,11 +747,11 @@ PppoeListenEvent(int type, void *arg)
 		ph = gLinks[k]->phys;
 		p = (PppoeInfo)ph->info;
 
-		if ((strcmp(PIf->ifnodepath, p->path) != 0) ||
-		    (strcmp(PIf->session, p->session) != 0) ||
+		if ((PIf!=p->PIf) ||
 		    (ph->state != PHYS_DOWN) ||
 		    (p->state != PPPOE_DOWN) ||
-		    (now-ph->lastClose < PPPOE_REOPEN_PAUSE))
+		    (now-ph->lastClose < PPPOE_REOPEN_PAUSE) ||
+		    !Enabled(&p->options, PPPOE_CONF_INCOMING))
 			continue;
 
 		/* Restore context. */
@@ -951,61 +951,53 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
  */
 
 static void
-PppoeNodeUpdate(void)
+PppoeNodeUpdate(PhysInfo p)
 {
-	int k;
+    int i, j = -1;
+    PppoeInfo pe = (PppoeInfo)p->info;
 
-	/* Examine all PPPoE links. */
-	for (k = 0; k < gNumLinks; k++) {
-		PppoeInfo p;
-		int i, j = -1;
+    if (pe->PIf)
+	return;
 
-		if (gLinks[k] == NULL ||
-		    gLinks[k]->phys->type != &gPppoePhysType)
-			continue;
+    if (!(strcmp(pe->path, "undefined:")
+        &&strcmp(pe->session, "undefined:"))) {
+    	    Log(LG_ERR, ("[%s] PPPoE: Skipping link %s with undefined "
+	        "interface or session", pe->link->name, pe->link->name));
+	    return;
+    }
 
-		p = (PppoeInfo)gLinks[k]->phys->info;
-
-		if (!strcmp(p->path, "undefined:")) {
-			Log(LG_ERR, ("[%s] PPPoE: Skipping link %s with "
-			    "undefined interface",
-			    lnk->name, gLinks[k]->name));
-			continue;
-		}
-
-		for (i = 0; i < PppoeIfCount ; i++)
-			if (strcmp(PppoeIfs[i].ifnodepath, p->path) == 0) {
-				j = i;
-				break;
-			}
-		if (j == -1) {
-			if (CreatePppoeNode(p->path, p->hook, &PppoeIfs[PppoeIfCount])) {
-				snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
-				    sizeof(PppoeIfs[PppoeIfCount].ifnodepath),
-				    "%s", p->path);
-				snprintf(PppoeIfs[PppoeIfCount].session,
-				    sizeof(PppoeIfs[PppoeIfCount].session),
-				    "%s", p->session);
-				PppoeIfs[PppoeIfCount].listen = 0;
-				p->PIf=&PppoeIfs[PppoeIfCount];
-				PppoeIfCount++;
-			} else {
-				Log(LG_ERR, ("[%s] PPPoE: Error creating ng_pppoe "
-				    "node on %s", lnk->name, p->path));
-				return;
-			}
-		} else {
-		    p->PIf=&PppoeIfs[j];
-		}
-		if (Enabled(&p->options, PPPOE_CONF_INCOMING) &&
-		    (!PppoeListenUpdateSheduled)) {
-			/* Set a timer to run PppoeListenUpdate(). */
-			TimerInit(&PppoeListenUpdateTimer, "PppoeListenUpdate",
-			    0, PppoeListenUpdate, NULL);
-			TimerStart(&PppoeListenUpdateTimer);
-			PppoeListenUpdateSheduled = 1;
-		}
+    for (i = 0; i < PppoeIfCount ; i++)
+	if (strcmp(PppoeIfs[i].ifnodepath, pe->path) == 0) {
+    	    j = i;
+	    break;
+    }
+    if (j == -1) {
+	if (CreatePppoeNode(pe->path, pe->hook, &PppoeIfs[PppoeIfCount])) {
+		snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
+		    sizeof(PppoeIfs[PppoeIfCount].ifnodepath),
+		    "%s", pe->path);
+		snprintf(PppoeIfs[PppoeIfCount].session,
+		    sizeof(PppoeIfs[PppoeIfCount].session),
+		    "%s", pe->session);
+		PppoeIfs[PppoeIfCount].listen = 0;
+		pe->PIf=&PppoeIfs[PppoeIfCount];
+		PppoeIfCount++;
+	} else {
+		Log(LG_ERR, ("[%s] PPPoE: Error creating ng_pppoe "
+		    "node on %s", pe->link->name, pe->path));
+		return;
 	}
+    } else {
+        pe->PIf=&PppoeIfs[j];
+    }
+    if (Enabled(&pe->options, PPPOE_CONF_INCOMING) &&
+        (!PppoeListenUpdateSheduled)) {
+    	    /* Set a timer to run PppoeListenUpdate(). */
+	    TimerInit(&PppoeListenUpdateTimer, "PppoeListenUpdate",
+		0, PppoeListenUpdate, NULL);
+	    TimerStart(&PppoeListenUpdateTimer);
+	    PppoeListenUpdateSheduled = 1;
+    }
 }
 
 /*
@@ -1030,9 +1022,10 @@ PppoeListenUpdate(void *arg)
 
 		p = (PppoeInfo)gLinks[k]->phys->info;
 
-		if (!strcmp(p->path, "undefined:")) {
-			Log(LG_ERR, ("[%s] Skipping link %s with undefined "
-			    "interface", lnk->name, gLinks[k]->name));
+		if (!(strcmp(p->path, "undefined:")
+		    &&strcmp(p->session, "undefined:"))) {
+			Log(LG_ERR, ("PPPoE: Skipping link %s with undefined "
+			    "interface or session", gLinks[k]->name));
 			continue;
 		}
 
@@ -1105,11 +1098,11 @@ PppoeSetCommand(int ac, char *av[], void *arg)
 		break;
 	case SET_ENABLE:
           EnableCommand(ac, av, &pe->options, gConfList);
-    	  PppoeNodeUpdate();
+    	  PppoeNodeUpdate(lnk->phys);
           break;
         case SET_DISABLE:
           DisableCommand(ac, av, &pe->options, gConfList);
-          PppoeNodeUpdate();
+          PppoeNodeUpdate(lnk->phys);
           break;
 	default:
 		assert(0);
