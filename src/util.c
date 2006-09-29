@@ -339,7 +339,7 @@ Escape(char *line)
 
 int
 ReadFile(const char *filename, const char *target,
-	int (*func)(int ac, char *av[]))
+	int (*func)(int ac, char *av[], char *file, int line))
 {
   FILE	*fp;
   int	ac;
@@ -347,6 +347,7 @@ ReadFile(const char *filename, const char *target,
   char	*line;
   char  buf[BIG_LINE_SIZE];
   struct configfile *cf;
+  int   lineNum;
 
 /* Open file */
 
@@ -355,21 +356,21 @@ ReadFile(const char *filename, const char *target,
 
 /* Find label */
 
-  if (SeekToLabel(fp, target, NULL, cf) < 0) {
+  if (SeekToLabel(fp, target, &lineNum, cf) < 0) {
     fclose(fp);
     return(-1);
   }
 
 /* Execute command list */
 
-  while ((line = ReadFullLine(fp, NULL, buf, sizeof(buf))) != NULL)
+  while ((line = ReadFullLine(fp, &lineNum, buf, sizeof(buf))) != NULL)
   {
     if (!isspace(*line))
     {
       break;
     }
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 0);
-    (*func)(ac, av);
+    (*func)(ac, av, filename, lineNum);
   }
 
 /* Done */

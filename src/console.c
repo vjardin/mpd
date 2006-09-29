@@ -335,7 +335,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
       tab = gCommands;
       for (i = 0; i < ac; i++) {
 
-        if (FindCommand(tab, av[i], &cmd, FALSE)) 
+        if (FindCommand(tab, av[i], &cmd)) 
 	  goto notfound;
 	strcpy(line, cmd->name);
         ac2 = ParseLine(line, av2, sizeof(av2) / sizeof(*av2), 1);
@@ -430,7 +430,7 @@ success:
       memcpy(line, cs->cmd, sizeof(line));
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
-      exitflag = DoCommand(ac, av);
+      exitflag = DoCommand(ac, av, NULL, 0);
       FreeArgs(ac, av_copy);
       if (exitflag)
 	goto abort;

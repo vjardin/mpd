@@ -44,9 +44,9 @@
  */
 
   extern int	DoConsole(void);
-  extern int	DoCommand(int ac, char *av[]);
+  extern int	DoCommand(int ac, char *av[], char *file, int line);
   extern int	HelpCommand(int ac, char *av[], void *arg);
-  const	char	*FindCommand(CmdTab cmds, char* str, CmdTab *cp, int complain);
+  extern int	FindCommand(CmdTab cmds, char* str, CmdTab *cp);
   extern int	AdmitBund(CmdTab cmd);
   extern int	AdmitDev(CmdTab cmd);
 

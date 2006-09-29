@@ -69,8 +69,6 @@
 
   /* Other stuff */
   static int	DoCommandTab(CmdTab cmdlist, int ac, char *av[]);
-  const	char *FindCommand(CmdTab cmds,
-			char* str, CmdTab *cp, int complain);
   static Layer	GetLayer(const char *name);
 
 /*
@@ -253,10 +251,24 @@
  */
 
 int
-DoCommand(int ac, char *av[])
+DoCommand(int ac, char *av[], char *file, int line)
 {
+  int	rtn;
+  char	filebuf[100];
+  
   exitflag = FALSE;
-  DoCommandTab(gCommands, ac, av);
+  rtn = DoCommandTab(gCommands, ac, av);
+
+  /* Bad usage? */
+  if (rtn < 0) {
+    if (file) {
+	snprintf(filebuf,sizeof(filebuf),"%s:%d: ", file, line);
+	HelpCommand(ac, av, filebuf);
+    } else {
+	HelpCommand(ac, av, NULL);
+    }
+  }
+  
   return(exitflag);
 }
 
@@ -277,7 +289,7 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
     return(-1);
 
   /* Find command */
-  if (FindCommand(cmdlist, av[0], &cmd, cmdlist == gCommands))
+  if (FindCommand(cmdlist, av[0], &cmd))
     return(-1);
 
   /* Check command admissibility */
@@ -292,9 +304,6 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
   else
     rtn = (cmd->func)(ac - 1, av + 1, cmd->arg);
 
-  /* Bad usage? */
-  if (cmdlist == gCommands && rtn < 0)
-    HelpCommand(ac, av, NULL);
   return(rtn);
 }
 
@@ -302,12 +311,11 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
  * FindCommand()
  */
 
-const char *
-FindCommand(CmdTab cmds, char *str, CmdTab *cmdp, int complain)
+int
+FindCommand(CmdTab cmds, char *str, CmdTab *cmdp)
 {
   int		found, nmatch;
   int		len = strlen(str);
-  const char	*fmt;
 
   for (nmatch = 0, found = 0; cmds->name; cmds++) {
     if (cmds->name && !strncmp(str, cmds->name, len)) {
@@ -317,17 +325,11 @@ FindCommand(CmdTab cmds, char *str, CmdTab *cmdp, int complain)
   }
   switch (nmatch) {
     case 0:
-      fmt = "%s: unknown command. Try \"help\".";
-      if (complain)
-	Log(LG_ERR, (fmt, str));
-      return(fmt);
+      return(-1);
     case 1:
-      return(NULL);
+      return(0);
     default:
-      fmt = "%s: ambiguous command";
-      if (complain)
-	Log(LG_ERR, (fmt, str));
-      return(fmt);
+      return(-2);
   }
 }
 
@@ -372,17 +374,28 @@ HelpCommand(int ac, char *av[], void *arg)
   char		*mark, *mark_save;
   const char	*errfmt;
   char		buf[100];
+  int		err;
 
   for (mark = buf, depth = *buf = 0, menu = gCommands;
       depth < ac;
       depth++, menu = (CmdTab) cmd->arg) {
-    if ((errfmt = FindCommand(menu, av[depth], &cmd, FALSE))) {
+    if ((err = FindCommand(menu, av[depth], &cmd))) {
       int k;
 
       for (*buf = k = 0; k <= depth; k++)
 	snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s%c",
 	  av[k], k == depth ? '\0' : ' ');
-      Log(LG_ERR, (errfmt, buf));
+      switch (err) {
+        case -1:
+          errfmt = "%sUnknown command: '%s'. Try \"help\".";
+        case -2:
+	  errfmt = "%sAmbiguous command: '%s'";
+      }
+      if (arg) {
+        Log(LG_ERR, (errfmt, (char*)arg, buf));
+      } else {
+        Log(LG_ERR, (errfmt, "", buf));
+      }
       return(0);
     }
     sprintf(mark, depth ? " %s" : "%s", cmd->name);

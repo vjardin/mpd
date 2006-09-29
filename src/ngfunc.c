@@ -96,9 +96,9 @@
         NetflowSetCommand, NULL, (void *) SET_SOURCE },
     { "timeouts <inactive> <active>", "Set NetFlow timeouts" ,
         NetflowSetCommand, NULL, (void *) SET_TIMEOUTS },
-    { "node <name>", "Set existing NetFlow node name" ,
+    { "node <name>", "Set node name to use" ,
         NetflowSetCommand, NULL, (void *) SET_NODE },
-    { "hook <number>", "Set NetFlow initial hook number" ,
+    { "hook <number>", "Set initial hook number" ,
         NetflowSetCommand, NULL, (void *) SET_HOOK },
     { NULL },
   };
