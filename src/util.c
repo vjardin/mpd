@@ -435,7 +435,8 @@ SeekToLabel(FILE *fp, const char *label, int *lineNum, struct configfile *cf)
     }
     if (tmp) {
 	fseeko(fp,tmp->seek, SEEK_SET);
-	*lineNum=tmp->linenum;
+	if (lineNum)
+	    *lineNum=tmp->linenum;
 	return(0);
     }
     Log(LG_ERR, ("Label \"%s\" not fount in index, check indexer!", label));
