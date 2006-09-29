@@ -39,12 +39,24 @@
 
   #define MAX_INTERFACES	2048
 
+  struct configfile {
+    char		*label;
+    off_t		seek;
+    int			linenum;
+    struct configfile	*next;
+  };
+
+  struct configfiles {
+    char		*filename;
+    struct configfile	*sections;
+    struct configfiles	*next;
+  };
 /*
  * FUNCTIONS
  */
 
-  extern FILE		*OpenConfFile(const char *name);
-  extern int		SeekToLabel(FILE *fp, const char *label, int *lineNum);
+  extern FILE		*OpenConfFile(const char *name, struct configfile **cf);
+  extern int		SeekToLabel(FILE *fp, const char *label, int *lineNum, struct configfile *cf);
 
   extern char		*ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen);
   extern int		ReadFile(const char *filename, const char *target,

@@ -42,7 +42,11 @@
 
   static char		HexVal(char c);
 
-#undef isspace(c)
+  static void           IndexConfFile(FILE *fp, struct configfile **cf);
+  
+  struct configfiles	*ConfigFilesIndex=NULL;
+
+#undef isspace
 #define isspace(c) (((c)==' '||(c)=='\t'||(c)=='\n'||(c)=='\r')?1:0)
 
 /*
@@ -342,15 +346,16 @@ ReadFile(const char *filename, const char *target,
   char	*av[MAX_LINE_ARGS];
   char	*line;
   char  buf[BIG_LINE_SIZE];
+  struct configfile *cf;
 
 /* Open file */
 
-  if ((fp = OpenConfFile(filename)) == NULL)
+  if ((fp = OpenConfFile(filename, &cf)) == NULL)
     return(-1);
 
 /* Find label */
 
-  if (SeekToLabel(fp, target, NULL) < 0) {
+  if (SeekToLabel(fp, target, NULL, cf) < 0) {
     fclose(fp);
     return(-1);
   }
@@ -374,17 +379,68 @@ ReadFile(const char *filename, const char *target,
 }
 
 /*
+ * IndexConfFile()
+ *
+ * Scan config file for labels
+ */
+
+static void
+IndexConfFile(FILE *fp, struct configfile **cf)
+{
+  char	*s, *line;
+  char  buf[BIG_LINE_SIZE];
+  struct configfile **tmp;
+  int   lineNum;
+
+/* Start at beginning */
+
+  rewind(fp);
+  lineNum = 0;
+
+  tmp=cf;
+
+/* Find label */
+
+  while ((line = ReadFullLine(fp, &lineNum, buf, sizeof(buf))) != NULL)
+  {
+    if (isspace(*line))
+      continue;
+    if ((s = strtok(line, " \t\f:"))) {
+	(*tmp)=Malloc(MB_UTIL, sizeof(struct configfile));
+	(*tmp)->label=strcpy(Malloc(MB_UTIL, strlen(s)),s);
+	(*tmp)->linenum=lineNum;
+	(*tmp)->seek=ftello(fp);
+	tmp=&((*tmp)->next);
+    }
+  }
+}
+
+/*
  * SeekToLabel()
  *
  * Find a label in file and position file pointer just after it
  */
 
 int
-SeekToLabel(FILE *fp, const char *label, int *lineNum)
+SeekToLabel(FILE *fp, const char *label, int *lineNum, struct configfile *cf)
 {
   char	*s, *line;
   char  buf[BIG_LINE_SIZE];
+  struct configfile *tmp;
 
+  if (cf) {
+    tmp=cf;
+    while (tmp && strcmp(tmp->label,label)) {
+	tmp=tmp->next;
+    }
+    if (tmp) {
+	fseeko(fp,tmp->seek, SEEK_SET);
+	*lineNum=tmp->linenum;
+	return(0);
+    }
+    Log(LG_ERR, ("Label \"%s\" not fount in index, check indexer!", label));
+  }
+  
 /* Start at beginning */
 
   rewind(fp);
@@ -413,10 +469,11 @@ SeekToLabel(FILE *fp, const char *label, int *lineNum)
  */
 
 FILE *
-OpenConfFile(const char *name)
+OpenConfFile(const char *name, struct configfile **cf)
 {
   char	pathname[MAX_FILENAME];
   FILE	*fp;
+  struct configfiles **tmp;
 
 /* Build full pathname */
 
@@ -431,6 +488,22 @@ OpenConfFile(const char *name)
     return(NULL);
   }
   (void) fcntl(fileno(fp), F_SETFD, 1);
+  
+  if (cf) {
+    tmp=&ConfigFilesIndex;
+    while ((*tmp) && strcmp((*tmp)->filename,name)) {
+	tmp=&((*tmp)->next);
+    }
+    if (!(*tmp)) {
+	(*tmp) = Malloc(MB_UTIL, sizeof(struct configfiles));
+	(*tmp)->filename = strcpy(Malloc(MB_UTIL, strlen(name)),name);
+	(*tmp)->sections = NULL;
+	(*tmp)->next = NULL;
+	IndexConfFile(fp, &((*tmp)->sections));
+    }
+    *cf=(*tmp)->sections;
+  }
+  
   return(fp);
 }
 

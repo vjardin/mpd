@@ -261,7 +261,7 @@ ModemStart(void *arg)
   }
 
   /* Open chat script file */
-  if ((scriptfp = OpenConfFile(SCRIPT_FILE)) == NULL) {
+  if ((scriptfp = OpenConfFile(SCRIPT_FILE, NULL)) == NULL) {
     Log(LG_ERR, ("[%s] can't open chat script file", lnk->name));
     ExclusiveCloseDevice(m->fd, m->device);
     m->fd = -1;

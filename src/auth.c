@@ -754,7 +754,7 @@ AuthGetData(AuthData auth, int complain)
   }
 
   /* Search secrets file */
-  if ((fp = OpenConfFile(SECRET_FILE)) == NULL)
+  if ((fp = OpenConfFile(SECRET_FILE, NULL)) == NULL)
     return(-1);
   while ((line = ReadFullLine(fp, NULL, NULL, 0)) != NULL) {
     memset(av, 0, sizeof(av));

@@ -1764,7 +1764,7 @@ ChatParseLine(ChatInfo c, char *line, char *av[], int max)
 static int
 ChatSeekToLabel(ChatInfo c, const char *label)
 {
-  return SeekToLabel(c->fp, label, &c->lineNum);
+  return SeekToLabel(c->fp, label, &c->lineNum, NULL);
 }
 
 /*
