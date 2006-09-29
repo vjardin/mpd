@@ -15,11 +15,16 @@
 	<item>BugFix: fix races between startup process and
 		client connecting.
 	<item>BugFix: fix crash when disconnecting console after unsuccessful login.
+	<item>BugFix: fix crash due to thread unsafe console.
 	<item>BugFix: RAD_NAS_PORT could be wrong fixed.
 	<item>BugFix: RADIUS support rewritten from select() to poll() to avoid 
 		problems with big number of links
-	<item>BugFix: Significant rework on incoming calls processing to
+	<item>BugFix: significant rework on incoming call processing to
 		fix some aspects of multilink server functionality
+	<item>BugFix: mpd shutdown is now much more graceful
+	<item>Added more log levels to decrease log file size
+	<item>Message and PPPoE subsystems reworked to decrease number of open files
+	<item>Many fixes and performance optimizations
 	</item>
     </itemize>
   </p>
