@@ -149,6 +149,7 @@ main(int ac, char *av[])
   if (gBackground) {
     if (daemon(TRUE, FALSE) < 0)
       err(1, "daemon");
+    gPid=getpid();
     (void) chdir(gConfDirectory);
   }
 
