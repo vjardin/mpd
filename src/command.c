@@ -388,8 +388,12 @@ HelpCommand(int ac, char *av[], void *arg)
       switch (err) {
         case -1:
           errfmt = "%sUnknown command: '%s'. Try \"help\".";
+	  break;
         case -2:
 	  errfmt = "%sAmbiguous command: '%s'";
+	  break;
+	default:
+	  errfmt = "%sUnknown error: '%s'";
       }
       if (arg) {
         Log(LG_ERR, (errfmt, (char*)arg, buf));

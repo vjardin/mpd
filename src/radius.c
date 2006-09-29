@@ -865,7 +865,7 @@ RadiusSendRequest(AuthData auth)
       return RAD_NACK;
     }
 
-    if (fds[0].revents&POLLIN!=POLLIN) {
+    if ((fds[0].revents&POLLIN)!=POLLIN) {
       /* Compute a new timeout */
       gettimeofday(&tv, NULL);
       timersub(&timelimit, &tv, &tv);
