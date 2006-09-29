@@ -60,7 +60,7 @@
 
   extern char		*ReadFullLine(FILE *fp, int *lineNum, char *result, int resultlen);
   extern int		ReadFile(const char *filename, const char *target,
-				int (*func)(int ac, char *av[], char *file, int line));
+				int (*func)(int ac, char *av[], const char *file, int line));
   extern int		ParseLine(char *line, char *vec[], int max_args, int copy);
   extern void		FreeArgs(int ac, char *av[]);
 

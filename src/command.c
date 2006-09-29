@@ -251,7 +251,7 @@
  */
 
 int
-DoCommand(int ac, char *av[], char *file, int line)
+DoCommand(int ac, char *av[], const char *file, int line)
 {
   int	rtn;
   char	filebuf[100];

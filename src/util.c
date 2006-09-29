@@ -339,7 +339,7 @@ Escape(char *line)
 
 int
 ReadFile(const char *filename, const char *target,
-	int (*func)(int ac, char *av[], char *file, int line))
+	int (*func)(int ac, char *av[], const char *file, int line))
 {
   FILE	*fp;
   int	ac;
@@ -429,7 +429,7 @@ SeekToLabel(FILE *fp, const char *label, int *lineNum, struct configfile *cf)
   char  buf[BIG_LINE_SIZE];
   struct configfile *tmp;
 
-  if (cf) {
+  if (cf) { /* Trying to use index */
     tmp=cf;
     while (tmp && strcmp(tmp->label,label)) {
 	tmp=tmp->next;
@@ -440,27 +440,26 @@ SeekToLabel(FILE *fp, const char *label, int *lineNum, struct configfile *cf)
 	    *lineNum=tmp->linenum;
 	return(0);
     }
-    Log(LG_ERR, ("Label \"%s\" not fount in index, check indexer!", label));
-  }
+  } else { /* There are no index */
   
 /* Start at beginning */
-
-  rewind(fp);
-  if (lineNum)
-    *lineNum = 0;
+    rewind(fp);
+    if (lineNum)
+      *lineNum = 0;
 
 /* Find label */
 
-  while ((line = ReadFullLine(fp, lineNum, buf, sizeof(buf))) != NULL)
-  {
-    if (isspace(*line))
-      continue;
-    if ((s = strtok(line, " \t\f:")) && !strcmp(s, label))
-      return(0);
+    while ((line = ReadFullLine(fp, lineNum, buf, sizeof(buf))) != NULL)
+    {
+      if (isspace(*line))
+        continue;
+      if ((s = strtok(line, " \t\f:")) && !strcmp(s, label))
+	return(0);
+    }
   }
 
 /* Not found */
-
+  Log(LG_ERR, ("Label '%s' not found", label));
   return(-1);
 }
 
@@ -486,7 +485,7 @@ OpenConfFile(const char *name, struct configfile **cf)
   if ((fp = fopen(pathname, "r")) == NULL)
   {
     Perror("fopen(%s)", pathname);
-    Log(LG_ERR, ("mpd: can't open file \"%s\"", pathname));
+    Log(LG_ERR, ("Can't open file '%s'", pathname));
     return(NULL);
   }
   (void) fcntl(fileno(fp), F_SETFD, 1);
