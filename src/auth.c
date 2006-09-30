@@ -955,7 +955,9 @@ AuthSystem(AuthData auth)
   ChapInfo	chap = &a->chap;
   PapInfo	pap = &a->pap;
   struct passwd	*pw;
+  struct passwd pwc;
   u_char	*bin;
+  int 		err;
   
   /* protect getpwnam and errno 
    * NOTE: getpwnam_r doesen't exists on FreeBSD < 5.1 */
@@ -963,24 +965,26 @@ AuthSystem(AuthData auth)
   errno = 0;
   pw = getpwnam(auth->authname);
   if (!pw) {
-    if (errno)
-      Log(LG_ERR, (" Error retrieving passwd %s", strerror(errno)));
+    err=errno;
+    GIANT_MUTEX_UNLOCK(); /* We must release lock before Log() */
+    if (err)
+      Log(LG_ERR, ("AUTH: Error retrieving passwd %s", strerror(errno)));
     else
-      Log(LG_AUTH, (" User \"%s\" not found in the systems database", auth->authname));
+      Log(LG_AUTH, ("AUTH: User \"%s\" not found in the systems database", auth->authname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
-    GIANT_MUTEX_UNLOCK();
     return;
   }
+  memcpy(&pwc,pw,sizeof(struct passwd)); /* we must make copy before release lock */
   GIANT_MUTEX_UNLOCK();
   
-  Log(LG_AUTH, (" Found user %s Uid:%d Gid:%d Fmt:%*.*s", pw->pw_name, 
-    pw->pw_uid, pw->pw_gid, 3, 3, pw->pw_passwd));
+  Log(LG_AUTH, ("AUTH: Found user %s Uid:%d Gid:%d Fmt:%*.*s", pwc.pw_name, 
+    pwc.pw_uid, pwc.pw_gid, 3, 3, pwc.pw_passwd));
 
   if (auth->proto == PROTO_PAP) {
     /* protect non-ts crypt() */
     GIANT_MUTEX_LOCK();
-    if (strcmp(crypt(pap->peer_pass, pw->pw_passwd), pw->pw_passwd) == 0) {
+    if (strcmp(crypt(pap->peer_pass, pwc.pw_passwd), pwc.pw_passwd) == 0) {
       auth->status = AUTH_STATUS_SUCCESS;
       a->authentic = AUTH_CONF_OPIE;      
     } else {
@@ -992,14 +996,14 @@ AuthSystem(AuthData auth)
   } else if (auth->proto == PROTO_CHAP 
       && (chap->recv_alg == CHAP_ALG_MSOFT || chap->recv_alg == CHAP_ALG_MSOFTv2)) {
 
-    if (!strstr(pw->pw_passwd, "$3$$")) {
+    if (!strstr(pwc.pw_passwd, "$3$$")) {
       Log(LG_AUTH, (" Password has the wrong format, nth ($3$) is needed"));
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
       return;
     }
 
-    bin = Hex2Bin(&pw->pw_passwd[4]);
+    bin = Hex2Bin(&pwc.pw_passwd[4]);
     memcpy(a->msoft.nt_hash, bin, sizeof(a->msoft.nt_hash));
     Freee(MB_UTIL, bin);
     NTPasswordHashHash(a->msoft.nt_hash, a->msoft.nt_hash_hash);
