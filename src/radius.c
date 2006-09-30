@@ -321,8 +321,8 @@ RadiusAccount(AuthData auth)
       }
     }
 
-    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME): %d", 
-      lnk->name, __func__, time(NULL) - lnk->bm.last_open));
+    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME): %ld", 
+      lnk->name, __func__, (long int)(time(NULL) - lnk->bm.last_open)));
     if (rad_put_int(auth->radius.handle, RAD_ACCT_SESSION_TIME, time(NULL) - lnk->bm.last_open) != 0) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME) failed: %s",
 	lnk->name, __func__, rad_strerror(auth->radius.handle)));
@@ -674,6 +674,7 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 
+#if (!defined(__FreeBSD__) || __FreeBSD_version >= 530000)
   /* Insert the Message Authenticator RFC 3579
    * If using EAP this is mandatory
    */
@@ -687,6 +688,7 @@ RadiusStart(AuthData auth, short request_type)
       return (RAD_NACK);
     }
   }
+#endif
 
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT): %d", 
     lnk->name, __func__, GetLinkID(lnk)));
@@ -1249,6 +1251,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		  lnk->name, __func__, a->params.msdomain));
 		break;
 
+#if (!defined(__FreeBSD__) || __FreeBSD_version >= 530000)
               /* MPPE Keys MS-CHAPv2 and EAP-TLS */
 	      case RAD_MICROSOFT_MS_MPPE_RECV_KEY:
 		got_mppe_keys = TRUE;
@@ -1304,6 +1307,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		memcpy(a->msoft.nt_hash_hash, &tmpkey[8], sizeof(a->msoft.nt_hash_hash));
 		free(tmpkey);
 		break;
+#endif
 
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
 		a->msoft.policy = rad_cvt_int(data);

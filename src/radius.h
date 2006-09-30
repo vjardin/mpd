@@ -52,6 +52,10 @@
   #define RAD_MESSAGE_AUTHENTIC 80
   #endif
 
+  #ifndef RAD_MAX_ATTR_LEN
+  #define RAD_MAX_ATTR_LEN 253
+  #endif
+
   /* for mppe-keys */
   #define AUTH_LEN		16
   #define SALT_LEN		2

@@ -371,6 +371,7 @@ PppoeCtrlReadEvent(int type, void *arg)
 	char path[NG_PATHLEN + 1];
 	PppoeInfo pe = NULL;
 	int k;
+	char ppphook[NG_HOOKLEN + 1];
 	
 	struct PppoeIf  *PIf=(struct PppoeIf*)arg;
 	
@@ -403,7 +404,6 @@ PppoeCtrlReadEvent(int type, void *arg)
 		    ph = gLinks[k]->phys;
 		    p = (PppoeInfo)ph->info;
 		    
-		    char ppphook[NG_HOOKLEN + 1];
 		    snprintf(ppphook, NG_HOOKLEN, "mpd%d-%s", gPid, p->link->name);
 		
 		    if ((PIf==p->PIf) &&
