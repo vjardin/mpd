@@ -314,10 +314,10 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
 int
 FindCommand(CmdTab cmds, char *str, CmdTab *cmdp)
 {
-  int		found, nmatch;
+  int		nmatch;
   int		len = strlen(str);
 
-  for (nmatch = 0, found = 0; cmds->name; cmds++) {
+  for (nmatch = 0; cmds->name; cmds++) {
     if (cmds->name && !strncmp(str, cmds->name, len)) {
       *cmdp = cmds;
       nmatch++;
