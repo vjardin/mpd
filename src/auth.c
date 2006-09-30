@@ -16,7 +16,6 @@
 #include "log.h"
 #include "ngfunc.h"
 #include "msoft.h"
-#include "pptp.h"
 
 #include <libutil.h>
 

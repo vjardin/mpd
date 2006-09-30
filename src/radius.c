@@ -6,11 +6,19 @@
  */
 
 #include "ppp.h"
+#ifdef PHYSTYPE_PPTP
 #include "pptp.h"
+#endif
+#ifdef PHYSTYPE_PPPOE
 #include "pppoe.h"
+#endif
 #include "ngfunc.h"
+#ifdef PHYSTYPE_MODEM
 #include "modem.h"
+#endif
+#ifdef PHYSTYPE_NG_SOCKET
 #include "ng.h"
+#endif
 
 #include <sys/types.h>
 
@@ -688,13 +696,22 @@ RadiusStart(AuthData auth, short request_type)
     return (RAD_NACK);
   }
 
+#ifdef PHYSTYPE_MODEM
   if (lnk->phys->type == &gModemPhysType) {
     porttype = RAD_ASYNC;
-  } else if (lnk->phys->type == &gNgPhysType) {
+  } else 
+#endif
+#ifdef PHYSTYPE_NG_SOCKET
+  if (lnk->phys->type == &gNgPhysType) {
     porttype = RAD_SYNC;
-  } else if (lnk->phys->type == &gPppoePhysType) {
+  } else 
+#endif
+#ifdef PHYSTYPE_PPPOE
+  if (lnk->phys->type == &gPppoePhysType) {
     porttype = RAD_ETHERNET;
-  } else {
+  } else 
+#endif
+  {
     porttype = RAD_VIRTUAL;
   };
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT_TYPE): %d", 
