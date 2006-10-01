@@ -140,6 +140,14 @@ It proscribes shorter multi-link fragment headers,
 saving two bytes on every frame. It defaults to
 <tt>enable</tt> and <tt>accept</tt>.
 
+<tag><tt>ipcp</tt></tag>
+
+Enable/Disable IPCP negotition. Default is enabled.
+
+<tag><tt>ipv6cp</tt></tag>
+
+Enable/Disable IPV6CP negotition. Default is disabled.
+
 <tag><tt>compression</tt></tag>
 
 When compression support is compiled into mpd, this option must

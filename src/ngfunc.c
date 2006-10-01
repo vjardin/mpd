@@ -523,6 +523,17 @@ NgFuncInit(Bund b, const char *reqIface)
   }
 #endif /* USE_NG_NETFLOW */
 
+  /* Connect ipv6 hook of ng_ppp(4) node to the ng_iface(4) node. */
+  snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_IPV6);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
+  if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+	sizeof(cn)) < 0) {
+      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
+	cn.path, path, strerror(errno)));
+      goto fail;
+  }
+
   /* Connect a hook from the bpf node to our socket node */
   snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
   snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_DEMAND_TAP);

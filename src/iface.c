@@ -70,8 +70,6 @@
  */
 
   static int	IfaceSetCommand(int ac, char *av[], void *arg);
-  static void	IfaceIpIfaceUp(int ready);
-  static void	IfaceIpIfaceDown(void);
   static void	IfaceIpIfaceReady(int ready);
   static void	IfaceSessionTimeout(void *arg);
   static void	IfaceIdleTimeout(void *arg);
@@ -179,8 +177,6 @@ IfaceOpen(void)
     return;
   }
 
-  /* Open lower layer(s) and wait for them to come up */
-  IfaceOpenNcps();
 }
 
 /*
@@ -204,11 +200,10 @@ IfaceClose(void)
   /* Take down system interface */
   if (iface->ip_up) {
     NgFuncConfigBPF(bund, BPF_MODE_OFF);
-    IfaceIpIfaceDown();
   }
 
   /* Close lower layer(s) */
-  IfaceCloseNcps();
+  BundClose();
 }
 
 /*
@@ -223,11 +218,16 @@ IfaceClose(void)
  */
 
 void
-IfaceUp(struct in_addr self, struct in_addr peer)
+IfaceUp(void)
 {
   IfaceState	const iface = &bund->iface;
   Auth		const a = &lnk->lcp.auth;
   int		session_timeout = 0, idle_timeout = 0;
+  struct radius_acl	*acls;
+  char			*buf;
+  struct acl_pool 	**poollast;
+  int 			poollaststart;
+  int		i;
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
   SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
@@ -285,23 +285,102 @@ IfaceUp(struct in_addr self, struct in_addr peer)
       Log(LG_ERR, ("[%s] can't clear %s stats: %s",
 	bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
   }
-
-  /* (Re)number interface as necessary */
+/*
+  * (Re)number interface as necessary *
   if (!iface->ip_up
     || self.s_addr != iface->self_addr.s_addr
     || peer.s_addr != iface->peer_addr.s_addr) {
 
-    /* Bring down interface if already up */
+    * Bring down interface if already up *
     if (iface->ip_up)
       IfaceIpIfaceDown();
 
-    /* Bring up interface with new addresses */
+    * Bring up interface with new addresses *
     iface->self_addr = self;
     iface->peer_addr = peer;
     IfaceIpIfaceUp(1);
   } else {
     if (!iface->ready)
       IfaceIpIfaceReady(1);
+  }
+*/
+  for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
+    memcpy(&(iface->routes[iface->n_routes++]), 
+      &(a->params.routes[i]), sizeof(struct ifaceroute));
+  };
+
+  /* Allocate ACLs */
+  acls = a->radius.acl_pipe;
+  poollast = &pipe_pool;
+  poollaststart = pipe_pool_start;
+  while (acls != NULL) {
+    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
+    poollaststart = acls->real_number;
+    acls = acls->next;
+  };
+  acls = a->radius.acl_queue;
+  poollast = &queue_pool;
+  poollaststart = queue_pool_start;
+  while (acls != NULL) {
+    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
+    poollaststart = acls->real_number;
+    acls = acls->next;
+  };
+  acls = a->radius.acl_rule;
+  poollast = &rule_pool;
+  poollaststart = rule_pool_start;
+  while (acls != NULL) {
+    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
+    poollaststart = acls->real_number;
+    acls = acls->next;
+  };
+
+  /* Set ACLs */
+  acls = a->radius.acl_pipe;
+  while (acls != NULL) {
+    buf = IFaceParseACL(acls->rule, iface->ifname);
+    ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
+    Freee(MB_UTIL, buf);
+    acls = acls->next;
+  }
+  acls = a->radius.acl_queue;
+  while (acls != NULL) {
+    buf = IFaceParseACL(acls->rule,iface->ifname);
+    ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
+    Freee(MB_UTIL, buf);
+    acls = acls->next;
+  }
+  acls = a->radius.acl_rule;
+  while (acls != NULL) {
+    buf = IFaceParseACL(acls->rule, iface->ifname);
+    ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
+    Freee(MB_UTIL, buf);
+    acls = acls->next;
+  };
+
+  /* Bring up system interface */
+  ExecCmd(LG_IFACE2, "%s %s up", 
+    PATH_IFCONFIG, iface->ifname);
+
+  /* Call "up" script */
+  if (*iface->up_script) {
+    char	peerbuf[40];
+    char	ns1buf[21], ns2buf[21];
+
+    if(bund->ipcp.want_dns[0].s_addr != 0)
+      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(bund->ipcp.want_dns[0]));
+    else
+      ns1buf[0] = '\0';
+    if(bund->ipcp.want_dns[1].s_addr != 0)
+      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(bund->ipcp.want_dns[1]));
+    else
+      ns2buf[0] = '\0';
+
+    snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
+    ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
+      iface->up_script, iface->ifname, inet_ntoa(iface->self_addr),
+      peerbuf, *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname, 
+      ns1buf, ns2buf);
   }
 
   /* Turn on interface traffic flow */
@@ -329,6 +408,8 @@ void
 IfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
+  struct acl_pool	**rp, *rp1;
+  char		cb[32768];
 
   Log(LG_IFACE, ("[%s] IFACE: Down event", bund->name));
 
@@ -337,18 +418,82 @@ IfaceDown(void)
   if (!iface->open)
     return;
 
+  /* Bring down system interface */
+  ExecCmd(LG_IFACE2, "%s %s down", 
+    PATH_IFCONFIG, iface->ifname);
+
+  TimerStop(&iface->idleTimer);
+  TimerStop(&iface->sessionTimer);
+
   /* If dial-on-demand, this is OK; just listen for future demand */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
     SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
     NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
     IfaceIpIfaceReady(0);
-    IfaceCloseNcps();
+//XXXX    IfaceCloseNcps();
     return;
   }
+  
+  /* Call "down" script */
+  if (*iface->down_script) {
+    ExecCmd(LG_IFACE2, "%s %s inet %s",
+      iface->down_script, iface->ifname, 
+      *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname);
+  }
 
-  /* Take down system interface */
-  if (iface->ip_up)
-    IfaceIpIfaceDown();
+  /* Remove rule ACLs */
+  rp = &rule_pool;
+  cb[0]=0;
+  while (*rp != NULL) {
+    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
+      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
+      rp1 = *rp;
+      *rp = (*rp)->next;
+      Freee(MB_UTIL, rp1);
+    } else {
+      rp = &((*rp)->next);
+    };
+  };
+  if (cb[0]!=0)
+    ExecCmd(LG_IFACE2, "%s delete%s",
+      PATH_IPFW, cb);
+
+  /* Remove queue ACLs */
+  rp = &queue_pool;
+  cb[0]=0;
+  while (*rp != NULL) {
+    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
+      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
+      rp1 = *rp;
+      *rp = (*rp)->next;
+      Freee(MB_UTIL, rp1);
+    } else {
+      rp = &((*rp)->next);
+    };
+  };
+  if (cb[0]!=0)
+    ExecCmd(LG_IFACE2, "%s queue delete%s",
+      PATH_IPFW, cb);
+
+  /* Remove pipe ACLs */
+  rp = &pipe_pool;
+  cb[0]=0;
+  while (*rp != NULL) {
+    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
+      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
+      rp1 = *rp;
+      *rp = (*rp)->next;
+      Freee(MB_UTIL, rp1);
+    } else {
+      rp = &((*rp)->next);
+    };
+  };
+  if (cb[0]!=0)
+    ExecCmd(LG_IFACE2, "%s pipe delete%s",
+      PATH_IPFW, cb);
+
+  iface->n_routes = iface->n_routes_static;
+
   NgFuncConfigBPF(bund, BPF_MODE_OFF);
 }
 
@@ -538,25 +683,20 @@ IFaceParseACL (char * src, char * ifname)
  * that the interface is not "ready" with the IFF_LINK0 flag.
  */
 
-static void
+void
 IfaceIpIfaceUp(int ready)
 {
   IfaceState		const iface = &bund->iface;
-  Auth			const a = &lnk->lcp.auth;
-  int			k,i;
   struct sockaddr_dl	hwa;
   char			hisaddr[20];
   u_char		*ether;
-  struct radius_acl	*acls;
-  char			*buf;
-  struct acl_pool 	**poollast;
-  int 			poollaststart;
-
-  /* Sanity */
-  assert(!iface->ip_up);
+  int			k;
 
   /* For good measure */
   BundUpdateParams();
+
+  iface->self_addr = bund->ipcp.want_addr;
+  iface->peer_addr = bund->ipcp.peer_addr;
 
   /* Set addresses and bring interface up */
   snprintf(hisaddr, sizeof(hisaddr), "%s", inet_ntoa(iface->peer_addr));
@@ -590,99 +730,21 @@ IfaceIpIfaceUp(int ready)
   /* Add loopback route */
   ExecCmd(LG_IFACE2, "%s add %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
-
-  for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
-    memcpy(&(iface->routes[iface->n_routes++]), 
-      &(a->params.routes[i]), sizeof(struct ifaceroute));
-  };
   
   /* Add routes */
   for (k = 0; k < iface->n_routes; k++) {
     IfaceRoute	const r = &iface->routes[k];
-    char	nmbuf[40], peerbuf[40];
+    char	nmbuf[40];
 
     if (r->netmask.s_addr) {
       snprintf(nmbuf, sizeof(nmbuf),
 	" -netmask 0x%08lx", (u_long)ntohl(r->netmask.s_addr));
     } else
       *nmbuf = 0;
-    snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    r->ok = (ExecCmd(LG_IFACE2, "%s add %s %s%s",
-      PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf) == 0);
+    r->ok = (ExecCmd(LG_IFACE2, "%s add %s -interface %s%s",
+      PATH_ROUTE, inet_ntoa(r->dest), iface->ifname, nmbuf) == 0);
   }
 
-  /* Allocate ACLs */
-  acls = a->radius.acl_pipe;
-  poollast = &pipe_pool;
-  poollaststart = pipe_pool_start;
-  while (acls != NULL) {
-    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
-    poollaststart = acls->real_number;
-    acls = acls->next;
-  };
-  acls = a->radius.acl_queue;
-  poollast = &queue_pool;
-  poollaststart = queue_pool_start;
-  while (acls != NULL) {
-    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
-    poollaststart = acls->real_number;
-    acls = acls->next;
-  };
-  acls = a->radius.acl_rule;
-  poollast = &rule_pool;
-  poollaststart = rule_pool_start;
-  while (acls != NULL) {
-    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
-    poollaststart = acls->real_number;
-    acls = acls->next;
-  };
-
-  /* Set ACLs */
-  acls = a->radius.acl_pipe;
-  while (acls != NULL) {
-    buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
-    Freee(MB_UTIL, buf);
-    acls = acls->next;
-  }
-  acls = a->radius.acl_queue;
-  while (acls != NULL) {
-    buf = IFaceParseACL(acls->rule,iface->ifname);
-    ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
-    Freee(MB_UTIL, buf);
-    acls = acls->next;
-  }
-  acls = a->radius.acl_rule;
-  while (acls != NULL) {
-    buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
-    Freee(MB_UTIL, buf);
-    acls = acls->next;
-  };
-
-  /* Call "up" script */
-  if (*iface->up_script) {
-    char	peerbuf[40];
-    char	ns1buf[21], ns2buf[21];
-
-    if(bund->ipcp.want_dns[0].s_addr != 0)
-      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(bund->ipcp.want_dns[0]));
-    else
-      ns1buf[0] = '\0';
-    if(bund->ipcp.want_dns[1].s_addr != 0)
-      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(bund->ipcp.want_dns[1]));
-    else
-      ns2buf[0] = '\0';
-
-    snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
-      iface->up_script, iface->ifname, inet_ntoa(iface->self_addr),
-      peerbuf, *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname, 
-      ns1buf, ns2buf);
-  }
-
-  /* Done */
-  iface->ip_up = TRUE;
 }
 
 /*
@@ -709,79 +771,16 @@ IfaceIpIfaceReady(int ready)
  * Bring down the IP interface. This implies we're no longer ready.
  */
 
-static void
+void
 IfaceIpIfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
   int		k;
-  struct acl_pool	**rp, *rp1;
-  char		cb[32768];
-
-  /* Sanity */
-  assert(iface->ip_up);
-
-  /* Call "down" script */
-  if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, "%s %s inet %s",
-      iface->down_script, iface->ifname, 
-      *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname);
-  }
-
-  /* Remove rule ACLs */
-  rp = &rule_pool;
-  cb[0]=0;
-  while (*rp != NULL) {
-    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
-      rp1 = *rp;
-      *rp = (*rp)->next;
-      Freee(MB_UTIL, rp1);
-    } else {
-      rp = &((*rp)->next);
-    };
-  };
-  if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, "%s delete%s",
-      PATH_IPFW, cb);
-
-  /* Remove queue ACLs */
-  rp = &queue_pool;
-  cb[0]=0;
-  while (*rp != NULL) {
-    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
-      rp1 = *rp;
-      *rp = (*rp)->next;
-      Freee(MB_UTIL, rp1);
-    } else {
-      rp = &((*rp)->next);
-    };
-  };
-  if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, "%s queue delete%s",
-      PATH_IPFW, cb);
-
-  /* Remove pipe ACLs */
-  rp = &pipe_pool;
-  cb[0]=0;
-  while (*rp != NULL) {
-    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
-      sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
-      rp1 = *rp;
-      *rp = (*rp)->next;
-      Freee(MB_UTIL, rp1);
-    } else {
-      rp = &((*rp)->next);
-    };
-  };
-  if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, "%s pipe delete%s",
-      PATH_IPFW, cb);
 
   /* Delete routes */
   for (k = 0; k < iface->n_routes; k++) {
     IfaceRoute	const r = &iface->routes[k];
-    char	nmbuf[40], peerbuf[40];
+    char	nmbuf[40];
 
     if (!r->ok)
       continue;
@@ -790,29 +789,95 @@ IfaceIpIfaceDown(void)
 	" -netmask 0x%08lx", (u_long)ntohl(r->netmask.s_addr));
     } else
       *nmbuf = 0;
-    snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
-    ExecCmd(LG_IFACE2, "%s delete %s %s%s",
-      PATH_ROUTE, inet_ntoa(r->dest), peerbuf, nmbuf);
+    ExecCmd(LG_IFACE2, "%s delete %s -interface %s%s",
+      PATH_ROUTE, inet_ntoa(r->dest), iface->ifname, nmbuf);
     r->ok = 0;
   }
-
-  iface->n_routes = iface->n_routes_static;
-
-  /* Delete loopback route */
-  ExecCmd(LG_IFACE2, "%s delete %s -iface lo0",
-    PATH_ROUTE, inet_ntoa(iface->self_addr));
 
   /* Delete any proxy arp entry */
   if (iface->proxy_addr.s_addr)
     ExecCmd(LG_IFACE2, "%s -d %s", PATH_ARP, inet_ntoa(iface->proxy_addr));
   iface->proxy_addr.s_addr = 0;
 
+  /* Delete loopback route */
+  ExecCmd(LG_IFACE2, "%s delete %s -iface lo0",
+    PATH_ROUTE, inet_ntoa(iface->self_addr));
+
   /* Bring down system interface */
-  ExecCmd(LG_IFACE2, "%s %s down delete -link0", PATH_IFCONFIG, iface->ifname);
+  ExecCmd(LG_IFACE2, "%s %s %s delete -link0", 
+    PATH_IFCONFIG, iface->ifname, inet_ntoa(iface->self_addr));
   iface->ready = 0;
 
-  /* Done */
-  iface->ip_up = FALSE;
+}
+
+/*
+ * IfaceIpv6IfaceUp()
+ *
+ * Bring up the IPv6 interface. The "ready" flag means that
+ * IPCP is also up and we can deliver packets immediately. We signal
+ * that the interface is not "ready" with the IFF_LINK0 flag.
+ */
+
+void
+IfaceIpv6IfaceUp(int ready)
+{
+  IfaceState		const iface = &bund->iface;
+
+  /* For good measure */
+  BundUpdateParams();
+
+  iface->ipv6_addr.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
+  iface->ipv6_addr.__u6_addr.__u6_addr16[1] = 0x0000;
+  iface->ipv6_addr.__u6_addr.__u6_addr16[2] = 0x0000;
+  iface->ipv6_addr.__u6_addr.__u6_addr16[3] = 0x0000;
+  iface->ipv6_addr.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.myintid)[0];
+  iface->ipv6_addr.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.myintid)[1];
+  iface->ipv6_addr.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.myintid)[2];
+  iface->ipv6_addr.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.myintid)[3];
+
+  /* Set addresses and bring interface up */
+  ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s %slink0",
+    PATH_IFCONFIG, iface->ifname, 
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
+    iface->ifname,
+    ready ? "-" : "");
+  iface->ready = ready;
+
+
+}
+
+/*
+ * IfaceIpv6IfaceDown()
+ *
+ * Bring down the IPv6 interface. This implies we're no longer ready.
+ */
+
+void
+IfaceIpv6IfaceDown(void)
+{
+  IfaceState	const iface = &bund->iface;
+
+  /* Bring down system interface */
+  ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s delete",
+    PATH_IFCONFIG, iface->ifname, 
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
+    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
+    iface->ifname);
+  iface->ready = 0;
+
 }
 
 /*
@@ -880,7 +945,7 @@ IfaceIdleTimerExpired(void *arg)
   /* We already did the final short delay, really shut down now */
   if (arg != NULL) {
     RecordLinkUpDownReason(NULL, 0, STR_IDLE_TIMEOUT, NULL);
-    IfaceCloseNcps();
+    BundClose();
     return;
   }
 
@@ -902,36 +967,8 @@ IfaceSessionTimeout(void *arg)
 
   RecordLinkUpDownReason(NULL, 0, STR_SESSION_TIMEOUT, NULL);
 
-  if (Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
-    IfaceCloseNcps();
-  } else {
-    BundCloseLinks();
-  }
+  BundClose();
 
-}
-
-/*
- * IfaceOpenNcps()
- */
-
-void
-IfaceOpenNcps(void)
-{
-  IpcpOpen();
-}
-
-/*
- * IfaceCloseNcps()
- */
-
-void
-IfaceCloseNcps(void)
-{
-  IfaceState	const iface = &bund->iface;
-
-  TimerStop(&iface->idleTimer);
-  TimerStop(&iface->sessionTimer);
-  IpcpClose();
 }
 
 /*

@@ -15,6 +15,7 @@
 #include "iface.h"
 #include "mp.h"
 #include "ipcp.h"
+#include "ipv6cp.h"
 #include "chap.h"
 #include "ccp.h"
 #include "ecp.h"
@@ -33,6 +34,8 @@
   enum {
     BUND_CONF_MULTILINK,	/* multi-link */
     BUND_CONF_SHORTSEQ,		/* multi-link short sequence numbers */
+    BUND_CONF_IPCP,		/* IPCP */
+    BUND_CONF_IPV6CP,		/* IPV6CP */
     BUND_CONF_COMPRESSION,	/* compression */
     BUND_CONF_ENCRYPTION,	/* encryption */
     BUND_CONF_CRYPT_REQD,	/* encryption is required */
@@ -140,6 +143,7 @@
     struct mpstate	mp;		/* MP state for this bundle */
     struct ifacestate	iface;		/* IP state info */
     struct ipcpstate	ipcp;		/* IPCP state info */
+    struct ipv6cpstate	ipv6cp;		/* IPV6CP state info */
     struct ccpstate	ccp;		/* CCP state info */
     struct ecpstate	ecp;		/* ECP state info */
 
@@ -175,6 +179,8 @@
 
   extern int	BundJoin(void);
   extern void	BundLeave(void);
+  extern void	BundNcpsJoin(int proto);
+  extern void	BundNcpsLeave(int proto);
   extern void	BundLinkGaveUp(void);
   extern void	BundOpenLinks(void);
   extern void	BundCloseLinks(void);

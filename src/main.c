@@ -251,6 +251,7 @@ CloseIfaces(void)
   for (k = 0; k < gNumBundles; k++) {
     if ((bund = gBundles[k]) != NULL) {
       IpcpDown();			/* XXX */
+      Ipv6cpDown();			/* XXX */
       IfaceClose();
     }
   }

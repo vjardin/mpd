@@ -69,12 +69,15 @@
     struct in_addr	self_addr;		/* Interface's IP address */
     struct in_addr	peer_addr;		/* Peer's IP address */
     struct in_addr	proxy_addr;		/* Proxied IP address */
+    struct in6_addr	ipv6_addr;
     struct pppTimer	idleTimer;		/* Idle timer */
     struct pppTimer	sessionTimer;		/* Session timer */
     char		up_script[IFACE_MAX_SCRIPT];
     char		down_script[IFACE_MAX_SCRIPT];
     u_char		open:1;			/* In an open state */
+    u_char		up:1;			/* interface is up */
     u_char		ip_up:1;		/* IP interface is up */
+    u_char		ipv6_up:1;		/* IPv6 interface is up */
     u_char		ready:1;		/* Interface flagged -link0 */
     struct dodcache	dodCache;		/* Dial-on-demand cache */
     struct ng_bpf_hookstat
@@ -102,13 +105,14 @@
   extern void	IfaceInit(void);
   extern void	IfaceOpen(void);
   extern void	IfaceClose(void);
-  extern void	IfaceUp(struct in_addr self, struct in_addr peer);
+  extern void	IfaceIpIfaceUp(int ready);
+  extern void	IfaceIpIfaceDown(void);
+  extern void	IfaceIpv6IfaceUp(int ready);
+  extern void	IfaceIpv6IfaceDown(void);
+  extern void	IfaceUp(void);
   extern void	IfaceDown(void);
   extern void	IfaceSetParams(int mtu, int speed);
   extern int	IfaceStat(int ac, char *av[], void *arg);
-
-  extern void	IfaceOpenNcps(void);
-  extern void	IfaceCloseNcps(void);
 
   extern void	IfaceListenInput(int proto, Mbuf pkt);
   #ifndef USE_NG_TCPMSS

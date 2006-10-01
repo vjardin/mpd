@@ -24,6 +24,7 @@
 /* Network layer control protocols */
 
   #define PROTO_IPCP		0x8021
+  #define PROTO_IPV6CP		0x8057
   #define PROTO_CCP		0x80fd
   #define PROTO_ICCP		0x80fb
   #define PROTO_ECP		0x8053

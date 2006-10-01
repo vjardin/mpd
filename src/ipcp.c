@@ -359,7 +359,6 @@ IpcpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 IpcpLayerStart(Fsm fp)
 {
-  BundOpen(/*PROTO_IPCP*/);
 }
 
 /*
@@ -371,7 +370,6 @@ IpcpLayerStart(Fsm fp)
 static void
 IpcpLayerFinish(Fsm fp)
 {
-  BundClose(/*PROTO_IPCP*/);
 }
 
 /*
@@ -411,9 +409,6 @@ IpcpLayerUp(Fsm fp)
   snprintf(ipbuf, sizeof(ipbuf), "%s", inet_ntoa(ipcp->peer_addr));
   Log(fp->log, ("  %s -> %s", inet_ntoa(ipcp->want_addr), ipbuf));
 
-  /* Bring up IP interface */
-  IfaceUp(ipcp->want_addr, ipcp->peer_addr);
-
   /* Configure VJ compression node */
   memset(&vjc, 0, sizeof(vjc));
   vjc.enableComp = ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP;
@@ -427,8 +422,7 @@ IpcpLayerUp(Fsm fp)
       bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
   }
 
-  /* Tell upper layer (ip interface) that we are available */
-  IfaceUp(ipcp->want_addr, ipcp->peer_addr);
+  BundNcpsJoin(PROTO_IPCP);
 
   /* Enable IP packets in the PPP node */
 #if NGM_PPP_COOKIE < 940897794
@@ -476,8 +470,8 @@ IpcpLayerDown(Fsm fp)
       bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
   }
 
-  /* Notify interface */
-  IfaceDown();
+  BundNcpsLeave(PROTO_IPCP);
+  
 }
 
 /*

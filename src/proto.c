@@ -31,6 +31,7 @@
     { PROTO_VJCOMP,	"VJCOMP" },
     { PROTO_MP,		"MP" },
     { PROTO_IPCP,	"IPCP" },
+    { PROTO_IPV6CP,	"IPV6CP" },
     { PROTO_ICOMPD,	"ICOMPD" },
     { PROTO_COMPD,	"COMPD" },
     { PROTO_ICCP,	"ICCP" },

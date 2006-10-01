@@ -130,8 +130,21 @@ InputDispatch(const char *label, int linkNum, int proto, Mbuf bp)
       AuthInput(proto, bp);
       return(0);
     case PROTO_IPCP:
-      IpcpInput(bp, linkNum);
-      return(0);
+      if (!Enabled(&bund->conf.options, BUND_CONF_IPCP))
+	reject = 1;
+      else {
+        IpcpInput(bp, linkNum);
+        return(0);
+      }
+      break;
+    case PROTO_IPV6CP:
+      if (!Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+	reject = 1;
+      else {
+        Ipv6cpInput(bp, linkNum);
+        return(0);
+      }
+      break;
     case PROTO_CCP:
     case PROTO_COMPD:
       if (!Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))

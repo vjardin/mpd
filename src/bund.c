@@ -70,8 +70,10 @@
   static int	BundSetCommand(int ac, char *av[], void *arg);
   static void	BundShowLinks(Bund sb);
 
-  static void	BundUpNcps(void);
-  static void	BundDownNcps(void);
+  static void	BundNcpsOpen(void);
+  static void	BundNcpsUp(void);
+  static void	BundNcpsDown(void);
+  static void	BundNcpsClose(void);
 
   static void	BundReOpenLinks(void *arg);
   static void	BundCloseLink(Link l);
@@ -119,6 +121,8 @@
   static const struct confinfo	gConfList[] = {
     { 0,	BUND_CONF_MULTILINK,	"multilink"	},
     { 1,	BUND_CONF_SHORTSEQ,	"shortseq"	},
+    { 0,	BUND_CONF_IPCP,		"ipcp"		},
+    { 0,	BUND_CONF_IPV6CP,	"ipv6cp"	},
     { 0,	BUND_CONF_COMPRESSION,	"compression"	},
     { 0,	BUND_CONF_ENCRYPTION,	"encryption"	},
     { 0,	BUND_CONF_CRYPT_REQD,	"crypt-reqd"	},
@@ -135,6 +139,7 @@
 void
 BundOpen(void)
 {
+  BundNcpsOpen();
   MsgSend(bund->msgs, MSG_OPEN, NULL);
 }
 
@@ -224,18 +229,11 @@ BundJoin(void)
   /* What to do when the first link comes up */
   if (bm->n_up == 1) {
 
-    IfaceOpenNcps();
-
     /* Copy over peer's IP address range if specified in secrets file */
     if (lnk->range_valid)
       bund->peer_allow = lnk->peer_allow;
     else
       memset(&bund->peer_allow, 0, sizeof(bund->peer_allow));
-
-    /* Make sure IPCP, et.al. renegotiate */
-    if (bm->ncps_up)
-      BundDownNcps();
-    BundUpNcps();
 
     /* Configure the bundle */
 #if NGM_PPP_COOKIE < 940897794
@@ -267,6 +265,18 @@ BundJoin(void)
     time(NULL) % 10000000, lnk->name);
 
   AuthAccountStart(AUTH_ACCT_START);
+
+  /* What to do when the first link comes up */
+  if (bm->n_up == 1) {
+
+    BundNcpsOpen();
+
+    /* Make sure IPCP, et.al. renegotiate */
+    if (bm->ncps_up)
+      BundNcpsDown();
+    BundNcpsUp();
+    
+  }
 
   /* starting link statistics timer */
   TimerInit(&lnk->stats.updateTimer, "LinkUpdateStats", 
@@ -309,16 +319,16 @@ BundLeave(void)
     /* Reset statistics and auth information */
     BundBmStop();
     if (bm->ncps_up)
-      BundDownNcps();
+      BundNcpsDown();
+
+    BundNcpsClose();
+
     memset(bund->peer_authname, 0, sizeof(bund->peer_authname));
     memset(&bund->ccp.mppc, 0, sizeof(bund->ccp.mppc));
     
-    /* Close links, or else wait and try to open again later */
-    if (!bund->open || Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
-      BundCloseLinks();
-      if (Enabled(&bund->conf.options, BUND_CONF_NORETRY))
-	IfaceCloseNcps();
-    } else {		/* wait BUND_REOPEN_DELAY to see if it comes back up */
+    /* try to open again later */
+    if (bund->open && !Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
+	/* wait BUND_REOPEN_DELAY to see if it comes back up */
       TimerStop(&bund->reOpenTimer);
       TimerInit(&bund->reOpenTimer, "BundReOpen",
 	BUND_REOPEN_DELAY * SECONDS, BundReOpenLinks, NULL);
@@ -361,22 +371,9 @@ BundReOpenLinks(void *arg)
 void
 BundLinkGaveUp(void)
 {
-  int	k;
-
   /* Close this link */
   BundCloseLink(lnk);
 
-  /* If links are not supposed to be open anyway, do nothing */
-  if (!bund->bm.links_open)
-    return;
-
-  /* See if any other links are still open; if not, close down everything */
-  for (k = 0; k < bund->n_links; k++) {
-    if (bund->links[k] != lnk && OPEN_STATE(bund->links[k]->lcp.fsm.state))
-      break;
-  }
-  if (k == bund->n_links)
-    IfaceCloseNcps();
 }
 
 /*
@@ -476,40 +473,128 @@ BundCloseLink(Link l)
 }
 
 /*
- * BundUpNcps()
+ * BundNcpsOpen()
  */
 
 static void
-BundUpNcps(void)
+BundNcpsOpen(void)
 {
-  IpcpUp();
-  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION)) {
+  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+    IpcpOpen();
+  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+    Ipv6cpOpen();
+  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
     CcpOpen();
-    CcpUp();
-  }
-  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION)) {
+  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
     EcpOpen();
-    EcpUp();
-  }
   bund->bm.ncps_up = TRUE;
 }
 
 /*
- * BundDownNcps()
+ * BundNcpsUp()
  */
 
 static void
-BundDownNcps(void)
+BundNcpsUp(void)
 {
-  IpcpDown();
-  if (bund->ccp.fsm.state != ST_INITIAL) {
+  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+    IpcpUp();
+  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+    Ipv6cpUp();
+  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+    CcpUp();
+  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
+    EcpUp();
+  bund->bm.ncps_up = TRUE;
+}
+
+void
+BundNcpsJoin(int proto)
+{
+    IfaceState	iface = &bund->iface;
+    switch(proto) {
+	case PROTO_IPCP:
+	    if (!iface->ip_up) {
+		iface->ip_up=1;
+		IfaceIpIfaceUp(1);
+	    }
+	    break;
+	case PROTO_IPV6CP:
+	    if (!iface->ipv6_up) {
+		iface->ipv6_up=1;
+		IfaceIpv6IfaceUp(1);
+	    }
+	    break;
+    }
+    
+    if ((proto==PROTO_IPCP || proto==PROTO_IPV6CP) && (!iface->up)) {
+	iface->up=1;
+	IfaceUp();
+    }
+}
+
+void
+BundNcpsLeave(int proto)
+{
+    IfaceState	iface = &bund->iface;
+    switch(proto) {
+	case PROTO_IPCP:
+	    if (iface->ip_up) {
+		iface->ip_up=0;
+		IfaceIpIfaceDown();
+	    }
+	    break;
+	case PROTO_IPV6CP:
+	    if (iface->ipv6_up) {
+		iface->ipv6_up=0;
+		IfaceIpv6IfaceDown();
+	    }
+	    break;
+    }
+    
+    if ((iface->up) && (!iface->ip_up) && (!iface->ipv6_up)) {
+	iface->up=1;
+	IfaceDown();
+    }
+}
+
+/*
+ * BundNcpsDown()
+ */
+
+static void
+BundNcpsDown(void)
+{
+  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+    IpcpDown();
+  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+    Ipv6cpDown();
+//  if (bund->ccp.fsm.state != ST_INITIAL) {
+  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
     CcpDown();
-    CcpClose();
-  }
-  if (bund->ecp.fsm.state != ST_INITIAL) {
+//  if (bund->ecp.fsm.state != ST_INITIAL) {
+  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
     EcpDown();
+  bund->bm.ncps_up = FALSE;
+}
+
+/*
+ * BundNcpsClose()
+ */
+
+static void
+BundNcpsClose(void)
+{
+  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+    IpcpClose();
+  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+    Ipv6cpClose();
+//  if (bund->ccp.fsm.state != ST_INITIAL) {
+  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+    CcpClose();
+//  if (bund->ecp.fsm.state != ST_INITIAL) {
+  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
     EcpClose();
-  }
   bund->bm.ncps_up = FALSE;
 }
 
@@ -759,6 +844,9 @@ fail:
   Enable(&bund->conf.options, BUND_CONF_SHORTSEQ);
   Accept(&bund->conf.options, BUND_CONF_SHORTSEQ);
 
+  Enable(&bund->conf.options, BUND_CONF_IPCP);
+  Disable(&bund->conf.options, BUND_CONF_IPV6CP);
+
   Disable(&bund->conf.options, BUND_CONF_BWMANAGE);
   Disable(&bund->conf.options, BUND_CONF_COMPRESSION);
   Disable(&bund->conf.options, BUND_CONF_ENCRYPTION);
@@ -766,6 +854,7 @@ fail:
 
   /* Init NCP's */
   IpcpInit();
+  Ipv6cpInit();
   CcpInit();
   EcpInit();
   

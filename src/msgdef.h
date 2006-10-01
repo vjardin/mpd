@@ -39,6 +39,7 @@
 
 #define STR_PEER_DISCONNECT	"The remote server initiated a disconnection for unknown reasons."
 #define STR_IPCP_FAILED		"PPP layer IPCP failed: %s"
+#define STR_IPV6CP_FAILED	"PPP layer IPV6CP failed: %s"
 
 #define STR_FAIL_NEGOT_FAILURE	"parameter negotiation failed"
 #define STR_FAIL_RECD_BADMAGIC	"received an invalid magic number"

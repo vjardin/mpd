@@ -5,9 +5,9 @@ all data packets strictly in the kernel.  It supports several of
 the numerous PPP sub-protocols and extensions, such as:
 
       Multi-link PPP capability 
-      PAP, CHAP, and MS-CHAP authentication 
-      EAP authentication
+      PAP, CHAP, MS-CHAP and EAP authentication 
       PPP compression and encryption
+      IPCP and IPV6CP parameter negotiation
       Point-to-Point Tunnelling Protocol (PPTP)
       PPP over Ethernet (PPPoE)
       RADIUS (authentication and accounting)

@@ -79,6 +79,12 @@
 #ifdef LG_IPCP2
     ADD_OPT(IPCP2,	"IPCP events and debugging")
 #endif
+#ifdef LG_IPV6CP
+    ADD_OPT(IPV6CP,	"IPV6CP negotiation")
+#endif
+#ifdef LG_IPV6CP2
+    ADD_OPT(IPV6CP2,	"IPV6CP events and debugging")
+#endif
 #ifdef LG_CCP
     ADD_OPT(CCP,	"CCP negotiation")
 #endif

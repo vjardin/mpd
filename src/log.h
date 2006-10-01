@@ -32,6 +32,8 @@
     LG_I_AUTH,
     LG_I_IPCP,
     LG_I_IPCP2,
+    LG_I_IPV6CP,
+    LG_I_IPV6CP2,
     LG_I_CCP,
     LG_I_CCP2,
     LG_I_CCP3,
@@ -63,6 +65,8 @@
   #define LG_AUTH		(1 << LG_I_AUTH)
   #define LG_IPCP		(1 << LG_I_IPCP)
   #define LG_IPCP2		(1 << LG_I_IPCP2)
+  #define LG_IPV6CP		(1 << LG_I_IPV6CP)
+  #define LG_IPV6CP2		(1 << LG_I_IPV6CP2)
   #define LG_CCP		(1 << LG_I_CCP)
   #define LG_CCP2		(1 << LG_I_CCP2)
   #define LG_CCP3		(1 << LG_I_CCP3)
@@ -93,6 +97,7 @@
 			        | LG_CHAT		\
 			        | LG_LCP		\
 			        | LG_IPCP		\
+			        | LG_IPV6CP		\
 			        | LG_CCP		\
 			        | LG_AUTH		\
 			        | LG_RADIUS		\
