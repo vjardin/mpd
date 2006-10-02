@@ -942,6 +942,12 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
 	/* Register an event listening to the data socket. */
 	EventRegister(&(PIf->dataEvent), EVENT_READ, PIf->dsock,
 	    EVENT_RECURRING, PppoeListenEvent, PIf);
+	
+	if (n) {
+	    /* Register an event listening to the control socket. */
+	    EventRegister(&(PIf->ctrlEvent), EVENT_READ, PIf->csock,
+		EVENT_RECURRING, PppoeCtrlReadEvent, PIf);
+	}
 	    
 	return (1);
 };
