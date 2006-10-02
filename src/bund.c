@@ -517,19 +517,66 @@ BundNcpsJoin(int proto)
 	    if (!iface->ip_up) {
 		iface->ip_up=1;
 		IfaceIpIfaceUp(1);
+	    } else if (iface->dod) {
+		iface->dod = 0;
+		iface->up = 0;
+		IfaceDown();
+		if (iface->ip_up) {
+		    iface->ip_up=0;
+		    IfaceIpIfaceDown();
+		}
+		if (iface->ipv6_up) {
+		    iface->ipv6_up=0;
+		    IfaceIpv6IfaceDown();
+		}
+		
+		iface->ip_up=1;
+		IfaceIpIfaceUp(1);
 	    }
 	    break;
 	case PROTO_IPV6CP:
 	    if (!iface->ipv6_up) {
 		iface->ipv6_up=1;
 		IfaceIpv6IfaceUp(1);
+	    } else if (iface->dod) {
+		iface->dod = 0;
+		iface->up = 0;
+		IfaceDown();
+		if (iface->ip_up) {
+		    iface->ip_up=0;
+		    IfaceIpIfaceDown();
+		}
+		if (iface->ipv6_up) {
+		    iface->ipv6_up=0;
+		    IfaceIpv6IfaceDown();
+		}
+		
+		iface->ipv6_up=1;
+		IfaceIpv6IfaceUp(1);
+	    }
+	    break;
+	case 0:
+	    if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
+		if (!(iface->up || iface->ip_up || iface->ipv6_up)) {
+		    iface->dod=1;
+		    iface->up=1;
+		    IfaceUp(0);
+		    if (Enabled(&bund->conf.options, BUND_CONF_IPCP)) {
+			iface->ip_up=1;
+			IfaceIpIfaceUp(0);
+		    }
+		    if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP)) {
+			iface->ipv6_up=1;
+			IfaceIpv6IfaceUp(0);
+		    }
+		}
 	    }
 	    break;
     }
     
     if ((proto==PROTO_IPCP || proto==PROTO_IPV6CP) && (!iface->up)) {
 	iface->up=1;
-	IfaceUp();
+	IfaceUp(1);
     }
 }
 
@@ -539,13 +586,13 @@ BundNcpsLeave(int proto)
     IfaceState	iface = &bund->iface;
     switch(proto) {
 	case PROTO_IPCP:
-	    if (iface->ip_up) {
+	    if (iface->ip_up && !iface->dod) {
 		iface->ip_up=0;
 		IfaceIpIfaceDown();
 	    }
 	    break;
 	case PROTO_IPV6CP:
-	    if (iface->ipv6_up) {
+	    if (iface->ipv6_up && !iface->dod) {
 		iface->ipv6_up=0;
 		IfaceIpv6IfaceDown();
 	    }
@@ -553,8 +600,21 @@ BundNcpsLeave(int proto)
     }
     
     if ((iface->up) && (!iface->ip_up) && (!iface->ipv6_up)) {
-	iface->up=1;
+	iface->up=0;
 	IfaceDown();
+        if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
+	    iface->dod=1;
+	    iface->up=1;
+	    IfaceUp(0);
+	    if (Enabled(&bund->conf.options, BUND_CONF_IPCP)) {
+		iface->ip_up=1;
+		IfaceIpIfaceUp(0);
+	    }
+	    if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP)) {
+		iface->ipv6_up=1;
+		IfaceIpv6IfaceUp(0);
+	    }
+	}
     }
 }
 
@@ -672,7 +732,7 @@ BundUpdateParams(void)
   }
 
   /* Update interface MTU */
-  IfaceSetMTU(mtu, bm->total_bw);
+  IfaceSetMTU(mtu);
 }
 
 /*

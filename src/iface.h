@@ -39,6 +39,14 @@
   #define IFACE_MIN_MTU		296
   #define IFACE_MAX_MTU		65536
 
+/* Configuration options */
+
+  enum {
+    IFACE_CONF_ONDEMAND,
+    IFACE_CONF_PROXY,
+    IFACE_CONF_TCPMSSFIX,
+  };
+
   /* Dial-on-demand packet cache */
   struct dodcache {
     Mbuf		pkt;
@@ -78,7 +86,7 @@
     u_char		up:1;			/* interface is up */
     u_char		ip_up:1;		/* IP interface is up */
     u_char		ipv6_up:1;		/* IPv6 interface is up */
-    u_char		ready:1;		/* Interface flagged -link0 */
+    u_char		dod:1;			/* Interface flagged -link0 */
     struct dodcache	dodCache;		/* Dial-on-demand cache */
     struct ng_bpf_hookstat
 			idleStats;		/* Stats for idle timeout */
@@ -109,7 +117,7 @@
   extern void	IfaceIpIfaceDown(void);
   extern void	IfaceIpv6IfaceUp(int ready);
   extern void	IfaceIpv6IfaceDown(void);
-  extern void	IfaceUp(void);
+  extern void	IfaceUp(int ready);
   extern void	IfaceDown(void);
   extern void	IfaceSetParams(int mtu, int speed);
   extern int	IfaceStat(int ac, char *av[], void *arg);
@@ -118,7 +126,7 @@
   #ifndef USE_NG_TCPMSS
   extern void	IfaceListenOutput(int proto, Mbuf pkt);
   #endif
-  extern void	IfaceSetMTU(int mtu, int speed);
+  extern void	IfaceSetMTU(int mtu);
 
 #endif
 

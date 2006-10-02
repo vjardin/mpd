@@ -57,20 +57,11 @@
     SET_DISABLE,
   };
 
-/* Configuration options */
-
-  enum {
-    IFACE_CONF_ONDEMAND,
-    IFACE_CONF_PROXY,
-    IFACE_CONF_TCPMSSFIX,
-  };
-
 /*
  * INTERNAL FUNCTIONS
  */
 
   static int	IfaceSetCommand(int ac, char *av[], void *arg);
-  static void	IfaceIpIfaceReady(int ready);
   static void	IfaceSessionTimeout(void *arg);
   static void	IfaceIdleTimeout(void *arg);
   static void	IfaceIdleTimerExpired(void *arg);
@@ -171,7 +162,7 @@ IfaceOpen(void)
      listening for outgoing packets. The next outgoing packet will
      cause us to open the lower layer(s) */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
-    IfaceIpIfaceUp(0);
+    BundNcpsJoin(0);
     NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
     SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
     return;
@@ -218,7 +209,7 @@ IfaceClose(void)
  */
 
 void
-IfaceUp(void)
+IfaceUp(int ready)
 {
   IfaceState	const iface = &bund->iface;
   Auth		const a = &lnk->lcp.auth;
@@ -227,16 +218,21 @@ IfaceUp(void)
   char			*buf;
   struct acl_pool 	**poollast;
   int 			poollaststart;
-  int		i;
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
-  SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
+  if (ready) {
+    SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
+  } else {
+    SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
+  }
 
   /* Open ourselves if necessary (we in effect slave off IPCP) */
   if (!iface->open) {
     Log(LG_IFACE2, ("[%s] IFACE: Opening", bund->name));
     iface->open = TRUE;		/* Would call IfaceOpen(); effect is same */
   }
+
+  if (ready) {
 
   /* Start Session timer */
   TimerStop(&iface->sessionTimer);
@@ -285,29 +281,6 @@ IfaceUp(void)
       Log(LG_ERR, ("[%s] can't clear %s stats: %s",
 	bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
   }
-/*
-  * (Re)number interface as necessary *
-  if (!iface->ip_up
-    || self.s_addr != iface->self_addr.s_addr
-    || peer.s_addr != iface->peer_addr.s_addr) {
-
-    * Bring down interface if already up *
-    if (iface->ip_up)
-      IfaceIpIfaceDown();
-
-    * Bring up interface with new addresses *
-    iface->self_addr = self;
-    iface->peer_addr = peer;
-    IfaceIpIfaceUp(1);
-  } else {
-    if (!iface->ready)
-      IfaceIpIfaceReady(1);
-  }
-*/
-  for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
-    memcpy(&(iface->routes[iface->n_routes++]), 
-      &(a->params.routes[i]), sizeof(struct ifaceroute));
-  };
 
   /* Allocate ACLs */
   acls = a->radius.acl_pipe;
@@ -358,9 +331,13 @@ IfaceUp(void)
     acls = acls->next;
   };
 
+  };
+
   /* Bring up system interface */
-  ExecCmd(LG_IFACE2, "%s %s up", 
-    PATH_IFCONFIG, iface->ifname);
+  ExecCmd(LG_IFACE2, "%s %s up %slink0", 
+    PATH_IFCONFIG, iface->ifname, ready ? "-" : "");
+
+  if (ready) {
 
   /* Call "up" script */
   if (*iface->up_script) {
@@ -396,6 +373,10 @@ IfaceUp(void)
 
   /* Send any cached packets */
   IfaceCacheSend();
+  
+  } else {
+    NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
+  }
 }
 
 /*
@@ -425,15 +406,6 @@ IfaceDown(void)
   TimerStop(&iface->idleTimer);
   TimerStop(&iface->sessionTimer);
 
-  /* If dial-on-demand, this is OK; just listen for future demand */
-  if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
-    SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
-    NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
-    IfaceIpIfaceReady(0);
-//XXXX    IfaceCloseNcps();
-    return;
-  }
-  
   /* Call "down" script */
   if (*iface->down_script) {
     ExecCmd(LG_IFACE2, "%s %s inet %s",
@@ -491,8 +463,6 @@ IfaceDown(void)
   if (cb[0]!=0)
     ExecCmd(LG_IFACE2, "%s pipe delete%s",
       PATH_IPFW, cb);
-
-  iface->n_routes = iface->n_routes_static;
 
   NgFuncConfigBPF(bund, BPF_MODE_OFF);
 }
@@ -679,31 +649,39 @@ IFaceParseACL (char * src, char * ifname)
  * IfaceIpIfaceUp()
  *
  * Bring up the IP interface. The "ready" flag means that
- * IPCP is also up and we can deliver packets immediately. We signal
- * that the interface is not "ready" with the IFF_LINK0 flag.
+ * IPCP is also up and we can deliver packets immediately.
  */
 
 void
 IfaceIpIfaceUp(int ready)
 {
   IfaceState		const iface = &bund->iface;
+  Auth          	const a = &lnk->lcp.auth;
   struct sockaddr_dl	hwa;
   char			hisaddr[20];
   u_char		*ether;
   int			k;
+  int			i;
 
   /* For good measure */
   BundUpdateParams();
 
-  iface->self_addr = bund->ipcp.want_addr;
-  iface->peer_addr = bund->ipcp.peer_addr;
+  if (ready) {
+    iface->self_addr = bund->ipcp.want_addr;
+    iface->peer_addr = bund->ipcp.peer_addr;
+
+    Log(LG_IFACE,
+	("got %d routes from RADIUS", a->params.n_routes));
+    for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
+      memcpy(&(iface->routes[iface->n_routes++]), 
+        &(a->params.routes[i]), sizeof(struct ifaceroute));
+    };
+  }
 
   /* Set addresses and bring interface up */
   snprintf(hisaddr, sizeof(hisaddr), "%s", inet_ntoa(iface->peer_addr));
-  ExecCmd(LG_IFACE2, "%s %s %s %s netmask 0xffffffff %slink0",
-    PATH_IFCONFIG, iface->ifname, inet_ntoa(iface->self_addr), hisaddr,
-    ready ? "-" : "");
-  iface->ready = ready;
+  ExecCmd(LG_IFACE2, "%s %s %s %s netmask 0xffffffff",
+    PATH_IFCONFIG, iface->ifname, inet_ntoa(iface->self_addr), hisaddr);
 
   /* Proxy ARP for peer if desired and peer's address is known */
   iface->proxy_addr.s_addr = 0;
@@ -731,6 +709,8 @@ IfaceIpIfaceUp(int ready)
   ExecCmd(LG_IFACE2, "%s add %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
   
+    Log(LG_IFACE,
+	("have %d routes", iface->n_routes));
   /* Add routes */
   for (k = 0; k < iface->n_routes; k++) {
     IfaceRoute	const r = &iface->routes[k];
@@ -745,24 +725,6 @@ IfaceIpIfaceUp(int ready)
       PATH_ROUTE, inet_ntoa(r->dest), iface->ifname, nmbuf) == 0);
   }
 
-}
-
-/*
- * IfaceIpIfaceReady()
- *
- * (Un)set the interface IFF_LINK0 flag because IPCP is now up or down.
- * Call this when the addressing is already set correctly and you
- * just want to change the flag.
- */
-
-static void
-IfaceIpIfaceReady(int ready)
-{
-  IfaceState	const iface = &bund->iface;
-
-  ExecCmd(LG_IFACE2, "%s %s %slink0",
-    PATH_IFCONFIG, iface->ifname, ready ? "-" : "");
-  iface->ready = ready;
 }
 
 /*
@@ -794,6 +756,8 @@ IfaceIpIfaceDown(void)
     r->ok = 0;
   }
 
+  iface->n_routes = iface->n_routes_static;
+
   /* Delete any proxy arp entry */
   if (iface->proxy_addr.s_addr)
     ExecCmd(LG_IFACE2, "%s -d %s", PATH_ARP, inet_ntoa(iface->proxy_addr));
@@ -806,7 +770,6 @@ IfaceIpIfaceDown(void)
   /* Bring down system interface */
   ExecCmd(LG_IFACE2, "%s %s %s delete -link0", 
     PATH_IFCONFIG, iface->ifname, inet_ntoa(iface->self_addr));
-  iface->ready = 0;
 
 }
 
@@ -826,31 +789,32 @@ IfaceIpv6IfaceUp(int ready)
   /* For good measure */
   BundUpdateParams();
 
-  iface->ipv6_addr.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
-  iface->ipv6_addr.__u6_addr.__u6_addr16[1] = 0x0000;
-  iface->ipv6_addr.__u6_addr.__u6_addr16[2] = 0x0000;
-  iface->ipv6_addr.__u6_addr.__u6_addr16[3] = 0x0000;
-  iface->ipv6_addr.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.myintid)[0];
-  iface->ipv6_addr.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.myintid)[1];
-  iface->ipv6_addr.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.myintid)[2];
-  iface->ipv6_addr.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.myintid)[3];
+  if (ready) {
 
-  /* Set addresses and bring interface up */
-  ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s %slink0",
-    PATH_IFCONFIG, iface->ifname, 
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
-    iface->ifname,
-    ready ? "-" : "");
-  iface->ready = ready;
+    iface->ipv6_addr.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
+    iface->ipv6_addr.__u6_addr.__u6_addr16[1] = 0x0000;
+    iface->ipv6_addr.__u6_addr.__u6_addr16[2] = 0x0000;
+    iface->ipv6_addr.__u6_addr.__u6_addr16[3] = 0x0000;
+    iface->ipv6_addr.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.myintid)[0];
+    iface->ipv6_addr.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.myintid)[1];
+    iface->ipv6_addr.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.myintid)[2];
+    iface->ipv6_addr.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.myintid)[3];
 
+    /* Set addresses and bring interface up */
+    ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s %slink0",
+	PATH_IFCONFIG, iface->ifname, 
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
+	iface->ifname,
+	ready ? "-" : "");
 
+  }
 }
 
 /*
@@ -863,20 +827,28 @@ void
 IfaceIpv6IfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
+  int 		i,empty;
 
-  /* Bring down system interface */
-  ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s delete",
-    PATH_IFCONFIG, iface->ifname, 
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
-    ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
-    iface->ifname);
-  iface->ready = 0;
+  empty=1;
+  for (i=0;i<4;i++) {
+    if (iface->ipv6_addr.__u6_addr.__u6_addr32[i])
+	empty=0;
+  }
+
+  if (!empty) {
+    /* Bring down system interface */
+    ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s delete",
+	PATH_IFCONFIG, iface->ifname, 
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
+	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
+        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
+        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
+        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
+        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
+        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
+        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
+        iface->ifname);
+  }
 
 }
 
@@ -1254,7 +1226,7 @@ IfaceStat(int ac, char *av[], void *arg)
  */
 
 void
-IfaceSetMTU(int mtu, int speed)
+IfaceSetMTU(int mtu)
 {
   IfaceState	const iface = &bund->iface;
   Auth		const a = &lnk->lcp.auth;
