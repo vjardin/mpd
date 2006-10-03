@@ -1027,15 +1027,15 @@ PIDCheck(const char *filename, int killem)
  */
 
 int
-GetInetSocket(int type, struct in_addr locip, int locport, int block, char *ebuf, int len)
+GetInetSocket(int type, struct sockaddr_storage *sa, int block, char *ebuf, int len)
 {
-  struct sockaddr_in	self;
-  int			sock, self_size = sizeof(self);
+  int			sock;
   static int		one = 1;
+  socklen_t		size=0;	
 
 /* Get and bind non-blocking socket */
 
-  if ((sock = socket(AF_INET, type, type == SOCK_STREAM ? IPPROTO_TCP : 0)) < 0)
+  if ((sock = socket(sa->ss_family, type, type == SOCK_STREAM ? IPPROTO_TCP : 0)) < 0)
   {
     snprintf(ebuf, len, "socket: %s", strerror(errno));
     return(-1);
@@ -1056,11 +1056,18 @@ GetInetSocket(int type, struct in_addr locip, int locport, int block, char *ebuf
     close(sock);
     return(-1);
   }
-  memset(&self, 0, sizeof(self));
-  self.sin_family = AF_INET;
-  self.sin_addr = locip;
-  self.sin_port = htons((u_short) locport);
-  if (bind(sock, (struct sockaddr *) &self, self_size) < 0)
+  switch(sa->ss_family) {
+    case AF_INET:
+	size=sizeof(struct sockaddr_in);
+	break;
+    case AF_INET6:
+	size=sizeof(struct sockaddr_in6);
+	break;
+    default:
+	assert(0);
+  };
+  
+  if (bind(sock, (struct sockaddr *) sa, size) < 0)
   {
     snprintf(ebuf, len, "bind: %s", strerror(errno));
     close(sock);
@@ -1078,7 +1085,7 @@ GetInetSocket(int type, struct in_addr locip, int locport, int block, char *ebuf
  */
 
 int
-TcpGetListenPort(struct in_addr ip, int *port, int block)
+TcpGetListenPort(struct sockaddr_storage *sa, int block)
 {
   char	ebuf[100];
   int	sock;
@@ -1086,28 +1093,12 @@ TcpGetListenPort(struct in_addr ip, int *port, int block)
 
 /* Get socket */
 
-  if ((sock = GetInetSocket(SOCK_STREAM, ip, *port, block, ebuf, sizeof(ebuf))) < 0)
+  if ((sock = GetInetSocket(SOCK_STREAM, sa, block, ebuf, sizeof(ebuf))) < 0)
   {
     saverrno = errno;
     Log(LG_ERR, ("mpd: %s", ebuf));
     errno = saverrno;
     return(-1);
-  }
-
-/* Get the port number assigned by system if none requested */
-
-  if (*port == 0)
-  {
-    struct sockaddr_in	address;
-    int			size = sizeof(address);
-
-    if (getsockname(sock, (struct sockaddr *) &address, &size) < 0)
-    {
-      Perror("getsockname");
-      (void) close(sock);
-      return(-1);
-    }
-    *port = (int) ntohs(address.sin_port);
   }
 
 /* Make socket available for connections  */
@@ -1132,10 +1123,10 @@ TcpGetListenPort(struct in_addr ip, int *port, int block)
  */
 
 int
-TcpAcceptConnection(int sock, struct sockaddr_in *addr, int block)
+TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
 {
   int	new_sock;
-  int	size = sizeof(*addr);
+  socklen_t size=sizeof(struct sockaddr_storage);
   struct request_info req;
 
 /* Accept incoming connection */

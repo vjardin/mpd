@@ -526,13 +526,18 @@ PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink,
 int
 PptpCtrlListen(int enable, int port, int allow_multiple)
 {
+  struct sockaddr_storage self;
   assert(gInitialized);
   port = port ? port : PPTP_PORT;
   if (enable) {
     gAllowMultiple = allow_multiple;
     if (gListenSock >= 0 || EventIsRegistered(&gListenRetry))
       return(0);
-    if ((gListenSock = TcpGetListenPort(gListenIp, &port, FALSE)) < 0) {
+    memset(&self, 0, sizeof(self));
+    ((struct sockaddr_in*)&self)->sin_family = AF_INET;
+    ((struct sockaddr_in*)&self)->sin_addr = gListenIp;
+    ((struct sockaddr_in*)&self)->sin_port = htons(port);
+    if ((gListenSock = TcpGetListenPort(&self, FALSE)) < 0) {
       if (errno == EADDRINUSE || errno == EADDRNOTAVAIL)
 	EventRegister(&gListenRetry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
 	  0, PptpCtrlListenRetry, (void *)(intptr_t)port);
@@ -714,17 +719,18 @@ PptpCtrlGetSessionInfo(struct pptpctrlinfo *cp,
 static void
 PptpCtrlListenEvent(int type, void *cookie)
 {
-  struct sockaddr_in		peer;
+  struct sockaddr_storage	peerst;
+  struct sockaddr_in		*peer = (struct sockaddr_in *)(&peerst);
   static const struct in_addr	any = { 0 };
   char				ebuf[100];
   PptpCtrl			c;
   int				sock;
 
   /* Accept connection */
-  if ((sock = TcpAcceptConnection(gListenSock, &peer, FALSE)) < 0)
+  if ((sock = TcpAcceptConnection(gListenSock, &peerst, FALSE)) < 0)
     return;
   Log(LG_PPTP, ("mpd: PPTP connection from %s:%u",
-    inet_ntoa(peer.sin_addr), (u_short) ntohs(peer.sin_port)));
+    inet_ntoa(peer->sin_addr), (u_short) ntohs(peer->sin_port)));
 
   if (gShutdownInProgress) {
     Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
@@ -733,7 +739,7 @@ PptpCtrlListenEvent(int type, void *cookie)
   }
 
   /* Initialize a new control block */
-  if ((c = PptpCtrlGetCtrl(FALSE, any, peer.sin_addr, ntohs(peer.sin_port),
+  if ((c = PptpCtrlGetCtrl(FALSE, any, peer->sin_addr, ntohs(peer->sin_port),
     ebuf, sizeof(ebuf))) == NULL) {
     Log(LG_PPTP, ("mpd: pptp connection failed: %s", ebuf));
     close(sock);
@@ -1100,6 +1106,7 @@ PptpCtrlGetCtrl(int orig, struct in_addr locip,
   PptpCtrl			c;
   struct sockaddr_in		peer;
   int				k;
+  struct sockaddr_storage	self;
 
   /* See if we're already have a control block matching this address and port */
   for (k = 0; k < gNumPptpCtrl; k++) {
@@ -1137,8 +1144,12 @@ PptpCtrlGetCtrl(int orig, struct in_addr locip,
   if (!c->orig)
     return(c);
 
+  memset(&self, 0, sizeof(self));
+  ((struct sockaddr_in*)&self)->sin_family = AF_INET;
+  ((struct sockaddr_in*)&self)->sin_addr = locip;
+  ((struct sockaddr_in*)&self)->sin_port = htons(0);
   /* Connect to peer */
-  if ((c->csock = GetInetSocket(SOCK_STREAM, locip, 0, FALSE, buf, bsiz)) < 0) {
+  if ((c->csock = GetInetSocket(SOCK_STREAM, &self, FALSE, buf, bsiz)) < 0) {
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
     return(NULL);
   }

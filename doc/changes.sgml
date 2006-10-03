@@ -11,6 +11,7 @@
 	<item>New feature: initial IPV6CP support added, 
 	      NCPs and IFACE calls was rewritten to support many NCPs.
 		For IPv6 not yet supported: TcpMSSFix, NetFlow, Tee, DialOnDemand.
+	<item>New feature: IPv6 console support.
 	<item>New feature: TCP link type is working now!
 	<item>New feature: NetFlow generation on outgoing packets.
 	<item>New feature: usage of specified existing ng_netflow node.

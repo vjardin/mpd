@@ -67,11 +67,10 @@
   extern int		ParseAddr(char *s, struct in_range *range);
   extern struct sockaddr_in * ParseAddrPort(int ac, char *av[]);
 
-  extern int		TcpGetListenPort(struct in_addr ip, int *port, int block);
-  extern int		TcpAcceptConnection(int sock, struct sockaddr_in *addr, int block);
+  extern int		TcpGetListenPort(struct sockaddr_storage *sa, int block);
+  extern int		TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block);
   extern int		TcpMakeConnection(struct in_addr addr, int port);
-  extern int		GetInetSocket(int type, struct in_addr locip,
-			  int locport, int block, char *ebuf, int len);
+  extern int		GetInetSocket(int type, struct sockaddr_storage *sa, int block, char *ebuf, int len);
 
   extern int		OpenSerialDevice(const char *path, int baudrate);
   extern int		ExclusiveOpenDevice(const char *path);

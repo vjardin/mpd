@@ -507,7 +507,7 @@ static int
 Ipv6cpSetCommand(int ac, char *av[], void *arg)
 {
   Ipv6cpState		const ipv6cp = &bund->ipv6cp;
-  struct in_addr	*ips;
+//  struct in_addr	*ips;
 
   if (ac == 0)
     return(-1);

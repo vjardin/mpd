@@ -35,8 +35,7 @@
 
   struct console {
     int			fd;		/* listener */
-    int			port;
-    struct in_addr	addr;
+    struct sockaddr_storage sockaddr;
     struct ghash	*users;		/* allowed users */
     struct ghash	*sessions;	/* active sessions */
     EventRef		event;		/* connect-event */
@@ -60,7 +59,7 @@
     Bund		bund;		/* my bundle */
     Link		link;		/* my link */
     struct console_user	user;
-    struct sockaddr_in	peer_addr;
+    struct sockaddr_storage	peer_addr;
     char		cmd[MAX_CONSOLE_LINE];
     int			cmd_len;
     char		writebuf[MAX_CONSOLE_BUF_LEN];
