@@ -47,6 +47,14 @@
   /* Default bundle-layer FSM retry timeout */
   #define BUND_DEFAULT_RETRY	2
 
+  enum {
+    NCP_NONE = 0,
+    NCP_IPCP,
+    NCP_IPV6CP,
+    NCP_ECP,
+    NCP_CCP
+  };
+
 /*
 
   Bundle bandwidth management
@@ -145,6 +153,7 @@
     struct ipv6cpstate	ipv6cp;		/* IPV6CP state info */
     struct ccpstate	ccp;		/* CCP state info */
     struct ecpstate	ecp;		/* ECP state info */
+    u_int		ncpstarted;	/* Bitmask of active NCPs wich is sufficient to keep bundle open */
 
     /* Link management stuff */
     struct pppTimer	bmTimer;		/* Bandwidth mgmt timer */
@@ -180,6 +189,8 @@
   extern void	BundLeave(void);
   extern void	BundNcpsJoin(int proto);
   extern void	BundNcpsLeave(int proto);
+  extern void	BundNcpsStart(int proto);
+  extern void	BundNcpsFinish(int proto);
   extern void	BundLinkGaveUp(void);
   extern void	BundOpenLinks(void);
   extern void	BundCloseLinks(void);

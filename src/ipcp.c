@@ -359,6 +359,7 @@ IpcpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 IpcpLayerStart(Fsm fp)
 {
+  BundNcpsStart(NCP_IPCP);
 }
 
 /*
@@ -370,6 +371,7 @@ IpcpLayerStart(Fsm fp)
 static void
 IpcpLayerFinish(Fsm fp)
 {
+  BundNcpsFinish(NCP_IPCP);
 }
 
 /*
@@ -422,7 +424,7 @@ IpcpLayerUp(Fsm fp)
       bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
   }
 
-  BundNcpsJoin(PROTO_IPCP);
+  BundNcpsJoin(NCP_IPCP);
 
   /* Enable IP packets in the PPP node */
 #if NGM_PPP_COOKIE < 940897794
@@ -470,7 +472,7 @@ IpcpLayerDown(Fsm fp)
       bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
   }
 
-  BundNcpsLeave(PROTO_IPCP);
+  BundNcpsLeave(NCP_IPCP);
   
 }
 

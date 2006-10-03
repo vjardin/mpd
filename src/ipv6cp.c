@@ -281,6 +281,7 @@ Ipv6cpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 Ipv6cpLayerStart(Fsm fp)
 {
+    BundNcpsStart(NCP_IPV6CP);
 }
 
 /*
@@ -292,6 +293,7 @@ Ipv6cpLayerStart(Fsm fp)
 static void
 Ipv6cpLayerFinish(Fsm fp)
 {
+    BundNcpsFinish(NCP_IPV6CP);
 }
 
 /*
@@ -310,7 +312,7 @@ Ipv6cpLayerUp(Fsm fp)
 //  snprintf(ipbuf, sizeof(ipbuf), "%s", inet_ntoa(ipv6cp->peer_addr));
 //  Log(fp->log, ("  %s -> %s", inet_ntoa(ipv6cp->want_addr), ipbuf));
 
-  BundNcpsJoin(PROTO_IPV6CP);
+  BundNcpsJoin(NCP_IPV6CP);
 
   /* Enable IP packets in the PPP node */
 #if NGM_PPP_COOKIE < 940897794
@@ -350,7 +352,7 @@ Ipv6cpLayerDown(Fsm fp)
       bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
   }
 
-  BundNcpsLeave(PROTO_IPV6CP);
+  BundNcpsLeave(NCP_IPV6CP);
 
 }
 

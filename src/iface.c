@@ -162,7 +162,7 @@ IfaceOpen(void)
      listening for outgoing packets. The next outgoing packet will
      cause us to open the lower layer(s) */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
-    BundNcpsJoin(0);
+    BundNcpsJoin(NCP_NONE);
     NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
     SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
     return;

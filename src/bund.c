@@ -503,11 +503,27 @@ BundNcpsUp(void)
 }
 
 void
+BundNcpsStart(int proto)
+{
+    bund->ncpstarted |= ((1<<proto)>>1);
+}
+
+void
+BundNcpsFinish(int proto)
+{
+    bund->ncpstarted &= (~((1<<proto)>>1));
+    if (!bund->ncpstarted) {
+	Log(LG_BUND, ("[%s] No NCPs left. Closing bundle...", bund->name));
+	BundClose(); /* We have nothing to live for */
+    }
+}
+
+void
 BundNcpsJoin(int proto)
 {
     IfaceState	iface = &bund->iface;
     switch(proto) {
-	case PROTO_IPCP:
+	case NCP_IPCP:
 	    if (!iface->ip_up) {
 		iface->ip_up=1;
 		IfaceIpIfaceUp(1);
@@ -528,7 +544,7 @@ BundNcpsJoin(int proto)
 		IfaceIpIfaceUp(1);
 	    }
 	    break;
-	case PROTO_IPV6CP:
+	case NCP_IPV6CP:
 	    if (!iface->ipv6_up) {
 		iface->ipv6_up=1;
 		IfaceIpv6IfaceUp(1);
@@ -549,7 +565,7 @@ BundNcpsJoin(int proto)
 		IfaceIpv6IfaceUp(1);
 	    }
 	    break;
-	case 0: /* Manual call by 'open iface' */
+	case NCP_NONE: /* Manual call by 'open iface' */
 	    if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
 		if (!(iface->up || iface->ip_up || iface->ipv6_up)) {
 		    iface->dod=1;
@@ -568,7 +584,7 @@ BundNcpsJoin(int proto)
 	    break;
     }
     
-    if ((proto==PROTO_IPCP || proto==PROTO_IPV6CP) && (!iface->up)) {
+    if ((proto==NCP_IPCP || proto==NCP_IPV6CP) && (!iface->up)) {
 	iface->up=1;
 	IfaceUp(1);
     }
@@ -579,13 +595,13 @@ BundNcpsLeave(int proto)
 {
     IfaceState	iface = &bund->iface;
     switch(proto) {
-	case PROTO_IPCP:
+	case NCP_IPCP:
 	    if (iface->ip_up && !iface->dod) {
 		iface->ip_up=0;
 		IfaceIpIfaceDown();
 	    }
 	    break;
-	case PROTO_IPV6CP:
+	case NCP_IPV6CP:
 	    if (iface->ipv6_up && !iface->dod) {
 		iface->ipv6_up=0;
 		IfaceIpv6IfaceDown();
