@@ -670,8 +670,6 @@ IfaceIpIfaceUp(int ready)
     iface->self_addr = bund->ipcp.want_addr;
     iface->peer_addr = bund->ipcp.peer_addr;
 
-    Log(LG_IFACE,
-	("got %d routes from RADIUS", a->params.n_routes));
     for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
       memcpy(&(iface->routes[iface->n_routes++]), 
         &(a->params.routes[i]), sizeof(struct ifaceroute));
@@ -709,8 +707,6 @@ IfaceIpIfaceUp(int ready)
   ExecCmd(LG_IFACE2, "%s add %s -iface lo0",
     PATH_ROUTE, inet_ntoa(iface->self_addr));
   
-    Log(LG_IFACE,
-	("have %d routes", iface->n_routes));
   /* Add routes */
   for (k = 0; k < iface->n_routes; k++) {
     IfaceRoute	const r = &iface->routes[k];

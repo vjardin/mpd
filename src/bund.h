@@ -92,7 +92,6 @@
     short		n_open;		/* Number of links in an OPEN state */
     time_t		last_close;	/* Time we last closed any link */
     struct pppTimer	bmTimer;	/* Bandwidth mgmt timer */
-    u_char		ncps_up:1;	/* NCP's have been told we're up */
     u_char		links_open:1;	/* One or more links told to open */
     u_int		total_bw;	/* Total bandwidth available */
   };

@@ -139,7 +139,6 @@
 void
 BundOpen(void)
 {
-  BundNcpsOpen();
   MsgSend(bund->msgs, MSG_OPEN, NULL);
 }
 
@@ -271,9 +270,6 @@ BundJoin(void)
 
     BundNcpsOpen();
 
-    /* Make sure IPCP, et.al. renegotiate */
-    if (bm->ncps_up)
-      BundNcpsDown();
     BundNcpsUp();
     
   }
@@ -318,8 +314,8 @@ BundLeave(void)
   
     /* Reset statistics and auth information */
     BundBmStop();
-    if (bm->ncps_up)
-      BundNcpsDown();
+    
+    BundNcpsDown();
 
     BundNcpsClose();
 
@@ -487,7 +483,6 @@ BundNcpsOpen(void)
     CcpOpen();
   if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
     EcpOpen();
-  bund->bm.ncps_up = TRUE;
 }
 
 /*
@@ -505,7 +500,6 @@ BundNcpsUp(void)
     CcpUp();
   if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
     EcpUp();
-  bund->bm.ncps_up = TRUE;
 }
 
 void
@@ -555,7 +549,7 @@ BundNcpsJoin(int proto)
 		IfaceIpv6IfaceUp(1);
 	    }
 	    break;
-	case 0:
+	case 0: /* Manual call by 'open iface' */
 	    if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
 		if (!(iface->up || iface->ip_up || iface->ipv6_up)) {
 		    iface->dod=1;
@@ -629,13 +623,10 @@ BundNcpsDown(void)
     IpcpDown();
   if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
     Ipv6cpDown();
-//  if (bund->ccp.fsm.state != ST_INITIAL) {
   if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
     CcpDown();
-//  if (bund->ecp.fsm.state != ST_INITIAL) {
   if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
     EcpDown();
-  bund->bm.ncps_up = FALSE;
 }
 
 /*
@@ -649,13 +640,10 @@ BundNcpsClose(void)
     IpcpClose();
   if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
     Ipv6cpClose();
-//  if (bund->ccp.fsm.state != ST_INITIAL) {
   if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
     CcpClose();
-//  if (bund->ecp.fsm.state != ST_INITIAL) {
   if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
     EcpClose();
-  bund->bm.ncps_up = FALSE;
 }
 
 /*
