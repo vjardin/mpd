@@ -142,7 +142,7 @@
     int			latency;	/* Latency in microseconds */
 
     /* Info gleaned from negotiations */
-    struct in_range	peer_allow;	/* Range from /etc/ppp/secrets */
+    struct u_range	peer_allow;	/* Range from /etc/ppp/secrets */
     struct discrim	peer_discrim;
     char		peer_authname[AUTH_MAX_AUTHNAME];
   };

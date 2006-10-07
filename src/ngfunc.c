@@ -188,8 +188,8 @@
   static u_char gNetflowNodeShutdown = TRUE;
   static u_char gNetflowNodeName[64] = "mpd-netflow";
   static u_int gNetflowIface = 0;
-  static struct sockaddr_in gNetflowExport = { 0, 0, 0, { 0 }, { 0 } };
-  static struct sockaddr_in gNetflowSource = { 0, 0, 0, { 0 }, { 0 } };
+  static struct sockaddr_storage gNetflowExport;
+  static struct sockaddr_storage gNetflowSource;
   static uint32_t gNetflowInactive = 0;
   static uint32_t gNetflowActive = 0;
   #endif
@@ -372,7 +372,11 @@ NgFuncInit(Bund b, const char *reqIface)
       /* Connect ng_ksocket(4) node for export. */
       snprintf(mp.type, sizeof(mp.type), "%s", NG_KSOCKET_NODE_TYPE);
       snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_NETFLOW_HOOK_EXPORT);
-      snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", "inet/dgram/udp");
+      if (gNetflowExport.ss_family==AF_INET6) {
+	snprintf(mp.peerhook, sizeof(mp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+      } else {
+        snprintf(mp.peerhook, sizeof(mp.peerhook), "inet/dgram/udp");
+      }
       snprintf(path, sizeof(path), "%s:", nm.name);
       if (NgSendMsg(b->csock, path,
 	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
@@ -399,7 +403,7 @@ NgFuncInit(Bund b, const char *reqIface)
       /* Configure export destination and source on ng_ksocket(4). */
       snprintf(path, sizeof(path), "%s:%s", gNetflowNodeName,
 	    NG_NETFLOW_HOOK_EXPORT);
-      if (gNetflowSource.sin_len != 0) {
+      if (gNetflowSource.ss_len != 0) {
 	if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
 	  Log(LG_ERR, ("[%s] can't bind export %s node: %s",
@@ -407,7 +411,7 @@ NgFuncInit(Bund b, const char *reqIface)
 	  goto fail;
 	}
       }
-      if (gNetflowExport.sin_len != 0) {
+      if (gNetflowExport.ss_len != 0) {
 	if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_CONNECT, &gNetflowExport, sizeof(gNetflowExport)) < 0) {
 	  Log(LG_ERR, ("[%s] can't connect export %s node: %s",
@@ -1471,16 +1475,16 @@ NgFuncErr(const char *fmt, ...)
 static int
 NetflowSetCommand(int ac, char *av[], void *arg)
 {
-  struct sockaddr_in *sin;
+  struct sockaddr_storage *sin;
 
   switch ((int) arg) {
     case SET_EXPORT: 
-      if ((sin = ParseAddrPort(ac, av)) == NULL)
+      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 	return (-1);
       gNetflowExport = *sin;
       break;
     case SET_SOURCE:
-      if ((sin = ParseAddrPort(ac, av)) == NULL)
+      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 	return (-1);
       gNetflowSource = *sin;
       break;

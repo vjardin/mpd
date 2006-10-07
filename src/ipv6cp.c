@@ -2,15 +2,7 @@
 /*
  * ipv6cp.c
  *
- * Written by Toshiharu OHNO <tony-o@iij.ad.jp>
- * Copyright (c) 1993, Internet Initiative Japan, Inc. All rights reserved.
- * See ``COPYRIGHT.iij''
- * 
- * Rewritten by Archie Cobbs <archie@freebsd.org>
- * Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
- * See ``COPYRIGHT.whistle''
- *
- * Rewritten for IPV6CP by Alexander Motin <mav@alkar.net>
+ * Written by Alexander Motin <mav@alkar.net>
  */
 
 #include "ppp.h"
@@ -306,11 +298,11 @@ static void
 Ipv6cpLayerUp(Fsm fp)
 {
   Ipv6cpState		const ipv6cp = &bund->ipv6cp;
-//  char			ipbuf[20];
 
   /* Report */
-//  snprintf(ipbuf, sizeof(ipbuf), "%s", inet_ntoa(ipv6cp->peer_addr));
-//  Log(fp->log, ("  %s -> %s", inet_ntoa(ipv6cp->want_addr), ipbuf));
+  Log(fp->log, ("  %04x:%04x:%04x:%04x -> %04x:%04x:%04x:%04x", 
+    ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]),
+    ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3])));
 
   BundNcpsJoin(NCP_IPV6CP);
 
@@ -507,45 +499,10 @@ static int
 Ipv6cpSetCommand(int ac, char *av[], void *arg)
 {
   Ipv6cpState		const ipv6cp = &bund->ipv6cp;
-//  struct in_addr	*ips;
 
   if (ac == 0)
     return(-1);
   switch ((intptr_t)arg) {
-/*    case SET_RANGES:
-      {
-	struct in_range	self_new_allow;
-	struct in_range	peer_new_allow;
-
-	* Parse args *
-	if (ac != 2
-	    || !ParseAddr(*av++, &self_new_allow)
-	    || !ParseAddr(*av++, &peer_new_allow))
-	  return(-1);
-	ipv6cp->conf.self_allow = self_new_allow;
-	ipv6cp->conf.peer_allow = peer_new_allow;
-
-      }
-      break;
-
-    case SET_DNS:
-      ips = ipv6cp->conf.peer_dns;
-      goto getPrimSec;
-      break;
-    case SET_NBNS:
-      ips = ipv6cp->conf.peer_nbns;
-getPrimSec:
-      if (!inet_aton(av[0], &ips[0])) {
-	Log(LG_ERR, ("[%s] %s: invalid IP address", bund->name, av[0]));
-	return(0);
-      }
-      ips[1].s_addr = 0;
-      if (ac > 1 && !inet_aton(av[1], &ips[1])) {
-	Log(LG_ERR, ("[%s] %s: invalid IP address", bund->name, av[1]));
-	return(0);
-      }
-      break;
-*/
     case SET_ACCEPT:
       AcceptCommand(ac, av, &ipv6cp->conf.options, gConfList);
       break;

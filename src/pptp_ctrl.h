@@ -379,21 +379,21 @@
 
   struct pptpctrlinfo {		/* Link's info for accessing PPTP code */
     void		*cookie;	/* NULL indicates response is invalid */
-    struct in_addr	peer_addr;	/* Peer IP address and port */
-    u_short		peer_port;
+    struct u_addr	peer_addr;	/* Peer IP address and port */
+    in_port_t		peer_port;
     void		(*close)(void *cookie, int result, int err, int cause);
     void		(*answer)(void *cookie, int rs, int er, int cs, int sp);
   };
   typedef struct pptpctrlinfo	*PptpCtrlInfo;
 
   typedef struct pptplinkinfo	(*PptpGetInLink_t)(struct pptpctrlinfo cinfo,
-				  struct in_addr peer, int port, int bearType,
+				  struct u_addr peer, in_port_t port, int bearType,
 				  const char *callingNum,
 				  const char *calledNum,
 				  const char *subAddress);
 
   typedef struct pptplinkinfo	(*PptpGetOutLink_t)(struct pptpctrlinfo cinfo,
-				  struct in_addr peer, int port, int bearType,
+				  struct u_addr peer, in_port_t port, int bearType,
 				  int frameType, int minBps, int maxBps,
 				  const char *calledNum,
 				  const char *subAddress);
@@ -404,29 +404,29 @@
 
   extern int			PptpCtrlInit(PptpGetInLink_t getInLink,
 				  PptpGetOutLink_t getOutLink,
-				  struct in_addr myip);
+				  struct u_addr myip);
 
-  extern int			PptpCtrlListen(int enable, int port,
+  extern int			PptpCtrlListen(int enable, in_port_t port,
 				  int allow_multiple);
 
   extern struct pptpctrlinfo	PptpCtrlInCall(struct pptplinkinfo linfo,
-				  struct in_addr locip, struct in_addr ip,
-				  int port, int bearType, int frameType,
+				  struct u_addr *locip, struct u_addr *ip,
+				  in_port_t port, int bearType, int frameType,
 				  int minBps, int maxBps,
 				  const char *callingNum,
 				  const char *calledNum,
 				  const char *subAddress);
 
   extern struct pptpctrlinfo	PptpCtrlOutCall(struct pptplinkinfo linfo,
-				  struct in_addr locip, struct in_addr ip,
-				  int port, int bearType, int frameType,
+				  struct u_addr *locip, struct u_addr *ip,
+				  in_port_t port, int bearType, int frameType,
 				  int minBps, int maxBps,
 				  const char *calledNum,
 				  const char *subAddress);
 
   extern int			PptpCtrlGetSessionInfo(struct pptpctrlinfo *cp,
-				  struct in_addr *selfAddr,
-				  struct in_addr *peerAddr,
+				  struct u_addr *selfAddr,
+				  struct u_addr *peerAddr,
 				  u_int16_t *selfCid, u_int16_t *peerCid,
 				  u_int16_t *peerWin, u_int16_t *peerPpd);
 

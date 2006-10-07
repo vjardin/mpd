@@ -152,7 +152,7 @@
     char		authname[AUTH_MAX_AUTHNAME];
     char		password[AUTH_MAX_PASSWORD];
     char		extcmd[AUTH_MAX_EXTCMD];
-    struct in_range	range;
+    struct u_range	range;
     u_int		range_valid:1;
     u_int		external:1;
     u_short		status;
@@ -175,7 +175,7 @@
       struct opie	data;
     } opie;
     struct {		/* list of params obtained from the auth-backend */
-      struct in_addr	ip;		/* IP Address */
+//      struct in_addr	ip;		/* IP Address */
       struct in_addr	mask;		/* IP Netmask */
     } params;
     struct {		/* informational (read-only) data needed for e.g. accouting */

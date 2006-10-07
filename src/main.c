@@ -196,9 +196,9 @@ main(int ac, char *av[])
   signal(SIGHUP, SendSignal);
 
   /* Catastrophic signals */
-  signal(SIGSEGV, SendSignal);
-  signal(SIGBUS, SendSignal);
-  signal(SIGABRT, SendSignal);
+//  signal(SIGSEGV, SendSignal);
+//  signal(SIGBUS, SendSignal);
+//  signal(SIGABRT, SendSignal);
 
   /* Other signals make us do things */
   signal(SIGUSR1, SendSignal);

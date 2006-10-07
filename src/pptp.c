@@ -49,10 +49,10 @@
     int			state;		/* PPTP link state */
     u_char		originate:1;	/* Call originated locally */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
-    struct in_range	peer_addr_req;	/* Peer IP addresses allowed */
-    struct in_addr	peer_addr;	/* Current peer IP address */
-    u_short		peer_port_req;	/* Peer port required (or zero) */
-    u_short		peer_port;	/* Current peer port */
+    struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
+    struct u_addr	peer_addr;	/* Current peer IP address */
+    in_port_t		peer_port_req;	/* Peer port required (or zero) */
+    in_port_t		peer_port;	/* Current peer port */
     struct optinfo	options;
     struct pptpctrlinfo	cinfo;
     char		phonenum[64];	/* PPTP phone number to use */
@@ -103,19 +103,19 @@
   static int	PptpHookUp(PptpInfo pptp);
 
   static struct pptplinkinfo	PptpIncoming(struct pptpctrlinfo cinfo,
-				  struct in_addr peer, int port, int bearType,
+				  struct u_addr peer, in_port_t port, int bearType,
 				  const char *callingNum,
 				  const char *calledNum,
 				  const char *subAddress);
 
   static struct pptplinkinfo	PptpOutgoing(struct pptpctrlinfo cinfo,
-				  struct in_addr peer, int port, int bearType,
+				  struct u_addr peer, in_port_t port, int bearType,
 				  int frameType, int minBps, int maxBps,
 				  const char *calledNum,
 				  const char *subAddress);
 
   static struct pptplinkinfo	PptpPeerCall(struct pptpctrlinfo *cinfo,
-				  struct in_addr peer, int port, int incoming);
+				  struct u_addr peer, in_port_t port, int incoming);
 
   static int	PptpSetCommand(int ac, char *av[], void *arg);
 
@@ -156,7 +156,7 @@
  * INTERNAL VARIABLES
  */
 
-  static struct in_addr		gLocalIp;
+  static struct u_addr		gLocalIp;
   static u_short		gLocalPort;
   static u_char			gInitialized;
   static struct confinfo	gConfList[] = {
@@ -277,9 +277,10 @@ PptpOriginate(PptpInfo pptp)
 {
   struct pptpctrlinfo	cinfo;
   struct pptplinkinfo	linfo;
-  const struct in_addr	ip = pptp->peer_addr_req.ipaddr;
+  struct u_addr		ip = pptp->peer_addr_req.addr;
   const u_short		port = pptp->peer_port_req ?
 			  pptp->peer_port_req : PPTP_PORT;
+  char	buf[32];
 
   assert(pptp->state == PPTP_STATE_DOWN);
   pptp->originate = TRUE;
@@ -290,11 +291,11 @@ PptpOriginate(PptpInfo pptp)
   linfo.setLinkInfo = NULL;
   linfo.cancel = PptpCancel;
   if (pptp->incoming)
-    cinfo = PptpCtrlInCall(linfo, gLocalIp, ip, port,
+    cinfo = PptpCtrlInCall(linfo, &gLocalIp, &ip, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
-      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, inet_ntoa(gLocalIp), "", "");
+      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, u_addrtoa(&gLocalIp,buf,sizeof(buf)), "", "");
   else
-    cinfo = PptpCtrlOutCall(linfo, gLocalIp, ip, port,
+    cinfo = PptpCtrlOutCall(linfo, &gLocalIp, &ip, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, pptp->phonenum, "");
   if (cinfo.cookie == NULL)
@@ -373,7 +374,7 @@ PptpPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
   PptpInfo	const pptp = (PptpInfo) p;
 
-  if (inet_ntop(AF_INET, &pptp->peer_addr, buf, buf_len))
+  if (u_addrtoa(&pptp->peer_addr, buf, buf_len))
     return(0);
   else
     return(-1);
@@ -392,16 +393,17 @@ void
 PptpStat(PhysInfo p)
 {
   PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
+  char		buf[32];
 
   Printf("PPTP status:\r\n");
   Printf("\tConnection   : %s\r\n", gPptpStateNames[pptp->state]);
   Printf("\tPeer range   : %s/%d",
-    inet_ntoa(pptp->peer_addr_req.ipaddr), pptp->peer_addr_req.width);
+    u_rangetoa(&pptp->peer_addr_req, buf, sizeof(buf)), pptp->peer_addr_req.width);
   if (pptp->peer_port_req)
     Printf(", port %u", pptp->peer_port_req);
   Printf("\r\n");
   Printf("\tCurrent peer : %s, port %u\r\n",
-    inet_ntoa(pptp->peer_addr), pptp->peer_port);
+    u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
   Printf("PPTP options:\r\n");
   OptStat(&pptp->options, gConfList);
 }
@@ -459,7 +461,7 @@ PptpResult(void *cookie, const char *errmsg)
 	Log(LG_PHYS, ("[%s] PPTP call failed", lnk->name));
 	PhysDown(STR_CON_FAILED, "%s", errmsg);
 	pptp->state = PPTP_STATE_DOWN;
-	pptp->peer_addr.s_addr = 0;
+	u_addrclear(&pptp->peer_addr);
 	pptp->peer_port = 0;
       }
       break;
@@ -469,7 +471,7 @@ PptpResult(void *cookie, const char *errmsg)
       PptpDoClose(pptp);
       PhysDown(0, NULL);
       pptp->state = PPTP_STATE_DOWN;
-      pptp->peer_addr.s_addr = 0;
+      u_addrclear(&pptp->peer_addr);
       pptp->peer_port = 0;
       if (!Enabled(&pptp->options, PPTP_CONF_ORIGINATE))
 	IfaceClose();
@@ -494,16 +496,16 @@ PptpHookUp(PptpInfo pptp)
   char	        		pptppath[NG_PATHLEN+1];
   struct ngm_mkpeer		mkp;
   struct ng_pptpgre_conf	gc;
-  struct sockaddr_in		self_addr, peer_addr;
+  struct sockaddr_storage	self_addr, peer_addr;
+  struct u_addr			u_self_addr, u_peer_addr;
 
   /* Get session info */
-  memset(&self_addr, 0, sizeof(self_addr));
-  self_addr.sin_family = AF_INET;
-  self_addr.sin_len = sizeof(self_addr);
-  peer_addr = self_addr;
   memset(&gc, 0, sizeof(gc));
-  PptpCtrlGetSessionInfo(&pptp->cinfo, &self_addr.sin_addr,
-    &peer_addr.sin_addr, &gc.cid, &gc.peerCid, &gc.recvWin, &gc.peerPpd);
+  PptpCtrlGetSessionInfo(&pptp->cinfo, &u_self_addr,
+    &u_peer_addr, &gc.cid, &gc.peerCid, &gc.recvWin, &gc.peerPpd);
+    
+  u_addrtosockaddr(&u_self_addr, 0, &self_addr);
+  u_addrtosockaddr(&u_peer_addr, 0, &peer_addr);
 
   /* Attach PPTP/GRE node to PPP node */
   snprintf(mkp.type, sizeof(mkp.type), "%s", NG_PPTPGRE_NODE_TYPE);
@@ -522,7 +524,12 @@ PptpHookUp(PptpInfo pptp)
   /* Attach ksocket node to PPTP/GRE node */
   snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
   snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s", NG_PPTPGRE_HOOK_LOWER);
-  snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/raw/gre");
+  if (u_self_addr.family==AF_INET6) {
+    //ng_ksocket doesn't support inet6 name
+    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_RAW, IPPROTO_GRE); 
+  } else {
+    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/raw/gre");
+  }
   if (NgSendMsg(bund->csock, pptppath, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     Log(LG_ERR, ("[%s] can't attach %s node: %s",
@@ -534,7 +541,7 @@ PptpHookUp(PptpInfo pptp)
 
   /* Bind ksocket socket to local IP address */
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
-      NGM_KSOCKET_BIND, &self_addr, sizeof(self_addr)) < 0) {
+      NGM_KSOCKET_BIND, &self_addr, self_addr.ss_len) < 0) {
     Log(LG_ERR, ("[%s] can't bind %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
@@ -542,7 +549,7 @@ PptpHookUp(PptpInfo pptp)
 
   /* Connect ksocket socket to remote IP address */
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
-      NGM_KSOCKET_CONNECT, &peer_addr, sizeof(peer_addr)) < 0
+      NGM_KSOCKET_CONNECT, &peer_addr, peer_addr.ss_len) < 0
       && errno != EINPROGRESS) {	/* happens in -current (weird) */
     Log(LG_ERR, ("[%s] can't connect %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -580,7 +587,7 @@ PptpHookUp(PptpInfo pptp)
 
 static struct pptplinkinfo
 PptpIncoming(struct pptpctrlinfo cinfo,
-	struct in_addr peer, int port, int bearType,
+	struct u_addr peer, in_port_t port, int bearType,
 	const char *callingNum,
 	const char *calledNum,
 	const char *subAddress)
@@ -599,7 +606,7 @@ PptpIncoming(struct pptpctrlinfo cinfo,
 
 static struct pptplinkinfo
 PptpOutgoing(struct pptpctrlinfo cinfo,
-	struct in_addr peer, int port, int bearType,
+	struct u_addr peer, in_port_t port, int bearType,
 	int frameType, int minBps, int maxBps,
 	const char *calledNum, const char *subAddress)
 {
@@ -616,7 +623,7 @@ PptpOutgoing(struct pptpctrlinfo cinfo,
 
 static struct pptplinkinfo
 PptpPeerCall(struct pptpctrlinfo *cinfo,
-	struct in_addr peer, int port, int incoming)
+	struct u_addr peer, in_port_t port, int incoming)
 {
   struct pptplinkinfo	linfo;
   Link			l = NULL;
@@ -634,7 +641,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	&& l2->phys->type == &gPptpPhysType
 	&& (pptp2 = (PptpInfo) l2->phys->info)->state == PPTP_STATE_DOWN
 	&& Enabled(&pptp2->options, PPTP_CONF_INCOMING)
-	&& IpAddrInRange(&pptp2->peer_addr_req, peer)
+	&& IpAddrInRange(&pptp2->peer_addr_req, &peer)
 	&& (!pptp2->peer_port_req || pptp2->peer_port_req == port)) {
 
       /* Link is feasible; now see if it's preferable */
@@ -691,7 +698,7 @@ PptpCancel(void *cookie)
     return;
   PhysDown(STR_CON_FAILED0, NULL);
   pptp->state = PPTP_STATE_DOWN;
-  pptp->peer_addr.s_addr = 0;
+  u_addrclear(&pptp->peer_addr);
   pptp->peer_port = 0;
 }
 
@@ -714,7 +721,7 @@ PptpListenUpdate(void)
       if (Enabled(&p->options, PPTP_CONF_INCOMING))
 	allow_incoming = 1;
       if (Enabled(&p->options, PPTP_CONF_ORIGINATE)
-	  && p->peer_addr_req.ipaddr.s_addr != 0)
+	  && u_rangeempty(&p->peer_addr_req))
 	allow_multiple = 0;
     }
   }
@@ -738,13 +745,13 @@ static int
 PptpSetCommand(int ac, char *av[], void *arg)
 {
   PptpInfo		const pptp = (PptpInfo) lnk->phys->info;
-  struct in_range	rng;
+  struct u_range	rng;
   int			port;
 
   switch ((intptr_t)arg) {
     case SET_SELFADDR:
     case SET_PEERADDR:
-      if (ac < 1 || ac > 2 || !ParseAddr(av[0], &rng))
+      if (ac < 1 || ac > 2 || !ParseRange(av[0], &rng, ALLOW_IPV4|ALLOW_IPV6))
 	return(-1);
       if (ac > 1) {
 	if ((port = atoi(av[1])) < 0 || port > 0xffff)
@@ -753,7 +760,7 @@ PptpSetCommand(int ac, char *av[], void *arg)
 	port = 0;
       }
       if ((intptr_t)arg == SET_SELFADDR) {
-	gLocalIp = rng.ipaddr;
+	gLocalIp = rng.addr;
 	gLocalPort = port;
       } else {
 	pptp->peer_addr_req = rng;

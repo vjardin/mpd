@@ -8,18 +8,21 @@
   <p>
     Changes since version 4.0b4:
     <itemize>
-	<item>New feature: initial IPV6CP support added, 
+	<item>New feature: IPV6CP support added, 
 	      NCPs and IFACE calls was rewritten to support many NCPs.
 		For IPv6 not yet supported: TcpMSSFix, NetFlow, Tee, DialOnDemand.
-	<item>New feature: IPv6 console support.
-	<item>New feature: TCP link type is working now!
+	<item>New feature: console supports IPv6.
+	<item>New feature: TCP link type now works and supports IPv6.
+	<item>New feature: UDP link type supports IPv6.
+	<item>New feature: PPTP link type is ready to support IPv6, 
+		but require ng_pptpgre IPv6 support update.
+	<item>New feature: NetFlow generation over IPv6 is supported.
 	<item>New feature: NetFlow generation on outgoing packets.
 	<item>New feature: usage of specified existing ng_netflow node.
 	<item>New feature: possible to specify network interface names insted of IPs.
 	<item>BugFix: fix races between startup process and
 		client connecting.
-	<item>BugFix: fix crash when disconnecting console after unsuccessful login.
-	<item>BugFix: fix crash due to thread unsafe console.
+	<item>BugFix: fixed a few crashes in console.
 	<item>BugFix: RAD_NAS_PORT could be wrong fixed.
 	<item>BugFix: RADIUS support rewritten from select() to poll() to avoid 
 		problems with big number of links

@@ -43,8 +43,8 @@
 
   struct ipcpconf {
     struct optinfo	options;	/* Configuraion options */
-    struct in_range	self_allow;	/* My allowed IP addresses */
-    struct in_range	peer_allow;	/* His allowed IP addresses */
+    struct u_range	self_allow;	/* My allowed IP addresses */
+    struct u_range	peer_allow;	/* His allowed IP addresses */
     struct in_addr	peer_dns[2];	/* DNS servers for peer to use */
     struct in_addr	peer_nbns[2];	/* NBNS servers for peer to use */
   };
@@ -56,8 +56,8 @@
     struct in_addr	want_addr;	/* IP address I'm willing to use */
     struct in_addr	peer_addr;	/* IP address he is willing to use */
 
-    struct in_range	self_allow;	/* My allowed IP addresses */
-    struct in_range	peer_allow;	/* His allowed IP addresses */
+    struct u_range	self_allow;	/* My allowed IP addresses */
+    struct u_range	peer_allow;	/* His allowed IP addresses */
 
     struct ipcpvjcomp	peer_comp;	/* Peer's IP compression config */
     struct ipcpvjcomp	want_comp;	/* My IP compression config */

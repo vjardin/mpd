@@ -37,10 +37,10 @@
 
 struct tcpinfo {
 	/* Configuration */
-	struct in_addr	peer_addr;
-	struct in_addr	self_addr;
-	uint16_t		peer_port;
-	uint16_t		self_port;
+	struct u_addr	peer_addr;
+	struct u_addr	self_addr;
+	in_port_t		peer_port;
+	in_port_t		self_port;
 
 	/* State */
 	int			csock;
@@ -48,7 +48,7 @@ struct tcpinfo {
 	uint32_t		flags;
 #define	TCPINFO_ASYNC		0x00000001
 #define	TCPINFO_LISTEN		0x00000002
-	struct sockaddr_in	sin_peer;
+	struct sockaddr_storage	sin_peer;
 	struct ng_async_cfg	acfg;
 	EventRef		ev_connect;
 	EventRef		ev_accept;
@@ -177,8 +177,9 @@ TcpOpen(PhysInfo p)
 	TcpInfo	const tcp = (TcpInfo) lnk->phys->info;
 	struct ngm_mkpeer mkp;
 	char path[NG_PATHLEN + 1];
-	struct sockaddr_in addr;
+	struct sockaddr_storage addr;
 	int rval, error;
+	char buf[64];
 
 	if (tcp->origination == LINK_ORIGINATE_REMOTE) {
 		Log(LG_PHYS2, ("[%s] %s() on incoming call", lnk->name,
@@ -208,7 +209,12 @@ TcpOpen(PhysInfo p)
 	 */
 	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
 	snprintf(mkp.ourhook, sizeof(mkp.ourhook), NG_ASYNC_HOOK_ASYNC);
-	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
+	if ((tcp->self_addr.family==AF_INET6) || 
+	    (tcp->self_addr.family==AF_UNSPEC && tcp->peer_addr.family==AF_INET6)) {
+	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_STREAM, IPPROTO_TCP);
+	} else {
+	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
+	}
 	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
 	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
 	NgFuncDisconnect(path, NG_ASYNC_HOOK_ASYNC);
@@ -220,15 +226,11 @@ TcpOpen(PhysInfo p)
 	}
 
 	/* Start connecting to peer. */
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_len = sizeof(addr);
-	addr.sin_family = AF_INET;
-	addr.sin_addr = tcp->peer_addr;
-	addr.sin_port = htons(tcp->peer_port);
+	u_addrtosockaddr(&tcp->peer_addr, tcp->peer_port, &addr);
 	snprintf(path, sizeof(path), "[%x]:%s%d.%s", bund->nodeID,
 	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex, NG_ASYNC_HOOK_ASYNC);
 	rval = NgSendMsg(tcp->csock, path, NGM_KSOCKET_COOKIE,
-	    NGM_KSOCKET_CONNECT, &addr, sizeof(addr));
+	    NGM_KSOCKET_CONNECT, &addr, addr.ss_len);
 	if (rval < 0 && errno != EINPROGRESS) {
 		Log(LG_ERR, ("[%s] can't connect %s node: %s", lnk->name,
 		    NG_KSOCKET_NODE_TYPE, strerror(errno))); 
@@ -240,8 +242,8 @@ TcpOpen(PhysInfo p)
 		assert(errno == EINPROGRESS);
 		EventRegister(&tcp->ev_connect, EVENT_READ, tcp->csock,
 		    0, TcpConnectEvent, lnk);
-		Log(LG_PHYS, ("[%s] connecting to %s:%u", lnk->name,
-		    inet_ntoa(tcp->peer_addr), tcp->peer_port));
+		Log(LG_PHYS, ("[%s] connecting to %s %u", lnk->name,
+		    u_addrtoa(&tcp->peer_addr, buf, sizeof(buf)), tcp->peer_port));
 	}
 
 	return;
@@ -254,9 +256,10 @@ static int
 TcpListen(TcpInfo tcp)
 {
 	struct ngm_mkpeer mkp;
-	struct sockaddr_in addr;
+	struct sockaddr_storage addr;
 	int32_t backlog = 1;
 	int error;
+	char buf[64];
 
 	assert(tcp->origination == LINK_ORIGINATE_REMOTE);
 	assert((tcp->flags & TCPINFO_LISTEN) == 0);
@@ -279,7 +282,12 @@ TcpListen(TcpInfo tcp)
 	snprintf(mkp.type, sizeof(mkp.type), "%s",
 	    NG_KSOCKET_NODE_TYPE);
 	snprintf(mkp.ourhook, sizeof(mkp.ourhook), LISTENHOOK);
-	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
+	if ((tcp->self_addr.family==AF_INET6) || 
+	    (tcp->self_addr.family==AF_UNSPEC && tcp->peer_addr.family==AF_INET6)) {
+	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_STREAM, IPPROTO_TCP);
+	} else {
+	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
+	}
 	if (NgSendMsg(tcp->csock, ".", NGM_GENERIC_COOKIE, NGM_MKPEER,
 	    &mkp, sizeof(mkp)) < 0) {
 		Log(LG_ERR, ("[%s] can't attach %s node: %s",
@@ -289,13 +297,9 @@ TcpListen(TcpInfo tcp)
 	}
 
 	/* Bind socket. */
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_len = sizeof(addr);
-	addr.sin_family = AF_INET;
-	addr.sin_addr = tcp->self_addr;
-	addr.sin_port = htons(tcp->self_port);
+	u_addrtosockaddr(&tcp->self_addr, tcp->self_port, &addr);
 	if (NgSendMsg(tcp->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
-	    NGM_KSOCKET_BIND, &addr, sizeof(addr)) < 0) {
+	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
 		Log(LG_ERR, ("[%s] can't bind %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
@@ -320,8 +324,8 @@ TcpListen(TcpInfo tcp)
 		goto fail2;
 	}
 
-	Log(LG_PHYS, ("[%s] waiting for connection on %s:%u",
-	    lnk->name, inet_ntoa(tcp->self_addr), tcp->self_port));
+	Log(LG_PHYS, ("[%s] waiting for connection on %s %u",
+	    lnk->name, u_addrtoa(&tcp->self_addr, buf, sizeof(buf)), tcp->self_port));
 	EventRegister(&tcp->ev_accept, EVENT_READ, tcp->csock,
 	    0, TcpAcceptEvent, lnk);
 
@@ -394,11 +398,14 @@ TcpAcceptEvent(int type, void *cookie)
 	struct {
 		struct ng_mesg	resp;
 		uint32_t	id;
-		struct sockaddr_in sin;
+		struct sockaddr_storage sin;
 	} ac;
 	TcpInfo	tcp;
 	struct ngm_connect cn;
 	char path[NG_PATHLEN + 1];
+	struct u_addr	addr;
+	in_port_t	port;
+	char		buf[64];
 
 	/* Restore context. */
 	lnk = (Link) cookie;
@@ -414,9 +421,10 @@ TcpAcceptEvent(int type, void *cookie)
 		    lnk->name, path, strerror(errno)));
 		goto failed;
 	}
+	sockaddrtou_addr(&ac.sin, &addr, &port);
 
-	Log(LG_PHYS, ("[%s] incoming connection from %s:%u", lnk->name,
-	    inet_ntoa(ac.sin.sin_addr), ntohs(ac.sin.sin_port)));
+	Log(LG_PHYS, ("[%s] incoming connection from %s %u", lnk->name,
+	    u_addrtoa(&addr, buf, sizeof(buf)), port));
 
 	if (gShutdownInProgress) {
 		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
@@ -427,13 +435,13 @@ TcpAcceptEvent(int type, void *cookie)
 	 * If passive, and peer address specified,
 	 * only accept from that address. Same check with port.
 	 */
-	if (tcp->peer_addr.s_addr != 0 &&
-	    tcp->peer_addr.s_addr != ac.sin.sin_addr.s_addr) {
+	if ((!u_addrempty(&tcp->peer_addr)) &&
+	    u_addrcompare(&tcp->peer_addr, &addr)) {
 		Log(LG_PHYS, ("[%s] rejected: wrong IP address", lnk->name));
 		goto failed;
 	}
 	if (tcp->peer_port != 0 &&
-	    tcp->peer_port != ntohs(ac.sin.sin_port)) {
+	    tcp->peer_port != port) {
 		Log(LG_PHYS, ("[%s] rejected: wrong port", lnk->name));
 		goto failed;
 	}
@@ -453,8 +461,8 @@ TcpAcceptEvent(int type, void *cookie)
   	}
 
 	/* Report connected. */
-	Log(LG_PHYS, ("[%s] connected with %s:%u", lnk->name,
-	    inet_ntoa(ac.sin.sin_addr), ntohs(ac.sin.sin_port)));
+	Log(LG_PHYS, ("[%s] connected with %s %u", lnk->name,
+	    u_addrtoa(&addr, buf, sizeof(buf)), port));
 	RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
 	BundOpenLink(lnk);
 
@@ -523,7 +531,7 @@ TcpPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
 	TcpInfo const tcp = (TcpInfo) p;
 
-	if (inet_ntop(AF_INET, &tcp->peer_addr, buf, buf_len))
+	if (u_addrtoa(&tcp->peer_addr, buf, buf_len))
 		return (0);
   	else
 		return (-1);
@@ -537,12 +545,13 @@ void
 TcpStat(PhysInfo p)
 {
 	TcpInfo const tcp = (TcpInfo) lnk->phys->info;
+	char	buf[64];
 
 	Printf("TCP configuration:\r\n");
 	Printf("\tSelf address : %s, port %u\r\n",
-	    inet_ntoa(tcp->self_addr), tcp->self_port);
+	    u_addrtoa(&tcp->self_addr, buf, sizeof(buf)), tcp->self_port);
 	Printf("\tPeer address : %s, port %u\r\n",
-	    inet_ntoa(tcp->peer_addr), tcp->peer_port);
+	    u_addrtoa(&tcp->peer_addr, buf, sizeof(buf)), tcp->peer_port);
 	Printf("\tConnect mode : %s\r\n",
 	    tcp->origination == LINK_ORIGINATE_LOCAL ?
 	    "local" : "remote");
@@ -556,20 +565,18 @@ static int
 TcpSetCommand(int ac, char *av[], void *arg)
 {
 	TcpInfo	const tcp = (TcpInfo) lnk->phys->info;
-	struct sockaddr_in *sin;   
+	struct sockaddr_storage *sin;   
   
 	switch ((intptr_t)arg) {
 	case SET_PEERADDR:
-		if ((sin = ParseAddrPort(ac, av)) == NULL)
+		if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 			return (-1);
-		tcp->peer_addr = sin->sin_addr;
-		tcp->peer_port = ntohs(sin->sin_port);
+		sockaddrtou_addr(sin, &tcp->peer_addr, &tcp->peer_port);
 		break;
 	case SET_SELFADDR:
-		if ((sin = ParseAddrPort(ac, av)) == NULL)
+		if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 			return (-1);
-		tcp->self_addr = sin->sin_addr;
-		tcp->self_port = ntohs(sin->sin_port);
+		sockaddrtou_addr(sin, &tcp->self_addr, &tcp->self_port);
 		break;
 	case SET_ORIGINATION:
 		if (ac != 1)

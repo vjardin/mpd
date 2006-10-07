@@ -2,15 +2,7 @@
 /*
  * ipv6cp.h
  *
- * Written by Toshiharu OHNO <tony-o@iij.ad.jp>
- * Copyright (c) 1993, Internet Initiative Japan, Inc. All rights reserved.
- * See ``COPYRIGHT.iij''
- * 
- * Rewritten by Archie Cobbs <archie@freebsd.org>
- * Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
- * See ``COPYRIGHT.whistle''
- * 
- * Rewritten for IPV6CP by Alexander Motin <mav@alkar.net>
+ * Written by Alexander Motin <mav@alkar.net>
  */
 
 #ifndef _IPV6CP_H_

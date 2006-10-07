@@ -57,8 +57,7 @@
   #define MAX_DOD_CACHE_DELAY	30
 
   struct ifaceroute {
-    struct in_addr	dest;			/* Destination of route */
-    struct in_addr	netmask;		/* Zero if none specified */
+    struct u_range	dest;			/* Destination of route */
     u_char		ok:1;			/* Route installed OK */
   };
   typedef struct ifaceroute	*IfaceRoute;
@@ -74,9 +73,9 @@
     short		n_routes;
     short		n_routes_static;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
-    struct in_addr	self_addr;		/* Interface's IP address */
-    struct in_addr	peer_addr;		/* Peer's IP address */
-    struct in_addr	proxy_addr;		/* Proxied IP address */
+    struct u_range	self_addr;		/* Interface's IP address */
+    struct u_addr	peer_addr;		/* Peer's IP address */
+    struct u_addr	proxy_addr;		/* Proxied IP address */
     struct in6_addr	ipv6_addr;
     struct pppTimer	idleTimer;		/* Idle timer */
     struct pppTimer	sessionTimer;		/* Session timer */

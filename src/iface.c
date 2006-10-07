@@ -341,7 +341,7 @@ IfaceUp(int ready)
 
   /* Call "up" script */
   if (*iface->up_script) {
-    char	peerbuf[40];
+    char	selfbuf[40],peerbuf[40];
     char	ns1buf[21], ns2buf[21];
 
     if(bund->ipcp.want_dns[0].s_addr != 0)
@@ -353,10 +353,10 @@ IfaceUp(int ready)
     else
       ns2buf[0] = '\0';
 
-    snprintf(peerbuf, sizeof(peerbuf), "%s", inet_ntoa(iface->peer_addr));
     ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
-      iface->up_script, iface->ifname, inet_ntoa(iface->self_addr),
-      peerbuf, *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname, 
+      iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
+      u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
+      *bund->peer_authname ? bund->peer_authname : bund->conf.auth.authname, 
       ns1buf, ns2buf);
   }
 
@@ -658,17 +658,18 @@ IfaceIpIfaceUp(int ready)
   IfaceState		const iface = &bund->iface;
   Auth          	const a = &lnk->lcp.auth;
   struct sockaddr_dl	hwa;
-  char			hisaddr[20];
+  char			hisaddr[20],selfaddr[20];
   u_char		*ether;
   int			k;
   int			i;
+  char			buf[64];
 
   /* For good measure */
   BundUpdateParams();
 
   if (ready) {
-    iface->self_addr = bund->ipcp.want_addr;
-    iface->peer_addr = bund->ipcp.peer_addr;
+    in_addrtou_range(&bund->ipcp.want_addr, 32, &iface->self_addr);
+    in_addrtou_addr(&bund->ipcp.peer_addr, &iface->peer_addr);
 
     for (i=0; (i < a->params.n_routes) && (bund->iface.n_routes < IFACE_MAX_ROUTES); i++) {
       memcpy(&(iface->routes[iface->n_routes++]), 
@@ -677,26 +678,26 @@ IfaceIpIfaceUp(int ready)
   }
 
   /* Set addresses and bring interface up */
-  snprintf(hisaddr, sizeof(hisaddr), "%s", inet_ntoa(iface->peer_addr));
-  ExecCmd(LG_IFACE2, "%s %s %s %s netmask 0xffffffff",
-    PATH_IFCONFIG, iface->ifname, inet_ntoa(iface->self_addr), hisaddr);
+  ExecCmd(LG_IFACE2, "%s %s %s %s",
+    PATH_IFCONFIG, iface->ifname, u_rangetoa(&iface->self_addr,selfaddr,sizeof(selfaddr)), 
+    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)));
 
   /* Proxy ARP for peer if desired and peer's address is known */
-  iface->proxy_addr.s_addr = 0;
+  u_addrclear(&iface->proxy_addr);
   if (Enabled(&iface->options, IFACE_CONF_PROXY)) {
-    if (iface->peer_addr.s_addr == 0) {
+    if (u_addrempty(&iface->peer_addr)) {
       Log(LG_IFACE,
 	("[%s] can't proxy arp for %s",
-	bund->name, inet_ntoa(iface->peer_addr)));
+	bund->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
     } else if (GetEther(&iface->peer_addr, &hwa) < 0) {
       Log(LG_IFACE,
 	("[%s] no interface to proxy arp on for %s",
-	bund->name, inet_ntoa(iface->peer_addr)));
+	bund->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
     } else {
       ether = (u_char *) LLADDR(&hwa);
       if (ExecCmd(LG_IFACE2,
 	  "%s -s %s %x:%x:%x:%x:%x:%x pub",
-	  PATH_ARP, inet_ntoa(iface->peer_addr),
+	  PATH_ARP, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)),
 	  ether[0], ether[1], ether[2],
 	  ether[3], ether[4], ether[5]) == 0)
 	iface->proxy_addr = iface->peer_addr;
@@ -705,20 +706,16 @@ IfaceIpIfaceUp(int ready)
 
   /* Add loopback route */
   ExecCmd(LG_IFACE2, "%s add %s -iface lo0",
-    PATH_ROUTE, inet_ntoa(iface->self_addr));
+    PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,selfaddr,sizeof(selfaddr)));
   
   /* Add routes */
   for (k = 0; k < iface->n_routes; k++) {
     IfaceRoute	const r = &iface->routes[k];
-    char	nmbuf[40];
 
-    if (r->netmask.s_addr) {
-      snprintf(nmbuf, sizeof(nmbuf),
-	" -netmask 0x%08lx", (u_long)ntohl(r->netmask.s_addr));
-    } else
-      *nmbuf = 0;
-    r->ok = (ExecCmd(LG_IFACE2, "%s add %s -interface %s%s",
-      PATH_ROUTE, inet_ntoa(r->dest), iface->ifname, nmbuf) == 0);
+    if (u_rangefamily(&r->dest)==AF_INET) {
+	r->ok = (ExecCmd(LG_IFACE2, "%s add %s -interface %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+    }
   }
 
 }
@@ -734,38 +731,35 @@ IfaceIpIfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
   int		k;
+  char          buf[64];
 
   /* Delete routes */
   for (k = 0; k < iface->n_routes; k++) {
     IfaceRoute	const r = &iface->routes[k];
-    char	nmbuf[40];
 
-    if (!r->ok)
-      continue;
-    if (r->netmask.s_addr) {
-      snprintf(nmbuf, sizeof(nmbuf),
-	" -netmask 0x%08lx", (u_long)ntohl(r->netmask.s_addr));
-    } else
-      *nmbuf = 0;
-    ExecCmd(LG_IFACE2, "%s delete %s -interface %s%s",
-      PATH_ROUTE, inet_ntoa(r->dest), iface->ifname, nmbuf);
-    r->ok = 0;
+    if (u_rangefamily(&r->dest)==AF_INET) {
+	if (!r->ok)
+	    continue;
+	ExecCmd(LG_IFACE2, "%s delete %s -interface %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	r->ok = 0;
+    }
   }
-
-  iface->n_routes = iface->n_routes_static;
+  
+  iface->n_routes = iface->n_routes_static; // XXX will be wrong with RADIUS v6 routes
 
   /* Delete any proxy arp entry */
-  if (iface->proxy_addr.s_addr)
-    ExecCmd(LG_IFACE2, "%s -d %s", PATH_ARP, inet_ntoa(iface->proxy_addr));
-  iface->proxy_addr.s_addr = 0;
+  if (!u_addrempty(&iface->proxy_addr))
+    ExecCmd(LG_IFACE2, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
+  u_addrclear(&iface->proxy_addr);
 
   /* Delete loopback route */
   ExecCmd(LG_IFACE2, "%s delete %s -iface lo0",
-    PATH_ROUTE, inet_ntoa(iface->self_addr));
+    PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
 
   /* Bring down system interface */
   ExecCmd(LG_IFACE2, "%s %s %s delete -link0", 
-    PATH_IFCONFIG, iface->ifname, inet_ntoa(iface->self_addr));
+    PATH_IFCONFIG, iface->ifname, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
 
 }
 
@@ -780,7 +774,9 @@ IfaceIpIfaceDown(void)
 void
 IfaceIpv6IfaceUp(int ready)
 {
-  IfaceState		const iface = &bund->iface;
+  IfaceState	const iface = &bund->iface;
+  int		k;
+  char		buf[64];
 
   /* For good measure */
   BundUpdateParams();
@@ -797,7 +793,7 @@ IfaceIpv6IfaceUp(int ready)
     iface->ipv6_addr.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.myintid)[3];
 
     /* Set addresses and bring interface up */
-    ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s %slink0",
+    ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s",
 	PATH_IFCONFIG, iface->ifname, 
 	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
 	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
@@ -807,9 +803,18 @@ IfaceIpv6IfaceUp(int ready)
 	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
 	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
 	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
-	iface->ifname,
-	ready ? "-" : "");
+	iface->ifname);
 
+  }
+  
+  /* Add routes */
+  for (k = 0; k < iface->n_routes; k++) {
+    IfaceRoute	const r = &iface->routes[k];
+
+    if (u_rangefamily(&r->dest)==AF_INET6) {
+	r->ok = (ExecCmd(LG_IFACE2, "%s add -inet6 %s -interface %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+    }
   }
 }
 
@@ -823,7 +828,21 @@ void
 IfaceIpv6IfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
-  int 		i,empty;
+  int 		i,k,empty;
+  char		buf[64];
+
+  /* Delete routes */
+  for (k = 0; k < iface->n_routes; k++) {
+    IfaceRoute	const r = &iface->routes[k];
+
+    if (u_rangefamily(&r->dest)==AF_INET6) {
+	if (!r->ok)
+	    continue;
+	ExecCmd(LG_IFACE2, "%s delete -inet6 %s -interface %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	r->ok = 0;
+    }
+  }
 
   empty=1;
   for (i=0;i<4;i++) {
@@ -1077,17 +1096,17 @@ IfaceSetCommand(int ac, char *av[], void *arg)
       break;
     case SET_ADDRS:
       {
-	struct in_addr	self_addr;
-	struct in_addr	peer_addr;
+	struct u_range	self_addr;
+	struct u_addr	peer_addr;
 
 	/* Parse */
 	if (ac != 2)
 	  return(-1);
-	if (!inet_aton(av[0], &self_addr)) {
+	if (!ParseRange(av[0], &self_addr, ALLOW_IPV4)) {
 	  Log(LG_ERR, ("mpd: bad IP address \"%s\"", av[0]));
 	  break;
 	}
-	if (!inet_aton(av[1], &peer_addr)) {
+	if (!ParseAddr(av[1], &peer_addr, ALLOW_IPV4)) {
 	  Log(LG_ERR, ("mpd: bad IP address \"%s\"", av[1]));
 	  break;
 	}
@@ -1100,8 +1119,8 @@ IfaceSetCommand(int ac, char *av[], void *arg)
 
     case SET_ROUTE:
       {
+	struct u_range		range;
 	struct ifaceroute	r;
-	struct in_range		range;
 
 	/* Check */
 	if (ac != 1)
@@ -1112,15 +1131,16 @@ IfaceSetCommand(int ac, char *av[], void *arg)
 	}
 
 	/* Get dest address */
-	if (!strcasecmp(av[0], "default"))
-	  memset(&range, 0, sizeof(range));
-	else if (!ParseAddr(av[0], &range)) {
+	if (!strcasecmp(av[0], "default")) {
+	  u_rangeclear(&range);
+	  range.addr.family=AF_INET;
+	}
+	else if (!ParseRange(av[0], &range, ALLOW_IPV4|ALLOW_IPV6)) {
 	  Log(LG_ERR, ("route: bad dest address \"%s\"", av[0]));
 	  break;
 	}
-	r.netmask.s_addr = range.width ?
-	  htonl(~0 << (32 - range.width)) : 0;
-	r.dest.s_addr = (range.ipaddr.s_addr & r.netmask.s_addr);
+	r.dest=range;
+	r.ok=0;
 	iface->routes[iface->n_routes++] = r;
 	iface->n_routes_static = iface->n_routes;
       }
@@ -1190,11 +1210,12 @@ IfaceStat(int ac, char *av[], void *arg)
 {
   IfaceState	const iface = &bund->iface;
   int		k;
+  char          buf[64];
 
   Printf("Interface %s:\r\n", iface->ifname);
   Printf("\tStatus       : %s\r\n", iface->open ? "OPEN" : "CLOSED");
-  Printf("\tIP Addresses : %s -> ", inet_ntoa(iface->self_addr));
-  Printf("%s\r\n", inet_ntoa(iface->peer_addr));
+  Printf("\tIP Addresses : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
+  Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));
   Printf("\tMaximum MTU  : %d bytes\r\n", iface->max_mtu);
   Printf("\tCurrent MTU  : %d bytes\r\n", iface->mtu);
   Printf("\tIdle timeout : %d seconds\r\n", iface->idle_timeout);
@@ -1204,11 +1225,7 @@ IfaceStat(int ac, char *av[], void *arg)
     *iface->down_script ? iface->down_script : "<none>");
   Printf("Static routes via peer:\r\n");
   for (k = 0; k < iface->n_routes; k++) {
-    Printf("\t%s ", iface->routes[k].dest.s_addr ?
-      inet_ntoa(iface->routes[k].dest) : "default");
-    if (iface->routes[k].netmask.s_addr)
-      Printf("\tnetmask %s", inet_ntoa(iface->routes[k].netmask));
-    Printf("\r\n");
+    Printf("\t%s\r\n", u_rangetoa(&iface->routes[k].dest,buf,sizeof(buf)));
   }
   Printf("Interface level options:\r\n");
   OptStat(&iface->options, gConfList);

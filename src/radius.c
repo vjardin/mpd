@@ -468,7 +468,7 @@ RadiusSetCommand(int ac, char *av[], void *arg)
   RadServe_Conf	server;
   RadServe_Conf	t_server;
   int		val, count;
-  struct in_range t;
+  struct u_range t;
 
   if (ac == 0)
       return(-1);
@@ -535,10 +535,10 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 	break;
 
       case SET_ME:
-        if (ParseAddr(*av, &t)) {
-	    conf->radius_me=t.ipaddr;
+        if (ParseRange(*av, &t, ALLOW_IPV4)) {
+	    u_addrtoin_addr(&t.addr,&conf->radius_me);
 	} else {
-	    Log(LG_ERR, ("RADIUS: Bad NAS address."));
+	    Log(LG_ERR, ("RADIUS: Bad NAS address '%s'.", *av));
 	}
 	break;
 
@@ -1001,7 +1001,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   struct in_addr	ip;
   struct radius_acl	**acls, *acls1;
   struct ifaceroute	r;
-  struct in_range	range;
+  struct u_range	range;
 
   Freee(MB_AUTH, a->radius.eapmsg);
   a->radius.eapmsg = NULL;
@@ -1064,8 +1064,8 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	if (strcmp(inet_ntoa(ip), "255.255.255.255") == 0) {
 	  /* the peer can choose an address */
 	  Log(LG_RADIUS2, (" the peer can choose an address"));
-	  auth->range.ipaddr.s_addr = 0;
-	  auth->range.width = 0;
+	  ip.s_addr=0;
+	  in_addrtou_range(&ip, 0, &auth->range);
 	  auth->range_valid = 1;
 	} else if (strcmp(inet_ntoa(ip), "255.255.255.254") == 0) {
 	  /* we should choose the ip */
@@ -1073,9 +1073,8 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  auth->range_valid = 0;
 	} else {
 	  /* or use IP from Radius-server */
-	  memcpy(&auth->range.ipaddr, &ip, sizeof(struct in_addr));
+	  in_addrtou_range(&ip, 32, &auth->range);
 	  auth->range_valid = 1;
-	  auth->range.width = 32;
 	}  
         break;
 
@@ -1099,18 +1098,17 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	route = rad_cvt_string(data, len);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_ROUTE: %s ",
 	  lnk->name, __func__, route));
-	if (!ParseAddr(route, &range)) {
+	if (!ParseRange(route, &range, ALLOW_IPV4)) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_ROUTE: Bad route \"%s\"", lnk->name, __func__, route));
 	  free(route);
 	  break;
 	}
 	free(route);
-	r.netmask.s_addr = range.width ? htonl(~0 << (32 - range.width)) : 0;
-	r.dest.s_addr = (range.ipaddr.s_addr & r.netmask.s_addr);
+	r.dest=range;
+	r.ok=0;
 	j = 0;
 	for (i = 0;i < a->params.n_routes; i++) {
-	  if ((r.dest.s_addr == a->params.routes[i].dest.s_addr)
-	      && (r.netmask.s_addr == a->params.routes[i].netmask.s_addr)) {
+	  if (!u_rangecompare(&r.dest, &a->params.routes[i].dest)) {
 	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", lnk->name, __func__));
 	    j = 1;
 	  }

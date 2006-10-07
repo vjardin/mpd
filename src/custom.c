@@ -33,7 +33,7 @@
 	CustomDoWhatever, NULL, NULL },
     { NULL },
   };
-  struct in_range	gIpcpExcludeRange;
+  struct u_range	gIpcpExcludeRange;
 
 /*
  * CustomDoWhatever()

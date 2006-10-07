@@ -98,13 +98,10 @@
 int
 ConsoleInit(Console c)
 {
-  struct sockaddr_in   *sa4 = (struct sockaddr_in *) &gConsole.sockaddr;
-
   /* setup console-defaults */
   memset(&gConsole, 0, sizeof(gConsole));
-  sa4->sin_family = AF_INET;
-  inet_pton(AF_INET, DEFAULT_CONSOLE_IP, &sa4->sin_addr);
-  sa4->sin_port = htons(DEFAULT_CONSOLE_PORT);
+  ParseAddr(DEFAULT_CONSOLE_IP, &c->addr, ALLOW_IPV4|ALLOW_IPV6);
+  c->port = DEFAULT_CONSOLE_PORT;
 
   c->sessions = ghash_create(c, 0, 0, MB_CONS, NULL, NULL, NULL, NULL);
   c->users = ghash_create(c, 0, 0, MB_CONS, ConsoleUserHash, ConsoleUserHashEqual, NULL, NULL);
@@ -120,31 +117,16 @@ int
 ConsoleOpen(Console c)
 {
   char		addrstr[INET6_ADDRSTRLEN];
-  int		port = 0;
-  struct sockaddr_in   *sa4 = (struct sockaddr_in *) &c->sockaddr;
-  struct sockaddr_in6  *sa6 = (struct sockaddr_in6 *) &c->sockaddr;
 
   if (c->fd) {
     Log(LG_ERR, ("CONSOLE: Console already running"));
     return -1;
   }
   
-  switch (c->sockaddr.ss_family) {
-    case AF_INET:
-	inet_ntop(AF_INET, &sa4->sin_addr, addrstr, sizeof(addrstr));
-	port = ntohs(sa4->sin_port);
-	break;                                                                                                   
-    case AF_INET6:                                                                                            
-	inet_ntop(AF_INET6, &sa6->sin6_addr, addrstr, sizeof(addrstr));                                          
-	port = ntohs(sa6->sin6_port);                                                                            
-	break;                                                                                                   
-    default:                                                                                                  
-	assert(0);                                                                                               
-  }
-
-  if ((c->fd = TcpGetListenPort(&c->sockaddr, FALSE)) < 0) {
+  u_addrtoa(&c->addr, addrstr, sizeof(addrstr));
+  if ((c->fd = TcpGetListenPort(&c->addr, c->port, FALSE)) < 0) {
     Log(LG_ERR, ("CONSOLE: Can't listen for connections on %s %d", 
-	addrstr, port));
+	addrstr, c->port));
     return -1;
   }
 
@@ -153,7 +135,7 @@ ConsoleOpen(Console c)
     return -1;
 
   Log(LG_CONSOLE, ("CONSOLE: listening on %s %d", 
-	addrstr, port));
+	addrstr, c->port));
   return 0;
 }
 
@@ -184,19 +166,12 @@ ConsoleStat(int ac, char *av[], void *arg)
   ConsoleSession	s;
   ConsoleSession	cs = gConsoleSession;
   struct ghash_walk	walk;
-  struct sockaddr_in   *sa4 = (struct sockaddr_in *) &c->sockaddr;
-  struct sockaddr_in6  *sa6 = (struct sockaddr_in6 *) &c->sockaddr;
   char       		addrstr[INET6_ADDRSTRLEN];
 
   Printf("Configuration:\r\n");
   Printf("\tState         : %s\r\n", c->fd ? "OPENED" : "CLOSED");
-  Printf("\tPort          : %d\r\n", ntohs((c->sockaddr.ss_family==AF_INET)?sa4->sin_port:sa6->sin6_port));
-  if (c->sockaddr.ss_family==AF_INET) {
-    inet_ntop(c->sockaddr.ss_family, &sa4->sin_addr, addrstr, sizeof(addrstr));
-  } else {
-    inet_ntop(c->sockaddr.ss_family, &sa6->sin6_addr, addrstr, sizeof(addrstr));
-  }
-  Printf("\tIP-Address    : %s\r\n", addrstr);
+  Printf("\tPort          : %d\r\n", c->port);
+  Printf("\tIP-Address    : %s\r\n", u_addrtoa(&c->addr,addrstr,sizeof(addrstr)));
 
   Printf("Configured users:\r\n");
   ghash_walk_init(c->users, &walk);
@@ -206,13 +181,8 @@ ConsoleStat(int ac, char *av[], void *arg)
   Printf("Active sessions:\r\n");
   ghash_walk_init(c->sessions, &walk);
   while ((s = ghash_walk_next(c->sessions, &walk)) !=  NULL) {
-    if (s->peer_addr.ss_family==AF_INET) {
-	inet_ntop(s->peer_addr.ss_family, &((struct sockaddr_in *)&s->peer_addr)->sin_addr, addrstr, sizeof(addrstr));
-    } else {
-	inet_ntop(s->peer_addr.ss_family, &((struct sockaddr_in6 *)&s->peer_addr)->sin6_addr, addrstr, sizeof(addrstr));
-    }
     Printf("\tUsername: %s\t\t\tfrom: %s\r\n",
-	s->user.username, addrstr);
+	s->user.username, u_addrtoa(&s->peer_addr,addrstr,sizeof(addrstr)));
   }
 
   if (cs) {
@@ -237,12 +207,14 @@ ConsoleConnect(int type, void *cookie)
 	  "\xFF\xFB\x01"	/* WILL echo */
 	  "\xFF\xFD\x01";	/* DO echo */
   char                  addrstr[INET6_ADDRSTRLEN];
+  struct sockaddr_storage ss;
   
   Log(LG_CONSOLE, ("CONSOLE: Connect"));
   cs = Malloc(MB_CONS, sizeof(*cs));
   memset(cs, 0, sizeof(*cs));
-  if ((cs->fd = TcpAcceptConnection(c->fd, &cs->peer_addr, FALSE)) < 0) 
+  if ((cs->fd = TcpAcceptConnection(c->fd, &ss, FALSE)) < 0) 
     goto cleanup;
+  sockaddrtou_addr(&ss, &cs->peer_addr, &cs->peer_port);
 
   if (EventRegister(&cs->readEvent, EVENT_READ, cs->fd, 
 	EVENT_RECURRING, ConsoleSessionReadEvent, cs) < 0)
@@ -257,13 +229,8 @@ ConsoleConnect(int type, void *cookie)
   cs->prompt = ConsoleSessionShowPrompt;
   cs->state = STATE_USERNAME;
   ghash_put(c->sessions, cs);
-  if (c->sockaddr.ss_family==AF_INET) {
-    inet_ntop(cs->peer_addr.ss_family, &((struct sockaddr_in *)&cs->peer_addr)->sin_addr, addrstr, sizeof(addrstr));
-  } else {
-    inet_ntop(cs->peer_addr.ss_family, &((struct sockaddr_in6 *)&cs->peer_addr)->sin6_addr, addrstr, sizeof(addrstr));
-  }
   Log(LG_CONSOLE, ("CONSOLE: Allocated new console session %p from %s", 
-    cs, addrstr));
+    cs, u_addrtoa(&cs->peer_addr,addrstr,sizeof(addrstr))));
   cs->write(cs, "Multi-link PPP for FreeBSD, by Archie L. Cobbs.\r\n");
   cs->write(cs, "Based on iij-ppp, by Toshiharu OHNO.\r\n\r\n");
   cs->write(cs, options);
@@ -454,13 +421,8 @@ notfound:
 
 failed:
 	cs->write(cs, "Login failed\r\n");
-	if (cs->peer_addr.ss_family==AF_INET) {
-	    inet_ntop(cs->peer_addr.ss_family, &((struct sockaddr_in *)&cs->peer_addr)->sin_addr, addrstr, sizeof(addrstr));
-	} else {
-	    inet_ntop(cs->peer_addr.ss_family, &((struct sockaddr_in6 *)&cs->peer_addr)->sin6_addr, addrstr, sizeof(addrstr));
-	}
 	Log(LG_CONSOLE, ("CONSOLE: Failed login attempt from %s", 
-		addrstr));
+		u_addrtoa(&cs->peer_addr,addrstr,sizeof(addrstr))));
 	FREE(MB_CONS, cs->user.username);
 	cs->user.username=NULL;
 	cs->state = STATE_USERNAME;
@@ -653,8 +615,6 @@ ConsoleSetCommand(int ac, char *av[], void *arg)
   ConsoleSession	cs = gConsoleSession;
   ConsoleUser		u;
   int			port;
-  struct sockaddr_in   *sa4 = (struct sockaddr_in *) &c->sockaddr;
-  struct sockaddr_in6  *sa6 = (struct sockaddr_in6 *) &c->sockaddr;
 
   switch ((int) arg) {
 
@@ -695,51 +655,17 @@ ConsoleSetCommand(int ac, char *av[], void *arg)
 	Log(LG_ERR, ("CONSOLE: Bogus port given %s", av[0]));
 	return(-1);
       }
-      switch (c->sockaddr.ss_family) {
-        case AF_INET:
-	    sa4->sin_port = port;
-	    break;
-	case AF_INET6:
-	    sa6->sin6_port = port;
-	    break;
-	default:
-	    assert(0);
-      }
+      c->port=port;
       break;
 
     case SET_IP:
       if (ac != 1)
 	return(-1);
 
-      switch (c->sockaddr.ss_family) {
-        case AF_INET:
-	    port = sa4->sin_port;
-	    break;
-	case AF_INET6:
-	    port = sa6->sin6_port;
-	    break;
-	default:
-	    port = 0;
-	    assert(0);
-      }
-      memset(&c->sockaddr, 0, sizeof(c->sockaddr));
-      if (inet_pton(AF_INET, av[0], &sa4->sin_addr) == 1)
-	sa4->sin_family = AF_INET;
-      else if (inet_pton(AF_INET6, av[0], &sa6->sin6_addr) == 1)
-	sa6->sin6_family = AF_INET6;
-      else {
+      if (!ParseAddr(av[0],&c->addr, ALLOW_IPV4|ALLOW_IPV6)) 
+      {
 	Log(LG_ERR, ("CONSOLE: Bogus IP address given %s", av[0]));
 	return(-1);
-      }
-      switch (c->sockaddr.ss_family) {
-        case AF_INET:
-	    sa4->sin_port = port;
-	    break;
-	case AF_INET6:
-	    sa6->sin6_port = port;
-	    break;
-	default:
-	    assert(0);
       }
       break;
 

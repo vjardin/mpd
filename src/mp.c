@@ -66,7 +66,7 @@ void
 MpSetDiscrim(void)
 {
   u_long		magic[2];
-  struct in_addr	ipaddr;
+  struct u_addr		ipaddr;
   struct sockaddr_dl	hwa;
 
   /* Try Ethernet address first */
@@ -79,7 +79,7 @@ MpSetDiscrim(void)
   /* Then try an IP address */
   if (GetAnyIpAddress(&ipaddr, NULL) >= 0) {
     self_discrim.class = DISCRIM_CLASS_IPADDR;
-    memcpy(self_discrim.bytes, &ipaddr, self_discrim.len = sizeof(ipaddr));
+    memcpy(self_discrim.bytes, &ipaddr.u.ip4, self_discrim.len = sizeof(ipaddr.u.ip4));
     return;
   }
 

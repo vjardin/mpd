@@ -778,7 +778,7 @@ AuthGetData(AuthData auth, int complain)
       memset(&auth->range, 0, sizeof(auth->range));
       auth->range_valid = FALSE;
       if (ac >= 3)
-	auth->range_valid = ParseAddr(av[2], &auth->range);
+	auth->range_valid = ParseRange(av[2], &auth->range, ALLOW_IPV4);
       FreeArgs(ac, av);
       fclose(fp);
       return(0);

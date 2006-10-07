@@ -127,10 +127,10 @@
     }			frame;
     u_int16_t		flen;		/* length of partial frame */
     int			csock;		/* peer control messages */
-    struct in_addr	self_addr;	/* local IP address */
-    struct in_addr	peer_addr;	/* peer we're talking to */
-    u_int16_t		self_port;
-    u_int16_t		peer_port;
+    struct u_addr	self_addr;	/* local IP address */
+    struct u_addr	peer_addr;	/* peer we're talking to */
+    in_port_t		self_port;
+    in_port_t		peer_port;
     EventRef		connEvent;	/* connection event */
     EventRef		ctrlEvent;	/* control connection input */
     struct pppTimer	idleTimer;	/* idle timer */
@@ -209,14 +209,14 @@
 
   static struct pptpctrlinfo
 			PptpCtrlOrigCall(int incoming,
-			  struct pptplinkinfo linfo, struct in_addr locip,
-			  struct in_addr ip, int port, int bearType,
+			  struct pptplinkinfo linfo, struct u_addr *locip,
+			  struct u_addr *ip, in_port_t port, int bearType,
 			  int frameType, int minBps, int maxBps,
 			  const char *callingNum, const char *calledNum,
 			  const char *subAddress);
 
-  static PptpCtrl	PptpCtrlGetCtrl(int orig, struct in_addr locip,
-			  struct in_addr peer_addr, int peer_port,
+  static PptpCtrl	PptpCtrlGetCtrl(int orig, struct u_addr *locip,
+			  struct u_addr *peer_addr, in_port_t peer_port,
 			  char *buf, int bsiz);
   static PptpChan	PptpCtrlGetChan(PptpCtrl c, int chanState, int orig,
 			  int incoming, int bearType, int frameType, int minBps,
@@ -235,7 +235,7 @@
   static u_int16_t		gLastCallId;
   static int			gAllowMultiple;
   static int			gListenSock = -1;
-  static struct in_addr		gListenIp;
+  static struct u_addr		gListenIp;
   static EventRef		gListenRetry;
   static EventRef		gListenEvent;
   static PptpGetInLink_t	gGetInLink;
@@ -480,7 +480,7 @@
 
 int
 PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink,
-  struct in_addr ip)
+  struct u_addr ip)
 {
   int	type;
 
@@ -524,27 +524,24 @@ PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink,
  */
 
 int
-PptpCtrlListen(int enable, int port, int allow_multiple)
+PptpCtrlListen(int enable, in_port_t port, int allow_multiple)
 {
-  struct sockaddr_storage self;
+  char	buf[64];
+
   assert(gInitialized);
   port = port ? port : PPTP_PORT;
   if (enable) {
     gAllowMultiple = allow_multiple;
     if (gListenSock >= 0 || EventIsRegistered(&gListenRetry))
       return(0);
-    memset(&self, 0, sizeof(self));
-    ((struct sockaddr_in*)&self)->sin_family = AF_INET;
-    ((struct sockaddr_in*)&self)->sin_addr = gListenIp;
-    ((struct sockaddr_in*)&self)->sin_port = htons(port);
-    if ((gListenSock = TcpGetListenPort(&self, FALSE)) < 0) {
+    if ((gListenSock = TcpGetListenPort(&gListenIp, port, FALSE)) < 0) {
       if (errno == EADDRINUSE || errno == EADDRNOTAVAIL)
 	EventRegister(&gListenRetry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
 	  0, PptpCtrlListenRetry, (void *)(intptr_t)port);
       Log(LG_ERR, ("mpd: can't get PPTP listening socket"));
       return(-1);
     }
-    Log(LG_PHYS2, ("mpd: local IP address for PPTP is %s", inet_ntoa(gListenIp)));
+    Log(LG_PHYS2, ("mpd: local IP address for PPTP is %s", u_addrtoa(&gListenIp,buf,sizeof(buf))));
     EventRegister(&gListenEvent, EVENT_READ,
       gListenSock, EVENT_RECURRING, PptpCtrlListenEvent, NULL);
   } else {
@@ -580,8 +577,8 @@ PptpCtrlListenRetry(int type, void *cookie)
  */
 
 struct pptpctrlinfo
-PptpCtrlInCall(struct pptplinkinfo linfo, struct in_addr locip,
-	struct in_addr ip, int port, int bearType, int frameType,
+PptpCtrlInCall(struct pptplinkinfo linfo, struct u_addr *locip,
+	struct u_addr *ip, in_port_t port, int bearType, int frameType,
 	int minBps, int maxBps, const char *callingNum,
 	const char *calledNum, const char *subAddress)
 {
@@ -597,8 +594,8 @@ PptpCtrlInCall(struct pptplinkinfo linfo, struct in_addr locip,
  */
 
 struct pptpctrlinfo
-PptpCtrlOutCall(struct pptplinkinfo linfo, struct in_addr locip,
-	struct in_addr ip, int port, int bearType,
+PptpCtrlOutCall(struct pptplinkinfo linfo, struct u_addr *locip,
+	struct u_addr *ip, in_port_t port, int bearType,
 	int frameType, int minBps, int maxBps,
 	const char *calledNum, const char *subAddress)
 {
@@ -620,7 +617,7 @@ PptpCtrlOutCall(struct pptplinkinfo linfo, struct in_addr locip,
 
 static struct pptpctrlinfo
 PptpCtrlOrigCall(int incoming, struct pptplinkinfo linfo,
-	struct in_addr locip, struct in_addr ip, int port, int bearType,
+	struct u_addr *locip, struct u_addr *ip, in_port_t port, int bearType,
 	int frameType, int minBps, int maxBps, const char *callingNum,
 	const char *calledNum, const char *subAddress)
 {
@@ -666,7 +663,7 @@ PptpCtrlOrigCall(int incoming, struct pptplinkinfo linfo,
 
 int
 PptpCtrlGetSessionInfo(struct pptpctrlinfo *cp,
-	struct in_addr *selfAddr, struct in_addr *peerAddr,
+	struct u_addr *selfAddr, struct u_addr *peerAddr,
 	u_int16_t *selfCid, u_int16_t *peerCid,
 	u_int16_t *peerWin, u_int16_t *peerPpd)
 {
@@ -720,17 +717,22 @@ static void
 PptpCtrlListenEvent(int type, void *cookie)
 {
   struct sockaddr_storage	peerst;
-  struct sockaddr_in		*peer = (struct sockaddr_in *)(&peerst);
-  static const struct in_addr	any = { 0 };
+  struct u_addr			any;
+  struct u_addr			addr;
+  in_port_t			port;
   char				ebuf[100];
   PptpCtrl			c;
   int				sock;
-
+  char				buf[64];
+  
+  u_addrclear(&any);
+ 
   /* Accept connection */
   if ((sock = TcpAcceptConnection(gListenSock, &peerst, FALSE)) < 0)
     return;
-  Log(LG_PPTP, ("mpd: PPTP connection from %s:%u",
-    inet_ntoa(peer->sin_addr), (u_short) ntohs(peer->sin_port)));
+  sockaddrtou_addr(&peerst,&addr,&port);
+  Log(LG_PPTP, ("mpd: PPTP connection from %s %u",
+    u_addrtoa(&addr,buf,sizeof(buf)), port));
 
   if (gShutdownInProgress) {
     Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
@@ -739,7 +741,7 @@ PptpCtrlListenEvent(int type, void *cookie)
   }
 
   /* Initialize a new control block */
-  if ((c = PptpCtrlGetCtrl(FALSE, any, peer->sin_addr, ntohs(peer->sin_port),
+  if ((c = PptpCtrlGetCtrl(FALSE, &any, &addr, port,
     ebuf, sizeof(ebuf))) == NULL) {
     Log(LG_PPTP, ("mpd: pptp connection failed: %s", ebuf));
     close(sock);
@@ -762,23 +764,24 @@ static void
 PptpCtrlConnEvent(int type, void *cookie)
 {
   PptpCtrl		const c = (PptpCtrl) cookie;
-  struct sockaddr_in	addr;
+  struct sockaddr_storage	addr;
   int			addrLen = sizeof(addr);;
+  char			buf[64];
 
   /* Get event */
   assert(c->state == PPTP_CTRL_ST_IDLE);
 
   /* Check whether the connection was successful or not */
   if (getpeername(c->csock, (struct sockaddr *) &addr, &addrLen) < 0) {
-    Log(LG_PPTP, ("pptp%d: connection to %s:%d failed",
-      c->id, inet_ntoa(c->peer_addr), c->peer_port));
+    Log(LG_PPTP, ("pptp%d: connection to %s %d failed",
+      c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
     PptpCtrlKillCtrl(c);
     return;
   }
 
   /* Initialize the session */
-  Log(LG_PPTP, ("pptp%d: connected to %s:%u",
-    c->id, inet_ntoa(c->peer_addr), c->peer_port));
+  Log(LG_PPTP, ("pptp%d: connected to %s %u",
+    c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
   PptpCtrlInitCtrl(c, TRUE);
 }
 
@@ -792,9 +795,10 @@ PptpCtrlConnEvent(int type, void *cookie)
 static void
 PptpCtrlInitCtrl(PptpCtrl c, int orig)
 {
-  struct sockaddr_in	self, peer;
+  struct sockaddr_storage	self, peer;
   static const int	one = 1;
   int			k, addrLen;
+  char			buf[64];
 
   /* Good time for a sanity check */
   assert(c->state == PPTP_CTRL_ST_IDLE);
@@ -824,8 +828,7 @@ abort:
     PptpCtrlKillCtrl(c);
     return;
   }
-  c->self_addr = self.sin_addr;
-  c->self_port = ntohs(self.sin_port);
+  sockaddrtou_addr(&self, &c->self_addr, &c->self_port);
 
   /* Get remote IP address */
   addrLen = sizeof(peer);
@@ -833,12 +836,11 @@ abort:
     Log(LG_PPTP, ("pptp%d: %s: %s", c->id, "getpeername", strerror(errno)));
     goto abort;
   }
-  c->peer_addr = peer.sin_addr;
-  c->peer_port = ntohs(peer.sin_port);
+  sockaddrtou_addr(&peer, &c->peer_addr, &c->peer_port);
 
   /* Log which control block */
-  Log(LG_PPTP, ("pptp%d: attached to connection with %s:%u",
-    c->id, inet_ntoa(c->peer_addr), c->peer_port));
+  Log(LG_PPTP, ("pptp%d: attached to connection with %s %u",
+    c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
 
   /* Turn of Nagle algorithm on the TCP socket, since we are going to
      be writing complete control frames one at a time */
@@ -1100,26 +1102,26 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
  */
 
 static PptpCtrl
-PptpCtrlGetCtrl(int orig, struct in_addr locip,
-	struct in_addr peer_addr, int peer_port, char *buf, int bsiz)
+PptpCtrlGetCtrl(int orig, struct u_addr *locip,
+	struct u_addr *peer_addr, in_port_t peer_port, char *buf, int bsiz)
 {
   PptpCtrl			c;
-  struct sockaddr_in		peer;
   int				k;
-  struct sockaddr_storage	self;
+  struct sockaddr_storage	peer;
+  char				buf1[64];
 
   /* See if we're already have a control block matching this address and port */
   for (k = 0; k < gNumPptpCtrl; k++) {
     PptpCtrl	const c = gPptpCtrl[k];
 
     if (c != NULL
-	&& c->peer_addr.s_addr == peer_addr.s_addr
+	&& (!u_addrcompare (&c->peer_addr, peer_addr))
 	&& c->peer_port == peer_port) {
       if (orig)
 	return(c);
       else {
-	snprintf(buf, bsiz, "pptp: connection to %s:%u already exists",
-	  inet_ntoa(peer_addr), peer_port);
+	snprintf(buf, bsiz, "pptp: connection to %s %u already exists",
+	  u_addrtoa(peer_addr,buf1,sizeof(buf1)), peer_port);
 	return(NULL);
       }
     }
@@ -1136,7 +1138,7 @@ PptpCtrlGetCtrl(int orig, struct in_addr locip,
   c->id = k;
   c->orig = orig;
   c->csock = -1;
-  c->peer_addr = peer_addr;
+  c->peer_addr = *peer_addr;
   c->peer_port = peer_port;
   PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_IDLE);
 
@@ -1144,25 +1146,18 @@ PptpCtrlGetCtrl(int orig, struct in_addr locip,
   if (!c->orig)
     return(c);
 
-  memset(&self, 0, sizeof(self));
-  ((struct sockaddr_in*)&self)->sin_family = AF_INET;
-  ((struct sockaddr_in*)&self)->sin_addr = locip;
-  ((struct sockaddr_in*)&self)->sin_port = htons(0);
   /* Connect to peer */
-  if ((c->csock = GetInetSocket(SOCK_STREAM, &self, FALSE, buf, bsiz)) < 0) {
+  if ((c->csock = GetInetSocket(SOCK_STREAM, locip, 0, FALSE, buf, bsiz)) < 0) {
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
     return(NULL);
   }
-  memset(&peer, 0, sizeof(peer));
-  peer.sin_family = AF_INET;
-  peer.sin_addr = c->peer_addr;
-  peer.sin_port = htons(c->peer_port);
-  if (connect(c->csock, (struct sockaddr *) &peer, sizeof(peer)) < 0
+  u_addrtosockaddr(&c->peer_addr, c->peer_port, &peer);
+  if (connect(c->csock, (struct sockaddr *) &peer, peer.ss_len) < 0
       && errno != EINPROGRESS) {
     (void) close(c->csock);
     c->csock = -1;
-    snprintf(buf, bsiz, "pptp: connect to %s:%u failed: %s",
-      inet_ntoa(c->peer_addr), c->peer_port, strerror(errno));
+    snprintf(buf, bsiz, "pptp: connect to %s %u failed: %s",
+      u_addrtoa(&c->peer_addr,buf1,sizeof(buf1)), c->peer_port, strerror(errno));
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
     return(NULL);
   }
@@ -1170,8 +1165,8 @@ PptpCtrlGetCtrl(int orig, struct in_addr locip,
   /* Wait for it to go through */
   EventRegister(&c->connEvent, EVENT_WRITE, c->csock,
     0, PptpCtrlConnEvent, c);
-  Log(LG_PPTP, ("pptp%d: connecting to %s:%u",
-    c->id, inet_ntoa(c->peer_addr), c->peer_port));
+  Log(LG_PPTP, ("pptp%d: connecting to %s %u",
+    c->id, u_addrtoa(&c->peer_addr,buf1,sizeof(buf1)), c->peer_port));
   return(c);
 }
 
@@ -1254,8 +1249,10 @@ PptpCtrlDialResult(void *cookie, int result, int error, int cause, int speed)
 static void
 PptpCtrlCloseCtrl(PptpCtrl c)
 {
-  Log(LG_PPTP, ("pptp%d: closing connection with %s:%u",
-    c->id, inet_ntoa(c->peer_addr), c->peer_port));
+  char	buf[64];
+
+  Log(LG_PPTP, ("pptp%d: closing connection with %s %u",
+    c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
   switch (c->state) {
     case PPTP_CTRL_ST_IDLE:
     case PPTP_CTRL_ST_WAIT_STOP_REPLY:
@@ -1287,6 +1284,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
 {
   int		k;
   PptpPendRep	prep, next;
+  char		buf[64];
 
   /* Don't recurse */
   assert(c);
@@ -1295,8 +1293,8 @@ PptpCtrlKillCtrl(PptpCtrl c)
   c->killing = 1;
 
   /* Do ungraceful shutdown */
-  Log(LG_PPTP, ("pptp%d: killing connection with %s:%u",
-    c->id, inet_ntoa(c->peer_addr), c->peer_port));
+  Log(LG_PPTP, ("pptp%d: killing connection with %s %u",
+    c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
   for (k = 0; k < c->numChannels; k++) {
     PptpChan	const ch = c->channels[k];
 
@@ -1868,6 +1866,7 @@ PptpStartCtrlConnRequest(PptpCtrl c, struct pptpStartCtrlConnRequest *req)
 {
   struct pptpStartCtrlConnReply	reply;
   int				k;
+  char				buf[64];
 
   /* Are we allowing multiple connections from the same IP address? */
   if (gAllowMultiple)
@@ -1880,12 +1879,11 @@ PptpStartCtrlConnRequest(PptpCtrl c, struct pptpStartCtrlConnRequest *req)
 
     if (c2 == NULL
 	|| c2 == c
-	|| c2->peer_addr.s_addr != c->peer_addr.s_addr)
+	|| u_addrcompare(&c2->peer_addr, &c->peer_addr))
       continue;
-    iwin = (u_int32_t) ntohl(c->self_addr.s_addr)
-	    > (u_int32_t) ntohl(c->peer_addr.s_addr);
+    iwin = (u_addrcompare(&c->self_addr, &c->peer_addr)>0)?1:0;
     Log(LG_PPTP, ("pptp%d: collision with %s! %s",
-      c->id, inet_ntoa(c->peer_addr), iwin ? "i win" : "peer wins"));
+      c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), iwin ? "i win" : "peer wins"));
     if (iwin)
       goto abort;		/* Kill this peer-initiated connection */
     else

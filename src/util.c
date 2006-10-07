@@ -102,96 +102,6 @@ ExecCmd(int log, const char *fmt, ...)
 }
 
 /*
- * ParseAddr()
- *
- * Parse an IP address & mask of the form X.Y.Z.W/M.
- * If no slash, then M is assumed to be 32.
- * Returns TRUE if successful
- */
-
-int
-ParseAddr(char *s, struct in_range *r)
-{
-  int			n_bits;
-  char			*widp, buf[100];
-  struct in_addr	address;
-
-  snprintf(buf, sizeof(buf), "%s", s);
-  if ((widp = strchr(buf, '/')) != NULL)
-    *widp++ = '\0';
-  else
-    widp = buf + strlen(buf);
-
-/* Get IP address part; if that fails, try looking up hostname */
-
-  if (!inet_aton(buf, &address))
-  {
-    if (GetAnyIpAddress(&address, buf))
-    {
-  	struct hostent	*hptr;
-	int			k;
-
-	if ((hptr = gethostbyname(buf)) == NULL)
-    	    return (FALSE);
-	for (k = 0; hptr->h_addr_list[k]; k++);
-	memcpy(&address, hptr->h_addr_list[random() % k], sizeof(address));
-    }
-  }
-
-/* Get mask width */
-
-  if (*widp)
-  {
-    if ((n_bits = atoi(widp)) < 0 || n_bits > 32)
-    {
-      Log(LG_ERR, ("mpd: bad IP mask width: \"%s\"", widp));
-      return(FALSE);
-    }
-  }
-  else
-    n_bits = 32;
-
-/* Done */
-
-  r->ipaddr = address;
-  r->width = n_bits;
-  return(TRUE);
-}
-
-/*
- * ParseAddrPort()
- *
- * Parse an IP address & port of the form X.Y.Z.W P.
- * Returns pointer to sockaddr_in. Not thread safe!
- */
-
-struct sockaddr_in *
-ParseAddrPort(int ac, char *av[])
-{
-  static struct sockaddr_in sin;
-
-  if (ac < 1 || ac > 2)
-    return (NULL);
-
-  memset(&sin, 0, sizeof(sin));
-  if (!inet_aton(av[0], &sin.sin_addr)) {
-    Log(LG_ERR, ("Bad ip address \"%s\"", av[0]));
-    return (NULL);
-  }
-  if (ac > 1) {
-    if (atoi(av[1]) <= 0) {
-      Log(LG_ERR, ("Bad port \"%s\"", av[1]));
-      return (NULL);
-    }
-    sin.sin_port = htons(atoi(av[1]));
-  }
-  sin.sin_len = sizeof(sin);
-  sin.sin_family = AF_INET;
-
-  return (&sin);
-}
-
-/*
  * ParseLine()
  *
  * Parse arguments, respecting double quotes and backslash escapes.
@@ -1027,15 +937,17 @@ PIDCheck(const char *filename, int killem)
  */
 
 int
-GetInetSocket(int type, struct sockaddr_storage *sa, int block, char *ebuf, int len)
+GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, int len)
 {
   int			sock;
   static int		one = 1;
-  socklen_t		size=0;	
+  struct sockaddr_storage sa;
+
+  u_addrtosockaddr(addr,port,&sa);
 
 /* Get and bind non-blocking socket */
 
-  if ((sock = socket(sa->ss_family, type, type == SOCK_STREAM ? IPPROTO_TCP : 0)) < 0)
+  if ((sock = socket(sa.ss_family, type, type == SOCK_STREAM ? IPPROTO_TCP : 0)) < 0)
   {
     snprintf(ebuf, len, "socket: %s", strerror(errno));
     return(-1);
@@ -1056,18 +968,8 @@ GetInetSocket(int type, struct sockaddr_storage *sa, int block, char *ebuf, int 
     close(sock);
     return(-1);
   }
-  switch(sa->ss_family) {
-    case AF_INET:
-	size=sizeof(struct sockaddr_in);
-	break;
-    case AF_INET6:
-	size=sizeof(struct sockaddr_in6);
-	break;
-    default:
-	assert(0);
-  };
   
-  if (bind(sock, (struct sockaddr *) sa, size) < 0)
+  if (bind(sock, (struct sockaddr *) &sa, sa.ss_len) < 0)
   {
     snprintf(ebuf, len, "bind: %s", strerror(errno));
     close(sock);
@@ -1085,7 +987,7 @@ GetInetSocket(int type, struct sockaddr_storage *sa, int block, char *ebuf, int 
  */
 
 int
-TcpGetListenPort(struct sockaddr_storage *sa, int block)
+TcpGetListenPort(struct u_addr *addr, in_port_t port, int block)
 {
   char	ebuf[100];
   int	sock;
@@ -1093,7 +995,7 @@ TcpGetListenPort(struct sockaddr_storage *sa, int block)
 
 /* Get socket */
 
-  if ((sock = GetInetSocket(SOCK_STREAM, sa, block, ebuf, sizeof(ebuf))) < 0)
+  if ((sock = GetInetSocket(SOCK_STREAM, addr, port, block, ebuf, sizeof(ebuf))) < 0)
   {
     saverrno = errno;
     Log(LG_ERR, ("mpd: %s", ebuf));
@@ -1296,7 +1198,7 @@ static const u_int16_t Crc16Table[256] = {
  */
 
 int
-GetAnyIpAddress(struct in_addr *ipaddr, char *ifname)
+GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
 {
   int			s, p2p = 0;
   struct in_addr	ipa = { 0 };
@@ -1350,7 +1252,7 @@ GetAnyIpAddress(struct in_addr *ipaddr, char *ifname)
   /* Found? */
   if (ipa.s_addr == 0)
     return(-1);
-  *ipaddr = ipa;
+  in_addrtou_addr(&ipa, ipaddr);
   return(0);
 }
 
@@ -1362,7 +1264,7 @@ GetAnyIpAddress(struct in_addr *ipaddr, char *ifname)
  */
 
 int
-GetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
+GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 {
   int			s;
   struct ifreq		*ifr, *ifend, *ifp;
@@ -1412,7 +1314,7 @@ GetEther(struct in_addr *addr, struct sockaddr_dl *hwaddr)
       if (ioctl(s, SIOCGIFNETMASK, &ifreq) < 0)
 	continue;
       mask = ((struct sockaddr_in *)(void *)&ifreq.ifr_addr)->sin_addr.s_addr;
-      if (addr && (addr->s_addr & mask) != (ina & mask))
+      if (addr && (addr->u.ip4.s_addr & mask) != (ina & mask))
 	continue;
 
       /* OK */

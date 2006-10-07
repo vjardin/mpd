@@ -42,10 +42,10 @@
   #define UDP_REOPEN_PAUSE	10
 
   struct udpinfo {
-    struct in_addr	self_addr;	/* Configured local IP address */
-    struct in_addr	peer_addr;	/* Configured peer IP address */
-    u_int16_t		self_port;	/* Configured local port */
-    u_int16_t		peer_port;	/* Configured peer port */
+    struct u_addr	self_addr;	/* Configured local IP address */
+    struct u_addr	peer_addr;	/* Configured peer IP address */
+    in_port_t		self_port;	/* Configured local port */
+    in_port_t		peer_port;	/* Configured peer port */
     u_int16_t		rxSeq;		/* Last seq received */
     u_int16_t		txSeq;		/* Last seq sent */
     int			origination;	/* Link origination */
@@ -126,13 +126,17 @@ UdpOpen(PhysInfo p)
   UdpInfo		const udp = (UdpInfo) lnk->phys->info;
   char        		path[NG_PATHLEN+1];
   struct ngm_mkpeer	mkp;
-  struct sockaddr_in	addr;
+  struct sockaddr_storage	addr;
 
   /* Attach ksocket node to PPP node */
   snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
   snprintf(mkp.ourhook, sizeof(mkp.ourhook),
     "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/dgram/udp");
+  if (udp->self_addr.family==AF_INET6) {
+    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+  } else {
+    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/dgram/udp");
+  }
   if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     Log(LG_ERR, ("[%s] can't attach %s node: %s",
@@ -143,13 +147,9 @@ UdpOpen(PhysInfo p)
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, mkp.ourhook);
 
   /* Bind socket */
-  memset(&addr, 0, sizeof(addr));
-  addr.sin_len = sizeof(addr);
-  addr.sin_family = AF_INET;
-  addr.sin_addr = udp->self_addr;
-  addr.sin_port = htons(udp->self_port);
+  u_addrtosockaddr(&udp->self_addr, udp->self_port, &addr);
   if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
-      NGM_KSOCKET_BIND, &addr, sizeof(addr)) < 0) {
+      NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
     Log(LG_ERR, ("[%s] can't bind %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     UdpDoClose(udp);
@@ -158,14 +158,10 @@ UdpOpen(PhysInfo p)
   }
 
   /* Connect socket if peer address and port is specified */
-  if (udp->peer_addr.s_addr != 0 && udp->peer_port != 0) {
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_len = sizeof(addr);
-    addr.sin_family = AF_INET;
-    addr.sin_addr = udp->peer_addr;
-    addr.sin_port = htons(udp->peer_port);
+  if ((!u_addrempty(&udp->peer_addr)) && udp->peer_port != 0) {
+    u_addrtosockaddr(&udp->peer_addr, udp->peer_port, &addr);
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
-	NGM_KSOCKET_CONNECT, &addr, sizeof(addr)) < 0) {
+	NGM_KSOCKET_CONNECT, &addr, addr.ss_len) < 0) {
       Log(LG_ERR, ("[%s] can't connect %s node: %s",
 	lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
       UdpDoClose(udp);
@@ -240,12 +236,13 @@ void
 UdpStat(PhysInfo p)
 {
   UdpInfo	const udp = (UdpInfo) lnk->phys->info;
+  char		buf[64];
 
   Printf("UDP configuration:\r\n");
   Printf("\tSelf address : %s, port %u\r\n",
-    inet_ntoa(udp->self_addr), udp->self_port);
+    u_addrtoa(&udp->self_addr, buf, sizeof(buf)), udp->self_port);
   Printf("\tPeer address : %s, port %u\r\n",
-    inet_ntoa(udp->peer_addr), udp->peer_port);
+    u_addrtoa(&udp->peer_addr, buf, sizeof(buf)), udp->peer_port);
 }
 
 /*
@@ -265,7 +262,7 @@ UdpPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
   UdpInfo	const udp = (UdpInfo) p;
 
-  if (inet_ntop(AF_INET, &udp->peer_addr, buf, buf_len))
+  if (u_addrtoa(&udp->peer_addr, buf, buf_len))
     return(0);
   else
     return(-1);
@@ -279,20 +276,18 @@ static int
 UdpSetCommand(int ac, char *av[], void *arg)
 {
   UdpInfo		const udp = (UdpInfo) lnk->phys->info;
-  struct sockaddr_in	*sin;
+  struct sockaddr_storage	*sin;
 
   switch ((intptr_t)arg) {
     case SET_PEERADDR:
-      if ((sin = ParseAddrPort(ac, av)) == NULL)
+      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 	return (-1);
-      udp->peer_addr = sin->sin_addr;
-      udp->peer_port = ntohs(sin->sin_port);
+      sockaddrtou_addr(sin, &udp->peer_addr, &udp->peer_port);
       break;
     case SET_SELFADDR:
-      if ((sin = ParseAddrPort(ac, av)) == NULL)
+      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 	return (-1);
-      udp->self_addr = sin->sin_addr;
-      udp->self_port = ntohs(sin->sin_port);
+      sockaddrtou_addr(sin, &udp->self_addr, &udp->self_port);
       break;
     case SET_ORIGINATION:
       if (ac != 1)

@@ -177,13 +177,14 @@ IpcpStat(int ac, char *av[], void *arg)
       struct ng_mesg	reply;
   }			u;
   struct slcompress	*const sls = (struct slcompress *)(void *)u.reply.data;
+  char			buf[64];
 
   Printf("%s [%s]\r\n", Pref(fp), FsmStateName(fp->state));
   Printf("Allowed IP address ranges:\r\n");
-  Printf("\tSelf: %s/%d\r\n",
-    inet_ntoa(ipcp->conf.self_allow.ipaddr), ipcp->conf.self_allow.width);
-  Printf("\tPeer: %s/%d\r\n",
-    inet_ntoa(ipcp->conf.peer_allow.ipaddr), ipcp->conf.peer_allow.width);
+  Printf("\tSelf: %s\r\n",
+    u_rangetoa(&ipcp->conf.self_allow,buf,sizeof(buf)));
+  Printf("\tPeer: %s\r\n",
+    u_rangetoa(&ipcp->conf.peer_allow,buf,sizeof(buf)));
   Printf("Current addressing:\r\n");
   Printf("\tSelf: %s\r\n", inet_ntoa(ipcp->want_addr));
   Printf("\tPeer: %s\r\n", inet_ntoa(ipcp->peer_addr));
@@ -247,8 +248,8 @@ IpcpInit(void)
   FsmInit(&ipcp->fsm, &gIpcpFsmType);
 
   /* Come up with a default IP address for my side of the link */
-  memset(&ipcp->conf.self_allow, 0, sizeof(ipcp->conf.self_allow));
-  GetAnyIpAddress(&ipcp->conf.self_allow.ipaddr, NULL);
+  u_rangeclear(&ipcp->conf.self_allow);
+  GetAnyIpAddress(&ipcp->conf.self_allow.addr, NULL);
 
   /* Default we want VJ comp */
   Enable(&ipcp->conf.options, IPCP_CONF_VJCOMP);
@@ -269,14 +270,14 @@ IpcpConfigure(Fsm fp)
 
   /* Get allowed IP addresses from config and/or from current bundle */
   ipcp->self_allow = ipcp->conf.self_allow;
-  if (bund->peer_allow.ipaddr.s_addr != 0 || bund->peer_allow.width != 0)
+  if (!u_rangeempty(&bund->peer_allow))
     ipcp->peer_allow = bund->peer_allow;
   else
     ipcp->peer_allow = ipcp->conf.peer_allow;
 
   /* Initially request addresses as specified by config */
-  ipcp->want_addr = ipcp->self_allow.ipaddr;
-  ipcp->peer_addr = ipcp->peer_allow.ipaddr;
+  u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
+  u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
 
   /* Van Jacobson compression */
   ipcp->peer_comp.proto = 0;
@@ -387,24 +388,27 @@ IpcpLayerUp(Fsm fp)
   char			ipbuf[20];
   char			path[NG_PATHLEN + 1];
   struct ngm_vjc_config	vjc;
+  struct u_addr		tmp;
 
   /* Determine actual address we'll use for ourselves */
-  if (!IpAddrInRange(&ipcp->self_allow, ipcp->want_addr)) {
+  in_addrtou_addr(&ipcp->want_addr, &tmp);
+  if (!IpAddrInRange(&ipcp->self_allow, &tmp)) {
     Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
       "self", inet_ntoa(ipcp->want_addr)));
+    u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
     Log(fp->log, ("        using %s instead.",
-      inet_ntoa(ipcp->self_allow.ipaddr)));
-    ipcp->want_addr = ipcp->self_allow.ipaddr;
+      inet_ntoa(ipcp->want_addr)));
   }
 
   /* Determine actual address we'll use for peer */
-  if (!IpAddrInRange(&ipcp->peer_allow, ipcp->peer_addr)
-      && ipcp->peer_allow.ipaddr.s_addr != 0) {
+  in_addrtou_addr(&ipcp->peer_addr, &tmp);
+  if (!IpAddrInRange(&ipcp->peer_allow, &tmp)
+      && !u_addrempty(&ipcp->peer_allow.addr)) {
     Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
       "peer", inet_ntoa(ipcp->peer_addr)));
+    u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
     Log(fp->log, ("        using %s instead.",
-      inet_ntoa(ipcp->peer_allow.ipaddr)));
-    ipcp->peer_addr = ipcp->peer_allow.ipaddr;
+      inet_ntoa(ipcp->peer_addr)));
   }
 
   /* Report */
@@ -573,12 +577,14 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
       case TY_IPADDR:
 	{
 	  struct in_addr	ip;
+	  struct u_addr		tmp;
 
 	  memcpy(&ip, opt->data, 4);
+	  in_addrtou_addr(&ip, &tmp);
 	  Log(LG_IPCP, (" %s %s", oi->name, inet_ntoa(ip)));
 	  switch (mode) {
 	    case MODE_REQ:
-	      if (!IpAddrInRange(&ipcp->peer_allow, ip) || !ip.s_addr) {
+	      if (!IpAddrInRange(&ipcp->peer_allow, &tmp) || !ip.s_addr) {
 		if (ipcp->peer_addr.s_addr == 0)
 		  Log(LG_IPCP, ("   %s", "no IP address available for peer!"));
 		if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
@@ -599,7 +605,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	      {
-		if (IpAddrInRange(&ipcp->self_allow, ip)) {
+		if (IpAddrInRange(&ipcp->self_allow, &tmp)) {
 		  Log(LG_IPCP, ("   %s is OK", inet_ntoa(ip)));
 		  ipcp->want_addr = ip;
 		} else if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
@@ -752,13 +758,13 @@ IpcpSetCommand(int ac, char *av[], void *arg)
   switch ((intptr_t)arg) {
     case SET_RANGES:
       {
-	struct in_range	self_new_allow;
-	struct in_range	peer_new_allow;
+	struct u_range	self_new_allow;
+	struct u_range	peer_new_allow;
 
 	/* Parse args */
 	if (ac != 2
-	    || !ParseAddr(*av++, &self_new_allow)
-	    || !ParseAddr(*av++, &peer_new_allow))
+	    || !ParseRange(*av++, &self_new_allow, ALLOW_IPV4)
+	    || !ParseRange(*av++, &peer_new_allow, ALLOW_IPV4))
 	  return(-1);
 	ipcp->conf.self_allow = self_new_allow;
 	ipcp->conf.peer_allow = peer_new_allow;

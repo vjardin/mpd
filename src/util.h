@@ -64,13 +64,9 @@
   extern int		ParseLine(char *line, char *vec[], int max_args, int copy);
   extern void		FreeArgs(int ac, char *av[]);
 
-  extern int		ParseAddr(char *s, struct in_range *range);
-  extern struct sockaddr_in * ParseAddrPort(int ac, char *av[]);
-
-  extern int		TcpGetListenPort(struct sockaddr_storage *sa, int block);
+  extern int		TcpGetListenPort(struct u_addr *addr, in_port_t port, int block);
   extern int		TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block);
-  extern int		TcpMakeConnection(struct in_addr addr, int port);
-  extern int		GetInetSocket(int type, struct sockaddr_storage *sa, int block, char *ebuf, int len);
+  extern int		GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, int len);
 
   extern int		OpenSerialDevice(const char *path, int baudrate);
   extern int		ExclusiveOpenDevice(const char *path);
@@ -90,8 +86,8 @@
   extern u_short	Crc16(u_short fcs, u_char *cp, int len);
   extern u_long		GenerateMagic(void);
 
-  extern int		GetAnyIpAddress(struct in_addr *ipaddr, char *ifname);
-  extern int		GetEther(struct in_addr *addr,
+  extern int		GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname);
+  extern int		GetEther(struct u_addr *addr,
 			    struct sockaddr_dl *hwaddr);
 
 #endif
