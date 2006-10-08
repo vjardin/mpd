@@ -276,9 +276,9 @@ fail:
   ChatPresetVar(m->chat, CHAT_VAR_DEVICE, m->device);
   ChatPresetVar(m->chat, CHAT_VAR_LOGIN, bund->conf.auth.authname);
   memset(&auth, 0, sizeof(auth));
-  strlcpy(auth.authname, bund->conf.auth.authname, sizeof(auth.authname));
+  strlcpy(auth.params.authname, bund->conf.auth.authname, sizeof(auth.params.authname));
   if (AuthGetData(&auth, 0) >= 0)
-    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, auth.password);
+    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, auth.params.password);
 
   /* Run connect or idle script as appropriate */
   if (!m->opened) {

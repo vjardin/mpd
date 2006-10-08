@@ -41,6 +41,7 @@
   enum {
     SET_SERVER,
     SET_ME,
+    SET_MEV6,
     SET_TIMEOUT,
     SET_RETRIES,
     SET_CONFIG,
@@ -57,6 +58,8 @@
 	RadiusSetCommand, NULL, (void *) SET_SERVER },
     { "me <ip>",			"Set NAS IP address" ,
 	RadiusSetCommand, NULL, (void *) SET_ME },
+    { "v6me <ip>",			"Set NAS IPv6 address" ,
+	RadiusSetCommand, NULL, (void *) SET_MEV6 },
     { "timeout <seconds>",		"Set timeout in seconds",
 	RadiusSetCommand, NULL, (void *) SET_TIMEOUT },
     { "retries <# retries>",		"set number of retries",
@@ -84,7 +87,7 @@ int
 RadiusAuthenticate(AuthData auth) 
 {
   Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s", 
-    lnk->name, __func__, auth->authname));
+    auth->lnk->name, __func__, auth->params.authname));
 
   if (RadiusStart(auth, RAD_ACCESS_REQUEST) == RAD_NACK)
     return RAD_NACK;
@@ -120,20 +123,20 @@ RadiusEapProxy(void *arg)
     return;
   }
 
-  if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->authname) == -1) {
+  if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->params.authname) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS-EAP: %s: rad_put_string(RAD_USER_NAME) failed %s", 
       lnk->name, __func__, rad_strerror(auth->radius.handle)));
     auth->status = AUTH_STATUS_FAIL;    
     return;
   }
 
-  for (pos = 0; pos <= auth->radius.eapmsg_len; pos += RAD_MAX_ATTR_LEN) {
+  for (pos = 0; pos <= auth->params.eapmsg_len; pos += RAD_MAX_ATTR_LEN) {
     char	chunk[RAD_MAX_ATTR_LEN];
 
-    if (pos + RAD_MAX_ATTR_LEN > auth->radius.eapmsg_len)
-      mlen = auth->radius.eapmsg_len - pos;
+    if (pos + RAD_MAX_ATTR_LEN > auth->params.eapmsg_len)
+      mlen = auth->params.eapmsg_len - pos;
 
-    memcpy(chunk, &auth->radius.eapmsg[pos], mlen);
+    memcpy(chunk, &auth->params.eapmsg[pos], mlen);
     if (rad_put_attr(auth->radius.handle, RAD_EAP_MESSAGE, chunk, mlen) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS-EAP: %s: rad_put_attr(RAD_EAP_MESSAGE) failed %s",
 	lnk->name, __func__, rad_strerror(auth->radius.handle)));
@@ -166,13 +169,12 @@ RadiusAccount(AuthData auth)
 {
   char  *username;
   Link	const lnk = auth->lnk;		/* hide the global "lnk" */
-  Auth	const a = &lnk->lcp.auth;
   int	authentic;
 
   Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s (Type: %d)", 
-    lnk->name, __func__, auth->authname, auth->acct_type));
+    lnk->name, __func__, auth->params.authname, auth->acct_type));
 
-  if (a->authentic == AUTH_CONF_RADIUS_AUTH) {
+  if (auth->params.authentic == AUTH_CONF_RADIUS_AUTH) {
     authentic = RAD_AUTH_RADIUS;
   } else {
     authentic = RAD_AUTH_LOCAL;
@@ -230,7 +232,7 @@ RadiusAccount(AuthData auth)
   }
 #endif
 
-  username = auth->radius.username != NULL ? auth->radius.username : auth->authname;
+  username = auth->params.authname;
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_USER_NAME): %s", 
     lnk->name, __func__, username));
   if (rad_put_string(auth->radius.handle, RAD_USER_NAME, username) != 0) {
@@ -375,12 +377,14 @@ RadStat(int ac, char *av[], void *arg)
   int		i;
   char		*buf;
   RadServe_Conf	server;
+  char		buf1[64];
 
   Printf("Configuration:\r\n");
   Printf("\tTimeout      : %d\r\n", conf->radius_timeout);
   Printf("\tRetries      : %d\r\n", conf->radius_retries);
   Printf("\tConfig-file  : %s\r\n", conf->file);
   Printf("\tMe (NAS-IP)  : %s\r\n", inet_ntoa(conf->radius_me));
+  Printf("\tv6Me (NAS-IP): %s\r\n", u_addrtoa(&conf->radius_mev6, buf1, sizeof(buf1)));
   
   if (conf->server != NULL) {
 
@@ -403,14 +407,11 @@ RadStat(int ac, char *av[], void *arg)
   OptStat(&conf->options, gConfList);
 
   Printf("Data:\r\n");
-  Printf("\tAuthenticated  : %s\r\n", a->authentic == AUTH_CONF_RADIUS_AUTH ? 
+  Printf("\tAuthenticated  : %s\r\n", a->params.authentic == AUTH_CONF_RADIUS_AUTH ? 
   	"yes" : "no");
-  Printf("\tClass          : %ld\r\n", a->radius.class);
-  Printf("\tACL Rule       : %s\r\n", a->radius.acl_rule ? "yes" : "no");
-  Printf("\tACL Pipe       : %s\r\n", a->radius.acl_pipe ? "yes" : "no");
-  Printf("\tACL Queue      : %s\r\n", a->radius.acl_queue ? "yes" : "no");
+  Printf("\tClass          : %ld\r\n", a->params.class);
   
-  buf = Bin2Hex(a->radius.state, a->radius.state_len); 
+  buf = Bin2Hex(a->params.state, a->params.state_len); 
   Printf("\tState          : %s\r\n", buf);
   Freee(MB_UTIL, buf);
   
@@ -468,7 +469,7 @@ RadiusSetCommand(int ac, char *av[], void *arg)
   RadServe_Conf	server;
   RadServe_Conf	t_server;
   int		val, count;
-  struct u_range t;
+  struct u_addr t;
 
   if (ac == 0)
       return(-1);
@@ -535,9 +536,15 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 	break;
 
       case SET_ME:
-        if (ParseRange(*av, &t, ALLOW_IPV4)) {
-	    u_addrtoin_addr(&t.addr,&conf->radius_me);
+        if (ParseAddr(*av, &t, ALLOW_IPV4)) {
+	    u_addrtoin_addr(&t,&conf->radius_me);
 	} else {
+	    Log(LG_ERR, ("RADIUS: Bad NAS address '%s'.", *av));
+	}
+	break;
+
+      case SET_MEV6:
+        if (!ParseAddr(*av, &conf->radius_mev6, ALLOW_IPV6)) {
 	    Log(LG_ERR, ("RADIUS: Bad NAS address '%s'.", *av));
 	}
 	break;
@@ -641,6 +648,7 @@ RadiusStart(AuthData auth, short request_type)
   RadConf 	const conf = &auth->conf.radius;  
   char		host[MAXHOSTNAMELEN];
   int		porttype;
+  char		buf[64];
 
   if (RadiusInit(auth, request_type) == RAD_NACK) 
     return RAD_NACK;
@@ -669,6 +677,16 @@ RadiusStart(AuthData auth, short request_type)
       lnk->name, __func__, inet_ntoa(conf->radius_me)));
     if (rad_put_addr(auth->radius.handle, RAD_NAS_IP_ADDRESS, conf->radius_me) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_addr(RAD_NAS_IP_ADDRESS) failed %s", 
+	lnk->name, __func__, rad_strerror(auth->radius.handle)));
+      return (RAD_NACK);
+    }
+  }
+
+  if (!u_addrempty(&conf->radius_mev6)) {
+    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_addr(RAD_NAS_IPV6_ADDRESS): %s", 
+      lnk->name, __func__, u_addrtoa(&conf->radius_mev6,buf,sizeof(buf))));
+    if (rad_put_attr(auth->radius.handle, RAD_NAS_IPV6_ADDRESS, &conf->radius_mev6.u.ip6, sizeof(conf->radius_mev6.u.ip6)) == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_addr(RAD_NAS_IPV6_ADDRESS) failed %s", 
 	lnk->name, __func__, rad_strerror(auth->radius.handle)));
       return (RAD_NACK);
     }
@@ -740,20 +758,20 @@ RadiusStart(AuthData auth, short request_type)
     return (RAD_NACK);
   }
 
-  if (auth->radius.state != NULL) {
+  if (auth->params.state != NULL) {
     Log(LG_RADIUS2, ("[%s] RADIUS: putting RAD_STATE", lnk->name));
-    if (rad_put_attr(auth->radius.handle, RAD_STATE, auth->radius.state, auth->radius.state_len) == -1) {
+    if (rad_put_attr(auth->radius.handle, RAD_STATE, auth->params.state, auth->params.state_len) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_STATE) failed %s", 
         lnk->name, __func__, rad_strerror(auth->radius.handle)));
       return (RAD_NACK);
     }
   }
 
-  if (strlen(lnk->lcp.auth.peeraddr)) {
+  if (strlen(auth->params.peeraddr)) {
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) %s", 
-      lnk->name, __func__, lnk->lcp.auth.peeraddr));
+      lnk->name, __func__, auth->params.peeraddr));
     if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, 
-        lnk->lcp.auth.peeraddr) == -1) {
+        auth->params.peeraddr) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", 
 	lnk->name, __func__, rad_strerror(auth->radius.handle)));
       return (RAD_NACK);
@@ -766,9 +784,8 @@ static int
 RadiusPutAuth(AuthData auth)
 {
   Link			lnk = auth->lnk;	/* hide the global "lnk" */
-  Auth			const a = &lnk->lcp.auth;
-  ChapInfo		const chap = &a->chap;
-  PapInfo		const pap = &a->pap;
+  ChapInfo		const chap = &lnk->lcp.auth.chap;
+  PapInfo		const pap = &lnk->lcp.auth.pap;
   
   struct rad_chapvalue		rad_chapval;
   struct rad_mschapvalue	rad_mschapval;
@@ -776,7 +793,7 @@ RadiusPutAuth(AuthData auth)
   struct mschapvalue		*mschapval;
   struct mschapv2value		*mschapv2val;  
 
-  if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->authname) == -1) {
+  if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->params.authname) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(username) failed %s", 
       lnk->name, __func__, rad_strerror(auth->radius.handle)));
     return (RAD_NACK);
@@ -787,7 +804,7 @@ RadiusPutAuth(AuthData auth)
 
       case CHAP_ALG_MSOFT:
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) peer name: %s", 
-	  lnk->name, __func__, auth->authname));
+	  lnk->name, __func__, auth->params.authname));
 	if (chap->value_len != 49) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) unrecognised key length %d/%d",
 	    lnk->name, __func__, chap->value_len, 49));
@@ -818,7 +835,7 @@ RadiusPutAuth(AuthData auth)
       case CHAP_ALG_MSOFTv2:
       
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) peer name: %s",
-	  lnk->name, __func__, auth->authname));
+	  lnk->name, __func__, auth->params.authname));
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT,
 	    RAD_MICROSOFT_MS_CHAP_CHALLENGE, chap->chal_data, chap->chal_len) == -1) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s",
@@ -855,7 +872,7 @@ RadiusPutAuth(AuthData auth)
 	rad_chapval.ident = auth->id;
 	memcpy(rad_chapval.response, chap->value, chap->value_len);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_CHAP (MD5) peer name: %s", 
-	  lnk->name, __func__, auth->authname));
+	  lnk->name, __func__, auth->params.authname));
 	if (rad_put_attr(auth->radius.handle, RAD_CHAP_PASSWORD, &rad_chapval, chap->value_len + 1) == -1 ||
 	    rad_put_attr(auth->radius.handle, RAD_CHAP_CHALLENGE, chap->chal_data, chap->chal_len) == -1) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(password) failed %s",
@@ -872,7 +889,7 @@ RadiusPutAuth(AuthData auth)
   } else if (auth->proto == PROTO_PAP) {
         
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_PAP peer name: %s",
-      lnk->name, __func__, auth->authname));
+      lnk->name, __func__, auth->params.authname));
     if (rad_put_string(auth->radius.handle, RAD_USER_PASSWORD, pap->peer_pass) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(password) failed %s", 
 	lnk->name, __func__, rad_strerror(auth->radius.handle)));
@@ -893,13 +910,12 @@ static int
 RadiusSendRequest(AuthData auth)
 {
   Link			const lnk = auth->lnk;	/* hide the global "lnk" */  
-  Auth			const a = &lnk->lcp.auth;
   struct timeval	timelimit;
   struct timeval	tv;
   int 			fd, n;
 
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: username: %s", 
-    lnk->name, __func__, auth->authname));
+    lnk->name, __func__, auth->params.authname));
   n = rad_init_send_request(auth->radius.handle, &fd, &tv);
   if (n != 0) {
     Log(LG_RADIUS, ("[%s] RADIUS: rad_init_send_request failed: %d %s",
@@ -935,7 +951,7 @@ RadiusSendRequest(AuthData auth)
     }
 
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: username: %s trying", 
-      lnk->name, __func__, auth->authname));
+      lnk->name, __func__, auth->params.authname));
     n = rad_continue_send_request(auth->radius.handle, n, &fd, &tv);
     if (n != 0)
       break;
@@ -948,25 +964,25 @@ RadiusSendRequest(AuthData auth)
 
     case RAD_ACCESS_ACCEPT:
       Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_ACCEPT for user %s", 
-        lnk->name, auth->authname));
+        lnk->name, auth->params.authname));
       auth->status = AUTH_STATUS_SUCCESS;
-      a->authentic = AUTH_CONF_RADIUS_AUTH;
+      auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
       break;
 
     case RAD_ACCESS_CHALLENGE:
       Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_CHALLENGE for user %s", 
-        lnk->name, auth->authname));
+        lnk->name, auth->params.authname));
       break;
 
     case RAD_ACCESS_REJECT:
       Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_REJECT for user %s", 
-        lnk->name, auth->authname));
+        lnk->name, auth->params.authname));
       auth->status = AUTH_STATUS_FAIL;
       break;
 
     case RAD_ACCOUNTING_RESPONSE:
       Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
-        lnk->name, auth->authname));
+        lnk->name, auth->params.authname));
       return RAD_ACK;
 
     case -1:
@@ -989,8 +1005,7 @@ static int
 RadiusGetParams(AuthData auth, int eap_proxy)
 {
   Link		lnk = auth->lnk;	/* hide the global "lnk" */
-  Auth		const a = &lnk->lcp.auth;
-  ChapInfo	const chap = &a->chap;
+  ChapInfo	const chap = &lnk->lcp.auth.chap;
   int		res, i, j, tmpkey_len;
   size_t	len;
   const void	*data;
@@ -999,12 +1014,12 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   u_char	*tmpkey, *tmpval;
   short		got_mppe_keys = FALSE;
   struct in_addr	ip;
-  struct radius_acl	**acls, *acls1;
+  struct acl		**acls, *acls1;
   struct ifaceroute	r;
   struct u_range	range;
 
-  Freee(MB_AUTH, a->radius.eapmsg);
-  a->radius.eapmsg = NULL;
+  Freee(MB_AUTH, auth->params.eapmsg);
+  auth->params.eapmsg = NULL;
   
   while ((res = rad_get_attr(auth->radius.handle, &data, &len)) > 0) {
 
@@ -1013,17 +1028,17 @@ RadiusGetParams(AuthData auth, int eap_proxy)
       case RAD_STATE:
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_STATE", lnk->name, __func__));
 	/* copy it into the persistent data struct */
-	a->radius.state_len = len;
-	if (a->radius.state != NULL)
-	  Freee(MB_AUTH, a->radius.state);
-	a->radius.state = Malloc(MB_AUTH, len);
-	memcpy(a->radius.state, data, len);
+	auth->params.state_len = len;
+	if (auth->params.state != NULL)
+	  Freee(MB_AUTH, auth->params.state);
+	auth->params.state = Malloc(MB_AUTH, len);
+	memcpy(auth->params.state, data, len);
 	/* copy it into the temporary data struct */	
-	auth->radius.state_len = len;
-	if (auth->radius.state != NULL)
-	  Freee(MB_AUTH, auth->radius.state);
-	auth->radius.state = Malloc(MB_AUTH, len);
-	memcpy(auth->radius.state, data, len);
+	auth->params.state_len = len;
+	if (auth->params.state != NULL)
+	  Freee(MB_AUTH, auth->params.state);
+	auth->params.state = Malloc(MB_AUTH, len);
+	memcpy(auth->params.state, data, len);
 	continue;
 
 	/* libradius already checks the message-authenticator, so simply ignore it */
@@ -1032,23 +1047,23 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	continue;
 
       case RAD_EAP_MESSAGE:
-	if (a->radius.eapmsg != NULL) {
+	if (auth->params.eapmsg != NULL) {
 	  char *tbuf;
 #ifdef DEBUG
 	  Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE (continued) Len:%d",
-	    lnk->name, __func__, a->radius.eapmsg_len + len));
+	    lnk->name, __func__, auth->params.eapmsg_len + len));
 #endif
-	  tbuf = Malloc(MB_AUTH, a->radius.eapmsg_len + len);
-	  memcpy(tbuf, a->radius.eapmsg, a->radius.eapmsg_len);
-	  memcpy(&tbuf[a->radius.eapmsg_len], data, len);
-	  a->radius.eapmsg_len += len;
-	  Freee(MB_AUTH, a->radius.eapmsg);
-	  a->radius.eapmsg = tbuf;
+	  tbuf = Malloc(MB_AUTH, auth->params.eapmsg_len + len);
+	  memcpy(tbuf, auth->params.eapmsg, auth->params.eapmsg_len);
+	  memcpy(&tbuf[auth->params.eapmsg_len], data, len);
+	  auth->params.eapmsg_len += len;
+	  Freee(MB_AUTH, auth->params.eapmsg);
+	  auth->params.eapmsg = tbuf;
 	} else {
 	  Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE", lnk->name, __func__));
-	  a->radius.eapmsg = Malloc(MB_AUTH, len);
-	  memcpy(a->radius.eapmsg, data, len);
-	  a->radius.eapmsg_len = len;
+	  auth->params.eapmsg = Malloc(MB_AUTH, len);
+	  memcpy(auth->params.eapmsg, data, len);
+	  auth->params.eapmsg_len = len;
 	}
 	continue;
     }
@@ -1065,27 +1080,26 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  /* the peer can choose an address */
 	  Log(LG_RADIUS2, (" the peer can choose an address"));
 	  ip.s_addr=0;
-	  in_addrtou_range(&ip, 0, &auth->range);
-	  auth->range_valid = 1;
+	  in_addrtou_range(&ip, 0, &auth->params.range);
+	  auth->params.range_valid = 1;
 	} else if (strcmp(inet_ntoa(ip), "255.255.255.254") == 0) {
 	  /* we should choose the ip */
 	  Log(LG_RADIUS2, (" we should choose an address"));
-	  auth->range_valid = 0;
+	  auth->params.range_valid = 0;
 	} else {
 	  /* or use IP from Radius-server */
-	  in_addrtou_range(&ip, 32, &auth->range);
-	  auth->range_valid = 1;
+	  in_addrtou_range(&ip, 32, &auth->params.range);
+	  auth->params.range_valid = 1;
 	}  
         break;
 
       case RAD_USER_NAME:
 	tmpval = rad_cvt_string(data, len);
 	/* copy it into the persistent data struct */
-	a->radius.username = Malloc(MB_AUTH, strlen(tmpval) + 1);
-	strcpy(a->radius.username, tmpval);
+	strcpy(auth->params.authname, tmpval);
 	free(tmpval);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_USER_NAME: %s ",
-	  lnk->name, __func__, a->radius.username));
+	  lnk->name, __func__, auth->params.authname));
         break;
 
       case RAD_FRAMED_IP_NETMASK:
@@ -1107,42 +1121,65 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	r.dest=range;
 	r.ok=0;
 	j = 0;
-	for (i = 0;i < a->params.n_routes; i++) {
-	  if (!u_rangecompare(&r.dest, &a->params.routes[i].dest)) {
+	for (i = 0;i < auth->params.n_routes; i++) {
+	  if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
 	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", lnk->name, __func__));
 	    j = 1;
 	  }
 	};
 	if (j == 0)
-	  a->params.routes[a->params.n_routes++] = r;
+	  auth->params.routes[auth->params.n_routes++] = r;
+	break;
+
+      case RAD_FRAMED_IPV6_ROUTE:
+	route = rad_cvt_string(data, len);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_IPV6_ROUTE: %s ",
+	  lnk->name, __func__, route));
+	if (!ParseRange(route, &range, ALLOW_IPV6)) {
+	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_IPV6_ROUTE: Bad route \"%s\"", lnk->name, __func__, route));
+	  free(route);
+	  break;
+	}
+	free(route);
+	r.dest=range;
+	r.ok=0;
+	j = 0;
+	for (i = 0;i < auth->params.n_routes; i++) {
+	  if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", lnk->name, __func__));
+	    j = 1;
+	  }
+	};
+	if (j == 0)
+	  auth->params.routes[auth->params.n_routes++] = r;
 	break;
 
       case RAD_SESSION_TIMEOUT:
-        a->params.session_timeout = rad_cvt_int(data);
+        auth->params.session_timeout = rad_cvt_int(data);
         Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_SESSION_TIMEOUT: %lu ",
-          lnk->name, __func__, a->params.session_timeout));
+          lnk->name, __func__, auth->params.session_timeout));
         break;
 
       case RAD_IDLE_TIMEOUT:
-        a->params.idle_timeout = rad_cvt_int(data);
+        auth->params.idle_timeout = rad_cvt_int(data);
         Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_IDLE_TIMEOUT: %lu ",
-          lnk->name, __func__, a->params.idle_timeout));
+          lnk->name, __func__, auth->params.idle_timeout));
         break;
 
      case RAD_ACCT_INTERIM_INTERVAL:
-	a->params.acct_update = rad_cvt_int(data);
+	auth->params.acct_update = rad_cvt_int(data);
         Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_ACCT_INTERIM_INTERVAL: %lu ",
-          lnk->name, __func__, a->params.acct_update));
+          lnk->name, __func__, auth->params.acct_update));
 	break;
 
       case RAD_FRAMED_MTU:
-	a->params.mtu = rad_cvt_int(data);
+	auth->params.mtu = rad_cvt_int(data);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: %lu ",
-	  lnk->name, __func__, a->params.mtu));
-	if (a->params.mtu < IFACE_MIN_MTU || a->params.mtu > IFACE_MAX_MTU) {
+	  lnk->name, __func__, auth->params.mtu));
+	if (auth->params.mtu < IFACE_MIN_MTU || auth->params.mtu > IFACE_MAX_MTU) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: invalid MTU: %lu ",
-	    lnk->name, __func__, a->params.mtu));
-	  a->params.mtu = 0;
+	    lnk->name, __func__, auth->params.mtu));
+	  auth->params.mtu = 0;
 	  break;
 	}
         break;
@@ -1175,9 +1212,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
         break;
 
       case RAD_CLASS:
-	a->radius.class = rad_cvt_int(data);
+	auth->params.class = rad_cvt_int(data);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_CLASS: %lu ",
-	  lnk->name, __func__, a->radius.class));
+	  lnk->name, __func__, auth->params.class));
         break;
 
       case RAD_REPLY_MESSAGE:
@@ -1241,13 +1278,13 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		break;
 
 	      case RAD_MICROSOFT_MS_CHAP_DOMAIN:
-		Freee(MB_AUTH, a->params.msdomain);
+		Freee(MB_AUTH, auth->params.msdomain);
 		tmpval = rad_cvt_string(data, len);
-		a->params.msdomain = Malloc(MB_AUTH, len + 1);
-		memcpy(a->params.msdomain, tmpval, len + 1);
+		auth->params.msdomain = Malloc(MB_AUTH, len + 1);
+		memcpy(auth->params.msdomain, tmpval, len + 1);
 		free(tmpval);
 		Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP_DOMAIN: %s",
-		  lnk->name, __func__, a->params.msdomain));
+		  lnk->name, __func__, auth->params.msdomain));
 		break;
 
 #if (!defined(__FreeBSD__) || __FreeBSD_version >= 530000)
@@ -1263,9 +1300,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		  return RAD_NACK;
 		}
 
-		memcpy(a->msoft.recv_key, tmpkey, MPPE_KEY_LEN);
+		memcpy(auth->params.msoft.recv_key, tmpkey, MPPE_KEY_LEN);
 		free(tmpkey);
-		a->msoft.has_keys = TRUE;
+		auth->params.msoft.has_keys = TRUE;
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_SEND_KEY:
@@ -1278,9 +1315,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    lnk->name, __func__, rad_strerror(auth->radius.handle)));
 		  return RAD_NACK;
 		}
-		memcpy(a->msoft.xmit_key, tmpkey, MPPE_KEY_LEN);
+		memcpy(auth->params.msoft.xmit_key, tmpkey, MPPE_KEY_LEN);
 		free(tmpkey);
-		a->msoft.has_keys = TRUE;
+		auth->params.msoft.has_keys = TRUE;
 		break;
 
               /* MPPE Keys MS-CHAPv1 */
@@ -1301,23 +1338,23 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    lnk->name, __func__, rad_strerror(auth->radius.handle)));
 		  return RAD_NACK;
 		}
-		memcpy(a->msoft.lm_hash, tmpkey, sizeof(a->msoft.lm_hash));
-		a->msoft.has_lm_hash = TRUE;
-		memcpy(a->msoft.nt_hash_hash, &tmpkey[8], sizeof(a->msoft.nt_hash_hash));
+		memcpy(auth->params.msoft.lm_hash, tmpkey, sizeof(auth->params.msoft.lm_hash));
+		auth->params.msoft.has_lm_hash = TRUE;
+		memcpy(auth->params.msoft.nt_hash_hash, &tmpkey[8], sizeof(auth->params.msoft.nt_hash_hash));
 		free(tmpkey);
 		break;
 #endif
 
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY:
-		a->msoft.policy = rad_cvt_int(data);
+		auth->params.msoft.policy = rad_cvt_int(data);
 		Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_POLICY: %d (%s)",
-		  lnk->name, __func__, a->msoft.policy, AuthMPPEPolicyname(a->msoft.policy)));
+		  lnk->name, __func__, auth->params.msoft.policy, AuthMPPEPolicyname(auth->params.msoft.policy)));
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES:
-		a->msoft.types = rad_cvt_int(data);
+		auth->params.msoft.types = rad_cvt_int(data);
 		Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_MPPE_ENCRYPTION_TYPES: %d (%s)",
-		  lnk->name, __func__, a->msoft.types, AuthMPPETypesname(a->msoft.types)));
+		  lnk->name, __func__, auth->params.msoft.types, AuthMPPETypesname(auth->params.msoft.types)));
 		break;
 
 	      default:
@@ -1333,17 +1370,17 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      acl2 = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_RULE: %s",
 		lnk->name, __func__, acl2));
-	      acls = &(a->radius.acl_rule);
+	      acls = &(auth->params.acl_rule);
 	    } else if (res == RAD_MPD_PIPE) {
 	      acl2 = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_PIPE: %s",
 	        lnk->name, __func__, acl2));
-	      acls = &(a->radius.acl_pipe);
+	      acls = &(auth->params.acl_pipe);
 	    } else if (res == RAD_MPD_QUEUE) {
 	      acl2 = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_QUEUE: %s",
 	        lnk->name, __func__, acl2));
-	      acls = &(a->radius.acl_queue);
+	      acls = &(auth->params.acl_queue);
 	    } else {
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ",
 		lnk->name, __func__, res));
@@ -1363,7 +1400,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      free(acl1);
 	      break;
 	    }
-	    acls1 = Malloc(MB_AUTH, sizeof(struct radius_acl));
+	    acls1 = Malloc(MB_AUTH, sizeof(struct acl));
 	    acls1->number = i;
 	    strncpy(acls1->rule, acl2, ACL_LEN);
 	    while ((*acls != NULL) && ((*acls)->number < i))
@@ -1408,18 +1445,18 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   
   /* MPPE allowed or required, but no MPPE keys returned */
   /* print warning, because MPPE doesen't work */
-  if (!got_mppe_keys && a->msoft.policy != MPPE_POLICY_NONE) {
+  if (!got_mppe_keys && auth->params.msoft.policy != MPPE_POLICY_NONE) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: WARNING no MPPE-Keys received, MPPE will not work",
       lnk->name, __func__));
   }
 
   /* If no MPPE-Infos are returned by the RADIUS server, then allow all */
   /* MSoft IAS sends no Infos if all MPPE-Types are enabled and if encryption is optional */
-  if (a->msoft.policy == MPPE_POLICY_NONE &&
-      a->msoft.types == MPPE_TYPE_0BIT &&
+  if (auth->params.msoft.policy == MPPE_POLICY_NONE &&
+      auth->params.msoft.types == MPPE_TYPE_0BIT &&
       got_mppe_keys) {
-    a->msoft.policy = MPPE_POLICY_ALLOWED;
-    a->msoft.types = MPPE_TYPE_40BIT | MPPE_TYPE_128BIT | MPPE_TYPE_56BIT;
+    auth->params.msoft.policy = MPPE_POLICY_ALLOWED;
+    auth->params.msoft.types = MPPE_TYPE_40BIT | MPPE_TYPE_128BIT | MPPE_TYPE_56BIT;
     Log(LG_RADIUS, ("[%s] RADIUS: %s: MPPE-Keys, but no MPPE-Infos received => allowing MPPE with all types",
       lnk->name, __func__));
   }

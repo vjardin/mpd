@@ -132,8 +132,6 @@
     EventRef		dataEvent;		/* Socket node data event */
     ng_ID_t		nodeID;			/* ID of ppp node */
     Link		*links;			/* Real links in this bundle */
-    char		peer_authname[AUTH_MAX_AUTHNAME]; /* Peer's authname */
-    struct u_range	peer_allow;		/* Peer's allowed IP (if any) */
     struct discrim	peer_discrim;		/* Peer's discriminator */
     u_char		numRecordUp;		/* # links recorded up */
 
@@ -165,6 +163,8 @@
     u_char		multilink:1;	/* Doing multi-link on this bundle */
     u_char		tee:1;		/* Bundle has ng_tee(4). */
     u_char		netflow:2;	/* Bundle connects to ng_netflow(4). */
+    
+    struct authparams   params;         /* params to pass to from auth backend */
   };
   
 /*

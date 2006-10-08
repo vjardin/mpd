@@ -257,8 +257,6 @@ LcpConfigure(Fsm fp)
       lcp->peer_protos[i] = NULL;
   }
 
-  lnk->range_valid = FALSE;
-
   /* Multi-link stuff */
   lcp->peer_multilink = FALSE;
   lcp->peer_shortseq = FALSE;

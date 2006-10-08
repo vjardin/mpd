@@ -597,7 +597,6 @@ static int
 CcpCheckEncryption(void)
 {
   CcpState	const ccp = &bund->ccp;
-  Auth		const a = &lnk->lcp.auth;
 
   /* Already checked? */
   if (ccp->crypt_check)
@@ -606,7 +605,7 @@ CcpCheckEncryption(void)
 
   /* Is encryption required? */
   if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-    if (a->msoft.policy != MPPE_POLICY_REQUIRED) 
+    if (bund->params.msoft.policy != MPPE_POLICY_REQUIRED) 
       return(0);
   } else {
     if (!Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD))

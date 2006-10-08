@@ -75,32 +75,47 @@
     AUTH_CONF_MPPC_POL,
     AUTH_CONF_UTMP_WTMP,
   };  
-  
-  /* State of authorization process during authorization phase,
-   * contains params set by the auth-backend */
-  struct auth {
-    u_short		peer_to_self;	/* What I need from peer */
-    u_short		self_to_peer;	/* What peer needs from me */
-    struct pppTimer	timer;		/* Max time to spend doing auth */
-    struct pppTimer	acct_timer;	/* Timer for accounting updates */
-    struct papinfo	pap;		/* PAP state */
-    struct chapinfo	chap;		/* CHAP state */
-    struct eapinfo	eap;		/* EAP state */
-    struct paction	*thread;	/* async auth thread */
-    struct paction	*acct_thread;	/* async accounting auth thread */
-    int			authentic;	/* wich backend was used */
+
+  /* max. length of acl rule, */
+  #define ACL_LEN	256
+
+  struct acl {		/* List of ACLs received from auth */
+    unsigned short number;		/* ACL number given by auth server */
+    unsigned short real_number;	/* ACL number allocated my mpd */
+    char rule[ACL_LEN]; /* Text of ACL */
+    struct acl *next;
+  };
+
+  struct authparams {
+    char		authname[AUTH_MAX_AUTHNAME];
+    char		password[AUTH_MAX_PASSWORD];
+
+    struct u_range	range;		/* IP range allowed to user */
+    u_int		range_valid:1;  /* range is valid */
+    struct in_addr	mask;		/* IP Netmask */
+
+    unsigned long	class;      	/* Class */
+    char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
+    int			eapmsg_len;
+    char		*state;		/* copy of the state attribute, needed for accounting */
+    int			state_len;
+
+    struct acl		*acl_rule;
+    struct acl		*acl_pipe;
+    struct acl		*acl_queue;
+
+    unsigned long	mtu;			/* MTU */
+    unsigned long	session_timeout;	/* Session-Timeout */
+    unsigned long	idle_timeout;		/* Idle-Timeout */
+    unsigned long	acct_update;		/* interval for accouting updates */
+    char		*msdomain;		/* Microsoft domain */
+    short		n_routes;
+    struct ifaceroute	routes[IFACE_MAX_ROUTES];
+
     char		peeraddr[253];	/* hr representation of the callers address */    
-    struct {
-      unsigned long	class;      	/* Class */
-      char		*eapmsg;	/* recvd EAP Msg for forwarding to the peer */
-      int		eapmsg_len;
-      char		*state;
-      int		state_len;      
-      char		*username;	/* Inner Username, e.g. when using TTLS */
-      struct radius_acl	*acl_rule;
-      struct radius_acl	*acl_pipe;
-      struct radius_acl	*acl_queue;
-    } radius;
+
+    int			authentic;	/* wich backend was used */
+
     struct {
       int	policy;			/* MPPE_POLICY_* */
       int	types;			/* MPPE_TYPE_*BIT bitmask */
@@ -114,15 +129,21 @@
       u_char	xmit_key[MPPE_KEY_LEN];	/* xmit start key */
       u_char	recv_key[MPPE_KEY_LEN];	/* recv start key */
     } msoft;
-    struct {
-      unsigned long	mtu;			/* MTU */
-      unsigned long	session_timeout;	/* Session-Timeout */
-      unsigned long	idle_timeout;		/* Idle-Timeout */
-      unsigned long	acct_update;		/* interval for accouting updates */
-      char		*msdomain;		/* Microsoft domain */
-      short		n_routes;
-      struct ifaceroute	routes[IFACE_MAX_ROUTES];
-    } params;
+  };
+
+  /* State of authorization process during authorization phase,
+   * contains params set by the auth-backend */
+  struct auth {
+    u_short		peer_to_self;	/* What I need from peer */
+    u_short		self_to_peer;	/* What peer needs from me */
+    struct pppTimer	timer;		/* Max time to spend doing auth */
+    struct pppTimer	acct_timer;	/* Timer for accounting updates */
+    struct papinfo	pap;		/* PAP state */
+    struct chapinfo	chap;		/* CHAP state */
+    struct eapinfo	eap;		/* EAP state */
+    struct paction	*thread;	/* async auth thread */
+    struct paction	*acct_thread;	/* async accounting auth thread */
+    struct authparams	params;		/* params to pass to from auth backend */
   };
   typedef struct auth	*Auth;
 
@@ -149,11 +170,7 @@
     int			proto;		/* wich proto are we using, PAP, CHAP, ... */
     u_int		id;		/* Actual, packet id */    
     u_int		code;		/* Proto specific code */
-    char		authname[AUTH_MAX_AUTHNAME];
-    char		password[AUTH_MAX_PASSWORD];
     char		extcmd[AUTH_MAX_EXTCMD];
-    struct u_range	range;
-    u_int		range_valid:1;
     u_int		external:1;
     u_short		status;
     int			why_fail;
@@ -165,25 +182,17 @@
     int			acct_type;	/* Accounting type, Start, Stop, Update */
     struct {
       struct rad_handle	*handle;	/* the RADIUS handle */
-      char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
-      int		eapmsg_len;
-      char		*state;		/* copy of the state attribute, needed for accounting */
-      int		state_len;
-      char		*username;	/* copy of the Inner Username */
     } radius;
     struct {
       struct opie	data;
     } opie;
-    struct {		/* list of params obtained from the auth-backend */
-//      struct in_addr	ip;		/* IP Address */
-      struct in_addr	mask;		/* IP Netmask */
-    } params;
     struct {		/* informational (read-only) data needed for e.g. accouting */
       struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
       short		n_links;	/* number of links in the bundle */
       char		session_id[AUTH_MAX_SESSIONID];	/* bundle's session-id */
       char		ifname[IFNAMSIZ + 1];	/* name of the interface, i.e. ngX */
     } info;
+    struct authparams	params;		/* params to pass to from auth backend */
   };
   typedef struct authdata	*AuthData;
   
@@ -218,6 +227,8 @@
   extern const char	*AuthMPPEPolicyname(int policy);
   extern const char	*AuthMPPETypesname(int types);
 
-
+  extern void		authparamsInit(struct authparams *ap);
+  extern void		authparamsCopy(struct authparams *src, struct authparams *dst);
+  extern void		authparamsDestroy(struct authparams *ap);
 
 #endif

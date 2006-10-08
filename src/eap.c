@@ -423,12 +423,12 @@ EapRadiusProxy(AuthData auth, const u_char *pkt, u_short len)
   lh.id = auth->id;
   lh.length = htons(len + sizeof(lh));
 
-  auth->radius.eapmsg = Malloc(MB_AUTH, len + sizeof(lh));
-  memcpy(auth->radius.eapmsg, &lh, sizeof(lh));
-  memcpy(&auth->radius.eapmsg[sizeof(lh)], pkt, len);
+  auth->params.eapmsg = Malloc(MB_AUTH, len + sizeof(lh));
+  memcpy(auth->params.eapmsg, &lh, sizeof(lh));
+  memcpy(&auth->params.eapmsg[sizeof(lh)], pkt, len);
 
-  auth->radius.eapmsg_len = len + sizeof(lh);
-  strlcpy(auth->authname, eap->identity, sizeof(auth->authname));
+  auth->params.eapmsg_len = len + sizeof(lh);
+  strlcpy(auth->params.authname, eap->identity, sizeof(auth->params.authname));
 
   auth->finish = EapRadiusProxyFinish;
   AuthAsyncStart(auth);
@@ -452,7 +452,7 @@ EapRadiusProxyFinish(AuthData auth)
     lnk->name, AuthStatusText(auth->status)));
 
   /* this shouldn't happen normally, however be liberal */
-  if (a->radius.eapmsg == NULL) {
+  if (a->params.eapmsg == NULL) {
     struct fsmheader	lh;
 
     Log(LG_AUTH, ("[%s] EAP-RADIUS: Warning, rec'd empty EAP-Message", 
@@ -462,12 +462,12 @@ EapRadiusProxyFinish(AuthData auth)
     lh.id = auth->id;
     lh.length = htons(sizeof(lh));
 
-    a->radius.eapmsg = Malloc(MB_AUTH, sizeof(lh));
-    memcpy(a->radius.eapmsg, &lh, sizeof(lh));
-    a->radius.eapmsg_len = sizeof(lh);
+    a->params.eapmsg = Malloc(MB_AUTH, sizeof(lh));
+    memcpy(a->params.eapmsg, &lh, sizeof(lh));
+    a->params.eapmsg_len = sizeof(lh);
   }
 
-  if (a->radius.eapmsg != NULL) {
+  if (a->params.eapmsg != NULL) {
     eap->retry = AUTH_RETRIES;
     
     EapRadiusSendMsg(eap);    
@@ -495,19 +495,19 @@ EapRadiusSendMsg(void *ptr)
 {
   Mbuf		bp;
   Auth		const a = &lnk->lcp.auth;
-  FsmHeader	const f = (FsmHeader)a->radius.eapmsg;
+  FsmHeader	const f = (FsmHeader)a->params.eapmsg;
 
-  if (a->radius.eapmsg_len > 4) {
+  if (a->params.eapmsg_len > 4) {
     Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  Type %s #%d len:%d ",
-      lnk->name, EapCode(f->code), EapType(a->radius.eapmsg[4]),
+      lnk->name, EapCode(f->code), EapType(a->params.eapmsg[4]),
       f->id, htons(f->length)));
   } else {
     Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  #%d len:%d ",
       lnk->name, EapCode(f->code), f->id, htons(f->length)));
   } 
 
-  bp = mballoc(MB_AUTH, a->radius.eapmsg_len);
-  memcpy(MBDATA(bp), a->radius.eapmsg, a->radius.eapmsg_len);
+  bp = mballoc(MB_AUTH, a->params.eapmsg_len);
+  memcpy(MBDATA(bp), a->params.eapmsg, a->params.eapmsg_len);
   NgFuncWritePppFrame(lnk->bundleIndex, PROTO_EAP, bp);
 }
 

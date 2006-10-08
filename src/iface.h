@@ -71,7 +71,6 @@
     u_int		idle_timeout;		/* Idle timeout */
     u_int		session_timeout;	/* Session timeout */
     short		n_routes;
-    short		n_routes_static;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
     struct u_range	self_addr;		/* Interface's IP address */
     struct u_addr	peer_addr;		/* Peer's IP address */
@@ -93,10 +92,10 @@
   typedef struct ifacestate	*IfaceState;
 
   struct acl_pool {			/* Pool of used ACL numbers */
-    char	ifname[IFNAMSIZ+1];     /* Name of interface */
-    int		acl_number;		/* ACL number given by RADIUS unique on this interface */
-    int		real_number;		/* Real ACL number unique on this system */
-    struct acl_pool *next;
+    char		ifname[IFNAMSIZ+1];     /* Name of interface */
+    unsigned short	acl_number;		/* ACL number given by RADIUS unique on this interface */
+    unsigned short	real_number;		/* Real ACL number unique on this system */
+    struct acl_pool	*next;
   };
 
 /*

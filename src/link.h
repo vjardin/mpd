@@ -130,7 +130,6 @@
 
     /* Link properties */
     short		num_redial;	/* Counter for retry attempts */
-    u_char		range_valid:1;	/* Address range is valid */
     u_char		marked:1;	/* Used by MpAllocate() */
     u_char		alive:1;	/* Used by MpAllocate() */
     u_char		joined_bund:1;	/* Link successfully joined bundle */
@@ -142,9 +141,7 @@
     int			latency;	/* Latency in microseconds */
 
     /* Info gleaned from negotiations */
-    struct u_range	peer_allow;	/* Range from /etc/ppp/secrets */
     struct discrim	peer_discrim;
-    char		peer_authname[AUTH_MAX_AUTHNAME];
   };
 
   

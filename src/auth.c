@@ -108,6 +108,95 @@
     { 0,	0,			NULL		},
   };
 
+void	authparamsInit(struct authparams *ap) {
+    memset(ap,0,sizeof(ap));
+};
+
+void	authparamsDestroy(struct authparams *ap) {
+    struct acl		*acls, *acls1;
+  
+    if (ap->eapmsg) {
+	Freee(MB_AUTH, ap->eapmsg);
+    }
+    if (ap->state) {
+	Freee(MB_AUTH, ap->state);
+    }
+
+    acls = ap->acl_rule;
+    while (acls != NULL) {
+	acls1 = acls->next;
+	Freee(MB_AUTH, acls);
+	acls = acls1;
+    };
+    acls = ap->acl_pipe;
+    while (acls != NULL) {
+	acls1 = acls->next;
+	Freee(MB_AUTH, acls);
+	acls = acls1;
+    };
+    acls = ap->acl_queue;
+    while (acls != NULL) {
+	acls1 = acls->next;
+	Freee(MB_AUTH, acls);
+	acls = acls1;
+    };
+
+    if (ap->msdomain) {
+	Freee(MB_AUTH, ap->msdomain);
+    }
+    
+    memset(ap,0,sizeof(ap));
+};
+
+void	authparamsCopy(struct authparams *src, struct authparams *dst) {
+    struct acl	*acls;
+    struct acl	**pacl;
+
+    memcpy(dst,src,sizeof(struct authparams));
+  
+    if (src->eapmsg) {
+	dst->eapmsg = Malloc(MB_AUTH, src->eapmsg_len);
+	memcpy(dst->eapmsg, src->eapmsg, src->eapmsg_len);
+	dst->eapmsg_len = src->eapmsg_len;
+    }
+    if (src->state) {
+	dst->state = Malloc(MB_AUTH, src->state_len);
+	memcpy(dst->state, src->state, src->state_len);
+	dst->state_len = src->state_len;
+    }
+
+    acls = src->acl_rule;
+    pacl = &dst->acl_rule;
+    while (acls != NULL) {
+	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
+	memcpy(*pacl, acls, sizeof(struct acl));
+	acls = acls->next;
+	pacl = &((*pacl)->next);
+    };
+    acls = src->acl_pipe;
+    pacl = &dst->acl_pipe;
+    while (acls != NULL) {
+	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
+	memcpy(*pacl, acls, sizeof(struct acl));
+	acls = acls->next;
+	pacl = &((*pacl)->next);
+    };
+    acls = src->acl_queue;
+    pacl = &dst->acl_queue;
+    while (acls != NULL) {
+	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
+	memcpy(*pacl, acls, sizeof(struct acl));
+	acls = acls->next;
+	pacl = &((*pacl)->next);
+    };
+
+    if (src->msdomain) {
+	dst->msdomain = Malloc(MB_AUTH, strlen(src->msdomain));
+	strcpy(dst->msdomain, src->msdomain);
+    }
+};
+
+
 /*
  * AuthInit()
  */
@@ -152,7 +241,7 @@ AuthStart(void)
   a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
 
   /* remember peer's IP address */
-  lnk->phys->type->peeraddr(lnk->phys->info, a->peeraddr, sizeof(a->peeraddr));
+  lnk->phys->type->peeraddr(lnk->phys->info, a->params.peeraddr, sizeof(a->params.peeraddr));
   
   Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
     Pref(&lnk->lcp.fsm),
@@ -362,16 +451,6 @@ AuthFinish(int which, int ok, AuthData auth)
 
     case AUTH_PEER_TO_SELF:
       a->peer_to_self = 0;
-      if (ok) {
-
-	/* Save authorization name */
-	snprintf(lnk->peer_authname, sizeof(lnk->peer_authname),
-	  "%s", auth->authname);
-
-	/* Save IP address info for this peer */
-	lnk->peer_allow = auth->range;
-	lnk->range_valid = auth->range_valid;
-      }
       break;
 
     default:
@@ -382,7 +461,7 @@ AuthFinish(int which, int ok, AuthData auth)
     /* Notify external auth program if needed */
     if (which == AUTH_PEER_TO_SELF && auth->external) {
       ExecCmd(LG_AUTH, "%s %s %s", auth->extcmd,
-        ok ? "-y" : "-n", auth->authname);
+        ok ? "-y" : "-n", auth->params.authname);
     }
   }
 
@@ -411,39 +490,12 @@ void
 AuthCleanup(void)
 {
   Auth			a = &lnk->lcp.auth;
-  struct radius_acl	*acls, *acls1;
 
   Log(LG_AUTH, ("[%s] AUTH: Cleanup", lnk->name));
 
   TimerStop(&a->acct_timer);
   
-  acls = a->radius.acl_rule;
-  while (acls != NULL) {
-    acls1 = acls->next;
-    Freee(MB_AUTH, acls);
-    acls = acls1;
-  };
-  acls = a->radius.acl_pipe;
-  while (acls != NULL) {
-    acls1 = acls->next;
-    Freee(MB_AUTH, acls);
-    acls = acls1;
-  };
-  acls = a->radius.acl_queue;
-  while (acls != NULL) {
-    acls1 = acls->next;
-    Freee(MB_AUTH, acls);
-    acls = acls1;
-  };
-  
-  Freee(MB_AUTH, a->params.msdomain);
-  Freee(MB_AUTH, a->radius.state);
-  Freee(MB_AUTH, a->radius.username);
-  Freee(MB_AUTH, a->radius.eapmsg);
-  a->authentic = 0;
-  memset(&a->radius, 0, sizeof(a->radius));
-  memset(&a->msoft, 0, sizeof(a->msoft));
-  memset(&a->params, 0, sizeof(a->params));    
+  authparamsDestroy(&a->params);
 }
 
 
@@ -469,17 +521,8 @@ AuthDataNew(void)
   auth->info.n_links = bund->n_links;
   auth->info.peer_addr = bund->ipcp.peer_addr;
 
-  if (a->radius.state != NULL) {
-    auth->radius.state = Malloc(MB_AUTH, a->radius.state_len);
-    memcpy(auth->radius.state, a->radius.state, a->radius.state_len);
-    auth->radius.state_len = a->radius.state_len;
-  }
-  
-  if (a->radius.username != NULL) {
-    auth->radius.username = Malloc(MB_AUTH, strlen(a->radius.username) + 1);
-    strcpy(auth->radius.username, a->radius.username);
-  }
-  
+  authparamsCopy(&a->params,&auth->params);
+
   return auth;
 }
 
@@ -492,14 +535,12 @@ AuthDataNew(void)
 void
 AuthDataDestroy(AuthData auth)
 {
+  authparamsDestroy(&auth->params);
   Freee(MB_BUND, auth->lnk->downReason);
   Freee(MB_BUND, auth->lnk);
   Freee(MB_AUTH, auth->reply_message);
   Freee(MB_AUTH, auth->mschap_error);
   Freee(MB_AUTH, auth->mschapv2resp);
-  Freee(MB_AUTH, auth->radius.eapmsg);
-  Freee(MB_AUTH, auth->radius.state);
-  Freee(MB_AUTH, auth->radius.username);  
   Freee(MB_AUTH, auth);
 }
 
@@ -548,10 +589,13 @@ AuthStat(int ac, char *av[], void *arg)
   Printf("\tIdle-Timeout    : %ld\r\n", a->params.idle_timeout);
   Printf("\tAcct-Update     : %ld\r\n", a->params.acct_update);
   Printf("\tNum Routes      : %d\r\n", a->params.n_routes);
+  Printf("\tACL Rule        : %s\r\n", a->params.acl_rule ? "yes" : "no");
+  Printf("\tACL Pipe        : %s\r\n", a->params.acl_pipe ? "yes" : "no");
+  Printf("\tACL Queue       : %s\r\n", a->params.acl_queue ? "yes" : "no");
   Printf("\tMS-Domain       : %s\r\n", a->params.msdomain);  
-  Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(a->msoft.policy));
-  Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->msoft.types));
-  Printf("\tMPPE Keys       : %s\r\n", a->msoft.has_keys ? "yes" : "no");
+  Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(a->params.msoft.policy));
+  Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->params.msoft.types));
+  Printf("\tMPPE Keys       : %s\r\n", a->params.msoft.has_keys ? "yes" : "no");
 
   return (0);
 }
@@ -573,7 +617,7 @@ AuthAccountStart(int type)
   LinkUpdateStats();
   if (type == AUTH_ACCT_STOP) {
     Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
-      lnk->name, lnk->peer_authname,
+      lnk->name, a->params.authname,
       (unsigned long) (time(NULL) - lnk->bm.last_open),
       lnk->stats.recvOctets, lnk->stats.xmitOctets));
   }
@@ -604,7 +648,6 @@ AuthAccountStart(int type)
   }
   
   auth = AuthDataNew();
-  strncpy(auth->authname, lnk->peer_authname, sizeof(auth->authname));
   auth->acct_type = type;
 
   if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
@@ -661,8 +704,8 @@ AuthAccount(void *arg)
 
     if (auth->acct_type == AUTH_ACCT_START) {
 
-      strlcpy(ut.ut_host, lnk->lcp.auth.peeraddr, sizeof(ut.ut_host));
-      strlcpy(ut.ut_name, auth->authname, sizeof(ut.ut_name));
+      strlcpy(ut.ut_host, auth->params.peeraddr, sizeof(ut.ut_host));
+      strlcpy(ut.ut_name, auth->params.authname, sizeof(ut.ut_name));
       time(&ut.ut_time);
       login(&ut);
       Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", lnk->name, ut.ut_line, 
@@ -738,17 +781,17 @@ AuthGetData(AuthData auth, int complain)
   auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
 
   /* Check authname, must be non-empty */
-  if (*auth->authname == 0) {
+  if (*auth->params.authname == 0) {
     if (complain)
       Log(LG_AUTH, ("mpd: empty auth name"));
     return(-1);
   }
 
   /* Use manually configured login and password, if given */
-  if (*auth->conf.password && !strcmp(auth->authname, auth->conf.authname)) {
-    snprintf(auth->password, sizeof(auth->password), "%s", auth->conf.password);
-    memset(&auth->range, 0, sizeof(auth->range));
-    auth->range_valid = auth->external = FALSE;
+  if (*auth->conf.password && !strcmp(auth->params.authname, auth->conf.authname)) {
+    snprintf(auth->params.password, sizeof(auth->params.password), "%s", auth->conf.password);
+    memset(&auth->params.range, 0, sizeof(auth->params.range));
+    auth->params.range_valid = auth->external = FALSE;
     return(0);
   }
 
@@ -760,7 +803,7 @@ AuthGetData(AuthData auth, int complain)
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
     Freee(MB_UTIL, line);
     if (ac >= 2
-	&& (strcmp(av[0], auth->authname) == 0
+	&& (strcmp(av[0], auth->params.authname) == 0
 	 || (av[1][0] == '!' && strcmp(av[0], "*") == 0))) {
       if (av[1][0] == '!') {		/* external auth program */
 	snprintf(auth->extcmd, sizeof(auth->extcmd), "%s", av[1] + 1);
@@ -771,14 +814,14 @@ AuthGetData(AuthData auth, int complain)
 	  return(-1);
 	}
       } else {
-	snprintf(auth->password, sizeof(auth->password), "%s", av[1]);
+	snprintf(auth->params.password, sizeof(auth->params.password), "%s", av[1]);
 	*auth->extcmd = '\0';
 	auth->external = FALSE;
       }
-      memset(&auth->range, 0, sizeof(auth->range));
-      auth->range_valid = FALSE;
+      memset(&auth->params.range, 0, sizeof(auth->params.range));
+      auth->params.range_valid = FALSE;
       if (ac >= 3)
-	auth->range_valid = ParseRange(av[2], &auth->range, ALLOW_IPV4);
+	auth->params.range_valid = ParseRange(av[2], &auth->params.range, ALLOW_IPV4);
       FreeArgs(ac, av);
       fclose(fp);
       return(0);
@@ -804,7 +847,7 @@ AuthAsyncStart(AuthData auth)
   /* perform pre authentication checks (single-login, etc.) */
   if (AuthPreChecks(auth, 1) < 0) {
     Log(LG_AUTH, ("[%s] AUTH: AuthPreCheck failed for \"%s\"", 
-      lnk->name, auth->authname));
+      lnk->name, auth->params.authname));
     auth->finish(auth);
     return;
   }
@@ -876,11 +919,11 @@ AuthAsync(void *arg)
   }    
   
   if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
-    a->authentic = AUTH_CONF_INTERNAL;
+    a->params.authentic = AUTH_CONF_INTERNAL;
     Log(LG_AUTH, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
-    Log(LG_AUTH, (" Peer name: \"%s\"", auth->authname));
+    Log(LG_AUTH, (" Peer name: \"%s\"", auth->params.authname));
     if (AuthGetData(auth, 1) < 0) {
-      Log(LG_AUTH, (" User \"%s\" not found in secret file", auth->authname));
+      Log(LG_AUTH, (" User \"%s\" not found in secret file", auth->params.authname));
       auth->status = AUTH_STATUS_FAIL;
       return;
     }
@@ -905,7 +948,6 @@ static void
 AuthAsyncFinish(void *arg, int was_canceled)
 {
   AuthData	auth = (AuthData)arg;
-  Auth		a;
   char		*av[1];
 
   if (was_canceled)
@@ -927,13 +969,9 @@ AuthAsyncFinish(void *arg, int was_canceled)
   }    
 
   Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", lnk->name));
-  a = &lnk->lcp.auth;
 
   /* copy back modified data */
-  lnk->lcp.auth.authentic = auth->lnk->lcp.auth.authentic;
-  lnk->lcp.auth.params = auth->lnk->lcp.auth.params;
-  lnk->lcp.auth.radius = auth->lnk->lcp.auth.radius;  
-  lnk->lcp.auth.msoft = auth->lnk->lcp.auth.msoft;
+  authparamsCopy(&auth->params,&lnk->lcp.auth.params);
   
   if (auth->mschapv2resp != NULL)
     strcpy(auth->ack_mesg, auth->mschapv2resp);
@@ -963,14 +1001,14 @@ AuthSystem(AuthData auth)
    * NOTE: getpwnam_r doesen't exists on FreeBSD < 5.1 */
   GIANT_MUTEX_LOCK();
   errno = 0;
-  pw = getpwnam(auth->authname);
+  pw = getpwnam(auth->params.authname);
   if (!pw) {
     err=errno;
     GIANT_MUTEX_UNLOCK(); /* We must release lock before Log() */
     if (err)
       Log(LG_ERR, ("AUTH: Error retrieving passwd %s", strerror(errno)));
     else
-      Log(LG_AUTH, ("AUTH: User \"%s\" not found in the systems database", auth->authname));
+      Log(LG_AUTH, ("AUTH: User \"%s\" not found in the systems database", auth->params.authname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     return;
@@ -986,7 +1024,7 @@ AuthSystem(AuthData auth)
     GIANT_MUTEX_LOCK();
     if (strcmp(crypt(pap->peer_pass, pwc.pw_passwd), pwc.pw_passwd) == 0) {
       auth->status = AUTH_STATUS_SUCCESS;
-      a->authentic = AUTH_CONF_OPIE;      
+      a->params.authentic = AUTH_CONF_OPIE;      
     } else {
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -1004,12 +1042,12 @@ AuthSystem(AuthData auth)
     }
 
     bin = Hex2Bin(&pwc.pw_passwd[4]);
-    memcpy(a->msoft.nt_hash, bin, sizeof(a->msoft.nt_hash));
+    memcpy(a->params.msoft.nt_hash, bin, sizeof(a->params.msoft.nt_hash));
     Freee(MB_UTIL, bin);
-    NTPasswordHashHash(a->msoft.nt_hash, a->msoft.nt_hash_hash);
-    a->msoft.has_nt_hash = TRUE;
+    NTPasswordHashHash(a->params.msoft.nt_hash, a->params.msoft.nt_hash_hash);
+    a->params.msoft.has_nt_hash = TRUE;
     auth->status = AUTH_STATUS_UNDEF;
-    a->authentic = AUTH_CONF_OPIE;
+    a->params.authentic = AUTH_CONF_OPIE;
     return;
 
   } else {
@@ -1037,7 +1075,7 @@ AuthOpie(AuthData auth)
   char		secret[OPIE_SECRET_MAX + 1];
   char		english[OPIE_RESPONSE_MAX + 1];
 
-  ret = opiechallenge(&auth->opie.data, auth->authname, opieprompt);
+  ret = opiechallenge(&auth->opie.data, auth->params.authname, opieprompt);
 
   auth->status = AUTH_STATUS_UNDEF;
   
@@ -1046,7 +1084,7 @@ AuthOpie(AuthData auth)
       break;
   
     case 1:
-      Log(LG_ERR, (" User \"%s\" not found in opiekeys", auth->authname));
+      Log(LG_ERR, (" User \"%s\" not found in opiekeys", auth->params.authname));
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
       return;
@@ -1064,7 +1102,7 @@ AuthOpie(AuthData auth)
 
   if (auth->proto == PROTO_PAP ) {
     if (!opieverify(&auth->opie.data, pap->peer_pass)) {
-      a->authentic = AUTH_CONF_OPIE;
+      a->params.authentic = AUTH_CONF_OPIE;
       auth->status = AUTH_STATUS_SUCCESS;
     } else {
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -1074,13 +1112,13 @@ AuthOpie(AuthData auth)
   }
 
   if (AuthGetData(auth, 1) < 0) {
-    Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->authname));
+    Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->params.authname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;    
     return;
   }
   
-  strlcpy(secret, auth->password, sizeof(secret));
+  strlcpy(secret, auth->params.password, sizeof(secret));
   
   opiekeycrunch(OPIE_ALG_MD5, &key, auth->opie.data.opie_seed, secret);
   n = auth->opie.data.opie_n - 1;
@@ -1088,8 +1126,8 @@ AuthOpie(AuthData auth)
     opiehash(&key, OPIE_ALG_MD5);
 
   opiebtoe(english, &key);
-  strlcpy(auth->password, english, sizeof(auth->password));
-  a->authentic = AUTH_CONF_OPIE;
+  strlcpy(auth->params.password, english, sizeof(auth->params.password));
+  a->params.authentic = AUTH_CONF_OPIE;
 }
 
 /*
@@ -1100,7 +1138,7 @@ static int
 AuthPreChecks(AuthData auth, int complain)
 {
 
-  if (!strlen(auth->authname)) {
+  if (!strlen(auth->params.authname)) {
     if (complain)
       Log(LG_AUTH, (" We don't accept empty usernames"));
     auth->status = AUTH_STATUS_FAIL;
@@ -1113,13 +1151,13 @@ AuthPreChecks(AuthData auth, int complain)
     u_long	num = 0;
     for(ac = 0; ac < gNumBundles; ac++)
       if (gBundles[ac]->open)
-	if (!strcmp(gBundles[ac]->peer_authname, auth->authname))
+	if (!strcmp(gBundles[ac]->params.authname, auth->params.authname))
 	  num++;
 
     if (num >= bund->conf.auth.max_logins) {
       if (complain) {
 	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
-	  auth->authname));
+	  auth->params.authname));
       }
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -1301,24 +1339,24 @@ AuthGetExternalPassword(AuthData auth)
   FILE *fp;
   int len;
 
-  snprintf(cmd, sizeof(cmd), "%s %s", auth->extcmd, auth->authname);
+  snprintf(cmd, sizeof(cmd), "%s %s", auth->extcmd, auth->params.authname);
   Log(LG_AUTH, ("Invoking external auth program: %s", cmd));
   if ((fp = popen(cmd, "r")) == NULL) {
     Perror("Popen");
     return (-1);
   }
-  if (fgets(auth->password, sizeof(auth->password), fp) != NULL) {
-    len = strlen(auth->password);	/* trim trailing newline */
-    if (len > 0 && auth->password[len - 1] == '\n')
-      auth->password[len - 1] = '\0';
-    ok = (*auth->password != '\0');
+  if (fgets(auth->params.password, sizeof(auth->params.password), fp) != NULL) {
+    len = strlen(auth->params.password);	/* trim trailing newline */
+    if (len > 0 && auth->params.password[len - 1] == '\n')
+      auth->params.password[len - 1] = '\0';
+    ok = (*auth->params.password != '\0');
   } else {
     if (ferror(fp))
       Perror("Error reading from external auth program");
   }
   if (!ok)
     Log(LG_AUTH, ("External auth program failed for user \"%s\"", 
-      auth->authname));
+      auth->params.authname));
   pclose(fp);
   return (ok ? 0 : -1);
 }

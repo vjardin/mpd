@@ -17,7 +17,7 @@
 	<item>New feature: PPTP link type is ready to support IPv6, 
 		but require ng_pptpgre IPv6 support update.
 	<item>New feature: NetFlow generation over IPv6 is supported.
-	<item>New feature: NetFlow generation on outgoing packets.
+	<item>New feature: NetFlow generation on outgoing interface is supported.
 	<item>New feature: usage of specified existing ng_netflow node.
 	<item>New feature: possible to specify network interface names insted of IPs.
 	<item>BugFix: fix races between startup process and

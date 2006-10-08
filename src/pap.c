@@ -77,20 +77,20 @@ PapSendRequest(PapInfo pap)
   /* Get password corresponding to my authname */
   memset(&auth, 0, sizeof(auth));
   auth.conf = bund->conf.auth;
-  strlcpy(auth.authname, bund->conf.auth.authname, sizeof(auth.authname));
-  Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", lnk->name, auth.authname));
+  strlcpy(auth.params.authname, bund->conf.auth.authname, sizeof(auth.params.authname));
+  Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", lnk->name, auth.params.authname));
   if (AuthGetData(&auth, 1) < 0)
-    Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth.authname));
+    Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth.params.authname));
 
   /* Build response packet */
-  name_len = strlen(auth.authname);
-  pass_len = strlen(auth.password);
+  name_len = strlen(auth.params.authname);
+  pass_len = strlen(auth.params.password);
 
   pkt = Malloc(MB_AUTH, 1 + name_len + 1 + pass_len);
   pkt[0] = name_len;
-  memcpy(pkt + 1, auth.authname, name_len);
+  memcpy(pkt + 1, auth.params.authname, name_len);
   pkt[1 + name_len] = pass_len;
-  memcpy(pkt + 1 + name_len + 1, auth.password, pass_len);
+  memcpy(pkt + 1 + name_len + 1, auth.params.password, pass_len);
 
   /* Send it off */
   AuthOutput(PROTO_PAP, PAP_REQUEST, pap->next_id++, pkt,
@@ -150,7 +150,7 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
 
 	strlcpy(pap->peer_name, name, sizeof(pap->peer_name));
 	strlcpy(pap->peer_pass, pass, sizeof(pap->peer_pass));
-	strlcpy(auth->authname, name, sizeof(auth->authname));
+	strlcpy(auth->params.authname, name, sizeof(auth->params.authname));
 
 	auth->finish = PapInputFinish;
 	AuthAsyncStart(auth);
@@ -213,8 +213,8 @@ void PapInputFinish(AuthData auth)
     goto goodRequest;
   
   /* Do name & password match? */
-  if (strcmp(auth->authname, pap->peer_name) ||
-      strcmp(auth->password, pap->peer_pass)) {
+  if (strcmp(auth->params.authname, pap->peer_name) ||
+      strcmp(auth->params.password, pap->peer_pass)) {
     Log(LG_AUTH, (" Invalid response"));
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     goto badRequest;

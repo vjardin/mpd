@@ -270,8 +270,8 @@ IpcpConfigure(Fsm fp)
 
   /* Get allowed IP addresses from config and/or from current bundle */
   ipcp->self_allow = ipcp->conf.self_allow;
-  if (!u_rangeempty(&bund->peer_allow))
-    ipcp->peer_allow = bund->peer_allow;
+  if ((bund->params.range_valid) && (!u_rangeempty(&bund->params.range)))
+    ipcp->peer_allow = bund->params.range;
   else
     ipcp->peer_allow = ipcp->conf.peer_allow;
 

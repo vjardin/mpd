@@ -191,7 +191,7 @@ BundJoin(void)
 	("[%s] multi-link peer discriminator mismatch", lnk->name));
       return(0);
     }
-    if (strcmp(lnk->peer_authname, bund->peer_authname)) {
+    if (strcmp(lnk->lcp.auth.params.authname, bund->params.authname)) {
       Log(LG_LCP,
 	("[%s] multi-link peer authorization name mismatch", lnk->name));
       return(0);
@@ -201,8 +201,8 @@ BundJoin(void)
     /* Cancel re-open timer; we've come up somehow (eg, LCP renegotiation) */
     TimerStop(&bund->reOpenTimer);
 
-    /* Record peer's authname */
-    strcpy(bund->peer_authname, lnk->peer_authname);
+    /* Copy auth params from the first link */
+    authparamsCopy(&lnk->lcp.auth.params,&bund->params);
 
     /* Initialize multi-link stuff */
     if ((bund->multilink = lcp->peer_multilink)) {
@@ -227,12 +227,6 @@ BundJoin(void)
 
   /* What to do when the first link comes up */
   if (bm->n_up == 1) {
-
-    /* Copy over peer's IP address range if specified in secrets file */
-    if (lnk->range_valid)
-      bund->peer_allow = lnk->peer_allow;
-    else
-      memset(&bund->peer_allow, 0, sizeof(bund->peer_allow));
 
     /* Configure the bundle */
 #if NGM_PPP_COOKIE < 940897794
@@ -319,7 +313,7 @@ BundLeave(void)
 
     BundNcpsClose();
 
-    memset(bund->peer_authname, 0, sizeof(bund->peer_authname));
+    authparamsDestroy(&bund->params);
     memset(&bund->ccp.mppc, 0, sizeof(bund->ccp.mppc));
     
     /* try to open again later */
@@ -976,7 +970,7 @@ BundStat(int ac, char *av[], void *arg)
   Printf("\tSession-Id     : %s\r\n", sb->session_id);
   Printf("\tTotal bandwidth: %u\r\n", tbw);
   Printf("\tAvail bandwidth: %u\r\n", bw);
-  Printf("\tPeer authname  : \"%s\"\r\n", sb->peer_authname);
+  Printf("\tPeer authname  : \"%s\"\r\n", sb->params.authname);
   Printf("\tPeer discrim.  : %s\r\n", MpDiscrimText(&sb->peer_discrim));
 
   /* Show configuration */
@@ -998,7 +992,7 @@ BundStat(int ac, char *av[], void *arg)
     Printf("\tStatus         : %s\r\n",
       sb->multilink ? "Active" : "Inactive\r\n");
     if (sb->multilink) {
-      Printf("\tPeer auth name : \"%s\"\r\n", sb->peer_authname);
+      Printf("\tPeer auth name : \"%s\"\r\n", sb->params.authname);
       Printf("\tPeer discrimin.: %s\r\n", MpDiscrimText(&sb->peer_discrim));
     }
   }

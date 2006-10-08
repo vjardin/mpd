@@ -325,11 +325,11 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	name_len = strlen(name);
 	Log(LG_AUTH, (" Using authname \"%s\"", name));
 
-	strlcpy(auth->authname, name, sizeof(auth->authname));
+	strlcpy(auth->params.authname, name, sizeof(auth->params.authname));
 
 	/* Get the corresponding secret */
 	if (AuthGetData(auth, 1) < 0) {
-	  Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth->authname));
+	  Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth->params.authname));
 	  break;
 	}
 
@@ -399,7 +399,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	      memmove(peer_name, s + 1, strlen(s) + 1);
 	  }
 
-	strlcpy(auth->authname, peer_name, sizeof(auth->authname));
+	strlcpy(auth->params.authname, peer_name, sizeof(auth->params.authname));
 	
 	auth->finish = ChapInputFinish;
 	AuthAsyncStart(auth);
@@ -490,7 +490,7 @@ ChapInputFinish(AuthData auth)
 
   /* Get expected hash value */
   if ((hash_value_size = ChapHash(chap->recv_alg, hash_value, auth->id,
-    auth->authname, secret, chap->chal_data, chap->chal_len,
+    auth->params.authname, secret, chap->chal_data, chap->chal_len,
     0)) < 0) {
     Log(LG_AUTH, (" Hash failure"));
     auth->why_fail = AUTH_FAIL_INVALID_PACKET;
@@ -517,8 +517,8 @@ ChapInputFinish(AuthData auth)
     int i;
 
     /* Generate MS-CHAPv2 'authenticator response' */
-    GenerateAuthenticatorResponse(a->msoft.nt_hash, pv->ntHash,
-      pv->peerChal, chap->chal_data, auth->authname, authresp);
+    GenerateAuthenticatorResponse(a->params.msoft.nt_hash, pv->ntHash,
+      pv->peerChal, chap->chal_data, auth->params.authname, authresp);
     for (i = 0; i < 20; i++)
       sprintf(hex + (i * 2), "%02X", authresp[i]);
     snprintf(auth->ack_mesg, sizeof(auth->ack_mesg), "S=%s", hex);
@@ -536,8 +536,8 @@ badResponse:
 
 goodResponse:
   /* make a dummy verify to force an update of the opiekeys database */
-  if (a->authentic == AUTH_CONF_OPIE)
-    opieverify(&auth->opie.data, auth->password);
+  if (a->params.authentic == AUTH_CONF_OPIE)
+    opieverify(&auth->opie.data, auth->params.password);
 
   /* Need to remember MS-CHAP stuff for use with MPPE encryption */
   if (chap->recv_alg == CHAP_ALG_MSOFTv2 
@@ -563,26 +563,25 @@ goodResponse:
 static char *
 ChapGetSecret(AuthData auth)
 {
-  Auth		a = &lnk->lcp.auth;
-  ChapInfo	chap = &a->chap;
+  ChapInfo	chap = &lnk->lcp.auth.chap;
   char		*pw;
   int		alg;
   
   alg = auth->code == CHAP_CHALLENGE ? chap->xmit_alg : chap->recv_alg;
   
   if (alg == CHAP_ALG_MD5)
-    pw = auth->password;
+    pw = auth->params.password;
   else {
-    if (!a->msoft.has_nt_hash)
+    if (!auth->params.msoft.has_nt_hash)
     {
-      NTPasswordHash(auth->password, a->msoft.nt_hash);
-      NTPasswordHashHash(a->msoft.nt_hash, a->msoft.nt_hash_hash);
-      LMPasswordHash(auth->password, a->msoft.lm_hash);
-      a->msoft.has_nt_hash = TRUE;
-      a->msoft.has_lm_hash = TRUE;
+      NTPasswordHash(auth->params.password, auth->params.msoft.nt_hash);
+      NTPasswordHashHash(auth->params.msoft.nt_hash, auth->params.msoft.nt_hash_hash);
+      LMPasswordHash(auth->params.password, auth->params.msoft.lm_hash);
+      auth->params.msoft.has_nt_hash = TRUE;
+      auth->params.msoft.has_lm_hash = TRUE;
     }
 
-    pw = a->msoft.nt_hash;
+    pw = auth->params.msoft.nt_hash;
   }
 
   return pw;
