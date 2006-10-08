@@ -202,7 +202,7 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
 void PapInputFinish(AuthData auth)
 {
   PapInfo	pap = &lnk->lcp.auth.pap;
-  const char	*failMesg;
+  const char	*Mesg;
   
   Log(LG_AUTH, ("[%s] PAP: PapInputFinish: status %s", 
     lnk->name, AuthStatusText(auth->status)));
@@ -223,8 +223,13 @@ void PapInputFinish(AuthData auth)
   goto goodRequest;
 
 badRequest:
-  failMesg = AuthFailMsg(auth, 0);
-  AuthOutput(PROTO_PAP, PAP_NAK, auth->id, failMesg, strlen(failMesg), 1, 0);
+  if (auth->reply_message) {
+    Log(LG_AUTH, (" Reply message: %s", auth->reply_message));
+    Mesg = auth->reply_message;
+  } else {
+    Mesg = AuthFailMsg(auth, 0);
+  }
+  AuthOutput(PROTO_PAP, PAP_NAK, auth->id, Mesg, strlen(Mesg), 1, 0);
   AuthFinish(AUTH_PEER_TO_SELF, FALSE, auth);
   AuthDataDestroy(auth);  
   return;
@@ -232,8 +237,13 @@ badRequest:
 goodRequest:
   /* Login accepted */
   Log(LG_AUTH, (" Response is valid"));
-  AuthOutput(PROTO_PAP, PAP_ACK, auth->id, AUTH_MSG_WELCOME,
-    strlen(AUTH_MSG_WELCOME), 1, 0);
+  if (auth->reply_message) {
+    Log(LG_AUTH, (" Reply message: %s", auth->reply_message));
+    Mesg = auth->reply_message;
+  } else {
+    Mesg = AUTH_MSG_WELCOME;
+  }
+  AuthOutput(PROTO_PAP, PAP_ACK, auth->id, Mesg, strlen(Mesg), 1, 0);
   AuthFinish(AUTH_PEER_TO_SELF, TRUE, auth);  
   AuthDataDestroy(auth);
 }
