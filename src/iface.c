@@ -697,7 +697,7 @@ IfaceIpIfaceUp(int ready)
   }
 
   /* Add loopback route */
-  ExecCmd(LG_IFACE2, "%s add %s -iface lo0",
+  ExecCmd(LG_IFACE2, "%s add %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,selfaddr,sizeof(selfaddr)));
   
   /* Add static routes */
@@ -765,7 +765,7 @@ IfaceIpIfaceDown(void)
   u_addrclear(&iface->proxy_addr);
 
   /* Delete loopback route */
-  ExecCmd(LG_IFACE2, "%s delete %s -iface lo0",
+  ExecCmd(LG_IFACE2, "%s delete %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
 
   /* Bring down system interface */

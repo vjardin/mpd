@@ -1027,13 +1027,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
       case RAD_STATE:
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_STATE", lnk->name, __func__));
-	/* copy it into the persistent data struct */
-	auth->params.state_len = len;
-	if (auth->params.state != NULL)
-	  Freee(MB_AUTH, auth->params.state);
-	auth->params.state = Malloc(MB_AUTH, len);
-	memcpy(auth->params.state, data, len);
-	/* copy it into the temporary data struct */	
 	auth->params.state_len = len;
 	if (auth->params.state != NULL)
 	  Freee(MB_AUTH, auth->params.state);
