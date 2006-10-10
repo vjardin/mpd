@@ -533,12 +533,19 @@ NullCommand(int ac, char *av[], void *arg)
 static int
 LoadCommand(int ac, char *av[], void *arg)
 {
+  static int depth=0;
+  
   if (ac != 1)
-    Log(LG_ERR, ("Usage: load system"));
+    return(-1);
   else {
-    if (ReadFile(gConfigFile, *av, DoCommand) < 0)
-      Log(LG_ERR, ("mpd: entry \"%s\" not found in %s",
-        *av, gConfigFile));
+    if (depth>20) {
+      Log(LG_ERR, ("Depth limit was reached while loading '%s'!", *av));
+      Log(LG_ERR, ("There is a configuration loop!"));
+      return(-2);
+    }
+    depth++;
+    ReadFile(gConfigFile, *av, DoCommand);
+    depth--;
   }
   return(0);
 }
