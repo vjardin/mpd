@@ -109,7 +109,7 @@
   };
 
 void	authparamsInit(struct authparams *ap) {
-    memset(ap,0,sizeof(ap));
+    memset(ap,0,sizeof(struct authparams));
 };
 
 void	authparamsDestroy(struct authparams *ap) {
@@ -145,7 +145,7 @@ void	authparamsDestroy(struct authparams *ap) {
 	Freee(MB_AUTH, ap->msdomain);
     }
     
-    memset(ap,0,sizeof(ap));
+    memset(ap,0,sizeof(struct authparams));
 };
 
 void	authparamsCopy(struct authparams *src, struct authparams *dst) {
