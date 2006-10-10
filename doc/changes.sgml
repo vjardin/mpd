@@ -8,30 +8,70 @@
   <p>
     Changes since version 4.0b4:
     <itemize>
-	<item>New feature: IPV6CP support added, 
-	      NCPs and IFACE calls was rewritten to support many NCPs.
-		For IPv6 not yet supported: TcpMSSFix, NetFlow, Tee, DialOnDemand.
-	<item>New feature: console supports IPv6.
-	<item>New feature: TCP link type now works and supports IPv6.
-	<item>New feature: UDP link type supports IPv6.
-	<item>New feature: PPTP link type is ready to support IPv6, 
-		but require ng_pptpgre IPv6 support update.
-	<item>New feature: NetFlow generation over IPv6 is supported.
-	<item>New feature: NetFlow generation on outgoing interface is supported.
-	<item>New feature: usage of specified existing ng_netflow node.
-	<item>New feature: possible to specify network interface names insted of IPs.
-	<item>BugFix: fix races between startup process and
-		client connecting.
-	<item>BugFix: fixed a few crashes in console.
-	<item>BugFix: RAD_NAS_PORT could be wrong fixed.
-	<item>BugFix: RADIUS support rewritten from select() to poll() to avoid 
-		problems with big number of links
-	<item>BugFix: significant rework on incoming call processing to
-		fix some aspects of multilink server functionality
-	<item>BugFix: mpd shutdown is now much more graceful
-	<item>Added more log levels to decrease log file size
-	<item>Message and PPPoE subsystems reworked to decrease number of open files
-	<item>Many fixes and performance optimizations
+	<item>New features:
+	<itemize>
+	  <item> IPv6 support:
+	  <itemize>
+		<item>  IPV6CP support added, NCPs and IFACE calls was
+			rewritten to support many NCPs.
+		</item>
+		<item>	Console now supports IPv6.
+		</item>
+		<item>	UDP and TCP link types now support IPv6.
+		</item>
+		<item>	PPTP link type is ready to support IPv6, 
+			but requires ng_pptpgre(4) to support IPv6.
+		</item>
+		<item>	NetFlow export over IPv6 is supported.
+		</item>
+		<item>	The following features don't yet support IPv6:
+			TcpMSSFix, NetFlow, Tee, DialOnDemand.
+		</item>
+	  </itemize>
+	  </item>
+
+	  <item> TCP link type now compiles and works
+		 (but isn't yet ready for production usage).
+	  </item>
+	  <item> NetFlow data generation on outgoing interface is supported.
+	  </item>
+	  <item> Added a possibility to use an existing ng_netflow(4) node.
+	  </item>
+	  <item> Added a possibility to specify network interface names
+		 instead of IP addresses.
+	  </item>
+	  <item> Added more log levels to decrease log file size.
+	  </item>
+	</itemize>
+	</item>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fixed races between startup process and client connecting.
+	  </item>
+	  <item> Fixed a few crashes in console.
+	  </item>
+	  <item> Incoming call processing significantly reworked to
+		 fix some aspects of multilink server functionality.
+	  </item>
+	  <item> The shutdown of mpd is now much more graceful:
+		 the netgraph nodes are closed, the accounting RADIUS
+		 packets for closing links are sent, new connections
+		 aren't accepted during shutdown.
+	  </item>
+	  <item> Fixed races in filling of RADIUS packets. In particular,
+		 RAD_NAS_PORT value in the RADIUS could be wrong.
+	  </item>
+	</itemize>
+	</item>
+	<item> Performance improvements:
+	<itemize>
+	<item> RADIUS support rewritten to use poll(2) instead of
+	       select(2), improving performance with a big number of links.
+	</item>
+	<item> Message and PPPoE subsystems reworked to decrease number
+	      of open files per bundle.
+	</item>
+	</itemize>
 	</item>
     </itemize>
   </p>

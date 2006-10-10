@@ -37,8 +37,8 @@ can be useful for debugging or traffic accounting.
 
 If <tt>-n</tt> option is specified, the bundle will participate in
 NetFlow generation. See <ref id="netflow" name="the NetFlow chapter">
-for more information. <tt>-N</tt> option is like <tt>-n</tt>, but 
-generates NetFlow for outgountg packets instead of incoming.
+for more information. The <tt>-N</tt> option is like <tt>-n</tt>, but 
+generates NetFlow data for outgoing packets instead of incoming.
 
 The links that constitute the bundle are created and named
 <tt><em>link1</em></tt>, <tt><em>link2</em></tt>, etc.  For each
@@ -142,11 +142,11 @@ saving two bytes on every frame. It defaults to
 
 <tag><tt>ipcp</tt></tag>
 
-Enable/Disable IPCP negotition. Default is enabled.
+Enable/Disable IPCP negotiation. Default is enabled.
 
 <tag><tt>ipv6cp</tt></tag>
 
-Enable/Disable IPV6CP negotition. Default is disabled.
+Enable/Disable IPV6CP negotiation. Default is disabled.
 
 <tag><tt>compression</tt></tag>
 

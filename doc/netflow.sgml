@@ -44,13 +44,14 @@ Modify inactive and active timeout values. For more information, see
 set netflow node <em>nodename</em>
 </tt></tag>
 
-Use existing ng_netflow node instead of creation of new one.
+Use existing <tt>ng_netflow(4)</tt> node instead of creating a new one.
 
 <tag><tt>
 set netflow hook <em>number</em>
 </tt></tag>
 
-Use ng_netflow node hooks from specified number.
+Use <tt>ng_netflow(4)</tt> node's hook with specified number. For detailed
+information about naming of hooks, see <tt>ng_netflow(4)</tt> manual page.
 
 </descrip>
 
