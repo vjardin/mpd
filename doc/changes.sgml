@@ -61,16 +61,16 @@
 	  <item> Fixed races in filling of RADIUS packets. In particular,
 		 RAD_NAS_PORT value in the RADIUS could be wrong.
 	  </item>
+	  <item> RADIUS support rewritten to use poll(2) instead of
+	         select(2), allowing to create a bigger number of links.
+	  </item>
 	</itemize>
 	</item>
 	<item> Performance improvements:
 	<itemize>
-	<item> RADIUS support rewritten to use poll(2) instead of
-	       select(2), improving performance with a big number of links.
-	</item>
-	<item> Message and PPPoE subsystems reworked to decrease number
-	      of open files per bundle.
-	</item>
+	  <item> Message and PPPoE subsystems reworked to decrease number
+	         of open files per bundle.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
