@@ -156,7 +156,7 @@
  * INTERNAL VARIABLES
  */
 
-  static struct u_addr		gLocalIp;
+  static struct u_addr		gLocalIp = { AF_INET };
   static u_short		gLocalPort;
   static u_char			gInitialized;
   static struct confinfo	gConfList[] = {
