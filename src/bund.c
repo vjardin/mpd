@@ -257,8 +257,6 @@ BundJoin(void)
   snprintf(lnk->session_id, LINK_MAX_NAME, "%d-%s",
     time(NULL) % 10000000, lnk->name);
 
-  AuthAccountStart(AUTH_ACCT_START);
-
   /* What to do when the first link comes up */
   if (bm->n_up == 1) {
 
@@ -267,6 +265,8 @@ BundJoin(void)
     BundNcpsUp();
     
   }
+
+  AuthAccountStart(AUTH_ACCT_START);
 
   /* starting link statistics timer */
   TimerInit(&lnk->stats.updateTimer, "LinkUpdateStats", 
