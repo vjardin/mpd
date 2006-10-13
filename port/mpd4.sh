@@ -13,7 +13,7 @@ mpd_enable=${mpd_enable-"NO"}
 . %%RC_SUBR%%
 
 name=mpd4
-rcvar=`set_rcvar`
+rcvar=`set_rcvar mpd`
 prefix=%%PREFIX%%
 pidfile=/var/run/${name}.pid
 command="${prefix}/sbin/${name}"
