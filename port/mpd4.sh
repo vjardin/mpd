@@ -1,5 +1,7 @@
 #!/bin/sh
-
+#
+# $FreeBSD$
+#
 # PROVIDE: mpd
 # REQUIRE: NETWORKING
 
