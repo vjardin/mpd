@@ -33,7 +33,7 @@ USE_OPENSSL=	yes
 .include <bsd.port.pre.mk>
 
 .if ${OSVERSION} < 500000
-IGNORE=			does not compile on FreeBSD 4.x; use net/mpd instead
+IGNORE=		does not compile on FreeBSD 4.x; use net/mpd instead
 .endif
 
 .include <bsd.port.post.mk>
