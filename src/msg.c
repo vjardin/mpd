@@ -45,7 +45,7 @@
  */
 
   static void	MsgEvent(int type, void *cookie);
-  static void	MsgReregister();
+  static void	MsgReregister(void);
 
 /*
  * MsgRegister()
