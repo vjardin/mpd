@@ -1234,7 +1234,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      case RAD_MICROSOFT_MS_CHAP_ERROR:
 		/* there is a nullbyte on the first pos, don't know why */
 		if (((const char *)data)[0] == '\0') {
-		  ((const char *)data)++;
+		  data = (const char *)data + 1;
 		  len--;
 		}
 		tmpval = rad_cvt_string(data, len);
@@ -1253,7 +1253,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		   * Only point at the String field if we don't think the
 		   * peer has misformatted the response.
 		   */
-		  ((const char *)data)++;
+		  data = (const char *)data + 1;
 		  len--;
 		} else
 		  Log(LG_RADIUS, ("[%s] RADIUS: %s: Warning: The MS-CHAP2-Success attribute is mis-formatted. Compensating",
