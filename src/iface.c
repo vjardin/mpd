@@ -688,7 +688,7 @@ IfaceIpIfaceUp(int ready)
     } else {
       ether = (u_char *) LLADDR(&hwa);
       if (ExecCmd(LG_IFACE2,
-	  "%s -s %s %x:%x:%x:%x:%x:%x pub",
+	  "%s -S %s %x:%x:%x:%x:%x:%x pub",
 	  PATH_ARP, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)),
 	  ether[0], ether[1], ether[2],
 	  ether[3], ether[4], ether[5]) == 0)
