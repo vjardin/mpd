@@ -11,7 +11,7 @@ MAKEFILE=	${PDIR}/Makefile
 DESCR=		${PDIR}/pkg-descr
 MD5=		${PDIR}/distinfo
 MTREE=		${PDIR}/files/mpd4.mtree
-RCSCRIPT=	${PDIR}/files/mpd4.sh
+RCSCRIPT=	${PDIR}/files/mpd4.sh.in
 
 port:
 		rm -rf ${PDIR}
