@@ -9,7 +9,7 @@ PDIR=		port.temp
 
 MAKEFILE=	${PDIR}/Makefile
 DESCR=		${PDIR}/pkg-descr
-MD5=		${PDIR}/distinfo
+DISTINFO=	${PDIR}/distinfo
 MTREE=		${PDIR}/files/mpd4.mtree
 RCSCRIPT=	${PDIR}/files/mpd4.sh.in
 
@@ -20,9 +20,14 @@ port:
 		cp DESCR ${DESCR}
 		cp mpd4.mtree ${MTREE}
 		cp mpd4.sh ${RCSCRIPT}
+		( cd .. && stat -f "SIZE(mpd4/mpd4-${VERSION}.tar.gz) = %z" \
+		  mpd4-${VERSION}.tar.gz ) > ${DISTINFO}
 		( cd .. && md5 mpd4-${VERSION}.tar.gz ) \
-		  | sed 's,mpd4-,mpd4/mpd4-,g' > ${MD5}
-		sed -e 's/@VERSION@/${VERSION}/g' -e 's/@HTMLNUM@/${HTMLNUM}/g' \
+		  | sed 's,mpd4-,mpd4/mpd4-,g' >> ${DISTINFO}
+		( cd .. && sha256 mpd4-${VERSION}.tar.gz ) \
+		  | sed 's,mpd4-,mpd4/mpd4-,g' >> ${DISTINFO}
+		sed -e 's/@VERSION@/${VERSION}/g' \
+		    -e 's/@HTMLNUM@/${HTMLNUM}/g' \
 		  < Makefile.in > ${MAKEFILE}
 		( cd ${PDIR} && tar cvf - * | gzip --best ) > ../port.tgz
 		rm -rf ${PDIR}
