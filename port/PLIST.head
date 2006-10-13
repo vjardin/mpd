@@ -1,8 +1,0 @@
-etc/mpd4/mpd.conf.sample
-etc/mpd4/mpd.links.sample
-etc/mpd4/mpd.secret.sample
-etc/mpd4/mpd.script.sample
-etc/rc.d/mpd4.sh.sample
-sbin/mpd4
-share/doc/mpd4/README
-share/doc/mpd4/mpd.ps

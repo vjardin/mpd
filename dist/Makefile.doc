@@ -1,7 +1,7 @@
 # $Id$
 
 PREFIX?=	/usr/local
-BINDIR?=	${PREFIX}/share/doc/mpd4
+DOCDIR?=	${PREFIX}/share/doc/mpd4
 
 MPD_DOC_FILES+=	../README
 MPD_DOC_FILES+=	mpd*.html
@@ -22,9 +22,9 @@ mpd4.8:          mpd4.8.in
 
 .if !defined(NOPORTDOCS)
 afterinstall:
-	[ -d ${BINDIR} ] || mkdir ${BINDIR}
-	${INSTALL} -c -o ${DOCOWN} -g ${DOCGRP} -m ${DOCMODE} ${MPD_DOC_FILES} \
-		${BINDIR}
+	[ -d ${DOCDIR} ] || mkdir ${DOCDIR}
+	${INSTALL} -c -o ${DOCOWN} -g ${DOCGRP} -m ${DOCMODE} \
+	    ${MPD_DOC_FILES} ${DOCDIR}
 .endif
 
 .include <bsd.prog.mk>

@@ -1,37 +1,25 @@
 #!/bin/sh
-# $FreeBSD$
 
-DAEMON=/usr/local/sbin/mpd4
-PIDFILE=/var/run/mpd4.pid
+# PROVIDE: mpd
+# REQUIRE: NETWORKING
 
-case "$1" in
-start)
-	if [ -f "${DAEMON}" -a -x "${DAEMON}" ]; then
-		if [ -f "${PIDFILE}" ]; then
-			echo ' mpd4 PID file found - not starting'
-		else
-			"${DAEMON}" -b -p "${PIDFILE}"
-			echo -n ' mpd4'
-		fi
-	else
-		echo ' "${DAEMON}" executable not found - mpd4 not starting'
-	fi
-	;;
-stop)
-	if [ -f "${PIDFILE}" ]; then
-		read -r pid junk < "${PIDFILE}"
-		kill ${pid}
-	else
-		echo ' mpd4 PID file not found - not killing'
-	fi
-	;;
-restart)
-	$0 stop
-	sleep 2
-	$0 start
-	;;
-*)
-	echo "usage: ${0##*/} {start|stop|restart}" >&2
-	;;
-esac
+#
+# Add the following lines to /etc/rc.conf to enable mpd4:
+#
+# mpd_enable="YES"	# YES or NO (default)
+#
+mpd_enable=${mpd_enable-"NO"}
 
+. %%RC_SUBR%%
+
+name=mpd4
+rcvar=`set_rcvar`
+prefix=%%PREFIX%%
+pidfile=/var/run/${name}.pid
+command="${prefix}/sbin/${name}"
+command_args="-b -p ${pidfile}"
+required_files="${prefix}/etc/${name}/mpd.conf ${prefix}/etc/${name}/mpd.links"
+
+load_rc_config $name
+
+run_rc_command "$1"

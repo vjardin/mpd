@@ -1,10 +1,13 @@
 
 VERSION!=	cat ../src/Makefile | grep ^VERSION | awk '{ print $$2 }'
+HTMLNUM!=	( cd ../mpd4-${VERSION}/doc && ls *[0-9]*.html | 	\
+		sed -e 's/mpd//' -e 's/\.html//' | sort -n | 		\
+		paste -d ' ' - - - - - - - - - - - - |			\
+		sed -e 's/^/          /' -e '$!s/$/ \\/')
 
 PDIR=		port.temp
 
 MAKEFILE=	${PDIR}/Makefile
-PLIST=		${PDIR}/pkg-plist
 DESCR=		${PDIR}/pkg-descr
 MD5=		${PDIR}/distinfo
 MTREE=		${PDIR}/files/mpd4.mtree
@@ -15,9 +18,9 @@ port:
 		mkdir -p ${PDIR}
 		mkdir -p ${PDIR}/files
 		cat PLIST.head > ${PLIST}
-		( cd ../mpd4-${VERSION}/doc && ls *.html | sort ) \
-		  | awk '{ printf "share/doc/mpd4/%s\n", $$1 }' >> ${PLIST}
-		cat PLIST.tail >> ${PLIST}
+		( cd ../mpd4-${VERSION}/doc && ls *.html | sort )	\
+		  | awk '{ printf "%%PORTDOCS%%%%DOCSDIR%%/%s\n", $$1 }'\
+		  >> ${PLIST}
 		cp DESCR ${DESCR}
 		cp mpd4.mtree ${MTREE}
 		cp mpd4.sh ${RCSCRIPT}
