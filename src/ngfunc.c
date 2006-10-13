@@ -440,7 +440,7 @@ NgFuncInit(Bund b, const char *reqIface)
       snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
     }
     snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
-    if (b->netflow==2) {
+    if (b->netflow == NETFLOW_EXISTING) {
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
 	    ++gNetflowIface);
     } else {
@@ -459,7 +459,7 @@ NgFuncInit(Bund b, const char *reqIface)
   if (b->tee && b->netflow) {
     snprintf(path, sizeof(path), "%s.%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
 	BPF_HOOK_IFACE, NG_TEE_HOOK_LEFT);
-    if (b->netflow==2) {
+    if (b->netflow == NETFLOW_EXISTING) {
 	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_DATA,
 	    gNetflowIface);
     } else {
@@ -476,7 +476,7 @@ NgFuncInit(Bund b, const char *reqIface)
   } else if (b->netflow) {
     snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
 	BPF_HOOK_IFACE);
-    if (b->netflow==2) {
+    if (b->netflow == NETFLOW_EXISTING) {
 	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_DATA,
 	    gNetflowIface);
     } else {
@@ -514,7 +514,7 @@ NgFuncInit(Bund b, const char *reqIface)
 	path, strerror(errno)));
       goto fail;
     }
-    if (b->netflow!=2) {
+    if (b->netflow == NETFLOW_CREATE) {
 	nf_setidx.iface = gNetflowIface;
 	nf_setidx.index = if_nametoindex(b->iface.ifname);
 	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
