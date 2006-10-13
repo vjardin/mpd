@@ -17,10 +17,6 @@ port:
 		rm -rf ${PDIR}
 		mkdir -p ${PDIR}
 		mkdir -p ${PDIR}/files
-		cat PLIST.head > ${PLIST}
-		( cd ../mpd4-${VERSION}/doc && ls *.html | sort )	\
-		  | awk '{ printf "%%PORTDOCS%%%%DOCSDIR%%/%s\n", $$1 }'\
-		  >> ${PLIST}
 		cp DESCR ${DESCR}
 		cp mpd4.mtree ${MTREE}
 		cp mpd4.sh ${RCSCRIPT}
