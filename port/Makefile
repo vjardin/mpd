@@ -22,7 +22,7 @@ port:
 		cp mpd4.sh ${RCSCRIPT}
 		( cd .. && md5 mpd4-${VERSION}.tar.gz ) \
 		  | sed 's,mpd4-,mpd4/mpd4-,g' > ${MD5}
-		sed -e 's/@VERSION@/${VERSION}/g -e 's/@HTMLNUM@/${HTMLNUM}/g ' \
+		sed -e 's/@VERSION@/${VERSION}/g' -e 's/@HTMLNUM@/${HTMLNUM}/g' \
 		  < Makefile.in > ${MAKEFILE}
 		( cd ${PDIR} && tar cvf - * | gzip --best ) > ../port.tgz
 		rm -rf ${PDIR}
