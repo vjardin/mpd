@@ -1301,6 +1301,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
       /* Save IP address and interface name */
       ina = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr.s_addr;
       strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+      ifreq.ifr_addr = ifr->ifr_addr;
 
       /* Check that the interface is up, and not point-to-point or loopback */
       if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
