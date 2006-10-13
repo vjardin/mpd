@@ -64,6 +64,9 @@
 	  <item> RADIUS support rewritten to use poll(2) instead of
 	         select(2), allowing to create a bigger number of links.
 	  </item>
+	  <item> Fixed a problem with identifying correct interface
+		 for proxy-arp when alias addresses are used.
+	  </item>
 	</itemize>
 	</item>
 	<item> Performance improvements:
