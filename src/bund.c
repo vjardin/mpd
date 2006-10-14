@@ -175,6 +175,8 @@ BundJoin(void)
   BundBm	const bm = &bund->bm;
   LcpState	const lcp = &lnk->lcp;
 
+  if (!bund->open) bund->open = TRUE; /* Open bundle on incoming */
+
   /* Other links in this bundle yet? If so, enforce bundling */
   if (bm->n_up > 0) {
 
@@ -315,14 +317,17 @@ BundLeave(void)
 
     authparamsDestroy(&bund->params);
     memset(&bund->ccp.mppc, 0, sizeof(bund->ccp.mppc));
-    
+ 
     /* try to open again later */
     if (bund->open && !Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
 	/* wait BUND_REOPEN_DELAY to see if it comes back up */
+      Log(LG_BUND, ("[%s] Last link has gone and no noretry option, will reopen in %d seconds", bund->name, BUND_REOPEN_DELAY));
       TimerStop(&bund->reOpenTimer);
       TimerInit(&bund->reOpenTimer, "BundReOpen",
 	BUND_REOPEN_DELAY * SECONDS, BundReOpenLinks, NULL);
       TimerStart(&bund->reOpenTimer);
+    } else if (bund->open) {
+	bund->open = FALSE;
     }
   }
 }
@@ -340,7 +345,7 @@ BundLeave(void)
 static void
 BundReOpenLinks(void *arg)
 {
-  Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening", bund->name));
+  Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening in %d seconds", bund->name, BUND_REOPEN_PAUSE));
   BundCloseLinks();
   TimerStop(&bund->reOpenTimer);
   TimerInit(&bund->reOpenTimer, "BundOpen",
@@ -507,8 +512,8 @@ BundNcpsFinish(int proto)
 {
     bund->ncpstarted &= (~((1<<proto)>>1));
     if (!bund->ncpstarted) {
-	Log(LG_BUND, ("[%s] No NCPs left. Closing bundle...", bund->name));
-	BundClose(); /* We have nothing to live for */
+	Log(LG_BUND, ("[%s] No NCPs left. Closing links...", bund->name));
+	BundCloseLinks(); /* We have nothing to live for */
     }
 }
 
