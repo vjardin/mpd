@@ -163,8 +163,8 @@
     u_char		multilink:1;	/* Doing multi-link on this bundle */
     u_char		tee:1;		/* Bundle has ng_tee(4). */
     u_char		netflow:2;	/* Bundle connects to ng_netflow(4). */
-    #define NETFLOW_CREATE	1
-    #define NETFLOW_EXISTING	2
+    #define NETFLOW_IN	1
+    #define NETFLOW_OUT	2
     
     struct authparams   params;         /* params to pass to from auth backend */
   };

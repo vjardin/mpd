@@ -822,12 +822,12 @@ BundCreateCmd(int ac, char *av[], void *arg)
 	break;
       case 'n':
 #ifdef USE_NG_NETFLOW
-	netflow = NETFLOW_CREATE;
+	netflow = NETFLOW_IN;
 #endif
 	break;
       case 'N':
 #ifdef USE_NG_NETFLOW
-	netflow = NETFLOW_EXISTING;
+	netflow = NETFLOW_OUT;
 #endif
 	break;
       default:
