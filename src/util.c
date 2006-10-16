@@ -1231,18 +1231,20 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
       if (ifname!=NULL && strcmp(ifname,ifr->ifr_name))
         continue;
 
-      /* Check that the interface is up, and not loopback; prefer non-p2p */
+      /* Check that the interface is up; prefer non-p2p and non-loopback */
       strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
       if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
 	continue;
-      if ((ifreq.ifr_flags & (IFF_UP|IFF_LOOPBACK)) != IFF_UP)
+      if ((ifreq.ifr_flags & IFF_UP) != IFF_UP)
 	continue;
-      if ((ifreq.ifr_flags & IFF_POINTOPOINT) && ipa.s_addr && !p2p)
+      if ((ifreq.ifr_flags & (IFF_POINTOPOINT|IFF_LOOPBACK)) && ipa.s_addr)
+	continue;
+      if ((ntohl(((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr.s_addr)>>24)==127)
 	continue;
 
       /* Save IP address and interface name */
       ipa = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr;
-      p2p = (ifreq.ifr_flags & IFF_POINTOPOINT) != 0;
+      p2p = (ifreq.ifr_flags & (IFF_POINTOPOINT|IFF_LOOPBACK)) != 0;
       
       if (!p2p) break;
     }
