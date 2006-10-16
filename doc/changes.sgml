@@ -67,6 +67,9 @@
 	  <item> Fixed a problem with identifying correct interface
 		 for proxy-arp when alias addresses are used.
 	  </item>
+	  <item> Fixed memory leaks and crashes when more than 256 PPTP
+		 bundles are in use.
+	  </item>
 	</itemize>
 	</item>
 	<item> Performance improvements:
