@@ -118,7 +118,7 @@
   /* Control channel state */
   struct pptpctrl {
     u_char		state;		/* state */
-    u_char		id;		/* channel index */
+    u_int32_t		id;		/* channel index */
     u_char		orig:1;		/* we originated connection */
     u_char		killing:1;	/* connection is being killed */
     union {
