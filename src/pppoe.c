@@ -40,6 +40,8 @@
 
 #define ETHER_DEFAULT_HOOK	NG_ETHER_HOOK_ORPHAN
 
+#define PPPOE_MAXPARENTIFS	1024
+
 #define MAX_PATH		64	/* XXX should be NG_PATHLEN */
 #define MAX_SESSION		64	/* max length of PPPoE session name */
 
@@ -55,7 +57,7 @@ struct pppoeinfo {
 	struct optinfo	options;
 	Link		link;			/* our link */
 	struct pppTimer	connectTimer;		/* connection timeout timer */
-	struct PppoeIf  *PIf;			/* pointer on parrent ng_pppoe info */
+	struct PppoeIf  *PIf;			/* pointer on parent ng_pppoe info */
 };
 typedef struct pppoeinfo	*PppoeInfo;
 
@@ -168,7 +170,7 @@ struct PppoeIf {
     EventRef	dataEvent;		/* listen for data messages */
 };
 int PppoeIfCount=0;
-struct PppoeIf PppoeIfs[64];
+struct PppoeIf PppoeIfs[PPPOE_MAXPARENTIFS];
 
 int PppoeListenUpdateSheduled=0;
 struct pppTimer PppoeListenUpdateTimer;
@@ -978,6 +980,11 @@ PppoeNodeUpdate(PhysInfo p)
 	    break;
     }
     if (j == -1) {
+	if (PppoeIfCount>=PPPOE_MAXPARENTIFS) {
+		Log(LG_ERR, ("[%s] PPPoE: Too many different parent interfaces! ", 
+		    pe->link->name));
+		return;
+	}
 	if (CreatePppoeNode(pe->path, pe->hook, &PppoeIfs[PppoeIfCount])) {
 		snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
 		    sizeof(PppoeIfs[PppoeIfCount].ifnodepath),
@@ -1044,6 +1051,11 @@ PppoeListenUpdate(void *arg)
 				j = i;
 
 		if (j == -1) {
+			if (PppoeIfCount>=PPPOE_MAXPARENTIFS) {
+			    Log(LG_ERR, ("[%s] PPPoE: Too many different parent interfaces! ", 
+				p->link->name));
+			    continue;
+			}
 			if (ListenPppoeNode(p->path, p->hook,
 			    &(PppoeIfs[PppoeIfCount]), p->session, 1)) {
 				snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
