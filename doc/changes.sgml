@@ -70,6 +70,9 @@
 	  <item> Fixed memory leaks and crashes when more than 256 PPTP
 		 bundles are in use.
 	  </item>
+	  <item> Fixed crash in PPPoE when more than 64 parent Ethernet
+		 interfaces used.
+	  </item>
 	</itemize>
 	</item>
 	<item> Performance improvements:
