@@ -961,11 +961,10 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
 static void
 PppoeNodeUpdate(PhysInfo p)
 {
-    int i, j = -1;
-    PppoeInfo pe = (PppoeInfo)p->info;
+  int i, j = -1;
+  PppoeInfo pe = (PppoeInfo)p->info;
 
-    if (pe->PIf)
-	return;
+  if (!pe->PIf) { // Do this only once for interface
 
     if (!(strcmp(pe->path, "undefined:")
         &&strcmp(pe->session, "undefined:"))) {
@@ -1003,14 +1002,16 @@ PppoeNodeUpdate(PhysInfo p)
     } else {
         pe->PIf=&PppoeIfs[j];
     }
-    if (Enabled(&pe->options, PPPOE_CONF_INCOMING) &&
+  }
+  
+  if (Enabled(&pe->options, PPPOE_CONF_INCOMING) &&
         (!PppoeListenUpdateSheduled)) {
     	    /* Set a timer to run PppoeListenUpdate(). */
 	    TimerInit(&PppoeListenUpdateTimer, "PppoeListenUpdate",
 		0, PppoeListenUpdate, NULL);
 	    TimerStart(&PppoeListenUpdateTimer);
 	    PppoeListenUpdateSheduled = 1;
-    }
+  }
 }
 
 /*
@@ -1120,7 +1121,6 @@ PppoeSetCommand(int ac, char *av[], void *arg)
           break;
         case SET_DISABLE:
           DisableCommand(ac, av, &pe->options, gConfList);
-          PppoeNodeUpdate(lnk->phys);
           break;
 	default:
 		assert(0);
