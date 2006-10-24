@@ -17,7 +17,7 @@
  * DEFINITIONS
  */
 
-  #define MAX_FILENAME		50
+  #define MAX_FILENAME		1000
   #define MAX_LINE_ARGS		50
   #define BIG_LINE_SIZE		1000
   #define MAX_OPEN_DELAY	2
