@@ -38,8 +38,6 @@
 
   static const char		*UsageStr = "[options] [system]";
   static struct option		OptList[] = {
-    { 1, 'a',	"console-address",	"IP-address",
-				"Set console bind IP-address"	},
     { 0, 'b',	"background",	"",
 				"Run as a background daemon"	},
     { 1, 'd',	"directory",	"config-dir",
