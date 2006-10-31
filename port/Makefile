@@ -20,7 +20,7 @@ port:
 		cp DESCR ${DESCR}
 		cp mpd4.mtree ${MTREE}
 		cp mpd4.sh ${RCSCRIPT}
-		( cd .. && stat -f "SIZE(mpd4/mpd4-${VERSION}.tar.gz) = %z" \
+		( cd .. && stat -f "SIZE (mpd4/mpd4-${VERSION}.tar.gz) = %z" \
 		  mpd4-${VERSION}.tar.gz ) > ${DISTINFO}
 		( cd .. && md5 mpd4-${VERSION}.tar.gz ) \
 		  | sed 's,mpd4-,mpd4/mpd4-,g' >> ${DISTINFO}
