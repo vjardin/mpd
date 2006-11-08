@@ -65,7 +65,7 @@ MpStat(int ac, char *av[], void *arg)
 void
 MpSetDiscrim(void)
 {
-  u_long		magic[2];
+  u_int32_t		magic[2];
   struct u_addr		ipaddr;
   struct sockaddr_dl	hwa;
 

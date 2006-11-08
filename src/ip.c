@@ -42,7 +42,7 @@ IpShowRoutes(int ac, char *av[], void *arg)
 int
 IpAddrInRange(struct u_range *range, struct u_addr *addr)
 {
-  u_long mask;
+  u_int32_t mask;
   u_int8_t bmask;
   int	i;
 

@@ -202,8 +202,8 @@ CreateInterfaceID(u_char *intid, int r)
     }
 
     srandomdev();
-    ((u_long*)intid)[0]=(((u_long)random()) % 0xFFFFFFFF) + 1;
-    ((u_long*)intid)[1]=(((u_long)random()) % 0xFFFFFFFF) + 1;
+    ((u_int32_t*)intid)[0]=(((u_int32_t)random()) % 0xFFFFFFFF) + 1;
+    ((u_int32_t*)intid)[1]=(((u_int32_t)random()) % 0xFFFFFFFF) + 1;
     intid[0] &= 0xfd;
 
 }
@@ -446,12 +446,12 @@ Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  Log(LG_IPV6CP2, (" %s %04x:%04x:%04x:%04x", oi->name, ntohs(((u_short*)opt->data)[0]), ntohs(((u_short*)opt->data)[1]), ntohs(((u_short*)opt->data)[2]), ntohs(((u_short*)opt->data)[3])));
 	  switch (mode) {
 	    case MODE_REQ:
-	      if ((((u_long*)opt->data)[0]==0) && (((u_long*)opt->data)[1]==0)) {
+	      if ((((u_int32_t*)opt->data)[0]==0) && (((u_int32_t*)opt->data)[1]==0)) {
 		Log(LG_IPV6CP2, ("   Empty INTIDENT, propose our."));
 		CreateInterfaceID(ipv6cp->hisintid, 1);
 	        memcpy(opt->data, ipv6cp->hisintid, 8);
 	        FsmNak(fp, opt);
-	      } else if ((((u_long*)opt->data)[0]==((u_long*)ipv6cp->myintid)[0]) && (((u_long*)opt->data)[1]==((u_long*)ipv6cp->myintid)[1])) {
+	      } else if ((((u_int32_t*)opt->data)[0]==((u_int32_t*)ipv6cp->myintid)[0]) && (((u_int32_t*)opt->data)[1]==((u_int32_t*)ipv6cp->myintid)[1])) {
 		Log(LG_IPV6CP2, ("   Duplicate INTIDENT, generate and propose other."));
 		CreateInterfaceID(ipv6cp->hisintid, 1);
 	        memcpy(opt->data, ipv6cp->hisintid, 8);

@@ -1270,7 +1270,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 {
   int			s;
   struct ifreq		*ifr, *ifend, *ifp;
-  u_long		ina, mask;
+  u_int32_t		ina, mask;
   struct ifreq		ifreq;
   struct ifconf		ifc;
   struct ifreq		ifs[MAX_INTERFACES];

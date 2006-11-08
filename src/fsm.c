@@ -1440,19 +1440,19 @@ u_char *
 FsmConfValue(u_char *cp, int type, int len, const void *data)
 {
   u_char	*bytes = (u_char *) data;
-  u_short	sv;
-  u_long	lv;
+  u_int16_t	sv;
+  u_int32_t	lv;
 
   /* Special cases */
   switch (len) {
     case -2:
       len = 2;
-      sv = htons(*((u_short *) data));
+      sv = htons(*((u_int16_t *) data));
       bytes = (u_char *) &sv;
       break;
     case -4:
       len = 4;
-      lv = htonl(*((u_long *) data));
+      lv = htonl(*((u_int32_t *) data));
       bytes = (u_char *) &lv;
       break;
     default:
