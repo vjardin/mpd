@@ -285,10 +285,13 @@ void
 vLogPrintf(const char *fmt, va_list args)
 {
   char		buf[MAX_CONSOLE_BUF_LEN];
+  va_list       args2;
 
   LogTimeStamp(logprintf);
+  va_copy(args2,args);
   valog(LOG_INFO, fmt, args);
-  vsnprintf(buf, sizeof(buf), fmt, args);
+  vsnprintf(buf, sizeof(buf), fmt, args2);
+  va_end(args2);
 
   if (!gBackground)
   {
