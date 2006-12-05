@@ -10,9 +10,6 @@
 
 #include <sys/types.h>
 #include <netinet/ip.h>
-#include "phys.h"
-#include "fsm.h"
-#include "timer.h"
 
 /*
  * DEFINITONS
@@ -20,12 +17,6 @@
  
    /* Configuration options */
 /*  enum {
-    IPV6CP_CONF_VJCOMP,
-    IPV6CP_CONF_REQPRIDNS,
-    IPV6CP_CONF_REQSECDNS,
-    IPV6CP_CONF_REQPRINBNS,
-    IPV6CP_CONF_REQSECNBNS,
-    IPV6CP_CONF_PRETENDIP,
   };*/
 
   struct ipv6cpconf {

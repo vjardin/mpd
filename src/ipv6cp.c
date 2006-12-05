@@ -38,15 +38,6 @@
   #define TY_INTIDENT		1
   #define TY_COMPPROTO		2
 
-  #define TY_IPADDRS		1
-  #define TY_COMPPROTO		2
-  #define TY_IPADDR		3
-  #define TY_PRIMARYDNS		129
-  #define TY_PRIMARYNBNS	130
-  #define TY_SECONDARYDNS	131
-  #define TY_SECONDARYNBNS	132
-
-
   #define IPV6CP_REJECTED(p,x)	((p)->peer_reject & (1<<(x)))
   #define IPV6CP_PEER_REJ(p,x)	do{(p)->peer_reject |= (1<<(x));}while(0)
 
@@ -56,10 +47,7 @@
 
   /* Set menu options */
   enum {
-    SET_RANGES,
     SET_ENABLE,
-    SET_DNS,
-    SET_NBNS,
     SET_DISABLE,
     SET_ACCEPT,
     SET_DENY,
@@ -90,14 +78,8 @@
  */
 
   const struct cmdtab Ipv6cpSetCmds[] = {
-/*    { "ranges self/width peer/width",	"Allowed IP address ranges",
-	Ipv6cpSetCommand, NULL, (void *) SET_RANGES },*/
     { "enable [opt ...]",		"Enable option",
 	Ipv6cpSetCommand, NULL, (void *) SET_ENABLE},
-/*    { "dns primary [secondary]",	"Set peer DNS servers",
-	Ipv6cpSetCommand, NULL, (void *) SET_DNS},
-    { "nbns primary [secondary]",	"Set peer NBNS servers",
-	Ipv6cpSetCommand, NULL, (void *) SET_NBNS}, */
     { "disable [opt ...]",		"Disable option",
 	Ipv6cpSetCommand, NULL, (void *) SET_DISABLE},
     { "accept [opt ...]",		"Accept option",
@@ -122,12 +104,7 @@
   };
 
   static const struct confinfo gConfList[] = {
-/*    { 1,	IPV6CP_CONF_VJCOMP,	"vjcomp"	},
-    { 0,	IPV6CP_CONF_REQPRIDNS,	"req-pri-dns"	},
-    { 0,	IPV6CP_CONF_REQSECDNS,	"req-sec-dns"	},
-    { 0,	IPV6CP_CONF_REQPRINBNS,	"req-pri-nbns"	},
-    { 0,	IPV6CP_CONF_REQSECNBNS,	"req-sec-nbns"	},
-    { 0,	IPV6CP_CONF_PRETENDIP,	"pretend-ip"	},*/
+/*    { 1,	IPV6CP_CONF_VJCOMP,	"vjcomp"	},*/
     { 0,	0,			NULL		},
   };
 
