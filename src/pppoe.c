@@ -424,7 +424,7 @@ PppoeCtrlReadEvent(int type, void *arg)
 		
 		pe = (PppoeInfo)lnk->phys->info;
 		if (pe->state == PPPOE_DOWN) {
-		    if (pe->state != NGM_PPPOE_CLOSE) 
+		    if (u.resp.header.cmd != NGM_PPPOE_CLOSE) 
 			Log(LG_PHYS, ("[%s] PPPoE: message %d in DOWN state",
 			    lnk->name, u.resp.header.cmd));
 		    return;
