@@ -222,8 +222,6 @@ PhysMsg(int type, void *arg)
 
 	  if ((random() ^ gPid ^ time(NULL)) & 1)
 		delay++;
-	  else if (delay > 1)
-		delay--;
 	  Log(LG_PHYS, ("[%s] pausing %d seconds before open",
 	    lnk->name, delay));
 	  TimerStop(&p->openTimer);
