@@ -250,8 +250,7 @@ CloseIfaces(void)
   /* Shut down all interfaces we grabbed */
   for (k = 0; k < gNumBundles; k++) {
     if ((bund = gBundles[k]) != NULL) {
-      IpcpDown();			/* XXX */
-      Ipv6cpDown();			/* XXX */
+      BundNcpsClose();
       IfaceClose();
     }
   }

@@ -73,10 +73,8 @@
   static int	BundSetCommand(int ac, char *av[], void *arg);
   static void	BundShowLinks(Bund sb);
 
-  static void	BundNcpsOpen(void);
   static void	BundNcpsUp(void);
   static void	BundNcpsDown(void);
-  static void	BundNcpsClose(void);
 
   static void	BundReOpenLinks(void *arg);
   static void	BundCloseLink(Link l);
@@ -313,10 +311,9 @@ BundLeave(void)
   
     /* Reset statistics and auth information */
     BundBmStop();
-    
-    BundNcpsDown();
 
     BundNcpsClose();
+    BundNcpsDown();
 
     authparamsDestroy(&bund->params);
     memset(&bund->ccp.mppc, 0, sizeof(bund->ccp.mppc));
@@ -471,7 +468,7 @@ BundCloseLink(Link l)
  * BundNcpsOpen()
  */
 
-static void
+void
 BundNcpsOpen(void)
 {
   if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
@@ -648,7 +645,7 @@ BundNcpsDown(void)
  * BundNcpsClose()
  */
 
-static void
+void
 BundNcpsClose(void)
 {
   if (Enabled(&bund->conf.options, BUND_CONF_IPCP))

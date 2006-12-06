@@ -197,5 +197,8 @@
   extern void	BundCloseLinks(void);
   extern void	BundOpenLink(Link);
 
+  extern void	BundNcpsOpen(void);
+  extern void	BundNcpsClose(void);
+
 #endif
 
