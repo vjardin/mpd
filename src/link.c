@@ -15,6 +15,8 @@
 #include "command.h"
 #include "input.h"
 #include "ngfunc.h"
+#include "msgdef.h"
+#include "util.h"
 
 /*
  * DEFINITIONS
@@ -175,26 +177,27 @@ LinkMsg(int type, void *arg)
       LcpUp();
       break;
     case MSG_DOWN:
-      LcpDown();
       /* reset Link-stats */
       LinkResetStats();
       if (OPEN_STATE(lnk->lcp.fsm.state)) {
-	if (lnk->conf.max_redial == -1) {
+	if ((lnk->conf.max_redial != 0) && (lnk->num_redial >= lnk->conf.max_redial)) {
+	  if (lnk->conf.max_redial >= 0)
+	    Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
+		lnk->name, lnk->num_redial));
 	  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
 	  LcpClose();
-	  BundLinkGaveUp();
-	} else if (!lnk->conf.max_redial
-	    || lnk->num_redial < lnk->conf.max_redial) {
-	  lnk->num_redial++;
-	  RecordLinkUpDownReason(lnk, 1, STR_REDIAL, NULL);
-	  PhysOpen();					/* Try again */
+          LcpDown();
+	  BundLinkGaveUp();	/* now doing nothing */
 	} else {
-	  Log(LG_LINK, ("[%s] giving up after %d connection attempts",
+	  lnk->num_redial++;
+	  Log(LG_LINK, ("[%s] link: reconnection attempt %d",
 	    lnk->name, lnk->num_redial));
-	  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
-	  LcpClose();
-	  BundLinkGaveUp();
+	  RecordLinkUpDownReason(lnk, 1, STR_REDIAL, NULL);
+    	  LcpDown();
+	  PhysOpen();					/* Try again */
 	}
+      } else {
+        LcpDown();
       }
       break;
   }
