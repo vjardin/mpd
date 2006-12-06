@@ -343,8 +343,6 @@ PptpDoClose(PptpInfo pptp)
     PptpKillNode(pptp);
     pptp->state = PPTP_STATE_DOWN;
   }
-  if (!Enabled(&pptp->options, PPTP_CONF_ORIGINATE))	/* XXX necessary ? */
-    IfaceClose();
 }
 
 /*
@@ -473,8 +471,6 @@ PptpResult(void *cookie, const char *errmsg)
       pptp->state = PPTP_STATE_DOWN;
       u_addrclear(&pptp->peer_addr);
       pptp->peer_port = 0;
-      if (!Enabled(&pptp->options, PPTP_CONF_ORIGINATE))
-	IfaceClose();
       break;
     case PPTP_STATE_DOWN:
       return;
