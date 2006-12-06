@@ -40,6 +40,8 @@
     SET_NO,
   };
 
+  #define RBUF_SIZE		100
+
 /*
  * INTERNAL FUNCTIONS
  */
@@ -237,6 +239,10 @@ LinkNew(char *name)
   lnk->conf.retry_timeout = LINK_DEFAULT_RETRY;
   lnk->bandwidth = LINK_DEFAULT_BANDWIDTH;
   lnk->latency = LINK_DEFAULT_LATENCY;
+  lnk->upReason = NULL;
+  lnk->upReasonValid = 0;
+  lnk->downReason = NULL;
+  lnk->downReasonValid = 0;
 
   Disable(&lnk->conf.options, LINK_CONF_CHAPMD5);
   Accept(&lnk->conf.options, LINK_CONF_CHAPMD5);
@@ -335,6 +341,72 @@ LinkCommand(int ac, char *av[], void *arg)
 }
 
 /*
+ * RecordLinkUpDownReason()
+ *
+ * This is called whenever a reason for the link going up or
+ * down has just become known. Record this reason so that when
+ * the link actually goes up or down, we can record it.
+ *
+ * If this gets called more than once in the "down" case,
+ * the first call prevails.
+ */
+static void
+RecordLinkUpDownReason2(Link l, int up, const char *key, const char *fmt, va_list args)
+{
+  char	**const cpp = up ? &l->upReason : &l->downReason;
+  char	*buf;
+
+  /* First reason overrides later ones */
+  if (up) {
+    if (l->upReasonValid) {
+	return;
+    } else {
+	l->upReasonValid = 1;
+    }
+  } else {
+    if (l->downReasonValid) {
+	return;
+    } else {
+	l->downReasonValid = 1;
+    }
+  }
+
+  /* Allocate buffer if necessary */
+  if (!*cpp)
+    *cpp = Malloc(MB_UTIL, RBUF_SIZE);
+  buf = *cpp;
+
+  /* Record reason */
+  snprintf(buf, RBUF_SIZE, "%s:", lcats(key));
+  if (fmt)
+    vsnprintf(buf + strlen(buf), RBUF_SIZE - strlen(buf), fmt, args);
+}
+
+void
+RecordLinkUpDownReason(Link l, int up, const char *key, const char *fmt, ...)
+{
+  va_list	args;
+  int		k;
+
+  if (!bund)
+    return;
+
+  if (l == NULL) {
+    for (k = 0; k < bund->n_links; k++) {
+      if (bund && bund->links[k]) {
+	va_start(args, fmt);
+	RecordLinkUpDownReason2(bund->links[k], up, key, fmt, args);
+	va_end(args);
+      }
+    }
+  } else {
+    va_start(args, fmt);
+    RecordLinkUpDownReason2(l, up, key, fmt, args);
+    va_end(args);
+  }
+}
+
+/*
  * LinkStat()
  */
 
@@ -361,6 +433,14 @@ LinkStat(int ac, char *av[], void *arg)
   Printf("Link level options\r\n");
   OptStat(&lnk->conf.options, gConfList);
   LinkUpdateStats();
+  Printf("Up/Down stats:\r\n");
+  if (lnk->downReason && (!lnk->downReasonValid))
+    Printf("\tDown Reason    : %s\r\n", lnk->downReason);
+  if (lnk->upReason)
+    Printf("\tUp Reason      : %s\r\n", lnk->upReason);
+  if (lnk->downReason && lnk->downReasonValid)
+    Printf("\tDown Reason    : %s\r\n", lnk->downReason);
+  
   Printf("Traffic stats:\r\n");
 
   Printf("\tOctets input   : %llu\r\n", lnk->stats.recvOctets);
@@ -375,9 +455,6 @@ LinkStat(int ac, char *av[], void *arg)
 #if NGM_PPP_COOKIE >= 940897794
   Printf("\tDrop fragments : %llu\r\n", lnk->stats.dropFragments);
 #endif
-
-  Printf("Device specific info:\r\n");
-  PhysStat(0, NULL, NULL);
   return(0);
 }
 

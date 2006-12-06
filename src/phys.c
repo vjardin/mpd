@@ -77,7 +77,6 @@ PhysInit(void)
   PhysInfo	p;
 
   p = Malloc(MB_PHYS, sizeof(*p));
-  p->state = PHYS_DOWN;
   p->msgs = MsgRegister(PhysMsg, 0);
   return(p);
 }
@@ -207,14 +206,15 @@ PhysMsg(int type, void *arg)
   PhysInfo	const p = lnk->phys;
   time_t	const now = time(NULL);
 
-  Log(LG_PHYS2, ("[%s] device: %s event in state %s",
-    lnk->name, MsgName(type), PhysState(p)));
+  Log(LG_PHYS2, ("[%s] device: %s event",
+    lnk->name, MsgName(type)));
   if (!p->type) {
     Log(LG_ERR, ("[%s] this link has no type set", lnk->name));
-    goto done;
+    return;
   }
   switch (type) {
     case MSG_OPEN:
+      lnk->downReasonValid=0;
       p->want_open = TRUE;
       if (now - p->lastClose < p->type->minReopenDelay) {
 	if (TimerRemain(&p->openTimer) < 0) {
@@ -231,96 +231,35 @@ PhysMsg(int type, void *arg)
 	}
 	break;
       }
-      switch (p->state) {
-	case PHYS_DOWN:
-	  if (TimerRemain(&p->openTimer) >= 0)
-	    goto done;
-	  (*p->type->open)(p);
-	  p->state = PHYS_OPENING;
-	  break;
-	case PHYS_CLOSING:
-	case PHYS_OPENING:
-	case PHYS_UP:
-	  break;
-      }
+      TimerStop(&p->openTimer);
+      (*p->type->open)(p);
       break;
     case MSG_CLOSE:
       p->want_open = FALSE;
       TimerStop(&p->openTimer);
-      switch (p->state) {
-	case PHYS_DOWN:
-	case PHYS_CLOSING:
-	  break;
-	case PHYS_OPENING:
-	case PHYS_UP:
-	  (*p->type->close)(p);
-	  p->state = PHYS_CLOSING;
-	  break;
-      }
+      (*p->type->close)(p);
       break;
     case MSG_DOWN:
       {
 	struct downmsg	*const dm = (struct downmsg *) arg;
 
+        lnk->upReasonValid=0;
 	p->lastClose = now;
-	switch (p->state) {
-	  case PHYS_CLOSING:
-	    RecordLinkUpDown(-1);
-	    /* fall through */
-	  case PHYS_DOWN:
-	    if (p->want_open)
-	      PhysOpen();
-	    break;
-	  case PHYS_OPENING:
-	    if (*dm->buf) {
-	      SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_COPY, dm->buf);
-	      RecordLinkUpDownReason(lnk, 0, dm->reason, dm->buf);
-	    } else {
-	      SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_CON_FAILED0);
-	      RecordLinkUpDownReason(lnk, 0, dm->reason, NULL);
-	    }
-	    RecordLinkUpDown(0);
-#if 0
-	    SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_COPY, dm->buf);
-#endif
-	    RecordLinkUpDownReason(lnk, 1, STR_REDIAL, NULL);
-	    break;
-	  case PHYS_UP:
-	    if (dm->reason)
-	      RecordLinkUpDownReason(lnk, 0, dm->reason, dm->buf);
-	    RecordLinkUpDown(-1);
-	    SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_COPY, dm->buf);
-	    RecordLinkUpDownReason(lnk, 1, STR_REDIAL, NULL);
-	    break;
+	if (*dm->buf) {
+	  SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_COPY, dm->buf);
+	  RecordLinkUpDownReason(lnk, 0, dm->reason, dm->buf);
+	} else {
+	  SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_CON_FAILED0);
+	  RecordLinkUpDownReason(lnk, 0, dm->reason, NULL);
 	}
-	p->state = PHYS_DOWN;
-	LinkDown(lnk);
 	Freee(MB_UTIL, dm);
+	LinkDown(lnk);
       }
       break;
     case MSG_UP:
-      switch (p->state)
-      {
-	case PHYS_DOWN:
-	case PHYS_CLOSING:
-	  Log(LG_ERR, ("[%s] weird event in this state", lnk->name));
-	  break;
-	case PHYS_OPENING:
-/*
-	  Log(LG_PHYS, ("[%s] connection successful", lnk->name));
-*/
-	  RecordLinkUpDown(1);
-	  LinkUp(lnk);
-	  break;
-	case PHYS_UP:
-	  break;
-      }
-      p->state = PHYS_UP;
+      LinkUp(lnk);
       break;
   }
-done:
-  Log(LG_PHYS2, ("[%s] device is now in state %s",
-    lnk->name, PhysState(p)));
 }
 
 /*
@@ -347,24 +286,7 @@ PhysStat(int ac, char *av[], void *arg)
   PhysInfo	const p = lnk->phys;
 
   Printf("\tType  : %s\r\n", p->type->name);
-  Printf("\tState : %s\r\n", PhysState(p));
   if (p->type->showstat)
     (*p->type->showstat)(p);
-}
-
-/*
- * PhysState()
- */
-
-const char *
-PhysState(PhysInfo p)
-{
-  switch (p->state) {
-    case PHYS_DOWN:	return("DOWN");
-    case PHYS_CLOSING:	return("CLOSING");
-    case PHYS_OPENING:	return("OPENING");
-    case PHYS_UP:	return("UP");
-  }
-  return("???");
 }
 

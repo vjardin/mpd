@@ -136,9 +136,6 @@
 
   /* Custom stuff */
   extern void		SetStatus(int code, const char *fmt, ...);
-  extern void		RecordLinkUpDown(int up);
-  extern void		RecordLinkUpDownReason(Link l, int up, const char *fmt,
-			  const char *arg, ...);
 
 #endif
 

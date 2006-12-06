@@ -280,15 +280,6 @@ DoExit(int code)
     if ((bund = gBundles[k]) != NULL) {
       for (j = 0; j < bund->n_links; j++) {
 	if ((lnk = bund->links[j]) != NULL) {
-	  switch (lnk->phys->state) {
-	    case PHYS_OPENING:
-	      RecordLinkUpDown(0);
-	      break;
-	    case PHYS_UP:
-	    case PHYS_CLOSING:
-	      RecordLinkUpDown(-1);
-	      break;
-	  }
 	  SetStatus(ADLG_WAN_DISABLED, STR_PPP_DISABLED);
 	}
       }

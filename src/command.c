@@ -111,6 +111,8 @@
 	IpShowRoutes, NULL, NULL },
     { "layers",				"Layers to open/close",
 	ShowLayers, NULL, NULL },
+    { "phys",				"Physical device status",
+	PhysStat, AdmitBund, NULL },
     { "link",				"Link status",
 	LinkStat, AdmitBund, NULL },
     { "auth",				"Auth status",

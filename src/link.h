@@ -136,7 +136,9 @@
     u_char		originate:2;	/* Who originated the connection */
     u_char		lastStatus;	/* Last status code */
     char		*upReason;	/* Reason for link going up */
+    u_char		upReasonValid:1;
     char		*downReason;	/* Reason for link going down */
+    u_char		downReasonValid:1;
     int			bandwidth;	/* Bandwidth in bits per second */
     int			latency;	/* Latency in microseconds */
 
@@ -168,6 +170,8 @@
   extern void	LinkUpdateStatsTimer(void *cookie);
   extern void	LinkResetStats(void);
   extern int	LinkCommand(int ac, char *av[], void *arg);
+  extern void	RecordLinkUpDownReason(Link l, int up, const char *fmt,
+			  const char *arg, ...);
 
 #endif
 

@@ -750,7 +750,6 @@ PppoeListenEvent(int type, void *arg)
 		p = (PppoeInfo)ph->info;
 
 		if ((PIf!=p->PIf) ||
-		    (ph->state != PHYS_DOWN) ||
 		    (p->state != PPPOE_DOWN) ||
 		    (now-ph->lastClose < PPPOE_REOPEN_PAUSE) ||
 		    !Enabled(&p->options, PPPOE_CONF_INCOMING))

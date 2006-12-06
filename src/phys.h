@@ -38,16 +38,9 @@
   };
   typedef struct phystype	*PhysType;
 
-  /* Descriptor for a specific instance of some type */
-  #define PHYS_DOWN		0
-  #define PHYS_CLOSING		1
-  #define PHYS_OPENING		2
-  #define PHYS_UP		3
-
   struct physinfo {
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
-    u_char		state;			/* Up or down? */
     u_char		want_open;		/* What upper layer wants */
     time_t		lastClose;		/* Time of last close */
     MsgHandler		msgs;			/* Message channel */
@@ -74,7 +67,6 @@
   extern void		PhysSetDeviceType(char *typename);
   extern int		PhysGetOriginate(void);
   extern void		PhysStat(int ac, char *av[], void *arg);
-  extern const char	*PhysState(PhysInfo p);
 
 #endif
 
