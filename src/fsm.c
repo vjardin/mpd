@@ -494,11 +494,11 @@ FsmTimeout(void *arg)
       case ST_REQSENT:
       case ST_ACKSENT:
       case ST_ACKRCVD:
-	if (fp->type->UnConfigure)
+/*	if (fp->type->UnConfigure)   // Duplicate code
 	  (*fp->type->UnConfigure)(fp);
 	FsmNewState(fp, ST_STOPPED);
 	if (!fp->conf.passive)
-	  FsmLayerFinish(fp);
+	  FsmLayerFinish(fp);*/
 	FsmFailure(fp, FAIL_NEGOT_FAILURE);
 	break;
     }
@@ -1010,9 +1010,15 @@ FsmFailure(Fsm fp, enum fsmfail reason)
     case ST_OPENED:
       if (fp->type->UnConfigure)
 	(*fp->type->UnConfigure)(fp);
-      FsmLayerFinish(fp);
-      FsmLayerStart(fp);
-      FsmNewState(fp, ST_STARTING);	/* Pretend we got a DOWN event */
+// this code misses RFC recomendations
+//      FsmLayerFinish(fp);
+//      FsmLayerStart(fp);
+//      FsmNewState(fp, ST_STARTING);	/* Pretend we got a DOWN event */
+//      FsmLayerDown(fp);
+// doing like told in RFC
+      FsmNewState(fp, ST_STOPPING);
+      FsmInitRestartCounter(fp, fp->conf.maxterminate);
+      FsmSendTerminateReq(fp);
       FsmLayerDown(fp);
       break;
 
