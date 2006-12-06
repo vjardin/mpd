@@ -57,6 +57,9 @@ values for <tt><em>item</em></tt> are:
 Show status information about the currently active bundle.
 <tag>link</tag>
 Show status information about the currently active link.
+<tag>phys</tag>
+Show status information about the physical device 
+associated with the currently active link.
 <tag>iface</tag>
 Show status information about the interface layer associated
 with the currently active bundle.

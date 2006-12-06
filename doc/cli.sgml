@@ -64,12 +64,16 @@ mpd: pid 1419, version 3.0b1 (root@jan.whistle.com 10:37  7-Jan-1999)
 [myisp:modem2] help show
 Commands available under "show":
  bundle   : Bundle status                ccp      : CCP status
+ ecp      : ECP status                   eap      : EAP status
  events   : Current events               ipcp     : IPCP status
- iface    : Interface status             routes   : IP routing table
- layers   : Layers to open/close         link     : Link status
+ ipv6cp   : IPV6CP status                iface    : Interface status
+ routes   : IP routing table             layers   : Layers to open/close
+ phys     : Physical device status       link     : Link status
+ auth     : Auth status                  radius   : RADIUS status
  lcp      : LCP status                   mem      : Memory map
- mp       : Multi-link status            proto    : Protocol summary
- types    : Supported device types       version  : Version string
+ mp       : Multi-link status            console  : Console status
+ globals  : Global settings              types    : Supported device types
+ version  : Version string
 [myisp:modem2]
 </verb></tscreen>
 
