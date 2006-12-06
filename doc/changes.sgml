@@ -23,6 +23,8 @@
 	  </item>
 	  <item> Fixed race condition in accepting PPPoE connections.
 	  </item>
+	  <item> Link up/down reason recording is now more accurate.
+	  </item>
 	</itemize>
     </itemize>
   </p>
