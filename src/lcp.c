@@ -515,7 +515,8 @@ LcpAuthResult(int success)
     SetStatus(ADLG_WAN_AUTHORIZATION_FAILURE, STR_PPP_AUTH_FAILURE);
     RecordLinkUpDownReason(lnk, 0, STR_LOGIN_FAIL,
       "%s", lcats(STR_PPP_AUTH_FAILURE2));
-    PhysClose();
+//    PhysClose();
+    FsmFailure(&lnk->lcp.fsm, FAIL_NEGOT_FAILURE);
   }
 }
 
