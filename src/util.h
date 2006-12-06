@@ -11,7 +11,6 @@
 #define _UTIL_H_
 
 #include "ip.h"
-#include "ipcp.h"
 
   /*-
    * The following macro is used to update an

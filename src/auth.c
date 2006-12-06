@@ -16,6 +16,7 @@
 #include "log.h"
 #include "ngfunc.h"
 #include "msoft.h"
+#include "util.h"
 
 #include <libutil.h>
 

@@ -8,6 +8,7 @@
  */
 
 #include "ppp.h"
+#include "util.h"
 #include <termios.h>
 
 #include <netdb.h>

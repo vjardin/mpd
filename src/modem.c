@@ -14,6 +14,10 @@
 #include "modem.h"
 #include "ngfunc.h"
 #include "lcp.h"
+#include "event.h"
+#include "util.h"
+#include "log.h"
+#include "msgdef.h"
 
 #ifdef __DragonFly__
 #include <netgraph/socket/ng_socket.h>

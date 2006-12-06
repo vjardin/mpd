@@ -8,6 +8,7 @@
  */
 
 #include "ppp.h"
+#include "log.h"
 
 void
 DoAssert(const char *file, int line, const char *failedexpr)

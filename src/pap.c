@@ -13,6 +13,7 @@
 
 #include "ppp.h"
 #include "auth.h"
+#include "util.h"
 
 /*
  * INTERNAL FUNCTIONS

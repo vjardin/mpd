@@ -10,6 +10,9 @@
 #include "ppp.h"
 #include "log.h"
 #include "pptp_ctrl.h"
+#include "util.h"
+
+#include <netinet/tcp.h>
 
 /*
  * DEFINITIONS

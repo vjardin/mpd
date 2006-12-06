@@ -13,6 +13,8 @@
 #include "udp.h"
 #include "ngfunc.h"
 #include "util.h"
+#include "log.h"
+#include "msgdef.h"
 
 #ifdef __DragonFly__
 #include <netgraph/socket/ng_socket.h>

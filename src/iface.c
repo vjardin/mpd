@@ -18,7 +18,9 @@
 #include "custom.h"
 #include "ngfunc.h"
 #include "netgraph.h"
+#include "msgdef.h"
 #include "util.h"
+
 #include <sys/sockio.h>
 #include <net/if.h>
 #include <net/if_types.h>
@@ -32,6 +34,9 @@
 #include <netgraph/ng_iface.h>
 #include <netgraph/ng_bpf.h>
 #endif
+#include <netinet/ip_icmp.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
 
 /*
  * DEFINITIONS

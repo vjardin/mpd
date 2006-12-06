@@ -16,6 +16,8 @@
 #include "command.h"
 #include "console.h"
 #include "ngfunc.h"
+#include "msgdef.h"
+#include "util.h"
 
 /*
  * DEFINITIONS

@@ -6,19 +6,17 @@
  */
 
 #include "ppp.h"
-#ifdef PHYSTYPE_PPTP
-#include "pptp.h"
-#endif
 #ifdef PHYSTYPE_PPPOE
 #include "pppoe.h"
 #endif
-#include "ngfunc.h"
 #ifdef PHYSTYPE_MODEM
 #include "modem.h"
 #endif
 #ifdef PHYSTYPE_NG_SOCKET
 #include "ng.h"
 #endif
+#include "msgdef.h"
+#include "util.h"
 
 #include <sys/types.h>
 

@@ -13,6 +13,8 @@
 #include "custom.h"
 #include "msg.h"
 #include "ngfunc.h"
+#include "msgdef.h"
+#include "util.h"
 
 #include <netgraph.h>
 #include <sys/mbuf.h>

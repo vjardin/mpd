@@ -7,8 +7,7 @@
 
 #include "ppp.h"
 #include "ip.h"
-#include "iface.h"
-#include "ipcp.h"
+#include "util.h"
 
 /*
  * IpShowRoutes()

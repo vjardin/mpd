@@ -14,6 +14,8 @@
 #include "ppp.h"
 #include "fsm.h"
 #include "ngfunc.h"
+#include "msgdef.h"
+#include "util.h"
 
 /*
  * DEFINITIONS

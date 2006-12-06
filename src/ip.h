@@ -8,19 +8,10 @@
 #ifndef _IP_H_
 #define _IP_H_
 
-#include <osreldate.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/ioctl.h>
-#include <net/route.h>
-#include <net/if.h>
-#include <net/if_var.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/udp.h>
-#include <netinet/tcp.h>
-#include "mbuf.h"
 
 /*
  * DEFINITIONS

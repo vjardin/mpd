@@ -26,6 +26,8 @@
 #include "netgraph.h"
 #include "custom.h"
 #include "ngfunc.h"
+#include "util.h"
+#include "msgdef.h"
 
 /*
  * DEFINITIONS

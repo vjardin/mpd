@@ -9,6 +9,7 @@
 
 #include "ppp.h"
 #include "console.h"
+#include "util.h"
 
 /*
  * DEFINITIONS

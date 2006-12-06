@@ -11,6 +11,7 @@
 #define	_TIMER_H_
 
 #include "defs.h"
+#include "event.h"
 
 /*
  * DEFINITIONS

@@ -9,6 +9,7 @@
 
 #include "ppp.h"
 #include "chat.h"
+#include "util.h"
 #include <regex.h>
 
 /*

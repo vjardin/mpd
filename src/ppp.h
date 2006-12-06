@@ -10,10 +10,6 @@
 #ifndef _PPP_H_
 #define _PPP_H_
 
-/* Increase this if you have zillions of bundles */
-
-#define FD_SETSIZE	8192
-
 /* Keep source files simple */
 
 #include <sys/types.h>
@@ -56,16 +52,8 @@
 
 
 #include "defs.h"
-#include "event.h"
-#include "msgdef.h"
-#include "vars.h"
 #include "bund.h"
 #include "link.h"
-#include "proto.h"
-#include "util.h"
-#include "log.h"
-#include "mbuf.h"
-#include "phys.h"
 
 /*
  * DEFINITIONS

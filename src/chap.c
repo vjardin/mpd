@@ -14,6 +14,7 @@
 #include "ppp.h"
 #include "auth.h"
 #include "msoft.h"
+#include "util.h"
 #include <openssl/md5.h>
 
 /*

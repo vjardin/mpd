@@ -15,6 +15,7 @@
 #include "comp.h"
 #include "console.h"
 #include "command.h"
+#include "log.h"
 
 #ifdef COMPRESSION_PRED1
 #include "ccp_pred1.h"

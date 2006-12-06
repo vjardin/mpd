@@ -9,6 +9,7 @@
 
 #include "ppp.h"
 #include "ecp.h"
+#include "log.h"
 
 /*
  * DEFINITIONS

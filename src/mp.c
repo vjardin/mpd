@@ -13,6 +13,7 @@
 #include "link.h"
 #include "fsm.h"
 #include "input.h"
+#include "util.h"
 
 /*
  * MpInit()

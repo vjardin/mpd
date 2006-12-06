@@ -17,6 +17,7 @@
 #include <netinet/in.h>
 #include "mbuf.h"
 #include "timer.h"
+#include <netgraph/ng_ppp.h>
 
 /*
  * DEFINITIONS

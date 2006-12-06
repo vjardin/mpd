@@ -21,6 +21,8 @@
 #endif
 #include "link.h"
 #include "msg.h"
+#include "msgdef.h"
+#include "util.h"
 
 /*
  * DEFINITIONS

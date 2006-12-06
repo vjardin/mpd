@@ -50,6 +50,9 @@
 #include <netgraph/netflow/ng_netflow.h>
 #endif
 
+#include <netinet/ip_icmp.h>
+#include <netinet/tcp.h>
+
 /*
  * DEFINITIONS
  */

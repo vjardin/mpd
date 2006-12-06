@@ -11,6 +11,8 @@
 #include "ng.h"
 #include "phys.h"
 #include "ngfunc.h"
+#include "log.h"
+#include "msgdef.h"
 
 #ifdef __DragonFly__
 #include <netgraph/socket/ng_socket.h>
