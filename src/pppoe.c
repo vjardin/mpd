@@ -10,6 +10,9 @@
 #include "ppp.h"
 #include "pppoe.h"
 #include "ngfunc.h"
+#include "log.h"
+#include "msgdef.h"
+#include "util.h"
 
 #include <net/ethernet.h>
 #ifdef __DragonFly__
@@ -326,6 +329,7 @@ PppoeClose(PhysInfo p)
 {
 	const PppoeInfo pe = (PppoeInfo)p->info;
 
+	pe->opened = 0;
 	if (pe->state == PPPOE_DOWN)
 		return;
 	PhysDown(0, NULL);
@@ -344,7 +348,6 @@ PppoeShutdown(PhysInfo p)
 	char path[NG_PATHLEN + 1];
 	char session_hook[NG_HOOKLEN + 1];
 
-	pe->opened = 0;
 	if (pe->state == PPPOE_DOWN)
 		return;
 
