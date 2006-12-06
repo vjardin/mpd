@@ -19,6 +19,9 @@
 #include "msg.h"
 #include "custom.h"
 #include "ngfunc.h"
+#include "log.h"
+#include "msgdef.h"
+#include "util.h"
 
 #ifdef __DragonFly__
 #include <netgraph/iface/ng_iface.h>
@@ -366,8 +369,6 @@ BundReOpenLinks(void *arg)
 void
 BundLinkGaveUp(void)
 {
-  /* Close this link */
-  BundCloseLink(lnk);
 
 }
 
@@ -464,7 +465,6 @@ BundCloseLink(Link l)
 {
   Log(LG_BUND, ("[%s] closing link \"%s\"...", l->bund->name, l->name));
   LinkClose(l);
-  l->bund->bm.last_close = time(NULL);
 }
 
 /*
@@ -1245,6 +1245,7 @@ BundBmTimeout(void *arg)
 	assert(k >= 0);
 	Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
 	  bund->name, bund->links[k]->name));
+	bund->bm.last_close = time(NULL);
 	BundCloseLink(bund->links[k]);
       }
     }
