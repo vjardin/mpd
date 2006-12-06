@@ -25,6 +25,8 @@
 	  </item>
 	  <item> Link up/down reason recording is now more accurate.
 	  </item>
+	  <item> Complete link shutdown procedure on auth failure.
+	  </item>
 	</itemize>
     </itemize>
   </p>
