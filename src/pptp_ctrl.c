@@ -1414,9 +1414,8 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     case PPTP_CHAN_ST_WAIT_CONNECT:
     case PPTP_CHAN_ST_ESTABLISHED:
     case PPTP_CHAN_ST_WAIT_CTRL:
-      (*ch->linfo.result)(ch->linfo.cookie, errmsg);
-      break;
     case PPTP_CHAN_ST_WAIT_DISCONNECT:
+      (*ch->linfo.result)(ch->linfo.cookie, errmsg);
       break;
     case PPTP_CHAN_ST_WAIT_ANSWER:
       (*ch->linfo.cancel)(ch->linfo.cookie);

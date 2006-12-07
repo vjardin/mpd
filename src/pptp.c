@@ -189,15 +189,17 @@ static int
 PptpInit(PhysInfo p)
 {
   PptpInfo	pptp;
-  int		k;
+//  int		k;
 
   /* Only one PPTP link is allowed in a bundle XXX but this should be allowed */
+/* XXX Why only one? Commented it out.
   for (k = 0; k < gNumLinks; k++) {
     if (gLinks[k] && gLinks[k] != lnk && gLinks[k]->bund == bund) {
       Log(LG_ERR, ("[%s] only one PPTP link allowed per bundle", lnk->name));
       return(-1);
     }
   }
+*/
 
   /* Initialize this link */
   pptp = (PptpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pptp)));
@@ -246,8 +248,7 @@ PptpOpen(PhysInfo p)
 	/* Hook up nodes */
 	Log(LG_PHYS, ("[%s] attaching to peer's outgoing call", lnk->name));
 	if (PptpHookUp(pptp) < 0) {
-	  PptpDoClose(pptp);
-	  PhysDown(STR_ERROR, NULL);
+	  PptpDoClose(pptp);	/* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
 	}
 
@@ -342,7 +343,6 @@ PptpDoClose(PptpInfo pptp)
   if (pptp->state != PPTP_STATE_DOWN) {		/* avoid double close */
     (*pptp->cinfo.close)(pptp->cinfo.cookie, PPTP_CDN_RESL_ADMIN, 0, 0);
     PptpKillNode(pptp);
-    pptp->state = PPTP_STATE_DOWN;
   }
 }
 
@@ -448,8 +448,7 @@ PptpResult(void *cookie, const char *errmsg)
 	/* Hook up nodes */
 	Log(LG_PHYS, ("[%s] PPTP call successful", lnk->name));
 	if (PptpHookUp(pptp) < 0) {
-	  PptpDoClose(pptp);
-	  PhysDown(STR_ERROR, NULL);
+	  PptpDoClose(pptp); /* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
 	}
 
