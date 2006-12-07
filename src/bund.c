@@ -966,7 +966,7 @@ BundStat(int ac, char *av[], void *arg)
   }
 
   Printf("Bundle %s:\r\n", sb->name);
-  Printf("\tLinks          : \r\n");
+  Printf("\tLinks          : ");
   BundShowLinks(sb);
   Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");
   Printf("\tSession-Id     : %s\r\n", sb->session_id);
