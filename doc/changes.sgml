@@ -27,6 +27,10 @@
 	  </item>
 	  <item> Complete link shutdown procedure on auth failure.
 	  </item>
+	  <item> Fixed several small PPTP level processing issues.
+	  </item>
+	  <item> Removed limitation about PPTP who must be in the bundle alone.
+	  </item>
 	</itemize>
     </itemize>
   </p>
