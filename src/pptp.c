@@ -318,7 +318,6 @@ PptpClose(PhysInfo p)
   PptpInfo	const pptp = (PptpInfo) p->info;
 
   PptpDoClose(pptp);
-  PhysDown(0, NULL);
 }
 
 /*
