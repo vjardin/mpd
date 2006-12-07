@@ -737,12 +737,6 @@ PptpCtrlListenEvent(int type, void *cookie)
   Log(LG_PPTP, ("mpd: PPTP connection from %s %u",
     u_addrtoa(&addr,buf,sizeof(buf)), port));
 
-  if (gShutdownInProgress) {
-    Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
-    close(sock);
-    return;
-  }
-
   /* Initialize a new control block */
   if ((c = PptpCtrlGetCtrl(FALSE, &any, &addr, port,
     ebuf, sizeof(ebuf))) == NULL) {

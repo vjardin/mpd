@@ -36,7 +36,7 @@
   #define PPTP_MRU		PPTP_MTU
 
   #define PPTP_MAX_ERRORS	10
-  #define PPTP_REOPEN_PAUSE	8
+  #define PPTP_REOPEN_PAUSE	5
 
   #define PPTP_STATE_DOWN	0
   #define PPTP_STATE_CONNECTING	1
@@ -626,9 +626,16 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   Link			l = NULL;
   PptpInfo		pptp = NULL;
   int			k;
+  time_t  		now = time(NULL);
+
+  memset(&linfo, 0, sizeof(linfo));
+
+  if (gShutdownInProgress) {
+    Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
+    return(linfo);
+  }
 
   /* Find a suitable link; prefer the link best matching peer's IP address */
-  memset(&linfo, 0, sizeof(linfo));
   for (k = 0; k < gNumLinks; k++) {
     Link	const l2 = gLinks[k];
     PptpInfo	pptp2;
@@ -637,6 +644,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
     if (l2 != NULL
 	&& l2->phys->type == &gPptpPhysType
 	&& (pptp2 = (PptpInfo) l2->phys->info)->state == PPTP_STATE_DOWN
+	&& (now - l2->phys->lastClose) >= PPTP_REOPEN_PAUSE
 	&& Enabled(&pptp2->options, PPTP_CONF_INCOMING)
 	&& IpAddrInRange(&pptp2->peer_addr_req, &peer)
 	&& (!pptp2->peer_port_req || pptp2->peer_port_req == port)) {
@@ -650,13 +658,18 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   }
 
   /* If no link is suitable, can't take the call */
-  if (l == NULL)
+  if (l == NULL) {
+    Log(LG_PHYS, ("No free PPTP link with requested parameters "
+	"was found"));
     return(linfo);
+  }
 
   /* Open link to pick up the call */
   lnk = l;
   pptp = pptp;
   bund = lnk->bund;
+
+  Log(LG_PHYS, ("[%s] Accepting PPTP connection", lnk->name));
   BundOpenLink(lnk);
 
   /* Got one */
