@@ -394,17 +394,24 @@ PptpStat(PhysInfo p)
   PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
   char		buf[32];
 
-  Printf("PPTP status:\r\n");
-  Printf("\tConnection   : %s\r\n", gPptpStateNames[pptp->state]);
-  Printf("\tPeer range   : %s/%d",
-    u_rangetoa(&pptp->peer_addr_req, buf, sizeof(buf)), pptp->peer_addr_req.width);
+  Printf("PPTP configuration:\r\n");
+  Printf("\tSelf addr    : %s",
+    u_addrtoa(&gLocalIp, buf, sizeof(buf)));
+  if (gLocalPort)
+    Printf(", port %u", gLocalPort);
+  Printf("\r\n");
+  Printf("\tPeer range   : %s",
+    u_rangetoa(&pptp->peer_addr_req, buf, sizeof(buf)));
   if (pptp->peer_port_req)
     Printf(", port %u", pptp->peer_port_req);
   Printf("\r\n");
-  Printf("\tCurrent peer : %s, port %u\r\n",
-    u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
+  Printf("\tPhone number : %s\r\n", pptp->phonenum);
   Printf("PPTP options:\r\n");
   OptStat(&pptp->options, gConfList);
+  Printf("PPTP status:\r\n");
+  Printf("\tState        : %s\r\n", gPptpStateNames[pptp->state]);
+  Printf("\tCurrent peer : %s, port %u\r\n",
+    u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
 }
 
 /*

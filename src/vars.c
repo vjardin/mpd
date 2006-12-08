@@ -35,10 +35,21 @@
 void
 OptStat(Options opt, ConfInfo list)
 {
-  int	k;
+  int	k,peered;
 
-  Printf("\tName\t\tSelf\t\tPeer\r\n");
-  Printf("\t----------------------------------------\r\n");
+  peered=0;
+  for (k = 0; list[k].name; k++)
+  {
+    if (list[k].peered) {
+	peered=1;
+	break;
+    }
+  }
+
+  if (peered) {
+    Printf("\t\t\tSelf\t\tPeer\r\n");
+//    Printf("\t\t\t--------------  --------\r\n");
+  }
   for (k = 0; list[k].name; k++)
   {
     ConfInfo	const c = &list[k];
