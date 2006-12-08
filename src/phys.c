@@ -122,6 +122,7 @@ PhysDown(const char *reason, const char *details, ...)
   struct downmsg	*dm = Malloc(MB_UTIL, sizeof(*dm));
   va_list		args;
 
+  lnk->phys->lastClose = time(NULL); /* dirty hack to avoid race condition */
   dm->reason = reason;
   if (details) {
     va_start(args, details);
