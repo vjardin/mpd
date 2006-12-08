@@ -171,8 +171,8 @@ ConsoleStat(int ac, char *av[], void *arg)
 
   Printf("Configuration:\r\n");
   Printf("\tState         : %s\r\n", c->fd ? "OPENED" : "CLOSED");
-  Printf("\tPort          : %d\r\n", c->port);
   Printf("\tIP-Address    : %s\r\n", u_addrtoa(&c->addr,addrstr,sizeof(addrstr)));
+  Printf("\tPort          : %d\r\n", c->port);
 
   Printf("Configured users:\r\n");
   ghash_walk_init(c->users, &walk);
@@ -182,12 +182,12 @@ ConsoleStat(int ac, char *av[], void *arg)
   Printf("Active sessions:\r\n");
   ghash_walk_init(c->sessions, &walk);
   while ((s = ghash_walk_next(c->sessions, &walk)) !=  NULL) {
-    Printf("\tUsername: %s\t\t\tfrom: %s\r\n",
+    Printf("\tUsername: %s\tFrom: %s\r\n",
 	s->user.username, u_addrtoa(&s->peer_addr,addrstr,sizeof(addrstr)));
   }
 
   if (cs) {
-    Printf("Session options:\r\n");
+    Printf("This session options:\r\n");
     OptStat(&cs->options, gConfList);
   }
   return 0;
