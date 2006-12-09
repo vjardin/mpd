@@ -58,6 +58,7 @@
   static int	ShowVersion(int ac, char *av[], void *arg);
   static int	ShowLayers(int ac, char *av[], void *arg);
   static int	ShowTypes(int ac, char *av[], void *arg);
+  static int	ShowSummary(int ac, char *av[], void *arg);
   static int	ShowEvents(int ac, char *av[], void *arg);
   static int	ShowGlobals(int ac, char *av[], void *arg);
   static int	OpenCommand(int ac, char *av[], void *arg);
@@ -135,6 +136,8 @@
 	ShowTypes, NULL, NULL },
     { "version",			"Version string",
 	ShowVersion, NULL, NULL },
+    { "summary",			"Daemon status summary",
+	ShowSummary, NULL, NULL },
     { NULL },
   };
 
@@ -661,6 +664,48 @@ ShowTypes(int ac, char *av[], void *arg)
   for (k = 0; (pt = gPhysTypes[k]); k++)
     Printf(" %s", pt->name);
   Printf("\r\n");
+  return(0);
+}
+
+/*
+ * ShowSummary()
+ */
+
+static int
+ShowSummary(int ac, char *av[], void *arg)
+{
+  int	b,l;
+  Bund	B;
+  Link  L;
+  char	buf[64];
+
+  Printf("Current daemon status summary\r\n");
+  Printf("Iface\tBund\tLink\tDevice\tIface\tLCP\tDevice\tUser\t\tFrom\r\n");
+  for (b = 0; b<gNumBundles; b++) {
+    B=gBundles[b];
+    if (B) {
+	Printf("%s\t%s\t", B->iface.ifname, B->name);
+	for (l = 0; l < B->n_links; l++) {
+	    if (l != 0) {
+		Printf("\t\t");
+	    }
+	    L=B->links[l];
+	    if (L) {
+		L->phys->type->peeraddr(L->phys->info, buf, sizeof(buf));
+		Printf("%s\t%s\t%s\t%s\t%s\t%8s\t%s", 
+		    L->name,
+		    L->phys->type->name,
+		    (B->iface.up?"Up":"Down"),
+		    FsmStateName(L->lcp.fsm.state),
+		    gPhysStateNames[L->phys->state],
+		    L->lcp.auth.params.authname,
+		    buf
+		    );
+		Printf("\r\n");
+	    }
+	}
+    }
+  }
   return(0);
 }
 
