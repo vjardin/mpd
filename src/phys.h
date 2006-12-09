@@ -17,6 +17,13 @@
  * DEFINITIONS
  */
 
+  enum {
+    PHYS_STATE_DOWN = 0,
+    PHYS_STATE_CONNECTING,
+    PHYS_STATE_READY,
+    PHYS_STATE_UP,
+  };
+
   /* Descriptor for a given type of physical layer */
   struct physinfo;
   typedef struct physinfo	*PhysInfo;
@@ -41,6 +48,7 @@
   struct physinfo {
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
+    u_char		state;			/* Device current state */
     u_char		want_open;		/* What upper layer wants */
     time_t		lastClose;		/* Time of last close */
     MsgHandler		msgs;			/* Message channel */
@@ -52,6 +60,7 @@
  */
 
   extern const PhysType	gPhysTypes[];
+  extern const char *gPhysStateNames[];
 
 /*
  * FUNCTIONS

@@ -51,7 +51,6 @@
     in_port_t		peer_port;	/* Configured peer port */
 
     /* State */
-    u_char		state;			/* link layer state */
     u_char		incoming:1;		/* incoming vs. outgoing */
     struct UdpIf 	*If;
     struct u_addr	real_peer_addr;
@@ -72,12 +71,6 @@ enum {
 	UDP_CONF_ORIGINATE,	/* allow originating connections to peer */
 	UDP_CONF_INCOMING,	/* allow accepting connections from peer */
 };
-
-/* Possible states */
-#define UDP_DOWN		0
-#define UDP_CONNECTING		1
-#define UDP_READY		2
-#define UDP_UP			3
 
 /*
  * INTERNAL FUNCTIONS
@@ -129,13 +122,6 @@ static struct confinfo	gConfList[] = {
     { 0,	0,			NULL		},
 };
 
-  static const char		*gUdpStateNames[] = {
-    "DOWN",
-    "CONNECTING",
-    "READY",
-    "UP",
-  };
-
 struct UdpIf {
     struct u_addr	self_addr;
     in_port_t	self_port;
@@ -164,7 +150,6 @@ UdpInit(PhysInfo p)
     pi->self_port=0;
     pi->peer_port=0;
 
-    pi->state = UDP_DOWN;
     pi->incoming = 0;
     pi->If = NULL;
 
@@ -251,14 +236,14 @@ UdpOpen(PhysInfo p)
   }
 
   /* OK */
-  pi->state = UDP_UP;
+  p->state = PHYS_STATE_UP;
   PhysUp();
   return;
 
 fail:
     UdpDoClose(pi);
     pi->incoming=0;
-    pi->state = UDP_DOWN;
+    p->state = PHYS_STATE_DOWN;
     u_addrclear(&pi->real_peer_addr);
     pi->real_peer_port=0;
     PhysDown(STR_ERROR, NULL);
@@ -273,10 +258,10 @@ static void
 UdpClose(PhysInfo p)
 {
   UdpInfo const pi = (UdpInfo) lnk->phys->info;
-  if (pi->state != UDP_DOWN) {
+  if (p->state != PHYS_STATE_DOWN) {
     UdpDoClose(pi);
     pi->incoming=0;
-    pi->state = UDP_DOWN;
+    p->state = PHYS_STATE_DOWN;
     u_addrclear(&pi->real_peer_addr);
     pi->real_peer_port=0;
     PhysDown(0, NULL);
@@ -338,7 +323,7 @@ UdpStat(PhysInfo p)
 	Printf("UDP options:\r\n");
 	OptStat(&pi->options, gConfList);
 	Printf("UDP state:\r\n");
-	Printf("\tState        : %s\r\n", gUdpStateNames[pi->state]);
+	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
 	Printf("\tCurrent peer : %s, port %u\r\n",
 	    u_addrtoa(&pi->real_peer_addr, buf, sizeof(buf)), pi->real_peer_port);
 }
@@ -393,7 +378,7 @@ UdpAcceptEvent(int type, void *cookie)
 		pi = (UdpInfo)ph->info;
 
 		if ((If!=pi->If) ||
-		    (pi->state != UDP_DOWN) ||
+		    (ph->state != PHYS_STATE_DOWN) ||
 		    (now-ph->lastClose < UDP_REOPEN_PAUSE) ||
 		    !Enabled(&pi->options, UDP_CONF_INCOMING) ||
 		    ((!u_addrempty(&pi->peer_addr)) && u_addrcompare(&pi->peer_addr, &addr)) ||
@@ -409,7 +394,7 @@ UdpAcceptEvent(int type, void *cookie)
 		sockaddrtou_addr(&saddr, &pi->real_peer_addr, &pi->real_peer_port);
 
 		pi->incoming=1;
-		pi->state = UDP_READY;
+		ph->state = PHYS_STATE_READY;
 
 		/* Report connected. */
 		Log(LG_PHYS, ("[%s] connected with %s %u", lnk->name,

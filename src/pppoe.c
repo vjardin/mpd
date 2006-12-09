@@ -50,7 +50,6 @@
 
 /* Per link private info */
 struct pppoeinfo {
-	u_char		state;			/* link layer state */
 	u_char		incoming:1;		/* incoming vs. outgoing */
 	u_char		opened:1;		/* PPPoE opened by phys */
 	char		path[MAX_PATH + 1];	/* PPPoE node path */
@@ -78,12 +77,6 @@ enum {
 	PPPOE_CONF_ORIGINATE,	/* allow originating connections to peer */
 	PPPOE_CONF_INCOMING,	/* allow accepting connections from peer */
 };
-
-/* Possible states */
-#define PPPOE_DOWN		0
-#define PPPOE_CONNECTING	1
-#define PPPOE_READY		2
-#define PPPOE_UP		3
 
 /*
    Invariants:
@@ -197,7 +190,6 @@ PppoeInit(PhysInfo p)
 
 	/* Allocate private struct */
 	pe = (PppoeInfo)(p->info = Malloc(MB_PHYS, sizeof(*pe)));
-	pe->state = PPPOE_DOWN;
 	pe->incoming = 0;
 	pe->opened = 0;
 	snprintf(pe->path, sizeof(pe->path), "undefined:");
@@ -232,18 +224,18 @@ PppoeOpen(PhysInfo p)
 	
 	if (pe->incoming == 1) {
 		Log(LG_PHYS2, ("[%s] PppoeOpen() on incoming call", lnk->name));
-		if (pe->state==PPPOE_READY) {
+		if (p->state==PHYS_STATE_READY) {
 		    Disable(&lnk->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 		    Deny(&lnk->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 		    TimerStop(&pe->connectTimer);
-		    pe->state = PPPOE_UP;
+		    p->state = PHYS_STATE_UP;
 		    PhysUp();
 		}
 		return;
 	}
 
 	/* Sanity check. */
-	if (pe->state != PPPOE_DOWN) {
+	if (p->state != PHYS_STATE_DOWN) {
 		Log(LG_PHYS, ("[%s] PPPoE allready active", lnk->name));
 		return;
 	};
@@ -295,7 +287,7 @@ PppoeOpen(PhysInfo p)
 	TimerStart(&pe->connectTimer);
 
 	/* OK */
-	pe->state = PPPOE_CONNECTING;
+	p->state = PHYS_STATE_CONNECTING;
 	return;
 
 fail2:
@@ -311,10 +303,7 @@ fail:
 static void
 PppoeConnectTimeout(void *arg)
 {
-	const PppoeInfo pe = arg;
-
 	/* Cancel connection. */
-	assert(pe->state == PPPOE_CONNECTING || pe->state == PPPOE_READY);
 	Log(LG_PHYS, ("[%s] PPPoE connection timeout after %d seconds",
 	    lnk->name, PPPOE_CONNECT_TIMEOUT));
 	PhysDown(STR_CON_FAILED0, NULL);
@@ -330,7 +319,7 @@ PppoeClose(PhysInfo p)
 	const PppoeInfo pe = (PppoeInfo)p->info;
 
 	pe->opened = 0;
-	if (pe->state == PPPOE_DOWN)
+	if (p->state == PHYS_STATE_DOWN)
 		return;
 	PhysDown(0, NULL);
 	PppoeShutdown(p);
@@ -339,7 +328,7 @@ PppoeClose(PhysInfo p)
 /*
  * PppoeShutdown()
  *
- * Shut everything down and go to the PPPOE_DOWN state.
+ * Shut everything down and go to the PHYS_STATE_DOWN state.
  */
 static void
 PppoeShutdown(PhysInfo p)
@@ -348,7 +337,7 @@ PppoeShutdown(PhysInfo p)
 	char path[NG_PATHLEN + 1];
 	char session_hook[NG_HOOKLEN + 1];
 
-	if (pe->state == PPPOE_DOWN)
+	if (p->state == PHYS_STATE_DOWN)
 		return;
 
 	snprintf(path, sizeof(path), "%s%s", pe->path, pe->hook);
@@ -357,7 +346,7 @@ PppoeShutdown(PhysInfo p)
 	NgFuncDisconnect(path,session_hook);
 
 	TimerStop(&pe->connectTimer);
-	pe->state = PPPOE_DOWN;
+	p->state = PHYS_STATE_DOWN;
 	pe->incoming = 0;
 }
 
@@ -374,6 +363,7 @@ PppoeCtrlReadEvent(int type, void *arg)
 	    struct ng_mesg resp;
 	} u;
 	char path[NG_PATHLEN + 1];
+	PhysInfo p = NULL;
 	PppoeInfo pe = NULL;
 	int k;
 	char ppphook[NG_HOOKLEN + 1];
@@ -425,8 +415,9 @@ PppoeCtrlReadEvent(int type, void *arg)
 		lnk = gLinks[k];
 		bund = lnk->bund;
 		
-		pe = (PppoeInfo)lnk->phys->info;
-		if (pe->state == PPPOE_DOWN) {
+		p = lnk->phys;
+		pe = (PppoeInfo)p->info;
+		if (p->state == PHYS_STATE_DOWN) {
 		    if (u.resp.header.cmd != NGM_PPPOE_CLOSE) 
 			Log(LG_PHYS, ("[%s] PPPoE: message %d in DOWN state",
 			    lnk->name, u.resp.header.cmd));
@@ -444,10 +435,10 @@ PppoeCtrlReadEvent(int type, void *arg)
 		    Disable(&lnk->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 		    Deny(&lnk->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 		    TimerStop(&pe->connectTimer);
-		    pe->state = PPPOE_UP;
+		    p->state = PHYS_STATE_UP;
 		    PhysUp();
 		} else {
-		    pe->state = PPPOE_READY;
+		    p->state = PHYS_STATE_READY;
 		}
 		break;
 	    case NGM_PPPOE_FAIL:
@@ -478,7 +469,6 @@ void
 PppoeStat(PhysInfo p)
 {
 	const PppoeInfo pe = (PppoeInfo)p->info;
-	const char *ststr;
 
 	Printf("PPPoE configuration:\r\n");
 	Printf("\tIface Node: %s\r\n", pe->path);
@@ -487,24 +477,7 @@ PppoeStat(PhysInfo p)
 	Printf("PPPoE options:\r\n");
 	OptStat(&pe->options, gConfList);
 	Printf("PPPoE status:\r\n");
-	switch (pe->state) {
-	case PPPOE_DOWN:
-		ststr = "DOWN";
-		break;
-	case PPPOE_CONNECTING:
-		ststr = "CONNECTING";
-		break;
-	case PPPOE_READY:
-		ststr = "READY";
-		break;
-	case PPPOE_UP:
-		ststr = "UP";
-		break;
-	default:
-		ststr = "???";
-		break;
-	}
-	Printf("\tState     : %s\r\n", ststr);
+	Printf("\tState     : %s\r\n", gPhysStateNames[p->state]);
 	Printf("\tOpened    : %s\r\n", (pe->opened?"YES":"NO"));
 }
 
@@ -753,7 +726,7 @@ PppoeListenEvent(int type, void *arg)
 		p = (PppoeInfo)ph->info;
 
 		if ((PIf!=p->PIf) ||
-		    (p->state != PPPOE_DOWN) ||
+		    (ph->state != PHYS_STATE_DOWN) ||
 		    (now-ph->lastClose < PPPOE_REOPEN_PAUSE) ||
 		    !Enabled(&p->options, PPPOE_CONF_INCOMING))
 			continue;
@@ -849,7 +822,7 @@ PppoeListenEvent(int type, void *arg)
 			goto disconnect_ppp;
 		}
 
-		p->state = PPPOE_CONNECTING;
+		ph->state = PHYS_STATE_CONNECTING;
 		p->incoming = 1;
 		/* Record the peer's MAC address */
 		if (macaddr)

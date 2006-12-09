@@ -114,10 +114,13 @@ NgOpen(PhysInfo p)
 
   snprintf(linkHook, sizeof(linkHook),
     "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  if (NgFuncConnect(MPD_HOOK_PPP, linkHook, ng->path, ng->hook) < 0)
+  if (NgFuncConnect(MPD_HOOK_PPP, linkHook, ng->path, ng->hook) < 0) {
+    p->state = PHYS_STATE_DOWN;
     PhysDown(STR_CON_FAILED0, NULL);
-  else
+  } else {
+    p->state = PHYS_STATE_UP;
     PhysUp();
+  }
 }
 
 /*
@@ -130,6 +133,7 @@ NgClose(PhysInfo p)
   NgInfo	const ng = (NgInfo) p->info;
 
   NgFuncDisconnect(ng->path, ng->hook);
+  p->state = PHYS_STATE_DOWN;
   PhysDown(0, NULL);
 }
 

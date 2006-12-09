@@ -46,7 +46,6 @@ struct tcpinfo {
 	in_port_t	peer_port;
 
 	/* State */
-	u_char		state;			/* link layer state */
 	u_char		incoming:1;		/* incoming vs. outgoing */
 	struct TcpIf 	*If;
 	int		csock;
@@ -69,12 +68,6 @@ enum {
 	TCP_CONF_ORIGINATE,	/* allow originating connections to peer */
 	TCP_CONF_INCOMING,	/* allow accepting connections from peer */
 };
-
-/* Possible states */
-#define TCP_DOWN		0
-#define TCP_CONNECTING		1
-#define TCP_READY		2
-#define TCP_UP			3
 
 /*
  * INTERNAL FUNCTIONS
@@ -132,13 +125,6 @@ static struct confinfo	gConfList[] = {
     { 0,	0,			NULL		},
 };
 
-  static const char		*gTcpStateNames[] = {
-    "DOWN",
-    "CONNECTING",
-    "READY",
-    "UP",
-  };
-
 struct TcpIf {
     struct u_addr	self_addr;
     in_port_t	self_port;
@@ -167,7 +153,6 @@ TcpInit(PhysInfo p)
 	pi->self_port=0;
 	pi->peer_port=0;
 
-	pi->state = TCP_DOWN;
 	pi->incoming = 0;
 	pi->If = NULL;
 	pi->csock = -1;
@@ -234,7 +219,7 @@ TcpOpen(PhysInfo p)
 	if (pi->incoming) {
 		Log(LG_PHYS2, ("[%s] %s() on incoming call", lnk->name,
 		    __func__));
-		pi->state = TCP_UP;
+		p->state = PHYS_STATE_UP;
 		PhysUp();
 		return;
 	}
@@ -242,7 +227,7 @@ TcpOpen(PhysInfo p)
 	if (!Enabled(&pi->options, TCP_CONF_ORIGINATE)) {
 		Log(LG_ERR, ("[%s] Originate option is not enabled",
 		    lnk->name));
-		pi->state = TCP_DOWN;
+		p->state = PHYS_STATE_DOWN;
 		TcpDoClose(p);
 		PhysDown(STR_DEV_NOT_READY, NULL);
 		return;
@@ -288,7 +273,7 @@ TcpOpen(PhysInfo p)
 		goto fail;
 	}
 
-	pi->state = TCP_CONNECTING;
+	p->state = PHYS_STATE_CONNECTING;
 
 	if (rval == 0)	/* Can happen when peer is local. */
 		TcpConnectEvent(EVENT_READ, lnk);
@@ -302,7 +287,7 @@ TcpOpen(PhysInfo p)
 
 	return;
 fail:
-	pi->state = TCP_DOWN;
+	p->state = PHYS_STATE_DOWN;
 	TcpDoClose(p);
 	PhysDown(STR_ERROR, NULL);
 }
@@ -350,12 +335,12 @@ TcpConnectEvent(int type, void *cookie)
 	u_addrcopy(&pi->peer_addr,&pi->real_peer_addr);
 	pi->real_peer_port = pi->peer_port;
 
-	pi->state = TCP_UP;
+	lnk->phys->state = PHYS_STATE_UP;
 	PhysUp();
 
 	return;
 failed:
-	pi->state = TCP_DOWN;
+	lnk->phys->state = PHYS_STATE_DOWN;
 	TcpDoClose(lnk->phys);
 	PhysDown(STR_ERROR, NULL);
 
@@ -411,7 +396,7 @@ TcpAcceptEvent(int type, void *cookie)
 		pi = (TcpInfo)ph->info;
 
 		if ((If!=pi->If) ||
-		    (pi->state != TCP_DOWN) ||
+		    (ph->state != PHYS_STATE_DOWN) ||
 		    (now-ph->lastClose < TCP_REOPEN_PAUSE) ||
 		    !Enabled(&pi->options, TCP_CONF_INCOMING) ||
 		    ((!u_addrempty(&pi->peer_addr)) && u_addrcompare(&pi->peer_addr, &addr)) ||
@@ -440,7 +425,7 @@ TcpAcceptEvent(int type, void *cookie)
 	  	}
 
 		pi->incoming=1;
-		pi->state = TCP_READY;
+		ph->state = PHYS_STATE_READY;
 
 		/* Report connected. */
 		Log(LG_PHYS, ("[%s] connected with %s %u", lnk->name,
@@ -481,9 +466,9 @@ TcpClose(PhysInfo p)
 
 	TcpDoClose(p);
 
-	if (pi->state != TCP_DOWN) {
+	if (p->state != PHYS_STATE_DOWN) {
 	    pi->incoming=0;
-	    pi->state = TCP_DOWN;
+	    p->state = PHYS_STATE_DOWN;
 
 	    u_addrclear(&pi->real_peer_addr);
 	    pi->real_peer_port=0;
@@ -570,7 +555,7 @@ TcpStat(PhysInfo p)
 	Printf("TCP options:\r\n");
 	OptStat(&pi->options, gConfList);
 	Printf("TCP state:\r\n");
-	Printf("\tState        : %s\r\n", gTcpStateNames[pi->state]);
+	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
 	Printf("\tCurrent peer : %s, port %u\r\n",
 	    u_addrtoa(&pi->real_peer_addr, buf, sizeof(buf)), pi->real_peer_port);
 }

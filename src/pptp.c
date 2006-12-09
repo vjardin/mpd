@@ -38,17 +38,12 @@
   #define PPTP_MAX_ERRORS	10
   #define PPTP_REOPEN_PAUSE	5
 
-  #define PPTP_STATE_DOWN	0
-  #define PPTP_STATE_CONNECTING	1
-  #define PPTP_STATE_UP		2
-
   #define MAX_IOVEC		32
 
   #define PPTP_CALL_MIN_BPS	56000
   #define PPTP_CALL_MAX_BPS	64000
 
   struct pptpinfo {
-    int			state;		/* PPTP link state */
     u_char		originate:1;	/* Call originated locally */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
     struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
@@ -98,7 +93,7 @@
 
   static void	PptpInitCtrl(void);
   static int	PptpOriginate(PptpInfo pptp);
-  static void	PptpDoClose(PptpInfo pptp);
+  static void	PptpDoClose(PhysInfo pptp);
   static void	PptpKillNode(PptpInfo pptp);
   static void	PptpResult(void *cookie, const char *errmsg);
   static void	PptpCancel(void *cookie);
@@ -175,12 +170,6 @@
     { 0,	0,			NULL		},
   };
 
-  static const char		*gPptpStateNames[] = {
-    "DOWN",
-    "CONNECTING",
-    "UP",
-  };
-
 /*
  * PptpInit()
  */
@@ -225,8 +214,8 @@ PptpOpen(PhysInfo p)
     PptpInitCtrl();
 
   /* Check state */
-  switch (pptp->state) {
-    case PPTP_STATE_DOWN:
+  switch (p->state) {
+    case PHYS_STATE_DOWN:
       if (!Enabled(&pptp->options, PPTP_CONF_ORIGINATE)) {
 	Log(LG_ERR, ("[%s] pptp originate option is not enabled", lnk->name));
 	PhysDown(STR_DEV_NOT_READY, NULL);
@@ -237,10 +226,10 @@ PptpOpen(PhysInfo p)
 	PhysDown(STR_CON_FAILED0, NULL);
 	return;
       }
-      pptp->state = PPTP_STATE_CONNECTING;
+      p->state = PHYS_STATE_CONNECTING;
       break;
 
-    case PPTP_STATE_CONNECTING:
+    case PHYS_STATE_CONNECTING:
       if (pptp->originate)	/* our call to peer is already in progress */
 	break;
       if (!pptp->incoming) {
@@ -248,19 +237,19 @@ PptpOpen(PhysInfo p)
 	/* Hook up nodes */
 	Log(LG_PHYS, ("[%s] attaching to peer's outgoing call", lnk->name));
 	if (PptpHookUp(pptp) < 0) {
-	  PptpDoClose(pptp);	/* We should not set state=DOWN as PptpResult() will be called once more */
+	  PptpDoClose(p);	/* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
 	}
 
 	(*pptp->cinfo.answer)(pptp->cinfo.cookie,
 	  PPTP_OCR_RESL_OK, 0, 0, 64000 /*XXX*/ );
-	pptp->state = PPTP_STATE_UP;
+	p->state = PHYS_STATE_UP;
 	PhysUp();
 	return;
       }
       return; 	/* wait for peer's incoming pptp call to complete */
 
-    case PPTP_STATE_UP:
+    case PHYS_STATE_UP:
       PhysUp();
       return;
 
@@ -285,7 +274,6 @@ PptpOriginate(PptpInfo pptp)
 			  pptp->peer_port_req : PPTP_PORT;
   char	buf[32];
 
-  assert(pptp->state == PPTP_STATE_DOWN);
   pptp->originate = TRUE;
   pptp->incoming = !Enabled(&pptp->options, PPTP_CONF_OUTCALL);
   memset(&linfo, 0, sizeof(linfo));
@@ -316,9 +304,7 @@ PptpOriginate(PptpInfo pptp)
 static void
 PptpClose(PhysInfo p)
 {
-  PptpInfo	const pptp = (PptpInfo) p->info;
-
-  PptpDoClose(pptp);
+  PptpDoClose(p);
 }
 
 /*
@@ -338,9 +324,11 @@ PptpShutdown(PhysInfo p)
  */
 
 static void
-PptpDoClose(PptpInfo pptp)
+PptpDoClose(PhysInfo p)
 {
-  if (pptp->state != PPTP_STATE_DOWN) {		/* avoid double close */
+  PptpInfo      const pptp = (PptpInfo) p->info;
+
+  if (p->state != PHYS_STATE_DOWN) {		/* avoid double close */
     (*pptp->cinfo.close)(pptp->cinfo.cookie, PPTP_CDN_RESL_ADMIN, 0, 0);
     PptpKillNode(pptp);
   }
@@ -409,7 +397,7 @@ PptpStat(PhysInfo p)
   Printf("PPTP options:\r\n");
   OptStat(&pptp->options, gConfList);
   Printf("PPTP status:\r\n");
-  Printf("\tState        : %s\r\n", gPptpStateNames[pptp->state]);
+  Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
   Printf("\tCurrent peer : %s, port %u\r\n",
     u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
 }
@@ -443,43 +431,45 @@ static void
 PptpResult(void *cookie, const char *errmsg)
 {
   PptpInfo	pptp;
+  PhysInfo 	p;
 
   lnk = (Link) cookie;
   bund = lnk->bund;
+  p = lnk->phys;
   pptp = (PptpInfo) lnk->phys->info;
 
-  switch (pptp->state) {
-    case PPTP_STATE_CONNECTING:
+  switch (p->state) {
+    case PHYS_STATE_CONNECTING:
       if (!errmsg) {
 
 	/* Hook up nodes */
 	Log(LG_PHYS, ("[%s] PPTP call successful", lnk->name));
 	if (PptpHookUp(pptp) < 0) {
-	  PptpDoClose(pptp); /* We should not set state=DOWN as PptpResult() will be called once more */
+	  PptpDoClose(p); /* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
 	}
 
 	/* OK */
-	pptp->state = PPTP_STATE_UP;
+	p->state = PHYS_STATE_UP;
 	PhysUp();
       } else {
 	Log(LG_PHYS, ("[%s] PPTP call failed", lnk->name));
 	PhysDown(STR_CON_FAILED, "%s", errmsg);
-	pptp->state = PPTP_STATE_DOWN;
+	p->state = PHYS_STATE_DOWN;
 	u_addrclear(&pptp->peer_addr);
 	pptp->peer_port = 0;
       }
       break;
-    case PPTP_STATE_UP:
+    case PHYS_STATE_UP:
       assert(errmsg);
       Log(LG_PHYS, ("[%s] PPTP call terminated", lnk->name));
-      PptpDoClose(pptp);
+      PptpDoClose(p);
       PhysDown(0, NULL);
-      pptp->state = PPTP_STATE_DOWN;
+      p->state = PHYS_STATE_DOWN;
       u_addrclear(&pptp->peer_addr);
       pptp->peer_port = 0;
       break;
-    case PPTP_STATE_DOWN:
+    case PHYS_STATE_DOWN:
       return;
     default:
       assert(0);
@@ -644,12 +634,12 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   /* Find a suitable link; prefer the link best matching peer's IP address */
   for (k = 0; k < gNumLinks; k++) {
     Link	const l2 = gLinks[k];
-    PptpInfo	pptp2;
+    PptpInfo	pptp2 = (PptpInfo) l2->phys->info;
 
     /* See if link is feasible */
     if (l2 != NULL
 	&& l2->phys->type == &gPptpPhysType
-	&& (pptp2 = (PptpInfo) l2->phys->info)->state == PPTP_STATE_DOWN
+	&& l2->phys->state == PHYS_STATE_DOWN
 	&& (now - l2->phys->lastClose) >= PPTP_REOPEN_PAUSE
 	&& Enabled(&pptp2->options, PPTP_CONF_INCOMING)
 	&& IpAddrInRange(&pptp2->peer_addr_req, &peer)
@@ -679,10 +669,10 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   BundOpenLink(lnk);
 
   /* Got one */
+  lnk->phys->state = PHYS_STATE_CONNECTING;
   pptp->cinfo = *cinfo;
   pptp->originate = FALSE;
   pptp->incoming = incoming;
-  pptp->state = PPTP_STATE_CONNECTING;
   pptp->peer_addr = peer;
   pptp->peer_port = port;
   linfo.cookie = lnk;
@@ -703,17 +693,19 @@ static void
 PptpCancel(void *cookie)
 {
   PptpInfo	pptp;
+  PhysInfo 	p;
 
   lnk = (Link) cookie;
   bund = lnk->bund;
+  p = lnk->phys;
   pptp = (PptpInfo) lnk->phys->info;
 
   Log(LG_PHYS, ("[%s] PPTP call cancelled in state %s",
-    lnk->name, gPptpStateNames[pptp->state]));
-  if (pptp->state == PPTP_STATE_DOWN)
+    lnk->name, gPhysStateNames[p->state]));
+  if (p->state == PHYS_STATE_DOWN)
     return;
   PhysDown(STR_CON_FAILED0, NULL);
-  pptp->state = PPTP_STATE_DOWN;
+  p->state = PHYS_STATE_DOWN;
   u_addrclear(&pptp->peer_addr);
   pptp->peer_port = 0;
 }

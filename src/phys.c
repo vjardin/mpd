@@ -58,6 +58,13 @@
     NULL,
   };
 
+  const char *gPhysStateNames[] = {
+    "DOWN",
+    "CONNECTING",
+    "READY",
+    "UP",
+  };
+
 /*
  * INTERNAL FUNCTIONS
  */
@@ -78,6 +85,7 @@ PhysInit(void)
   PhysInfo	p;
 
   p = Malloc(MB_PHYS, sizeof(*p));
+  p->state = PHYS_STATE_DOWN;
   p->msgs = MsgRegister(PhysMsg, 0);
   return(p);
 }
