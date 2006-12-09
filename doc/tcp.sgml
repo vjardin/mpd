@@ -14,7 +14,7 @@
   - when there are no free incoming link, new connection will anyway 
     be acceped and then dropped instead of not accepting it,
   - tcp connection status is not monitored, so you should use 
-    'set link keep-alive' to disconnect broken links.
+    'set link keep-alive' to detect broken links.
 
 <descrip>
 
@@ -30,13 +30,13 @@ set tcp peer <em>ipaddr</em> [ <em>port</em> ]
 </tt></tag>
 
 Sets the peer IP address and port for the TCP connection.
-If none is specified, any peer may connect to us.
-Ipaddr and port fields are required for outgoing connections.
+Address and port fields are required for outgoing connections.
+For incoming connections it is not required, but can limit who can connect to us.
 
 <tag><tt>set tcp enable <em>option ...</em> </tt></tag><p>
 <tag><tt>set tcp disable <em>option ...</em> </tt></tag><p>
 
-Enable and disable PPPoE device type options for the link.
+Enable and disable TCP device type options for the link.
 
 </descrip>
 
@@ -56,5 +56,3 @@ This option enables the acceptance of incoming TCP connections.
 If this option is disabled, mpd will not accept any incoming TCP connections.
 
 </descrip>
-
-

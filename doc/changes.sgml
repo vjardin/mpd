@@ -10,7 +10,17 @@
     <itemize>
 	<item>New features:
 	<itemize>
-	  <item> TCP level was completely rewritten. It has some minor issues 
+	  <item> UDP device type was completely rewritten. Now it:
+	         - does not require manual 'open' command on the server side,
+		   it behaves just like any other device type;
+		 - allows many connections to the same server UDP port;
+		 - allows not to specify peer address/port for incoming 
+		   connections (so it will work through different 
+		   NATs and firewalls);
+		 - allows not to specify self address/port for outgoing 
+		   connections (so it is easier to configure);
+	  </item>
+	  <item> TCP device type was completely rewritten. It has some minor issues 
 		 due to limitation of ng_ksocket module, but now IT WORKS! :)
 	  </item>
 	  <item> New command 'show phys' added.
