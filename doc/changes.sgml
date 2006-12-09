@@ -10,6 +10,9 @@
     <itemize>
 	<item>New features:
 	<itemize>
+	  <item> TCP level was completely rewritten. It has some minor issues 
+		 due to limitation of ng_ksocket module, but now IT WORKS! :)
+	  </item>
 	  <item> New command 'show phys' added.
 	  </item>
 	</itemize>
