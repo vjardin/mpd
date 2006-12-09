@@ -162,7 +162,7 @@
   extern void	LinkOpen(Link l);
   extern void	LinkClose(Link l);
 
-  extern Link	LinkNew(char *name);
+  extern Link	LinkNew(char *name, Bund b, int bI);
   extern Link	LinkCopy(void);
   extern int	LinkNuke(Link link);
   extern int	LinkStat(int ac, char *av[], void *arg);

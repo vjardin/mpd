@@ -857,11 +857,9 @@ BundCreateCmd(int ac, char *av[], void *arg)
   /* Create each link and add it to the bundle */
   bund->links = Malloc(MB_BUND, (ac - 1) * sizeof(*bund->links));
   for (k = 1; k < ac; k++) {
-    if ((new_link = LinkNew(av[k])) == NULL)
+    if ((new_link = LinkNew(av[k], bund, bund->n_links)) == NULL)
       Log(LG_ERR, ("[%s] addition of link \"%s\" failed", av[0], av[k]));
     else {
-      new_link->bund = bund;
-      new_link->bundleIndex = bund->n_links;
       bund->links[bund->n_links] = new_link;
       bund->n_links++;
     }

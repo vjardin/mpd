@@ -211,7 +211,7 @@ LinkMsg(int type, void *arg)
  */
 
 Link
-LinkNew(char *name)
+LinkNew(char *name, Bund b, int bI)
 {
   int		k;
 
@@ -233,6 +233,8 @@ LinkNew(char *name)
   lnk = Malloc(MB_BUND, sizeof(*lnk));
   gLinks[k] = lnk;
   snprintf(lnk->name, sizeof(lnk->name), "%s", name);
+  lnk->bund = b;
+  lnk->bundleIndex = bI;
   lnk->msgs = MsgRegister(LinkMsg, 0);
 
   /* Initialize link configuration with defaults */
