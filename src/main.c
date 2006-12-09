@@ -366,6 +366,7 @@ FatalSignal(sig)
 {
   static struct pppTimer	gDeathTimer;
   int				k;
+  int				upLinkCount;
 
   /* If a SIGTERM or SIGINT, gracefully shutdown; otherwise shutdown now */
   Log(LG_ERR, ("mpd: caught fatal signal %s", sys_signame[sig]));
@@ -373,6 +374,11 @@ FatalSignal(sig)
   for (k = 0; k < gNumBundles; k++) {
     if ((bund = gBundles[k]))
       RecordLinkUpDownReason(NULL, 0, STR_PORT_SHUTDOWN, NULL);
+  }
+  upLinkCount = 0;
+  for (k = 0; k < gNumLinks; k++) {
+    if (gLinks[k] && (gLinks[k]->phys->state!=PHYS_STATE_DOWN))
+	upLinkCount++;
   }
 
   signal(SIGUSR1, SIG_IGN);
@@ -382,7 +388,7 @@ FatalSignal(sig)
 
   CloseIfaces();
   TimerInit(&gDeathTimer, "DeathTimer",
-    TERMINATE_DEATH_WAIT * (gNumLinks/100+1), (void (*)(void *)) DoExit, (void *) &gBackground);
+    TERMINATE_DEATH_WAIT * (upLinkCount/100+1), (void (*)(void *)) DoExit, (void *) &gBackground);
   TimerStart(&gDeathTimer);
 }
 
