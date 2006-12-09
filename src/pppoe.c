@@ -186,7 +186,6 @@ static int
 PppoeInit(PhysInfo p)
 {
 	PppoeInfo pe;
-	int i;
 
 	/* Allocate private struct */
 	pe = (PppoeInfo)(p->info = Malloc(MB_PHYS, sizeof(*pe)));
@@ -195,8 +194,7 @@ PppoeInit(PhysInfo p)
 	snprintf(pe->path, sizeof(pe->path), "undefined:");
 	snprintf(pe->hook, sizeof(pe->hook), "undefined");
 	snprintf(pe->session, sizeof(pe->session), "*");
-	for (i=0; i<6; i++)
-	    pe->peeraddr[i]=0x00;
+	memset(pe->peeraddr, 0x00, ETHER_ADDR_LEN);
 	pe->link = lnk;
 	pe->PIf = NULL;
 
@@ -279,7 +277,6 @@ PppoeOpen(PhysInfo p)
 		    "%s", lnk->name, strerror(errno)));
 		goto fail2;
 	}
-	memset(pe->peeraddr, 0x00, ETHER_ADDR_LEN);
 
 	/* Set a timer to limit connection time. */
 	TimerInit(&pe->connectTimer, "PPPoE-connect",
@@ -348,6 +345,7 @@ PppoeShutdown(PhysInfo p)
 	TimerStop(&pe->connectTimer);
 	p->state = PHYS_STATE_DOWN;
 	pe->incoming = 0;
+	memset(pe->peeraddr, 0x00, ETHER_ADDR_LEN);
 }
 
 /*
