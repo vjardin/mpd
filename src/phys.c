@@ -290,7 +290,7 @@ PhysOpenTimeout(void *arg)
  * PhysStat()
  */
 
-void
+int
 PhysStat(int ac, char *av[], void *arg)
 {
   PhysInfo	const p = lnk->phys;
@@ -298,5 +298,6 @@ PhysStat(int ac, char *av[], void *arg)
   Printf("\tType  : %s\r\n", p->type->name);
   if (p->type->showstat)
     (*p->type->showstat)(p);
+  return 0;
 }
 

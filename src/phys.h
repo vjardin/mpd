@@ -75,7 +75,7 @@
   extern PhysInfo	PhysInit(void);
   extern void		PhysSetDeviceType(char *typename);
   extern int		PhysGetOriginate(void);
-  extern void		PhysStat(int ac, char *av[], void *arg);
+  extern int		PhysStat(int ac, char *av[], void *arg);
 
 #endif
 
