@@ -227,10 +227,10 @@ LinkNew(char *name, Bund b, int bI)
   /* Find a free link pointer */
   for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++);
   if (k == gNumLinks)			/* add a new link pointer */
-    LengthenArray(&gLinks, sizeof(*gLinks), &gNumLinks, MB_BUND);
+    LengthenArray(&gLinks, sizeof(*gLinks), &gNumLinks, MB_LINK);
 
   /* Create and initialize new link */
-  lnk = Malloc(MB_BUND, sizeof(*lnk));
+  lnk = Malloc(MB_LINK, sizeof(*lnk));
   gLinks[k] = lnk;
   snprintf(lnk->name, sizeof(lnk->name), "%s", name);
   lnk->bund = b;
@@ -299,11 +299,11 @@ LinkCopy(void)
 {
   Link	nlnk;
   
-  nlnk = Malloc(MB_BUND, sizeof(*nlnk));
+  nlnk = Malloc(MB_LINK, sizeof(*nlnk));
   memcpy(nlnk, lnk, sizeof(*lnk));
   nlnk->downReason = NULL;
   if (lnk->downReason != NULL) {
-    nlnk->downReason = Malloc(MB_BUND, strlen(lnk->downReason) + 1);
+    nlnk->downReason = Malloc(MB_LINK, strlen(lnk->downReason) + 1);
     strcpy(nlnk->downReason, lnk->downReason);
   }
 

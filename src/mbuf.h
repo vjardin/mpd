@@ -41,8 +41,12 @@
   /* Types of allocated memory */
   #define MB_AUTH	"AUTH"
   #define MB_CONS	"CONSOLE"
+  #define MB_IFACE	"IFACE"
   #define MB_BUND	"BUND"
+  #define MB_LINK	"LINK"
   #define MB_CHAT	"CHAT"
+  #define MB_CMD	"CMD"
+  #define MB_CMDL	"CMDL"
   #define MB_COMP	"COMP"
   #define MB_CRYPT	"CRYPT"
   #define MB_ECHO	"ECHO"

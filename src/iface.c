@@ -317,21 +317,21 @@ IfaceUp(int ready)
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
     ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
-    Freee(MB_UTIL, buf);
+    Freee(MB_IFACE, buf);
     acls = acls->next;
   }
   acls = bund->params.acl_queue;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule,iface->ifname);
     ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
-    Freee(MB_UTIL, buf);
+    Freee(MB_IFACE, buf);
     acls = acls->next;
   }
   acls = bund->params.acl_rule;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
     ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
-    Freee(MB_UTIL, buf);
+    Freee(MB_IFACE, buf);
     acls = acls->next;
   };
 
@@ -425,7 +425,7 @@ IfaceDown(void)
       sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
-      Freee(MB_UTIL, rp1);
+      Freee(MB_IFACE, rp1);
     } else {
       rp = &((*rp)->next);
     };
@@ -442,7 +442,7 @@ IfaceDown(void)
       sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
-      Freee(MB_UTIL, rp1);
+      Freee(MB_IFACE, rp1);
     } else {
       rp = &((*rp)->next);
     };
@@ -459,7 +459,7 @@ IfaceDown(void)
       sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
-      Freee(MB_UTIL, rp1);
+      Freee(MB_IFACE, rp1);
     } else {
       rp = &((*rp)->next);
     };
@@ -551,7 +551,7 @@ IfaceAllocACL(struct acl_pool ***ap, int start, char *ifname, int number)
     int	i;
     struct acl_pool **rp,*rp1;
 
-    rp1 = Malloc(MB_UTIL, sizeof(struct acl_pool));
+    rp1 = Malloc(MB_IFACE, sizeof(struct acl_pool));
     strncpy(rp1->ifname, ifname, IFNAMSIZ);
     rp1->acl_number = number;
 
@@ -612,8 +612,8 @@ IFaceParseACL (char * src, char * ifname)
     int num,real_number;
     struct acl_pool *ap;
     
-    buf = Malloc(MB_UTIL, ACL_LEN+1);
-    buf1 = Malloc(MB_UTIL, ACL_LEN+1);
+    buf = Malloc(MB_IFACE, ACL_LEN+1);
+    buf1 = Malloc(MB_IFACE, ACL_LEN+1);
 
     strncpy(buf,src,ACL_LEN);
     do {
@@ -645,7 +645,7 @@ IFaceParseACL (char * src, char * ifname)
 	    };
 	};
     } while (end != NULL);
-    Freee(MB_UTIL, buf1);
+    Freee(MB_IFACE, buf1);
     return(buf);
 };
 

@@ -855,7 +855,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   }
 
   /* Create each link and add it to the bundle */
-  bund->links = Malloc(MB_BUND, (ac - 1) * sizeof(*bund->links));
+  bund->links = Malloc(MB_LINK, (ac - 1) * sizeof(*bund->links));
   for (k = 1; k < ac; k++) {
     if ((new_link = LinkNew(av[k], bund, bund->n_links)) == NULL)
       Log(LG_ERR, ("[%s] addition of link \"%s\" failed", av[0], av[k]));
@@ -868,7 +868,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   /* We need at least one link in the bundle */
   if (bund->n_links == 0) {
     Log(LG_ERR, ("mpd: bundle \"%s\" creation failed: no links", av[0]));
-    Freee(MB_BUND, bund->links);
+    Freee(MB_LINK, bund->links);
     NgFuncShutdown(bund);
 fail2:
     Freee(MB_BUND, bund);

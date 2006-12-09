@@ -127,7 +127,7 @@ PhysUp(void)
 void
 PhysDown(const char *reason, const char *details, ...)
 {
-  struct downmsg	*dm = Malloc(MB_UTIL, sizeof(*dm));
+  struct downmsg	*dm = Malloc(MB_PHYS, sizeof(*dm));
   va_list		args;
 
   lnk->phys->lastClose = time(NULL); /* dirty hack to avoid race condition */
@@ -262,7 +262,7 @@ PhysMsg(int type, void *arg)
 	  SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_CON_FAILED0);
 	  RecordLinkUpDownReason(lnk, 0, dm->reason, NULL);
 	}
-	Freee(MB_UTIL, dm);
+	Freee(MB_PHYS, dm);
 	LinkDown(lnk);
       }
       break;

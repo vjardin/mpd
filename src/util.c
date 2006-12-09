@@ -173,7 +173,7 @@ ParseLine(char *line, char *av[], int max_args, int copy)
   /* Make a copy of this arg */
 
     if (copy) {
-	strcpy(av[ac] = Malloc(MB_UTIL, strlen(arg) + 1), arg);
+	strcpy(av[ac] = Malloc(MB_CMD, strlen(arg) + 1), arg);
     }
     else
 	av[ac] = arg;
@@ -200,7 +200,7 @@ void
 FreeArgs(int ac, char *av[])
 {
   while (ac > 0)
-    Freee(MB_UTIL, av[--ac]);
+    Freee(MB_CMD, av[--ac]);
 }
 
 /*
@@ -318,8 +318,8 @@ IndexConfFile(FILE *fp, struct configfile **cf)
     if (isspace(*line))
       continue;
     if ((s = strtok(line, " \t\f:"))) {
-	(*tmp)=Malloc(MB_UTIL, sizeof(struct configfile));
-	(*tmp)->label=strcpy(Malloc(MB_UTIL, strlen(s)),s);
+	(*tmp)=Malloc(MB_CMDL, sizeof(struct configfile));
+	(*tmp)->label=strcpy(Malloc(MB_CMDL, strlen(s)),s);
 	(*tmp)->linenum=lineNum;
 	(*tmp)->seek=ftello(fp);
 	tmp=&((*tmp)->next);
@@ -407,8 +407,8 @@ OpenConfFile(const char *name, struct configfile **cf)
 	tmp=&((*tmp)->next);
     }
     if (!(*tmp)) {
-	(*tmp) = Malloc(MB_UTIL, sizeof(struct configfiles));
-	(*tmp)->filename = strcpy(Malloc(MB_UTIL, strlen(name)),name);
+	(*tmp) = Malloc(MB_CMD, sizeof(struct configfiles));
+	(*tmp)->filename = strcpy(Malloc(MB_CMD, strlen(name)),name);
 	(*tmp)->sections = NULL;
 	(*tmp)->next = NULL;
 	IndexConfFile(fp, &((*tmp)->sections));
@@ -486,7 +486,7 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultsize)
   if (result!=NULL && resultsize>0)
      return resultline;
   else 
-     return strcpy(Malloc(MB_UTIL, linelen + 1), resultline);
+     return strcpy(Malloc(MB_CMD, linelen + 1), resultline);
 }
 
 /*
