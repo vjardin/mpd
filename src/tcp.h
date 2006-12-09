@@ -2,9 +2,7 @@
 /*
  * tcp.h
  *
- * Written by Archie Cobbs <archie@freebsd.org>
- * Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
- * See ``COPYRIGHT.whistle''
+ * Written by Alexander Motin <mav@alkar.net>
  */
 
 #ifndef _TCP_H_
