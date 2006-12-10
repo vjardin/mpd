@@ -85,8 +85,11 @@
   static void	NgFuncErr(const char *fmt, ...);
 #ifdef USE_NG_NETFLOW
   static int	NetflowSetCommand(int ac, char *av[], void *arg);
+  static int	NgFuncInitNetflow(Bund b);
+  static int	NgFuncInitNetflowHook(Bund b, int iface);
 #endif
-
+  static int	NgFuncInitVJ(Bund b);
+  static int    NgFuncInitMSS(Bund b);
 /*
  * GLOBAL VARIABLES
  */
@@ -189,7 +192,7 @@
   #ifdef USE_NG_NETFLOW
   static u_char gNetflowNode = FALSE;
   static u_char gNetflowNodeShutdown = TRUE;
-  static u_char gNetflowNodeName[64] = "mpd-netflow";
+  static u_char gNetflowNodeName[64] = "mpd-nf";
   static u_int gNetflowIface = 0;
   static struct sockaddr_storage gNetflowExport;
   static struct sockaddr_storage gNetflowSource;
@@ -224,6 +227,7 @@ NgFuncInit(Bund b, const char *reqIface)
   struct ngm_connect	cn;
   struct ngm_name	nm;
   char			path[NG_PATHLEN + 1];
+  char			hook[NG_HOOKLEN + 1];
   int			newIface = 0;
   int			newPpp = 0;
 
@@ -238,6 +242,15 @@ NgFuncInit(Bund b, const char *reqIface)
   }
   (void) fcntl(b->csock, F_SETFD, 1);
   (void) fcntl(b->dsock, F_SETFD, 1);
+
+  /* Give it a name */
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, b->name);
+  if (NgSendMsg(b->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    Log(LG_ERR, ("[%s] can't name %s node: %s",
+      b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
+    goto fail;
+  }
 
   /* Create new iface node if necessary, else find the one specified */
   if (reqIface != NULL) {
@@ -305,6 +318,9 @@ NgFuncInit(Bund b, const char *reqIface)
   }
   b->nodeID = ni->id;
 
+  if (NgFuncInitVJ(b)) 
+    goto fail;
+
   /* Add a bpf node to the PPP node on the "inet" hook */
   snprintf(mp.type, sizeof(mp.type), "%s", NG_BPF_NODE_TYPE);
   snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_PPP_HOOK_INET);
@@ -316,20 +332,42 @@ NgFuncInit(Bund b, const char *reqIface)
     goto fail;
   }
 
+  /* Connect a hook from the bpf node to our socket node */
+  snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_DEMAND_TAP);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", BPF_HOOK_MPD);
+  if (NgSendMsg(b->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
+      b->name, BPF_HOOK_MPD, MPD_HOOK_DEMAND_TAP, strerror(errno)));
+    goto fail;
+  }
+
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+  strcpy(hook, BPF_HOOK_IFACE);
+
+  /* Give it a name */
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-bpf", gPid, b->name);
+  if (NgSendMsg(b->csock, path,
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    Log(LG_ERR, ("[%s] can't name %s node: %s",
+      b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    goto fail;
+  }
+
   /* Add a tee node between bpf and interface if configured */
   if (b->tee) {
-    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", BPF_HOOK_IFACE);
-    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_RIGHT);
+    strcpy(mp.ourhook, hook);
+    strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
       Log(LG_ERR, ("[%s] can't create %s node: %s",
 	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
       goto fail;
     }
-    snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
-	BPF_HOOK_IFACE);
+    strlcat(path, ".", sizeof(path));
+    strlcat(path, hook, sizeof(path));
     snprintf(nm.name, sizeof(nm.name), "%s-tee", b->iface.ifname);
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
@@ -337,6 +375,7 @@ NgFuncInit(Bund b, const char *reqIface)
 	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
       goto fail;
     }
+    strcpy(hook, NG_TEE_HOOK_LEFT);
   }
 
 #ifdef USE_NG_NETFLOW
@@ -344,8 +383,110 @@ NgFuncInit(Bund b, const char *reqIface)
 
     /* Create global ng_netflow(4) node if not yet. */
     if (gNetflowNode == FALSE) {
+	if (NgFuncInitNetflow(b))
+	    goto fail;
+    }
 
-      snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-netflow", gPid);
+    gNetflowIface++;
+  
+    /* Connect ng_netflow(4) node to the ng_bpf(4)/ng_tee(4) node. */
+    strcpy(cn.ourhook, hook);
+    snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
+    if (b->netflow == NETFLOW_OUT) {
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	    gNetflowIface);
+    } else {
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
+	    gNetflowIface);
+    }
+    if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+	sizeof(cn)) < 0) {
+      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
+	cn.path, path, strerror(errno)));
+      goto fail;
+    }
+    strlcat(path, ".", sizeof(path));
+    strlcat(path, hook, sizeof(path));
+    if (b->netflow == NETFLOW_OUT) {
+	snprintf(hook, sizeof(hook), "%s%d", NG_NETFLOW_HOOK_DATA,
+	    gNetflowIface);
+    } else {
+	snprintf(hook, sizeof(hook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	    gNetflowIface);
+    }
+
+  }
+#endif	/* USE_NG_NETFLOW */
+
+  /* Connect the entire graph to the iface node. */
+  strcpy(cn.ourhook, hook);
+  snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
+  if (NgSendMsg(b->csock, path,
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
+      b->name, cn.ourhook, NG_IFACE_HOOK_INET, strerror(errno)));
+    goto fail;
+  }
+
+#ifdef USE_NG_NETFLOW
+  if (b->netflow) {
+    if (NgFuncInitNetflowHook(b, gNetflowIface)) 
+	goto fail;
+  }
+#endif /* USE_NG_NETFLOW */
+
+  /* Connect ipv6 hook of ng_ppp(4) node to the ng_iface(4) node. */
+  snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_IPV6);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
+  if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+	sizeof(cn)) < 0) {
+      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
+	cn.path, path, strerror(errno)));
+      goto fail;
+  }
+
+#ifdef USE_NG_TCPMSS
+    if (NgFuncInitMSS(b)) 
+	goto fail;
+#else
+  /* Connect a second hook from the bpf node to our socket node. */
+  snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_MSSFIX_OUT);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", BPF_HOOK_MPD_OUT);
+  if (NgSendMsg(b->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
+      b->name, BPF_HOOK_MPD_OUT, MPD_HOOK_MSSFIX_OUT, strerror(errno)));
+    goto fail;
+  }
+#endif
+
+  /* Configure bpf(8) node */
+  NgFuncConfigBPF(b, BPF_MODE_OFF);
+
+  /* Listen for happenings on our node */
+  EventRegister(&b->dataEvent, EVENT_READ,
+    b->dsock, EVENT_RECURRING, NgFuncDataEvent, b);
+  EventRegister(&b->ctrlEvent, EVENT_READ,
+    b->csock, EVENT_RECURRING, NgFuncCtrlEvent, b);
+
+  /* OK */
+  return(0);
+
+fail:
+  NgFuncShutdownInternal(b, newIface, newPpp);
+  return(-1);
+}
+
+#ifdef USE_NG_NETFLOW
+static int
+NgFuncInitNetflow(Bund b)
+{
+    char path[NG_PATHLEN + 1];
+
+      snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
 
       struct ngm_mkpeer	mp;
       struct ngm_rmhook	rm;
@@ -423,6 +564,15 @@ NgFuncInit(Bund b, const char *reqIface)
 	}
       }
 
+      /* Set the new node's name. */
+      snprintf(nm.name, sizeof(nm.name), "mpd%d-nfso", gPid);
+      if (NgSendMsg(b->csock, path,
+          NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+	Log(LG_ERR, ("can't name %s node: %s", NG_KSOCKET_NODE_TYPE,
+          strerror(errno)));
+	goto fail;
+      }
+
       /* Disconnect temporary hook. */
       snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
       if (NgSendMsg(b->csock, ".",
@@ -431,85 +581,22 @@ NgFuncInit(Bund b, const char *reqIface)
 	goto fail;
       }
       gNetflowNode = TRUE;
-    }
 
-    /* Connect ng_netflow(4) node to the ng_bpf(4)/ng_tee(4) node. */
-    if (b->tee) {
-      snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
-	BPF_HOOK_IFACE);
-      snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_LEFT);
-    } else {
-      snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-      snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
-    }
-    snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
-    if (b->netflow == NETFLOW_OUT) {
-	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
-	    ++gNetflowIface);
-    } else {
-	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
-	    ++gNetflowIface);
-    }
-    if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
-	sizeof(cn)) < 0) {
-      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
-	cn.path, path, strerror(errno)));
-      goto fail;
-    }
+      return 0;
+fail:
+    return -1;
+}
 
-  }
-
-  if (b->tee && b->netflow) {
-    snprintf(path, sizeof(path), "%s.%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
-	BPF_HOOK_IFACE, NG_TEE_HOOK_LEFT);
-    if (b->netflow == NETFLOW_OUT) {
-	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface);
-    } else {
-	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface);
-    }
-  } else
-#endif	/* USE_NG_NETFLOW */
-  if (b->tee) {
-    snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
-	BPF_HOOK_IFACE);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_LEFT);
-#ifdef USE_NG_NETFLOW
-  } else if (b->netflow) {
-    snprintf(path, sizeof(path), "%s.%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET,
-	BPF_HOOK_IFACE);
-    if (b->netflow == NETFLOW_OUT) {
-	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface);
-    } else {
-	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface);
-    }
-#endif /* USE_NG_NETFLOW */
-  } else {
-    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_IFACE);
-  }
-  snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
-
-  /* Connect the entire graph to the iface node. */
-  if (NgSendMsg(b->csock, path,
-      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, cn.ourhook, NG_IFACE_HOOK_INET, strerror(errno)));
-    goto fail;
-  }
-
-#ifdef USE_NG_NETFLOW
-  if (b->netflow) {
+static int
+NgFuncInitNetflowHook(Bund b, int iface)
+{
+    char path[NG_PATHLEN + 1];
     struct ng_netflow_setdlt	 nf_setdlt;
     struct ng_netflow_setifindex nf_setidx;
     
     /* Configure data link type and interface index. */
     snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
-    nf_setdlt.iface = gNetflowIface;
+    nf_setdlt.iface = iface;
     nf_setdlt.dlt = DLT_RAW;
     if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
 	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
@@ -527,32 +614,80 @@ NgFuncInit(Bund b, const char *reqIface)
     	  goto fail;
 	}
     }
-  }
-#endif /* USE_NG_NETFLOW */
 
-  /* Connect ipv6 hook of ng_ppp(4) node to the ng_iface(4) node. */
-  snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_IPV6);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
-  if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
-	sizeof(cn)) < 0) {
-      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
-	cn.path, path, strerror(errno)));
-      goto fail;
-  }
+    return 0;
+fail:
+    return -1;
+}
+#endif
 
-  /* Connect a hook from the bpf node to our socket node */
-  snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_DEMAND_TAP);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", BPF_HOOK_MPD);
-  if (NgSendMsg(b->csock, ".",
-      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, BPF_HOOK_MPD, MPD_HOOK_DEMAND_TAP, strerror(errno)));
+static int
+NgFuncInitVJ(Bund b)
+{
+  char path[NG_PATHLEN + 1];
+  struct ngm_mkpeer	mp;
+  struct ngm_connect	cn;
+  struct ngm_name	nm;
+
+  /* Add a VJ compression node */
+  snprintf(mp.type, sizeof(mp.type), "%s", NG_VJC_NODE_TYPE);
+  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_PPP_HOOK_VJC_IP);
+  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_VJC_HOOK_IP);
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    Log(LG_ERR, ("[%s] can't create %s node: %s",
+      b->name, NG_VJC_NODE_TYPE, strerror(errno)));
     goto fail;
   }
 
-#ifdef USE_NG_TCPMSS
+  /* Give it a name */
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-vjc", gPid, b->name);
+  if (NgSendMsg(b->csock, path,
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    Log(LG_ERR, ("[%s] can't name %s node: %s",
+      b->name, NG_VJC_NODE_TYPE, strerror(errno)));
+    goto fail;
+  }
+
+  /* Connect the other three hooks between the ppp and vjc nodes */
+  snprintf(cn.path, sizeof(cn.path), "%s", NG_PPP_HOOK_VJC_IP);
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_COMP);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJCOMP);
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
+      b->name, NG_PPP_HOOK_VJC_COMP, NG_VJC_HOOK_VJCOMP, strerror(errno)));
+    goto fail;
+  }
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_UNCOMP);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJUNCOMP);
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
+      NG_PPP_HOOK_VJC_UNCOMP, NG_VJC_HOOK_VJUNCOMP, strerror(errno)));
+    goto fail;
+  }
+  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_VJIP);
+  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJIP);
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
+      b->name, NG_PPP_HOOK_VJC_VJIP, NG_VJC_HOOK_VJIP, strerror(errno)));
+    goto fail;
+  }
+
+    return 0;
+fail:
+    return -1;
+}
+
+static int
+NgFuncInitMSS(Bund b)
+{
+  char path[NG_PATHLEN + 1];
+  struct ngm_connect	cn;
+
   /* Create global ng_tcpmss(4) node if not yet. */
   if (gTcpMSSNode == FALSE) {
     struct ngm_mkpeer	mp;
@@ -610,72 +745,10 @@ NgFuncInit(Bund b, const char *reqIface)
     }
     gTcpMSSNode = TRUE;
   }
-#else
-  /* Connect a second hook from the bpf node to our socket node. */
-  snprintf(cn.path, sizeof(cn.path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_MSSFIX_OUT);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", BPF_HOOK_MPD_OUT);
-  if (NgSendMsg(b->csock, ".",
-      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, BPF_HOOK_MPD_OUT, MPD_HOOK_MSSFIX_OUT, strerror(errno)));
-    goto fail;
-  }
-#endif
 
-  /* Configure bpf(8) node */
-  NgFuncConfigBPF(b, BPF_MODE_OFF);
-
-  /* Add a VJ compression node */
-  snprintf(mp.type, sizeof(mp.type), "%s", NG_VJC_NODE_TYPE);
-  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_PPP_HOOK_VJC_IP);
-  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_VJC_HOOK_IP);
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, NG_VJC_NODE_TYPE, strerror(errno)));
-    goto fail;
-  }
-
-  /* Connect the other three hooks between the ppp and vjc nodes */
-  snprintf(cn.path, sizeof(cn.path), "%s", NG_PPP_HOOK_VJC_IP);
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_COMP);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJCOMP);
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, NG_PPP_HOOK_VJC_COMP, NG_VJC_HOOK_VJCOMP, strerror(errno)));
-    goto fail;
-  }
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_UNCOMP);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJUNCOMP);
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
-      NG_PPP_HOOK_VJC_UNCOMP, NG_VJC_HOOK_VJUNCOMP, strerror(errno)));
-    goto fail;
-  }
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_VJIP);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJIP);
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, NG_PPP_HOOK_VJC_VJIP, NG_VJC_HOOK_VJIP, strerror(errno)));
-    goto fail;
-  }
-
-  /* Listen for happenings on our node */
-  EventRegister(&b->dataEvent, EVENT_READ,
-    b->dsock, EVENT_RECURRING, NgFuncDataEvent, b);
-  EventRegister(&b->ctrlEvent, EVENT_READ,
-    b->csock, EVENT_RECURRING, NgFuncCtrlEvent, b);
-
-  /* OK */
-  return(0);
-
+    return 0;
 fail:
-  NgFuncShutdownInternal(b, newIface, newPpp);
-  return(-1);
+    return -1;
 }
 
 /*
