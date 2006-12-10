@@ -696,10 +696,13 @@ ShowSummary(int ac, char *av[], void *arg)
 	    }
 	    L=B->links[l];
 	    if (L) {
-		L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
+		if (L->phys->type)
+		    L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
+		else 
+		    buf[0] = 0;
 		Printf("%s\t%s\t%s\t%s\t%s\t%8s\t%s", 
 		    L->name,
-		    L->phys->type->name,
+		    (L->phys->type?L->phys->type->name:""),
 		    (B->iface.up?"Up":"Down"),
 		    FsmStateName(L->lcp.fsm.state),
 		    gPhysStateNames[L->phys->state],

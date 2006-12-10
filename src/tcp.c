@@ -94,7 +94,7 @@ static int	TcpSetCommand(int ac, char *av[], void *arg);
 
 const struct phystype gTcpPhysType = {
 	.name		= "tcp",
-	.synchronous	= FALSE,
+	.synchronous	= TRUE,
 	.minReopenDelay	= TCP_REOPEN_PAUSE,
 	.mtu		= TCP_MTU,
 	.mru		= TCP_MRU,

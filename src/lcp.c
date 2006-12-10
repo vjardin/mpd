@@ -204,7 +204,7 @@ LcpConfigure(Fsm fp)
   /* Initialize normal LCP stuff */
   lcp->peer_mru = lnk->conf.mtu;
   lcp->want_mru = lnk->conf.mru;
-  if (lcp->want_mru > lnk->phys->type->mru)
+  if (lnk->phys->type && (lcp->want_mru > lnk->phys->type->mru))
     lcp->want_mru = lnk->phys->type->mru;
   lcp->peer_accmap = 0xffffffff;
   lcp->want_accmap = lnk->conf.accmap;
@@ -573,7 +573,7 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
     cp = FsmConfValue(cp, TY_ACFCOMP, 0, NULL);
   if (lcp->want_protocomp && !LCP_PEER_REJECTED(lcp, TY_PROTOCOMP))
     cp = FsmConfValue(cp, TY_PROTOCOMP, 0, NULL);
-  if (!lnk->phys->type->synchronous) {
+  if (lnk->phys->type && (!lnk->phys->type->synchronous)) {
     if (!LCP_PEER_REJECTED(lcp, TY_ACCMAP))
       cp = FsmConfValue(cp, TY_ACCMAP, -4, &lcp->want_accmap);
   }

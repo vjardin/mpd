@@ -273,12 +273,15 @@ WebShowSummary(FILE *f)
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;lcp\">%s</a></TD>\n", 
 		    FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
-		    PHYS_COLOR(L->phys->state), L->name, L->phys->type->name);
+		    PHYS_COLOR(L->phys->state), L->name, L->phys->type?L->phys->type->name:"");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->phys->state), L->name, gPhysStateNames[L->phys->state]);
 		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;auth\">%s</a></TD>\n", 
 		    L->name, L->lcp.auth.params.authname);
-		L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
+		if (L->phys->type)
+		    L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
+		else 
+		    buf[0] = 0;
 		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    L->name, buf);
 		fprintf(f, "<TD><A href=\"/cmd?%s&amp;open\">[Open]</a><A href=\"/cmd?%s&amp;close\">[Close]</a></TD>\n", 
