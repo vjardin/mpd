@@ -41,6 +41,7 @@
   /* Types of allocated memory */
   #define MB_AUTH	"AUTH"
   #define MB_CONS	"CONSOLE"
+  #define MB_WEB	"WEB"
   #define MB_IFACE	"IFACE"
   #define MB_BUND	"BUND"
   #define MB_LINK	"LINK"

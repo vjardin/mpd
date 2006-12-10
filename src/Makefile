@@ -88,7 +88,7 @@ STDSRCS=        assert.c auth.c bund.c ccp.c chap.c \
 		console.c command.c ecp.c fsm.c iface.c input.c \
 		ip.c ipcp.c ipv6cp.c lcp.c link.c log.c main.c mbuf.c mp.c \
 		msg.c ngfunc.c pap.c phys.c proto.c radius.c timer.c \
-		util.c vars.c custom.c eap.c ccp_mppc.c msoft.c
+		util.c vars.c custom.c eap.c ccp_mppc.c msoft.c web.c
 
 # Mpd is event based, using this handy little event library..
 

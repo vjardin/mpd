@@ -15,6 +15,7 @@
 #include "iface.h"
 #include "command.h"
 #include "console.h"
+#include "web.h"
 #include "ngfunc.h"
 #include "msgdef.h"
 #include "util.h"
@@ -77,6 +78,7 @@
   int			gNumBundles;
   ConsoleSession	gConsoleSession;
   struct console	gConsole;
+  struct web		gWeb;
   int			gBackground = FALSE;
   int			gShutdownInProgress = FALSE;
   pid_t          	gPid;
@@ -134,6 +136,9 @@ main(int ac, char *av[])
 
   /* init console-stuff */
   ConsoleInit(&gConsole);
+
+  /* init web-stuff */
+  WebInit(&gWeb);
 
   /* init global-config */
   memset(&gGlobalConf, 0, sizeof(gGlobalConf));

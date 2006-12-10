@@ -70,6 +70,9 @@
   #define DEFAULT_CONSOLE_PORT	5005
   #define DEFAULT_CONSOLE_IP	"127.0.0.1"
 
+  #define DEFAULT_WEB_PORT	5006
+  #define DEFAULT_WEB_IP	"127.0.0.1"
+
   /* Forward decl's */
   struct linkst;
   typedef struct linkst *Link;

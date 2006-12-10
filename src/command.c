@@ -13,6 +13,7 @@
 
 #include "ppp.h"
 #include "console.h"
+#include "web.h"
 #include "command.h"
 #include "ccp.h"
 #include "iface.h"
@@ -130,6 +131,8 @@
 	MpStat, AdmitBund, NULL },
     { "console",			"Console status",
 	ConsoleStat, NULL, NULL },
+    { "web",				"Web status",
+	WebStat, NULL, NULL },
     { "globals",			"Global settings",
 	ShowGlobals, NULL, NULL },
     { "types",				"Supported device types",
@@ -164,6 +167,8 @@
 	CMD_SUBMENU, AdmitBund, (void *) RadiusSetCmds },
     { "console ...",			"Console specific stuff",
 	CMD_SUBMENU, NULL, (void *) ConsoleSetCmds },
+    { "web ...",			"Web specific stuff",
+	CMD_SUBMENU, NULL, (void *) WebSetCmds },
     { "global ...",			"Global settings",
 	CMD_SUBMENU, NULL, (void *) GlobalSetCmds },
 #ifdef USE_NG_NETFLOW

@@ -31,12 +31,6 @@ lcp.c contains a list of protocols (gLcpConfOpts), each protocol with
 "false" is not implemented.
 </p>
 
-<tag>Integrated Webserver</tag>
-<p>
-libpdel offers integrating a webserver into Mpd, it could be used for
-configuration and diagnostic purposes.
-</p>
-
 </descrip>
 
 

@@ -1,0 +1,70 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Web server commands<label id="web"></heading>
+
+<p>
+
+  This chapter describes commands for configuring Mpd's web server.
+
+<descrip>
+
+
+<tag><tt>
+set web open
+</tt></tag>
+
+Opens the web server, i.e., creates the listening TCP socket.
+
+<tag><tt>
+set web close
+</tt></tag>
+
+Closes the web server, i.e., closes the listening TCP socket.
+
+<tag><tt>
+set web port <em>port</em>
+<newline>set web ip <em>ip</em>
+</tt></tag>
+
+Sets the credentials for the web-listener. After changing one of these
+options, the web must be closed and re-opened for the changes to
+take effect.
+
+<tag><tt>
+set web user <em>username</em> <em>password</em>
+</tt></tag>
+
+This configures which users are allowed to connect to the web server.
+This command may be invoked multiple times with different usernames.
+
+</descrip>
+
+<p>
+
+<descrip>
+
+<tag><tt>
+set web enable <em>option ...</em>
+<newline>set web disable <em>option ...</em>
+</tt></tag>
+
+These commands configure various web server options.
+
+<p>
+The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands determine
+whether we want the corresponding option.
+
+The options available for the web are:
+
+<tag><tt>auth</tt></tag>
+
+This option enables basic authorisation on web server.
+Default is enabled.
+
+</descrip>
+
+</p>
+

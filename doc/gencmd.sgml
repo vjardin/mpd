@@ -96,6 +96,12 @@ Show all pending events (for debugging mpd).
 Show distribution of dynamically allocated memory (for debugging mpd).
 <tag>version</tag>
 Show the version of mpd running.
+<tag>summary</tag>
+Show status summary
+<tag>console</tag>
+Show console summary
+<tag>web</tag>
+Show web server summary
 
 </descrip>
 
@@ -152,6 +158,10 @@ for the currently active link, which must have type <bf>pptp</bf>.
 <tag><tt>set pppoe ...</tt></tag>
 Sets device specific configuration parameters
 for the currently active link, which must have type <bf>pppoe</bf>.
+<tag><tt>set console ...</tt></tag>
+Sets console specific configuration parameters
+<tag><tt>set web ...</tt></tag>
+Sets web server specific configuration parameters
 
 </descrip>
 

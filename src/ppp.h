@@ -93,6 +93,7 @@
   extern int		gNumBundles;		/* Total number of bundles */
   extern struct console	gConsole;
   extern ConsoleSession	gConsoleSession;	/* currently active console-session */
+  extern struct web	gWeb;
   extern int		gBackground;
   extern int		gShutdownInProgress;
   extern pid_t		gPid;

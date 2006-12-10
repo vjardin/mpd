@@ -55,6 +55,7 @@
     Console		console;
     struct optinfo	options;	/* Configured options */
     int			fd;		/* connection fd */
+    void		*cookie;	/* device dependent cookie */
     EventRef		readEvent;
     EventRef		writeEvent;
     Bund		bund;		/* my bundle */
