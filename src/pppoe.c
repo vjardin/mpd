@@ -950,7 +950,7 @@ PppoeNodeUpdate(PhysInfo p)
 	if (strcmp(PppoeIfs[i].ifnodepath, pe->path) == 0) {
     	    j = i;
 	    break;
-    }
+	}
     if (j == -1) {
 	if (PppoeIfCount>=PPPOE_MAXPARENTIFS) {
 		Log(LG_ERR, ("[%s] PPPoE: Too many different parent interfaces! ", 
@@ -1021,8 +1021,10 @@ PppoeListenUpdate(void *arg)
 
 		for (i = 0; i < PppoeIfCount; i++)
 			if ((strcmp(PppoeIfs[i].ifnodepath, p->path) == 0) &&
-			    (strcmp(PppoeIfs[i].session, p->session) == 0))
+			    (strcmp(PppoeIfs[i].session, p->session) == 0)) {
 				j = i;
+				break;
+			}
 
 		if (j == -1) {
 			if (PppoeIfCount>=PPPOE_MAXPARENTIFS) {
