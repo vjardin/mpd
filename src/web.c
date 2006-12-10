@@ -243,7 +243,7 @@ WebShowSummary(FILE *f)
 
   fprintf(f, "<H2>Current status summary</H2>\n");
   fprintf(f, "<table>\n");
-  fprintf(f, "<TR><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>Bund</TH><TH>Link</TH><TH>LCP</TH><TH colspan=2>Device</TH><TH>User</TH><TH>From</TH></TR>");
+  fprintf(f, "<TR><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>Bund</TH><TH>Link</TH><TH>LCP</TH><TH colspan=2>Device</TH><TH>User</TH><TH>From</TH><TH></TH></TR>");
   for (b = 0; b<gNumBundles; b++) {
     B=gBundles[b];
     if (B) {
@@ -279,6 +279,8 @@ WebShowSummary(FILE *f)
 		L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
 		fprintf(f, "<TD><A href='/cmd?%s&show&phys'>%s</a></TD>\n", 
 		    L->name, buf);
+		fprintf(f, "<TD><A href='/cmd?%s&open'>[Open]</a><A href='/cmd?%s&close'>[Close]</a></TD>\n", 
+		    L->name, L->name);
 		fprintf(f, "</TR>\n");
 		
 		shown = 1;
@@ -336,7 +338,9 @@ WebRunCmd(FILE *f, const char *querry)
     }
     fprintf(f, "' for link '%s'</H2>\n", argv[0]);
     
-    if (!strcmp(argv[1], "show")) {
+    if ((!strcmp(argv[1], "show")) ||
+	(!strcmp(argv[1], "open")) ||
+	(!strcmp(argv[1], "close"))) {
 	fprintf(f, "<PRE>\n");
 
 	bund_orig = bund;
