@@ -257,31 +257,31 @@ WebShowSummary(FILE *f)
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
 		if (!shown) {
-		    fprintf(f, "<TD rowspan='%d' class='%s'><A href='/cmd?%s&show&iface'>%s</a></TD>\n", 
+		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;iface\">%s</a></TD>\n", 
 			B->n_links, (B->iface.up?"g":"r"), L->name, B->iface.ifname);
-		    fprintf(f, "<TD rowspan='%d' class='%s'><A href='/cmd?%s&show&iface'>%s</a></TD>\n", 
+		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;iface\">%s</a></TD>\n", 
 			B->n_links, (B->iface.up?"g":"r"), L->name, (B->iface.up?"Up":"Down"));
-		    fprintf(f, "<TD rowspan='%d' class='%s'><A href='/cmd?%s&show&ipcp'>%s</a></TD>\n", 
+		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ipcp\">%s</a></TD>\n", 
 			B->n_links, FSM_COLOR(B->ipcp.fsm.state), L->name,FsmStateName(B->ipcp.fsm.state));
-		    fprintf(f, "<TD rowspan='%d' class='%s'><A href='/cmd?%s&show&ipv6cp'>%s</a></TD>\n", 
+		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ipv6cp\">%s</a></TD>\n", 
 			B->n_links, FSM_COLOR(B->ipv6cp.fsm.state), L->name,FsmStateName(B->ipv6cp.fsm.state));
-		    fprintf(f, "<TD rowspan='%d'><A href='/cmd?%s&show&bund'>%s</a></TD>\n", 
+		    fprintf(f, "<TD rowspan=\"%d\"><A href=\"/cmd?%s&amp;show&amp;bund\">%s</a></TD>\n", 
 			B->n_links, L->name, B->name);
 		}
-		fprintf(f, "<TD><A href='/cmd?%s&show&link'>%s</a></TD>\n", 
+		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;link\">%s</a></TD>\n", 
 		    L->name, L->name);
-		fprintf(f, "<TD class='%s'><A href='/cmd?%s&show&lcp'>%s</a></TD>\n", 
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;lcp\">%s</a></TD>\n", 
 		    FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
-		fprintf(f, "<TD class='%s'><A href='/cmd?%s&show&phys'>%s</a></TD>\n", 
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->phys->state), L->name, L->phys->type->name);
-		fprintf(f, "<TD class='%s'><A href='/cmd?%s&show&phys'>%s</a></TD>\n", 
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->phys->state), L->name, gPhysStateNames[L->phys->state]);
-		fprintf(f, "<TD><A href='/cmd?%s&show&auth'>%s</a></TD>\n", 
+		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;auth\">%s</a></TD>\n", 
 		    L->name, L->lcp.auth.params.authname);
 		L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
-		fprintf(f, "<TD><A href='/cmd?%s&show&phys'>%s</a></TD>\n", 
+		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    L->name, buf);
-		fprintf(f, "<TD><A href='/cmd?%s&open'>[Open]</a><A href='/cmd?%s&close'>[Close]</a></TD>\n", 
+		fprintf(f, "<TD><A href=\"/cmd?%s&amp;open\">[Open]</a><A href=\"/cmd?%s&amp;close\">[Close]</a></TD>\n", 
 		    L->name, L->name);
 		fprintf(f, "</TR>\n");
 		
@@ -339,10 +339,13 @@ WebRunCmd(FILE *f, const char *querry)
 	fprintf(f, "%s ",argv[k]);
     }
     fprintf(f, "' for link '%s'</H2>\n", argv[0]);
-    
+
     if ((!strcmp(argv[1], "show")) ||
 	(!strcmp(argv[1], "open")) ||
 	(!strcmp(argv[1], "close"))) {
+
+	fprintf(f, "<P><A href=\"/\"><< Back</A></P>\n");
+    
 	fprintf(f, "<PRE>\n");
 
 	bund_orig = bund;
@@ -375,6 +378,7 @@ WebRunCmd(FILE *f, const char *querry)
   } else {
     fprintf(f, "<P>No command cpecified!</P>\n");
   }
+  fprintf(f, "<P><A href=\"/\"><< Back</A></P>\n");
 }
 
 static void
@@ -408,7 +412,11 @@ WebServletRun(struct http_servlet *servlet,
 	
 	pthread_cleanup_push(WebServletRunCleanup, NULL);
 	GIANT_MUTEX_LOCK();
-	fprintf(f, "<HTML><HEAD><TITLE>Multi-link PPP Daemon</TITLE>\n");
+	fprintf(f, "<!DOCTYPE HTML "
+	    "PUBLIC \"-//W3C//DTD HTML 4.01//EN\" "
+	    "\"http://www.w3.org/TR/html4/strict.dtd\">\n");
+	fprintf(f, "<HTML>\n");
+	fprintf(f, "<HEAD><TITLE>Multi-link PPP Daemon</TITLE>\n");
 	fprintf(f, "<LINK rel='stylesheet' href='/mpd.css' type='text/css'>\n");
 	fprintf(f, "</HEAD>\n<BODY>\n");
 	fprintf(f, "<H1>Multi-link PPP Daemon for FreeBSD</H1>\n");
