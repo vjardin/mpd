@@ -297,7 +297,7 @@ UdpOrigination(PhysInfo p)
 static int
 UdpPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
-  UdpInfo	const pi = (UdpInfo) p;
+  UdpInfo	const pi = (UdpInfo) p->info;
 
   if (u_addrtoa(&pi->real_peer_addr, buf, buf_len))
     return(0);
@@ -324,6 +324,7 @@ UdpStat(PhysInfo p)
 	OptStat(&pi->options, gConfList);
 	Printf("UDP state:\r\n");
 	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
+	Printf("\tIncoming     : %s\r\n", (pi->incoming?"YES":"NO"));
 	Printf("\tCurrent peer : %s, port %u\r\n",
 	    u_addrtoa(&pi->real_peer_addr, buf, sizeof(buf)), pi->real_peer_port);
 }

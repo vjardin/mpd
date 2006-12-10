@@ -188,7 +188,7 @@ NgSetCommand(int ac, char *av[], void *arg)
 static int
 NgPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
-  NgInfo	const ng = (NgInfo) p;
+  NgInfo	const ng = (NgInfo) p->info;
 
   if (buf_len < sizeof(ng->path))
     return(-1);

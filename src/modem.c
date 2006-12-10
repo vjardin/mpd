@@ -880,7 +880,7 @@ ModemOriginated(PhysInfo p)
 static int
 ModemPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
-  ModemInfo	const m = (ModemInfo) p;
+  ModemInfo	const m = (ModemInfo) p->info;
 
   if (buf_len < sizeof(m->ttynode))
     return(-1);

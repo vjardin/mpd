@@ -467,16 +467,20 @@ void
 PppoeStat(PhysInfo p)
 {
 	const PppoeInfo pe = (PppoeInfo)p->info;
+	char	buf[64];
 
 	Printf("PPPoE configuration:\r\n");
-	Printf("\tIface Node: %s\r\n", pe->path);
-	Printf("\tIface Hook: %s\r\n", pe->hook);
-	Printf("\tSession   : %s\r\n", pe->session);
+	Printf("\tIface Node   : %s\r\n", pe->path);
+	Printf("\tIface Hook   : %s\r\n", pe->hook);
+	Printf("\tSession      : %s\r\n", pe->session);
 	Printf("PPPoE options:\r\n");
 	OptStat(&pe->options, gConfList);
 	Printf("PPPoE status:\r\n");
-	Printf("\tState     : %s\r\n", gPhysStateNames[p->state]);
-	Printf("\tOpened    : %s\r\n", (pe->opened?"YES":"NO"));
+	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
+	Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
+	Printf("\tIncoming     : %s\r\n", (pe->incoming?"YES":"NO"));
+	PppoePeerAddr(p, buf, sizeof(buf));
+	Printf("\tCurrent peer : %s\r\n", buf);
 }
 
 /*
@@ -493,7 +497,7 @@ PppoeOriginated(PhysInfo p)
 static int
 PppoePeerAddr(PhysInfo p, void *buf, int buf_len)
 {
-	PppoeInfo	const pppoe = (PppoeInfo) p;
+	PppoeInfo	const pppoe = (PppoeInfo)p->info;
 
 	snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
 	    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 

@@ -529,7 +529,7 @@ TcpOriginate(PhysInfo p)
 static int
 TcpPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
-	TcpInfo const pi = (TcpInfo) p;
+	TcpInfo const pi = (TcpInfo) p->info;
 
 	if (u_addrtoa(&pi->real_peer_addr, buf, buf_len))
 		return (0);
@@ -556,6 +556,7 @@ TcpStat(PhysInfo p)
 	OptStat(&pi->options, gConfList);
 	Printf("TCP state:\r\n");
 	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
+	Printf("\tIncoming     : %s\r\n", (pi->incoming?"YES":"NO"));
 	Printf("\tCurrent peer : %s, port %u\r\n",
 	    u_addrtoa(&pi->real_peer_addr, buf, sizeof(buf)), pi->real_peer_port);
 }

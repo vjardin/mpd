@@ -359,7 +359,7 @@ PptpOriginated(PhysInfo p)
 static int
 PptpPeerAddr(PhysInfo p, void *buf, int buf_len)
 {
-  PptpInfo	const pptp = (PptpInfo) p;
+  PptpInfo	const pptp = (PptpInfo) p->info;
 
   if (u_addrtoa(&pptp->peer_addr, buf, buf_len))
     return(0);
@@ -398,6 +398,7 @@ PptpStat(PhysInfo p)
   OptStat(&pptp->options, gConfList);
   Printf("PPTP status:\r\n");
   Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
+  Printf("\tIncoming     : %s\r\n", (pptp->originate?"NO":"YES"));
   Printf("\tCurrent peer : %s, port %u\r\n",
     u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
 }

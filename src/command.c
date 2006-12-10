@@ -696,7 +696,7 @@ ShowSummary(int ac, char *av[], void *arg)
 	    }
 	    L=B->links[l];
 	    if (L) {
-		L->phys->type->peeraddr(L->phys->info, buf, sizeof(buf));
+		L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
 		Printf("%s\t%s\t%s\t%s\t%s\t%8s\t%s", 
 		    L->name,
 		    L->phys->type->name,

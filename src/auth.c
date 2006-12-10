@@ -242,7 +242,7 @@ AuthStart(void)
   a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
 
   /* remember peer's IP address */
-  lnk->phys->type->peeraddr(lnk->phys->info, a->params.peeraddr, sizeof(a->params.peeraddr));
+  lnk->phys->type->peeraddr(lnk->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
   
   Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
     Pref(&lnk->lcp.fsm),

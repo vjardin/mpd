@@ -276,7 +276,7 @@ WebShowSummary(FILE *f)
 		    PHYS_COLOR(L->phys->state), L->name, gPhysStateNames[L->phys->state]);
 		fprintf(f, "<TD><A href='/cmd?%s&show&auth'>%s</a></TD>\n", 
 		    L->name, L->lcp.auth.params.authname);
-		L->phys->type->peeraddr(L->phys->info, buf, sizeof(buf));
+		L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
 		fprintf(f, "<TD><A href='/cmd?%s&show&phys'>%s</a></TD>\n", 
 		    L->name, buf);
 		fprintf(f, "</TR>\n");
