@@ -124,14 +124,16 @@ WebOpen(Web w)
     return(-1);
   }
 
-  if (!(w->srvlet_auth = http_servlet_basicauth_create(WebAuth, w, NULL))) {
-    Log(LG_ERR, ("%s: error http_servlet_basicauth_create: %d", __FUNCTION__, errno));
-    return(-1);
-  }
+  if (Enabled(&w->options, WEB_AUTH)) {
+    if (!(w->srvlet_auth = http_servlet_basicauth_create(WebAuth, w, NULL))) {
+	Log(LG_ERR, ("%s: error http_servlet_basicauth_create: %d", __FUNCTION__, errno));
+	return(-1);
+    }
 
-  if (http_server_register_servlet(w->srv, w->srvlet_auth, NULL, ".*", 5) < 0) {
-    Log(LG_ERR, ("%s: error http_server_register_servlet: %d", __FUNCTION__, errno));
-    return(-1);
+    if (http_server_register_servlet(w->srv, w->srvlet_auth, NULL, ".*", 5) < 0) {
+	Log(LG_ERR, ("%s: error http_server_register_servlet: %d", __FUNCTION__, errno));
+        return(-1);
+    }
   }
   
   w->srvlet.arg=NULL;
