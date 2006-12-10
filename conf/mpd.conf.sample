@@ -303,7 +303,7 @@ PPPoE:
 	set link keep-alive 10 60
 	set ipcp yes vjcomp
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
-	open iface
+	open
 
 radius:
 # You can use radius.conf(5), its useful, because you can share the
