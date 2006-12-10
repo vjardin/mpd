@@ -17,14 +17,6 @@ a task post it to MPD's maling list.
 Currently MPD doesen't support callback, but it should.
 </p>
 
-<tag>NAT</tag>
-<p>
-Mpd has currently no support for NAT, but it would be great, if he
-can support this. We intend not simply using libalias for this,
-instead a new netgraph node ng_nat would be the right way for doing
-this.
-</p>
-
 <tag>Unimplemented Protocols</tag>
 <p>
 lcp.c contains a list of protocols (gLcpConfOpts), each protocol with

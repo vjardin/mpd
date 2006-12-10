@@ -800,6 +800,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   char	*reqIface = NULL;
   u_char tee = 0;
   u_char netflow = 0;
+  u_char nat = 0;
   int	k;
 
   /* Args */
@@ -809,7 +810,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   if (ac > 0 && av[0][0] == '-') {
     optreset = 1; 
     optind = 0;
-    while ((k = getopt(ac, av, "nNti:")) != -1) {
+    while ((k = getopt(ac, av, "nNati:")) != -1) {
       switch (k) {
       case 'i':
 	reqIface = optarg;
@@ -825,6 +826,10 @@ BundCreateCmd(int ac, char *av[], void *arg)
       case 'N':
 #ifdef USE_NG_NETFLOW
 	netflow = NETFLOW_OUT;
+#endif
+      case 'a':
+#ifdef USE_NG_NAT
+	nat = 1;
 #endif
 	break;
       default:
@@ -847,6 +852,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   bund->csock = bund->dsock = -1;
   bund->tee = tee;
   bund->netflow = netflow;
+  bund->nat = nat;
 
   /* Setup netgraph stuff */
   if (NgFuncInit(bund, reqIface) < 0) {

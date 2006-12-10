@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Integrated Web server added.
 	  </item>
+	  <item> NAT support by ng_nat(4) added.
+	  </item>
 	  <item> UDP device type was completely rewritten. Now it:
 	         - does not require manual 'open' command on the server side,
 		   it behaves just like any other device type;

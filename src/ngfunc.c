@@ -49,6 +49,9 @@
 #ifdef USE_NG_NETFLOW
 #include <netgraph/netflow/ng_netflow.h>
 #endif
+#ifdef USE_NG_NAT
+#include <netgraph/ng_nat.h>
+#endif
 
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
@@ -355,7 +358,40 @@ NgFuncInit(Bund b, const char *reqIface)
     goto fail;
   }
 
-  /* Add a tee node between bpf and interface if configured */
+#ifdef USE_NG_NAT
+  /* Add a nat node if configured */
+  if (b->nat) {
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_NAT_NODE_TYPE);
+    strcpy(mp.ourhook, hook);
+    strcpy(mp.peerhook, NG_NAT_HOOK_IN);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+      Log(LG_ERR, ("[%s] can't create %s node: %s",
+	b->name, NG_NAT_NODE_TYPE, strerror(errno)));
+      goto fail;
+    }
+    strlcat(path, ".", sizeof(path));
+    strlcat(path, hook, sizeof(path));
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-nat", gPid, b->name);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+      Log(LG_ERR, ("[%s] can't name %s node: %s",
+	b->name, NG_NAT_NODE_TYPE, strerror(errno)));
+      goto fail;
+    }
+    strcpy(hook, NG_NAT_HOOK_OUT);
+
+    /* Set NAT IP */
+    struct in_addr ip = { 1 }; // Setting something just to make it ready
+    if (NgSendMsg(b->csock, path,
+	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &ip, sizeof(ip)) < 0) {
+	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
+    	    b->name, strerror(errno)));
+    }
+  }
+#endif
+
+  /* Add a tee node if configured */
   if (b->tee) {
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
     strcpy(mp.ourhook, hook);
@@ -377,7 +413,7 @@ NgFuncInit(Bund b, const char *reqIface)
     }
     strcpy(hook, NG_TEE_HOOK_LEFT);
   }
-
+  
 #ifdef USE_NG_NETFLOW
   if (b->netflow) {
 

@@ -37,6 +37,9 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#ifdef USE_NG_NAT
+#include <netgraph/ng_nat.h>
+#endif
 
 /*
  * DEFINITIONS
@@ -665,6 +668,9 @@ IfaceIpIfaceUp(int ready)
   u_char		*ether;
   int			k;
   char			buf[64];
+#ifdef USE_NG_NAT
+  char                  path[NG_PATHLEN + 1];
+#endif
 
   /* For good measure */
   BundUpdateParams();
@@ -723,6 +729,16 @@ IfaceIpIfaceUp(int ready)
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
     }
   }
+
+#ifdef USE_NG_NAT
+  /* Set NAT IP */
+  snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, bund->name);
+  if (NgSendMsg(bund->csock, path,
+      NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &iface->self_addr.addr.u.ip4, sizeof(iface->self_addr.addr.u.ip4)) < 0) {
+    Log(LG_ERR, ("[%s] can't set NAT ip: %s",
+      bund->name, strerror(errno)));
+  }
+#endif
 
 }
 

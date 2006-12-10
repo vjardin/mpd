@@ -162,6 +162,7 @@
     u_char		multilink:1;	/* Doing multi-link on this bundle */
     u_char		tee:1;		/* Bundle has ng_tee(4). */
     u_char		netflow:2;	/* Bundle connects to ng_netflow(4). */
+    u_char		nat:1;		/* Bundle has to ng_nat(4). */
     #define NETFLOW_IN	1
     #define NETFLOW_OUT	2
     

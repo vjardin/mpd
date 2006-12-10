@@ -23,12 +23,14 @@ Mpd also includes many additional features:
       IPv4 and IPv6 support
       RADIUS authentication and accounting
       NetFlow traffic accounting
+      Network address translation (NAT)
       Dial-on-demand with idle timeout 
       Multiple active connections running simultaneously 
       Dynamic demand based link management (also known as ``rubber bandwidth'') 
       Powerful chat scripting language for asynchronous serial ports 
       Pre-tested chat scripts for several common modems and ISDN TAs
       Clean device-type independent design 
-      Comprehensive logging 
+      Comprehensive logging
+      Telnet and HTTP control interfaces.
 
 WWW: http://www.sourceforge.net/projects/mpd
