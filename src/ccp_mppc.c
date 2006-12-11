@@ -111,22 +111,26 @@ MppcInit(int dir)
       ppphook = NG_PPP_HOOK_COMPRESS;
       mppchook = NG_MPPC_HOOK_COMP;
       conf.bits = mppc->xmit_bits;
-      if (mschap == CHAP_ALG_MSOFT)
-	MppeInitKey(mppc, dir);
-      else
-        MppeInitKeyv2(mppc, dir);
-      memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
+      if (conf.bits & MPPE_BITS) {
+        if (mschap == CHAP_ALG_MSOFT)
+	    MppeInitKey(mppc, dir);
+        else
+    	    MppeInitKeyv2(mppc, dir);
+        memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
+      }
       break;
     case COMP_DIR_RECV:
       cmd = NGM_MPPC_CONFIG_DECOMP;
       ppphook = NG_PPP_HOOK_DECOMPRESS;
       mppchook = NG_MPPC_HOOK_DECOMP;
       conf.bits = mppc->recv_bits;
-      if (mschap == CHAP_ALG_MSOFT)
-	MppeInitKey(mppc, dir);
-      else
-	MppeInitKeyv2(mppc, dir);
-      memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
+      if (conf.bits & MPPE_BITS) {
+        if (mschap == CHAP_ALG_MSOFT)
+	    MppeInitKey(mppc, dir);
+        else
+	    MppeInitKeyv2(mppc, dir);
+        memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
+      }
       break;
     default:
       assert(0);
