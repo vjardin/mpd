@@ -429,18 +429,25 @@ MppcDescribeBits(u_int32_t bits)
 
   *buf = 0;
   if (bits & MPPC_BIT)
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " MPPC");
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "MPPC, ");
   if (bits & MPPE_BITS) {
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " MPPE");
-    if (bits & MPPE_40)
-      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", 40 bit");
-    if (bits & MPPE_56)
-      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", 56 bit");
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "MPPE(");
+    if (bits & MPPE_40) {
+      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "40");
+      if (bits & (MPPE_56|MPPE_128))
+        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", ");
+    }
+    if (bits & MPPE_56) {
+      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "56");
+      if ((bits & MPPE_128))
+        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", ");
+    }
     if (bits & MPPE_128)
-      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", 128 bit");
-    if (bits & MPPE_STATELESS)
-      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", stateless");
+      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "128");
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " bits), ");
   }
+  if (bits & MPPE_STATELESS)
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "stateless");
   return(buf);
 }
 
@@ -482,8 +489,8 @@ MppcEnabledMppeType(short type)
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
     }
   }
-  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are enabled -> %s%s", 
-    lnk->name, type, ret ? "yes" : "no", policy_auth ? " (AUTH)" : "" ));
+//  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are enabled -> %s%s", 
+//    lnk->name, type, ret ? "yes" : "no", policy_auth ? " (AUTH)" : "" ));
   return ret;
 }
 
