@@ -162,6 +162,7 @@
     { CCP_TY_GAND,		"GAND" },
     { CCP_TY_V42BIS,		"V42BIS" },
     { CCP_TY_BSD,		"BSD" },
+    { CCP_TY_DEFLATE24,		"DEFLATE24" },
     { CCP_TY_DEFLATE,		"DEFLATE" },
     { 0,			NULL },
   };

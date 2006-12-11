@@ -45,7 +45,8 @@
   #define CCP_TY_GAND		19	/* Gandalf FZA */
   #define CCP_TY_V42BIS		20	/* V.42bis compression */
   #define CCP_TY_BSD		21	/* BSD LZW Compress */
-  #define CCP_TY_DEFLATE	24	/* Gzip "deflate" compression */
+  #define CCP_TY_DEFLATE24	24	/* Gzip "deflate" compression */
+  #define CCP_TY_DEFLATE	26	/* Gzip "deflate" compression */
 
   /* CCP state */
   struct ccpstate {
