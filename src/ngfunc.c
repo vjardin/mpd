@@ -1196,7 +1196,11 @@ NgFuncShutdownInternal(Bund b, int iface, int ppp)
   lnk = lnk_save;
   if (ppp) {
     if (b->tee) {
-	snprintf(path, sizeof(path), "%s.%s.iface", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+	snprintf(path, sizeof(path), "mpd%d-%s-tee:", gPid, b->name);
+	NgFuncShutdownNode(b, b->name, path);
+    }
+    if (b->nat) {
+	snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
 	NgFuncShutdownNode(b, b->name, path);
     }
     snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
