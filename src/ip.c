@@ -18,16 +18,20 @@
 int
 IpShowRoutes(int ac, char *av[], void *arg)
 {
-  int	ch;
   FILE	*fp;
+  char	buf[1024];
+  char	*c;
 
   if ((fp = popen(PATH_NETSTAT " -nr -f inet", "r")) == NULL)
   {
     Perror("popen");
     return(0);
   }
-  while ((ch = getc(fp)) != EOF)
-    putchar(ch);
+  while (fgets(buf,sizeof(buf)-1,fp)) {
+    if ((c=strrchr(buf,'\n')))
+	*c='\r';
+    Printf("%s\n",buf);
+  }
   pclose(fp);
   return(0);
 }
