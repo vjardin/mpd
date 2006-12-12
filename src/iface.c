@@ -732,11 +732,13 @@ IfaceIpIfaceUp(int ready)
 
 #ifdef USE_NG_NAT
   /* Set NAT IP */
-  snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, bund->name);
-  if (NgSendMsg(bund->csock, path,
-      NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &iface->self_addr.addr.u.ip4, sizeof(iface->self_addr.addr.u.ip4)) < 0) {
-    Log(LG_ERR, ("[%s] can't set NAT ip: %s",
-      bund->name, strerror(errno)));
+  if (bund->nat) {
+    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, bund->name);
+    if (NgSendMsg(bund->csock, path,
+    	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &iface->self_addr.addr.u.ip4, sizeof(iface->self_addr.addr.u.ip4)) < 0) {
+	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
+    	    bund->name, strerror(errno)));
+    }
   }
 #endif
 
