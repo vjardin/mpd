@@ -827,6 +827,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
 #ifdef USE_NG_NETFLOW
 	netflow = NETFLOW_OUT;
 #endif
+	break;
       case 'a':
 #ifdef USE_NG_NAT
 	nat = 1;
