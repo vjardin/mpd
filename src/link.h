@@ -90,7 +90,6 @@
   struct linkstats {
 	struct ng_ppp_link_stat
 			oldStats;
-	struct pppTimer	updateTimer;	/* update Timer */
 	u_int64_t 	xmitFrames;	/* xmit frames on link */
 	u_int64_t 	xmitOctets;	/* xmit octets on link */
 	u_int64_t 	recvFrames;	/* recv frames on link */
@@ -126,6 +125,7 @@
     struct lcpstate	lcp;		/* LCP state info */
     struct linkbm	bm;		/* Link bandwidth mgmt info */
     struct linkstats	stats;		/* Link statistics */
+    struct pppTimer	statsUpdateTimer;	/* update Timer */
     PhysInfo		phys;		/* Physical layer info */
 
     /* Link properties */

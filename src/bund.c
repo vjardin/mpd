@@ -272,9 +272,9 @@ BundJoin(void)
   AuthAccountStart(AUTH_ACCT_START);
 
   /* starting link statistics timer */
-  TimerInit(&lnk->stats.updateTimer, "LinkUpdateStats", 
+  TimerInit(&lnk->statsUpdateTimer, "LinkUpdateStats", 
     LINK_STATS_UPDATE_INTERVAL, LinkUpdateStatsTimer, NULL);
-  TimerStart(&lnk->stats.updateTimer);
+  TimerStart(&lnk->statsUpdateTimer);
 
   /* Done */
   return(bm->n_up);
@@ -295,7 +295,7 @@ BundLeave(void)
   assert(bm->n_up > 0);
   
   /* stopping link statistics timer */
-  TimerStop(&lnk->stats.updateTimer);
+  TimerStop(&lnk->statsUpdateTimer);
 
   AuthAccountStart(AUTH_ACCT_STOP);
   AuthCleanup();

@@ -497,9 +497,9 @@ LinkUpdateStats(void)
 void
 LinkUpdateStatsTimer(void *cookie)
 {
-  TimerStop(&lnk->stats.updateTimer);
+  TimerStop(&lnk->statsUpdateTimer);
   LinkUpdateStats();
-  TimerStart(&lnk->stats.updateTimer);
+  TimerStart(&lnk->statsUpdateTimer);
 }
 
 /*
