@@ -921,7 +921,7 @@ AuthAsync(void *arg)
   }    
   
   if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
-    a->params.authentic = AUTH_CONF_INTERNAL;
+    auth->params.authentic = AUTH_CONF_INTERNAL;
     Log(LG_AUTH, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
     Log(LG_AUTH, (" Peer name: \"%s\"", auth->params.authname));
     if (AuthGetData(auth, 1) < 0) {
@@ -1026,7 +1026,7 @@ AuthSystem(AuthData auth)
     GIANT_MUTEX_LOCK();
     if (strcmp(crypt(pap->peer_pass, pwc.pw_passwd), pwc.pw_passwd) == 0) {
       auth->status = AUTH_STATUS_SUCCESS;
-      a->params.authentic = AUTH_CONF_OPIE;      
+      auth->params.authentic = AUTH_CONF_OPIE;      
     } else {
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -1044,12 +1044,12 @@ AuthSystem(AuthData auth)
     }
 
     bin = Hex2Bin(&pwc.pw_passwd[4]);
-    memcpy(a->params.msoft.nt_hash, bin, sizeof(a->params.msoft.nt_hash));
+    memcpy(auth->params.msoft.nt_hash, bin, sizeof(auth->params.msoft.nt_hash));
     Freee(MB_UTIL, bin);
-    NTPasswordHashHash(a->params.msoft.nt_hash, a->params.msoft.nt_hash_hash);
-    a->params.msoft.has_nt_hash = TRUE;
+    NTPasswordHashHash(auth->params.msoft.nt_hash, auth->params.msoft.nt_hash_hash);
+    auth->params.msoft.has_nt_hash = TRUE;
     auth->status = AUTH_STATUS_UNDEF;
-    a->params.authentic = AUTH_CONF_OPIE;
+    auth->params.authentic = AUTH_CONF_OPIE;
     return;
 
   } else {
@@ -1104,7 +1104,7 @@ AuthOpie(AuthData auth)
 
   if (auth->proto == PROTO_PAP ) {
     if (!opieverify(&auth->opie.data, pap->peer_pass)) {
-      a->params.authentic = AUTH_CONF_OPIE;
+      auth->params.authentic = AUTH_CONF_OPIE;
       auth->status = AUTH_STATUS_SUCCESS;
     } else {
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -1129,7 +1129,7 @@ AuthOpie(AuthData auth)
 
   opiebtoe(english, &key);
   strlcpy(auth->params.password, english, sizeof(auth->params.password));
-  a->params.authentic = AUTH_CONF_OPIE;
+  auth->params.authentic = AUTH_CONF_OPIE;
 }
 
 /*
