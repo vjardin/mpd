@@ -2,8 +2,7 @@
 /*
  * ccp_pred1.c
  *
- * Copyright (c) 1997-1999 Whistle Communications, Inc.
- * All rights reserved.
+ * Written by Alexander Motin <mav@alkar.net>
  */
 
 /*
@@ -19,6 +18,18 @@
 
 #include "ppp.h"
 #include "ccp.h"
+#include "util.h"
+#include "ngfunc.h"
+
+#include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/ppp/ng_ppp.h>
+#include <netgraph/socket/ng_socket.h>
+#else
+#include <netgraph/ng_ppp.h>
+#include <netgraph/ng_socket.h>
+#endif
+#include <netgraph.h>
 
 /*
  * DEFINITIONS
@@ -44,14 +55,17 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void	Pred1Init(int direction);
+  static int	Pred1Init(int direction);
   static void	Pred1Cleanup(int direction);
-  static Mbuf	Pred1Compress(int proto, Mbuf bp);
-  static Mbuf	Pred1Decompress(Mbuf bp, int *proto);
+  static void	Pred1Compress(u_char *uncomp, int orglen, u_char *comp, int *newlen);
+  static void	Pred1Decompress(u_char *uncomp, int orglen, u_char *comp, int *newlen);
 
-  static u_char	*Pred1BuildConfigReq(CompInfo comp, u_char *cp);
-  static Mbuf	Pred1RecvResetReq(int id, Mbuf bp);
+  static u_char	*Pred1BuildConfigReq(u_char *cp);
+  static void   Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode);
+  static Mbuf	Pred1RecvResetReq(int id, Mbuf bp, int *noAck);
   static Mbuf	Pred1SendResetReq(void);
+  static int    Pred1Negotiated(int xmit);
+  static int    Pred1SubtractBloat(int size);
 
   static int	Compress(u_char *source, u_char *dest, int len);
   static int	Decompress(u_char *source, u_char *dest, int slen, int dlen);
@@ -61,44 +75,73 @@
  * GLOBAL VARIABLES
  */
 
-  const struct compinfo	gCompPred1Info =
+  const struct comptype	gCompPred1Info =
   {
-    TY_PRED1,
+    "pred1",
+    CCP_TY_PRED1,
     Pred1Init,
+    NULL,
+    NULL,
+    Pred1SubtractBloat,
     Pred1Cleanup,
+    Pred1BuildConfigReq,
+    Pred1DecodeConfigReq,
+    Pred1SendResetReq,
+    Pred1RecvResetReq,
+    NULL,
+    Pred1Negotiated,
     Pred1Compress,
     Pred1Decompress,
-    NULL,
-    Pred1BuildConfigReq,
-    NULL,
-    Pred1RecvResetReq,
-    Pred1SendResetReq,
-    NULL,
   };
 
 /*
  * Pred1Init()
  */
 
-void
+static int
 Pred1Init(int directions)
 {
   Pred1Info	p = &bund->ccp.pred1;
 
-  if (directions & CCP_DIR_INPUT)
+  struct ngm_connect    cn;
+
+  if (directions == COMP_DIR_RECV)
   {
     p->iHash = 0;
     if (p->InputGuessTable == NULL)
       p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->InputGuessTable, 0, PRED1_TABLE_SIZE);
+
+    /* Connect a hook from the bpf node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
+        bund->name, NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+	return -1;
+    }
   }
-  if (directions & CCP_DIR_OUTPUT)
+  if (directions == COMP_DIR_XMIT)
   {
     p->oHash = 0;
     if (p->OutputGuessTable == NULL)
       p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->OutputGuessTable, 0, PRED1_TABLE_SIZE);
+
+    /* Connect a hook from the bpf node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
+        bund->name, NG_PPP_HOOK_COMPRESS, strerror(errno)));
+	return -1;
+    }
   }
+  return 0;
 }
 
 /*
@@ -109,18 +152,33 @@ void
 Pred1Cleanup(int direction)
 {
   Pred1Info	p = &bund->ccp.pred1;
+  struct ngm_rmhook rm;
 
-  if (direction & CCP_DIR_INPUT)
+  if (direction == COMP_DIR_RECV)
   {
     assert(p->InputGuessTable);
     Freee(MB_COMP, p->InputGuessTable);
     p->InputGuessTable = NULL;
+
+    /* Disconnect hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+    }
   }
-  if (direction & CCP_DIR_OUTPUT)
+  if (direction == COMP_DIR_XMIT)
   {
     assert(p->OutputGuessTable);
     Freee(MB_COMP, p->OutputGuessTable);
     p->OutputGuessTable = NULL;
+
+    /* Disconnect hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+    }
   }
 }
 
@@ -131,164 +189,111 @@ Pred1Cleanup(int direction)
  * The original is untouched.
  */
 
-Mbuf
-Pred1Compress(int proto, Mbuf uncomp)
+void
+Pred1Compress(u_char *uncomp, int orglen, u_char *comp, int *newlen)
 {
-  Mbuf		comp;
-  u_char	*cp, *wp, *hp;
-  int		orglen, len;
-  u_char	bufp[PRED1_COMP_BUF_SIZE];
-  u_short	fcs;
+  u_char	*wp;
+  u_int16_t	fcs;
+  int		len;
 
-  orglen = plength(uncomp) + 2;			/* add count of proto */
-  comp = mballoc(MB_FRAME_OUT, PRED1_MAX_BLOWUP(orglen + 2));
-  comp->prio = uncomp->prio;
-  hp = wp = MBDATA(comp);
+  wp = comp;
 
-/* Stick in original length and protocol */
+  *wp++ = (orglen >> 8) & 0x7F;
+  *wp++ = orglen & 0xFF;
 
-  cp = bufp;
-  *wp++ = *cp++ = orglen >> 8;
-  *wp++ = *cp++ = orglen & 0377;
-  *cp++ = proto >> 8;
-  *cp++ = proto & 0xff;
+/* Compute FCS */
 
-/* Copy data into buffer and compute FCS */
-
-  mbcopy(uncomp, cp, orglen - 2);
-  fcs = Crc16(INITFCS, bufp, orglen + 2);
+  fcs = Crc16(PPP_INITFCS, comp, 2);
+  fcs = Crc16(fcs, uncomp, orglen);
   fcs = ~fcs;
 
 /* Compress data */
 
-  len = Compress(bufp + 2, wp, orglen);
-
-  #ifdef DEBUG
-    Log(LG_CCP2, ("orglen (%d) --> len (%d)", orglen, len));
-  #endif
+  len = Compress(uncomp, wp, orglen);
 
 /* What happened? */
 
   if (len < orglen)
   {
-    *hp |= 0x80;
+    *comp |= 0x80;
     wp += len;
   }
   else
   {
-    memcpy(wp, bufp + 2, orglen);
+    memcpy(wp, uncomp, orglen);
     wp += orglen;
   }
 
 /* Add FCS */
 
-  *wp++ = fcs & 0377;
+  *wp++ = fcs & 0xFF;
   *wp++ = fcs >> 8;
-  comp->cnt = wp - MBDATA(comp);
 
-/* Done */
+  *newlen = (wp - comp);
 
-  return(comp);
+  Log(LG_CCP2, ("[%s] Pred1: orig (%d) --> comp (%d)", bund->name, orglen, *newlen));
 }
 
 /*
  * Pred1Decompress()
  *
- * Decompress packet, set *protop accordingly. Returns NULL if
- * packet failed to decompress. In any case, it doesn't alter "comp".
+ * Decompress a packet and return a compressed version.
+ * The original is untouched.
  */
 
-Mbuf
-Pred1Decompress(Mbuf comp, int *protop)
+void
+Pred1Decompress(u_char *comp, int orglen, u_char *uncomp, int *newlen)
 {
-  u_char	*cp, *pp;
-  int		len, olen, len1;
-  Mbuf		uncomp;
-  u_char	*bufp;
-  u_short	fcs, proto;
-
-/* "comp" is compressed data */
-
-  olen = plength(comp);
-  cp = MBDATA(comp);
-
-/* "uncomp" is uncompressed data */
-
-  uncomp = mballoc(MB_IPIN, PRED1_DECOMP_BUF_SIZE);
-  uncomp->prio = comp->prio;
-  pp = bufp = MBDATA(uncomp);
+  u_char	*cp = comp;
+  int		len, len1;
+  u_int16_t	fcs;
+  u_int16_t	lenn;
 
 /* Get initial length value */
-
-  *pp++ = *cp & 0x7F;
   len = *cp++ << 8;
-  *pp++ = *cp;
   len += *cp++;
-
+  
 /* Is data compressed or not really? */
-
   if (len & 0x8000)
   {
     len &= 0x7fff;
-    len1 = Decompress(cp, pp, olen - 4, PRED1_DECOMP_BUF_SIZE);
+    len1 = Decompress(cp, uncomp, orglen - 4, PRED1_DECOMP_BUF_SIZE);
     if (len != len1)	/* Error is detected. Send reset request */
     {
-      PFREE(uncomp);
-      return(NULL);
+      Log(LG_CCP2, ("[%s] Length error (%d) --> len (%d)", bund->name, len, len1));
+      *newlen = 0;
+      return;
     }
-    cp += olen - 4;
-    pp += len1;
+    cp += orglen - 4;
   }
   else
   {
-    SyncTable(cp, pp, len);
+    SyncTable(cp, uncomp, len);
     cp += len;
-    pp += len;
   }
 
-/* Copy CRC value */
+  *newlen = len;
 
-  *pp++ = *cp++;	/* CRC */
-  *pp++ = *cp++;
+  /* Check CRC */
+  lenn = htons(len & 0x7fff);
+  fcs = Crc16(PPP_INITFCS, (u_char *)&lenn, 2);
+  fcs = Crc16(fcs, uncomp, len);
+  fcs = Crc16(fcs, cp, 2);
 
-/* Check CRC */
-
-  fcs = Crc16(INITFCS, bufp, (uncomp->cnt = pp - bufp));
-
-  #ifdef DEBUG
-    if (fcs != GOODFCS)
+#ifdef DEBUG
+    if (fcs != PPP_GOODFCS)
       Log(LG_CCP2, ("fcs = %04x (%s), len = %x, olen = %x",
-	   fcs, (fcs == GOODFCS)? "good" : "bad", len, olen));
-  #endif
+	   fcs, (fcs == PPP_GOODFCS)? "good" : "bad", len, orglen));
+#endif
 
-  if (fcs != GOODFCS)
+  if (fcs != PPP_GOODFCS)
   {
-    PFREE(uncomp);
-    return(NULL);
+    Log(LG_CCP2, ("[%s] Pred1: Bad CRC-16", bund->name));
+    *newlen = 0;
+    return;
   }
 
-/* Get protocol */
-
-  uncomp->offset += 2;		/* skip length */
-  uncomp->cnt -= 4;		/* skip length & CRC */
-  pp = MBDATA(uncomp);
-  proto = *pp++;
-  if (proto & 1)
-  {
-    uncomp->offset++;
-    uncomp->cnt--;
-  }
-  else
-  {
-    uncomp->offset += 2;
-    uncomp->cnt -= 2;
-    proto = (proto << 8) | *pp++;
-  }
-
-/* Return decompressed packet */
-
-  *protop = proto;
-  return(uncomp);
+  Log(LG_CCP2, ("[%s] Pred1: orig (%d) <-- comp (%d)", bund->name, *newlen, orglen));
 }
 
 
@@ -297,9 +302,9 @@ Pred1Decompress(Mbuf comp, int *protop)
  */
 
 static Mbuf
-Pred1RecvResetReq(int id, Mbuf bp)
+Pred1RecvResetReq(int id, Mbuf bp, int *noAck)
 {
-  Pred1Init(CCP_DIR_OUTPUT);
+  Pred1Init(COMP_DIR_XMIT);
   return(NULL);
 }
 
@@ -310,7 +315,7 @@ Pred1RecvResetReq(int id, Mbuf bp)
 static Mbuf
 Pred1SendResetReq(void)
 {
-  Pred1Init(CCP_DIR_INPUT);
+  Pred1Init(COMP_DIR_RECV);
   return(NULL);
 }
 
@@ -319,9 +324,48 @@ Pred1SendResetReq(void)
  */
 
 static u_char *
-Pred1BuildConfigReq(CompInfo comp, u_char *cp)
+Pred1BuildConfigReq(u_char *cp)
 {
-  return(FsmConfValue(cp, comp->proto, 0, NULL));
+  cp = FsmConfValue(cp, CCP_TY_PRED1, 0, NULL);
+  return (cp);
+}
+
+/*
+ * Pred1DecodeConfigReq()
+ */
+
+static void
+Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode)
+{
+  /* Deal with it */
+  switch (mode) {
+    case MODE_REQ:
+	FsmAck(fp, opt);
+      break;
+
+    case MODE_NAK:
+      break;
+  }
+}
+
+/*
+ * Pred1Negotiated()
+ */
+
+static int
+Pred1Negotiated(int dir)
+{
+  return 1;
+}
+
+/*
+ * Pred1SubtractBloat()
+ */
+
+static int
+Pred1SubtractBloat(int size)
+{
+  return(size - 2);
 }
 
 /*

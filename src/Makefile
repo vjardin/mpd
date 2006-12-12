@@ -32,7 +32,7 @@ PHYSTYPE_PPPOE=		yes
 #  welcome. The STAC and MPPC compressions require proprietary
 #  code from Stac Electronics (now known as Hi/Fn).
 
-#COMPRESSION_PRED1=	yes
+COMPRESSION_PRED1=	yes
 #COMPRESSION_STAC=	yes
 #COMPRESSION_DEFLATE=	yes
 

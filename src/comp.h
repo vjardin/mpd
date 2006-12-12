@@ -74,6 +74,8 @@
      * the indicated direction.
      */
     int		(*Negotiated)(int dir);
+    void	(*Compress)(u_char *uncomp, int orglen, u_char *comp, int *newlen);
+    void	(*Decompress)(u_char *uncomp, int orglen, u_char *comp, int *newlen);
   };
   typedef const struct comptype	*CompType;
 

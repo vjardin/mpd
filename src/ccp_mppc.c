@@ -79,6 +79,8 @@
     MppcRecvResetReq,
     NULL,
     MppcNegotiated,
+    NULL,
+    NULL,
   };
 
 /*

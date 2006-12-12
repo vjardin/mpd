@@ -1257,8 +1257,10 @@ static void
 NgFuncDataEvent(int type, void *cookie)
 {
   u_char		buf[8192];
+  u_char		bufout[8192];
   struct sockaddr_ng	naddr;
   int			nread, nsize = sizeof(naddr);
+  int			newlen;
 
   /* Set bundle */
   bund = (Bund) cookie;
@@ -1319,6 +1321,58 @@ NgFuncDataEvent(int type, void *cookie)
     return;
   }
 #endif
+
+  /* Packet requiring compression */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_COMPRESS) == 0) {
+
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd IP frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
+
+    if (bund->ccp.xmit && bund->ccp.xmit->Compress)
+	bund->ccp.xmit->Compress(buf, nread, bufout, &newlen);
+    else {
+	Log(LG_BUND, ("[%s] Compressor routine not defined", bund->name));
+	return;
+    }
+
+    if (newlen){
+	/* Write data */
+	if ((nread = sendto(bund->dsock, bufout, newlen,
+	        0, (struct sockaddr *)&naddr, naddr.sg_len)) < 0) {
+	    if (errno == EAGAIN)
+    		return;
+	    Log(LG_BUND, ("[%s] %s socket write: %s", bund->name, NG_PPP_HOOK_COMPRESS, strerror(errno)));
+	}
+    }
+    return;
+  }
+
+  /* Packet requiring decompression */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECOMPRESS) == 0) {
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd IP frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
+
+    if (bund->ccp.xmit && bund->ccp.xmit->Decompress)
+	bund->ccp.xmit->Decompress(buf, nread, bufout, &newlen);
+    else {
+	Log(LG_BUND, ("[%s] Decompressor routine not defined", bund->name));
+	return;
+    }
+
+    if (newlen){
+	/* Write data */
+	if ((nread = sendto(bund->dsock, bufout, newlen,
+		0, (struct sockaddr *)&naddr, naddr.sg_len)) < 0) {
+	    if (errno == EAGAIN)
+    		return;
+	    Log(LG_BUND, ("[%s] %s socket write: %s", bund->name, NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+	}
+    }
+    return;
+  }
+
   /* Unknown hook! */
   LogDumpBuf(LG_FRAME, buf, nread,
     "[%s] rec'd data on unknown hook \"%s\"", bund->name, naddr.sg_data);

@@ -33,7 +33,7 @@
  * VARIABLES
  */
 
-  extern const struct compinfo	gCompPred1Info;
+  extern const struct comptype	gCompPred1Info;
 
 #endif
 
