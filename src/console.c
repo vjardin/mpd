@@ -351,9 +351,9 @@ ConsoleSessionReadEvent(int type, void *cookie)
         ac2 = ParseLine(line, av2, sizeof(av2) / sizeof(*av2), 1);
 	snprintf(&compl[strlen(compl)], sizeof(compl) - strlen(compl), "%s ", av2[0]);
 	FreeArgs(ac2, av2);
-	tab = cmd->arg;
-	if (!tab)
+	if (cmd->func != CMD_SUBMENU)
 	  break;
+	tab = cmd->arg;
       }
       for (i = 0; i < cs->cmd_len; i++)
 	cs->write(cs, "\b \b");
