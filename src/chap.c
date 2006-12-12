@@ -564,7 +564,8 @@ goodResponse:
 static char *
 ChapGetSecret(AuthData auth)
 {
-  ChapInfo	chap = &lnk->lcp.auth.chap;
+  Auth		a = &lnk->lcp.auth;
+  ChapInfo	chap = &a->chap;
   char		*pw;
   int		alg;
   
@@ -573,16 +574,16 @@ ChapGetSecret(AuthData auth)
   if (alg == CHAP_ALG_MD5)
     pw = auth->params.password;
   else {
-    if (!auth->params.msoft.has_nt_hash)
+    if (!a->params.msoft.has_nt_hash)
     {
-      NTPasswordHash(auth->params.password, auth->params.msoft.nt_hash);
-      NTPasswordHashHash(auth->params.msoft.nt_hash, auth->params.msoft.nt_hash_hash);
-      LMPasswordHash(auth->params.password, auth->params.msoft.lm_hash);
-      auth->params.msoft.has_nt_hash = TRUE;
-      auth->params.msoft.has_lm_hash = TRUE;
+      NTPasswordHash(auth->params.password, a->params.msoft.nt_hash);
+      NTPasswordHashHash(a->params.msoft.nt_hash, a->params.msoft.nt_hash_hash);
+      LMPasswordHash(auth->params.password, a->params.msoft.lm_hash);
+      a->params.msoft.has_nt_hash = TRUE;
+      a->params.msoft.has_lm_hash = TRUE;
     }
 
-    pw = auth->params.msoft.nt_hash;
+    pw = a->params.msoft.nt_hash;
   }
 
   return pw;

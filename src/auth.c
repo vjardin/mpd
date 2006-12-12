@@ -31,7 +31,7 @@
  */
 
   static void		AuthTimeout(void *arg);
-  static int		AuthGetExternalPassword(AuthData auth);
+  static int		AuthGetExternalPassword(char * extcmd, AuthData auth);
   static void		AuthAsync(void *arg);
   static void		AuthAsyncFinish(void *arg, int was_canceled);
   static int		AuthPreChecks(AuthData auth, int complain);
@@ -785,7 +785,7 @@ AuthGetData(AuthData auth, int complain)
   if (*auth->conf.password && !strcmp(auth->params.authname, auth->conf.authname)) {
     snprintf(auth->params.password, sizeof(auth->params.password), "%s", auth->conf.password);
     memset(&auth->params.range, 0, sizeof(auth->params.range));
-    auth->params.range_valid = auth->external = FALSE;
+    auth->params.range_valid = FALSE;
     return(0);
   }
 
@@ -800,17 +800,13 @@ AuthGetData(AuthData auth, int complain)
 	&& (strcmp(av[0], auth->params.authname) == 0
 	 || (av[1][0] == '!' && strcmp(av[0], "*") == 0))) {
       if (av[1][0] == '!') {		/* external auth program */
-	snprintf(auth->extcmd, sizeof(auth->extcmd), "%s", av[1] + 1);
-	auth->external = TRUE;
-	if (AuthGetExternalPassword(auth) == -1) {
+	if (AuthGetExternalPassword((av[1]+1), auth) == -1) {
 	  FreeArgs(ac, av);
 	  fclose(fp);
 	  return(-1);
 	}
       } else {
 	snprintf(auth->params.password, sizeof(auth->params.password), "%s", av[1]);
-	*auth->extcmd = '\0';
-	auth->external = FALSE;
       }
       memset(&auth->params.range, 0, sizeof(auth->params.range));
       auth->params.range_valid = FALSE;
@@ -1326,14 +1322,14 @@ AuthMPPETypesname(int types)
  * -1 on error (can't fork, no data read, whatever)
  */
 static int
-AuthGetExternalPassword(AuthData auth)
+AuthGetExternalPassword(char * extcmd, AuthData auth)
 {
   char cmd[AUTH_MAX_PASSWORD + 5 + AUTH_MAX_AUTHNAME];
   int ok = 0;
   FILE *fp;
   int len;
 
-  snprintf(cmd, sizeof(cmd), "%s %s", auth->extcmd, auth->params.authname);
+  snprintf(cmd, sizeof(cmd), "%s %s", extcmd, auth->params.authname);
   Log(LG_AUTH, ("Invoking external auth program: %s", cmd));
   if ((fp = popen(cmd, "r")) == NULL) {
     Perror("Popen");

@@ -170,8 +170,6 @@
     int			proto;		/* wich proto are we using, PAP, CHAP, ... */
     u_int		id;		/* Actual, packet id */    
     u_int		code;		/* Proto specific code */
-    char		extcmd[AUTH_MAX_EXTCMD];
-    u_int		external:1;
     u_short		status;
     int			why_fail;
     u_char		ack_mesg[128];
