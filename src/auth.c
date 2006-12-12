@@ -359,7 +359,7 @@ AuthInput(int proto, Mbuf bp)
     else
       assert(0);
     AuthOutput(proto, code, fsmh.id, failMesg, strlen(failMesg), 1, 0);
-    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+    AuthFinish(AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);
     return;
   }
@@ -442,7 +442,7 @@ AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
  */
 
 void
-AuthFinish(int which, int ok, AuthData auth)
+AuthFinish(int which, int ok)
 {
   Auth		const a = &lnk->lcp.auth;
 
@@ -457,14 +457,6 @@ AuthFinish(int which, int ok, AuthData auth)
 
     default:
       assert(0);
-  }
-
-  if (auth != NULL) {
-    /* Notify external auth program if needed */
-    if (which == AUTH_PEER_TO_SELF && auth->external) {
-      ExecCmd(LG_AUTH, "%s %s %s", auth->extcmd,
-        ok ? "-y" : "-n", auth->params.authname);
-    }
   }
 
   /* Did auth fail (in either direction)? */

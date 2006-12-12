@@ -214,7 +214,7 @@
   extern void		AuthOutput(int proto, u_int code, u_int id,
 			  const u_char *ptr, int len, int add_len, 
 			  u_char eap_type);
-  extern void		AuthFinish(int which, int ok, AuthData auth);
+  extern void		AuthFinish(int which, int ok);
   extern void		AuthCleanup(void);
   extern int		AuthStat(int ac, char *av[], void *arg);
   extern void		AuthAccountStart(int type);

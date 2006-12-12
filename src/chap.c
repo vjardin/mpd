@@ -427,7 +427,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 
       /* Log message */
       ShowMesg(LG_AUTH, (char *) pkt, len);
-      AuthFinish(AUTH_SELF_TO_PEER, auth->code == CHAP_SUCCESS, NULL);
+      AuthFinish(AUTH_SELF_TO_PEER, auth->code == CHAP_SUCCESS);
       break;
       
     case CHAP_MS_V1_CHANGE_PW:
@@ -454,7 +454,7 @@ badResponse:
   failMesg = AuthFailMsg(auth, chap->recv_alg);
   AuthOutput(auth->proto, auth->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
     auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+  AuthFinish(AUTH_PEER_TO_SELF, FALSE);
   AuthDataDestroy(auth);  
 }
 
@@ -531,7 +531,7 @@ badResponse:
   failMesg = AuthFailMsg(auth, chap->recv_alg);
   AuthOutput(chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
     auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(AUTH_PEER_TO_SELF, FALSE, auth);
+  AuthFinish(AUTH_PEER_TO_SELF, FALSE);
   AuthDataDestroy(auth);  
   return;  
 
@@ -549,7 +549,7 @@ goodResponse:
   
   AuthOutput(chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
     auth->id, auth->ack_mesg, strlen(auth->ack_mesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(AUTH_PEER_TO_SELF, TRUE, auth);
+  AuthFinish(AUTH_PEER_TO_SELF, TRUE);
   AuthDataDestroy(auth);
 }
 

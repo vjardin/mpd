@@ -183,7 +183,7 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
 	ShowMesg(LG_AUTH, msg, msg_len);
 
 	/* Done with my auth to peer */
-	AuthFinish(AUTH_SELF_TO_PEER, auth->code == PAP_ACK, NULL);	
+	AuthFinish(AUTH_SELF_TO_PEER, auth->code == PAP_ACK);	
       }
       break;
 
@@ -231,7 +231,7 @@ badRequest:
     Mesg = AuthFailMsg(auth, 0);
   }
   AuthOutput(PROTO_PAP, PAP_NAK, auth->id, Mesg, strlen(Mesg), 1, 0);
-  AuthFinish(AUTH_PEER_TO_SELF, FALSE, auth);
+  AuthFinish(AUTH_PEER_TO_SELF, FALSE);
   AuthDataDestroy(auth);  
   return;
   
@@ -245,7 +245,7 @@ goodRequest:
     Mesg = AUTH_MSG_WELCOME;
   }
   AuthOutput(PROTO_PAP, PAP_ACK, auth->id, Mesg, strlen(Mesg), 1, 0);
-  AuthFinish(AUTH_PEER_TO_SELF, TRUE, auth);  
+  AuthFinish(AUTH_PEER_TO_SELF, TRUE);  
   AuthDataDestroy(auth);
 }
 

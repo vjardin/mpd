@@ -169,7 +169,7 @@ EapSendRequest(u_char type)
 
   if (req_type == 0) {
     Log(LG_AUTH, ("[%s] EAP: ran out of EAP Types", lnk->name));
-    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+    AuthFinish(AUTH_PEER_TO_SELF, FALSE);
     return;
   }
 
@@ -204,7 +204,7 @@ EapSendRequest(u_char type)
     default:
       Log(LG_AUTH, ("[%s] EAP: Type %d is currently un-implemented",
 	lnk->name, eap->want_types[i]));
-      AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+      AuthFinish(AUTH_PEER_TO_SELF, FALSE);
   }
 
   return;
@@ -233,7 +233,7 @@ EapSendNak(u_char id, u_char type)
 
   if (nak_type == 0) {
     Log(LG_AUTH, ("[%s] EAP: ran out of EAP Types", lnk->name));
-    AuthFinish(AUTH_SELF_TO_PEER, FALSE, NULL);
+    AuthFinish(AUTH_SELF_TO_PEER, FALSE);
     return;
   }
 
@@ -297,7 +297,7 @@ EapInput(AuthData auth, const u_char *pkt, u_short len)
 	case EAP_TYPE_NOTIF:
 	  Log(LG_AUTH, ("[%s] EAP: Type %s is invalid in Request messages",
 	    lnk->name, EapType(type)));
-	  AuthFinish(AUTH_SELF_TO_PEER, FALSE, NULL);
+	  AuthFinish(AUTH_SELF_TO_PEER, FALSE);
 	  break;
 
 	/* deal with Auth Types */
@@ -365,21 +365,21 @@ EapInput(AuthData auth, const u_char *pkt, u_short len)
 
 	default:
 	  Log(LG_AUTH, ("[%s] EAP: unknown type %d", lnk->name, type));
-	  AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+	  AuthFinish(AUTH_PEER_TO_SELF, FALSE);
       }
       break;
 
     case EAP_SUCCESS:
-      AuthFinish(AUTH_SELF_TO_PEER, TRUE, NULL);
+      AuthFinish(AUTH_SELF_TO_PEER, TRUE);
       return;
 
     case EAP_FAILURE:
-      AuthFinish(AUTH_SELF_TO_PEER, FALSE, NULL);
+      AuthFinish(AUTH_SELF_TO_PEER, FALSE);
       return;
 
     default:
       Log(LG_AUTH, ("[%s] EAP: unknown code %d", lnk->name, auth->code));
-      AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+      AuthFinish(AUTH_PEER_TO_SELF, FALSE);
   }
 
 }
@@ -476,9 +476,9 @@ EapRadiusProxyFinish(AuthData auth)
   }
 
   if (auth->status == AUTH_STATUS_FAIL) {
-    AuthFinish(AUTH_PEER_TO_SELF, FALSE, NULL);
+    AuthFinish(AUTH_PEER_TO_SELF, FALSE);
   } else if (auth->status == AUTH_STATUS_SUCCESS) {
-    AuthFinish(AUTH_PEER_TO_SELF, TRUE, auth);
+    AuthFinish(AUTH_PEER_TO_SELF, TRUE);
   } 
 
   AuthDataDestroy(auth);  
