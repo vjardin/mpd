@@ -177,8 +177,6 @@ LinkMsg(int type, void *arg)
       LcpUp();
       break;
     case MSG_DOWN:
-      /* reset Link-stats */
-      LinkResetStats();
       if (OPEN_STATE(lnk->lcp.fsm.state)) {
 	if ((lnk->conf.max_redial != 0) && (lnk->num_redial >= lnk->conf.max_redial)) {
 	  if (lnk->conf.max_redial >= 0)
@@ -199,6 +197,8 @@ LinkMsg(int type, void *arg)
       } else {
         LcpDown();
       }
+      /* reset Link-stats */
+      LinkResetStats();  /* XXX: I don't think this is a right place */
       break;
   }
 }
