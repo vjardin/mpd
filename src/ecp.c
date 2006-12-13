@@ -541,6 +541,25 @@ static void
 EcpLayerDown(Fsm fp)
 {
   EcpState	const ecp = &bund->ecp;
+  struct ngm_rmhook rm;
+
+  if (ecp->xmit != NULL && ecp->xmit->Encrypt != NULL) {
+    /* Disconnect hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_ENCRYPT);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_ENCRYPT, strerror(errno)));
+    }
+  }
+  
+  if (ecp->recv != NULL && ecp->recv->Decrypt != NULL) {
+    /* Disconnect hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECRYPT);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECRYPT, strerror(errno)));
+    }
+  }
 
   if (ecp->xmit && ecp->xmit->Cleanup)
     (ecp->xmit->Cleanup)(TRUE);
