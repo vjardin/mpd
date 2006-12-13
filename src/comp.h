@@ -74,8 +74,12 @@
      * the indicated direction.
      */
     int		(*Negotiated)(int dir);
-    void	(*Compress)(u_char *uncomp, int orglen, u_char *comp, int *newlen);
-    void	(*Decompress)(u_char *uncomp, int orglen, u_char *comp, int *newlen);
+    /*
+     * For compression methods which is not implemented in kernel
+     * here is support for user level functions.
+     */
+    Mbuf	(*Compress)(Mbuf plain);
+    Mbuf	(*Decompress)(Mbuf comp);
   };
   typedef const struct comptype	*CompType;
 

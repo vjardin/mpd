@@ -12,6 +12,16 @@
 #include "fsm.h"
 #include "ngfunc.h"
 
+#include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/ppp/ng_ppp.h>
+#include <netgraph/socket/ng_socket.h>
+#else
+#include <netgraph/ng_ppp.h>
+#include <netgraph/ng_socket.h>
+#endif
+#include <netgraph.h>
+
 /*
  * DEFINITIONS
  */
@@ -413,6 +423,75 @@ CcpInput(Mbuf bp, int linkNum)
 }
 
 /*
+ * CcpDataOutput()
+ *
+ * Compress a frame. Consumes the original packet.
+ */
+
+Mbuf
+CcpDataOutput(Mbuf plain)
+{
+  CcpState	const ccp = &bund->ccp;
+  Mbuf		comp;
+
+/* Compress packet */
+
+  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ccp->fsm));
+  if ((!ccp->xmit) || (!ccp->xmit->Compress))
+  {
+    Log(LG_ERR, ("%s: no encryption for xmit", Pref(&ccp->fsm)));
+    PFREE(plain);
+    return(NULL);
+  }
+  comp = (*ccp->xmit->Compress)(plain);
+  LogDumpBp(LG_CCP2, comp, "%s: xmit comp", Pref(&ccp->fsm));
+
+//  ecp->stat.outPackets++;
+  return(comp);
+}
+
+/*
+ * CcpDataInput()
+ *
+ * Decompress incoming packet. If packet got garbled, return NULL.
+ * In any case, we consume the packet passed to us.
+ */
+
+Mbuf
+CcpDataInput(Mbuf comp)
+{
+  CcpState	const ccp = &bund->ccp;
+  Mbuf		plain;
+
+  assert(ccp->fsm.state == ST_OPENED);
+  LogDumpBp(LG_CCP2, comp, "%s: recv comp", Pref(&ccp->fsm));
+
+/* Decrypt packet */
+
+  if ((!ccp->recv) || (!ccp->recv->Decompress))
+  {
+    Log(LG_ERR, ("%s: no compression for recv", Pref(&ccp->fsm)));
+    PFREE(comp);
+    return(NULL);
+  }
+
+  plain = (*ccp->recv->Decompress)(comp);
+
+/* Encrypted ok? */
+
+  if (plain == NULL)
+  {
+    Log(LG_CCP, ("%s: decompression failed", Pref(&ccp->fsm)));
+//    ecp->stat.inPacketDrops++;
+    return(NULL);
+  }
+  LogDumpBp(LG_CCP2, plain, "%s: recv plain", Pref(&ccp->fsm));
+//  ecp->stat.inPackets++;
+
+  return(plain);
+}
+
+/*
  * CcpBuildConfigReq()
  */
 
@@ -443,6 +522,7 @@ static void
 CcpLayerUp(Fsm fp)
 {
   CcpState	const ccp = &bund->ccp;
+  struct ngm_connect    cn;
 
   /* If nothing was negotiated in either direction, close CCP */
   if ((!ccp->recv || !(*ccp->recv->Negotiated)(COMP_DIR_RECV))
@@ -469,6 +549,30 @@ CcpLayerUp(Fsm fp)
     Log(LG_CCP, ("%s: %scompression init failed", Pref(fp), "de"));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);		/* XXX */
     return;
+  }
+
+  if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
+    /* Connect a hook from the bpf node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
+        bund->name, NG_PPP_HOOK_COMPRESS, strerror(errno)));
+    }
+  }
+
+  if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
+    /* Connect a hook from the bpf node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
+        bund->name, NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+    }
   }
 
   /* Report what we're doing */
@@ -501,7 +605,25 @@ static void
 CcpLayerDown(Fsm fp)
 {
   CcpState	const ccp = &bund->ccp;
+  struct ngm_rmhook rm;
 
+  if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
+    /* Disconnect hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_COMPRESS, strerror(errno)));
+    }
+  }
+  
+  if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
+    /* Disconnect hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+    }
+  }
   if (ccp->recv && ccp->recv->Cleanup)
     (*ccp->recv->Cleanup)(COMP_DIR_RECV);
   if (ccp->xmit && ccp->xmit->Cleanup)

@@ -231,18 +231,11 @@ EcpDataOutput(Mbuf plain)
   EcpState	const ecp = &bund->ecp;
   Mbuf		cypher;
 
-  assert(ecp->fsm.state == ST_OPENED);
-
-/* Compress protocol field */
-
-  if ((MBDATA(plain)[0] & 1) == 0) {
-    plain->offset++;
-  }
+  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ecp->fsm));
 
 /* Encrypt packet */
 
-  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ecp->fsm));
-  if (!ecp->xmit)
+  if ((!ecp->xmit) || (!ecp->xmit->Encrypt))
   {
     Log(LG_ERR, ("%s: no encryption for xmit", Pref(&ecp->fsm)));
     PFREE(plain);
@@ -269,14 +262,12 @@ EcpDataInput(Mbuf cypher)
 {
   EcpState	const ecp = &bund->ecp;
   Mbuf		plain;
-  Mbuf		extend;
 
-  assert(ecp->fsm.state == ST_OPENED);
   LogDumpBp(LG_ECP2, cypher, "%s: recv cypher", Pref(&ecp->fsm));
 
 /* Decrypt packet */
 
-  if (!ecp->recv)
+  if ((!ecp->recv) || (!ecp->recv->Decrypt))
   {
     Log(LG_ERR, ("%s: no encryption for recv", Pref(&ecp->fsm)));
     PFREE(cypher);
@@ -285,7 +276,7 @@ EcpDataInput(Mbuf cypher)
 
   plain = (*ecp->recv->Decrypt)(cypher);
 
-/* Encrypted ok? */
+/* Decrypted ok? */
 
   if (plain == NULL)
   {
@@ -293,18 +284,9 @@ EcpDataInput(Mbuf cypher)
     ecp->stat.inPacketDrops++;
     return(NULL);
   }
-  LogDumpBp(LG_ECP2, plain, "%s: recv plain", Pref(&ecp->fsm));
+
   ecp->stat.inPackets++;
-
-/* Uncompress protocol field */
-
-  if (MBDATA(plain)[0] & 1) {
-    extend = mballoc(MB_CRYPT, 1);
-    extend->cnt = 0;
-    extend->next = plain;
-    plain = extend;
-  }
-
+  LogDumpBp(LG_ECP2, plain, "%s: recv plain", Pref(&ecp->fsm));
 /* Done */
 
   return(plain);

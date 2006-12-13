@@ -101,6 +101,8 @@
   extern void	CcpOpen(void);
   extern void	CcpClose(void);
   extern void	CcpInput(Mbuf bp, int linkNum);
+  extern Mbuf	CcpDataInput(Mbuf bp);
+  extern Mbuf	CcpDataOutput(Mbuf bp);
   extern int	CcpSubtractBloat(int size);
   extern void	CcpSendResetReq(void);
   extern void	CcpRecvMsg(struct ng_mesg *msg, int len);

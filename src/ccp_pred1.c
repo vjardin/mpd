@@ -21,16 +21,6 @@
 #include "util.h"
 #include "ngfunc.h"
 
-#include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/ppp/ng_ppp.h>
-#include <netgraph/socket/ng_socket.h>
-#else
-#include <netgraph/ng_ppp.h>
-#include <netgraph/ng_socket.h>
-#endif
-#include <netgraph.h>
-
 /*
  * DEFINITIONS
  */
@@ -57,8 +47,8 @@
 
   static int	Pred1Init(int direction);
   static void	Pred1Cleanup(int direction);
-  static void	Pred1Compress(u_char *uncomp, int orglen, u_char *comp, int *newlen);
-  static void	Pred1Decompress(u_char *uncomp, int orglen, u_char *comp, int *newlen);
+  static Mbuf	Pred1Compress(Mbuf plain);
+  static Mbuf	Pred1Decompress(Mbuf comp);
 
   static u_char	*Pred1BuildConfigReq(u_char *cp);
   static void   Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode);
@@ -103,25 +93,12 @@ Pred1Init(int directions)
 {
   Pred1Info	p = &bund->ccp.pred1;
 
-  struct ngm_connect    cn;
-
   if (directions == COMP_DIR_RECV)
   {
     p->iHash = 0;
     if (p->InputGuessTable == NULL)
       p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->InputGuessTable, 0, PRED1_TABLE_SIZE);
-
-    /* Connect a hook from the bpf node to our socket node */
-    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    if (NgSendMsg(bund->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
-        bund->name, NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
-	return -1;
-    }
   }
   if (directions == COMP_DIR_XMIT)
   {
@@ -129,17 +106,6 @@ Pred1Init(int directions)
     if (p->OutputGuessTable == NULL)
       p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->OutputGuessTable, 0, PRED1_TABLE_SIZE);
-
-    /* Connect a hook from the bpf node to our socket node */
-    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
-    if (NgSendMsg(bund->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
-        bund->name, NG_PPP_HOOK_COMPRESS, strerror(errno)));
-	return -1;
-    }
   }
   return 0;
 }
@@ -152,33 +118,18 @@ void
 Pred1Cleanup(int direction)
 {
   Pred1Info	p = &bund->ccp.pred1;
-  struct ngm_rmhook rm;
 
   if (direction == COMP_DIR_RECV)
   {
     assert(p->InputGuessTable);
     Freee(MB_COMP, p->InputGuessTable);
     p->InputGuessTable = NULL;
-
-    /* Disconnect hook. */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    if (NgSendMsg(bund->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
-    }
   }
   if (direction == COMP_DIR_XMIT)
   {
     assert(p->OutputGuessTable);
     Freee(MB_COMP, p->OutputGuessTable);
     p->OutputGuessTable = NULL;
-
-    /* Disconnect hook. */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
-    if (NgSendMsg(bund->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
-    }
   }
 }
 
@@ -189,12 +140,21 @@ Pred1Cleanup(int direction)
  * The original is untouched.
  */
 
-void
-Pred1Compress(u_char *uncomp, int orglen, u_char *comp, int *newlen)
+Mbuf
+Pred1Compress(Mbuf plain)
 {
-  u_char	*wp;
+  u_char	*wp, *uncomp, *comp;
   u_int16_t	fcs;
   int		len;
+  Mbuf		res;
+  int		orglen;
+  
+  plain = mbunify(plain);
+  orglen = plength(plain);
+  uncomp = MBDATA(plain);
+  
+  res = mballoc(MB_COMP, PRED1_MAX_BLOWUP(orglen + 2));
+  comp = MBDATA(res);
 
   wp = comp;
 
@@ -229,9 +189,11 @@ Pred1Compress(u_char *uncomp, int orglen, u_char *comp, int *newlen)
   *wp++ = fcs & 0xFF;
   *wp++ = fcs >> 8;
 
-  *newlen = (wp - comp);
-
-  Log(LG_CCP2, ("[%s] Pred1: orig (%d) --> comp (%d)", bund->name, orglen, *newlen));
+  res->cnt = (wp - comp);
+  
+  PFREE(plain);
+  Log(LG_CCP2, ("[%s] Pred1: orig (%d) --> comp (%d)", bund->name, orglen, res->cnt));
+  return res;
 }
 
 /*
@@ -241,28 +203,41 @@ Pred1Compress(u_char *uncomp, int orglen, u_char *comp, int *newlen)
  * The original is untouched.
  */
 
-void
-Pred1Decompress(u_char *comp, int orglen, u_char *uncomp, int *newlen)
+Mbuf
+Pred1Decompress(Mbuf mbcomp)
 {
-  u_char	*cp = comp;
-  int		len, len1;
+  u_char	*uncomp, *comp;
+  u_char	*cp;
+  u_int16_t	len, len1, cf, lenn;
   u_int16_t	fcs;
-  u_int16_t	lenn;
+  int           orglen;
+  Mbuf		mbuncomp;
+
+  mbcomp = mbunify(mbcomp);
+  orglen = plength(mbcomp);
+  comp = MBDATA(mbcomp);
+  cp = comp;
+  
+  mbuncomp = mballoc(MB_COMP, PRED1_DECOMP_BUF_SIZE);
+  uncomp = MBDATA(mbuncomp);
 
 /* Get initial length value */
   len = *cp++ << 8;
   len += *cp++;
   
+  cf = (len & 0x8000);
+  len &= 0x7fff;
+  
 /* Is data compressed or not really? */
-  if (len & 0x8000)
+  if (cf)
   {
-    len &= 0x7fff;
     len1 = Decompress(cp, uncomp, orglen - 4, PRED1_DECOMP_BUF_SIZE);
     if (len != len1)	/* Error is detected. Send reset request */
     {
       Log(LG_CCP2, ("[%s] Length error (%d) --> len (%d)", bund->name, len, len1));
-      *newlen = 0;
-      return;
+      PFREE(mbcomp);
+      CcpSendResetReq();
+      return NULL;
     }
     cp += orglen - 4;
   }
@@ -272,10 +247,10 @@ Pred1Decompress(u_char *comp, int orglen, u_char *uncomp, int *newlen)
     cp += len;
   }
 
-  *newlen = len;
+  mbuncomp->cnt = len;
 
   /* Check CRC */
-  lenn = htons(len & 0x7fff);
+  lenn = htons(len);
   fcs = Crc16(PPP_INITFCS, (u_char *)&lenn, 2);
   fcs = Crc16(fcs, uncomp, len);
   fcs = Crc16(fcs, cp, 2);
@@ -289,11 +264,14 @@ Pred1Decompress(u_char *comp, int orglen, u_char *uncomp, int *newlen)
   if (fcs != PPP_GOODFCS)
   {
     Log(LG_CCP2, ("[%s] Pred1: Bad CRC-16", bund->name));
-    *newlen = 0;
-    return;
+    PFREE(mbcomp);
+    CcpSendResetReq();
+    return NULL;
   }
 
-  Log(LG_CCP2, ("[%s] Pred1: orig (%d) <-- comp (%d)", bund->name, *newlen, orglen));
+  Log(LG_CCP2, ("[%s] Pred1: orig (%d) <-- comp (%d)", bund->name, mbuncomp->cnt, orglen));
+  PFREE(mbcomp);
+  return mbuncomp;
 }
 
 
