@@ -1327,7 +1327,7 @@ NgFuncDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
 
     if (bund->ccp.xmit && bund->ccp.xmit->Compress)
 	bund->ccp.xmit->Compress(buf, nread, bufout, &newlen);
@@ -1352,7 +1352,7 @@ NgFuncDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECOMPRESS) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECOMPRESS);
 
     if (bund->ccp.xmit && bund->ccp.xmit->Decompress)
 	bund->ccp.xmit->Decompress(buf, nread, bufout, &newlen);
