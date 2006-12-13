@@ -1373,6 +1373,39 @@ NgFuncDataEvent(int type, void *cookie)
     return;
   }
 
+  /* Packet requiring encryption */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_ENCRYPT) == 0) {
+
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_ENCRYPT);
+
+    Mbuf nbp = EcpDataOutput(mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
+    if (!nbp) {
+	Log(LG_BUND, ("[%s] Encryptor error", bund->name));
+	return;
+    }
+
+    NgFuncWriteFrame(bund->name, NG_PPP_HOOK_ENCRYPT, nbp);
+    return;
+  }
+
+  /* Packet requiring decryption */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECRYPT) == 0) {
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECRYPT);
+
+    Mbuf nbp = EcpDataInput(mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
+    if (!nbp) {
+	Log(LG_BUND, ("[%s] Decryptor error", bund->name));
+	return;
+    }
+
+    NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECRYPT, nbp);
+    return;
+  }
+
   /* Unknown hook! */
   LogDumpBuf(LG_FRAME, buf, nread,
     "[%s] rec'd data on unknown hook \"%s\"", bund->name, naddr.sg_data);

@@ -10,8 +10,6 @@
   This chapter describes commands that configure the Encryption Control
   Protocol (ECP) layer. All of these commands apply to the currently
   active bundle.
-  <p>
-  <bf>Note:</bf> At this time the only one available DES cypher is broken.
 
 <descrip>
 

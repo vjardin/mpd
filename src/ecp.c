@@ -11,6 +11,17 @@
 #include "bund.h"
 #include "ecp.h"
 #include "fsm.h"
+#include "ngfunc.h"
+
+#include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/ppp/ng_ppp.h>
+#include <netgraph/socket/ng_socket.h>
+#else
+#include <netgraph/ng_ppp.h>
+#include <netgraph/ng_socket.h>
+#endif
+#include <netgraph.h>
 
 /*
  * DEFINITIONS
@@ -215,26 +226,22 @@ EcpConfigure(Fsm fp)
  */
 
 Mbuf
-EcpDataOutput(Mbuf plain, int *protop)
+EcpDataOutput(Mbuf plain)
 {
   EcpState	const ecp = &bund->ecp;
-  Mbuf		cypher, header;
-
-/* Prepend protocol field */
+  Mbuf		cypher;
 
   assert(ecp->fsm.state == ST_OPENED);
-  header = mballoc(MB_CRYPT, 2);
-  header->cnt = 0;
-  if (!PROT_COMPRESSIBLE(*protop))
-    MBDATA(header)[header->cnt++] = *protop >> 8;
-  MBDATA(header)[header->cnt++] = *protop & 0xff;
-  header->next = plain;
-  plain = header;
+
+/* Compress protocol field */
+
+  if ((MBDATA(plain)[0] & 1) == 0) {
+    plain->offset++;
+  }
 
 /* Encrypt packet */
 
-  LogDumpBp(LG_ECP2, plain, "[%s] xmit plain proto %s",
-    bund->name, ProtoName(*protop));
+  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ecp->fsm));
   if (!ecp->xmit)
   {
     Log(LG_ERR, ("%s: no encryption for xmit", Pref(&ecp->fsm)));
@@ -242,12 +249,11 @@ EcpDataOutput(Mbuf plain, int *protop)
     return(NULL);
   }
   cypher = (*ecp->xmit->Encrypt)(plain);
-  LogDumpBp(LG_ECP2, cypher, "[%s] xmit cypher", bund->name);
+  LogDumpBp(LG_ECP2, cypher, "%s: xmit cypher", Pref(&ecp->fsm));
 
 /* Return result, with new protocol number */
 
   ecp->stat.outPackets++;
-  *protop = PROTO_CRYPT;
   return(cypher);
 }
 
@@ -259,14 +265,14 @@ EcpDataOutput(Mbuf plain, int *protop)
  */
 
 Mbuf
-EcpDataInput(Mbuf cypher, int *protop)
+EcpDataInput(Mbuf cypher)
 {
   EcpState	const ecp = &bund->ecp;
-  u_int16_t	proto;
   Mbuf		plain;
+  Mbuf		extend;
 
   assert(ecp->fsm.state == ST_OPENED);
-  LogDumpBp(LG_ECP2, cypher, "[%s] recv cypher", bund->name);
+  LogDumpBp(LG_ECP2, cypher, "%s: recv cypher", Pref(&ecp->fsm));
 
 /* Decrypt packet */
 
@@ -277,7 +283,6 @@ EcpDataInput(Mbuf cypher, int *protop)
     return(NULL);
   }
 
-  LogDumpBp(LG_ECP2, cypher, "[%s] recv cypher", bund->name);
   plain = (*ecp->recv->Decrypt)(cypher);
 
 /* Encrypted ok? */
@@ -288,14 +293,17 @@ EcpDataInput(Mbuf cypher, int *protop)
     ecp->stat.inPacketDrops++;
     return(NULL);
   }
-  LogDumpBp(LG_ECP2, plain, "[%s] recv plain", bund->name);
+  LogDumpBp(LG_ECP2, plain, "%s: recv plain", Pref(&ecp->fsm));
   ecp->stat.inPackets++;
 
-/* Extract protocol number */
+/* Uncompress protocol field */
 
-  for (proto = 0; !(proto & 1) && plain->cnt > 0; plain->offset++, plain->cnt--)
-    proto = (proto << 8) + *MBDATA(plain);
-  *protop = proto;
+  if (MBDATA(plain)[0] & 1) {
+    extend = mballoc(MB_CRYPT, 1);
+    extend->cnt = 0;
+    extend->next = plain;
+    plain = extend;
+  }
 
 /* Done */
 
@@ -470,6 +478,7 @@ static void
 EcpLayerUp(Fsm fp)
 {
   EcpState	const ecp = &bund->ecp;
+  struct ngm_connect    cn;
 
   Log(LG_ECP, (" Encrypt = %s, Decrypt = %s",
     ecp->xmit ? ecp->xmit->name : "none",
@@ -480,6 +489,43 @@ EcpLayerUp(Fsm fp)
     (*ecp->xmit->Init)(TRUE);
   if (ecp->recv && ecp->recv->Init)
     (*ecp->recv->Init)(FALSE);
+
+  if (ecp->recv && ecp->recv->Decrypt) 
+  {
+    /* Connect a hook from the bpf node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECRYPT);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECRYPT);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
+        bund->name, NG_PPP_HOOK_DECRYPT, strerror(errno)));
+//	return -1;
+    }
+  }
+  if (ecp->xmit && ecp->xmit->Encrypt)
+  {
+    /* Connect a hook from the bpf node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_ENCRYPT);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_ENCRYPT);
+    if (NgSendMsg(bund->csock, ".",
+	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
+        bund->name, NG_PPP_HOOK_ENCRYPT, strerror(errno)));
+//	return -1;
+    }
+  }
+
+  /* Update PPP node config */
+#if NGM_PPP_COOKIE < 940897794
+  bund->pppConfig.enableEncryption = (ecp->xmit != NULL);
+  bund->pppConfig.enableDecryption = (ecp->recv != NULL);
+#else
+  bund->pppConfig.bund.enableEncryption = (ecp->xmit != NULL);
+  bund->pppConfig.bund.enableDecryption = (ecp->recv != NULL);
+#endif
+  NgFuncSetConfig();
 
   /* Update interface MTU */
   BundUpdateParams();

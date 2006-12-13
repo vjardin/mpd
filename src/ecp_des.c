@@ -140,7 +140,7 @@ DesDecrypt(Mbuf cypher)
 
   if (clen < 8 || (clen & 0x7))
   {
-    Log(LG_ECP, ("[%s] rec'd bogus DES cypher: len=%d",
+    Log(LG_ECP, ("[%s] EDES: rec'd bogus DES cypher: len=%d",
       bund->name, clen + DES_OVERHEAD));
     return(NULL);
   }
@@ -148,13 +148,14 @@ DesDecrypt(Mbuf cypher)
 /* Check sequence number */
 
   cypher = mbread(cypher, (u_char *) &seq, DES_OVERHEAD, NULL);
+  seq = ntohs(seq);
   if (seq != des->recv_seq)
   {
     Mbuf	tail;
 
   /* Recover from dropped packet */
 
-    Log(LG_ECP, ("[%s] rec'd wrong seq=%u, expected %u",
+    Log(LG_ECP, ("[%s] EDES: rec'd wrong seq=%u, expected %u",
       bund->name, seq, des->recv_seq));
     tail = mbsplit(cypher, clen - 8);
     PFREE(cypher);

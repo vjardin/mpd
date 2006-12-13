@@ -76,8 +76,8 @@
   extern void	EcpClose(void);
   extern int	EcpSubtractBloat(int size);
   extern void	EcpInput(Mbuf bp, int linkNum);
-  extern Mbuf	EcpDataInput(Mbuf bp, int *protop);
-  extern Mbuf	EcpDataOutput(Mbuf bp, int *protop);
+  extern Mbuf	EcpDataInput(Mbuf bp);
+  extern Mbuf	EcpDataOutput(Mbuf bp);
   extern void	EcpSendResetReq(Fsm fp);
   extern int	EcpStat(int ac, char *av[], void *arg);
 

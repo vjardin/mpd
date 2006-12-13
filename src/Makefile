@@ -38,7 +38,7 @@ COMPRESSION_PRED1=	yes
 
 # Define supported encryption types
 
-#ENCRYPTION_DES=		yes
+ENCRYPTION_DES=		yes
 
 # Set syslog logging facility. Change LOG_DAEMON to whatever you like.
 
