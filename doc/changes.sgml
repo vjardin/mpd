@@ -29,7 +29,7 @@
 	  </item>
 	  <item> Compression Predictor-1 (rfc 1978) added.
 	  </item>
-	  <item> Encryption DES (rfc 1969) support fixed.
+	  <item> Encryption DES (rfc 1969) support was reimplemented.
 	  </item>
 	  <item> New command 'show phys' added.
 	  </item>

@@ -6,10 +6,19 @@
   <sect><heading>Encryption layer commands<label id="encryption"></heading>
 
   <p>
-
   This chapter describes commands that configure the Encryption Control
   Protocol (ECP) layer. All of these commands apply to the currently
   active bundle.
+  <p>
+  To use ECP you should enable encryption at the bundle level.
+  To allow encryption to be negotiated you should enable here some of 
+  encryption protocols.
+  <p>
+  <bf>Note:</bf> Because of data padding to the next 8 octets block,
+  required by block nature of DES encryption, this protocol can have 
+  interoperability issues with other protocols (as example, compression)
+  which over it. As example, there is known problem with 
+  Predictor-1 compression.
 
 <descrip>
 
@@ -49,7 +58,7 @@ The options available at the ECP layer are:
 
 <tag><tt>des</tt></tag>
 
-This option enables DES encryption.
+This option enables DES (rfc 1969) encryption.
 
 </descrip>
 

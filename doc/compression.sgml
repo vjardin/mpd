@@ -10,6 +10,10 @@
   This chapter describes commands that configure the Compression Control
   Protocol (CCP) layer. All of these commands apply to the currently
   active bundle.
+  <p>
+  To use CCP you should enable compression at the bundle level.
+  To allow compression to be negotiated you should enable here some of 
+  compression protocols.
 
 <descrip>
 

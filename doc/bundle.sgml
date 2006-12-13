@@ -155,13 +155,11 @@ Enable/Disable IPV6CP negotiation. Default is disabled.
 
 <tag><tt>compression</tt></tag>
 
-When compression support is compiled into mpd, this option must
-be enabled in order to activate it.
+Enable/Disable CCP (Compression Control Protocol) negotiation. Default is disabled.
 
 <tag><tt>encryption</tt></tag>
 
-When encryption support is compiled into mpd, this option must
-be enabled in order to activate it.
+Enable/Disable ECP (Encryption Control Protocol) negotiation. Default is disabled.
 
 <tag><tt>crypt-reqd</tt></tag>
 
