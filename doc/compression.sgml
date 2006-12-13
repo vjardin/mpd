@@ -45,9 +45,9 @@ that are not included with the normal mpd distribution.
 
 <descrip>
 
-<tag><tt>stac</tt></tag>
+<tag><tt>pred1</tt></tag>
 
-This option enables STAC compression.
+This option enables Predictor-1 (rfc 1978) compression.
 
 <tag><tt>mppc</tt></tag>
 

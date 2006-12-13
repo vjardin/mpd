@@ -27,6 +27,10 @@
 	  <item> TCP device type was completely rewritten. It has some minor issues 
 		 due to limitation of ng_ksocket module, but now IT WORKS! :)
 	  </item>
+	  <item> Compression Predictor-1 (rfc 1978) added.
+	  </item>
+	  <item> Encryption DES (rfc 1969) commented out as broken.
+	  </item>
 	  <item> New command 'show phys' added.
 	  </item>
 	  <item> New command 'show summary' added.
@@ -36,7 +40,7 @@
 	<itemize>
 	  <item> Fixed a few bugs on amd64 and sparc64 platforms.
 	  </item>
-	  <item> Phys layer made stateless to remove race condition.
+	  <item> Phys layer was made stateless to remove race condition.
 	  </item>
 	  <item> Link layer changed to remove race conditions on LinkDown().
 	  </item>
@@ -44,11 +48,13 @@
 	  </item>
 	  <item> Link up/down reason recording is now more accurate.
 	  </item>
-	  <item> Complete link shutdown procedure on auth failure.
+	  <item> Complete link shutdown procedure on auth failure implemented.
 	  </item>
 	  <item> Fixed several small PPTP level processing issues.
 	  </item>
-	  <item> Removed limitation about PPTP who must be in the bundle alone.
+	  <item> Removed limitation about PPTP which must be in the bundle alone.
+	  </item>
+	  <item> Fixed MSCHAP auth which was broken in 4.0b5.
 	  </item>
 	</itemize>
     </itemize>

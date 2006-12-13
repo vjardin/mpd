@@ -141,28 +141,10 @@ print anything.
 </p>
 
 <p>
-Once authentication has completed, this script is run a second time,
-this time with two extra arguments.  The first extra argument is
-either ``-y'' or ``-n'' depending on whether this user was properly
-authenticated or not.  The second extra argument is the username, so
-in this example if Gregory entered his password correctly the command
-would be ``<tt>/usr/local/etc/mpd/get_passwd.sh -y gregory</tt>''.
-</p>
-
-<p>
 As a special case, if the username in the <tt>mpd.secret</tt> file
 is ``*'', then this line must be last as it matches any username.
 Then it is up to the external program to determine whether the
 username is valid. This wildcard matching only works for ``!'' lines.
-</p>
-
-<p>
-This external password program is intented to allow links to other
-authentication types, such as one-time passwords or hardware
-authentication dongles. The second invocation of the program is
-intended to perform tasks such as incrementing the password generation
-for one-time password schemes (when called with ``-y''), or disabling
-hardware dongles after a number of failures (when called with ``-n'').
 </p>
 
 <p>
