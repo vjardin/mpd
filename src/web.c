@@ -245,7 +245,7 @@ WebShowSummary(FILE *f)
 
   fprintf(f, "<H2>Current status summary</H2>\n");
   fprintf(f, "<table>\n");
-  fprintf(f, "<TR><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>Bund</TH><TH>Link</TH><TH>LCP</TH><TH colspan=2>Device</TH><TH>User</TH><TH>From</TH><TH></TH></TR>");
+  fprintf(f, "<TR><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>Bund</TH><TH>Link</TH><TH>LCP</TH><TH colspan=2>Device</TH><TH>User</TH><TH>From</TH><TH></TH></TR>");
   for (b = 0; b<gNumBundles; b++) {
     B=gBundles[b];
     if (B) {
@@ -265,6 +265,8 @@ WebShowSummary(FILE *f)
 			B->n_links, FSM_COLOR(B->ipcp.fsm.state), L->name,FsmStateName(B->ipcp.fsm.state));
 		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ipv6cp\">%s</a></TD>\n", 
 			B->n_links, FSM_COLOR(B->ipv6cp.fsm.state), L->name,FsmStateName(B->ipv6cp.fsm.state));
+		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ccp\">%s</a></TD>\n", 
+			B->n_links, FSM_COLOR(B->ccp.fsm.state), L->name,FsmStateName(B->ccp.fsm.state));
 		    fprintf(f, "<TD rowspan=\"%d\"><A href=\"/cmd?%s&amp;show&amp;bund\">%s</a></TD>\n", 
 			B->n_links, L->name, B->name);
 		}
