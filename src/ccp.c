@@ -388,7 +388,7 @@ static void
 CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 {
   CcpState	const ccp = &bund->ccp;
-  CompType	const ct = ccp->recv;
+  CompType	const ct = ccp->xmit;
   int		noAck = 0;
 
   bp = (ct && ct->RecvResetReq) ? (*ct->RecvResetReq)(id, bp, &noAck) : NULL;
@@ -406,7 +406,7 @@ static void
 CcpRecvResetAck(Fsm fp, int id, Mbuf bp)
 {
   CcpState	const ccp = &bund->ccp;
-  CompType	const ct = ccp->xmit;
+  CompType	const ct = ccp->recv;
 
   if (ct && ct->RecvResetAck)
     (*ct->RecvResetAck)(id, bp);
