@@ -37,25 +37,6 @@
 	Run as a background daemon.
 
 	<tag><tt>
-	-a  --console-address <em>ip-address</em>
-	</tt></tag>
-
-	<tag><tt>
-	-c  --console-port <em>port</em>
-	</tt></tag>
-
-	With either of these options, mpd will listen for and accept
-	TCP connections on the given IP address and port. Once connected,
-	you can enter commands just as if they were typed in
-	interactive mode.  Note that this is a potential security
-	hole, as any user on the system can connect. Mpd allows you
-	to require a login and password if so desired, but
-	<bf>beware</bf>: by default, no login is required.
-
-	The default IP address is <tt>0.0.0.0</tt> (i.e., listen on
-	all interfaces) and the default port is 5005.
-
-	<tag><tt>
 	-d  --directory <em>dir</em>
 	</tt></tag>
 

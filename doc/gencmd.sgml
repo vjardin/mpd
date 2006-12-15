@@ -126,12 +126,6 @@ for the currently active bundle.
 <tag><tt>set ccp ...</tt></tag>
 Set compression control protocol configuration parameters
 for the currently active bundle.
-<tag><tt>set login [ <em>name</em> ] </tt></tag>
-Sets the login name required for telnet connections to be
-<tt><em>name</em></tt>, or eliminates any required login
-if <tt><em>name</em></tt> is omitted.
-The password for <tt><em>name</em></tt> is found by looking up
-<tt><em>name</em></tt> in <tt>mpd.secrets</tt>.
 <tag><tt>set auth ...</tt></tag>
 Configures the authentication subsystem.
 <tag><tt>set radius ...</tt></tag>
@@ -176,7 +170,8 @@ layer or finite state machine (FSM). The valid layers are:
 
 Interface layer. Opening this layer configures the interface and
 installs any routes. If dial-on-demand is enabled, nothing else
-happens until there is outgoing traffic.
+happens until there is outgoing traffic. If dial-on-demand is disabled
+there no reason to open this layer manually.
 
 <tag>bund</tag>
 Bundle layer. This layer represents the multi-link bundle ``virtual
@@ -193,9 +188,8 @@ This is normally opened and closed automatically.
 
 <tag>lcp</tag>
 
-Link control protocol FSM.
-This is normally opened and closed automatically. Opening of this layer
-initiates outgoing call by this link.
+Link control protocol FSM. This is default layer for open/close commands.
+Opening of this layer initiates outgoing call by this link.
 
 <tag>phys</tag>
 

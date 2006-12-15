@@ -13,57 +13,52 @@
 	kernel.  It supports several of the numerous PPP sub-protocols
 	and extensions, such as:
 	<itemize>
-	<item>Multi-link PPP capability
-	<item>PAP, CHAP, and MS-CHAP authentication
-	<item>EAP (EAP-MD5), EAP-RADIUS Proxy
-	<item>RADIUS authentication and accounting
-	<item>DES and MPPE encryption
-	<item>Stac<bf>*</bf>, and MPPC<bf>*</bf> compression
-	<item>Point-to-Point Tunnelling Protocol (PPTP)
-	</itemize>
-	Mpd also includes many additional features:
+        <item>Multi-link PPP capability 
+        <item>PAP, CHAP, MS-CHAP and EAP authentication 
+        <item>PPP compression and encryption
+        <item>IPCP and IPV6CP parameter negotiation
+        </itemize>
+      
+	Mpd have support for many link types:
 	<itemize>
-	<item>Dial-on-demand with idle timeout
-	<item>Multiple active connections running simultaneously
-	<item>Dynamic demand based link management
-		(also known as ``rubber bandwidth'')
-	<item>Powerful chat scripting language for asynchronous serial ports
-	<item>Pre-tested chat scripts for automatic configuration
-		of several common modems and ISDN terminal adapters
-	<item>Support for the
-	<htmlurl url="http://www.daemonnews.org/200003/netgraph.html"
-	name="Netgraph kernel networking system">
-	<item>Support for tunnelling PPP over TCP, UDP, and PPTP
-	<item>Clean device-type independent design
-	<item>Comprehensive logging
-	</itemize>
-	Mpd supports the following device types:
-	<itemize>
-	<item><bf>Modem.</bf> The modem device type supports
-	asychronous serial connections, including modems,
-	ISDN terminal adapters, and null-modem connections.
-	Mpd includes a fully
-	event-driven scripting language for modem identification,
-	setup, manual server login, etc.
-	<item>
-	<bf><htmlurl url="http://www.daemonnews.org/200003/netgraph.html"
-	name="Netgraph">.</bf>
-	Netgraph is highly modular kernel networking system,
-	supporting synchronous serial
-	connections, Cisco HDLC, Frame Relay, and other protocols.
-	Mpd supports running PPP over any netgraph connection.
-	<item><bf>TCP.</bf> Mpd can tunnel PPP frames over a TCP connection.
-	Frames are encoded in the same was as asychronous serial connections.
-	<item><bf>UDP.</bf> Mpd can tunnel PPP frames over a UDP connection.
-	Each frame is encapsulated in a UDP datagram packet.
-	<item><bf>PPTP.</bf> Mpd can connect over the Internet using
-	the Point-to-Point Tunnelling Protocol (PPTP).
-	This protocol is supported by the popular Microsoft Dial-Up
-	Networking client.
-	<item><bf>PPPoE.</bf> Mpd can connect over an Ethernet port
-	using the PPP-over-Ethernet (PPPoE) protocol.
+        <item><bf>Serial port modem</bf> The modem device type supports
+	    asychronous serial connections, including modems,
+	    ISDN terminal adapters, and null-modem connections.
+	    Mpd includes a fully
+	    event-driven scripting language for modem identification,
+	    setup, manual server login, etc.
+        <item><bf>Point-to-Point Tunnelling Protocol (PPTP)</bf> Mpd can connect over the Internet using
+	    the Point-to-Point Tunnelling Protocol (PPTP).
+	    This protocol is supported by the popular Microsoft Dial-Up
+	    Networking client.
+        <item><bf>PPP over Ethernet (PPPoE)</bf> Mpd can connect over an Ethernet port
+	    using the PPP-over-Ethernet (PPPoE) protocol.
+	<item><bf>PPP over TCP</bf> Mpd can tunnel PPP frames over a TCP connection.
+	    Frames are encoded in the same was as asychronous serial connections.
+        <item><bf>PPP over UDP</bf> Mpd can tunnel PPP frames over a UDP connection.
+	    Each frame is encapsulated in a UDP datagram packet.
+        <item><bf>PPP over specified netgraph(4) node</bf>
+	    Netgraph is highly modular kernel networking system,
+	    supporting synchronous serial
+	    connections, Cisco HDLC, Frame Relay, and other protocols.
+	    Mpd supports running PPP over any netgraph connection.
 	</itemize>
 
+	Mpd also includes many additional features: 
+	<itemize>
+        <item>IPv4 and IPv6 support
+        <item>RADIUS authentication and accounting
+        <item>NetFlow traffic accounting
+        <item>Network address translation (NAT)
+        <item>Dial-on-demand with idle timeout 
+        <item>Multiple active connections running simultaneously 
+        <item>Dynamic demand based link management (also known as ``rubber bandwidth'') 
+        <item>Powerful chat scripting language for asynchronous serial ports 
+        <item>Pre-tested chat scripts for several common modems and ISDN TAs
+        <item>Clean device-type independent design 
+        <item>Comprehensive logging
+        <item>Telnet and HTTP control interfaces.
+	</itemize>
       <p>
 	Mpd was originally developed at Whistle Communications, Inc.
 	for use in the Whistle InterJet.
@@ -71,10 +66,3 @@
 	though it has pretty much been completely rewritten since then.
 	Mpd is now hosted on sourceforge.net
 	<htmlurl url="http://sourceforge.net/projects/mpd/" name="MPD Project Page">.
-
-      <p>
-	<bf>*</bf> These protocols require source files that
-	  are proprietary and/or export-controlled and cannot be
-	  included in the normal distribution. For MPPC, you need
-	  proprietary compression from Hi/Fn (formerly Stac).
-
