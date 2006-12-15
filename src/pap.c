@@ -184,11 +184,13 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
 
 	/* Done with my auth to peer */
 	AuthFinish(AUTH_SELF_TO_PEER, auth->code == PAP_ACK);	
+	AuthDataDestroy(auth);
       }
       break;
 
     default:
       Log(LG_AUTH, ("[%s] PAP: unknown code", lnk->name));
+      AuthDataDestroy(auth);
       break;
   }
 }

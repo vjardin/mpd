@@ -371,6 +371,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 
 	/* Send response to peer */
 	ChapSendResponse(chap);
+	AuthDataDestroy(auth);
       }
       break;
 
@@ -428,6 +429,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
       /* Log message */
       ShowMesg(LG_AUTH, (char *) pkt, len);
       AuthFinish(AUTH_SELF_TO_PEER, auth->code == CHAP_SUCCESS);
+      AuthDataDestroy(auth);
       break;
       
     case CHAP_MS_V1_CHANGE_PW:
