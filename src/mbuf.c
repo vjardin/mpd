@@ -43,7 +43,7 @@ Freee(const char *type, const void *ptr)
   if (ptr == NULL)
     return;
 
-  bp = *((Mbuf *) ptr - 1);
+  bp = ((Mbuf) ptr - 1);
   mbfree(bp);
 }
 
