@@ -429,7 +429,7 @@ CcpDataOutput(Mbuf plain)
   CcpState	const ccp = &bund->ccp;
   Mbuf		comp;
 
-  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, plain, "%s: xmit plain", Pref(&ccp->fsm));
 
 /* Compress packet */
 
@@ -440,7 +440,7 @@ CcpDataOutput(Mbuf plain)
     return(NULL);
   }
   comp = (*ccp->xmit->Compress)(plain);
-  LogDumpBp(LG_CCP2, comp, "%s: xmit comp", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, comp, "%s: xmit comp", Pref(&ccp->fsm));
 
   return(comp);
 }
@@ -458,7 +458,7 @@ CcpDataInput(Mbuf comp)
   CcpState	const ccp = &bund->ccp;
   Mbuf		plain;
 
-  LogDumpBp(LG_CCP2, comp, "%s: recv comp", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, comp, "%s: recv comp", Pref(&ccp->fsm));
 
 /* Decompress packet */
 
@@ -478,7 +478,7 @@ CcpDataInput(Mbuf comp)
     Log(LG_CCP, ("%s: decompression failed", Pref(&ccp->fsm)));
     return(NULL);
   }
-  LogDumpBp(LG_CCP2, plain, "%s: recv plain", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, plain, "%s: recv plain", Pref(&ccp->fsm));
 
   return(plain);
 }
