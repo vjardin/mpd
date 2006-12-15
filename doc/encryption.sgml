@@ -59,6 +59,8 @@ The options available at the ECP layer are:
 <tag><tt>des</tt></tag>
 
 This option enables DES (rfc 1969) encryption.
+This algorithm implemented in user-level, so require much CPU power
+on fast (>10Mbit/s) links.
 
 </descrip>
 

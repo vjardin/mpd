@@ -52,6 +52,8 @@ that are not included with the normal mpd distribution.
 <tag><tt>pred1</tt></tag>
 
 This option enables Predictor-1 (rfc 1978) compression.
+This algorithm implemented in user-level, so require much CPU power
+on fast (>10Mbit/s) links.
 
 <tag><tt>mppc</tt></tag>
 
