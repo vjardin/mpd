@@ -237,6 +237,7 @@ Pred1Decompress(Mbuf mbcomp)
     {
       Log(LG_CCP2, ("[%s] Length error (%d) --> len (%d)", bund->name, len, len1));
       PFREE(mbcomp);
+      PFREE(mbuncomp);
       CcpSendResetReq();
       return NULL;
     }
@@ -266,6 +267,7 @@ Pred1Decompress(Mbuf mbcomp)
   {
     Log(LG_CCP2, ("[%s] Pred1: Bad CRC-16", bund->name));
     PFREE(mbcomp);
+    PFREE(mbuncomp);
     CcpSendResetReq();
     return NULL;
   }
