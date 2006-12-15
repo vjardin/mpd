@@ -258,14 +258,7 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
     case NGM_MPPC_COOKIE:
       switch (msg->header.cmd) {
 	case NGM_MPPC_RESETREQ: {
-	    CompType	const ct = ccp->recv;
-	    Mbuf	bp = NULL;
-
-	    assert(ct != NULL);
-	    if (ct->SendResetReq != NULL)
-	      bp = (*ct->SendResetReq)();
-	    Log(LG_CCP2, ("%s: SendResetReq", Pref(fp)));
-	    FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid++, bp);
+	    CcpSendResetReq();
 	    return;
 	  }
 	default:
@@ -376,8 +369,9 @@ CcpSendResetReq(void)
   assert(ct);
   if (ct->SendResetReq)
     bp = (*ct->SendResetReq)();
-  Log(LG_CCP2, ("%s: SendResetReq", Pref(fp)));
-  FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid, bp);
+  Log(LG_CCP, ("%s: SendResetReq #%d link %d (%s)", 
+    Pref(fp), fp->reqid, 0, FsmStateName(fp->state)));
+  FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid++, bp);
 }
 
 /*
@@ -393,8 +387,9 @@ CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 
   bp = (ct && ct->RecvResetReq) ? (*ct->RecvResetReq)(id, bp, &noAck) : NULL;
   if (!noAck) {
-    Log(LG_CCP2, ("%s: SendResetAck", Pref(fp)));
-    FsmOutputMbuf(fp, CODE_RESETACK, fp->reqid, bp);
+    Log(LG_CCP, ("%s: SendResetAck #%d link %d (%s)",
+	Pref(fp), fp->reqid, 0, FsmStateName(fp->state)));
+    FsmOutputMbuf(fp, CODE_RESETACK, fp->reqid++, bp);
   }
 }
 
@@ -434,9 +429,10 @@ CcpDataOutput(Mbuf plain)
   CcpState	const ccp = &bund->ccp;
   Mbuf		comp;
 
+  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ccp->fsm));
+
 /* Compress packet */
 
-  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ccp->fsm));
   if ((!ccp->xmit) || (!ccp->xmit->Compress))
   {
     Log(LG_ERR, ("%s: no encryption for xmit", Pref(&ccp->fsm)));
@@ -446,7 +442,6 @@ CcpDataOutput(Mbuf plain)
   comp = (*ccp->xmit->Compress)(plain);
   LogDumpBp(LG_CCP2, comp, "%s: xmit comp", Pref(&ccp->fsm));
 
-//  ecp->stat.outPackets++;
   return(comp);
 }
 
@@ -463,10 +458,9 @@ CcpDataInput(Mbuf comp)
   CcpState	const ccp = &bund->ccp;
   Mbuf		plain;
 
-  assert(ccp->fsm.state == ST_OPENED);
   LogDumpBp(LG_CCP2, comp, "%s: recv comp", Pref(&ccp->fsm));
 
-/* Decrypt packet */
+/* Decompress packet */
 
   if ((!ccp->recv) || (!ccp->recv->Decompress))
   {
@@ -482,11 +476,9 @@ CcpDataInput(Mbuf comp)
   if (plain == NULL)
   {
     Log(LG_CCP, ("%s: decompression failed", Pref(&ccp->fsm)));
-//    ecp->stat.inPacketDrops++;
     return(NULL);
   }
   LogDumpBp(LG_CCP2, plain, "%s: recv plain", Pref(&ccp->fsm));
-//  ecp->stat.inPackets++;
 
   return(plain);
 }

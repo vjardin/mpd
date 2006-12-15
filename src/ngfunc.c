@@ -1328,12 +1328,9 @@ NgFuncDataEvent(int type, void *cookie)
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
 
     Mbuf nbp = CcpDataOutput(mbwrite(mballoc(MB_COMP, nread), buf, nread));
-    if (!nbp) {
-	Log(LG_BUND, ("[%s] Compressor error", bund->name));
-	return;
-    }
+    if (nbp)
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_COMPRESS, nbp);
 
-    NgFuncWriteFrame(bund->name, NG_PPP_HOOK_COMPRESS, nbp);
     return;
   }
 
@@ -1344,12 +1341,9 @@ NgFuncDataEvent(int type, void *cookie)
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECOMPRESS);
 
     Mbuf nbp = CcpDataInput(mbwrite(mballoc(MB_COMP, nread), buf, nread));
-    if (!nbp) {
-	Log(LG_BUND, ("[%s] Decompressor error", bund->name));
-	return;
-    }
+    if (nbp)
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECOMPRESS, nbp);
 
-    NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECOMPRESS, nbp);
     return;
   }
 
@@ -1361,12 +1355,9 @@ NgFuncDataEvent(int type, void *cookie)
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_ENCRYPT);
 
     Mbuf nbp = EcpDataOutput(mbwrite(mballoc(MB_CRYPT, nread), buf, nread));
-    if (!nbp) {
-	Log(LG_BUND, ("[%s] Encryptor error", bund->name));
-	return;
-    }
+    if (nbp)
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_ENCRYPT, nbp);
 
-    NgFuncWriteFrame(bund->name, NG_PPP_HOOK_ENCRYPT, nbp);
     return;
   }
 
@@ -1377,12 +1368,9 @@ NgFuncDataEvent(int type, void *cookie)
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECRYPT);
 
     Mbuf nbp = EcpDataInput(mbwrite(mballoc(MB_CRYPT, nread), buf, nread));
-    if (!nbp) {
-	Log(LG_BUND, ("[%s] Decryptor error", bund->name));
-	return;
-    }
+    if (nbp) 
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECRYPT, nbp);
 
-    NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECRYPT, nbp);
     return;
   }
 

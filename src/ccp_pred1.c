@@ -54,6 +54,7 @@
   static void   Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode);
   static Mbuf	Pred1RecvResetReq(int id, Mbuf bp, int *noAck);
   static Mbuf	Pred1SendResetReq(void);
+  static void	Pred1RecvResetAck(int id, Mbuf bp);
   static int    Pred1Negotiated(int xmit);
   static int    Pred1SubtractBloat(int size);
 
@@ -78,7 +79,7 @@
     Pred1DecodeConfigReq,
     Pred1SendResetReq,
     Pred1RecvResetReq,
-    NULL,
+    Pred1RecvResetAck,
     Pred1Negotiated,
     Pred1Compress,
     Pred1Decompress,
@@ -295,6 +296,16 @@ Pred1SendResetReq(void)
 {
   Pred1Init(COMP_DIR_RECV);
   return(NULL);
+}
+
+/*
+ * Pred1RecvResetAck()
+ */
+
+static void
+Pred1RecvResetAck(int id, Mbuf bp)
+{
+  Pred1Init(COMP_DIR_RECV);
 }
 
 /*
