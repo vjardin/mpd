@@ -14,10 +14,10 @@
   To allow encryption to be negotiated you should enable here some of 
   encryption protocols.
   <p>
-  <bf>Note:</bf> Because of data padding to the next 8 octets block,
+  <bf>Note:</bf> Because of data padding to the next 8 octets boundary,
   required by block nature of DES encryption, this protocol can have 
   interoperability issues with other protocols (as example, compression)
-  which over it. As example, there is known problem with 
+  which work over it. As example, there is a known problem with 
   Predictor-1 compression.
 
 <descrip>
