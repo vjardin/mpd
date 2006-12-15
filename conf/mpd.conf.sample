@@ -70,7 +70,7 @@ myisp:
 	set modem var $Telephone "1-415-555-1212"
 	set modem idle-script Ringback
 # "Open" connection (but don't actually dial until there's demand)
-	open iface
+	open
 
 #
 # This setup answers incoming calls from a remote peer,
@@ -134,7 +134,7 @@ sync:
 	set ipcp yes vjcomp
 	set link no chap pap
 	set link yes acfcomp protocomp
-	open iface
+	open
 
 #
 # Mpd as a PPTP server compatible with Microsoft Dial-Up Networking clients.
