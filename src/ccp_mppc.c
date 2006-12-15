@@ -495,8 +495,7 @@ MppcEnabledMppeType(short type)
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
     }
   }
-//  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are enabled -> %s%s", 
-//    lnk->name, type, ret ? "yes" : "no", policy_auth ? " (AUTH)" : "" ));
+
   return ret;
 }
 
@@ -539,10 +538,7 @@ MppcAcceptableMppeType(short type)
     }
   }
 
-  Log(LG_CCP, ("[%s] CCP: Checking whether %d bits are acceptable -> %s%s",
-    lnk->name, type, ret ? "yes" : "no", policy_auth ? " (AUTH)" : "" ));
   return ret;
-
 }
 
 #define KEYLEN(b)	(((b) & MPPE_128) ? 16 : 8)
