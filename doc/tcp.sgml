@@ -11,10 +11,12 @@
   valid if the currently active link has type <bf>tcp</bf>.
   <p>
   Due to limitations of ng_ksocket module this device type have two issues:
-  - when there are no free incoming link, new connection will anyway 
+  <itemize>
+  <item>when there are no free incoming link, new connection will anyway 
     be acceped and then dropped instead of not accepting it,
-  - tcp connection status is not monitored, so you should use 
+  <item>tcp connection status is not monitored, so you should use 
     'set link keep-alive' to detect broken links.
+  </itemize>
 
 <descrip>
 
