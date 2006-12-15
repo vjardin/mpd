@@ -76,6 +76,7 @@
 /* Mbuf manipulation */
 
   extern Mbuf	mballoc(const char *type, int size);
+  extern Mbuf	mbufise(const char *type, u_char *buf, int len);
   extern Mbuf	mbfree(Mbuf bp);
   extern Mbuf	mbwrite(Mbuf bp, const u_char *ptr, int cnt);
   extern Mbuf	mbread(Mbuf bp, u_char *ptr, int cnt, int *lenp);

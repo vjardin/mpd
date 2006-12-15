@@ -1294,7 +1294,7 @@ NgFuncDataEvent(int type, void *cookie)
 
     /* Input frame */
     InputFrame(linkNum, proto,
-      mbwrite(mballoc(MB_FRAME_IN, nread - 4), buf + 4, nread - 4));
+      mbufise(MB_FRAME_IN, buf + 4, nread - 4));
     return;
   }
 
@@ -1305,7 +1305,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd IP frame on demand/mssfix-in hook", bund->name);
     IfaceListenInput(PROTO_IP,
-      mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
+      mbufise(MB_FRAME_IN, buf, nread));
     return;
   }
 #ifndef USE_NG_TCPMSS
@@ -1315,7 +1315,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd IP frame on mssfix-out hook", bund->name);
     IfaceListenOutput(PROTO_IP,
-      mbwrite(mballoc(MB_FRAME_IN, nread), buf, nread));
+      mbufise(MB_FRAME_IN, buf, nread));
     return;
   }
 #endif
@@ -1327,7 +1327,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
 
-    Mbuf nbp = CcpDataOutput(mbwrite(mballoc(MB_COMP, nread), buf, nread));
+    Mbuf nbp = CcpDataOutput(mbufise(MB_COMP, buf, nread));
     if (nbp)
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_COMPRESS, nbp);
 
@@ -1340,7 +1340,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECOMPRESS);
 
-    Mbuf nbp = CcpDataInput(mbwrite(mballoc(MB_COMP, nread), buf, nread));
+    Mbuf nbp = CcpDataInput(mbufise(MB_COMP, buf, nread));
     if (nbp)
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECOMPRESS, nbp);
 
@@ -1354,7 +1354,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_ENCRYPT);
 
-    Mbuf nbp = EcpDataOutput(mbwrite(mballoc(MB_CRYPT, nread), buf, nread));
+    Mbuf nbp = EcpDataOutput(mbufise(MB_CRYPT, buf, nread));
     if (nbp)
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_ENCRYPT, nbp);
 
@@ -1367,7 +1367,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECRYPT);
 
-    Mbuf nbp = EcpDataInput(mbwrite(mballoc(MB_CRYPT, nread), buf, nread));
+    Mbuf nbp = EcpDataInput(mbufise(MB_CRYPT, buf, nread));
     if (nbp) 
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECRYPT, nbp);
 

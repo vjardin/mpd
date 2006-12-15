@@ -24,9 +24,9 @@ Malloc(const char *type, int size)
 {
   Mbuf	bp;
 
-  bp = mballoc(type, size + sizeof(Mbuf));
-  memcpy(MBDATA(bp), &bp, sizeof(bp));
-  return(MBDATA(bp) + sizeof(Mbuf));
+  bp = mballoc(type, size);
+  memset(MBDATA(bp), 0, size);
+  return(MBDATA(bp));
 }
 
 /*
@@ -44,7 +44,7 @@ Freee(const char *type, const void *ptr)
     return;
 
   bp = *((Mbuf *) ptr - 1);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -67,16 +67,33 @@ mballoc(const char *type, int size)
     Perror("mballoc: malloc");
     DoExit(EX_ERRDEAD);
   }
-  memset(memory, 0, amount);
 
   /* Put mbuf at front of memory region */
 
   bp = (Mbuf)(void *)memory;
-  bp->size = bp->cnt = size;
-  bp->type = type;
-
   bp->base = memory + sizeof(*bp);
+  bp->size = bp->cnt = size;
+  bp->offset = 0;
+  bp->type = type;
+  bp->next = NULL;
 
+  return(bp);
+}
+
+/*
+ * mbufyse()
+ *
+ * Cover buffer with mbuf header w/o data copying. Returns new Mbuf.
+ */
+
+Mbuf
+mbufise(const char *type, u_char *buf, int len)
+{
+  Mbuf	bp;
+
+  bp = mballoc(type, 0);
+  bp->base = buf;
+  bp->size = bp->cnt = len;
   return(bp);
 }
 
@@ -97,14 +114,7 @@ mbfree(Mbuf bp)
    /* Sanity checks */
 
     assert(bp->base);
-    assert(bp == (Mbuf)(void *)(bp->base - sizeof(*bp)));
-
-    #ifdef MBUF_CHECK_OVERRUNS
-      assert(*((u_int32_t *)(void *)(bp->base
-	- sizeof(u_int32_t))) == MBUF_MAGIC_1);
-      assert(*((u_int32_t *)(void *)(bp->base
-	+ bp->size)) == MBUF_MAGIC_2);
-    #endif
+//    assert(bp == (Mbuf)(void *)(bp->base - sizeof(*bp)));
 
    /* Free it */
 
