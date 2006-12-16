@@ -115,16 +115,16 @@
 
   /* These should be listed in order of preference */
   static const CompType		gCompTypes[] = {
-#ifdef COMPRESSION_PRED1
-    &gCompPred1Info,
-#endif
+    &gCompMppcInfo,
 #ifdef COMPRESSION_STAC
     &gCompStacInfo,
 #endif
 #ifdef COMPRESSION_DEFLATE
     &gCompDeflateInfo,
 #endif
-    &gCompMppcInfo,
+#ifdef COMPRESSION_PRED1
+    &gCompPred1Info,
+#endif
   };
   #define CCP_NUM_PROTOS	(sizeof(gCompTypes) / sizeof(*gCompTypes))
 
@@ -342,14 +342,12 @@ CcpStat(int ac, char *av[], void *arg)
   OptStat(&ccp->options, gConfList);
 
   Printf("Incoming decompression:\r\n");
-  Printf("\tProtocol:%s\r\n", !ccp->recv ?  " none" :
-    ccp->recv->Describe ? (*ccp->recv->Describe)(COMP_DIR_RECV) :
-    ccp->recv->name);
+  Printf("\tProtocol:%s (%s)\r\n", !ccp->xmit ? " none" : ccp->xmit->name,
+    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : "");
 
   Printf("Outgoing compression:\r\n");
-  Printf("\tProtocol:%s\r\n", !ccp->xmit ?  " none" :
-    ccp->xmit->Describe ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) :
-    ccp->xmit->name);
+  Printf("\tProtocol:%s (%s)\r\n", !ccp->recv ? " none" : ccp->recv->name,
+    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : "");
 
   return(0);
 }
@@ -568,12 +566,10 @@ CcpLayerUp(Fsm fp)
   }
 
   /* Report what we're doing */
-  Log(LG_CCP, ("  Compress using:%s", !ccp->xmit ? " none" :
-    ccp->xmit->Describe ? (*ccp->xmit->Describe)(COMP_DIR_XMIT)
-    : ccp->xmit->name));
-  Log(LG_CCP, ("Decompress using:%s", !ccp->recv ? " none" :
-    ccp->recv->Describe ? (*ccp->recv->Describe)(COMP_DIR_RECV)
-    : ccp->recv->name));
+  Log(LG_CCP, ("  Compress using:%s (%s)", !ccp->xmit ? " none" : ccp->xmit->name,
+    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : ""));
+  Log(LG_CCP, ("Decompress using:%s (%s)", !ccp->recv ? " none" : ccp->recv->name,
+    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : ""));
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
@@ -632,6 +628,10 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
   CcpState	const ccp = &bund->ccp;
   u_int		ackSizeSave, rejSizeSave;
   int		k, rej;
+
+  /* Forget our previous choice on new request */
+  if (mode == MODE_REQ)
+    ccp->xmit = NULL;
 
   /* Decode each config option */
   for (k = 0; k < num; k++) {
