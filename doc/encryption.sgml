@@ -14,11 +14,9 @@
   To allow encryption to be negotiated you should enable here some of 
   encryption protocols.
   <p>
-  <bf>Note:</bf> Because of data padding to the next 8 octets boundary,
-  required by block nature of DES encryption, this protocol can have 
-  interoperability issues with other protocols (as example, compression)
-  which work over it. As example, there is a known problem with 
-  Predictor-1 compression.
+  <bf>Note:</bf> In PPP, encryption should be handled by the ECP rather than CCP.  
+  However, Microsoft combined both compression and encryption 
+  into their ``compression'' algorithm (MPPC), which is confusing.
 
 <descrip>
 
@@ -61,6 +59,12 @@ The options available at the ECP layer are:
 This option enables DES (rfc 1969) encryption.
 This algorithm implemented in user-level, so require much CPU power
 on fast (>10Mbit/s) links.
+<P>
+<bf>Note:</bf> Because of data padding to the next 8 octets boundary,
+required by block nature of DES encryption, this protocol can have 
+interoperability issues with other protocols (as example, compression)
+which work over it. As example, there is a known problem with 
+Predictor-1 compression.
 
 </descrip>
 

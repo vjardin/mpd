@@ -68,7 +68,8 @@ MPPE as additional, optional sub-components of the MPPC protocol.
 
 <tag><tt>mpp-compress</tt></tag>
 
-Enables MPPC compression.
+Enables MPPC compression. This option requires compression support from 
+ng_mppc node which is not implemented.
 
 <tag><tt>mpp-e40</tt></tag>
 
