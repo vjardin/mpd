@@ -99,6 +99,7 @@
 			        | LG_IPCP		\
 			        | LG_IPV6CP		\
 			        | LG_CCP		\
+			        | LG_ECP		\
 			        | LG_AUTH		\
 			        | LG_RADIUS		\
 			        | LG_FSM		\
