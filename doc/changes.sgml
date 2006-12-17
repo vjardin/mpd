@@ -56,6 +56,10 @@
 	  </item>
 	  <item> Fixed MSCHAP auth which was broken in 4.0b5.
 	  </item>
+	  <item> Fixed memory leak in PAP and CHAP auth on the client side.
+	  </item>
+	  <item> Fixed some CCP negotiation issues.
+	  </item>
 	</itemize>
     </itemize>
   </p>
