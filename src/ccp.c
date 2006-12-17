@@ -342,11 +342,11 @@ CcpStat(int ac, char *av[], void *arg)
   OptStat(&ccp->options, gConfList);
 
   Printf("Incoming decompression:\r\n");
-  Printf("\tProtocol:%s (%s)\r\n", !ccp->xmit ? " none" : ccp->xmit->name,
+  Printf("\tProtocol: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : "");
 
   Printf("Outgoing compression:\r\n");
-  Printf("\tProtocol:%s (%s)\r\n", !ccp->recv ? " none" : ccp->recv->name,
+  Printf("\tProtocol: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
     (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : "");
 
   return(0);
@@ -490,14 +490,15 @@ CcpBuildConfigReq(Fsm fp, u_char *cp)
 {
   CcpState	const ccp = &bund->ccp;
   int		type;
+  int		ok;
 
   /* Put in all options that peer hasn't rejected in preferred order */
   for (ccp->recv = NULL, type = 0; type < CCP_NUM_PROTOS; type++) {
     CompType	const ct = gCompTypes[type];
 
     if (Enabled(&ccp->options, type) && !CCP_PEER_REJECTED(ccp, type)) {
-      cp = (*ct->BuildConfigReq)(cp);
-      if (!ccp->recv)
+      cp = (*ct->BuildConfigReq)(cp, &ok);
+      if (ok && (!ccp->recv))
 	ccp->recv = ct;
     }
   }
@@ -566,9 +567,9 @@ CcpLayerUp(Fsm fp)
   }
 
   /* Report what we're doing */
-  Log(LG_CCP, ("  Compress using:%s (%s)", !ccp->xmit ? " none" : ccp->xmit->name,
+  Log(LG_CCP, ("  Compress using: %s (%s)", !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : ""));
-  Log(LG_CCP, ("Decompress using:%s (%s)", !ccp->recv ? " none" : ccp->recv->name,
+  Log(LG_CCP, ("Decompress using: %s (%s)", !ccp->recv ? "none" : ccp->recv->name,
     (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : ""));
 
   /* Update PPP node config */
@@ -669,6 +670,7 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case MODE_REJ:
+	(*ct->DecodeConfig)(fp, opt, mode);
 	CCP_PEER_REJ(ccp, index);
 	break;
 

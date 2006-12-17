@@ -50,7 +50,7 @@
   static Mbuf	Pred1Compress(Mbuf plain);
   static Mbuf	Pred1Decompress(Mbuf comp);
 
-  static u_char	*Pred1BuildConfigReq(u_char *cp);
+  static u_char	*Pred1BuildConfigReq(u_char *cp, int *ok);
   static void   Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode);
   static Mbuf	Pred1RecvResetReq(int id, Mbuf bp, int *noAck);
   static Mbuf	Pred1SendResetReq(void);
@@ -315,9 +315,10 @@ Pred1RecvResetAck(int id, Mbuf bp)
  */
 
 static u_char *
-Pred1BuildConfigReq(u_char *cp)
+Pred1BuildConfigReq(u_char *cp, int *ok)
 {
   cp = FsmConfValue(cp, CCP_TY_PRED1, 0, NULL);
+  *ok = 1;
   return (cp);
 }
 

@@ -42,7 +42,7 @@
   static char	*MppcDescribe(int xmit);
   static int	MppcSubtractBloat(int size);
   static void	MppcCleanup(int dir);
-  static u_char	*MppcBuildConfigReq(u_char *cp);
+  static u_char	*MppcBuildConfigReq(u_char *cp, int *ok);
   static void	MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
   static Mbuf	MppcRecvResetReq(int id, Mbuf bp, int *noAck);
   static char	*MppcDescribeBits(u_int32_t bits);
@@ -250,10 +250,10 @@ MppcCleanup(int dir)
   /* Remove node */
   switch (dir) {
     case COMP_DIR_XMIT:
-      ppphook = NG_PPP_HOOK_DECOMPRESS;
+      ppphook = NG_PPP_HOOK_COMPRESS;
       break;
     case COMP_DIR_RECV:
-      ppphook = NG_PPP_HOOK_COMPRESS;
+      ppphook = NG_PPP_HOOK_DECOMPRESS;
       break;
     default:
       assert(0);
@@ -268,7 +268,7 @@ MppcCleanup(int dir)
  */
 
 static u_char *
-MppcBuildConfigReq(u_char *cp)
+MppcBuildConfigReq(u_char *cp, int *ok)
 {
   CcpState	const ccp = &bund->ccp;
   MppcInfo	const mppc = &ccp->mppc;
@@ -280,11 +280,17 @@ MppcBuildConfigReq(u_char *cp)
     bits |= MPPC_BIT;
 
   /* Encryption */
-  if (MppcEnabledMppeType(40)) bits |= MPPE_40;
+  if (MppcEnabledMppeType(40)
+      && !CCP_PEER_REJECTED(ccp, gMppe40)) 
+    bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-  if (MppcEnabledMppeType(56)) bits |= MPPE_56;
+  if (MppcEnabledMppeType(56)
+      && !CCP_PEER_REJECTED(ccp, gMppe56)) 
+    bits |= MPPE_56;
 #endif
-  if (MppcEnabledMppeType(128)) bits |= MPPE_128;
+  if (MppcEnabledMppeType(128)
+      && !CCP_PEER_REJECTED(ccp, gMppe128)) 
+    bits |= MPPE_128;
 
   /* Stateless mode */
   if (Enabled(&ccp->options, gMppcStateless)
@@ -294,8 +300,12 @@ MppcBuildConfigReq(u_char *cp)
 
   /* Ship it */
   mppc->recv_bits = bits;
-  if (bits != 0)
+  if (bits != 0) {
     cp = FsmConfValue(cp, CCP_TY_MPPC, -4, &bits);
+    *ok = 1;
+  } else {
+    *ok = 0;
+  }
   return(cp);
 }
 
@@ -372,18 +382,24 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
       }
 
       /* Stateless mode */
-      if ((bits & MPPE_STATELESS) && !Acceptable(&ccp->options, gMppcStateless))
+      if ((bits & MPPE_STATELESS) && 
+    	  (!Acceptable(&ccp->options, gMppcStateless)
+	    || (bits & (MPPE_BITS|MPPC_BIT)) == 0))
 	bits &= ~MPPE_STATELESS;
 
       /* See if what we want equals what was sent */
       mppc->xmit_bits = bits;
-      if (bits != orig_bits) {
-	bits = htonl(bits);
-	memcpy(opt->data, &bits, 4);
-	FsmNak(fp, opt);
+      if (bits) {
+        if (bits != orig_bits) {
+	    bits = htonl(bits);
+	    memcpy(opt->data, &bits, 4);
+	    FsmNak(fp, opt);
+        }
+        else
+	    FsmAck(fp, opt);
       }
       else
-	FsmAck(fp, opt);
+        FsmRej(fp, opt);
       break;
 
     case MODE_NAK:

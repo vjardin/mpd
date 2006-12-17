@@ -49,7 +49,7 @@
      * This should add the type-specific stuff for a config-request
      * to the building config-request packet
      */
-    u_char	*(*BuildConfigReq)(u_char *cp);
+    u_char	*(*BuildConfigReq)(u_char *cp, int *ok);
     /*
      * This should decode type-specific config request stuff.
      */
