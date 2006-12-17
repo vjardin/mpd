@@ -194,8 +194,8 @@ DesBuildConfigReq(u_char *cp)
   EcpState	const ecp = &bund->ecp;
   DesInfo	const des = &ecp->des;
 
-  des_random_key(&des->recv_ivec);
-  return(FsmConfValue(cp, ECP_TY_DES, 8, &des->recv_ivec));
+  des_random_key(&des->xmit_ivec);
+  return(FsmConfValue(cp, ECP_TY_DES, 8, &des->xmit_ivec));
 }
 
 /*
@@ -220,7 +220,7 @@ DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
   switch (mode)
   {
     case MODE_REQ:
-      memcpy(des->xmit_ivec, opt->data, 8);
+      memcpy(des->recv_ivec, opt->data, 8);
       FsmAck(fp, opt);
       break;
     case MODE_NAK:

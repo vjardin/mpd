@@ -436,15 +436,15 @@ EcpBuildConfigReq(Fsm fp, u_char *cp)
 
 /* Put in all options that peer hasn't rejected */
 
-  for (ecp->recv = NULL, type = 0; type < ECP_NUM_PROTOS; type++)
+  for (ecp->xmit = NULL, type = 0; type < ECP_NUM_PROTOS; type++)
   {
     EncType	const et = gEncTypes[type];
 
     if (Enabled(&ecp->options, type) && !ECP_PEER_REJECTED(ecp, type))
     {
       cp = (*et->BuildConfigReq)(cp);
-      if (!ecp->recv)
-	ecp->recv = et;
+      if (!ecp->xmit)
+	ecp->xmit = et;
     }
   }
   return(cp);
@@ -560,6 +560,10 @@ EcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
   u_int		ackSizeSave, rejSizeSave;
   int		k, rej;
 
+  /* Forget our previous choice on new request */
+  if (mode == MODE_REQ)
+    ecp->recv = NULL;
+
 /* Decode each config option */
 
   for (k = 0; k < num; k++)
@@ -585,7 +589,7 @@ EcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	rejSizeSave = gRejSize;
 	rej = (!Acceptable(&ecp->options, index)
 	  || ECP_SELF_REJECTED(ecp, index)
-	  || (ecp->xmit && ecp->xmit != et));
+	  || (ecp->recv && ecp->recv != et));
 	if (rej)
 	{
 	  (*et->DecodeConfig)(fp, opt, MODE_NOP);
@@ -599,7 +603,7 @@ EcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  break;
 	}
 	if (gAckSize != ackSizeSave)		/* we accepted it */
-	  ecp->xmit = et;
+	  ecp->recv = et;
 	break;
 
       case MODE_NAK:
@@ -607,6 +611,7 @@ EcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case MODE_REJ:
+	(*et->DecodeConfig)(fp, opt, mode);
 	ECP_PEER_REJ(ecp, index);
 	break;
 
