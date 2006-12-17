@@ -493,13 +493,13 @@ CcpBuildConfigReq(Fsm fp, u_char *cp)
   int		ok;
 
   /* Put in all options that peer hasn't rejected in preferred order */
-  for (ccp->recv = NULL, type = 0; type < CCP_NUM_PROTOS; type++) {
+  for (ccp->xmit = NULL, type = 0; type < CCP_NUM_PROTOS; type++) {
     CompType	const ct = gCompTypes[type];
 
     if (Enabled(&ccp->options, type) && !CCP_PEER_REJECTED(ccp, type)) {
       cp = (*ct->BuildConfigReq)(cp, &ok);
-      if (ok && (!ccp->recv))
-	ccp->recv = ct;
+      if (ok && (!ccp->xmit))
+	ccp->xmit = ct;
     }
   }
   return(cp);
@@ -632,7 +632,7 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
   /* Forget our previous choice on new request */
   if (mode == MODE_REQ)
-    ccp->xmit = NULL;
+    ccp->recv = NULL;
 
   /* Decode each config option */
   for (k = 0; k < num; k++) {
@@ -654,7 +654,7 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	rejSizeSave = gRejSize;
 	rej = (!Acceptable(&ccp->options, index)
 	  || CCP_SELF_REJECTED(ccp, index)
-	  || (ccp->xmit && ccp->xmit != ct));
+	  || (ccp->recv && ccp->recv != ct));
 	if (rej) {
 	  (*ct->DecodeConfig)(fp, opt, MODE_NOP);
 	  FsmRej(fp, opt);
@@ -666,7 +666,7 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  break;
 	}
 	if (gAckSize != ackSizeSave)		/* we accepted it */
-	  ccp->xmit = ct;
+	  ccp->recv = ct;
 	break;
 
       case MODE_REJ:

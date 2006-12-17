@@ -299,7 +299,7 @@ MppcBuildConfigReq(u_char *cp, int *ok)
     bits |= MPPE_STATELESS;
 
   /* Ship it */
-  mppc->recv_bits = bits;
+  mppc->xmit_bits = bits;
   if (bits != 0) {
     cp = FsmConfValue(cp, CCP_TY_MPPC, -4, &bits);
     *ok = 1;
@@ -374,11 +374,11 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 	 if the remote side doesn't request encryption, try to prompt it.
 	 This is broken wrt. normal PPP negotiation: typical Microsoft. */
       if ((bits & MPPE_BITS) == 0) {
-	if (MppcEnabledMppeType(40)) bits |= MPPE_40;
+	if (MppcAcceptableMppeType(40)) bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-	if (MppcEnabledMppeType(56)) bits |= MPPE_56;
+	if (MppcAcceptableMppeType(56)) bits |= MPPE_56;
 #endif
-	if (MppcEnabledMppeType(128)) bits |= MPPE_128;
+	if (MppcAcceptableMppeType(128)) bits |= MPPE_128;
       }
 
       /* Stateless mode */
@@ -388,7 +388,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 	bits &= ~MPPE_STATELESS;
 
       /* See if what we want equals what was sent */
-      mppc->xmit_bits = bits;
+      mppc->recv_bits = bits;
       if (bits) {
         if (bits != orig_bits) {
 	    bits = htonl(bits);
