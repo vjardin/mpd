@@ -194,8 +194,9 @@ DesBuildConfigReq(u_char *cp)
   EcpState	const ecp = &bund->ecp;
   DesInfo	const des = &ecp->des;
 
-  des_random_key(&des->xmit_ivec);
-  return(FsmConfValue(cp, ECP_TY_DES, 8, &des->xmit_ivec));
+  ((u_int32_t *) des->xmit_ivec)[0] = random();
+  ((u_int32_t *) des->xmit_ivec)[1] = random();
+  return(FsmConfValue(cp, ECP_TY_DES, 8, des->xmit_ivec));
 }
 
 /*
