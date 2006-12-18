@@ -762,7 +762,7 @@ PptpCtrlConnEvent(int type, void *cookie)
 {
   PptpCtrl		const c = (PptpCtrl) cookie;
   struct sockaddr_storage	addr;
-  int			addrLen = sizeof(addr);;
+  int			addrLen = sizeof(addr);
   char			buf[64];
 
   /* Get event */
