@@ -382,7 +382,7 @@ EcpSendResetReq(Fsm fp)
   if (et->SendResetReq)
     bp = (*et->SendResetReq)();
   Log(LG_ECP, ("%s: SendResetReq", Pref(fp)));
-  FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid, bp);
+  FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid++, bp);
 }
 
 /*
@@ -397,7 +397,7 @@ EcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 
   bp = (et && et->RecvResetReq) ? (*et->RecvResetReq)(id, bp) : NULL;
   Log(fp->log, ("%s: SendResetAck", Pref(fp)));
-  FsmOutputMbuf(fp, CODE_RESETACK, fp->reqid, bp);
+  FsmOutputMbuf(fp, CODE_RESETACK, id, bp);
 }
 
 /*

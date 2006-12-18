@@ -387,7 +387,7 @@ CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
   if (!noAck) {
     Log(LG_CCP, ("%s: SendResetAck #%d link %d (%s)",
 	Pref(fp), fp->reqid, 0, FsmStateName(fp->state)));
-    FsmOutputMbuf(fp, CODE_RESETACK, fp->reqid++, bp);
+    FsmOutputMbuf(fp, CODE_RESETACK, id, bp);
   }
 }
 
