@@ -52,8 +52,11 @@ that are not included with the normal mpd distribution.
 <tag><tt>pred1</tt></tag>
 
 This option enables Predictor-1 (rfc 1978) compression.
+<P>
 This algorithm implemented in user-level, so require much CPU power
-on fast (>10Mbit/s) links.
+on fast (>10Mbit/s) links. To reduce packet loss on fast links
+it is recommended to increase values of
+net.graph.recvspace and net.graph.maxdgram sysctl variables.
 
 <tag><tt>mppc</tt></tag>
 
@@ -68,8 +71,10 @@ MPPE as additional, optional sub-components of the MPPC protocol.
 
 <tag><tt>mpp-compress</tt></tag>
 
-Enables MPPC compression. This option requires compression support from 
-ng_mppc node which is not implemented.
+Enables MPPC compression. 
+<P>
+This option requires compression support from ng_mppc node 
+which is not implemented.
 
 <tag><tt>mpp-e40</tt></tag>
 
