@@ -288,10 +288,15 @@ vLogPrintf(const char *fmt, va_list args)
   va_list       args2;
 
   LogTimeStamp(logprintf);
+#if (__FreeBSD_version >= 500000)
   va_copy(args2,args);
   valog(LOG_INFO, fmt, args);
   vsnprintf(buf, sizeof(buf), fmt, args2);
   va_end(args2);
+#else
+  valog(LOG_INFO, fmt, args);
+  vsnprintf(buf, sizeof(buf), fmt, args);
+#endif
 
   if (!gBackground)
   {

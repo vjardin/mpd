@@ -92,7 +92,10 @@
   static int	NgFuncInitNetflowHook(Bund b, int iface);
 #endif
   static int	NgFuncInitVJ(Bund b);
+#ifdef USE_NG_TCPMSS
   static int    NgFuncInitMSS(Bund b);
+#endif
+
 /*
  * GLOBAL VARIABLES
  */
@@ -718,6 +721,7 @@ fail:
     return -1;
 }
 
+#ifdef USE_NG_TCPMSS
 static int
 NgFuncInitMSS(Bund b)
 {
@@ -786,6 +790,7 @@ NgFuncInitMSS(Bund b)
 fail:
     return -1;
 }
+#endif
 
 /*
  * NgFuncIfaceExists()
@@ -1259,6 +1264,7 @@ NgFuncDataEvent(int type, void *cookie)
   u_char		buf[8192];
   struct sockaddr_ng	naddr;
   int			nread, nsize = sizeof(naddr);
+  Mbuf 			nbp;
 
   /* Set bundle */
   bund = (Bund) cookie;
@@ -1327,7 +1333,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
 
-    Mbuf nbp = CcpDataOutput(mbufise(MB_COMP, buf, nread));
+    nbp = CcpDataOutput(mbufise(MB_COMP, buf, nread));
     if (nbp)
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_COMPRESS, nbp);
 
@@ -1340,7 +1346,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECOMPRESS);
 
-    Mbuf nbp = CcpDataInput(mbufise(MB_COMP, buf, nread));
+    nbp = CcpDataInput(mbufise(MB_COMP, buf, nread));
     if (nbp)
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECOMPRESS, nbp);
 
@@ -1354,7 +1360,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_ENCRYPT);
 
-    Mbuf nbp = EcpDataOutput(mbufise(MB_CRYPT, buf, nread));
+    nbp = EcpDataOutput(mbufise(MB_CRYPT, buf, nread));
     if (nbp)
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_ENCRYPT, nbp);
 
@@ -1367,7 +1373,7 @@ NgFuncDataEvent(int type, void *cookie)
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECRYPT);
 
-    Mbuf nbp = EcpDataInput(mbufise(MB_CRYPT, buf, nread));
+    nbp = EcpDataInput(mbufise(MB_CRYPT, buf, nread));
     if (nbp) 
 	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECRYPT, nbp);
 
