@@ -72,6 +72,7 @@
     u_int		session_timeout;	/* Session timeout */
     short		n_routes;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
+    struct acl 		*tables;		/* List of IP added to tables by iface */
     struct u_range	self_addr;		/* Interface's IP address */
     struct u_addr	peer_addr;		/* Peer's IP address */
     struct u_addr	proxy_addr;		/* Proxied IP address */
@@ -103,6 +104,15 @@
  */
 
   extern const struct cmdtab	IfaceSetCmds[];
+
+  extern struct acl_pool * rule_pool; /* Pointer to the first element in the list of rules */
+  extern struct acl_pool * pipe_pool; /* Pointer to the first element in the list of pipes */
+  extern struct acl_pool * queue_pool; /* Pointer to the first element in the list of queues */
+  extern struct acl_pool * table_pool; /* Pointer to the first element in the list of tables */
+  extern int rule_pool_start; /* Initial number of ipfw rules pool */
+  extern int pipe_pool_start; /* Initial number of ipfw dummynet pipe pool */
+  extern int queue_pool_start; /* Initial number of ipfw dummynet queue pool */
+  extern int table_pool_start; /* Initial number of ipfw tables pool */
 
 /*
  * FUNCTIONS

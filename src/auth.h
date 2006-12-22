@@ -103,6 +103,7 @@
     struct acl		*acl_rule;
     struct acl		*acl_pipe;
     struct acl		*acl_queue;
+    struct acl		*acl_table;
 
     unsigned long	mtu;			/* MTU */
     unsigned long	session_timeout;	/* Session-Timeout */

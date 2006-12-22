@@ -141,6 +141,12 @@ void	authparamsDestroy(struct authparams *ap) {
 	Freee(MB_AUTH, acls);
 	acls = acls1;
     };
+    acls = ap->acl_table;
+    while (acls != NULL) {
+	acls1 = acls->next;
+	Freee(MB_AUTH, acls);
+	acls = acls1;
+    };
 
     if (ap->msdomain) {
 	Freee(MB_AUTH, ap->msdomain);
@@ -184,6 +190,14 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     };
     acls = src->acl_queue;
     pacl = &dst->acl_queue;
+    while (acls != NULL) {
+	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
+	memcpy(*pacl, acls, sizeof(struct acl));
+	acls = acls->next;
+	pacl = &((*pacl)->next);
+    };
+    acls = src->acl_table;
+    pacl = &dst->acl_table;
     while (acls != NULL) {
 	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
 	memcpy(*pacl, acls, sizeof(struct acl));

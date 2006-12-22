@@ -67,6 +67,8 @@
   #define RAD_MPD_RULE		1
   #define RAD_MPD_PIPE		2
   #define RAD_MPD_QUEUE		3
+  #define RAD_MPD_TABLE		4
+  #define RAD_MPD_TABLE_STATIC	5
 
   /* Configuration options */
   enum {

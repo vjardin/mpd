@@ -125,9 +125,11 @@
   struct acl_pool * rule_pool = NULL; /* Pointer to the first element in the list of rules */
   struct acl_pool * pipe_pool = NULL; /* Pointer to the first element in the list of pipes */
   struct acl_pool * queue_pool = NULL; /* Pointer to the first element in the list of queues */
+  struct acl_pool * table_pool = NULL; /* Pointer to the first element in the list of tables */
   int rule_pool_start = 10000; /* Initial number of ipfw rules pool */
   int pipe_pool_start = 10000; /* Initial number of ipfw dummynet pipe pool */
   int queue_pool_start = 10000; /* Initial number of ipfw dummynet queue pool */
+  int table_pool_start = 32; /* Initial number of ipfw tables pool */
 
 /*
  * IfaceInit()
@@ -221,10 +223,12 @@ IfaceUp(int ready)
 {
   IfaceState	const iface = &bund->iface;
   int		session_timeout = 0, idle_timeout = 0;
-  struct acl	*acls;
+  struct acl	*acls, *acl;
   char			*buf;
   struct acl_pool 	**poollast;
   int 			poollaststart;
+  int		prev_number;
+  int		prev_real_number;
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
   if (ready) {
@@ -306,6 +310,24 @@ IfaceUp(int ready)
     poollaststart = acls->real_number;
     acls = acls->next;
   };
+  prev_number = -1;
+  prev_real_number = -1;
+  acls = bund->params.acl_table;
+  poollast = &table_pool;
+  poollaststart = table_pool_start;
+  while (acls != NULL) {
+    if (acls->real_number == 0) {
+	if (acls->number == prev_number) { /* ACL list is presorted so we need not allocate if equal */
+	    acls->real_number = prev_real_number;
+	} else {
+	    acls->real_number = IfaceAllocACL(&poollast, poollaststart, iface->ifname, acls->number);
+	    poollaststart = acls->real_number;
+	    prev_number = acls->number;
+	    prev_real_number = acls->real_number;
+	}
+    }
+    acls = acls->next;
+  };
   acls = bund->params.acl_rule;
   poollast = &rule_pool;
   poollaststart = rule_pool_start;
@@ -330,6 +352,15 @@ IfaceUp(int ready)
     Freee(MB_IFACE, buf);
     acls = acls->next;
   }
+  acls = bund->params.acl_table;
+  while (acls != NULL) {
+    acl = Malloc(MB_IFACE, sizeof(struct acl));
+    memcpy(acl, acls, sizeof(struct acl));
+    acl->next = iface->tables;
+    iface->tables = acl;
+    ExecCmd(LG_IFACE2, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
+    acls = acls->next;
+  };
   acls = bund->params.acl_rule;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
@@ -398,6 +429,7 @@ IfaceDown(void)
   IfaceState	const iface = &bund->iface;
   struct acl_pool	**rp, *rp1;
   char		cb[32768];
+  struct acl    *acl, *aclnext;
 
   Log(LG_IFACE, ("[%s] IFACE: Down event", bund->name));
 
@@ -436,6 +468,27 @@ IfaceDown(void)
   if (cb[0]!=0)
     ExecCmd(LG_IFACE2, "%s delete%s",
       PATH_IPFW, cb);
+
+  /* Remove table ACLs */
+  rp = &table_pool;
+  while (*rp != NULL) {
+    if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
+      rp1 = *rp;
+      *rp = (*rp)->next;
+      Freee(MB_IFACE, rp1);
+    } else {
+      rp = &((*rp)->next);
+    };
+  };
+  acl = iface->tables;
+  while (acl != NULL) {
+    ExecCmd(LG_IFACE2, "%s table %d delete %s",
+	PATH_IPFW, acl->real_number, acl->rule);
+    aclnext = acl->next;
+    Freee(MB_IFACE, acl);
+    acl = aclnext;
+  };
+  iface->tables = NULL;
 
   /* Remove queue ACLs */
   rp = &queue_pool;
@@ -634,6 +687,9 @@ IFaceParseACL (char * src, char * ifname)
 			break;
 		    case 'q':
 			ap = queue_pool;
+			break;
+		    case 't':
+			ap = table_pool;
 			break;
 		    default:
 			ap = NULL;

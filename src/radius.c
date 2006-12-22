@@ -1372,6 +1372,16 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_QUEUE: %s",
 	        lnk->name, __func__, acl2));
 	      acls = &(auth->params.acl_queue);
+	    } else if (res == RAD_MPD_TABLE) {
+	      acl2 = rad_cvt_string(data, len);
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_TABLS: %s",
+	        lnk->name, __func__, acl2));
+	      acls = &(auth->params.acl_table);
+	    } else if (res == RAD_MPD_TABLE_STATIC) {
+	      acl2 = rad_cvt_string(data, len);
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_TABLS_STATIC: %s",
+	        lnk->name, __func__, acl2));
+	      acls = &(auth->params.acl_table);
 	    } else {
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ",
 		lnk->name, __func__, res));
@@ -1392,14 +1402,22 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      break;
 	    }
 	    acls1 = Malloc(MB_AUTH, sizeof(struct acl));
-	    acls1->number = i;
+	    if (res != RAD_MPD_TABLE_STATIC) {
+		    acls1->number = i;
+		    acls1->real_number = 0;
+	    } else {
+		    acls1->number = 0;
+		    acls1->real_number = i;
+	    }
 	    strncpy(acls1->rule, acl2, ACL_LEN);
-	    while ((*acls != NULL) && ((*acls)->number < i))
+	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
 	      acls = &((*acls)->next);
 
 	    if (*acls == NULL) {
 	      acls1->next = NULL;
-	    } else if ((*acls)->number == i) {
+	    } else if (((*acls)->number == acls1->number) &&
+		(res != RAD_MPD_TABLE) &&
+		(res != RAD_MPD_TABLE_STATIC)) {
 	      Log(LG_RADIUS, ("[%s] RADIUS: %s: duplicate acl",
 		lnk->name, __func__));
 	      free(acl1);

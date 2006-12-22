@@ -35,6 +35,10 @@
 	  </item>
 	  <item> New command 'show summary' added.
 	  </item>
+	  <item> Support for ipfw tables added to RADIUS ACL's.
+	  </item>
+	  <item> New commands 'set global start...' added..
+	  </item>
 	</itemize>
 	<item> Bugfixes:
 	<itemize>

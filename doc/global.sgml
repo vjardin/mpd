@@ -12,6 +12,17 @@
 <descrip>
 
 <tag><tt>
+set global startrule <em>num</em>
+<newline>set global startpipe <em>num</em>
+<newline>set global startqueue <em>num</em>
+<newline>set global starttable <em>num</em>
+</tt></tag>
+
+These commands define initial values for autonumeration of ipfw
+rules, pipes, queues and tables. 
+Defaults are 10000, 10000, 10000 and 32 accordingly.
+
+<tag><tt>
 set global enable <em>option ...</em>
 <newline>set global disable <em>option ...</em>
 </tt></tag>

@@ -48,6 +48,10 @@
   enum {
     SET_ENABLE,
     SET_DISABLE,
+    SET_RULE,
+    SET_QUEUE,
+    SET_PIPE,
+    SET_TABLE,
   };
 
 
@@ -86,6 +90,14 @@
        	GlobalSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]", 		"Disable option" ,
        	GlobalSetCommand, NULL, (void *) SET_DISABLE },
+    { "startrule num", 			"Initial ipfw rule number" ,
+       	GlobalSetCommand, NULL, (void *) SET_RULE },
+    { "startqueue num", 		"Initial ipfw queue number" ,
+       	GlobalSetCommand, NULL, (void *) SET_QUEUE },
+    { "startpipe num",			"Initial ipfw pipe number" ,
+       	GlobalSetCommand, NULL, (void *) SET_PIPE },
+    { "starttable num", 		"Initial ipfw table number" ,
+       	GlobalSetCommand, NULL, (void *) SET_TABLE },
     { NULL },
   };
 
@@ -364,6 +376,8 @@ FindCommand(CmdTab cmds, char *str, CmdTab *cmdp)
 static int
 GlobalSetCommand(int ac, char *av[], void *arg) 
 {
+    int val;
+
   if (ac == 0)
     return(-1);
 
@@ -374,6 +388,54 @@ GlobalSetCommand(int ac, char *av[], void *arg)
 
     case SET_DISABLE:
       DisableCommand(ac, av, &gGlobalConf.options, gGlobalConfList);
+      break;
+
+    case SET_RULE:
+	if (rule_pool) 
+	    Log(LG_ERR, ("Rule pool is not empty. Impossible to set initial number"));
+	else {
+	    val = atoi(*av);
+	    if (val <= 0 || val>=65535)
+		Log(LG_ERR, ("Incorrect rule number"));
+	    else
+		rule_pool_start = val;
+	}
+      break;
+
+    case SET_QUEUE:
+	if (queue_pool) 
+	    Log(LG_ERR, ("Queue pool is not empty. Impossible to set initial number"));
+	else {
+	    val = atoi(*av);
+	    if (val <= 0 || val>=65535)
+		Log(LG_ERR, ("Incorrect queue number"));
+	    else
+		queue_pool_start = val;
+	}
+      break;
+
+    case SET_PIPE:
+	if (rule_pool) 
+	    Log(LG_ERR, ("Pipe pool is not empty. Impossible to set initial number"));
+	else {
+	    val = atoi(*av);
+	    if (val <= 0 || val>=65535)
+		Log(LG_ERR, ("Incorrect rule number"));
+	    else
+		pipe_pool_start = val;
+	}
+      break;
+
+    case SET_TABLE:
+	if (rule_pool) 
+	    Log(LG_ERR, ("Table pool is not empty. Impossible to set initial number"));
+	else {
+	    val = atoi(*av);
+	    if (val <= 0 || val>127) /* table 0 is usually possible but we deny it */
+		Log(LG_ERR, ("Incorrect rule number"));
+	    else
+		table_pool_start = val;
+	}
       break;
 
     default:
