@@ -772,8 +772,9 @@ IfaceIpIfaceUp(int ready)
     IfaceRoute	const r = &iface->routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET) {
-	r->ok = (ExecCmd(LG_IFACE2, "%s add %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+	r->ok = (ExecCmd(LG_IFACE2, "%s add %s %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
+		u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
     }
   }
   /* Add dynamic routes */
@@ -781,8 +782,9 @@ IfaceIpIfaceUp(int ready)
     IfaceRoute	const r = &bund->params.routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET) {
-	r->ok = (ExecCmd(LG_IFACE2, "%s add %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+	r->ok = (ExecCmd(LG_IFACE2, "%s add %s %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
+		u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
     }
   }
 
@@ -820,8 +822,8 @@ IfaceIpIfaceDown(void)
     if (u_rangefamily(&r->dest)==AF_INET) {
 	if (!r->ok)
 	    continue;
-	ExecCmd(LG_IFACE2, "%s delete %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	ExecCmd(LG_IFACE2, "%s delete %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
 	r->ok = 0;
     }
   }
@@ -832,8 +834,8 @@ IfaceIpIfaceDown(void)
     if (u_rangefamily(&r->dest)==AF_INET) {
 	if (!r->ok)
 	    continue;
-	ExecCmd(LG_IFACE2, "%s delete %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	ExecCmd(LG_IFACE2, "%s delete %s",
+	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
 	r->ok = 0;
     }
   }
