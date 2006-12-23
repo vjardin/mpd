@@ -70,6 +70,7 @@
   {
     "pred1",
     CCP_TY_PRED1,
+    1,
     Pred1Init,
     NULL,
     NULL,

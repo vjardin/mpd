@@ -1416,6 +1416,9 @@ NgFuncCtrlEvent(int type, void *cookie)
   switch (u.msg.header.typecookie) {
 
     case NGM_MPPC_COOKIE:
+#ifdef COMPRESSION_DEFLATE
+    case NGM_DEFLATE_COOKIE:
+#endif
       CcpRecvMsg(&u.msg, len);
       return;
 

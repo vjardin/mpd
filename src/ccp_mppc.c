@@ -68,6 +68,7 @@
   const struct comptype	gCompMppcInfo = {
     "mppc",
     CCP_TY_MPPC,
+    1,
     MppcInit,
     NULL,
     MppcDescribe,

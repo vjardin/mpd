@@ -23,6 +23,7 @@
   struct comptype {
     const char	*name;
     u_char	type;
+    u_char	mode;
     /*
      * This function should initialize internal state according
      * to the direction parameter (recv or xmit or both).

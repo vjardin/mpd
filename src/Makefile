@@ -139,8 +139,6 @@ COPTS+=		-DCOMPRESSION_STAC
 .if defined ( COMPRESSION_DEFLATE )
 SRCS+=		ccp_deflate.c
 COPTS+=		-DCOMPRESSION_DEFLATE
-LDADD+=		-lz
-DPADD+=		${LIBZ}
 .endif
 
 # Encryption

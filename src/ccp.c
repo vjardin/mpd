@@ -38,8 +38,6 @@
 				  | (1 << CODE_RESETREQ)	\
 				  | (1 << CODE_RESETACK)	)
 
-  #define CCP_OVERHEAD		2
-
   /* Set menu options */
   enum {
     SET_ACCEPT,
@@ -265,6 +263,18 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
 	  break;
       }
       break;
+#ifdef COMPRESSION_DEFLATE
+    case NGM_DEFLATE_COOKIE:
+      switch (msg->header.cmd) {
+	case NGM_DEFLATE_RESETREQ: {
+	    CcpSendResetReq();
+	    return;
+	  }
+	default:
+	  break;
+      }
+      break;
+#endif
     default:
       break;
   }
@@ -577,8 +587,8 @@ CcpLayerUp(Fsm fp)
   bund->pppConfig.enableCompression = (ccp->xmit != NULL);
   bund->pppConfig.enableDecompression = (ccp->recv != NULL);
 #else
-  bund->pppConfig.bund.enableCompression = (ccp->xmit != NULL);
-  bund->pppConfig.bund.enableDecompression = (ccp->recv != NULL);
+  bund->pppConfig.bund.enableCompression = (ccp->xmit != NULL)?ccp->xmit->mode:0;
+  bund->pppConfig.bund.enableDecompression = (ccp->recv != NULL)?ccp->recv->mode:0;
 #endif
   NgFuncSetConfig();
 

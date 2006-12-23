@@ -51,6 +51,8 @@
   #define CCP_TY_DEFLATE	26	/* Gzip "deflate" compression */
   #define CCP_TY_V44		27	/* V.44/LZJH Compression Protocol */
 
+  #define CCP_OVERHEAD		2
+
   /* CCP state */
   struct ccpstate {
     struct fsm		fsm;		/* CCP FSM */
