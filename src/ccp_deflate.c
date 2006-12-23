@@ -219,7 +219,6 @@ DeflateRecvResetReq(int id, Mbuf bp, int *noAck)
 static Mbuf
 DeflateSendResetReq(void)
 {
-//  DeflateInit(COMP_DIR_RECV);
   return(NULL);
 }
 
@@ -230,7 +229,15 @@ DeflateSendResetReq(void)
 static void
 DeflateRecvResetAck(int id, Mbuf bp)
 {
-//  DeflateInit(COMP_DIR_RECV);
+  char	path[NG_PATHLEN + 1];
+
+  /* Forward ResetReq to the DEFLATE compression node */
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_DECOMPRESS);
+  if (NgSendMsg(bund->csock, path,
+      NGM_DEFLATE_COOKIE, NGM_DEFLATE_RESETREQ, NULL, 0) < 0) {
+    Log(LG_ERR, ("[%s] reset-ack to %s node: %s",
+      bund->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
+  }
 }
 
 /*
