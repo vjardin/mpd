@@ -24,7 +24,7 @@
   #define      USE_NG_NETFLOW
   #define      USE_NG_NAT
 #endif
-#if (__FreeBSD_version >= 602100) /* XXX This time point must be fixed */
+#if (__FreeBSD_version >= 700000) /* XXX This time point must be fixed */
   #define      USE_NG_DEFLATE
   #define      USE_NG_PRED1
 #endif
