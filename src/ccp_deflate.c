@@ -5,16 +5,9 @@
  * Written by Alexander Motin <mav@alkar.net>
  */
 
-/*
- * deflate.c
- *
- * Test program for Dave Rand's rendition of the predictor algorithm
- *
- * Updated by: archie@freebsd.org (Archie Cobbs)
- * Updated by: iand@labtam.labtam.oz.au (Ian Donaldson)
- * Updated by: Carsten Bormann <cabo@cs.tu-berlin.de>
- * Original  : Dave Rand <dlr@bungi.com>/<dave_rand@novell.com>
- */
+#include "defs.h"
+
+#ifdef USE_NG_DEFLATE
 
 #include "ppp.h"
 #include "ccp.h"
@@ -332,3 +325,5 @@ DeflateSubtractBloat(int size)
 {
   return(size + CCP_OVERHEAD);  /* Compression compensate header size */
 }
+
+#endif /* USE_NG_DEFLATE */

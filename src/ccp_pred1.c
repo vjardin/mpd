@@ -2,7 +2,10 @@
 /*
  * ccp_pred1.c
  *
- * Written by Alexander Motin <mav@alkar.net>
+ * Rewritten by Alexander Motin <mav@alkar.net>
+ * Written by Archie Cobbs <archie@freebsd.org>
+ * Copyright (c) 1995-1999 Whistle Communications, Inc. All rights reserved.
+ * See ``COPYRIGHT.whistle''
  */
 
 /*
@@ -20,6 +23,11 @@
 #include "ccp.h"
 #include "util.h"
 #include "ngfunc.h"
+
+#ifdef USE_NG_PRED1
+#include <netgraph/ng_message.h>
+#include <netgraph.h>
+#endif
 
 /*
  * DEFINITIONS
@@ -47,8 +55,10 @@
 
   static int	Pred1Init(int direction);
   static void	Pred1Cleanup(int direction);
+#ifndef USE_NG_PRED1
   static Mbuf	Pred1Compress(Mbuf plain);
   static Mbuf	Pred1Decompress(Mbuf comp);
+#endif
 
   static u_char	*Pred1BuildConfigReq(u_char *cp, int *ok);
   static void   Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode);
@@ -58,9 +68,11 @@
   static int    Pred1Negotiated(int xmit);
   static int    Pred1SubtractBloat(int size);
 
+#ifndef USE_NG_PRED1
   static int	Compress(u_char *source, u_char *dest, int len);
   static int	Decompress(u_char *source, u_char *dest, int slen, int dlen);
   static void	SyncTable(u_char *source, u_char *dest, int len);
+#endif
 
 /*
  * GLOBAL VARIABLES
@@ -82,8 +94,13 @@
     Pred1RecvResetReq,
     Pred1RecvResetAck,
     Pred1Negotiated,
+#ifndef USE_NG_PRED1
     Pred1Compress,
     Pred1Decompress,
+#else
+    NULL,
+    NULL,
+#endif
   };
 
 /*
@@ -93,6 +110,7 @@
 static int
 Pred1Init(int directions)
 {
+#ifndef USE_NG_PRED1
   Pred1Info	p = &bund->ccp.pred1;
 
   if (directions == COMP_DIR_RECV)
@@ -109,6 +127,49 @@ Pred1Init(int directions)
       p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->OutputGuessTable, 0, PRED1_TABLE_SIZE);
   }
+#else
+  struct ngm_mkpeer	mp;
+  struct ng_pred1_config conf;
+  const char		*pred1hook, *ppphook;
+  char                  path[NG_PATHLEN + 1];
+
+  memset(&conf, 0, sizeof(conf));
+  conf.enable = 1;
+  switch (directions) {
+    case COMP_DIR_XMIT:
+      ppphook = NG_PPP_HOOK_COMPRESS;
+      pred1hook = NG_PRED1_HOOK_COMP;
+      break;
+    case COMP_DIR_RECV:
+      ppphook = NG_PPP_HOOK_DECOMPRESS;
+      pred1hook = NG_PRED1_HOOK_DECOMP;
+      break;
+    default:
+      assert(0);
+      return(-1);
+  }
+
+  /* Attach a new PRED1 node to the PPP node */
+  snprintf(mp.type, sizeof(mp.type), "%s", NG_PRED1_NODE_TYPE);
+  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
+  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", pred1hook);
+  if (NgSendMsg(bund->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    Log(LG_ERR, ("[%s] can't create %s node: %s",
+      bund->name, mp.type, strerror(errno)));
+    return(-1);
+  }
+
+  /* Configure PRED1 node */
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
+  if (NgSendMsg(bund->csock, path,
+      NGM_PRED1_COOKIE, NGM_PRED1_CONFIG, &conf, sizeof(conf)) < 0) {
+    Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
+      bund->name, NG_PRED1_NODE_TYPE, path, strerror(errno)));
+    NgFuncDisconnect(MPD_HOOK_PPP, ppphook);
+    return(-1);
+  }
+#endif
   return 0;
 }
 
@@ -117,24 +178,45 @@ Pred1Init(int directions)
  */
 
 void
-Pred1Cleanup(int direction)
+Pred1Cleanup(int dir)
 {
+#ifndef USE_NG_PRED1
   Pred1Info	p = &bund->ccp.pred1;
 
-  if (direction == COMP_DIR_RECV)
+  if (dir == COMP_DIR_RECV)
   {
     assert(p->InputGuessTable);
     Freee(MB_COMP, p->InputGuessTable);
     p->InputGuessTable = NULL;
   }
-  if (direction == COMP_DIR_XMIT)
+  if (dir == COMP_DIR_XMIT)
   {
     assert(p->OutputGuessTable);
     Freee(MB_COMP, p->OutputGuessTable);
     p->OutputGuessTable = NULL;
   }
+#else
+  const char	*ppphook;
+  char		path[NG_PATHLEN + 1];
+
+  /* Remove node */
+  switch (dir) {
+    case COMP_DIR_XMIT:
+      ppphook = NG_PPP_HOOK_COMPRESS;
+      break;
+    case COMP_DIR_RECV:
+      ppphook = NG_PPP_HOOK_DECOMPRESS;
+      break;
+    default:
+      assert(0);
+      return;
+  }
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
+  (void)NgFuncShutdownNode(bund, bund->name, path);
+#endif
 }
 
+#ifndef USE_NG_PRED1
 /*
  * Pred1Compress()
  *
@@ -277,7 +359,7 @@ Pred1Decompress(Mbuf mbcomp)
   PFREE(mbcomp);
   return mbuncomp;
 }
-
+#endif
 
 /*
  * Pred1RecvResetReq()
@@ -286,8 +368,19 @@ Pred1Decompress(Mbuf mbcomp)
 static Mbuf
 Pred1RecvResetReq(int id, Mbuf bp, int *noAck)
 {
+#ifndef USE_NG_PRED1
   Pred1Init(COMP_DIR_XMIT);
-  return(NULL);
+#else
+  char	path[NG_PATHLEN + 1];
+  /* Forward ResetReq to the DEFLATE compression node */
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
+  if (NgSendMsg(bund->csock, path,
+      NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
+    Log(LG_ERR, ("[%s] reset to %s node: %s",
+      bund->name, NG_PRED1_NODE_TYPE, strerror(errno)));
+  }
+#endif
+return(NULL);
 }
 
 /*
@@ -297,8 +390,10 @@ Pred1RecvResetReq(int id, Mbuf bp, int *noAck)
 static Mbuf
 Pred1SendResetReq(void)
 {
-  Pred1Init(COMP_DIR_RECV);
-  return(NULL);
+#ifndef USE_NG_PRED1
+    Pred1Init(COMP_DIR_RECV);
+#endif
+    return(NULL);
 }
 
 /*
@@ -308,7 +403,18 @@ Pred1SendResetReq(void)
 static void
 Pred1RecvResetAck(int id, Mbuf bp)
 {
+#ifndef USE_NG_PRED1
   Pred1Init(COMP_DIR_RECV);
+#else
+  char	path[NG_PATHLEN + 1];
+  /* Forward ResetReq to the DEFLATE compression node */
+  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_DECOMPRESS);
+  if (NgSendMsg(bund->csock, path,
+      NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
+    Log(LG_ERR, ("[%s] reset to %s node: %s",
+      bund->name, NG_PRED1_NODE_TYPE, strerror(errno)));
+  }
+#endif
 }
 
 /*
@@ -361,6 +467,7 @@ Pred1SubtractBloat(int size)
   return(size - 2);
 }
 
+#ifndef USE_NG_PRED1
 /*
  * Compress()
  */
@@ -448,4 +555,4 @@ SyncTable(u_char *source, u_char *dest, int len)
     IHASH(*dest++ = *source++);
   }
 }
-
+#endif

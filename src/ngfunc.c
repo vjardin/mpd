@@ -12,6 +12,7 @@
  *
  */
 
+#include "defs.h"
 #include "ppp.h"
 #include "bund.h"
 #include "ngfunc.h"
@@ -51,6 +52,11 @@
 #endif
 #ifdef USE_NG_NAT
 #include <netgraph/ng_nat.h>
+#endif
+#ifdef COMPRESSION_PRED1
+#ifdef USE_NG_PRED1
+#include <netgraph/ng_pred1.h>
+#endif
 #endif
 
 #include <netinet/ip_icmp.h>
@@ -1417,7 +1423,14 @@ NgFuncCtrlEvent(int type, void *cookie)
 
     case NGM_MPPC_COOKIE:
 #ifdef COMPRESSION_DEFLATE
+#ifdef USE_NG_DEFLATE
     case NGM_DEFLATE_COOKIE:
+#endif
+#endif
+#ifdef COMPRESSION_PRED1
+#ifdef USE_NG_PRED1
+    case NGM_PRED1_COOKIE:
+#endif
 #endif
       CcpRecvMsg(&u.msg, len);
       return;

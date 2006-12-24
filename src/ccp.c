@@ -7,6 +7,7 @@
  * See ``COPYRIGHT.whistle''
  */
 
+#include "defs.h"
 #include "ppp.h"
 #include "ccp.h"
 #include "fsm.h"
@@ -118,7 +119,9 @@
     &gCompStacInfo,
 #endif
 #ifdef COMPRESSION_DEFLATE
+#ifdef USE_NG_DEFLATE
     &gCompDeflateInfo,
+#endif
 #endif
 #ifdef COMPRESSION_PRED1
     &gCompPred1Info,
@@ -264,6 +267,7 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
       }
       break;
 #ifdef COMPRESSION_DEFLATE
+#ifdef USE_NG_DEFLATE
     case NGM_DEFLATE_COOKIE:
       switch (msg->header.cmd) {
 	case NGM_DEFLATE_RESETREQ: {
@@ -274,6 +278,21 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
 	  break;
       }
       break;
+#endif
+#endif
+#ifdef COMPRESSION_PRED1
+#ifdef USE_NG_PRED1
+    case NGM_PRED1_COOKIE:
+      switch (msg->header.cmd) {
+	case NGM_PRED1_RESETREQ: {
+	    CcpSendResetReq();
+	    return;
+	  }
+	default:
+	  break;
+      }
+      break;
+#endif
 #endif
     default:
       break;

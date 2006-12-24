@@ -10,6 +10,7 @@
 #ifndef _CCP_H_
 #define	_CCP_H_
 
+#include "defs.h"
 #include "fsm.h"
 #include "mbuf.h"
 #include "comp.h"
@@ -24,7 +25,9 @@
 #include "ccp_stac.h"
 #endif
 #ifdef COMPRESSION_DEFLATE
+#ifdef USE_NG_DEFLATE
 #include "ccp_deflate.h"
+#endif
 #endif
 #include "ccp_mppc.h"
 
@@ -68,7 +71,9 @@
     struct pred1info	pred1;		/* Predictor-1 state */
 #endif
 #ifdef COMPRESSION_DEFLATE
+#ifdef USE_NG_DEFLATE
     struct deflateinfo	deflate;	/* Deflate state */
+#endif
 #endif
     struct mppcinfo	mppc;		/* MPPC/MPPE state */
     u_char		crypt_check:1;	/* We checked for required encryption */

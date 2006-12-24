@@ -19,11 +19,15 @@
  */
 
   /* Compile time configuring. */
-  #if (__FreeBSD_version >= 600000)
+#if (__FreeBSD_version >= 600000)
   #define      USE_NG_TCPMSS
   #define      USE_NG_NETFLOW
   #define      USE_NG_NAT
-  #endif
+#endif
+#if (__FreeBSD_version >= 602100) /* XXX This time point must be fixed */
+  #define      USE_NG_DEFLATE
+  #define      USE_NG_PRED1
+#endif
 
   /* Boolean */
 #ifndef TRUE
