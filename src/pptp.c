@@ -492,6 +492,11 @@ PptpHookUp(PptpInfo pptp)
   struct ng_pptpgre_conf	gc;
   struct sockaddr_storage	self_addr, peer_addr;
   struct u_addr			u_self_addr, u_peer_addr;
+  union {
+	u_char buf[sizeof(struct ng_ksocket_sockopt) + sizeof(int)];
+	struct ng_ksocket_sockopt ksso;
+  } u;
+  struct ng_ksocket_sockopt *const ksso = &u.ksso;
 
   /* Get session info */
   memset(&gc, 0, sizeof(gc));
@@ -532,6 +537,16 @@ PptpHookUp(PptpInfo pptp)
   }
   snprintf(ksockpath, sizeof(ksockpath),
     "%s.%s", pptppath, NG_PPTPGRE_HOOK_LOWER);
+
+    /* increase recvspace to avoid packet loss due to very small GRE recv buffer. */
+    ksso->level=SOL_SOCKET;
+    ksso->name=SO_RCVBUF;
+    ((int *)(ksso->value))[0]=48*1024;
+    if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
+	NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
+	    Log(LG_ERR, ("[%s] can't setsockopt %s node: %s",
+		lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+    }
 
   /* Bind ksocket socket to local IP address */
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
