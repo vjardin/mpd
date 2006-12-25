@@ -370,13 +370,17 @@ CcpStat(int ac, char *av[], void *arg)
   Printf("Enabled protocols:\r\n");
   OptStat(&ccp->options, gConfList);
 
-  Printf("Incoming decompression:\r\n");
+  Printf("Outgoing compression:\r\n");
   Printf("\tProtocol: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : "");
+  if (ccp->xmit && ccp->xmit->Stat)
+    ccp->xmit->Stat(COMP_DIR_XMIT);
 
-  Printf("Outgoing compression:\r\n");
+  Printf("Incoming decompression:\r\n");
   Printf("\tProtocol: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
     (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : "");
+  if (ccp->recv && ccp->recv->Stat)
+    ccp->recv->Stat(COMP_DIR_RECV);
 
   return(0);
 }

@@ -38,6 +38,7 @@
   static void	DeflateRecvResetAck(int id, Mbuf bp);
   static int    DeflateNegotiated(int xmit);
   static int    DeflateSubtractBloat(int size);
+  static int	DeflateStat(int dir);
 
 /*
  * GLOBAL VARIABLES
@@ -59,6 +60,7 @@
     DeflateRecvResetReq,
     DeflateRecvResetAck,
     DeflateNegotiated,
+    DeflateStat,
     NULL,
     NULL,
   };
@@ -324,6 +326,60 @@ static int
 DeflateSubtractBloat(int size)
 {
   return(size + CCP_OVERHEAD);  /* Compression compensate header size */
+}
+
+static int
+DeflateStat(int dir) 
+{
+    char			path[NG_PATHLEN + 1];
+    struct ng_deflate_stats	stats;
+    union {
+	u_char			buf[sizeof(struct ng_mesg) + sizeof(stats)];
+	struct ng_mesg		reply;
+    }				u;
+
+    switch (dir) {
+	case COMP_DIR_XMIT:
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+		NG_PPP_HOOK_COMPRESS);
+	    break;
+	case COMP_DIR_RECV:
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+		NG_PPP_HOOK_DECOMPRESS);
+	    break;
+	default:
+	    assert(0);
+    }
+    if (NgFuncSendQuery(path, NGM_DEFLATE_COOKIE, NGM_DEFLATE_GET_STATS, NULL, 0, 
+	&u.reply, sizeof(u), NULL) < 0) {
+	    Log(LG_ERR, ("[%s] can't get %s stats: %s",
+		bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
+	    return(0);
+    }
+    memcpy(&stats, u.reply.data, sizeof(stats));
+    switch (dir) {
+	case COMP_DIR_XMIT:
+	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+		stats.InOctets,
+		stats.OutOctets,
+		((stats.InOctets!=0)?
+		    ((int64_t)(stats.InOctets - stats.OutOctets)*100/(int64_t)stats.InOctets):
+		    0),
+		stats.Errors);
+	    break;
+	case COMP_DIR_RECV:
+	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+		stats.InOctets,
+		stats.OutOctets,
+		((stats.OutOctets!=0)?
+		    ((int64_t)(stats.OutOctets - stats.InOctets)*100/(int64_t)stats.OutOctets):
+		    0),
+		stats.Errors);
+    	    break;
+	default:
+    	    assert(0);
+    }
+    return (0);
 }
 
 #endif /* USE_NG_DEFLATE */

@@ -76,6 +76,10 @@
      */
     int		(*Negotiated)(int dir);
     /*
+     * Prints current compressor status
+     */
+    int		(*Stat)(int dir);
+    /*
      * For compression methods which is not implemented in kernel
      * here is support for user level functions.
      */

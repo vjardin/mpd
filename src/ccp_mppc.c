@@ -82,6 +82,7 @@
     MppcNegotiated,
     NULL,
     NULL,
+    NULL,
   };
 
 /*

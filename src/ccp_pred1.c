@@ -67,6 +67,7 @@
   static void	Pred1RecvResetAck(int id, Mbuf bp);
   static int    Pred1Negotiated(int xmit);
   static int    Pred1SubtractBloat(int size);
+  static int    Pred1Stat(int dir);
 
 #ifndef USE_NG_PRED1
   static int	Compress(u_char *source, u_char *dest, int len);
@@ -94,6 +95,7 @@
     Pred1RecvResetReq,
     Pred1RecvResetAck,
     Pred1Negotiated,
+    Pred1Stat,
 #ifndef USE_NG_PRED1
     Pred1Compress,
     Pred1Decompress,
@@ -119,6 +121,7 @@ Pred1Init(int directions)
     if (p->InputGuessTable == NULL)
       p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->InputGuessTable, 0, PRED1_TABLE_SIZE);
+    memset(&p->recv_stats, 0, sizeof(p->recv_stats));
   }
   if (directions == COMP_DIR_XMIT)
   {
@@ -126,6 +129,7 @@ Pred1Init(int directions)
     if (p->OutputGuessTable == NULL)
       p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->OutputGuessTable, 0, PRED1_TABLE_SIZE);
+    memset(&p->xmit_stats, 0, sizeof(p->xmit_stats));
   }
 #else
   struct ngm_mkpeer	mp;
@@ -232,10 +236,14 @@ Pred1Compress(Mbuf plain)
   int		len;
   Mbuf		res;
   int		orglen;
+  Pred1Info	p = &bund->ccp.pred1;
   
   plain = mbunify(plain);
   orglen = plength(plain);
   uncomp = MBDATA(plain);
+  
+  p->xmit_stats.InOctets += orglen;
+  p->xmit_stats.FramesPlain++;
   
   res = mballoc(MB_COMP, PRED1_MAX_BLOWUP(orglen + 2));
   comp = MBDATA(res);
@@ -261,11 +269,13 @@ Pred1Compress(Mbuf plain)
   {
     *comp |= 0x80;
     wp += len;
+    p->xmit_stats.FramesComp++;
   }
   else
   {
     memcpy(wp, uncomp, orglen);
     wp += orglen;
+    p->xmit_stats.FramesUncomp++;
   }
 
 /* Add FCS */
@@ -277,6 +287,9 @@ Pred1Compress(Mbuf plain)
   
   PFREE(plain);
   Log(LG_CCP2, ("[%s] Pred1: orig (%d) --> comp (%d)", bund->name, orglen, res->cnt));
+
+  p->xmit_stats.OutOctets += res->cnt;
+
   return res;
 }
 
@@ -296,11 +309,14 @@ Pred1Decompress(Mbuf mbcomp)
   u_int16_t	fcs;
   int           orglen;
   Mbuf		mbuncomp;
+  Pred1Info	p = &bund->ccp.pred1;
 
   mbcomp = mbunify(mbcomp);
   orglen = plength(mbcomp);
   comp = MBDATA(mbcomp);
   cp = comp;
+  
+  p->recv_stats.InOctets += orglen;
   
   mbuncomp = mballoc(MB_COMP, PRED1_DECOMP_BUF_SIZE);
   uncomp = MBDATA(mbuncomp);
@@ -315,10 +331,12 @@ Pred1Decompress(Mbuf mbcomp)
 /* Is data compressed or not really? */
   if (cf)
   {
+    p->recv_stats.FramesComp++;
     len1 = Decompress(cp, uncomp, orglen - 4, PRED1_DECOMP_BUF_SIZE);
     if (len != len1)	/* Error is detected. Send reset request */
     {
       Log(LG_CCP2, ("[%s] Length error (%d) --> len (%d)", bund->name, len, len1));
+      p->recv_stats.Errors++;
       PFREE(mbcomp);
       PFREE(mbuncomp);
       CcpSendResetReq();
@@ -328,6 +346,7 @@ Pred1Decompress(Mbuf mbcomp)
   }
   else
   {
+    p->recv_stats.FramesUncomp++;
     SyncTable(cp, uncomp, len);
     cp += len;
   }
@@ -349,6 +368,7 @@ Pred1Decompress(Mbuf mbcomp)
   if (fcs != PPP_GOODFCS)
   {
     Log(LG_CCP2, ("[%s] Pred1: Bad CRC-16", bund->name));
+    p->recv_stats.Errors++;
     PFREE(mbcomp);
     PFREE(mbuncomp);
     CcpSendResetReq();
@@ -357,6 +377,10 @@ Pred1Decompress(Mbuf mbcomp)
 
   Log(LG_CCP2, ("[%s] Pred1: orig (%d) <-- comp (%d)", bund->name, mbuncomp->cnt, orglen));
   PFREE(mbcomp);
+  
+  p->recv_stats.FramesPlain++;
+  p->recv_stats.OutOctets += mbuncomp->cnt;
+    
   return mbuncomp;
 }
 #endif
@@ -464,7 +488,89 @@ Pred1Negotiated(int dir)
 static int
 Pred1SubtractBloat(int size)
 {
-  return(size - 2);
+  return(size - 4);
+}
+
+static int
+Pred1Stat(int dir) 
+{
+#ifndef USE_NG_PRED1
+    Pred1Info	p = &bund->ccp.pred1;
+    
+    switch (dir) {
+	case COMP_DIR_XMIT:
+	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+		p->xmit_stats.InOctets,
+		p->xmit_stats.OutOctets,
+		((p->xmit_stats.InOctets!=0)?
+		    ((int64_t)(p->xmit_stats.InOctets - p->xmit_stats.OutOctets)*100/(int64_t)p->xmit_stats.InOctets):
+		    0),
+		p->xmit_stats.Errors);
+	    break;
+	case COMP_DIR_RECV:
+	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+		p->recv_stats.InOctets,
+		p->recv_stats.OutOctets,
+		((p->recv_stats.OutOctets!=0)?
+		    ((int64_t)(p->recv_stats.OutOctets - p->recv_stats.InOctets)*100/(int64_t)p->recv_stats.OutOctets):
+		    0),
+		p->recv_stats.Errors);
+    	    break;
+	default:
+    	    assert(0);
+    }
+    return (0);
+#else
+    char			path[NG_PATHLEN + 1];
+    struct ng_pred1_stats	stats;
+    union {
+	u_char			buf[sizeof(struct ng_mesg) + sizeof(stats)];
+	struct ng_mesg		reply;
+    }				u;
+
+    switch (dir) {
+	case COMP_DIR_XMIT:
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+		NG_PPP_HOOK_COMPRESS);
+	    break;
+	case COMP_DIR_RECV:
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+		NG_PPP_HOOK_DECOMPRESS);
+	    break;
+	default:
+	    assert(0);
+    }
+    if (NgFuncSendQuery(path, NGM_PRED1_COOKIE, NGM_PRED1_GET_STATS, NULL, 0, 
+	&u.reply, sizeof(u), NULL) < 0) {
+	    Log(LG_ERR, ("[%s] can't get %s stats: %s",
+		bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
+	    return(0);
+    }
+    memcpy(&stats, u.reply.data, sizeof(stats));
+    switch (dir) {
+	case COMP_DIR_XMIT:
+	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+		stats.InOctets,
+		stats.OutOctets,
+		((stats.InOctets!=0)?
+		    ((int64_t)(stats.InOctets - stats.OutOctets)*100/(int64_t)stats.InOctets):
+		    0),
+		stats.Errors);
+	    break;
+	case COMP_DIR_RECV:
+	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+		stats.InOctets,
+		stats.OutOctets,
+		((stats.OutOctets!=0)?
+		    ((int64_t)(stats.OutOctets - stats.InOctets)*100/(int64_t)stats.OutOctets):
+		    0),
+		stats.Errors);
+    	    break;
+	default:
+    	    assert(0);
+    }
+    return (0);
+#endif
 }
 
 #ifndef USE_NG_PRED1
