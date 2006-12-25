@@ -15,14 +15,20 @@
 	  <item> NAT support by ng_nat(4) added.
 	  </item>
 	  <item> UDP device type was completely rewritten. Now it:
-	         - does not require manual 'open' command on the server side,
+	    <itemize>
+		<item> does not require manual 'open' command on the server side,
 		   it behaves just like any other device type;
-		 - allows many connections to the same server UDP port;
-		 - allows not to specify peer address/port for incoming 
+		</item>
+		<item> allows many connections to the same server UDP port;
+		</item>
+		<item> allows not to specify peer address/port for incoming 
 		   connections (so it will work through different 
 		   NATs and firewalls);
-		 - allows not to specify self address/port for outgoing 
+		</item>
+		<item> allows not to specify self address/port for outgoing 
 		   connections (so it is easier to configure);
+		</item>
+	    </itemize>
 	  </item>
 	  <item> TCP device type was completely rewritten. It has some minor issues 
 		 due to limitation of ng_ksocket module, but now IT WORKS! :)
