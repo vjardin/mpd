@@ -2,6 +2,7 @@
 /*
  * ecp_des.h
  *
+ * Rewritten by Alexander Motin <mav@alkar.net>
  * Written by Archie Cobbs <archie@freebsd.org>
  * Copyright (c) 1998-1999 Whistle Communications, Inc. All rights reserved.
  * See ``COPYRIGHT.whistle''
@@ -32,7 +33,7 @@
  * VARIABLES
  */
 
-  extern const struct enctype	gDesEncType;
+  extern const struct enctype	gDeseEncType;
 
 #endif
 

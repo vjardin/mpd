@@ -22,12 +22,12 @@
   {
     const char	*name;
     u_char	type;
-    void	*(*Init)(int encrypt);
+    int		(*Init)(int dir);
     void	(*Configure)(void);
     int		(*SubtractBloat)(int size);
     Mbuf	(*Encrypt)(Mbuf plain);
     Mbuf	(*Decrypt)(Mbuf cypher);
-    void	(*Cleanup)(int encrypt);
+    void	(*Cleanup)(int dir);
     u_char	*(*BuildConfigReq)(u_char *cp);
     void	(*DecodeConfig)(Fsm fp, FsmOption opt, int mode);
     Mbuf	(*SendResetReq)(void);

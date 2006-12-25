@@ -144,7 +144,8 @@ COPTS+=		-DCOMPRESSION_DEFLATE
 # Encryption
 
 .if defined ( ENCRYPTION_DES )
-SRCS+=		ecp_des.c
+SRCS+=		ecp_dese.c
+SRCS+=		ecp_dese_bis.c
 COPTS+=		-DENCRYPTION_DES
 NEED_DES=	yes
 .endif

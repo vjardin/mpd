@@ -1,7 +1,8 @@
 
 /*
- * ecp_des.c
+ * ecp_dese.c
  *
+ * Rewritten by Alexander Motin <mav@alkar.net>
  * Written by Archie Cobbs <archie@freebsd.org>
  * Copyright (c) 1998-1999 Whistle Communications, Inc. All rights reserved.
  * See ``COPYRIGHT.whistle''
@@ -21,44 +22,70 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	DesSubtractBloat(int size);
-  static void	DesConfigure(void);
-  static Mbuf	DesEncrypt(Mbuf plain);
-  static Mbuf	DesDecrypt(Mbuf cypher);
+  static int	DeseBisInit(int dir);
+  static void	DeseBisConfigure(void);
+  static int	DeseBisSubtractBloat(int size);
+  static Mbuf	DeseBisEncrypt(Mbuf plain);
+  static Mbuf	DeseBisDecrypt(Mbuf cypher);
+  static void	DeseBisCleanup(int dir);
 
-  static u_char	*DesBuildConfigReq(u_char *cp);
-  static void	DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
+  static u_char	*DeseBisBuildConfigReq(u_char *cp);
+  static void	DeseBisDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
 
 /*
  * GLOBAL VARIABLES
  */
 
-  const struct enctype	gDesEncType =
+  const struct enctype	gDeseBisEncType =
   {
-    "des",
-    ECP_TY_DES,
-    NULL,
-    DesConfigure,
-    DesSubtractBloat,
-    DesEncrypt,
-    DesDecrypt,
-    NULL,
-    DesBuildConfigReq,
-    DesDecodeConfigReq,
+    "dese-bis",
+    ECP_TY_DESE_bis,
+    DeseBisInit,
+    DeseBisConfigure,
+    DeseBisSubtractBloat,
+    DeseBisEncrypt,
+    DeseBisDecrypt,
+    DeseBisCleanup,
+    DeseBisBuildConfigReq,
+    DeseBisDecodeConfigReq,
     NULL,
     NULL,
     NULL,
   };
 
 /*
- * DesConfigure()
+ * DeseBisInit()
+ */
+
+static int
+DeseBisInit(int dir)
+{
+  EcpState	const ecp = &bund->ecp;
+  DeseBisInfo	const des = &ecp->desebis;
+
+  switch (dir) {
+    case ECP_DIR_XMIT:
+	des->xmit_seq = 0;
+      break;
+    case ECP_DIR_RECV:
+	des->recv_seq = 0;
+      break;
+    default:
+      assert(0);
+      return(-1);
+  }
+  return(0);
+}
+
+/*
+ * DeseBisConfigure()
  */
 
 static void
-DesConfigure(void)
+DeseBisConfigure(void)
 {
   EcpState	const ecp = &bund->ecp;
-  DesInfo	const des = &ecp->des;
+  DeseBisInfo	const des = &ecp->desebis;
   des_cblock	key;
 
   des_check_key = FALSE;
@@ -69,35 +96,36 @@ DesConfigure(void)
 }
 
 /*
- * DesSubtractBloat()
+ * DeseBisSubtractBloat()
  */
 
 static int
-DesSubtractBloat(int size)
+DeseBisSubtractBloat(int size)
 {
-  size -= DES_OVERHEAD;
+  size -= DES_OVERHEAD;	/* reserve space for header */
+  size--;	 	/* reserve space for possible padding */
   size &= ~0x7;
   return(size);
 }
 
 /*
- * DesEncrypt()
+ * DeseBisEncrypt()
  */
 
 Mbuf
-DesEncrypt(Mbuf plain)
+DeseBisEncrypt(Mbuf plain)
 {
   EcpState	const ecp = &bund->ecp;
-  DesInfo	const des = &ecp->des;
+  DeseBisInfo	const des = &ecp->desebis;
   const int	plen = plength(plain);
-  const int	clen = roundup2(plen, 8);
+  int		padlen = roundup2(plen + 1, 8) - plen;
+  int		clen = plen + padlen;
   Mbuf		cypher;
   int		k;
 
 /* Get mbuf for encrypted frame */
 
   cypher = mballoc(MB_CRYPT, DES_OVERHEAD + clen);
-  cypher->cnt = DES_OVERHEAD + clen;
 
 /* Copy in sequence number */
 
@@ -105,9 +133,26 @@ DesEncrypt(Mbuf plain)
   MBDATA(cypher)[1] = des->xmit_seq & 0xff;
   des->xmit_seq++;
 
-/* Copy in plaintext and encrypt it */
+/* Copy in plaintext */
 
   mbcopy(plain, MBDATA(cypher) + DES_OVERHEAD, plen);
+
+/* Correct and add padding */
+
+  if ((padlen>7) &&
+    ((MBDATA(cypher)[plen-1]==0) ||
+     (MBDATA(cypher)[plen-1]>8))) {
+        padlen -=8;
+	clen = plen + padlen;
+  }
+  for (k = 0; k < padlen; k++) {
+    MBDATA(cypher)[DES_OVERHEAD + plen + k] = k + 1;
+  }
+  
+  cypher->cnt = DES_OVERHEAD + clen;
+  
+/* Copy in plaintext and encrypt it */
+  
   for (k = 0; k < clen; k += 8)
   {
     u_char	*const block = MBDATA(cypher) + DES_OVERHEAD + k;
@@ -123,14 +168,14 @@ DesEncrypt(Mbuf plain)
 }
 
 /*
- * DesDecrypt()
+ * DeseBisDecrypt()
  */
 
 Mbuf
-DesDecrypt(Mbuf cypher)
+DeseBisDecrypt(Mbuf cypher)
 {
   EcpState	const ecp = &bund->ecp;
-  DesInfo	des = &ecp->des;
+  DeseBisInfo	des = &ecp->desebis;
   const int	clen = plength(cypher) - DES_OVERHEAD;
   u_int16_t	seq;
   Mbuf		plain;
@@ -179,34 +224,49 @@ DesDecrypt(Mbuf cypher)
     memcpy(des->recv_ivec, next_ivec, 8);
   }
 
+/* Strip padding */
+  if (MBDATA(plain)[clen-1]>0 &&
+    MBDATA(plain)[clen-1]<=8) {
+      mbtrunc(plain, clen - MBDATA(plain)[clen-1]);
+  }
+
 /* Done */
 
   return(plain);
 }
 
 /*
- * DesBuildConfigReq()
- */
-
-static u_char *
-DesBuildConfigReq(u_char *cp)
-{
-  EcpState	const ecp = &bund->ecp;
-  DesInfo	const des = &ecp->des;
-
-  ((u_int32_t *) des->xmit_ivec)[0] = random();
-  ((u_int32_t *) des->xmit_ivec)[1] = random();
-  return(FsmConfValue(cp, ECP_TY_DES, 8, des->xmit_ivec));
-}
-
-/*
- * DesDecodeConfigReq()
+ * DeseBisCleanup()
  */
 
 static void
-DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
+DeseBisCleanup(int dir)
 {
-  DesInfo	const des = &bund->ecp.des;
+}
+
+/*
+ * DeseBisBuildConfigReq()
+ */
+
+static u_char *
+DeseBisBuildConfigReq(u_char *cp)
+{
+  EcpState	const ecp = &bund->ecp;
+  DeseBisInfo	const des = &ecp->desebis;
+
+  ((u_int32_t *) des->xmit_ivec)[0] = random();
+  ((u_int32_t *) des->xmit_ivec)[1] = random();
+  return(FsmConfValue(cp, ECP_TY_DESE_bis, 8, des->xmit_ivec));
+}
+
+/*
+ * DeseBisDecodeConfigReq()
+ */
+
+static void
+DeseBisDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
+{
+  DeseBisInfo	const des = &bund->ecp.desebis;
 
   if (opt->len != 10)
   {

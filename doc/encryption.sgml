@@ -54,14 +54,20 @@ The options available at the ECP layer are:
 
 <descrip>
 
-<tag><tt>des</tt></tag>
+<tag><tt>dese-bis</tt></tag>
 
-This option enables DES (rfc 1969) encryption.
+This option enables DESE-bis (rfc 2419) encryption.
+This algorithm implemented in user-level, so require much CPU power
+on fast (>10Mbit/s) links.
+
+<tag><tt>dese-old</tt></tag>
+
+This option enables DESE (rfc 1969) encryption.
 This algorithm implemented in user-level, so require much CPU power
 on fast (>10Mbit/s) links.
 <P>
 <bf>Note:</bf> Because of data padding to the next 8 octets boundary,
-required by block nature of DES encryption, this protocol can have 
+required by block nature of DES encryption, dese-old option can have 
 interoperability issues with other protocols (as example, compression)
 which work over it. As example, there is a known problem with 
 Predictor-1 compression.

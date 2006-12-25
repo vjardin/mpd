@@ -10,23 +10,30 @@
 #ifndef _ECP_H_
 #define	_ECP_H_
 
+#include "defs.h"
 #include "fsm.h"
 #include "mbuf.h"
 #include "encrypt.h"
 #include "command.h"
 
 #ifdef ENCRYPTION_DES
-#include "ecp_des.h"
+#include "ecp_dese.h"
+#include "ecp_dese_bis.h"
 #endif
 
 /*
  * DEFINITIONS
  */
 
+  #define ECP_DIR_XMIT		1
+  #define ECP_DIR_RECV		2
+
 /* Encryption types */
 
   #define ECP_TY_OUI		0
-  #define ECP_TY_DES		1
+  #define ECP_TY_DESE		1
+  #define ECP_TY_3DESE		2
+  #define ECP_TY_DESE_bis	3
 
 /* Max supported key length */
 
@@ -54,7 +61,8 @@
     struct ecpstat	stat;		/* Statistics */
     struct optinfo	options;	/* Configured options */
 #ifdef ENCRYPTION_DES
-    struct desinfo	des;		/* DES info */
+    struct desinfo	des;		/* DESE info */
+    struct desebisinfo	desebis;	/* DESE-bis info */
 #endif
   };
   typedef struct ecpstate	*EcpState;

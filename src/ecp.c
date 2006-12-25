@@ -109,7 +109,8 @@
   static const EncType gEncTypes[] =
   {
 #ifdef ENCRYPTION_DES
-    &gDesEncType,
+    &gDeseBisEncType,
+    &gDeseEncType,
 #endif
   };
   #define ECP_NUM_PROTOS	(sizeof(gEncTypes) / sizeof(*gEncTypes))
@@ -155,7 +156,9 @@
   gEcpTypeNames[] =
   {
     { ECP_TY_OUI,	"OUI" },
-    { ECP_TY_DES,	"DES" },
+    { ECP_TY_DESE,	"DESE" },
+    { ECP_TY_3DESE,	"3DESE" },
+    { ECP_TY_DESE_bis,	"DESE-bis" },
     { 0,		NULL },
   };
 
@@ -462,15 +465,11 @@ EcpLayerUp(Fsm fp)
   EcpState	const ecp = &bund->ecp;
   struct ngm_connect    cn;
 
-  Log(LG_ECP, (" Encrypt = %s, Decrypt = %s",
-    ecp->xmit ? ecp->xmit->name : "none",
-    ecp->recv ? ecp->recv->name : "none"));
-
   /* Initialize */
   if (ecp->xmit && ecp->xmit->Init)
-    (*ecp->xmit->Init)(TRUE);
+    (*ecp->xmit->Init)(ECP_DIR_XMIT);
   if (ecp->recv && ecp->recv->Init)
-    (*ecp->recv->Init)(FALSE);
+    (*ecp->recv->Init)(ECP_DIR_RECV);
 
   if (ecp->recv && ecp->recv->Decrypt) 
   {
@@ -498,6 +497,9 @@ EcpLayerUp(Fsm fp)
 //	return -1;
     }
   }
+
+  Log(LG_ECP, ("  Encrypt using: %s", !ecp->xmit ? "none" : ecp->xmit->name));
+  Log(LG_ECP, ("  Decrype using: %s", !ecp->recv ? "none" : ecp->recv->name));
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
@@ -544,9 +546,9 @@ EcpLayerDown(Fsm fp)
   }
 
   if (ecp->xmit && ecp->xmit->Cleanup)
-    (ecp->xmit->Cleanup)(TRUE);
+    (ecp->xmit->Cleanup)(ECP_DIR_XMIT);
   if (ecp->recv && ecp->recv->Cleanup)
-    (ecp->recv->Cleanup)(FALSE);
+    (ecp->recv->Cleanup)(ECP_DIR_RECV);
 }
 
 /*
