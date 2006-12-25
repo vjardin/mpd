@@ -121,7 +121,6 @@ Pred1Init(int directions)
     if (p->InputGuessTable == NULL)
       p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->InputGuessTable, 0, PRED1_TABLE_SIZE);
-    memset(&p->recv_stats, 0, sizeof(p->recv_stats));
   }
   if (directions == COMP_DIR_XMIT)
   {
@@ -129,7 +128,6 @@ Pred1Init(int directions)
     if (p->OutputGuessTable == NULL)
       p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
     memset(p->OutputGuessTable, 0, PRED1_TABLE_SIZE);
-    memset(&p->xmit_stats, 0, sizeof(p->xmit_stats));
   }
 #else
   struct ngm_mkpeer	mp;
@@ -192,12 +190,14 @@ Pred1Cleanup(int dir)
     assert(p->InputGuessTable);
     Freee(MB_COMP, p->InputGuessTable);
     p->InputGuessTable = NULL;
+    memset(&p->recv_stats, 0, sizeof(p->recv_stats));
   }
   if (dir == COMP_DIR_XMIT)
   {
     assert(p->OutputGuessTable);
     Freee(MB_COMP, p->OutputGuessTable);
     p->OutputGuessTable = NULL;
+    memset(&p->xmit_stats, 0, sizeof(p->xmit_stats));
   }
 #else
   const char	*ppphook;
@@ -393,7 +393,9 @@ static Mbuf
 Pred1RecvResetReq(int id, Mbuf bp, int *noAck)
 {
 #ifndef USE_NG_PRED1
+  Pred1Info     p = &bund->ccp.pred1;
   Pred1Init(COMP_DIR_XMIT);
+  p->xmit_stats.Errors++;
 #else
   char	path[NG_PATHLEN + 1];
   /* Forward ResetReq to the DEFLATE compression node */
