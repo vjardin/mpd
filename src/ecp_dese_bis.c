@@ -140,8 +140,8 @@ DeseBisEncrypt(Mbuf plain)
 /* Correct and add padding */
 
   if ((padlen>7) &&
-    ((MBDATA(cypher)[plen-1]==0) ||
-     (MBDATA(cypher)[plen-1]>8))) {
+    ((MBDATA(cypher)[DES_OVERHEAD + plen - 1]==0) ||
+     (MBDATA(cypher)[DES_OVERHEAD + plen - 1]>8))) {
         padlen -=8;
 	clen = plen + padlen;
   }
