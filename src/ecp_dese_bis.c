@@ -28,6 +28,7 @@
   static Mbuf	DeseBisEncrypt(Mbuf plain);
   static Mbuf	DeseBisDecrypt(Mbuf cypher);
   static void	DeseBisCleanup(int dir);
+  static int    DeseBisStat(int dir);
 
   static u_char	*DeseBisBuildConfigReq(u_char *cp);
   static void	DeseBisDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
@@ -43,14 +44,15 @@
     DeseBisInit,
     DeseBisConfigure,
     DeseBisSubtractBloat,
-    DeseBisEncrypt,
-    DeseBisDecrypt,
     DeseBisCleanup,
     DeseBisBuildConfigReq,
     DeseBisDecodeConfigReq,
     NULL,
     NULL,
     NULL,
+    DeseBisStat,
+    DeseBisEncrypt,
+    DeseBisDecrypt,
   };
 
 /*
@@ -108,6 +110,37 @@ DeseBisSubtractBloat(int size)
   return(size);
 }
 
+static int
+DeseBisStat(int dir) 
+{
+    EcpState	const ecp = &bund->ecp;
+    DeseBisInfo	const des = &ecp->desebis;
+    
+    switch (dir) {
+	case ECP_DIR_XMIT:
+	    Printf("\tBytes: %llu -> %llu (%+lld%%), Errors: %llu\r\n",
+		des->xmit_stats.OctetsIn,
+		des->xmit_stats.OctetsOut,
+		((des->xmit_stats.OctetsIn!=0)?
+		    ((int64_t)(des->xmit_stats.OctetsOut - des->xmit_stats.OctetsIn)*100/(int64_t)des->xmit_stats.OctetsIn):
+		    0),
+		des->xmit_stats.Errors);
+	    break;
+	case ECP_DIR_RECV:
+	    Printf("\tBytes: %llu <- %llu (%+lld%%), Errors: %llu\r\n",
+		des->recv_stats.OctetsOut,
+		des->recv_stats.OctetsIn,
+		((des->recv_stats.OctetsOut!=0)?
+		    ((int64_t)(des->recv_stats.OctetsIn - des->recv_stats.OctetsOut)*100/(int64_t)des->recv_stats.OctetsOut):
+		    0),
+		des->recv_stats.Errors);
+    	    break;
+	default:
+    	    assert(0);
+    }
+    return (0);
+}
+
 /*
  * DeseBisEncrypt()
  */
@@ -122,6 +155,9 @@ DeseBisEncrypt(Mbuf plain)
   int		clen = plen + padlen;
   Mbuf		cypher;
   int		k;
+
+  des->xmit_stats.FramesIn++;
+  des->xmit_stats.OctetsIn += plen;
 
 /* Get mbuf for encrypted frame */
 
@@ -161,6 +197,9 @@ DeseBisEncrypt(Mbuf plain)
     memcpy(des->xmit_ivec, block, 8);
   }
 
+  des->xmit_stats.FramesOut++;
+  des->xmit_stats.OctetsOut += clen;
+
 /* Return cyphertext */
 
   PFREE(plain);
@@ -176,10 +215,13 @@ DeseBisDecrypt(Mbuf cypher)
 {
   EcpState	const ecp = &bund->ecp;
   DeseBisInfo	des = &ecp->desebis;
-  const int	clen = plength(cypher) - DES_OVERHEAD;
+  int		clen = plength(cypher) - DES_OVERHEAD;
   u_int16_t	seq;
   Mbuf		plain;
   int		k;
+
+  des->recv_stats.FramesIn++;
+  des->recv_stats.OctetsIn += clen + DES_OVERHEAD;
 
 /* Get mbuf for plaintext */
 
@@ -187,6 +229,7 @@ DeseBisDecrypt(Mbuf cypher)
   {
     Log(LG_ECP, ("[%s] DESE-bis: rec'd bogus DES cypher: len=%d",
       bund->name, clen + DES_OVERHEAD));
+    des->recv_stats.Errors++;
     return(NULL);
   }
 
@@ -207,6 +250,7 @@ DeseBisDecrypt(Mbuf cypher)
     tail = mbread(tail, (u_char *) &des->recv_ivec, 8, NULL);
     assert(!tail);
     des->recv_seq = seq + 1;
+    des->recv_stats.Errors++;
     return(NULL);
   }
   des->recv_seq++;
@@ -227,8 +271,12 @@ DeseBisDecrypt(Mbuf cypher)
 /* Strip padding */
   if (MBDATA(plain)[clen-1]>0 &&
     MBDATA(plain)[clen-1]<=8) {
-      mbtrunc(plain, clen - MBDATA(plain)[clen-1]);
+      clen -= MBDATA(plain)[clen-1];
+      mbtrunc(plain, clen);
   }
+
+  des->recv_stats.FramesOut++;
+  des->recv_stats.OctetsOut += clen;
 
 /* Done */
 
@@ -242,6 +290,17 @@ DeseBisDecrypt(Mbuf cypher)
 static void
 DeseBisCleanup(int dir)
 {
+  EcpState	const ecp = &bund->ecp;
+  DeseBisInfo	const des = &ecp->desebis;
+  
+  if (dir == ECP_DIR_RECV)
+  {
+    memset(&des->recv_stats, 0, sizeof(des->recv_stats));
+  }
+  if (dir == ECP_DIR_XMIT)
+  {
+    memset(&des->xmit_stats, 0, sizeof(des->xmit_stats));
+  }
 }
 
 /*

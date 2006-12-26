@@ -359,20 +359,20 @@ DeflateStat(int dir)
     memcpy(&stats, u.reply.data, sizeof(stats));
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+	    Printf("\tBytes: %llu -> %llu (%+lld%%), Errors: %llu\r\n",
 		stats.InOctets,
 		stats.OutOctets,
 		((stats.InOctets!=0)?
-		    ((int64_t)(stats.InOctets - stats.OutOctets)*100/(int64_t)stats.InOctets):
+		    ((int64_t)(stats.OutOctets - stats.InOctets)*100/(int64_t)stats.InOctets):
 		    0),
 		stats.Errors);
 	    break;
 	case COMP_DIR_RECV:
-	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
-		stats.InOctets,
+	    Printf("\tBytes: %llu <- %llu (%+lld%%), Errors: %llu\r\n",
 		stats.OutOctets,
+		stats.InOctets,
 		((stats.OutOctets!=0)?
-		    ((int64_t)(stats.OutOctets - stats.InOctets)*100/(int64_t)stats.OutOctets):
+		    ((int64_t)(stats.InOctets - stats.OutOctets)*100/(int64_t)stats.OutOctets):
 		    0),
 		stats.Errors);
     	    break;

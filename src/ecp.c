@@ -206,9 +206,6 @@ EcpConfigure(Fsm fp)
   EcpState	const ecp = &bund->ecp;
   int		k;
 
-/* Reset state */
-
-  memset(&ecp->stat, 0, sizeof(ecp->stat));
   for (k = 0; k < ECP_NUM_PROTOS; k++)
   {
     EncType	const et = gEncTypes[k];
@@ -249,7 +246,6 @@ EcpDataOutput(Mbuf plain)
 
 /* Return result, with new protocol number */
 
-  ecp->stat.outPackets++;
   return(cypher);
 }
 
@@ -284,11 +280,9 @@ EcpDataInput(Mbuf cypher)
   if (plain == NULL)
   {
     Log(LG_ECP, ("%s: decryption failed", Pref(&ecp->fsm)));
-    ecp->stat.inPacketDrops++;
     return(NULL);
   }
 
-  ecp->stat.inPackets++;
   LogDumpBp(LG_ECP2, plain, "%s: recv plain", Pref(&ecp->fsm));
 /* Done */
 
@@ -360,13 +354,14 @@ EcpStat(int ac, char *av[], void *arg)
   Printf("%s [%s]\r\n", Pref(&ecp->fsm), FsmStateName(ecp->fsm.state));
   Printf("Enabled protocols:\r\n");
   OptStat(&ecp->options, gConfList);
-  Printf("Incoming encryption:\r\n");
-  Printf("\tProtocol  : %5s\r\n", ecp->xmit ? ecp->xmit->name : "none");
-  Printf("\tRecv pkts : %5d\r\n", ecp->stat.inPackets);
-  Printf("\tRecv drops: %5d\r\n", ecp->stat.inPacketDrops);
   Printf("Outgoing encryption:\r\n");
+  Printf("\tProtocol  : %5s\r\n", ecp->xmit ? ecp->xmit->name : "none");
+  if (ecp->xmit && ecp->xmit->Stat)
+    ecp->xmit->Stat(ECP_DIR_XMIT);
+  Printf("Incoming decryption:\r\n");
   Printf("\tProtocol  : %5s\r\n", ecp->recv ? ecp->recv->name : "none");
-  Printf("\tXmit pkts : %5d\r\n", ecp->stat.outPackets);
+  if (ecp->recv && ecp->recv->Stat)
+    ecp->recv->Stat(ECP_DIR_RECV);
   return(0);
 }
 

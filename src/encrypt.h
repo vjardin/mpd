@@ -25,14 +25,15 @@
     int		(*Init)(int dir);
     void	(*Configure)(void);
     int		(*SubtractBloat)(int size);
-    Mbuf	(*Encrypt)(Mbuf plain);
-    Mbuf	(*Decrypt)(Mbuf cypher);
     void	(*Cleanup)(int dir);
     u_char	*(*BuildConfigReq)(u_char *cp);
     void	(*DecodeConfig)(Fsm fp, FsmOption opt, int mode);
     Mbuf	(*SendResetReq)(void);
     Mbuf	(*RecvResetReq)(int id, Mbuf bp);
     void	(*RecvResetAck)(int id, Mbuf bp);
+    int         (*Stat)(int dir);
+    Mbuf	(*Encrypt)(Mbuf plain);
+    Mbuf	(*Decrypt)(Mbuf cypher);
   };
   typedef const struct enctype	*EncType;
 

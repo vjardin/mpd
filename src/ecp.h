@@ -39,15 +39,6 @@
 
   #define ECP_MAX_KEY	32
 
-/* Stats */
-
-  struct ecpstat
-  {
-    int	outPackets;
-    int	inPackets;
-    int	inPacketDrops;
-  };
-
 /* ECP state */
 
   struct ecpstate
@@ -58,7 +49,6 @@
     u_short		self_reject;
     u_short		peer_reject;
     struct fsm		fsm;		/* PPP FSM */
-    struct ecpstat	stat;		/* Statistics */
     struct optinfo	options;	/* Configured options */
 #ifdef ENCRYPTION_DES
     struct desinfo	des;		/* DESE info */

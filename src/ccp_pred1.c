@@ -501,20 +501,20 @@ Pred1Stat(int dir)
     
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+	    Printf("\tBytes: %llu -> %llu (%+lld%%), Errors: %llu\r\n",
 		p->xmit_stats.InOctets,
 		p->xmit_stats.OutOctets,
 		((p->xmit_stats.InOctets!=0)?
-		    ((int64_t)(p->xmit_stats.InOctets - p->xmit_stats.OutOctets)*100/(int64_t)p->xmit_stats.InOctets):
+		    ((int64_t)(p->xmit_stats.OutOctets - p->xmit_stats.InOctets)*100/(int64_t)p->xmit_stats.InOctets):
 		    0),
 		p->xmit_stats.Errors);
 	    break;
 	case COMP_DIR_RECV:
-	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
-		p->recv_stats.InOctets,
+	    Printf("\tBytes: %llu <- %llu (%+lld%%), Errors: %llu\r\n",
 		p->recv_stats.OutOctets,
+		p->recv_stats.InOctets,
 		((p->recv_stats.OutOctets!=0)?
-		    ((int64_t)(p->recv_stats.OutOctets - p->recv_stats.InOctets)*100/(int64_t)p->recv_stats.OutOctets):
+		    ((int64_t)(p->recv_stats.InOctets - p->recv_stats.OutOctets)*100/(int64_t)p->recv_stats.OutOctets):
 		    0),
 		p->recv_stats.Errors);
     	    break;
@@ -551,20 +551,20 @@ Pred1Stat(int dir)
     memcpy(&stats, u.reply.data, sizeof(stats));
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
+	    Printf("\tBytes: %llu -> %llu (%+lld%%), Errors: %llu\r\n",
 		stats.InOctets,
 		stats.OutOctets,
 		((stats.InOctets!=0)?
-		    ((int64_t)(stats.InOctets - stats.OutOctets)*100/(int64_t)stats.InOctets):
+		    ((int64_t)(stats.OutOctets - stats.InOctets)*100/(int64_t)stats.InOctets):
 		    0),
 		stats.Errors);
 	    break;
 	case COMP_DIR_RECV:
-	    Printf("\t\tBytes: %llu -> %llu (%lld%%), Errors: %llu\r\n",
-		stats.InOctets,
+	    Printf("\tBytes: %llu <- %llu (%+lld%%), Errors: %llu\r\n",
 		stats.OutOctets,
+		stats.InOctets,
 		((stats.OutOctets!=0)?
-		    ((int64_t)(stats.OutOctets - stats.InOctets)*100/(int64_t)stats.OutOctets):
+		    ((int64_t)(stats.InOctets - stats.OutOctets)*100/(int64_t)stats.OutOctets):
 		    0),
 		stats.Errors);
     	    break;
