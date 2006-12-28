@@ -300,8 +300,8 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_PPP_HOOK_BYPASS);
   if (NgSendMsg(b->csock, ".",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, mp.type, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+      b->name, mp.type, ".", mp.ourhook, strerror(errno)));
     goto fail;
   }
   newPpp = 1;
@@ -310,8 +310,8 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, b->name);
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    Log(LG_ERR, ("[%s] can't name %s node: %s",
-      b->name, NG_PPP_NODE_TYPE, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
+      b->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
     goto fail;
   }
   Log(LG_ALWAYS, ("[%s] %s node is \"%s\"",
@@ -339,8 +339,8 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", BPF_HOOK_PPP);
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+      b->name, NG_BPF_NODE_TYPE, MPD_HOOK_PPP, mp.ourhook, strerror(errno)));
     goto fail;
   }
 
@@ -350,8 +350,8 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", BPF_HOOK_MPD);
   if (NgSendMsg(b->csock, ".",
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, BPF_HOOK_MPD, MPD_HOOK_DEMAND_TAP, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+      b->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
 
@@ -375,8 +375,8 @@ NgFuncInit(Bund b, const char *reqIface)
     strcpy(mp.peerhook, NG_NAT_HOOK_IN);
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-      Log(LG_ERR, ("[%s] can't create %s node: %s",
-	b->name, NG_NAT_NODE_TYPE, strerror(errno)));
+      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+	b->name, NG_NAT_NODE_TYPE, path, mp.ourhook, strerror(errno)));
       goto fail;
     }
     strlcat(path, ".", sizeof(path));
@@ -407,8 +407,8 @@ NgFuncInit(Bund b, const char *reqIface)
     strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-      Log(LG_ERR, ("[%s] can't create %s node: %s",
-	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
+      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook, strerror(errno)));
       goto fail;
     }
     strlcat(path, ".", sizeof(path));
@@ -446,8 +446,8 @@ NgFuncInit(Bund b, const char *reqIface)
     }
     if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	sizeof(cn)) < 0) {
-      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
-	cn.path, path, strerror(errno)));
+      Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
       goto fail;
     }
     strlcat(path, ".", sizeof(path));
@@ -469,8 +469,8 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
   if (NgSendMsg(b->csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, cn.ourhook, NG_IFACE_HOOK_INET, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+      b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
 
@@ -487,8 +487,8 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
   if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	sizeof(cn)) < 0) {
-      Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
-	cn.path, path, strerror(errno)));
+      Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
       goto fail;
   }
 
@@ -502,8 +502,8 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", BPF_HOOK_MPD_OUT);
   if (NgSendMsg(b->csock, ".",
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, BPF_HOOK_MPD_OUT, MPD_HOOK_MSSFIX_OUT, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+      b->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
 #endif
@@ -543,8 +543,8 @@ NgFuncInitNetflow(Bund b)
       snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
       if (NgSendMsg(b->csock, ".",
 	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-	Log(LG_ERR, ("can't create %s node: %s", NG_NETFLOW_NODE_TYPE,
-	  strerror(errno)));
+	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
+	  NG_NETFLOW_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
 	goto fail;
       }
 
@@ -569,8 +569,8 @@ NgFuncInitNetflow(Bund b)
       snprintf(path, sizeof(path), "%s:", nm.name);
       if (NgSendMsg(b->csock, path,
 	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-	Log(LG_ERR, ("can't create %s node: %s", NG_KSOCKET_NODE_TYPE,
-	  strerror(errno)));
+	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
+	  NG_KSOCKET_NODE_TYPE, path, mp.ourhook, strerror(errno)));
 	goto fail;
       }
 
@@ -680,8 +680,8 @@ NgFuncInitVJ(Bund b)
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_VJC_HOOK_IP);
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, NG_VJC_NODE_TYPE, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+      b->name, NG_VJC_NODE_TYPE, MPD_HOOK_PPP, mp.ourhook, strerror(errno)));
     goto fail;
   }
 
@@ -701,24 +701,24 @@ NgFuncInitVJ(Bund b)
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJCOMP);
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, NG_PPP_HOOK_VJC_COMP, NG_VJC_HOOK_VJCOMP, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+      b->name, MPD_HOOK_PPP, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
   snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_UNCOMP);
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJUNCOMP);
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s", b->name,
-      NG_PPP_HOOK_VJC_UNCOMP, NG_VJC_HOOK_VJUNCOMP, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+      b->name, MPD_HOOK_PPP, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
   snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_VJIP);
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJIP);
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s: %s",
-      b->name, NG_PPP_HOOK_VJC_VJIP, NG_VJC_HOOK_VJIP, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+      b->name, MPD_HOOK_PPP, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
 
@@ -745,8 +745,8 @@ NgFuncInitMSS(Bund b)
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", TEMPHOOK);
     if (NgSendMsg(b->csock, ".",
         NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-      Log(LG_ERR, ("can't create %s node: %s", NG_TCPMSS_NODE_TYPE,
-        strerror(errno)));
+      Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
+        NG_TCPMSS_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
       goto fail;
     }
 
@@ -767,16 +767,16 @@ NgFuncInitMSS(Bund b)
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s-in", b->name);
   if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
       sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s-in: %s", b->name,
-      BPF_HOOK_TCPMSS_IN, b->name, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+      b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
   snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", BPF_HOOK_TCPMSS_OUT);
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s-out", b->name);
   if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
       sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s and %s-out: %s", b->name,
-      BPF_HOOK_TCPMSS_OUT, b->name, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+      b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
   if (gTcpMSSNode == FALSE) {
@@ -891,8 +891,8 @@ NgFuncCreateIface(Bund b, const char *ifname, char *buf, int max)
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_IFACE_HOOK_INET);
   if (NgSendMsg(b->csock, ".",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, NG_IFACE_NODE_TYPE, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+      b->name, NG_IFACE_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
     return(-1);
   }
 
