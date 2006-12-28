@@ -1504,7 +1504,7 @@ NgFuncConnect(const char *path, const char *hook,
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", hook2);
   if (NgSendMsg(bund->csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s,%s and %s,%s: %s",
+    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
       bund->name, path, hook, path2, hook2, strerror(errno)));
     return(-1);
   }
