@@ -9,3 +9,5 @@ VENDOR		mpd		12341
 ATTRIBUTE	mpd-rule	1	string		mpd
 ATTRIBUTE	mpd-pipe	2	string		mpd
 ATTRIBUTE	mpd-queue	3	string		mpd
+ATTRIBUTE	mpd-table	4	string		mpd
+ATTRIBUTE	mpd-table-static	5	string		mpd
