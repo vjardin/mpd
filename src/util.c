@@ -39,7 +39,7 @@
   static int		UuUnlock(const char *devname);
 
   static void		Escape(char *line);
-  static char		*ReadLine(FILE *fp, int *lineNum);
+  static char		*ReadLine(FILE *fp, int *lineNum, char *result, int resultsize);
 
   static char		HexVal(char c);
 
@@ -430,8 +430,8 @@ char *
 ReadFullLine(FILE *fp, int *lineNum, char *result, int resultsize)
 {
   int		len, linelen, resultlinesize, continuation;
-  char		*real_line;
-  static char	line[BIG_LINE_SIZE];
+  char		line[BIG_LINE_SIZE];
+  char		real_line[BIG_LINE_SIZE];
   char		*resultline;
 
   if (result!=NULL && resultsize>0) {
@@ -451,7 +451,7 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultsize)
 
   /* Get next real line */
 
-    if ((real_line = ReadLine(fp, lineNum)) == NULL) {
+    if (ReadLine(fp, lineNum, real_line, sizeof(real_line)) == NULL) {
       if (*resultline)
 	break;
       else
@@ -497,49 +497,46 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultsize)
  */
 
 static char *
-ReadLine(FILE *fp, int *lineNum)
+ReadLine(FILE *fp, int *lineNum, char *result, int resultsize)
 {
   int		empty;
   char		ch, *s;
-  static char	line[BIG_LINE_SIZE];
 
-/* Get first non-empty, non-commented line */
+    if ((!result) || (resultsize <= 0))
+	return (NULL);
 
-  empty = TRUE;
-  while ( empty )
-  {
+    /* Get first non-empty, non-commented line */
+    empty = TRUE;
+    while ( empty ) {
 
-  /* Read next line from file */
+	/* Read next line from file */
+	if ((fgets(result, resultsize, fp)) == NULL)
+	    return(NULL);
+	if (lineNum)
+    	    (*lineNum)++;
 
-    if ((fgets(line, sizeof(line), fp)) == NULL)
-      return(NULL);
-    if (lineNum)
-      (*lineNum)++;
+	/* Truncate long lines */
+	if (strlen(result) > (resultsize - 2)) {
+    	    Log(LG_ERR, ("mpd: warning: line too long, truncated"));
+    	    while ((ch = getc(fp)) != EOF && ch != '\n');
+	}
 
-  /* Truncate long lines */
-
-    if (strlen(line) > (sizeof(line) - 2)) {
-      Log(LG_ERR, ("mpd: warning: line too long, truncated"));
-      while ((ch = getc(fp)) != EOF && ch != '\n');
+	/* Ignore comments */
+	s = result + strspn(result, " \t");
+	if (*s == '#') {
+    	    *s = 0;
+	} else {
+	    /* Is this line empty? */
+    	    for ( ; *s; s++) {
+    		if (!isspace(*s)) {
+        	    empty = FALSE;
+        	    break;
+    		}
+	    }
+	}
     }
 
-  /* Ignore comments */
-
-    s = line + strspn(line, " \t");
-    if (*s == '#') {
-      *s = 0;
-      
-    } else {
-  /* Is this line empty? */
-      for ( ; *s; s++)
-        if (!isspace(*s)) {
-          empty = FALSE;
-          break;
-    	}
-    }
-  }
-
-  return(line);
+    return(result);
 }
 
 /*
