@@ -201,7 +201,7 @@ UdpOpen(PhysInfo p)
     ((int *)(ksso->value))[0]=1;
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
         NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
-    	Log(LG_ERR, ("[%s] can't setsockopt %s node: %s",
+    	Log(LG_ERR, ("[%s] can't setsockopt() %s node: %s",
     	    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	goto fail;
     }
@@ -210,7 +210,7 @@ UdpOpen(PhysInfo p)
     u_addrtosockaddr(&pi->self_addr, pi->self_port, &addr);
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
-	Log(LG_ERR, ("[%s] can't bind %s node: %s",
+	Log(LG_ERR, ("[%s] can't bind() %s node: %s",
     	    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	goto fail;
     }
@@ -230,7 +230,7 @@ UdpOpen(PhysInfo p)
   /* Connect socket if peer address and port is specified */
   if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
 	NGM_KSOCKET_CONNECT, &addr, addr.ss_len) < 0) {
-    Log(LG_ERR, ("[%s] can't connect %s node: %s",
+    Log(LG_ERR, ("[%s] can't connect() %s node: %s",
 	lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     goto fail;
   }

@@ -268,7 +268,7 @@ TcpOpen(PhysInfo p)
 	rval = NgSendMsg(pi->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_CONNECT, &addr, addr.ss_len);
 	if (rval < 0 && errno != EINPROGRESS) {
-		Log(LG_ERR, ("[%s] can't connect %s node: %s", lnk->name,
+		Log(LG_ERR, ("[%s] can't connect() %s node: %s", lnk->name,
 		    NG_KSOCKET_NODE_TYPE, strerror(errno))); 
 		goto fail;
 	}
@@ -606,7 +606,7 @@ ListenTcpNode(struct TcpIf *If)
 	((int *)(ksso->value))[0]=1;
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
-		Log(LG_ERR, ("[%s] can't setsockopt %s node: %s",
+		Log(LG_ERR, ("[%s] can't setsockopt() %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
@@ -616,7 +616,7 @@ ListenTcpNode(struct TcpIf *If)
 	u_addrtosockaddr(&If->self_addr, If->self_port, &addr);
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
-		Log(LG_ERR, ("[%s] can't bind %s node: %s",
+		Log(LG_ERR, ("[%s] can't bind() %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
@@ -625,7 +625,7 @@ ListenTcpNode(struct TcpIf *If)
 	/* Listen. */
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_LISTEN, &backlog, sizeof(backlog)) < 0) {
-		Log(LG_ERR, ("[%s] can't listen on %s node: %s",
+		Log(LG_ERR, ("[%s] can't listen() on %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
@@ -634,7 +634,7 @@ ListenTcpNode(struct TcpIf *If)
 	/* Tell that we are willing to receive accept message. */
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
-		Log(LG_ERR, ("[%s] can't accept on %s node: %s",
+		Log(LG_ERR, ("[%s] can't accept() on %s node: %s",
 		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;

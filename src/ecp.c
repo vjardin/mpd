@@ -474,9 +474,8 @@ EcpLayerUp(Fsm fp)
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECRYPT);
     if (NgSendMsg(bund->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
-        bund->name, NG_PPP_HOOK_DECRYPT, strerror(errno)));
-//	return -1;
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+        bund->name, ".", cn.ourhook, cn.path, cn.peerhook,  strerror(errno)));
     }
   }
   if (ecp->xmit && ecp->xmit->Encrypt)
@@ -487,9 +486,8 @@ EcpLayerUp(Fsm fp)
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_ENCRYPT);
     if (NgSendMsg(bund->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
-        bund->name, NG_PPP_HOOK_ENCRYPT, strerror(errno)));
-//	return -1;
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+        bund->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 

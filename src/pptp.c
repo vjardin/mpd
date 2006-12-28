@@ -551,7 +551,7 @@ PptpHookUp(PptpInfo pptp)
   /* Bind ksocket socket to local IP address */
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_BIND, &self_addr, self_addr.ss_len) < 0) {
-    Log(LG_ERR, ("[%s] can't bind %s node: %s",
+    Log(LG_ERR, ("[%s] can't bind() %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }
@@ -560,7 +560,7 @@ PptpHookUp(PptpInfo pptp)
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_CONNECT, &peer_addr, peer_addr.ss_len) < 0
       && errno != EINPROGRESS) {	/* happens in -current (weird) */
-    Log(LG_ERR, ("[%s] can't connect %s node: %s",
+    Log(LG_ERR, ("[%s] can't connect() %s node: %s",
       lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }

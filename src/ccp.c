@@ -582,8 +582,8 @@ CcpLayerUp(Fsm fp)
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
     if (NgSendMsg(bund->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
-        bund->name, NG_PPP_HOOK_COMPRESS, strerror(errno)));
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+        bund->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
@@ -594,8 +594,8 @@ CcpLayerUp(Fsm fp)
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
     if (NgSendMsg(bund->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect %s hook: %s",
-        bund->name, NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+        bund->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
