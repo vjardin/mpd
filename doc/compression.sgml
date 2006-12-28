@@ -53,10 +53,18 @@ that are not included with the normal mpd distribution.
 
 This option enables Predictor-1 (rfc 1978) compression.
 <P>
-This algorithm implemented in user-level, so require much CPU power
-on fast (>10Mbit/s) links. To reduce packet loss on fast links
-it is recommended to increase values of
-net.graph.recvspace and net.graph.maxdgram sysctl variables.
+This option require ng_pred1 Netgraph node type.
+<P>
+If there no ng_pred1 in system, this algorithm is supported
+in user-level, but will consume more CPU power. To reduce packet 
+loss in user-level on fast links it is recommended to increase 
+values of net.graph.recvspace and net.graph.maxdgram sysctl variables.
+
+<tag><tt>deflate</tt></tag>
+
+This option enables Deflate (rfc 1979) compression.
+<P>
+This option require ng_deflate Netgraph node type.
 
 <tag><tt>mppc</tt></tag>
 

@@ -35,6 +35,8 @@
 	  </item>
 	  <item> Compression Predictor-1 (rfc 1978) added.
 	  </item>
+	  <item> Compression Deflate (rfc 1979) added.
+	  </item>
 	  <item> Encryption DESE (rfc 1969) support was reimplemented.
 	  </item>
 	  <item> Encryption DESE-bis (rfc 2419) support added.
@@ -71,6 +73,8 @@
 	  <item> Fixed memory leak in PAP and CHAP auth on the client side.
 	  </item>
 	  <item> Fixed some CCP negotiation issues.
+	  </item>
+	  <item> Fixed threads-related crash in internal auth.
 	  </item>
 	</itemize>
     </itemize>
