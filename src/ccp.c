@@ -371,16 +371,18 @@ CcpStat(int ac, char *av[], void *arg)
   OptStat(&ccp->options, gConfList);
 
   Printf("Outgoing compression:\r\n");
-  Printf("\tProtocol: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
+  Printf("\tProto\t: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : "");
   if (ccp->xmit && ccp->xmit->Stat)
     ccp->xmit->Stat(COMP_DIR_XMIT);
+  Printf("\tResets\t: %d\r\n", ccp->xmit_resets);
 
   Printf("Incoming decompression:\r\n");
-  Printf("\tProtocol: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
+  Printf("\tProto\t: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
     (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : "");
   if (ccp->recv && ccp->recv->Stat)
     ccp->recv->Stat(COMP_DIR_RECV);
+  Printf("\tResets\t: %d\r\n", ccp->recv_resets);
 
   return(0);
 }
@@ -398,6 +400,7 @@ CcpSendResetReq(void)
   Mbuf		bp = NULL;
 
   assert(ct);
+  ccp->recv_resets++;
   if (ct->SendResetReq)
     bp = (*ct->SendResetReq)();
   Log(LG_CCP, ("%s: SendResetReq #%d link %d (%s)", 
@@ -416,6 +419,7 @@ CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
   CompType	const ct = ccp->xmit;
   int		noAck = 0;
 
+  ccp->xmit_resets++;
   bp = (ct && ct->RecvResetReq) ? (*ct->RecvResetReq)(id, bp, &noAck) : NULL;
   if (!noAck) {
     Log(LG_CCP, ("%s: SendResetAck #%d link %d (%s)",
@@ -650,6 +654,9 @@ CcpLayerDown(Fsm fp)
     (*ccp->recv->Cleanup)(COMP_DIR_RECV);
   if (ccp->xmit && ccp->xmit->Cleanup)
     (*ccp->xmit->Cleanup)(COMP_DIR_XMIT);
+
+  ccp->xmit_resets = 0;
+  ccp->recv_resets = 0;
 }
 
 /*

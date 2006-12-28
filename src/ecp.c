@@ -355,13 +355,15 @@ EcpStat(int ac, char *av[], void *arg)
   Printf("Enabled protocols:\r\n");
   OptStat(&ecp->options, gConfList);
   Printf("Outgoing encryption:\r\n");
-  Printf("\tProtocol  : %5s\r\n", ecp->xmit ? ecp->xmit->name : "none");
+  Printf("\tProto\t: %s\r\n", ecp->xmit ? ecp->xmit->name : "none");
   if (ecp->xmit && ecp->xmit->Stat)
     ecp->xmit->Stat(ECP_DIR_XMIT);
+  Printf("\tResets\t: %d\r\n", ecp->xmit_resets);
   Printf("Incoming decryption:\r\n");
-  Printf("\tProtocol  : %5s\r\n", ecp->recv ? ecp->recv->name : "none");
+  Printf("\tProto\t: %s\r\n", ecp->recv ? ecp->recv->name : "none");
   if (ecp->recv && ecp->recv->Stat)
     ecp->recv->Stat(ECP_DIR_RECV);
+  Printf("\tResets\t: %d\r\n", ecp->recv_resets);
   return(0);
 }
 
@@ -377,6 +379,7 @@ EcpSendResetReq(Fsm fp)
   Mbuf		bp = NULL;
 
   assert(et);
+  ecp->recv_resets++;
   if (et->SendResetReq)
     bp = (*et->SendResetReq)();
   Log(LG_ECP, ("%s: SendResetReq", Pref(fp)));
@@ -393,6 +396,7 @@ EcpRecvResetReq(Fsm fp, int id, Mbuf bp)
   EcpState	const ecp = &bund->ecp;
   EncType	const et = ecp->xmit;
 
+  ecp->xmit_resets++;
   bp = (et && et->RecvResetReq) ? (*et->RecvResetReq)(id, bp) : NULL;
   Log(fp->log, ("%s: SendResetAck", Pref(fp)));
   FsmOutputMbuf(fp, CODE_RESETACK, id, bp);
@@ -542,6 +546,9 @@ EcpLayerDown(Fsm fp)
     (ecp->xmit->Cleanup)(ECP_DIR_XMIT);
   if (ecp->recv && ecp->recv->Cleanup)
     (ecp->recv->Cleanup)(ECP_DIR_RECV);
+    
+  ecp->xmit_resets = 0;
+  ecp->recv_resets = 0;
 }
 
 /*

@@ -501,21 +501,31 @@ Pred1Stat(int dir)
     
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    Printf("\tBytes: %llu -> %llu (%+lld%%), Errors: %llu\r\n",
+	    Printf("\tBytes\t: %llu -> %llu (%+lld%%)\r\n",
 		p->xmit_stats.InOctets,
 		p->xmit_stats.OutOctets,
 		((p->xmit_stats.InOctets!=0)?
 		    ((int64_t)(p->xmit_stats.OutOctets - p->xmit_stats.InOctets)*100/(int64_t)p->xmit_stats.InOctets):
-		    0),
-		p->xmit_stats.Errors);
+		    0));
+	    Printf("\tFrames\t: %llu -> %lluc + %lluu\r\n",
+		p->xmit_stats.FramesPlain,
+		p->xmit_stats.FramesComp,
+		p->xmit_stats.FramesUncomp);
+	    Printf("\tErrors\t: %llu\r\n",
+		p->recv_stats.Errors);
 	    break;
 	case COMP_DIR_RECV:
-	    Printf("\tBytes: %llu <- %llu (%+lld%%), Errors: %llu\r\n",
+	    Printf("\tBytes\t: %llu <- %llu (%+lld%%)\r\n",
 		p->recv_stats.OutOctets,
 		p->recv_stats.InOctets,
 		((p->recv_stats.OutOctets!=0)?
 		    ((int64_t)(p->recv_stats.InOctets - p->recv_stats.OutOctets)*100/(int64_t)p->recv_stats.OutOctets):
-		    0),
+		    0));
+	    Printf("\tFrames\t: %llu <- %lluc + %lluu\r\n",
+		p->xmit_stats.FramesPlain,
+		p->xmit_stats.FramesComp,
+		p->xmit_stats.FramesUncomp);
+	    Printf("\tErrors\t: %llu\r\n",
 		p->recv_stats.Errors);
     	    break;
 	default:
@@ -551,21 +561,31 @@ Pred1Stat(int dir)
     memcpy(&stats, u.reply.data, sizeof(stats));
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    Printf("\tBytes: %llu -> %llu (%+lld%%), Errors: %llu\r\n",
+	    Printf("\tBytes\t: %llu -> %llu (%+lld%%)\r\n",
 		stats.InOctets,
 		stats.OutOctets,
 		((stats.InOctets!=0)?
 		    ((int64_t)(stats.OutOctets - stats.InOctets)*100/(int64_t)stats.InOctets):
-		    0),
+		    0));
+	    Printf("\tFrames\t: %llu -> %lluc + %lluu\r\n",
+		stats.FramesPlain,
+		stats.FramesComp,
+		stats.FramesUncomp);
+	    Printf("\tErrors\t: %llu\r\n",
 		stats.Errors);
 	    break;
 	case COMP_DIR_RECV:
-	    Printf("\tBytes: %llu <- %llu (%+lld%%), Errors: %llu\r\n",
+	    Printf("\tBytes\t: %llu <- %llu (%+lld%%)\r\n",
 		stats.OutOctets,
 		stats.InOctets,
 		((stats.OutOctets!=0)?
 		    ((int64_t)(stats.InOctets - stats.OutOctets)*100/(int64_t)stats.OutOctets):
-		    0),
+		    0));
+	    Printf("\tFrames\t: %llu <- %lluc + %lluu\r\n",
+		stats.FramesPlain,
+		stats.FramesComp,
+		stats.FramesUncomp);
+	    Printf("\tErrors\t: %llu\r\n",
 		stats.Errors);
     	    break;
 	default:

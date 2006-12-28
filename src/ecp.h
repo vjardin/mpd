@@ -54,6 +54,8 @@
     struct desinfo	des;		/* DESE info */
     struct desebisinfo	desebis;	/* DESE-bis info */
 #endif
+    uint32_t		xmit_resets;	/* Number of ResetReq we have got from other side */
+    uint32_t		recv_resets;	/* Number of ResetReq we have sent to other side */
   };
   typedef struct ecpstate	*EcpState;
 
