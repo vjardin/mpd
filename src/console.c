@@ -340,19 +340,34 @@ ConsoleSessionReadEvent(int type, void *cookie)
     case 253:	/* telnet option-code DO */
       break;
     case 9:	/* TAB */
-      ac = ParseLine(cs->cmd, av, sizeof(av) / sizeof(*av), 1);
+      if (cs->state != STATE_AUTHENTIC)
+        break;
+      strcpy(line, cs->cmd);
+      ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memset(compl, 0, sizeof(compl));
       tab = gCommands;
       for (i = 0; i < ac; i++) {
 
-        if (FindCommand(tab, av[i], &cmd)) 
-	  goto notfound;
+        if (FindCommand(tab, av[i], &cmd)) {
+	    cs->write(cs, "\a");
+	    goto notfound;
+	}
 	strcpy(line, cmd->name);
         ac2 = ParseLine(line, av2, sizeof(av2) / sizeof(*av2), 1);
 	snprintf(&compl[strlen(compl)], sizeof(compl) - strlen(compl), "%s ", av2[0]);
 	FreeArgs(ac2, av2);
-	if (cmd->func != CMD_SUBMENU)
-	  break;
+	if (cmd->func != CMD_SUBMENU) {
+	    i++;
+	    if (i < ac) {
+		cs->write(cs, "\a");
+		for (; i < ac; i++) {
+		    strcat(compl, av[i]);
+		    if ((i+1) < ac)
+			strcat(compl, " ");
+		}
+	    }
+	    break;
+	}
 	tab = cmd->arg;
       }
       for (i = 0; i < cs->cmd_len; i++)
@@ -449,13 +464,20 @@ success:
 	break;
       }
 
+      if (c == '?')
+        cs->write(cs, "?");
       cs->write(cs, "\r\n");
-      Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
-	cs->link->name, cs->user.username, cs->cmd));
       memcpy(line, cs->cmd, sizeof(line));
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
-      exitflag = DoCommand(ac, av, NULL, 0);
+      if (c != '?') {
+        Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
+	    cs->link->name, cs->user.username, cs->cmd));
+        exitflag = DoCommand(ac, av, NULL, 0);
+      } else {
+        HelpCommand(ac, av, NULL);
+	exitflag = 0;
+      }
       FreeArgs(ac, av_copy);
       if (exitflag)
 	goto abort;
