@@ -373,23 +373,38 @@ notfound:
       cs->telnet = FALSE;
       break;
     case CTRL('P'):	/* page up */
-      if (*cs->history) {
+      if ((*cs->history) && 
+        (strncmp(cs->cmd, cs->history, MAX_CONSOLE_LINE) != 0)) {
+        if (cs->cmd_len>0)
+	    cs->prompt(cs);
 	memcpy(cs->cmd, cs->history, MAX_CONSOLE_LINE);
 	cs->cmd_len = strlen(cs->cmd);
-	cs->prompt(cs);
 	cs->write(cs, cs->cmd);
       }
       break;
-    case CTRL('N'):
+    case CTRL('N'):	/* page down */
+        if (cs->cmd_len>0) {
+	    if (strncmp(cs->cmd, cs->history, MAX_CONSOLE_LINE) != 0) {
+		memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
+		cs->prompt(cs);
+	    } else {
+    		for (i = 0; i < cs->cmd_len; i++)
+		    cs->write(cs, "\b \b");    
+	    }
+	}
+	memset(cs->cmd, 0, MAX_CONSOLE_LINE);
+	cs->cmd_len = 0;
+        break;
     case CTRL('F'):
     case CTRL('B'):
       break;
     case CTRL('H'):
     case 127:	/* BS */
       if (cs->cmd_len > 0) {
-	cs->cmd[cs->cmd_len - 1] = 0;
 	cs->cmd_len -= 1;
-	cs->write(cs, "\b \b");
+	cs->cmd[cs->cmd_len] = 0;
+        if (cs->state != STATE_PASSWORD)
+	    cs->write(cs, "\b \b");
       }
       break;
     case '\r':
