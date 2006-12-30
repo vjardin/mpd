@@ -42,6 +42,7 @@
     "dese-bis",
     ECP_TY_DESE_bis,
     DeseBisInit,
+    NULL,
     DeseBisConfigure,
     DeseBisSubtractBloat,
     DeseBisCleanup,

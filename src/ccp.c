@@ -54,6 +54,7 @@
  */
 
   static void		CcpConfigure(Fsm fp);
+  static void		CcpUnConfigure(Fsm fp);
   static u_char		*CcpBuildConfigReq(Fsm fp, u_char *cp);
   static void		CcpDecodeConfig(Fsm f, FsmOption a, int num, int mode);
   static void		CcpLayerUp(Fsm fp);
@@ -147,7 +148,7 @@
     CcpBuildConfigReq,
     CcpDecodeConfig,
     CcpConfigure,
-    NULL,
+    CcpUnConfigure,
     NULL,
     NULL,
     NULL,
@@ -242,6 +243,30 @@ CcpConfigure(Fsm fp)
 
     if (ct->Configure)
       (*ct->Configure)();
+  }
+}
+
+/*
+ * CcpUnConfigure()
+ */
+
+static void
+CcpUnConfigure(Fsm fp)
+{
+  CcpState	const ccp = &bund->ccp;
+  int		k;
+
+  /* Reset state */
+  ccp->self_reject = 0;
+  ccp->peer_reject = 0;
+  ccp->crypt_check = 0;
+  ccp->xmit = NULL;
+  ccp->recv = NULL;
+  for (k = 0; k < CCP_NUM_PROTOS; k++) {
+    CompType	const ct = gCompTypes[k];
+
+    if (ct->UnConfigure)
+      (*ct->UnConfigure)();
   }
 }
 
@@ -633,6 +658,19 @@ CcpLayerDown(Fsm fp)
   CcpState	const ccp = &bund->ccp;
   struct ngm_rmhook rm;
 
+  /* Update PPP node config */
+#if NGM_PPP_COOKIE < 940897794
+  bund->pppConfig.enableCompression = 0;
+  bund->pppConfig.enableDecompression = 0;
+#else
+  bund->pppConfig.bund.enableCompression = 0;
+  bund->pppConfig.bund.enableDecompression = 0;
+#endif
+  NgFuncSetConfig();
+
+  /* Update interface MTU */
+  BundUpdateParams();
+  
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
     /* Disconnect hook. */
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_COMPRESS);

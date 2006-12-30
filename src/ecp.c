@@ -65,6 +65,7 @@
  */
 
   static void		EcpConfigure(Fsm fp);
+  static void		EcpUnConfigure(Fsm fp);
   static u_char		*EcpBuildConfigReq(Fsm fp, u_char *cp);
   static void		EcpDecodeConfig(Fsm fp, FsmOption a, int num, int mode);
   static void		EcpLayerUp(Fsm fp);
@@ -136,7 +137,7 @@
     EcpBuildConfigReq,
     EcpDecodeConfig,
     EcpConfigure,
-    NULL,
+    EcpUnConfigure,
     NULL,
     NULL,
     NULL,
@@ -212,6 +213,29 @@ EcpConfigure(Fsm fp)
 
     if (et->Configure)
       (*et->Configure)();
+  }
+  ecp->xmit = NULL;
+  ecp->recv = NULL;
+  ecp->self_reject = 0;
+  ecp->peer_reject = 0;
+}
+
+/*
+ * EcpUnConfigure()
+ */
+
+static void
+EcpUnConfigure(Fsm fp)
+{
+  EcpState	const ecp = &bund->ecp;
+  int		k;
+
+  for (k = 0; k < ECP_NUM_PROTOS; k++)
+  {
+    EncType	const et = gEncTypes[k];
+
+    if (et->UnConfigure)
+      (*et->UnConfigure)();
   }
   ecp->xmit = NULL;
   ecp->recv = NULL;
@@ -523,6 +547,19 @@ EcpLayerDown(Fsm fp)
 {
   EcpState	const ecp = &bund->ecp;
   struct ngm_rmhook rm;
+
+  /* Update PPP node config */
+#if NGM_PPP_COOKIE < 940897794
+  bund->pppConfig.enableEncryption = 0;
+  bund->pppConfig.enableDecryption = 0;
+#else
+  bund->pppConfig.bund.enableEncryption = 0;
+  bund->pppConfig.bund.enableDecryption = 0;
+#endif
+  NgFuncSetConfig();
+
+  /* Update interface MTU */
+  BundUpdateParams();
 
   if (ecp->xmit != NULL && ecp->xmit->Encrypt != NULL) {
     /* Disconnect hook. */

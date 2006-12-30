@@ -51,6 +51,7 @@
     2,
     DeflateInit,
     DeflateConfigure,
+    NULL,
     DeflateDescribe,
     DeflateSubtractBloat,
     DeflateCleanup,

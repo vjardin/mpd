@@ -71,6 +71,7 @@
     1,
     MppcInit,
     NULL,
+    NULL,
     MppcDescribe,
     MppcSubtractBloat,
     MppcCleanup,

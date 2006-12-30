@@ -87,6 +87,7 @@
     Pred1Init,
     NULL,
     NULL,
+    NULL,
     Pred1SubtractBloat,
     Pred1Cleanup,
     Pred1BuildConfigReq,

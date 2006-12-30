@@ -43,6 +43,7 @@
     ECP_TY_DESE,
     DesInit,
     DesConfigure,
+    NULL,
     DesSubtractBloat,
     DesCleanup,
     DesBuildConfigReq,

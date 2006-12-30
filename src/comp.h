@@ -34,6 +34,10 @@
      */
     void	(*Configure)(void);
     /*
+     * Do the opposite of Configure
+     */
+    void	(*UnConfigure)(void);
+    /*
      * This returns a string describing the configuration (optional).
      */
     char	*(*Describe)(int dir);

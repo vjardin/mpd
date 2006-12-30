@@ -24,6 +24,7 @@
     u_char	type;
     int		(*Init)(int dir);
     void	(*Configure)(void);
+    void	(*UnConfigure)(void);
     int		(*SubtractBloat)(int size);
     void	(*Cleanup)(int dir);
     u_char	*(*BuildConfigReq)(u_char *cp);
