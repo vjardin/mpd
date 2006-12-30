@@ -340,15 +340,15 @@ FsmDown(Fsm fp)
     case ST_REQSENT:
     case ST_ACKRCVD:
     case ST_ACKSENT:
+      FsmNewState(fp, ST_STARTING);
       if (fp->type->UnConfigure)
 	(*fp->type->UnConfigure)(fp);
-      FsmNewState(fp, ST_STARTING);
       break;
     case ST_OPENED:
-      if (fp->type->UnConfigure)
-	(*fp->type->UnConfigure)(fp);
       FsmNewState(fp, ST_STARTING);
       FsmLayerDown(fp);
+      if (fp->type->UnConfigure)
+	(*fp->type->UnConfigure)(fp);
       break;
   }
 }
@@ -369,21 +369,21 @@ FsmClose(Fsm fp)
       FsmNewState(fp, ST_CLOSING);
       break;
     case ST_OPENED:
-      if (fp->type->UnConfigure)
-	(*fp->type->UnConfigure)(fp);
       FsmNewState(fp, ST_CLOSING);
       FsmInitRestartCounter(fp, fp->conf.maxterminate);
       FsmSendTerminateReq(fp);
       FsmLayerDown(fp);
+      if (fp->type->UnConfigure)
+	(*fp->type->UnConfigure)(fp);
       break;
     case ST_REQSENT:
     case ST_ACKRCVD:
     case ST_ACKSENT:
-      if (fp->type->UnConfigure)
-	(*fp->type->UnConfigure)(fp);
       FsmNewState(fp, ST_CLOSING);
       FsmInitRestartCounter(fp, fp->conf.maxterminate);
       FsmSendTerminateReq(fp);
+      if (fp->type->UnConfigure)
+	(*fp->type->UnConfigure)(fp);
       break;
   }
 }
@@ -496,11 +496,6 @@ FsmTimeout(void *arg)
       case ST_REQSENT:
       case ST_ACKSENT:
       case ST_ACKRCVD:
-/*	if (fp->type->UnConfigure)   // Duplicate code
-	  (*fp->type->UnConfigure)(fp);
-	FsmNewState(fp, ST_STOPPED);
-	if (!fp->conf.passive)
-	  FsmLayerFinish(fp);*/
 	FsmFailure(fp, FAIL_NEGOT_FAILURE);
 	break;
     }
@@ -834,13 +829,13 @@ FsmRecvTermReq(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmSendTerminateAck(fp);
       break;
     case ST_OPENED:
-      if (fp->type->UnConfigure)
-	(*fp->type->UnConfigure)(fp);
       FsmNewState(fp, ST_STOPPING);
       FsmSendTerminateAck(fp);
       FsmLayerDown(fp);
       FsmInitRestartCounter(fp, 0);	/* Zero restart counter */
       TimerStart(&fp->timer);		/* Start restart timer */
+      if (fp->type->UnConfigure)
+	(*fp->type->UnConfigure)(fp);
       break;
   }
   PFREE(bp);
@@ -995,11 +990,11 @@ FsmFailure(Fsm fp, enum fsmfail reason)
     case ST_ACKRCVD:
     case ST_ACKSENT:
     case ST_REQSENT:
-      if (fp->type->UnConfigure)
-	(*fp->type->UnConfigure)(fp);
       FsmNewState(fp, ST_STOPPED);
       if (!fp->conf.passive)
 	FsmLayerFinish(fp);
+      if (fp->type->UnConfigure)
+	(*fp->type->UnConfigure)(fp);
       break;
 
     /*
@@ -1010,18 +1005,12 @@ FsmFailure(Fsm fp, enum fsmfail reason)
      * while also pretending that we got a DOWN event.
      */
     case ST_OPENED:
-      if (fp->type->UnConfigure)
-	(*fp->type->UnConfigure)(fp);
-// this code misses RFC recomendations
-//      FsmLayerFinish(fp);
-//      FsmLayerStart(fp);
-//      FsmNewState(fp, ST_STARTING);	/* Pretend we got a DOWN event */
-//      FsmLayerDown(fp);
-// doing like told in RFC
       FsmNewState(fp, ST_STOPPING);
       FsmInitRestartCounter(fp, fp->conf.maxterminate);
       FsmSendTerminateReq(fp);
       FsmLayerDown(fp);
+      if (fp->type->UnConfigure)
+	(*fp->type->UnConfigure)(fp);
       break;
 
     /*
