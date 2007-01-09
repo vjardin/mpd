@@ -34,7 +34,7 @@ PHYSTYPE_PPPOE=		yes
 
 COMPRESSION_PRED1=	yes
 #COMPRESSION_STAC=	yes
-#COMPRESSION_DEFLATE=	yes
+COMPRESSION_DEFLATE=	yes
 
 # Define supported encryption types
 
