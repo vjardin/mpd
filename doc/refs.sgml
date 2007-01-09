@@ -43,6 +43,8 @@
 
 <htmlurl url="http://www.ietf.org/rfc/rfc2284.txt" name="RFC 2284 EAP">
 
+<htmlurl url="http://www.ietf.org/rfc/rfc2419.txt" name="RFC 2419 The PPP DES Encryption Protocol, Version 2 (DESE-bis)">
+
 <htmlurl url="http://www.ietf.org/rfc/rfc2427.txt" name="RFC 2427 Multiprotocol Interconnect over Frame Relay">
 
 <htmlurl url="http://www.ietf.org/rfc/rfc2433.txt" name="RFC 2433 Microsoft PPP CHAP Extensions">
