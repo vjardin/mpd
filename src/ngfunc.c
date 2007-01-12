@@ -255,6 +255,7 @@ NgFuncInit(Bund b, const char *reqIface)
   (void) fcntl(b->csock, F_SETFD, 1);
   (void) fcntl(b->dsock, F_SETFD, 1);
 
+#if NG_NODESIZ>=32
   /* Give it a name */
   snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, b->name);
   if (NgSendMsg(b->csock, ".",
@@ -263,6 +264,7 @@ NgFuncInit(Bund b, const char *reqIface)
       b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
     goto fail;
   }
+#endif
 
   /* Create new iface node if necessary, else find the one specified */
   if (reqIface != NULL) {
@@ -358,6 +360,7 @@ NgFuncInit(Bund b, const char *reqIface)
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
   strcpy(hook, BPF_HOOK_IFACE);
 
+#if NG_NODESIZ>=32
   /* Give it a name */
   snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-bpf", gPid, b->name);
   if (NgSendMsg(b->csock, path,
@@ -366,6 +369,7 @@ NgFuncInit(Bund b, const char *reqIface)
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
     goto fail;
   }
+#endif
 
 #ifdef USE_NG_NAT
   /* Add a nat node if configured */
@@ -669,10 +673,12 @@ fail:
 static int
 NgFuncInitVJ(Bund b)
 {
-  char path[NG_PATHLEN + 1];
   struct ngm_mkpeer	mp;
   struct ngm_connect	cn;
+#if NG_NODESIZ>=32
+  char path[NG_PATHLEN + 1];
   struct ngm_name	nm;
+#endif
 
   /* Add a VJ compression node */
   snprintf(mp.type, sizeof(mp.type), "%s", NG_VJC_NODE_TYPE);
@@ -685,6 +691,7 @@ NgFuncInitVJ(Bund b)
     goto fail;
   }
 
+#if NG_NODESIZ>=32
   /* Give it a name */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
   snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-vjc", gPid, b->name);
@@ -694,6 +701,7 @@ NgFuncInitVJ(Bund b)
       b->name, NG_VJC_NODE_TYPE, strerror(errno)));
     goto fail;
   }
+#endif
 
   /* Connect the other three hooks between the ppp and vjc nodes */
   snprintf(cn.path, sizeof(cn.path), "%s", NG_PPP_HOOK_VJC_IP);
@@ -941,11 +949,6 @@ NgFuncConfigBPF(Bund b, int mode)
       struct ng_bpf_hookprog	hprog;
   }				u;
   struct ng_bpf_hookprog	*const hp = &u.hprog;
-  char				path[NG_PATHLEN + 1];
-
-  /* Get absolute path to bpf node */
-  snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, b->name,
-      NG_PPP_HOOK_INET);
 
   /* First, configure the hook on the interface node side of the BPF node */
   memset(&u, 0, sizeof(u));
@@ -988,7 +991,7 @@ NgFuncConfigBPF(Bund b, int mode)
   }
 
   /* Set new program on the BPF_HOOK_IFACE hook */
-  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+  if (NgSendMsg(b->csock, MPD_HOOK_DEMAND_TAP, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -1024,7 +1027,7 @@ NgFuncConfigBPF(Bund b, int mode)
   }
 
   /* Set new program on the BPF_HOOK_PPP hook */
-  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+  if (NgSendMsg(b->csock, MPD_HOOK_DEMAND_TAP, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -1053,7 +1056,7 @@ NgFuncConfigBPF(Bund b, int mode)
   }
 
   /* Set new program on the BPF_HOOK_MPD hook */
-  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+  if (NgSendMsg(b->csock, MPD_HOOK_DEMAND_TAP, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -1082,7 +1085,7 @@ NgFuncConfigBPF(Bund b, int mode)
       assert(0);
   }
   /* Set new program on the BPF_HOOK_TCPMSS hook. */
-  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+  if (NgSendMsg(b->csock, MPD_HOOK_DEMAND_TAP, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -1108,7 +1111,7 @@ NgFuncConfigBPF(Bund b, int mode)
       assert(0);
   }
   /* Set new program on the BPF_HOOK_TCPMSS hook. */
-  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+  if (NgSendMsg(b->csock, MPD_HOOK_DEMAND_TAP, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -1137,7 +1140,7 @@ NgFuncConfigBPF(Bund b, int mode)
   }
 
   /* Set new program on the BPF_HOOK_MPD hook */
-  if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE,
+  if (NgSendMsg(b->csock, MPD_HOOK_DEMAND_TAP, NGM_BPF_COOKIE,
       NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
     Log(LG_ERR, ("[%s] can't set %s node program: %s",
       b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -1207,7 +1210,7 @@ NgFuncShutdownInternal(Bund b, int iface, int ppp)
   lnk = lnk_save;
   if (ppp) {
     if (b->tee) {
-	snprintf(path, sizeof(path), "mpd%d-%s-tee:", gPid, b->name);
+	snprintf(path, sizeof(path), "%s-tee:", b->iface.ifname);
 	NgFuncShutdownNode(b, b->name, path);
     }
     if (b->nat) {

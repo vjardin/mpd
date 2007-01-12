@@ -285,7 +285,9 @@ void
 vLogPrintf(const char *fmt, va_list args)
 {
   char		buf[MAX_CONSOLE_BUF_LEN];
+#if (__FreeBSD_version >= 500000)
   va_list       args2;
+#endif
 
   LogTimeStamp(logprintf);
 #if (__FreeBSD_version >= 500000)
