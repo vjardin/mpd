@@ -207,7 +207,7 @@ DeseBisEncrypt(Mbuf plain)
   }
 
   des->xmit_stats.FramesOut++;
-  des->xmit_stats.OctetsOut += clen;
+  des->xmit_stats.OctetsOut += DES_OVERHEAD + clen;
 
 /* Return cyphertext */
 
