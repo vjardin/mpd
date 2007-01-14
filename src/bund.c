@@ -266,6 +266,13 @@ BundJoin(void)
     BundNcpsOpen();
 
     BundNcpsUp();
+
+    BundResetStats();
+    
+    /* starting bundle statistics timer */
+    TimerInit(&bund->statsUpdateTimer, "BundUpdateStats", 
+	BUND_STATS_UPDATE_INTERVAL, BundUpdateStatsTimer, NULL);
+    TimerStart(&bund->statsUpdateTimer);
     
   }
 
@@ -309,6 +316,9 @@ BundLeave(void)
   /* Special stuff when last link goes down... */
   if (bm->n_up == 0) {
   
+    /* stopping bundle statistics timer */
+    TimerStop(&bund->statsUpdateTimer);
+
     /* Reset statistics and auth information */
     BundBmStop();
 
@@ -1022,23 +1032,73 @@ BundStat(int ac, char *av[], void *arg)
   }
 
   /* Show stats */
-  LinkUpdateStats();
+  BundUpdateStats();
   Printf("Traffic stats:\r\n");
 
-  Printf("\tOctets input   : %llu\r\n", lnk->stats.recvOctets);
-  Printf("\tFrames input   : %llu\r\n", lnk->stats.recvFrames);
-  Printf("\tOctets output  : %llu\r\n", lnk->stats.xmitOctets);
-  Printf("\tFrames output  : %llu\r\n", lnk->stats.xmitFrames);
-  Printf("\tBad protocols  : %llu\r\n", lnk->stats.badProtos);
+  Printf("\tOctets input   : %llu\r\n", bund->stats.recvOctets);
+  Printf("\tFrames input   : %llu\r\n", bund->stats.recvFrames);
+  Printf("\tOctets output  : %llu\r\n", bund->stats.xmitOctets);
+  Printf("\tFrames output  : %llu\r\n", bund->stats.xmitFrames);
+  Printf("\tBad protocols  : %llu\r\n", bund->stats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-  Printf("\tRunts          : %llu\r\n", lnk->stats.runts);
+  Printf("\tRunts          : %llu\r\n", bund->stats.runts);
 #endif
-  Printf("\tDup fragments  : %llu\r\n", lnk->stats.dupFragments);
+  Printf("\tDup fragments  : %llu\r\n", bund->stats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-  Printf("\tDrop fragments : %llu\r\n", lnk->stats.dropFragments);
+  Printf("\tDrop fragments : %llu\r\n", bund->stats.dropFragments);
 #endif
 
   return(0);
+}
+
+/* 
+ * BundUpdateStats()
+ */
+
+void
+BundUpdateStats(void)
+{
+  struct ng_ppp_link_stat	stats;
+
+  if (NgFuncGetStats(NG_PPP_BUNDLE_LINKNUM, FALSE, &stats) != -1) {
+    bund->stats.xmitFrames += abs(stats.xmitFrames - bund->stats.oldStats.xmitFrames);
+    bund->stats.xmitOctets += abs(stats.xmitOctets - bund->stats.oldStats.xmitOctets);
+    bund->stats.recvFrames += abs(stats.recvFrames - bund->stats.oldStats.recvFrames);
+    bund->stats.recvOctets += abs(stats.recvOctets - bund->stats.oldStats.recvOctets);
+    bund->stats.badProtos  += abs(stats.badProtos - bund->stats.oldStats.badProtos);
+#if NGM_PPP_COOKIE >= 940897794
+    bund->stats.runts	  += abs(stats.runts - bund->stats.oldStats.runts);
+#endif
+    bund->stats.dupFragments += abs(stats.dupFragments - bund->stats.oldStats.dupFragments);
+#if NGM_PPP_COOKIE >= 940897794
+    bund->stats.dropFragments += abs(stats.dropFragments - bund->stats.oldStats.dropFragments);
+#endif
+  }
+
+  bund->stats.oldStats = stats;
+}
+
+/* 
+ * BundUpdateStatsTimer()
+ */
+
+void
+BundUpdateStatsTimer(void *cookie)
+{
+  TimerStop(&bund->statsUpdateTimer);
+  BundUpdateStats();
+  TimerStart(&bund->statsUpdateTimer);
+}
+
+/*
+ * BundResetStats()
+ */
+
+void
+BundResetStats(void)
+{
+  NgFuncGetStats(NG_PPP_BUNDLE_LINKNUM, TRUE, NULL);
+  memset(&bund->stats, 0, sizeof(struct bundstats));
 }
 
 /*

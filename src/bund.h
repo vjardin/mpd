@@ -118,6 +118,25 @@
     struct authconf	auth;			/* Auth backends, RADIUS, etc. */
   };
 
+  #define BUND_STATS_UPDATE_INTERVAL    65 * SECONDS
+
+  /* internal 64 bit counters as workaround for the 32 bit 
+   * limitation for ng_ppp_link_stat
+   */
+  struct bundstats {
+	struct ng_ppp_link_stat
+			oldStats;
+	u_int64_t 	xmitFrames;	/* xmit frames on bundle */
+	u_int64_t 	xmitOctets;	/* xmit octets on bundle */
+	u_int64_t 	recvFrames;	/* recv frames on bundle */
+	u_int64_t	recvOctets;	/* recv octets on bundle */
+	u_int64_t 	badProtos;	/* frames rec'd with bogus protocol */
+	u_int64_t 	runts;		/* Too short MP fragments */
+	u_int64_t 	dupFragments;	/* MP frames with duplicate seq # */
+	u_int64_t	dropFragments;	/* MP fragments we had to drop */
+  };
+  typedef struct bundstats *BundStats;
+
   /* Total state of a bundle */
   struct bundle {
     char		name[LINK_MAX_NAME];	/* Name of this bundle */
@@ -144,6 +163,8 @@
     /* Data chunks */
     struct bundbm	bm;		/* Bandwidth management state */
     struct bundconf	conf;		/* Configuration for this bundle */
+    struct bundstats	stats;		/* Statistics for this bundle */
+    struct pppTimer     statsUpdateTimer;       /* update Timer */
     struct mpstate	mp;		/* MP state for this bundle */
     struct ifacestate	iface;		/* IP state info */
     struct ipcpstate	ipcp;		/* IPCP state info */
@@ -186,6 +207,9 @@
   extern void	BundUpdateParams(void);
   extern int	BundCommand(int ac, char *av[], void *arg);
   extern int	BundCreateCmd(int ac, char *av[], void *arg);
+  extern void   BundUpdateStats(void);
+  extern void	BundUpdateStatsTimer(void *cookie);
+  extern void	BundResetStats(void);
 
   extern int	BundJoin(void);
   extern void	BundLeave(void);
