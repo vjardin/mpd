@@ -29,6 +29,7 @@
     { PROTO_IP,		"IP" },
     { PROTO_VJUNCOMP,	"VJUNCOMP" },
     { PROTO_VJCOMP,	"VJCOMP" },
+    { PROTO_IPV6,	"IPv6" },
     { PROTO_MP,		"MP" },
     { PROTO_IPCP,	"IPCP" },
     { PROTO_IPV6CP,	"IPV6CP" },
