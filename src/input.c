@@ -130,17 +130,21 @@ InputDispatch(const char *label, int linkNum, int proto, Mbuf bp)
       AuthInput(proto, bp);
       return(0);
     case PROTO_IPCP:
+    case PROTO_IP:
+    case PROTO_VJUNCOMP:
+    case PROTO_VJCOMP:
       if (!Enabled(&bund->conf.options, BUND_CONF_IPCP))
 	reject = 1;
-      else {
+      else if (proto == PROTO_IPCP) {
         IpcpInput(bp, linkNum);
         return(0);
       }
       break;
     case PROTO_IPV6CP:
+    case PROTO_IPV6:
       if (!Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
 	reject = 1;
-      else {
+      else if (proto == PROTO_IPV6CP) {
         Ipv6cpInput(bp, linkNum);
         return(0);
       }
@@ -162,10 +166,6 @@ InputDispatch(const char *label, int linkNum, int proto, Mbuf bp)
 	EcpInput(bp, linkNum);
 	return(0);
       }
-      break;
-    case PROTO_IP:
-    case PROTO_VJUNCOMP:
-    case PROTO_VJCOMP:
       break;
     case PROTO_MP:
       if (!Enabled(&bund->conf.options, BUND_CONF_MULTILINK))

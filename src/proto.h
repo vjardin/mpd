@@ -13,6 +13,7 @@
 /* Network layer protocols */
 
   #define PROTO_IP		0x0021		/* IP */
+  #define PROTO_IPV6		0x0057		/* IPv6 */
   #define PROTO_VJUNCOMP	0x002f		/* VJ Uncompressed */
   #define PROTO_VJCOMP		0x002d		/* VJ Compressed */
   #define PROTO_MP		0x003d		/* Multi-link PPP */
