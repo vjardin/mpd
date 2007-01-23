@@ -1017,7 +1017,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   struct u_range	range;
 #if (!defined(__FreeBSD__) || __FreeBSD_version >= 530000)
   u_char	*tmpkey;
-  int		tmpkey_len;
+  size_t	tmpkey_len;
 #endif
 
   Freee(MB_AUTH, auth->params.eapmsg);
