@@ -13,6 +13,7 @@ Mpd have support for many link types:
 
       Serial port modem
       Point-to-Point Tunnelling Protocol (PPTP)
+      Layer Two Tunnelling Protocol (L2TP)
       PPP over Ethernet (PPPoE)
       PPP over TCP
       PPP over UDP
