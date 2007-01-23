@@ -31,6 +31,10 @@
 	    the Point-to-Point Tunnelling Protocol (PPTP).
 	    This protocol is supported by the popular Microsoft Dial-Up
 	    Networking client.
+        <item><bf>Layer Two Tunnelling Protocol (L2TP)</bf> Mpd can connect over the Internet using
+	    the Layer Two Tunnelling Protocol (L2TP).
+	    This protocol is supported by the popular Microsoft Dial-Up
+	    Networking client.
         <item><bf>PPP over Ethernet (PPPoE)</bf> Mpd can connect over an Ethernet port
 	    using the PPP-over-Ethernet (PPPoE) protocol.
 	<item><bf>PPP over TCP</bf> Mpd can tunnel PPP frames over a TCP connection.
