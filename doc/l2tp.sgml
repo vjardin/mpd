@@ -10,18 +10,18 @@
   These commands apply to the currently active link, and are only
   valid if the currently active link has type <bf>l2tp</bf>.
 
-  The L2TP protocol can be most easily understood as just another
-  link layer type, where the link layer medium just happens to be
-  an IP connection. So, for example, instead of configuring a
-  telephone number to dial as you would with a modem, you configure
-  an IP address to connect to. Everything else that's above the
-  link layer functions exactly the same. Hence L2TP allows you
-  to ``tunnel'' PPP frames over IP.
+  The L2TP protocol utilizes UDP datagrams on port 1701 (and this is 
+  the default for <tt><em>port</em></tt> in the commands below) 
+  to create and maintain virtual tunnel between IP peers. 
+  One or more independent PPP connections (sessions) can be 
+  carried inside this tunnel.
 
-  Note that L2TP connections are initiated by a UDP connection from
-  one machine to another, and that servers usually listen to UDP
-  port 1701 (and this is the default for <tt><em>port</em></tt>
-  in the commands below).
+  Windows client uses IPSec encryption for the additional tunnel 
+  security. So, to let it connect you must configure IPSec on your 
+  MPD router or disable IPSec on Windows by setting registry 
+  DWORD value ProhibitIpSec at the key
+  HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\RasMan\Parameters\
+  into "1".
 
 <descrip>
 

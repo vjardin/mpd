@@ -77,7 +77,7 @@ This manual documents mpd version <bf>&version;</bf>.
 This version relies on the Netgraph networking system to combine
 the advantages of user-level configuration and negotiation flexibility
 with kernel-level speed of data handling.
-You must be running FreeBSD version 3.4 or higher.
+You must be running FreeBSD version 4.x or higher.
 </abstract>
 
 <toc>
