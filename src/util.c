@@ -1344,3 +1344,48 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   return(-1);
 }
 
+/*
+ * Decode ASCII message
+ */
+void
+ppp_util_ascify(char *buf, size_t bsiz, const u_char *data, size_t len)
+{
+	char *bp = buf;
+	int i;
+
+	for (bp = buf, i = 0; i < len; i++) {
+		const char ch = (char)data[i];
+
+		if (bsiz < 3)
+			break;
+		switch (ch) {
+		case '\t':
+			*bp++ = '\\';
+			*bp++ = 't';
+			bsiz -= 2;
+			break;
+		case '\n':
+			*bp++ = '\\';
+			*bp++ = 'n';
+			bsiz -= 2;
+			break;
+		case '\r':
+			*bp++ = '\\';
+			*bp++ = 'r';
+			bsiz -= 2;
+			break;
+		default:
+			if (isprint(ch & 0x7f)) {
+				*bp++ = ch;
+				bsiz--;
+			} else {
+				*bp++ = '^';
+				*bp++ = '@' + (ch & 0x1f);
+				bsiz -= 2;
+			}
+			break;
+		}
+	}
+	*bp = '\0';
+}
+

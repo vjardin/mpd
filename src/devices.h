@@ -23,6 +23,9 @@
 #ifdef PHYSTYPE_PPTP
 #include "pptp.h"
 #endif
+#ifdef PHYSTYPE_L2TP
+#include "l2tp.h"
+#endif
 #ifdef PHYSTYPE_PPPOE
 #include "pppoe.h"
 #endif
@@ -49,6 +52,10 @@
     { "pptp ...",			"PPTP specific stuff",
 	CMD_SUBMENU, AdmitDev, (void *) PptpSetCmds },
 #endif
+#ifdef PHYSTYPE_L2TP
+    { "l2tp ...",			"L2TP specific stuff",
+	CMD_SUBMENU, AdmitDev, (void *) L2tpSetCmds },
+#endif
 #ifdef PHYSTYPE_PPPOE
     { "pppoe ...",			"PPPoE specific stuff",
 	CMD_SUBMENU, AdmitDev, (void *) PppoeSetCmds },
@@ -70,6 +77,9 @@
 #endif
 #ifdef PHYSTYPE_PPTP
     (const PhysType) &gPptpPhysType,
+#endif
+#ifdef PHYSTYPE_L2TP
+    (const PhysType) &gL2tpPhysType,
 #endif
 #ifdef PHYSTYPE_PPPOE
     (const PhysType) &gPppoePhysType,

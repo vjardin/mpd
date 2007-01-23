@@ -23,10 +23,6 @@
 
   #define PPTP_FIRMWARE_REV		0x0101
 
-  #ifndef PPTP_VENDOR_NAME
-  #define PPTP_VENDOR_NAME		"MPD: Multi-link PPP daemon for FreeBSD"
-  #endif
-
   #define PPTP_STR_INTERNAL_CALLING	"Internally originated VPN call"
 
   /* Limits on how long we wait for replies to things */
@@ -861,7 +857,7 @@ abort:
     msg.bearCap = PPTP_BEARCAP_ANY;
     msg.firmware = PPTP_FIRMWARE_REV;
     gethostname(msg.host, sizeof(msg.host));
-    strncpy(msg.vendor, PPTP_VENDOR_NAME, sizeof(msg.vendor));
+    strncpy(msg.vendor, MPD_VENDOR, sizeof(msg.vendor));
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_WAIT_CTL_REPLY);
     PptpCtrlWriteMsg(c, PPTP_StartCtrlConnRequest, &msg);
   }
@@ -1895,7 +1891,7 @@ reply:
   reply.firmware = PPTP_FIRMWARE_REV;
   reply.result = PPTP_SCCR_RESL_OK;
   gethostname(reply.host, sizeof(reply.host));
-  strncpy(reply.vendor, PPTP_VENDOR_NAME, sizeof(reply.vendor));
+  strncpy(reply.vendor, MPD_VENDOR, sizeof(reply.vendor));
 
 #ifdef LOOK_LIKE_NT
   reply.firmware = 0;

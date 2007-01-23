@@ -112,6 +112,9 @@
 #ifdef LG_PHYS2
     ADD_OPT(PHYS2,	"Physical layer debug")
 #endif
+#ifdef LG_PHYS3
+    ADD_OPT(PHYS3,	"Physical layer control packet dump")
+#endif
 #ifdef LG_CHAT
     ADD_OPT(CHAT,	"Modem chat script")
 #endif

@@ -43,6 +43,7 @@
     LG_I_ECHO,
     LG_I_PHYS,
     LG_I_PHYS2,
+    LG_I_PHYS3,
     LG_I_FRAME,
     LG_I_PPTP,
     LG_I_PPTP2,
@@ -76,6 +77,7 @@
   #define LG_ECHO		(1 << LG_I_ECHO)
   #define LG_PHYS		(1 << LG_I_PHYS)
   #define LG_PHYS2		(1 << LG_I_PHYS2)
+  #define LG_PHYS3		(1 << LG_I_PHYS3)
   #define LG_FRAME		(1 << LG_I_FRAME)
   #define LG_PPTP		(1 << LG_I_PPTP)
   #define LG_PPTP2		(1 << LG_I_PPTP2)

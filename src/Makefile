@@ -25,6 +25,7 @@ PHYSTYPE_UDP=		yes
 PHYSTYPE_NG_SOCKET=	yes
 PHYSTYPE_PPTP=		yes
 PHYSTYPE_PPPOE=		yes
+PHYSTYPE_L2TP=		yes
 
 # Define supported compression types
 # Notes:
@@ -82,6 +83,10 @@ COPTS+=		-Wall \
 		-pthread \
 		-I${PREFIX}/include
 
+.if defined ( MPD_VENDOR )
+COPTS+=		'-DMPD_VENDOR="${MPD_VENDOR}"'
+.endif
+
 # Standard sources
 
 STDSRCS=        assert.c auth.c bund.c ccp.c chap.c \
@@ -115,15 +120,14 @@ COPTS+=		-DPHYSTYPE_NG_SOCKET
 .if defined ( PHYSTYPE_PPTP )
 SRCS+=		pptp.c pptp_ctrl.c
 COPTS+=		-DPHYSTYPE_PPTP
-.if defined ( PPTP_VENDOR_NAME )
-COPTS+=		'-DPPTP_VENDOR_NAME="${PPTP_VENDOR_NAME}"'
-.else
-COPTS+=		'-DPPTP_VENDOR_NAME="FreeBSD mpd-${VERSION}"'
-.endif
 .endif
 .if defined ( PHYSTYPE_PPPOE )
 SRCS+=		pppoe.c
 COPTS+=		-DPHYSTYPE_PPPOE
+.endif
+.if defined ( PHYSTYPE_L2TP )
+SRCS+=		l2tp.c l2tp_avp.c l2tp_ctrl.c
+COPTS+=		-DPHYSTYPE_L2TP
 .endif
 
 # Compression

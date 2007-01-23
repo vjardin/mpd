@@ -37,6 +37,10 @@
   #define FALSE 		0
 #endif
 
+  #ifndef MPD_VENDOR
+  #define MPD_VENDOR		"FreeBSD MPD"
+  #endif
+
   /* Exit codes */
   #define EX_NORMAL		EX_OK
   #define EX_ERRDEAD		EX_SOFTWARE

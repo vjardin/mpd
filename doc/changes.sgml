@@ -14,6 +14,8 @@
 	  </item>
 	  <item> NAT support by ng_nat(4) added.
 	  </item>
+	  <item> L2TP (RFC 2661) device type implemented.
+	  </item>
 	  <item> UDP device type was completely rewritten. Now it:
 	    <itemize>
 		<item> does not require manual 'open' command on the server side,

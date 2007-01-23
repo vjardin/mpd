@@ -17,11 +17,12 @@
 
   #define MAXOF(x,y)		((x)>(y)?(x):(y))
 
+  struct pevent_ctx	*gPeventCtx = NULL;
+
 /*
  * INTERNAL VARIABLES
  */
 
-  static struct pevent_ctx *gPeventCtx = NULL;
   static pthread_t  	gCtxThread = NULL;
 
   static void   (*gWarnx)(const char *fmt, ...) = warnx;

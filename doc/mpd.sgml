@@ -39,6 +39,7 @@
 <!ENTITY tcp SYSTEM "tcp.sgml">
 <!ENTITY udp SYSTEM "udp.sgml">
 <!ENTITY pptp SYSTEM "pptp.sgml">
+<!ENTITY l2tp SYSTEM "l2tp.sgml">
 <!ENTITY pppoe SYSTEM "pppoe.sgml">
 
 <!ENTITY chat SYSTEM "chat.sgml">
@@ -126,6 +127,7 @@ You must be running FreeBSD version 3.4 or higher.
 	&tcp;
 	&udp;
 	&pptp;
+	&l2tp;
 	&pppoe;
 
 	&chat;

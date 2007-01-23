@@ -1,0 +1,95 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>L2TP device type commands<label id="l2tp"></heading>
+
+  <p>
+  This chapter describes commands that are specific to L2TP type links.
+  These commands apply to the currently active link, and are only
+  valid if the currently active link has type <bf>l2tp</bf>.
+
+  The L2TP protocol can be most easily understood as just another
+  link layer type, where the link layer medium just happens to be
+  an IP connection. So, for example, instead of configuring a
+  telephone number to dial as you would with a modem, you configure
+  an IP address to connect to. Everything else that's above the
+  link layer functions exactly the same. Hence L2TP allows you
+  to ``tunnel'' PPP frames over IP.
+
+  Note that L2TP connections are initiated by a UDP connection from
+  one machine to another, and that servers usually listen to UDP
+  port 1701 (and this is the default for <tt><em>port</em></tt>
+  in the commands below).
+
+<descrip>
+
+<tag><tt>
+set l2tp self <em>ipaddr</em> [ <em>port</em> ]
+</tt></tag>
+
+Sets the local IP address and port for the L2TP connection.
+
+<tag><tt>
+set l2tp peer <em>ipaddr</em> [ <em>port</em> ]
+</tt></tag>
+
+Sets the peer IP address and port for the L2TP connection.
+This command applies to both incoming and outgoing connections.
+For outgoing connections, this command is required in order to
+specify where to connect to. For incoming connections, this command
+is optional; if not given, mpd accepts incoming connections from any
+host. Otherwise, only connections from the stated IP address
+(and, optionally, port) are allowed.
+
+<tag><tt>
+set l2tp callingnum <em>number</em>
+</tt></tag><p>
+<tag><tt>
+set l2tp callednum <em>number</em>
+</tt></tag>
+
+Sets the calling and called telephone number to use when initiating a L2TP
+connection. For most VPN applications this is ignored, but in certain
+cases an actual phone number is required.
+The default is the empty string.
+
+<tag><tt>set l2tp enable <em>option ...</em> </tt></tag><p>
+<tag><tt>set l2tp disable <em>option ...</em> </tt></tag><p>
+
+Enable and disable L2TP device type options for the link.
+
+</descrip>
+
+<p>
+The following options are supported:
+
+<descrip>
+
+<tag><tt>originate</tt></tag>
+
+This option enables the initiation of L2TP connections to the peer.
+If this option is disabled, mpd will not initiate any L2TP connections.
+You must configure the peer's IP address with the
+<tt><bf>set l2tp peer</bf></tt> command.
+
+<tag><tt>incoming</tt></tag>
+
+This option enables the acceptance of incoming L2TP connections.
+If this option is disabled, mpd will not accept any incoming connections.
+
+<tag><tt>outcall</tt></tag>
+
+In L2TP, each individual PPP connection between two IP hosts (there
+may be several), is initiated as either an incoming or an outgoing call. 
+This is to allow, for example, making an actual outgoing telephone call via
+a remote access server, as well as the more common use of forwarding
+of an incoming telephone call from an access server to a remote
+L2TP server.
+
+When this option is enabled, mpd will initiate outgoing calls;
+otherwise mpd will initiate incoming calls.
+
+</descrip>
+
