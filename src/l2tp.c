@@ -231,6 +231,29 @@ L2tpOpen(PhysInfo p)
 {
 	L2tpInfo const pi = (L2tpInfo) lnk->phys->info;
 
+	struct l2tp_tun *tun = NULL;
+	struct ppp_l2tp_sess *sess;
+	struct ppp_l2tp_avp_list *avps = NULL;
+	union {
+	    u_char buf[sizeof(struct ng_ksocket_sockopt) + sizeof(int)];
+	    struct ng_ksocket_sockopt sockopt;
+	} sockopt_buf;
+	struct ng_ksocket_sockopt *const sockopt = &sockopt_buf.sockopt;
+	union {
+	    u_char	buf[sizeof(struct ng_mesg) + sizeof(struct sockaddr_storage)];
+	    struct ng_mesg	reply;
+	} ugetsas;
+	struct sockaddr_storage	*const getsas = (struct sockaddr_storage *)(void *)ugetsas.reply.data;
+	struct ngm_mkpeer mkpeer;
+	struct sockaddr_storage peer_sas;
+	struct sockaddr_storage sas;
+	char hook[NG_HOOKLEN + 1];
+	char namebuf[64];
+	ng_ID_t node_id;
+	int csock = -1;
+	int dsock = -1;
+	struct ghash_walk walk;
+
 	pi->opened=1;
 	
 	if (pi->incoming == 1) {
@@ -256,29 +279,6 @@ L2tpOpen(PhysInfo p)
 	};
 	
 	pi->originate = 1;
-
-	struct l2tp_tun *tun = NULL;
-	struct ppp_l2tp_sess *sess;
-	struct ppp_l2tp_avp_list *avps = NULL;
-	union {
-	    u_char buf[sizeof(struct ng_ksocket_sockopt) + sizeof(int)];
-	    struct ng_ksocket_sockopt sockopt;
-	} sockopt_buf;
-	struct ng_ksocket_sockopt *const sockopt = &sockopt_buf.sockopt;
-	union {
-	    u_char	buf[sizeof(struct ng_mesg) + sizeof(struct sockaddr_storage)];
-	    struct ng_mesg	reply;
-	} ugetsas;
-	struct sockaddr_storage	*const getsas = (struct sockaddr_storage *)(void *)ugetsas.reply.data;
-	struct ngm_mkpeer mkpeer;
-	struct sockaddr_storage peer_sas;
-	struct sockaddr_storage sas;
-	char hook[NG_HOOKLEN + 1];
-	char namebuf[64];
-	ng_ID_t node_id;
-	int csock = -1;
-	int dsock = -1;
-	struct ghash_walk walk;
 
 	ghash_walk_init(gL2tpTuns, &walk);
 	while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
