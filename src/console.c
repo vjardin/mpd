@@ -654,7 +654,7 @@ ConsoleSetCommand(int ac, char *av[], void *arg)
   ConsoleUser		u;
   int			port;
 
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
 
     case SET_OPEN:
       ConsoleOpen(c);

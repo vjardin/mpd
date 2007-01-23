@@ -1673,7 +1673,7 @@ NetflowSetCommand(int ac, char *av[], void *arg)
 {
   struct sockaddr_storage *sin;
 
-  switch ((int) arg) {
+  switch ((intptr_t)arg) {
     case SET_EXPORT: 
       if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 	return (-1);

@@ -472,7 +472,7 @@ RadiusSetCommand(int ac, char *av[], void *arg)
   if (ac == 0)
       return(-1);
 
-    switch ((int) arg) {
+    switch ((intptr_t)arg) {
 
       case SET_SERVER:
 	if (ac > 4 || ac < 2) {
