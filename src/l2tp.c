@@ -244,12 +244,12 @@ L2tpOpen(PhysInfo p)
 
 	/* Sanity check. */
 	if (p->state != PHYS_STATE_DOWN) {
-		Log(LG_PHYS, ("[%s] L2TP allready active", lnk->name));
+		Log(LG_PHYS, ("[%s] L2TP: allready active", lnk->name));
 		return;
 	};
 
 	if (!Enabled(&pi->options, L2TP_CONF_ORIGINATE)) {
-		Log(LG_ERR, ("[%s] L2TP originate option is not enabled",
+		Log(LG_ERR, ("[%s] L2TP: originate option is not enabled",
 		    lnk->name));
 		PhysDown(STR_DEV_NOT_READY, NULL);
 		return;
@@ -320,6 +320,7 @@ L2tpOpen(PhysInfo p)
 			    return;
 			};
 			ppp_l2tp_avp_list_destroy(&avps);
+			Log(LG_PHYS2, ("[%s] L2TP: Call %p initiated", lnk->name, sess));
 			pi->sess = sess;
 			ppp_l2tp_sess_set_cookie(sess, lnk);
 			ppp_l2tp_connected(sess, NULL);
@@ -452,6 +453,7 @@ L2tpOpen(PhysInfo p)
 	}
 	pi->tun = tun;
 	ppp_l2tp_ctrl_initiate(tun->ctrl);
+	Log(LG_PHYS2, ("L2TP: Control connection %p initiated", tun->ctrl));
 
 	/* Clean up and return */
 	ppp_l2tp_avp_list_destroy(&avps);
@@ -488,6 +490,7 @@ L2tpClose(PhysInfo p)
     PhysDown(0, NULL);
     L2tpDoClose(p);
     if (pi->sess) {
+	Log(LG_PHYS2, ("[%s] L2TP: Call %p terminated", lnk->name, pi->sess));
 	ppp_l2tp_terminate(pi->sess, L2TP_RESULT_ADMIN, 0, NULL);
 	pi->sess = NULL;
     }
@@ -663,6 +666,7 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			continue;
 		};
 		ppp_l2tp_avp_list_destroy(&avps);
+		Log(LG_PHYS2, ("[%s] L2TP: call %p initiated", lnk->name, sess));
 		pi->sess = sess;
 		ppp_l2tp_sess_set_cookie(sess, lnk);
 		ppp_l2tp_connected(sess, NULL);
@@ -739,8 +743,8 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	int	k;
 	time_t  const now = time(NULL);
 
-	Log(LG_PHYS2, ("L2TP: Received %s call via connection %p", 
-	    (out?"outgoing":"incoming"), ctrl));
+	Log(LG_PHYS2, ("L2TP: %s call via connection %p", 
+	    (out?"Outgoing":"Incoming"), ctrl));
 
 	/* Examine all L2TP links. */
 	for (k = 0; k < gNumLinks; k++) {
@@ -766,7 +770,8 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		lnk = gLinks[k];
 		bund = lnk->bund;
 
-		Log(LG_PHYS, ("[%s] Accepting connection", lnk->name));
+		Log(LG_PHYS2, ("[%s] L2TP: %s call %p via control connection %p accepted", 
+		    lnk->name, (out?"Outgoing":"Incoming"), sess, ctrl));
 
 		p->state = PHYS_STATE_CONNECTING;
 		pi->incoming = 1;
@@ -782,7 +787,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		return;
 	}
 
-	Log(LG_PHYS, ("No free L2TP link with requested parameters "
+	Log(LG_PHYS, ("L2TP: No free link with requested parameters "
 	    "was found"));
 	ppp_l2tp_terminate(sess, L2TP_RESULT_ERROR,
 	    L2TP_ERROR_GENERIC, strerror(errno));
@@ -810,7 +815,7 @@ ppp_l2tp_connected_cb(struct ppp_l2tp_sess *sess,
 	p = lnk->phys;
 	pi = (L2tpInfo)p->info;
 
-	Log(LG_PHYS2, ("[%s] L2TP call connected", lnk->name));
+	Log(LG_PHYS2, ("[%s] L2TP: call %p connected", lnk->name, sess));
 
 	/* Get this link's node and hook */
 	ppp_l2tp_sess_get_hook(sess, &node_id, &hook);
@@ -857,7 +862,7 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	/* Control side is notifying us session is down */
 	snprintf(buf, sizeof(buf), "result=%u error=%u errmsg=\"%s\"",
 	    result, error, (errmsg != NULL) ? errmsg : "");
-	Log(LG_PHYS2, ("[%s] L2TP call terminated: %s", lnk->name, buf));
+	Log(LG_PHYS2, ("[%s] L2TP: call %p terminated: %s", lnk->name, sess, buf));
 
 	p->state = PHYS_STATE_DOWN;
 	PhysDown(STR_DROPPED, NULL);
