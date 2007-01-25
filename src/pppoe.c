@@ -112,6 +112,8 @@ static void	PppoeOpen(PhysInfo p);
 static void	PppoeClose(PhysInfo p);
 static void	PppoeShutdown(PhysInfo p);
 static int	PppoePeerAddr(PhysInfo p, void *buf, int buf_len);
+static int	PppoeCallingNum(PhysInfo p, void *buf, int buf_len);
+static int	PppoeCalledNum(PhysInfo p, void *buf, int buf_len);
 static void	PppoeCtrlReadEvent(int type, void *arg);
 static void	PppoeConnectTimeout(void *arg);
 static void	PppoeStat(PhysInfo p);
@@ -137,8 +139,8 @@ const struct phystype gPppoePhysType = {
     .showstat		= PppoeStat,
     .originate		= PppoeOriginated,
     .peeraddr		= PppoePeerAddr,
-    .callingnum		= NULL,
-    .callednum		= NULL,
+    .callingnum		= PppoeCallingNum,
+    .callednum		= PppoeCalledNum,
 };
 
 const struct cmdtab PppoeSetCmds[] = {
@@ -503,6 +505,38 @@ PppoePeerAddr(PhysInfo p, void *buf, int buf_len)
 	snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
 	    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
 	    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+
+	return (0);
+}
+
+static int
+PppoeCallingNum(PhysInfo p, void *buf, int buf_len)
+{
+	PppoeInfo	const pppoe = (PppoeInfo)p->info;
+
+	if (pppoe->incoming) {
+	    snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
+		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
+		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+	} else {
+	    strlcpy(buf, pppoe->session, buf_len);
+	}
+
+	return (0);
+}
+
+static int
+PppoeCalledNum(PhysInfo p, void *buf, int buf_len)
+{
+	PppoeInfo	const pppoe = (PppoeInfo)p->info;
+
+	if (!pppoe->incoming) {
+	    snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
+		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
+		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+	} else {
+	    strlcpy(buf, pppoe->session, buf_len);
+	}
 
 	return (0);
 }
