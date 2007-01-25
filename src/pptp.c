@@ -679,7 +679,6 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 
   /* Open link to pick up the call */
   lnk = l;
-  pptp = pptp;
   bund = lnk->bund;
 
   Log(LG_PHYS, ("[%s] Accepting PPTP connection", lnk->name));
