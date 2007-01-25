@@ -43,15 +43,20 @@
   #define PPTP_CALL_MAX_BPS	64000
 
   struct pptpinfo {
+    struct {
+	struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
+	in_port_t	peer_port_req;	/* Peer port required (or zero) */
+	struct optinfo	options;
+	char		callingnum[64];	/* PPTP phone number to use */
+	char		callednum[64];	/* PPTP phone number to use */
+    } conf;
     u_char		originate:1;	/* Call originated locally */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
-    struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
     struct u_addr	peer_addr;	/* Current peer IP address */
-    in_port_t		peer_port_req;	/* Peer port required (or zero) */
     in_port_t		peer_port;	/* Current peer port */
-    struct optinfo	options;
+    char		callingnum[64];	/* PPTP phone number to use */
+    char		callednum[64];	/* PPTP phone number to use */
     struct pptpctrlinfo	cinfo;
-    char		phonenum[64];	/* PPTP phone number to use */
   };
   typedef struct pptpinfo	*PptpInfo;
 
@@ -59,7 +64,8 @@
   enum {
     SET_SELFADDR,
     SET_PEERADDR,
-    SET_PHONENUM,
+    SET_CALLINGNUM,
+    SET_CALLEDNUM,
     SET_ENABLE,
     SET_DISABLE,
   };
@@ -89,6 +95,8 @@
   static void	PptpStat(PhysInfo p);
   static int	PptpOriginated(PhysInfo p);
   static int	PptpPeerAddr(PhysInfo p, void *buf, int buf_len);
+  static int	PptpCallingNum(PhysInfo p, void *buf, int buf_len);
+  static int	PptpCalledNum(PhysInfo p, void *buf, int buf_len);
 
   static void	PptpInitCtrl(void);
   static int	PptpOriginate(PptpInfo pptp);
@@ -111,7 +119,10 @@
 				  const char *subAddress);
 
   static struct pptplinkinfo	PptpPeerCall(struct pptpctrlinfo *cinfo,
-				  struct u_addr peer, in_port_t port, int incoming);
+				  struct u_addr peer, in_port_t port, int incoming,
+				  const char *callingNum,
+				  const char *calledNum,
+				  const char *subAddress);
 
   static int	PptpSetCommand(int ac, char *av[], void *arg);
 
@@ -132,8 +143,8 @@
     .showstat		= PptpStat,
     .originate		= PptpOriginated,
     .peeraddr		= PptpPeerAddr,
-    .callingnum		= NULL,
-    .callednum		= NULL,
+    .callingnum		= PptpCallingNum,
+    .callednum		= PptpCalledNum,
   };
 
   const struct cmdtab	PptpSetCmds[] = {
@@ -141,8 +152,10 @@
 	PptpSetCommand, NULL, (void *) SET_SELFADDR },
     { "peer ip [port]",			"Set remote IP address",
 	PptpSetCommand, NULL, (void *) SET_PEERADDR },
-    { "phonenum number",		"Set PPTP telephone number",
-	PptpSetCommand, NULL, (void *) SET_PHONENUM },
+    { "callingnum number",		"Set calling PPTP telephone number",
+	PptpSetCommand, NULL, (void *) SET_CALLINGNUM },
+    { "callednum number",		"Set called PPTP telephone number",
+	PptpSetCommand, NULL, (void *) SET_CALLEDNUM },
     { "enable [opt ...]",		"Enable option",
 	PptpSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
@@ -193,10 +206,10 @@ PptpInit(PhysInfo p)
 
   /* Initialize this link */
   pptp = (PptpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pptp)));
-  Enable(&pptp->options, PPTP_CONF_OUTCALL);
-  Enable(&pptp->options, PPTP_CONF_DELAYED_ACK);
+  Enable(&pptp->conf.options, PPTP_CONF_OUTCALL);
+  Enable(&pptp->conf.options, PPTP_CONF_DELAYED_ACK);
 #if NGM_PPTPGRE_COOKIE >= 1082548365
-  Enable(&pptp->options, PPTP_CONF_WINDOWING);
+  Enable(&pptp->conf.options, PPTP_CONF_WINDOWING);
 #endif
   return(0);
 }
@@ -217,7 +230,7 @@ PptpOpen(PhysInfo p)
   /* Check state */
   switch (p->state) {
     case PHYS_STATE_DOWN:
-      if (!Enabled(&pptp->options, PPTP_CONF_ORIGINATE)) {
+      if (!Enabled(&pptp->conf.options, PPTP_CONF_ORIGINATE)) {
 	Log(LG_ERR, ("[%s] pptp originate option is not enabled", lnk->name));
 	PhysDown(STR_DEV_NOT_READY, NULL);
 	return;
@@ -270,26 +283,29 @@ PptpOriginate(PptpInfo pptp)
 {
   struct pptpctrlinfo	cinfo;
   struct pptplinkinfo	linfo;
-  struct u_addr		ip = pptp->peer_addr_req.addr;
-  const u_short		port = pptp->peer_port_req ?
-			  pptp->peer_port_req : PPTP_PORT;
-  char	buf[32];
+  struct u_addr		ip = pptp->conf.peer_addr_req.addr;
+  const u_short		port = pptp->conf.peer_port_req ?
+			  pptp->conf.peer_port_req : PPTP_PORT;
 
   pptp->originate = TRUE;
-  pptp->incoming = !Enabled(&pptp->options, PPTP_CONF_OUTCALL);
+  pptp->incoming = !Enabled(&pptp->conf.options, PPTP_CONF_OUTCALL);
   memset(&linfo, 0, sizeof(linfo));
   linfo.cookie = lnk;
   linfo.result = PptpResult;
   linfo.setLinkInfo = NULL;
   linfo.cancel = PptpCancel;
+  strlcpy(pptp->callingnum, pptp->conf.callingnum, sizeof(pptp->callingnum));
+  strlcpy(pptp->callednum, pptp->conf.callednum, sizeof(pptp->callednum));
   if (pptp->incoming)
     cinfo = PptpCtrlInCall(linfo, &gLocalIp, &ip, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
-      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, u_addrtoa(&gLocalIp,buf,sizeof(buf)), "", "");
+      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, 
+      pptp->callingnum, pptp->callednum, "");
   else
     cinfo = PptpCtrlOutCall(linfo, &gLocalIp, &ip, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
-      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, pptp->phonenum, "");
+      PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS,
+      pptp->callednum, "");
   if (cinfo.cookie == NULL)
     return(-1);
   pptp->peer_addr = ip;
@@ -349,6 +365,10 @@ PptpKillNode(PptpInfo pptp)
   NgFuncShutdownNode(bund, lnk->name, path);
 }
 
+/*
+ * PptpOriginated()
+ */
+
 static int
 PptpOriginated(PhysInfo p)
 {
@@ -368,10 +388,23 @@ PptpPeerAddr(PhysInfo p, void *buf, int buf_len)
     return(-1);
 }
 
-/*
- * PptpOriginated()
- */
+static int
+PptpCallingNum(PhysInfo p, void *buf, int buf_len)
+{
+    PptpInfo	const pptp = (PptpInfo) p->info;
 
+    strlcpy((char*)buf, pptp->callingnum, buf_len);
+    return(0);
+}
+
+static int
+PptpCalledNum(PhysInfo p, void *buf, int buf_len)
+{
+    PptpInfo	const pptp = (PptpInfo) p->info;
+
+    strlcpy((char*)buf, pptp->callednum, buf_len);
+    return(0);
+}
 
 /*
  * PptpStat()
@@ -390,18 +423,23 @@ PptpStat(PhysInfo p)
     Printf(", port %u", gLocalPort);
   Printf("\r\n");
   Printf("\tPeer range   : %s",
-    u_rangetoa(&pptp->peer_addr_req, buf, sizeof(buf)));
-  if (pptp->peer_port_req)
-    Printf(", port %u", pptp->peer_port_req);
+    u_rangetoa(&pptp->conf.peer_addr_req, buf, sizeof(buf)));
+  if (pptp->conf.peer_port_req)
+    Printf(", port %u", pptp->conf.peer_port_req);
   Printf("\r\n");
-  Printf("\tPhone number : %s\r\n", pptp->phonenum);
+  Printf("\tCalling number: %s\r\n", pptp->conf.callingnum);
+  Printf("\tCalled number: %s\r\n", pptp->conf.callednum);
   Printf("PPTP options:\r\n");
-  OptStat(&pptp->options, gConfList);
+  OptStat(&pptp->conf.options, gConfList);
   Printf("PPTP status:\r\n");
   Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-  Printf("\tIncoming     : %s\r\n", (pptp->originate?"NO":"YES"));
-  Printf("\tCurrent peer : %s, port %u\r\n",
-    u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
+  if (p->state != PHYS_STATE_DOWN) {
+    Printf("\tIncoming     : %s\r\n", (pptp->originate?"NO":"YES"));
+    Printf("\tCurrent peer : %s, port %u\r\n",
+	u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
+    Printf("\tCalling number: %s\r\n", pptp->callingnum);
+    Printf("\tCalled number: %s\r\n", pptp->callednum);
+  }
 }
 
 /*
@@ -435,6 +473,10 @@ PptpResult(void *cookie, const char *errmsg)
   PptpInfo	pptp;
   PhysInfo 	p;
 
+  /* It this fake call? */
+  if (!cookie)
+    return;
+
   lnk = (Link) cookie;
   bund = lnk->bund;
   p = lnk->phys;
@@ -460,6 +502,8 @@ PptpResult(void *cookie, const char *errmsg)
 	p->state = PHYS_STATE_DOWN;
 	u_addrclear(&pptp->peer_addr);
 	pptp->peer_port = 0;
+        pptp->callingnum[0]=0;
+        pptp->callednum[0]=0;
       }
       break;
     case PHYS_STATE_UP:
@@ -470,6 +514,8 @@ PptpResult(void *cookie, const char *errmsg)
       p->state = PHYS_STATE_DOWN;
       u_addrclear(&pptp->peer_addr);
       pptp->peer_port = 0;
+      pptp->callingnum[0]=0;
+      pptp->callednum[0]=0;
       break;
     case PHYS_STATE_DOWN:
       return;
@@ -568,12 +614,12 @@ PptpHookUp(PptpInfo pptp)
 
   /* Configure PPTP/GRE node */
   gc.enabled = 1;
-  gc.enableDelayedAck = Enabled(&pptp->options, PPTP_CONF_DELAYED_ACK);
+  gc.enableDelayedAck = Enabled(&pptp->conf.options, PPTP_CONF_DELAYED_ACK);
 #if NGM_PPTPGRE_COOKIE >= 942783547
-  gc.enableAlwaysAck = Enabled(&pptp->options, PPTP_CONF_ALWAYS_ACK);
+  gc.enableAlwaysAck = Enabled(&pptp->conf.options, PPTP_CONF_ALWAYS_ACK);
 #endif
 #if NGM_PPTPGRE_COOKIE >= 1082548365
-  gc.enableWindowing = Enabled(&pptp->options, PPTP_CONF_WINDOWING);
+  gc.enableWindowing = Enabled(&pptp->conf.options, PPTP_CONF_WINDOWING);
 #endif
 
   if (NgSendMsg(bund->csock, pptppath, NGM_PPTPGRE_COOKIE,
@@ -602,7 +648,7 @@ PptpIncoming(struct pptpctrlinfo cinfo,
 	const char *calledNum,
 	const char *subAddress)
 {
-  return(PptpPeerCall(&cinfo, peer, port, TRUE));
+  return(PptpPeerCall(&cinfo, peer, port, TRUE, callingNum, calledNum, subAddress));
 }
 
 /*
@@ -620,7 +666,7 @@ PptpOutgoing(struct pptpctrlinfo cinfo,
 	int frameType, int minBps, int maxBps,
 	const char *calledNum, const char *subAddress)
 {
-  return(PptpPeerCall(&cinfo, peer, port, FALSE));
+  return(PptpPeerCall(&cinfo, peer, port, FALSE, "", calledNum, subAddress));
 }
 
 /*
@@ -633,7 +679,10 @@ PptpOutgoing(struct pptpctrlinfo cinfo,
 
 static struct pptplinkinfo
 PptpPeerCall(struct pptpctrlinfo *cinfo,
-	struct u_addr peer, in_port_t port, int incoming)
+	struct u_addr peer, in_port_t port, int incoming,
+	const char *callingNum,
+	const char *calledNum,
+	const char *subAddress)
 {
   struct pptplinkinfo	linfo;
   Link			l = NULL;
@@ -642,6 +691,11 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   time_t  		now = time(NULL);
 
   memset(&linfo, 0, sizeof(linfo));
+
+  linfo.cookie = NULL;
+  linfo.result = PptpResult;
+  linfo.setLinkInfo = NULL;
+  linfo.cancel = PptpCancel;
 
   if (gShutdownInProgress) {
     Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
@@ -658,12 +712,12 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	&& l2->phys->type == &gPptpPhysType
 	&& l2->phys->state == PHYS_STATE_DOWN
 	&& (now - l2->phys->lastClose) >= PPTP_REOPEN_PAUSE
-	&& Enabled(&pptp2->options, PPTP_CONF_INCOMING)
-	&& IpAddrInRange(&pptp2->peer_addr_req, &peer)
-	&& (!pptp2->peer_port_req || pptp2->peer_port_req == port)) {
+	&& Enabled(&pptp2->conf.options, PPTP_CONF_INCOMING)
+	&& IpAddrInRange(&pptp2->conf.peer_addr_req, &peer)
+	&& (!pptp2->conf.peer_port_req || pptp2->conf.peer_port_req == port)) {
 
       /* Link is feasible; now see if it's preferable */
-      if (!pptp || pptp2->peer_addr_req.width > pptp->peer_addr_req.width) {
+      if (!pptp || pptp2->conf.peer_addr_req.width > pptp->conf.peer_addr_req.width) {
 	l = l2;
 	pptp = pptp2;
       }
@@ -685,16 +739,15 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   BundOpenLink(lnk);
 
   /* Got one */
+  linfo.cookie = lnk;
   lnk->phys->state = PHYS_STATE_CONNECTING;
   pptp->cinfo = *cinfo;
   pptp->originate = FALSE;
   pptp->incoming = incoming;
   pptp->peer_addr = peer;
   pptp->peer_port = port;
-  linfo.cookie = lnk;
-  linfo.result = PptpResult;
-  linfo.setLinkInfo = NULL;
-  linfo.cancel = PptpCancel;
+  strlcpy(pptp->callingnum, callingNum, sizeof(pptp->callingnum));
+  strlcpy(pptp->callednum, calledNum, sizeof(pptp->callednum));
   return(linfo);
 }
 
@@ -711,6 +764,10 @@ PptpCancel(void *cookie)
   PptpInfo	pptp;
   PhysInfo 	p;
 
+  /* It this fake call? */
+  if (!cookie)
+    return;
+
   lnk = (Link) cookie;
   bund = lnk->bund;
   p = lnk->phys;
@@ -724,6 +781,8 @@ PptpCancel(void *cookie)
   p->state = PHYS_STATE_DOWN;
   u_addrclear(&pptp->peer_addr);
   pptp->peer_port = 0;
+  pptp->callingnum[0]=0;
+  pptp->callednum[0]=0;
 }
 
 /*
@@ -742,10 +801,10 @@ PptpListenUpdate(void)
     if (gLinks[k] && gLinks[k]->phys->type == &gPptpPhysType) {
       PptpInfo	const p = (PptpInfo)gLinks[k]->phys->info;
 
-      if (Enabled(&p->options, PPTP_CONF_INCOMING))
+      if (Enabled(&p->conf.options, PPTP_CONF_INCOMING))
 	allow_incoming = 1;
-      if (Enabled(&p->options, PPTP_CONF_ORIGINATE)
-	  && u_rangeempty(&p->peer_addr_req))
+      if (Enabled(&p->conf.options, PPTP_CONF_ORIGINATE)
+	  && u_rangeempty(&p->conf.peer_addr_req))
 	allow_multiple = 0;
     }
   }
@@ -787,22 +846,27 @@ PptpSetCommand(int ac, char *av[], void *arg)
 	gLocalIp = rng.addr;
 	gLocalPort = port;
       } else {
-	pptp->peer_addr_req = rng;
-	pptp->peer_port_req = port;
+	pptp->conf.peer_addr_req = rng;
+	pptp->conf.peer_port_req = port;
       }
       PptpListenUpdate();
       break;
-    case SET_PHONENUM:
+    case SET_CALLINGNUM:
       if (ac != 1)
 	return(-1);
-      snprintf(pptp->phonenum, sizeof(pptp->phonenum), "%s", av[0]);
+      snprintf(pptp->conf.callingnum, sizeof(pptp->conf.callingnum), "%s", av[0]);
+      break;
+    case SET_CALLEDNUM:
+      if (ac != 1)
+	return(-1);
+      snprintf(pptp->conf.callednum, sizeof(pptp->conf.callednum), "%s", av[0]);
       break;
     case SET_ENABLE:
-      EnableCommand(ac, av, &pptp->options, gConfList);
+      EnableCommand(ac, av, &pptp->conf.options, gConfList);
       PptpListenUpdate();
       break;
     case SET_DISABLE:
-      DisableCommand(ac, av, &pptp->options, gConfList);
+      DisableCommand(ac, av, &pptp->conf.options, gConfList);
       PptpListenUpdate();
       break;
     default:

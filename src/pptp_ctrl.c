@@ -1566,6 +1566,11 @@ PptpCtrlCheckConn(PptpCtrl c)
 	  req.serno = req.cid;
 	  req.bearType = PPTP_BEARCAP_DIGITAL;
 	  req.channel = PHYS_CHAN(ch);
+	  req.dialingLen = strlen(ch->callingNum);
+	  strncpy(req.dialing, ch->callingNum, sizeof(req.dialing));
+	  req.dialedLen = strlen(ch->calledNum);
+	  strncpy(req.dialed, ch->calledNum, sizeof(req.dialed));
+	  strncpy(req.subaddr, ch->subAddress, sizeof(req.subaddr));
 	  PptpCtrlNewChanState(ch, PPTP_CHAN_ST_WAIT_IN_REPLY);
 	  PptpCtrlWriteMsg(c, PPTP_InCallRequest, &req);
 	} else {
@@ -2160,6 +2165,7 @@ PptpInCallRequest(PptpCtrl c, struct pptpInCallRequest *req)
   if (gGetInLink)
     linfo = (*gGetInLink)(cinfo, c->peer_addr, c->peer_port,
       req->bearType, callingNum, calledNum, subAddress);
+  ch->linfo = linfo;
   if (linfo.cookie == NULL) {
     Log(LG_PPTP, ("pptp%d: incoming call request denied", c->id));
     reply.result = PPTP_ICR_RESL_NAK;
@@ -2173,7 +2179,6 @@ PptpInCallRequest(PptpCtrl c, struct pptpInCallRequest *req)
   ch->serno = req->serno;
   ch->peerCid = req->cid;
   ch->bearType = req->bearType;
-  ch->linfo = linfo;
   strncpy(ch->callingNum, req->dialing, sizeof(ch->callingNum));
   strncpy(ch->calledNum, req->dialed, sizeof(ch->calledNum));
   strncpy(ch->subAddress, req->subaddr, sizeof(ch->subAddress));
