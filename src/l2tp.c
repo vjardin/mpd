@@ -625,12 +625,14 @@ L2tpStat(PhysInfo p)
   OptStat(&l2tp->conf.options, gConfList);
   Printf("L2TP status:\r\n");
   Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-  Printf("\tIncoming     : %s\r\n", (l2tp->originate?"NO":"YES"));
-  if (l2tp->tun) {
-    Printf("\tCurrent self : %s, port %u\r\n",
-	u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
-    Printf("\tCurrent peer : %s, port %u\r\n",
-	u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
+  if (p->state != PHYS_STATE_DOWN) {
+    Printf("\tIncoming     : %s\r\n", (l2tp->originate?"NO":"YES"));
+    if (l2tp->tun) {
+	Printf("\tCurrent self : %s, port %u\r\n",
+	    u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
+	Printf("\tCurrent peer : %s, port %u\r\n",
+	    u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
+    }
     Printf("\tCalling number: %s\r\n", l2tp->callingnum);
     Printf("\tCalled number: %s\r\n", l2tp->callednum);
   }
