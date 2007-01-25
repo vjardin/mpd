@@ -65,18 +65,22 @@
   };
   
   struct l2tpinfo {
+    struct {
+	struct u_addr	self_addr;	/* self IP address */
+	in_port_t	self_port;	/* self port */
+	struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
+	in_port_t	peer_port_req;	/* Peer port required (or zero) */
+	char		callingnum[64];	/* L2TP phone number to use */
+	char		callednum[64];	/* L2TP phone number to use */
+	struct optinfo	options;
+    } conf;
     u_char		opened:1;	/* PPPoE opened by phys */
     u_char		originate:1;	/* Call originated locally */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
-    struct u_addr	self_addr;	/* self IP address */
-    in_port_t		self_port;	/* self port */
-    struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
-    in_port_t		peer_port_req;	/* Peer port required (or zero) */
+    char		callingnum[64];	/* current L2TP phone number */
+    char		callednum[64];	/* current L2TP phone number */
     struct l2tp_server	*server;	/* server associated with link */
     struct l2tp_tun	*tun;		/* tunnel associated with link */
-    struct optinfo	options;
-    char		callingnum[64];	/* L2TP phone number to use */
-    char		callednum[64];	/* L2TP phone number to use */
     struct ppp_l2tp_sess *sess;		/* current session for this link */
   };
   typedef struct l2tpinfo	*L2tpInfo;
@@ -109,6 +113,8 @@
   static void	L2tpStat(PhysInfo p);
   static int	L2tpOriginated(PhysInfo p);
   static int	L2tpPeerAddr(PhysInfo p, void *buf, int buf_len);
+  static int	L2tpCallingNum(PhysInfo p, void *buf, int buf_len);
+  static int	L2tpCalledNum(PhysInfo p, void *buf, int buf_len);
 
   static void	L2tpDoClose(PhysInfo l2tp);
 
@@ -152,8 +158,8 @@
     .showstat		= L2tpStat,
     .originate		= L2tpOriginated,
     .peeraddr		= L2tpPeerAddr,
-    .callingnum		= NULL,
-    .callednum		= NULL,
+    .callingnum		= L2tpCallingNum,
+    .callednum		= L2tpCalledNum,
   };
 
   const struct cmdtab	L2tpSetCmds[] = {
@@ -212,14 +218,14 @@ L2tpInit(PhysInfo p)
   /* Initialize this link */
   l2tp = (L2tpInfo) (p->info = Malloc(MB_PHYS, sizeof(*l2tp)));
   
-  u_addrclear(&l2tp->self_addr);
-  l2tp->self_addr.family = AF_INET;
-  l2tp->self_port = 0;
-  u_rangeclear(&l2tp->peer_addr_req);
-  l2tp->peer_addr_req.addr.family = AF_INET;
-  l2tp->peer_addr_req.width = 0;
-  l2tp->peer_port_req = 0;
-  Disable(&l2tp->options, L2TP_CONF_OUTCALL);
+  u_addrclear(&l2tp->conf.self_addr);
+  l2tp->conf.self_addr.family = AF_INET;
+  l2tp->conf.self_port = 0;
+  u_rangeclear(&l2tp->conf.peer_addr_req);
+  l2tp->conf.peer_addr_req.addr.family = AF_INET;
+  l2tp->conf.peer_addr_req.width = 0;
+  l2tp->conf.peer_port_req = 0;
+  Disable(&l2tp->conf.options, L2TP_CONF_OUTCALL);
   
   return(0);
 }
@@ -273,7 +279,7 @@ L2tpOpen(PhysInfo p)
 		return;
 	};
 
-	if (!Enabled(&pi->options, L2TP_CONF_ORIGINATE)) {
+	if (!Enabled(&pi->conf.options, L2TP_CONF_ORIGINATE)) {
 		Log(LG_ERR, ("[%s] L2TP: originate option is not enabled",
 		    lnk->name));
 		PhysDown(STR_DEV_NOT_READY, NULL);
@@ -281,12 +287,14 @@ L2tpOpen(PhysInfo p)
 	};
 	
 	pi->originate = 1;
+	strlcpy(pi->callingnum, pi->conf.callingnum, sizeof(pi->callingnum));
+	strlcpy(pi->callednum, pi->conf.callednum, sizeof(pi->callednum));
 
 	ghash_walk_init(gL2tpTuns, &walk);
 	while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
 	    if (tun->ctrl && tun->alive &&
-		(IpAddrInRange(&pi->peer_addr_req, &tun->peer_addr)) &&
-		(pi->peer_port_req == 0 || pi->peer_port_req == tun->peer_port)) {
+		(IpAddrInRange(&pi->conf.peer_addr_req, &tun->peer_addr)) &&
+		(pi->conf.peer_port_req == 0 || pi->conf.peer_port_req == tun->peer_port)) {
 		    pi->tun = tun;
 		    if (tun->connected) { /* if tun is connected then just initiate */
 		    
@@ -295,23 +303,23 @@ L2tpOpen(PhysInfo p)
 				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
 				    lnk->name, strerror(errno)));
 			} else {
-			 if (pi->callingnum[0]) {
+			 if (pi->conf.callingnum[0]) {
 			  if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLING_NUMBER,
-	        	    pi->callingnum, strlen(pi->callingnum)) == -1) {
+	        	    pi->conf.callingnum, strlen(pi->conf.callingnum)) == -1) {
 				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 				    lnk->name, strerror(errno)));
 			  }
 			 }
-			 if (pi->callednum[0]) {
+			 if (pi->conf.callednum[0]) {
 			  if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLED_NUMBER,
-	        	    pi->callednum, strlen(pi->callednum)) == -1) {
+	        	    pi->conf.callednum, strlen(pi->conf.callednum)) == -1) {
 				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 				    lnk->name, strerror(errno)));
 			  }
 			 }
 			}
 			if ((sess = ppp_l2tp_initiate(tun->ctrl, 
-				Enabled(&pi->options, L2TP_CONF_OUTCALL)?1:0,
+				Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0,
 				avps)) == NULL) {
 			    Log(LG_ERR, ("[%s] ppp_l2tp_initiate: %s", 
 				lnk->name, strerror(errno)));
@@ -339,10 +347,10 @@ L2tpOpen(PhysInfo p)
 	}
 	memset(tun, 0, sizeof(*tun));
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
-	u_addrcopy(&pi->peer_addr_req.addr, &tun->peer_addr);
-	tun->peer_port = pi->peer_port_req?pi->peer_port_req:L2TP_PORT;
-	u_addrcopy(&pi->self_addr, &tun->self_addr);
-	tun->self_port = pi->self_port;
+	u_addrcopy(&pi->conf.peer_addr_req.addr, &tun->peer_addr);
+	tun->peer_port = pi->conf.peer_port_req?pi->conf.peer_port_req:L2TP_PORT;
+	u_addrcopy(&pi->conf.self_addr, &tun->self_addr);
+	tun->self_port = pi->conf.self_port;
 	tun->alive = 1;
 	tun->connected = 0;
 
@@ -497,6 +505,8 @@ L2tpClose(PhysInfo p)
 	pi->sess = NULL;
     }
     pi->tun = NULL;
+    pi->callingnum[0]=0;
+    pi->callednum[0]=0;
     p->state = PHYS_STATE_DOWN;
 }
 
@@ -572,6 +582,24 @@ L2tpPeerAddr(PhysInfo p, void *buf, int buf_len)
     return(0);
 }
 
+static int
+L2tpCallingNum(PhysInfo p, void *buf, int buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) p->info;
+
+    strlcpy((char*)buf, l2tp->callingnum, buf_len);
+    return(0);
+}
+
+static int
+L2tpCalledNum(PhysInfo p, void *buf, int buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) p->info;
+
+    strlcpy((char*)buf, l2tp->callednum, buf_len);
+    return(0);
+}
+
 /*
  * L2tpStat()
  */
@@ -584,17 +612,17 @@ L2tpStat(PhysInfo p)
 
   Printf("L2TP configuration:\r\n");
   Printf("\tSelf addr    : %s, port %u",
-    u_addrtoa(&l2tp->self_addr, buf, sizeof(buf)), l2tp->self_port);
+    u_addrtoa(&l2tp->conf.self_addr, buf, sizeof(buf)), l2tp->conf.self_port);
   Printf("\r\n");
   Printf("\tPeer range   : %s",
-    u_rangetoa(&l2tp->peer_addr_req, buf, sizeof(buf)));
-  if (l2tp->peer_port_req)
-    Printf(", port %u", l2tp->peer_port_req);
+    u_rangetoa(&l2tp->conf.peer_addr_req, buf, sizeof(buf)));
+  if (l2tp->conf.peer_port_req)
+    Printf(", port %u", l2tp->conf.peer_port_req);
   Printf("\r\n");
-  Printf("\tCalling number: %s\r\n", l2tp->callingnum);
-  Printf("\tCalled number: %s\r\n", l2tp->callednum);
+  Printf("\tCalling number: %s\r\n", l2tp->conf.callingnum);
+  Printf("\tCalled number: %s\r\n", l2tp->conf.callednum);
   Printf("L2TP options:\r\n");
-  OptStat(&l2tp->options, gConfList);
+  OptStat(&l2tp->conf.options, gConfList);
   Printf("L2TP status:\r\n");
   Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
   Printf("\tIncoming     : %s\r\n", (l2tp->originate?"NO":"YES"));
@@ -603,6 +631,8 @@ L2tpStat(PhysInfo p)
 	u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
     Printf("\tCurrent peer : %s, port %u\r\n",
 	u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
+    Printf("\tCalling number: %s\r\n", l2tp->callingnum);
+    Printf("\tCalled number: %s\r\n", l2tp->callednum);
   }
 }
 
@@ -643,23 +673,23 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
 			    lnk->name, strerror(errno)));
 		} else {
-		  if (pi->callingnum[0]) {
+		  if (pi->conf.callingnum[0]) {
 		   if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLING_NUMBER,
-	            pi->callingnum, strlen(pi->callingnum)) == -1) {
+	            pi->conf.callingnum, strlen(pi->conf.callingnum)) == -1) {
 			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 			    lnk->name, strerror(errno)));
 		   }
 		  }
-		  if (pi->callednum[0]) {
+		  if (pi->conf.callednum[0]) {
 		   if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLED_NUMBER,
-	            pi->callednum, strlen(pi->callednum)) == -1) {
+	            pi->conf.callednum, strlen(pi->conf.callednum)) == -1) {
 			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 			    lnk->name, strerror(errno)));
 		   }
 		  }
 		}
 		if ((sess = ppp_l2tp_initiate(tun->ctrl,
-			    Enabled(&pi->options, L2TP_CONF_OUTCALL)?1:0, 
+			    Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0, 
 			    avps)) == NULL) {
 			Log(LG_ERR, ("ppp_l2tp_initiate: %s", strerror(errno)));
 			PhysDown(STR_DROPPED, NULL);
@@ -712,6 +742,8 @@ ppp_l2tp_ctrl_terminated_cb(struct ppp_l2tp_ctrl *ctrl,
 		L2tpDoClose(p);
 		pi->sess = NULL;
 		pi->tun = NULL;
+		pi->callingnum[0]=0;
+	        pi->callednum[0]=0;
 	};
 	
 	tun->alive = 0;
@@ -742,8 +774,15 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	const struct ppp_l2tp_avp_list *avps)
 {
 	struct l2tp_tun *const tun = ppp_l2tp_ctrl_get_cookie(ctrl);
+	struct ppp_l2tp_avp_ptrs *ptrs = NULL;
 	int	k;
 	time_t  const now = time(NULL);
+
+	/* Convert AVP's to friendly form */
+	if ((ptrs = ppp_l2tp_avp_list2ptrs(avps)) == NULL) {
+		Log(LG_ERR, ("L2TP: error decoding AVP list: %s", strerror(errno)));
+		goto fail;
+	}
 
 	Log(LG_PHYS2, ("L2TP: %s call via connection %p", 
 	    (out?"Outgoing":"Incoming"), ctrl));
@@ -761,11 +800,11 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 
 		if ((p->state != PHYS_STATE_DOWN) ||
 		    (now-p->lastClose < L2TP_REOPEN_PAUSE) ||
-		    !Enabled(&pi->options, L2TP_CONF_INCOMING) ||
-		    ((!u_addrempty(&pi->self_addr)) && u_addrcompare(&pi->self_addr, &tun->peer_addr)) ||
-		    (pi->self_port != 0 && pi->self_port != tun->self_port) ||
-		    (!IpAddrInRange(&pi->peer_addr_req, &tun->peer_addr)) ||
-		    (pi->peer_port_req != 0 && pi->peer_port_req != tun->peer_port))
+		    !Enabled(&pi->conf.options, L2TP_CONF_INCOMING) ||
+		    ((!u_addrempty(&pi->conf.self_addr)) && u_addrcompare(&pi->conf.self_addr, &tun->peer_addr)) ||
+		    (pi->conf.self_port != 0 && pi->conf.self_port != tun->self_port) ||
+		    (!IpAddrInRange(&pi->conf.peer_addr_req, &tun->peer_addr)) ||
+		    (pi->conf.peer_port_req != 0 && pi->conf.peer_port_req != tun->peer_port))
 			continue;
 
 		/* Restore context. */
@@ -779,6 +818,10 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		pi->incoming = 1;
 		pi->tun = tun;
 		pi->sess = sess;
+		if (ptrs->callingnum->number)
+		    strlcpy(pi->callingnum, ptrs->callingnum->number, sizeof(pi->callingnum));
+		if (ptrs->callednum->number)
+		    strlcpy(pi->callednum, ptrs->callednum->number, sizeof(pi->callednum));
 
 		RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
 		BundOpenLink(lnk);
@@ -786,13 +829,15 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		ppp_l2tp_sess_set_cookie(sess, lnk);
 		if (out)
 		    ppp_l2tp_connected(sess, NULL);
+		ppp_l2tp_avp_ptrs_destroy(&ptrs);
 		return;
 	}
-
+fail:
 	Log(LG_PHYS, ("L2TP: No free link with requested parameters "
 	    "was found"));
 	ppp_l2tp_terminate(sess, L2TP_RESULT_ERROR,
 	    L2TP_ERROR_GENERIC, strerror(errno));
+	ppp_l2tp_avp_ptrs_destroy(&ptrs);
 }
 
 /*
@@ -871,6 +916,8 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	L2tpDoClose(p);
 	pi->sess = NULL;
 	pi->tun = NULL;
+	pi->callingnum[0]=0;
+	pi->callednum[0]=0;
 }
 
 /*
@@ -1086,8 +1133,8 @@ L2tpServerCreate(L2tpInfo const p)
 	}
 	
 	memset(s, 0, sizeof(*s));
-	u_addrcopy(&p->self_addr, &s->self_addr);
-	s->self_port = p->self_port?p->self_port:L2TP_PORT;
+	u_addrcopy(&p->conf.self_addr, &s->self_addr);
+	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
 	
 	/* Setup UDP socket that listens for new connections */
 	if (s->self_addr.family==AF_INET6) {
@@ -1138,7 +1185,7 @@ L2tpNodeUpdate(PhysInfo p)
 {
   L2tpInfo pe = (L2tpInfo)p->info;
 
-  if (Enabled(&pe->options, L2TP_CONF_INCOMING) &&
+  if (Enabled(&pe->conf.options, L2TP_CONF_INCOMING) &&
         (!L2tpListenUpdateSheduled)) {
     	    /* Set a timer to run PppoeListenUpdate(). */
 	    TimerInit(&L2tpListenUpdateTimer, "L2tpListenUpdate",
@@ -1162,14 +1209,14 @@ L2tpListenUpdate(void *arg)
     if (gLinks[k] && gLinks[k]->phys->type == &gL2tpPhysType) {
         L2tpInfo	const p = (L2tpInfo)gLinks[k]->phys->info;
 
-        if (Enabled(&p->options, L2TP_CONF_INCOMING)) {
+        if (Enabled(&p->conf.options, L2TP_CONF_INCOMING)) {
 	    struct ghash_walk walk;
 	    struct l2tp_server *srv;
 
 	    ghash_walk_init(gL2tpServers, &walk);
 	    while ((srv = ghash_walk_next(gL2tpServers, &walk)) != NULL) {
-		if ((u_addrcompare(&srv->self_addr, &p->self_addr) == 0) && 
-		    srv->self_port == (p->self_port?p->self_port:L2TP_PORT)) {
+		if ((u_addrcompare(&srv->self_addr, &p->conf.self_addr) == 0) && 
+		    srv->self_port == (p->conf.self_port?p->conf.self_port:L2TP_PORT)) {
 			p->server = srv;
 			break;
 		}
@@ -1210,29 +1257,29 @@ L2tpSetCommand(int ac, char *av[], void *arg)
 	port = 0;
       }
       if ((intptr_t)arg == SET_SELFADDR) {
-	l2tp->self_addr = rng.addr;
-	l2tp->self_port = port;
+	l2tp->conf.self_addr = rng.addr;
+	l2tp->conf.self_port = port;
       } else {
-	l2tp->peer_addr_req = rng;
-	l2tp->peer_port_req = port;
+	l2tp->conf.peer_addr_req = rng;
+	l2tp->conf.peer_port_req = port;
       }
       break;
     case SET_CALLINGNUM:
       if (ac != 1)
 	return(-1);
-      snprintf(l2tp->callingnum, sizeof(l2tp->callingnum), "%s", av[0]);
+      snprintf(l2tp->conf.callingnum, sizeof(l2tp->conf.callingnum), "%s", av[0]);
       break;
     case SET_CALLEDNUM:
       if (ac != 1)
 	return(-1);
-      snprintf(l2tp->callednum, sizeof(l2tp->callednum), "%s", av[0]);
+      snprintf(l2tp->conf.callednum, sizeof(l2tp->conf.callednum), "%s", av[0]);
       break;
     case SET_ENABLE:
-      EnableCommand(ac, av, &l2tp->options, gConfList);
+      EnableCommand(ac, av, &l2tp->conf.options, gConfList);
       L2tpNodeUpdate(lnk->phys);
       break;
     case SET_DISABLE:
-      DisableCommand(ac, av, &l2tp->options, gConfList);
+      DisableCommand(ac, av, &l2tp->conf.options, gConfList);
       L2tpNodeUpdate(lnk->phys);
       break;
     default:
