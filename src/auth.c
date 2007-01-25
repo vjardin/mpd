@@ -104,7 +104,6 @@
     { 0,	AUTH_CONF_INTERNAL,	"internal"	},
     { 0,	AUTH_CONF_SYSTEM,	"system"	},
     { 0,	AUTH_CONF_OPIE,		"opie"		},
-    { 0,	AUTH_CONF_MPPC_POL,	"mppc-pol"	},
     { 0,	AUTH_CONF_UTMP_WTMP,	"utmp-wtmp"	},
     { 0,	0,			NULL		},
   };
@@ -228,10 +227,6 @@ AuthInit(void)
   
   Enable(&ac->options, AUTH_CONF_INTERNAL);
 
-  /* Disable MPPE Policies, because not all backends 
-   * supports this */
-  Disable(&ac->options, AUTH_CONF_MPPC_POL);
-  
   /* default auth timeout */
   ac->timeout = 40;
   

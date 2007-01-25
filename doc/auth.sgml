@@ -120,13 +120,6 @@ Enable accounting via utmp/wtmp.
 
 Default <tt><bf>disable</bf></tt>.
 
-<tag><tt>mppc-pol</tt></tag>
-
-If enabled, Mpd uses the MPPE-Types and MPPE-Policy info from the authentication 
-backend.
-
-Default <tt><bf>enable</bf></tt>.
-
 </descrip>
 </p>
 

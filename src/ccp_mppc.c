@@ -481,12 +481,11 @@ MppcEnabledMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
   Auth		const a = &lnk->lcp.auth;
-  short		ret, policy_auth = FALSE;
+  short		ret;
  
   switch (type) {
   case 40:
-    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-      policy_auth = TRUE;
+    if (Enabled(&ccp->options, gMppePolicy)) {
       ret = (a->params.msoft.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
       ret = Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
@@ -495,8 +494,7 @@ MppcEnabledMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-      policy_auth = TRUE;    
+    if (Enabled(&ccp->options, gMppePolicy)) {
       ret = (a->params.msoft.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
       ret = Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
@@ -507,8 +505,7 @@ MppcEnabledMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-      policy_auth = TRUE;    
+    if (Enabled(&ccp->options, gMppePolicy)) {
       ret = (a->params.msoft.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
@@ -523,12 +520,11 @@ MppcAcceptableMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
   Auth		const a = &lnk->lcp.auth;
-  short		ret, policy_auth = FALSE;
+  short		ret;
   
   switch (type) {
   case 40:
-    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-      policy_auth = TRUE;
+    if (Enabled(&ccp->options, gMppePolicy)) {
       ret = a->params.msoft.types & MPPE_TYPE_40BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe40);
@@ -537,8 +533,7 @@ MppcAcceptableMppeType(short type)
 
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
-    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-      policy_auth = TRUE;
+    if (Enabled(&ccp->options, gMppePolicy)) {
       ret = a->params.msoft.types & MPPE_TYPE_56BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe56);
@@ -549,8 +544,7 @@ MppcAcceptableMppeType(short type)
       
   case 128:
   default:
-    if (Enabled(&bund->conf.auth.options, AUTH_CONF_MPPC_POL)) {
-      policy_auth = TRUE;    
+    if (Enabled(&ccp->options, gMppePolicy)) {
       ret = a->params.msoft.types & MPPE_TYPE_128BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe128);

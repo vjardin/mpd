@@ -103,6 +103,13 @@ Enables stateless mode. This mode requires slightly more CPU time
 and is somewhat less secure, but allows faster recovery in the face
 of dropped packets.
 
+<tag><tt>mppe-policy</tt></tag>
+
+If enabled, Mpd uses the MPPE-Types and MPPE-Policy info from the authentication 
+backend.
+
+Default <tt><bf>disable</bf></tt>.
+
 </descrip>
 
 </p>
