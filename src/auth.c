@@ -606,9 +606,10 @@ AuthStat(int ac, char *av[], void *arg)
   Printf("\tIdle-Timeout    : %ld\r\n", a->params.idle_timeout);
   Printf("\tAcct-Update     : %ld\r\n", a->params.acct_update);
   Printf("\tNum Routes      : %d\r\n", a->params.n_routes);
-  Printf("\tACL Rule        : %s\r\n", a->params.acl_rule ? "yes" : "no");
-  Printf("\tACL Pipe        : %s\r\n", a->params.acl_pipe ? "yes" : "no");
-  Printf("\tACL Queue       : %s\r\n", a->params.acl_queue ? "yes" : "no");
+  Printf("\tACL Rules       : %s\r\n", a->params.acl_rule ? "yes" : "no");
+  Printf("\tACL Pipes       : %s\r\n", a->params.acl_pipe ? "yes" : "no");
+  Printf("\tACL Queues      : %s\r\n", a->params.acl_queue ? "yes" : "no");
+  Printf("\tACL Tables      : %s\r\n", a->params.acl_table ? "yes" : "no");
   Printf("\tMS-Domain       : %s\r\n", a->params.msdomain);  
   Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(a->params.msoft.policy));
   Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->params.msoft.types));
