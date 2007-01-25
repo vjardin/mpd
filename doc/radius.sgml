@@ -55,6 +55,14 @@ should protect the RADIUS server against online dictionary attacks.
 This is mandatory when using the EAP-RADIUS-Proxy and it's implicitly 
 added to the request by Mpd.
 
+<tag><tt>
+set radius enable peer-as-calling
+</tt></tag>
+
+Forces mpd to send remote tunnel address in Calling-Station-Id 
+instead of addres supplied by remote peer via tunnel (for PPTP and L2TP).
+Can be disabled for trusted peers. Default is enabled.
+
 </p>
 
 <tag>RADIUS internals</tag>

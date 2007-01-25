@@ -152,6 +152,8 @@
     .showstat		= L2tpStat,
     .originate		= L2tpOriginated,
     .peeraddr		= L2tpPeerAddr,
+    .callingnum		= NULL,
+    .callednum		= NULL,
   };
 
   const struct cmdtab	L2tpSetCmds[] = {

@@ -42,6 +42,10 @@
     int		(*originate)(PhysInfo p);	/* We originated connection? */
     int		(*peeraddr)(PhysInfo p, void *buf, int buf_len); 
 						/* returns the peer-address (IP, MAC, whatever) */
+    int		(*callingnum)(PhysInfo p, void *buf, int buf_len); 
+						/* returns the calling number (IP, MAC, whatever) */
+    int		(*callednum)(PhysInfo p, void *buf, int buf_len); 
+						/* returns the called number (IP, MAC, whatever) */
   };
   typedef struct phystype	*PhysType;
 

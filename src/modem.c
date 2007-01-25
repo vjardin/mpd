@@ -147,6 +147,8 @@
     .showstat		= ModemStat,
     .originate		= ModemOriginated,
     .peeraddr		= ModemPeerAddr,
+    .callingnum		= NULL,
+    .callednum		= NULL,
   };
 
   const struct cmdtab ModemSetCmds[] = {

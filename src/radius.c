@@ -28,7 +28,7 @@
 
   static int	RadiusSetCommand(int ac, char *av[], void *arg);
   static int	RadiusAddServer(AuthData auth, short request_type);
-  static int	RadiusInit(AuthData auth, short request_type);
+  static int	RadiusOpen(AuthData auth, short request_type);
   static int	RadiusStart(AuthData auth, short request_type);  
   static int	RadiusPutAuth(AuthData auth);
   static int	RadiusGetParams(AuthData auth, int eap_proxy);
@@ -77,10 +77,24 @@
 
   static struct confinfo	gConfList[] = {
     { 0,	RADIUS_CONF_MESSAGE_AUTHENTIC,	"message-authentic"	},
+    { 0,	RADIUS_CONF_PEER_AS_CALLING,	"peer-as-calling"	},
     { 0,	0,				NULL			},
   };
 
-  
+/*
+ * RadiusInit()
+ */
+
+void
+RadiusInit(void)
+{
+    RadConf       const conf = &bund->conf.auth.radius;
+
+    memset(conf, 0, sizeof(*conf));
+    Disable(&conf->options, RADIUS_CONF_MESSAGE_AUTHENTIC);
+    Enable(&conf->options, RADIUS_CONF_PEER_AS_CALLING);
+}
+
 int
 RadiusAuthenticate(AuthData auth) 
 {
@@ -586,7 +600,7 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 }
 
 static int
-RadiusInit(AuthData auth, short request_type)
+RadiusOpen(AuthData auth, short request_type)
 {
   Link		lnk = auth->lnk;	/* hide the global "lnk" */
   RadConf 	const conf = &auth->conf.radius;
@@ -648,7 +662,7 @@ RadiusStart(AuthData auth, short request_type)
   int		porttype;
   char		buf[64];
 
-  if (RadiusInit(auth, request_type) == RAD_NACK) 
+  if (RadiusOpen(auth, request_type) == RAD_NACK) 
     return RAD_NACK;
 
   if (rad_create_request(auth->radius.handle, request_type) == -1) {
@@ -765,17 +779,41 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 
-  if (strlen(auth->params.peeraddr)) {
-    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) %s", 
-      lnk->name, __func__, auth->params.peeraddr));
-    if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, 
-        auth->params.peeraddr) == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", 
-	lnk->name, __func__, rad_strerror(auth->radius.handle)));
-      return (RAD_NACK);
+    /* For compatibility and for untrusted peers use peeraddr as calling */
+    if (Enabled(&conf->options, RADIUS_CONF_PEER_AS_CALLING)) {
+	if (strlen(auth->params.peeraddr)) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) %s", 
+    		lnk->name, __func__, auth->params.peeraddr));
+	    if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, 
+    		auth->params.peeraddr) == -1) {
+    		    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", 
+			lnk->name, __func__, rad_strerror(auth->radius.handle)));
+    		    return (RAD_NACK);
+	    }
+	}  
+    } else {
+	if (strlen(auth->params.callingnum)) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) %s", 
+    		lnk->name, __func__, auth->params.callingnum));
+	    if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, 
+    		auth->params.callingnum) == -1) {
+    		    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s", 
+			lnk->name, __func__, rad_strerror(auth->radius.handle)));
+    		    return (RAD_NACK);
+	    }
+	}  
+    }
+    if (strlen(auth->params.callednum)) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLED_STATION_ID) %s", 
+    	    lnk->name, __func__, auth->params.callednum));
+	if (rad_put_string(auth->radius.handle, RAD_CALLED_STATION_ID, 
+    	    auth->params.callingnum) == -1) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLED_STATION_ID) failed %s", 
+		    lnk->name, __func__, rad_strerror(auth->radius.handle)));
+    		return (RAD_NACK);
+	}
     }  
-  }
-  return RAD_ACK;
+    return RAD_ACK;
 }
 
 static int 

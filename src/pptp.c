@@ -132,6 +132,8 @@
     .showstat		= PptpStat,
     .originate		= PptpOriginated,
     .peeraddr		= PptpPeerAddr,
+    .callingnum		= NULL,
+    .callednum		= NULL,
   };
 
   const struct cmdtab	PptpSetCmds[] = {

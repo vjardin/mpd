@@ -72,6 +72,8 @@
     .close		= NgClose,
     .showstat		= NgStat,
     .peeraddr		= NgPeerAddr,
+    .callingnum		= NULL,
+    .callednum		= NULL,
   };
 
   const struct cmdtab NgSetCmds[] = {

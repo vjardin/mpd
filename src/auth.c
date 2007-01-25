@@ -221,9 +221,10 @@ AuthInit(void)
 {
   AuthConf	const ac = &bund->conf.auth;
   
-  Disable(&ac->radius.options, RADIUS_CONF_MESSAGE_AUTHENTIC);
-  Disable(&ac->radius.options, AUTH_CONF_RADIUS_AUTH);
-  Disable(&ac->radius.options, AUTH_CONF_RADIUS_ACCT);
+  RadiusInit();
+
+  Disable(&ac->options, AUTH_CONF_RADIUS_AUTH);
+  Disable(&ac->options, AUTH_CONF_RADIUS_ACCT);
   
   Enable(&ac->options, AUTH_CONF_INTERNAL);
 
@@ -256,8 +257,16 @@ AuthStart(void)
   a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
 
   /* remember peer's IP address */
-  if (lnk->phys->type)
+  if (lnk->phys->type && lnk->phys->type->peeraddr)
     lnk->phys->type->peeraddr(lnk->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
+  
+  /* remember calling number */
+  if (lnk->phys->type && lnk->phys->type->callingnum)
+    lnk->phys->type->callingnum(lnk->phys, a->params.callingnum, sizeof(a->params.callingnum));
+  
+  /* remember called number */
+  if (lnk->phys->type && lnk->phys->type->callednum)
+    lnk->phys->type->callednum(lnk->phys, a->params.callednum, sizeof(a->params.callednum));
   
   Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
     Pref(&lnk->lcp.fsm),

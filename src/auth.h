@@ -113,7 +113,9 @@
     short		n_routes;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
 
-    char		peeraddr[253];	/* hr representation of the callers address */    
+    char		peeraddr[64];	/* hr representation of the peer address */
+    char		callingnum[64];	/* hr representation of the calling number */
+    char		callednum[64];	/* hr representation of the called number */
 
     int			authentic;	/* wich backend was used */
 

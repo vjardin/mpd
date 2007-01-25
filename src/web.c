@@ -280,7 +280,7 @@ WebShowSummary(FILE *f)
 		    PHYS_COLOR(L->phys->state), L->name, gPhysStateNames[L->phys->state]);
 		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;auth\">%s</a></TD>\n", 
 		    L->name, L->lcp.auth.params.authname);
-		if (L->phys->type)
+		if (L->phys->type && L->phys->type->peeraddr)
 		    L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
 		else 
 		    buf[0] = 0;

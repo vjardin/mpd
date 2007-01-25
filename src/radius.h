@@ -73,6 +73,7 @@
   /* Configuration options */
   enum {
     RADIUS_CONF_MESSAGE_AUTHENTIC,
+    RADIUS_CONF_PEER_AS_CALLING,
   };
 
   extern const	struct cmdtab RadiusSetCmds[];
@@ -125,6 +126,7 @@
  * FUNCTIONS
  */
 
+  extern void	RadiusInit(void);
   extern int	RadiusAuthenticate(struct authdata *auth);
   extern void	RadiusAccount(struct authdata *auth);
   extern void	RadiusClose(struct authdata *auth);

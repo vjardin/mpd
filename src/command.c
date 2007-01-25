@@ -758,7 +758,7 @@ ShowSummary(int ac, char *av[], void *arg)
 	    }
 	    L=B->links[l];
 	    if (L) {
-		if (L->phys->type)
+		if (L->phys->type && L->phys->type->peeraddr)
 		    L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
 		else 
 		    buf[0] = 0;
