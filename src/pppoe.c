@@ -519,7 +519,7 @@ PppoeCallingNum(PhysInfo p, void *buf, int buf_len)
 		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
 		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
 	} else {
-	    buf[0] = 0;
+	    ((char*)buf)[0] = 0;
 	}
 
 	return (0);
