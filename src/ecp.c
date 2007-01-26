@@ -673,13 +673,13 @@ EcpSubtractBloat(int size)
 {
   EcpState	const ecp = &bund->ecp;
 
-  /* Account for ECP's protocol number overhead */
-  if (OPEN_STATE(ecp->fsm.state))
-    size -= ECP_OVERHEAD;
-
   /* Check transmit encryption */
   if (OPEN_STATE(ecp->fsm.state) && ecp->xmit && ecp->xmit->SubtractBloat)
     size = (*ecp->xmit->SubtractBloat)(size);
+
+  /* Account for ECP's protocol number overhead */
+  if (OPEN_STATE(ecp->fsm.state))
+    size -= ECP_OVERHEAD;
 
   /* Done */
   return(size);
