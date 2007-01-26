@@ -88,7 +88,7 @@
 void
 RadiusInit(void)
 {
-    RadConf       const conf = &bund->conf.auth.radius;
+    RadConf       const conf = &lnk->lcp.auth.conf.radius;
 
     memset(conf, 0, sizeof(*conf));
     Disable(&conf->options, RADIUS_CONF_MESSAGE_AUTHENTIC);
@@ -384,8 +384,8 @@ RadiusClose(AuthData auth)
 int
 RadStat(int ac, char *av[], void *arg)
 {
-  RadConf	const conf = &bund->conf.auth.radius;
   Auth		const a = &lnk->lcp.auth;
+  RadConf	const conf = &a->conf.radius;
   int		i;
   char		*buf;
   RadServe_Conf	server;
@@ -434,7 +434,7 @@ static int
 RadiusAddServer(AuthData auth, short request_type)
 {
   int		i;
-  RadConf	const c = &bund->conf.auth.radius;
+  RadConf	const c = &lnk->lcp.auth.conf.radius;
   RadServe_Conf	s;
 
   if (c->server == NULL)
@@ -477,7 +477,7 @@ RadiusAddServer(AuthData auth, short request_type)
 static int
 RadiusSetCommand(int ac, char *av[], void *arg) 
 {
-  RadConf	const conf = &bund->conf.auth.radius;
+  RadConf	const conf = &lnk->lcp.auth.conf.radius;
   RadServe_Conf	server;
   RadServe_Conf	t_server;
   int		val, count;

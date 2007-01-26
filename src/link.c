@@ -424,7 +424,13 @@ LinkStat(int ac, char *av[], void *arg)
   Printf("\tMRU            : %d bytes\r\n", lnk->conf.mru);
   Printf("\tCtrl char map  : 0x%08x bytes\r\n", lnk->conf.accmap);
   Printf("\tRetry timeout  : %d seconds\r\n", lnk->conf.retry_timeout);
-  Printf("\tMax redial     : %d connect attempts\r\n", lnk->conf.max_redial);
+  Printf("\tMax redial     : ");
+  if (lnk->conf.max_redial < 0)
+    Printf("no redial\r\n");
+  else if (lnk->conf.max_redial == 0) 
+    Printf("unlimited\r\n");
+  else
+    Printf("%d connect attempts\r\n", lnk->conf.max_redial);
   Printf("\tBandwidth      : %d bits/sec\r\n", lnk->bandwidth);
   Printf("\tLatency        : %d usec\r\n", lnk->latency);
   Printf("\tKeep-alive     : ");

@@ -54,10 +54,16 @@
 	  <item> Added support of calling/called numbers (mostly for PPTP/L2TP).
 	  </item>
 	</itemize>
+	</item>
 	<item> Changes:
+	<itemize>
+	  <item> Auth configuration (set auth ...) moved from bundle layer to lcp. 
+		 It works per link now.
+	  </item>
 	  <item> MPPE policy option moved from auth layer to ccp.
 	  </item>
 	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fixed a few bugs on amd64 and sparc64 platforms.
@@ -130,9 +136,11 @@
 	</itemize>
 	</item>
 	<item> Changes:
+	<itemize>
 	  <item> Default argument of open/close commands changed from iface to lcp.
 	  </item>
 	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fixed races between startup process and client connecting.

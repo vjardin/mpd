@@ -394,7 +394,7 @@ IfaceUp(int ready)
     ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
       iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
       u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
-      *bund->params.authname ? bund->params.authname : bund->conf.auth.authname, 
+      *bund->params.authname ? bund->params.authname : "-", 
       ns1buf, ns2buf);
   }
 
@@ -449,7 +449,7 @@ IfaceDown(void)
   if (*iface->down_script) {
     ExecCmd(LG_IFACE2, "%s %s inet %s",
       iface->down_script, iface->ifname, 
-      *bund->params.authname ? bund->params.authname : bund->conf.auth.authname);
+      *bund->params.authname ? bund->params.authname : "-");
   }
 
   /* Remove rule ACLs */

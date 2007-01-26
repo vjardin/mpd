@@ -133,22 +133,6 @@
     } msoft;
   };
 
-  /* State of authorization process during authorization phase,
-   * contains params set by the auth-backend */
-  struct auth {
-    u_short		peer_to_self;	/* What I need from peer */
-    u_short		self_to_peer;	/* What peer needs from me */
-    struct pppTimer	timer;		/* Max time to spend doing auth */
-    struct pppTimer	acct_timer;	/* Timer for accounting updates */
-    struct papinfo	pap;		/* PAP state */
-    struct chapinfo	chap;		/* CHAP state */
-    struct eapinfo	eap;		/* EAP state */
-    struct paction	*thread;	/* async auth thread */
-    struct paction	*acct_thread;	/* async accounting auth thread */
-    struct authparams	params;		/* params to pass to from auth backend */
-  };
-  typedef struct auth	*Auth;
-
   struct authconf {
     struct radiusconf	radius;		/* RADIUS configuration */
     char		authname[AUTH_MAX_AUTHNAME];	/* Configured username */
@@ -161,6 +145,23 @@
     struct optinfo	options;	/* Configured options */
   };
   typedef struct authconf	*AuthConf;
+
+  /* State of authorization process during authorization phase,
+   * contains params set by the auth-backend */
+  struct auth {
+    u_short		peer_to_self;	/* What I need from peer */
+    u_short		self_to_peer;	/* What peer needs from me */
+    struct pppTimer	timer;		/* Max time to spend doing auth */
+    struct pppTimer	acct_timer;	/* Timer for accounting updates */
+    struct papinfo	pap;		/* PAP state */
+    struct chapinfo	chap;		/* CHAP state */
+    struct eapinfo	eap;		/* EAP state */
+    struct paction	*thread;	/* async auth thread */
+    struct paction	*acct_thread;	/* async accounting auth thread */
+    struct authconf	conf;		/* Auth backends, RADIUS, etc. */
+    struct authparams	params;		/* params to pass to from auth backend */
+  };
+  typedef struct auth	*Auth;
 
   struct radiusconf	radius;			/* RADIUS configuration */
   /* Interface between the auth-backend (secret file, RADIUS, etc.)

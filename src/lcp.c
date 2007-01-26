@@ -183,6 +183,8 @@ LcpInit(void)
   lcp->fsm.conf.echo_int = LCP_ECHO_INTERVAL;
   lcp->fsm.conf.echo_max = LCP_ECHO_TIMEOUT;
   lcp->phase = PHASE_DEAD;
+  
+  AuthInit();
 }
 
 /*

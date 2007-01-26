@@ -279,9 +279,9 @@ fail:
 
   /* Preset some special chat variables */
   ChatPresetVar(m->chat, CHAT_VAR_DEVICE, m->device);
-  ChatPresetVar(m->chat, CHAT_VAR_LOGIN, bund->conf.auth.authname);
+  ChatPresetVar(m->chat, CHAT_VAR_LOGIN, lnk->lcp.auth.conf.authname);
   memset(&auth, 0, sizeof(auth));
-  strlcpy(auth.params.authname, bund->conf.auth.authname, sizeof(auth.params.authname));
+  strlcpy(auth.params.authname, lnk->lcp.auth.conf.authname, sizeof(auth.params.authname));
   if (AuthGetData(&auth, 0) >= 0)
     ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, auth.params.password);
 

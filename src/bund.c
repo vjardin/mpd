@@ -950,8 +950,6 @@ fail:
   CcpInit();
   EcpInit();
   
-  AuthInit();
-
   if (gConsoleSession) {
     gConsoleSession->bund = bund;
     gConsoleSession->link = bund->links[0];
@@ -1009,7 +1007,6 @@ BundStat(int ac, char *av[], void *arg)
 
   /* Show configuration */
   Printf("Configuration:\r\n");
-  Printf("\tMy auth name   : \"%s\"\r\n", sb->conf.auth.authname);
   Printf("\tMy MRRU        : %d bytes\r\n", sb->conf.mrru);
   Printf("\tRetry timeout  : %d seconds\r\n", sb->conf.retry_timeout);
   Printf("\tSample period  : %d seconds\r\n", sb->conf.bm_S);

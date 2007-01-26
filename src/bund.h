@@ -115,7 +115,6 @@
     u_short		bm_Md;
     char		script[BUND_MAX_SCRIPT];/* Link change script */
     struct optinfo	options;		/* Configured options */
-    struct authconf	auth;			/* Auth backends, RADIUS, etc. */
   };
 
   #define BUND_STATS_UPDATE_INTERVAL    65 * SECONDS

@@ -218,7 +218,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 void
 AuthInit(void)
 {
-  AuthConf	const ac = &bund->conf.auth;
+  AuthConf	const ac = &lnk->lcp.auth.conf;
   
   RadiusInit();
 
@@ -276,7 +276,7 @@ AuthStart(void)
 
   /* Start global auth timer */
   TimerInit(&a->timer, "AuthTimer",
-    bund->conf.auth.timeout * SECONDS, AuthTimeout, NULL);
+    lnk->lcp.auth.conf.timeout * SECONDS, AuthTimeout, NULL);
   TimerStart(&a->timer);
 
   /* Start my auth to him */
@@ -524,7 +524,7 @@ AuthDataNew(void)
   Auth		a = &lnk->lcp.auth;  
 
   auth = Malloc(MB_AUTH, sizeof(*auth));
-  auth->conf = bund->conf.auth;
+  auth->conf = lnk->lcp.auth.conf;
   auth->lnk = LinkCopy();
 
   strlcpy(auth->info.ifname, bund->iface.ifname, sizeof(auth->info.ifname));
@@ -583,13 +583,15 @@ AuthStop(void)
 int
 AuthStat(int ac, char *av[], void *arg)
 {
-  AuthConf	const conf = &bund->conf.auth;
   Auth		const a = &lnk->lcp.auth;
+  AuthConf	const conf = &a->conf;
 
   Printf("Configuration:\r\n");
   Printf("\tAuthname        : %s\r\n", conf->authname);
   Printf("\tMax-Logins      : %d\r\n", conf->max_logins);
   Printf("\tAcct Update     : %d\r\n", conf->acct_update);
+  Printf("\t   Limit In     : %d\r\n", conf->acct_update_lim_recv);
+  Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
   Printf("\tTimeout         : %d\r\n", conf->timeout);
   
   Printf("Auth options\r\n");
@@ -635,8 +637,8 @@ AuthAccountStart(int type)
       lnk->stats.recvOctets, lnk->stats.xmitOctets));
   }
 
-  if (!Enabled(&bund->conf.auth.options, AUTH_CONF_RADIUS_ACCT)
-      && !Enabled(&bund->conf.auth.options, AUTH_CONF_UTMP_WTMP))
+  if (!Enabled(&lnk->lcp.auth.conf.options, AUTH_CONF_RADIUS_ACCT)
+      && !Enabled(&lnk->lcp.auth.conf.options, AUTH_CONF_UTMP_WTMP))
     return;
 
   if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
@@ -650,8 +652,8 @@ AuthAccountStart(int type)
     
     if (a->params.acct_update > 0)
       updateInterval = a->params.acct_update;
-    else if (bund->conf.auth.acct_update > 0)
-      updateInterval = bund->conf.auth.acct_update;
+    else if (lnk->lcp.auth.conf.acct_update > 0)
+      updateInterval = lnk->lcp.auth.conf.acct_update;
 
     if (updateInterval > 0) {
       TimerInit(&a->acct_timer, "AuthAccountTimer",
@@ -1155,7 +1157,7 @@ AuthPreChecks(AuthData auth, int complain)
     return (-1);
   }
   /* check max. number of logins */
-  if (bund->conf.auth.max_logins != 0) {
+  if (lnk->lcp.auth.conf.max_logins != 0) {
     int		ac;
     u_long	num = 0;
     for(ac = 0; ac < gNumBundles; ac++)
@@ -1163,7 +1165,7 @@ AuthPreChecks(AuthData auth, int complain)
 	if (!strcmp(gBundles[ac]->params.authname, auth->params.authname))
 	  num++;
 
-    if (num >= bund->conf.auth.max_logins) {
+    if (num >= lnk->lcp.auth.conf.max_logins) {
       if (complain) {
 	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
 	  auth->params.authname));
@@ -1403,7 +1405,7 @@ AuthCode(int proto, u_char code)
 static int
 AuthSetCommand(int ac, char *av[], void *arg)
 {
-  AuthConf	const autc = &bund->conf.auth;
+  AuthConf	const autc = &lnk->lcp.auth.conf;
   int		val;
 
   if (ac == 0)

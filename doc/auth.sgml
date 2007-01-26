@@ -8,8 +8,8 @@
 <p>
 
   This chapter describes commands that configure the Authentication 
-  subsystem. All of these commands apply to the currently
-  active bundle. Mpd supports currently authentication against (tried 
+  subsystem of LCP layer. All of these commands apply to the currently
+  active link. Mpd currently supports authentication against (tried 
   in this order) RADIUS, systems password database (<tt>master.passwd</tt>), 
   OPIE and its integrated <tt>mpd.secrets</tt> file.
 
@@ -20,7 +20,7 @@ set auth authname <em>login</em>
 </tt></tag>
 
 This command sets the authentication login name associated with
-the bundle (in multi-link PPP, though each link is authenticated
+the link (in multi-link PPP, though each link is authenticated
 individually, they all must use the same login name). The
 <tt><em>login</em></tt> must have a corresponding entry in
 <tt>mpd.secrets</tt>. The <tt><em>login</em></tt> and password
@@ -80,6 +80,12 @@ Enable authentication via RADIUS.
 
 Default <tt><bf>disable</bf></tt>.
 
+<tag><tt>radius-acct</tt></tag>
+
+Enable per link accounting via RADIUS.
+
+Default <tt><bf>disable</bf></tt>.
+
 <tag><tt>system</tt></tag>
 
 Enables authentication against the systems password database.
@@ -105,12 +111,6 @@ themselfs using Winkey.
 <bf>IMPORTANT</bf>: Disable the internal authentication when using 
 OPIE and CHAP, because otherwise users are also able to authenticate 
 with their secret pass phrase.
-
-Default <tt><bf>disable</bf></tt>.
-
-<tag><tt>radius-acct</tt></tag>
-
-Enable accounting via RADIUS, accounting is done per link.
 
 Default <tt><bf>disable</bf></tt>.
 
