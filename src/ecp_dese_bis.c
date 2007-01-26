@@ -106,8 +106,8 @@ static int
 DeseBisSubtractBloat(int size)
 {
   size -= DES_OVERHEAD;	/* reserve space for header */
-  size--;	 	/* reserve space for possible padding */
   size &= ~0x7;
+  size--;	 	/* reserve space for possible padding */
   return(size);
 }
 
