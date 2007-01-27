@@ -205,7 +205,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     };
 
     if (src->msdomain) {
-	dst->msdomain = Malloc(MB_AUTH, strlen(src->msdomain));
+	dst->msdomain = Malloc(MB_AUTH, strlen(src->msdomain)+1);
 	strcpy(dst->msdomain, src->msdomain);
     }
 };
