@@ -94,6 +94,8 @@
 	  </item>
 	  <item> Bug in "rubber bandwidth" algorithm fixed.
 	  </item>
+	  <item> Bug and possible crush fixed in DoD code.
+	  </item>
 	</itemize>
     </itemize>
   </p>

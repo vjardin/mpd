@@ -1136,10 +1136,10 @@ IfaceIsDemand(int proto, Mbuf pkt)
   switch (proto) {
     case PROTO_IP:
       {
-	struct ip	iphdr;
-	struct ip	*const ip = &iphdr;
+	u_char	buf[256];
+	struct ip       *const ip = (struct ip *)(&buf);
 
-	memcpy(&iphdr, MBDATA(pkt), sizeof(iphdr));
+	mbcopy(pkt, buf, sizeof(buf));
 	switch (ip->ip_p) {
 	  case IPPROTO_IGMP:		/* No multicast stuff */
 	    return(0);
