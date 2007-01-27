@@ -137,7 +137,6 @@
     struct radiusconf	radius;		/* RADIUS configuration */
     char		authname[AUTH_MAX_AUTHNAME];	/* Configured username */
     char		password[AUTH_MAX_PASSWORD];	/* Configured password */
-    int			max_logins;	/* max number of concurrent logins per user */
     int			acct_update;
     int			acct_update_lim_recv;
     int			acct_update_lim_xmit;
@@ -202,7 +201,8 @@
 /*
  * GLOBAL VARIABLES
  */
-  const u_char	gMsoftZeros[32];
+  extern const u_char	gMsoftZeros[32];
+  extern int		gMaxLogins;	/* max number of concurrent logins per user */
 
 /*
  * FUNCTIONS

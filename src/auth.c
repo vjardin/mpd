@@ -94,6 +94,9 @@
     { NULL },
   };
 
+  const u_char	gMsoftZeros[32];
+  int		gMaxLogins = 0;	/* max number of concurrent logins per user */
+
 /*
  * INTERNAL VARIABLES
  */
@@ -229,9 +232,6 @@ AuthInit(void)
 
   /* default auth timeout */
   ac->timeout = 40;
-  
-  /* unlimited concurrent logins */
-  ac->max_logins = 0;
 }
 
 /*
@@ -587,17 +587,18 @@ AuthStat(int ac, char *av[], void *arg)
   AuthConf	const conf = &a->conf;
 
   Printf("Configuration:\r\n");
-  Printf("\tAuthname        : %s\r\n", conf->authname);
-  Printf("\tMax-Logins      : %d\r\n", conf->max_logins);
+  Printf("\tMy authname     : %s\r\n", conf->authname);
+  Printf("\tMax-Logins      : %d\r\n", gMaxLogins);
   Printf("\tAcct Update     : %d\r\n", conf->acct_update);
   Printf("\t   Limit In     : %d\r\n", conf->acct_update_lim_recv);
   Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
-  Printf("\tTimeout         : %d\r\n", conf->timeout);
+  Printf("\tAuth timeout    : %d\r\n", conf->timeout);
   
   Printf("Auth options\r\n");
   OptStat(&conf->options, gConfList);
 
   Printf("Auth Data\r\n");
+  Printf("\tPeer authname   : %s\r\n", a->params.authname);
   Printf("\tMTU             : %ld\r\n", a->params.mtu);
   Printf("\tSession-Timeout : %ld\r\n", a->params.session_timeout);
   Printf("\tIdle-Timeout    : %ld\r\n", a->params.idle_timeout);
@@ -1157,7 +1158,7 @@ AuthPreChecks(AuthData auth, int complain)
     return (-1);
   }
   /* check max. number of logins */
-  if (lnk->lcp.auth.conf.max_logins != 0) {
+  if (gMaxLogins != 0) {
     int		ac;
     u_long	num = 0;
     for(ac = 0; ac < gNumBundles; ac++)
@@ -1165,7 +1166,7 @@ AuthPreChecks(AuthData auth, int complain)
 	if (!strcmp(gBundles[ac]->params.authname, auth->params.authname))
 	  num++;
 
-    if (num >= lnk->lcp.auth.conf.max_logins) {
+    if (num >= gMaxLogins) {
       if (complain) {
 	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
 	  auth->params.authname));
@@ -1422,7 +1423,7 @@ AuthSetCommand(int ac, char *av[], void *arg)
       break;
       
     case SET_MAX_LOGINS:
-      autc->max_logins = atoi(*av);
+      gMaxLogins = atoi(*av);
       break;
       
     case SET_ACCT_UPDATE:
