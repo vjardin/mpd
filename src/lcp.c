@@ -931,7 +931,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      }
 
 	      /* no other acceptable auth-proto found */
-	      if (i == 4)
+	      if (i == LCP_NUM_AUTH_PROTOS)
 		FsmRej(fp, opt);
 	      break;
 
