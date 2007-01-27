@@ -94,7 +94,9 @@
 	  </item>
 	  <item> Bug in "rubber bandwidth" algorithm fixed.
 	  </item>
-	  <item> Bug and possible crush fixed in DoD code.
+	  <item> Bug and possible crash fixed in DoD code.
+	  </item>
+	  <item> Fixed bug in AUTHPROTO negotiation.
 	  </item>
 	</itemize>
     </itemize>
