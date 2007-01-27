@@ -92,6 +92,8 @@
 	  </item>
 	  <item> Fixed crash on incoming when no free PPTP link found.
 	  </item>
+	  <item> Bug in "rubber bandwidth" algorithm fixed.
+	  </item>
 	</itemize>
     </itemize>
   </p>
