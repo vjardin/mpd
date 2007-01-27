@@ -18,12 +18,6 @@
 
 #include <netgraph.h>
 #include <sys/mbuf.h>
-#include <net/slcompress.h>
-#ifdef __DragonFly__
-#include <netgraph/vjc/ng_vjc.h>
-#else
-#include <netgraph/ng_vjc.h>
-#endif
 
 /*
  * DEFINITIONS
@@ -303,9 +297,6 @@ Ipv6cpLayerUp(Fsm fp)
 static void
 Ipv6cpLayerDown(Fsm fp)
 {
-  struct ngm_vjc_config	vjc;
-  char			path[NG_PATHLEN + 1];
-
   /* Turn off IP packets */
 #if NGM_PPP_COOKIE < 940897794
   bund->pppConfig.enableIPv6 = 0;
@@ -313,15 +304,6 @@ Ipv6cpLayerDown(Fsm fp)
   bund->pppConfig.bund.enableIPv6 = 0;
 #endif
   NgFuncSetConfig();
-
-  /* Turn off VJ compression node */
-  memset(&vjc, 0, sizeof(vjc));
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
-  if (NgSendMsg(bund->csock, path,
-      NGM_VJC_COOKIE, NGM_VJC_SET_CONFIG, &vjc, sizeof(vjc)) < 0) {
-    Log(LG_ERR, ("[%s] can't config %s node: %s",
-      bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
-  }
 
   BundNcpsLeave(NCP_IPV6CP);
 
