@@ -526,7 +526,7 @@ TcpDoClose(PhysInfo p)
 static int
 TcpOriginate(PhysInfo p)
 {
-	TcpInfo const pi = (TcpInfo) lnk->phys->info;
+	TcpInfo const pi = (TcpInfo) p->info;
 
 	return (pi->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
 }

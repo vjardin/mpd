@@ -372,7 +372,7 @@ PptpKillNode(PptpInfo pptp)
 static int
 PptpOriginated(PhysInfo p)
 {
-  PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
+  PptpInfo	const pptp = (PptpInfo) p->info;
 
   return(pptp->originate ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
 }

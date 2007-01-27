@@ -560,7 +560,7 @@ L2tpDoClose(PhysInfo p)
 static int
 L2tpOriginated(PhysInfo p)
 {
-  L2tpInfo	const l2tp = (L2tpInfo) lnk->phys->info;
+  L2tpInfo	const l2tp = (L2tpInfo) p->info;
 
   return(l2tp->originate ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
 }

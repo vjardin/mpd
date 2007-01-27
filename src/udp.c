@@ -294,7 +294,7 @@ UdpDoClose(UdpInfo pi)
 static int
 UdpOrigination(PhysInfo p)
 {
-  UdpInfo	const pi = (UdpInfo) lnk->phys->info;
+  UdpInfo	const pi = (UdpInfo) p->info;
 
   return (pi->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
 }
