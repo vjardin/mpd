@@ -438,7 +438,7 @@ BundOpenLink(Link l)
   Log(LG_BUND, ("[%s] opening link \"%s\"...", l->bund->name, l->name));
   LinkOpen(l);
   l->bund->bm.links_open = 1;
-  l->bm.last_open = time(NULL);
+  l->last_open = time(NULL);
 }
 
 /*
@@ -1012,8 +1012,8 @@ BundStat(int ac, char *av[], void *arg)
   Printf("\tSample period  : %d seconds\r\n", sb->conf.bm_S);
   Printf("\tLow water mark : %d%%\r\n", sb->conf.bm_Lo);
   Printf("\tHigh water mark: %d%%\r\n", sb->conf.bm_Hi);
-  Printf("\tMin connected  : %d seconds\r\n", sb->conf.bm_Mc);
-  Printf("\tMax connected  : %d seconds\r\n", sb->conf.bm_Md);
+  Printf("\tMin connect    : %d seconds\r\n", sb->conf.bm_Mc);
+  Printf("\tMin disconnect : %d seconds\r\n", sb->conf.bm_Md);
   Printf("Bundle level options:\r\n");
   OptStat(&sb->conf.options, gConfList);
 
@@ -1290,40 +1290,31 @@ BundBmTimeout(void *arg)
 #endif
 
   /* See if it's time to bring up another link */
-  if (now - bund->bm.last_close >= bund->conf.bm_Md
+  if (now - bund->bm.last_open >= bund->conf.bm_Mc
       && (inUtilTotal >= bund->conf.bm_Hi || outUtilTotal >= bund->conf.bm_Hi)
       && bund->bm.n_open < bund->n_links) {
-    for (k = 0; k < bund->n_links; k++) {
-      if (!OPEN_STATE(bund->links[k]->lcp.fsm.state)) {
-	Log(LG_BUND, ("[%s] opening link %s due to increased demand",
-	  bund->name, bund->links[k]->name));
-	BundOpenLink(bund->links[k]);
-	break;
-      }
-    }
+    k = 0;
+    while (k < bund->n_links && OPEN_STATE(bund->links[k]->lcp.fsm.state))
+	k++;
+    assert(k < bund->n_links);
+    Log(LG_BUND, ("[%s] opening link %s due to increased demand",
+      bund->name, bund->links[k]->name));
+    bund->bm.last_open = now;
+    BundOpenLink(bund->links[k]);
   }
 
   /* See if it's time to bring down a link */
-  if (bund->bm.n_up > 1) {
-    for (j = 0; j < LINK_BM_N; j++) {
-      if (inUtil[j] + outUtil[j] >= 2 * bund->conf.bm_Lo)
-	break;
-    }
-    if (j == LINK_BM_N) {
-      for (k = 0; k < bund->n_links; k++) {
-	if (OPEN_STATE(bund->links[k]->lcp.fsm.state)
-	    && (now - bund->links[k]->bm.last_open < bund->conf.bm_Mc))
-	  break;
-      }
-      if (k == bund->n_links) {
-	while (--k >= 0 && !OPEN_STATE(bund->links[k]->lcp.fsm.state));
-	assert(k >= 0);
-	Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
-	  bund->name, bund->links[k]->name));
-	bund->bm.last_close = time(NULL);
-	BundCloseLink(bund->links[k]);
-      }
-    }
+  if (now - bund->bm.last_close >= bund->conf.bm_Md
+      && (inUtilTotal < bund->conf.bm_Lo && outUtilTotal < bund->conf.bm_Lo)
+      && bund->bm.n_up > 1) {
+    k = bund->n_links - 1;
+    while (k >= 0 && !OPEN_STATE(bund->links[k]->lcp.fsm.state))
+	k--;
+    assert(k >= 0);
+    Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
+      bund->name, bund->links[k]->name));
+    bund->bm.last_close = now;
+    BundCloseLink(bund->links[k]);
   }
 
   /* Restart timer */

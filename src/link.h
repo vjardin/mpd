@@ -76,7 +76,6 @@
   struct linkbm {
     u_int	traffic[2][LINK_BM_N];	/* Traffic deltas */
     u_char	wasUp[LINK_BM_N];	/* Sub-intervals link was up */
-    time_t	last_open;		/* Time this link last was opened */
     struct ng_ppp_link_stat
 		idleStats;		/* Link management stats */
   };
@@ -141,6 +140,7 @@
     u_char		downReasonValid:1;
     int			bandwidth;	/* Bandwidth in bits per second */
     int			latency;	/* Latency in microseconds */
+    time_t		last_open;	/* Time this link last was opened */
 
     /* Info gleaned from negotiations */
     struct discrim	peer_discrim;

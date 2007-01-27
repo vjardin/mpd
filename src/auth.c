@@ -633,7 +633,7 @@ AuthAccountStart(int type)
   if (type == AUTH_ACCT_STOP) {
     Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
       lnk->name, a->params.authname,
-      (unsigned long) (time(NULL) - lnk->bm.last_open),
+      (unsigned long) (time(NULL) - lnk->last_open),
       lnk->stats.recvOctets, lnk->stats.xmitOctets));
   }
 

@@ -97,6 +97,7 @@
   struct bundbm {
     short		n_up;		/* Number of links in NETWORK phase */
     short		n_open;		/* Number of links in an OPEN state */
+    time_t		last_open;	/* Time we last open any link */
     time_t		last_close;	/* Time we last closed any link */
     struct pppTimer	bmTimer;	/* Bandwidth mgmt timer */
     u_char		links_open:1;	/* One or more links told to open */

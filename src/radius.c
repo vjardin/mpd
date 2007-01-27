@@ -336,8 +336,8 @@ RadiusAccount(AuthData auth)
     }
 
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME): %ld", 
-      lnk->name, __func__, (long int)(time(NULL) - lnk->bm.last_open)));
-    if (rad_put_int(auth->radius.handle, RAD_ACCT_SESSION_TIME, time(NULL) - lnk->bm.last_open) != 0) {
+      lnk->name, __func__, (long int)(time(NULL) - lnk->last_open)));
+    if (rad_put_int(auth->radius.handle, RAD_ACCT_SESSION_TIME, time(NULL) - lnk->last_open) != 0) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME) failed: %s",
 	lnk->name, __func__, rad_strerror(auth->radius.handle)));
       return;
