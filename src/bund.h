@@ -76,23 +76,21 @@
 	bandwidth during all N sub-intervals, time to hang up the second link.
 
   Mc	Minimum amount of time after connecting a link before
-	disconnecting any link.
+	connecting next.
 
   Md	Minimum amount of time after disconnecting any link before
-	connecting any other link.
+	disconnecting next.
 
   We treat incoming and outgoing traffic separately when comparing
-  against Hi. If either quantity exceeds it, we bring up another link.
-  When comparing agains Lo, we lump incoming and outgoing traffic
-  totals together into a single value before making the comparison.
+  against Hi and Lo.
 
 */
 
   #define BUND_BM_DFL_S		60	/* Length of sampling interval (secs) */
   #define BUND_BM_DFL_Hi	80	/* High water mark % */
   #define BUND_BM_DFL_Lo	20	/* Low water mark % */
-  #define BUND_BM_DFL_Mc	90	/* Min connected time (secs) */
-  #define BUND_BM_DFL_Md	30	/* Min disconnected time (secs) */
+  #define BUND_BM_DFL_Mc	30	/* Min connect period (secs) */
+  #define BUND_BM_DFL_Md	90	/* Min disconnect period (secs) */
 
   struct bundbm {
     short		n_up;		/* Number of links in NETWORK phase */
