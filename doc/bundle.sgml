@@ -138,6 +138,21 @@ This option defaults to <tt>enable</tt> and <tt>accept</tt> unless
 there is only one link in the bundle, in which case it defaults to
 <tt>disable</tt> and <tt>deny</tt> (i.e., normal non-multilink PPP).
 
+<tag><tt>round-robin</tt></tag>
+
+When multilink PPP is enabled and there are two or more links
+connected, this option enables round robin packet scheduling
+across the links.  That is, instead of breaking each packet
+into fragments and delivering the individual fragments over
+all the links in the bundle, each packet is delivered whole
+over single link.  The link is chosen by rotating in round-robin
+fashion over all the links in the bundle.
+
+This option normally would result in higher latency and
+possible delays due to TCP packets being received out of order;
+however, it may help in certain situations of high packet
+loss or broken peer equipment.
+
 <tag><tt>shortseq</tt></tag>
 
 This option is only meaningful if multi-link PPP is negotiated.
@@ -168,21 +183,6 @@ When encryption support is compiled into mpd, this option
 causes mpd to drop the link if encryption cannot be succesfully
 negotiated in both directions. This means in effect, ``use encryption
 or don't connect at all.''
-
-<tag><tt>round-robin</tt></tag>
-
-When multilink PPP is enabled and there are two or more links
-connected, this option enables round robin packet scheduling
-across the links.  That is, instead of breaking each packet
-into fragments and delivering the individual fragments over
-all the links in the bundle, each packet is delivered whole
-over single link.  The link is chosen by rotating in round-robin
-fashion over all the links in the bundle.
-
-This option normally would result in higher latency and
-possible delays due to TCP packets being received out of order;
-however, it may help in certain situations of high packet
-loss or broken peer equipment.
 
 The default for this option is off.
 

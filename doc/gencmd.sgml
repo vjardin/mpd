@@ -149,6 +149,9 @@ for the currently active link, which must have type <bf>udp</bf>.
 <tag><tt>set pptp ...</tt></tag>
 Sets device specific configuration parameters
 for the currently active link, which must have type <bf>pptp</bf>.
+<tag><tt>set l2tp ...</tt></tag>
+Sets device specific configuration parameters
+for the currently active link, which must have type <bf>l2tp</bf>.
 <tag><tt>set pppoe ...</tt></tag>
 Sets device specific configuration parameters
 for the currently active link, which must have type <bf>pppoe</bf>.
