@@ -246,7 +246,7 @@ WebShowSummary(FILE *f)
   fprintf(f, "<H2>Current status summary</H2>\n");
   fprintf(f, "<table>\n");
   fprintf(f, "<TR><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>ECP</TH><TH>Bund</TH>"
-	     "<TH>Link</TH><TH>LCP</TH><TH colspan=2>Device</TH><TH>User</TH><TH>Peer</TH><TH colspan=3></TH><TH></TH></TR>");
+	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=2>Device</TH><TH>Peer</TH><TH colspan=3></TH><TH></TH></TR>");
   for (b = 0; b<gNumBundles; b++) {
     B=gBundles[b];
     if (B) {
@@ -277,19 +277,18 @@ WebShowSummary(FILE *f)
 		    L->name, L->name);
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;lcp\">%s</a></TD>\n", 
 		    FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
+		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;auth\">%s</a></TD>\n", 
+		    L->name, L->lcp.auth.params.authname);
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->phys->state), L->name, L->phys->type?L->phys->type->name:"");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->phys->state), L->name, gPhysStateNames[L->phys->state]);
-		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;auth\">%s</a></TD>\n", 
-		    L->name, L->lcp.auth.params.authname);
-		if (L->phys->type && L->phys->type->peeraddr)
-		    L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
-		else 
-		    buf[0] = 0;
-		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
-		    L->name, buf);
 		if (L->phys->state != PHYS_STATE_DOWN) {
+		    if (L->phys->type && L->phys->type->peeraddr)
+			L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
+		    else 
+			buf[0] = 0;
+		    fprintf(f, "<TD>%s</TD>\n", buf);
 		    if (L->phys->type && L->phys->type->callingnum)
 			L->phys->type->callingnum(L->phys, buf, sizeof(buf));
 		    else 
@@ -307,6 +306,7 @@ WebShowSummary(FILE *f)
 				buf, buf2);
 		    }
 		} else {
+			fprintf(f, "<TD></TD>\n");
 			fprintf(f, "<TD colspan=3></TD>\n");
 		}
 		fprintf(f, "<TD><A href=\"/cmd?%s&amp;open\">[Open]</a><A href=\"/cmd?%s&amp;close\">[Close]</a></TD>\n", 

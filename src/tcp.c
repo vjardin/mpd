@@ -597,9 +597,11 @@ TcpStat(PhysInfo p)
 	OptStat(&pi->conf.options, gConfList);
 	Printf("TCP state:\r\n");
 	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-	Printf("\tIncoming     : %s\r\n", (pi->incoming?"YES":"NO"));
-	Printf("\tCurrent peer : %s, port %u\r\n",
-	    u_addrtoa(&pi->peer_addr, buf, sizeof(buf)), pi->peer_port);
+	if (p->state != PHYS_STATE_DOWN) {
+	    Printf("\tIncoming     : %s\r\n", (pi->incoming?"YES":"NO"));
+	    Printf("\tCurrent peer : %s, port %u\r\n",
+		u_addrtoa(&pi->peer_addr, buf, sizeof(buf)), pi->peer_port);
+	}
 }
 
 static int 

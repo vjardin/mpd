@@ -1009,11 +1009,12 @@ BundStat(int ac, char *av[], void *arg)
   Printf("Configuration:\r\n");
   Printf("\tMy MRRU        : %d bytes\r\n", sb->conf.mrru);
   Printf("\tRetry timeout  : %d seconds\r\n", sb->conf.retry_timeout);
-  Printf("\tSample period  : %d seconds\r\n", sb->conf.bm_S);
-  Printf("\tLow water mark : %d%%\r\n", sb->conf.bm_Lo);
-  Printf("\tHigh water mark: %d%%\r\n", sb->conf.bm_Hi);
-  Printf("\tMin connect    : %d seconds\r\n", sb->conf.bm_Mc);
-  Printf("\tMin disconnect : %d seconds\r\n", sb->conf.bm_Md);
+  Printf("\tBW-manage:\r\n");
+  Printf("\t  Period       : %d seconds\r\n", sb->conf.bm_S);
+  Printf("\t  Low mark     : %d%%\r\n", sb->conf.bm_Lo);
+  Printf("\t  High mark    : %d%%\r\n", sb->conf.bm_Hi);
+  Printf("\t  Min conn     : %d seconds\r\n", sb->conf.bm_Mc);
+  Printf("\t  Min disc     : %d seconds\r\n", sb->conf.bm_Md);
   Printf("Bundle level options:\r\n");
   OptStat(&sb->conf.options, gConfList);
 

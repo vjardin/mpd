@@ -480,10 +480,12 @@ PppoeStat(PhysInfo p)
 	OptStat(&pe->options, gConfList);
 	Printf("PPPoE status:\r\n");
 	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-	Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
-	Printf("\tIncoming     : %s\r\n", (pe->incoming?"YES":"NO"));
-	PppoePeerAddr(p, buf, sizeof(buf));
-	Printf("\tCurrent peer : %s\r\n", buf);
+	if (p->state != PHYS_STATE_DOWN) {
+	    Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
+	    Printf("\tIncoming     : %s\r\n", (pe->incoming?"YES":"NO"));
+	    PppoePeerAddr(p, buf, sizeof(buf));
+	    Printf("\tCurrent peer : %s\r\n", buf);
+	}
 }
 
 /*
