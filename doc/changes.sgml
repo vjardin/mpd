@@ -53,6 +53,8 @@
 	  </item>
 	  <item> Added support of calling/called numbers (mostly for PPTP/L2TP).
 	  </item>
+	  <item> Bug in "rubber bandwidth" algorithm fixed.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
@@ -91,8 +93,6 @@
 	  <item> Fixed threads-related crash in internal auth.
 	  </item>
 	  <item> Fixed crash on incoming when no free PPTP link found.
-	  </item>
-	  <item> Bug in "rubber bandwidth" algorithm fixed.
 	  </item>
 	</itemize>
     </itemize>
