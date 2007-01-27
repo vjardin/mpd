@@ -69,8 +69,8 @@ myisp:
 	set modem script DialPeer
 	set modem var $Telephone "1-415-555-1212"
 	set modem idle-script Ringback
-# "Open" connection (but don't actually dial until there's demand)
-	open
+# "Open" interface (but don't actually dial until there's demand)
+	open iface
 
 #
 # This setup answers incoming calls from a remote peer,
