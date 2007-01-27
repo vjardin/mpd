@@ -827,8 +827,8 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
       case TY_AUTHPROTO:		/* authentication protocol */
 	{
 	  u_int16_t		proto;
-	  int			supported = 0, bogus = 0, i, protoPos;
-	  LcpAuthProto 		authProto;
+	  int			bogus = 0, i, protoPos = -1;
+	  LcpAuthProto 		authProto = NULL;
 
 	  memcpy(&proto, opt->data, 2);
 	  proto = ntohs(proto);
@@ -842,15 +842,12 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 		switch (opt->data[2]) {
 		  case CHAP_ALG_MD5:
-		    supported = 1;
 		    ts = "MD5";
 		    break;
 		  case CHAP_ALG_MSOFT:
-		    supported = 1;
 		    ts = "MSOFT";
 		    break;
 		  case CHAP_ALG_MSOFTv2:
-		    supported = 1;
 		    ts = "MSOFTv2";
 		    break;
 		  default:
@@ -862,12 +859,6 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		break;
 	      }
 	      break;
-	    case PROTO_EAP:
-	      supported = 1;
-	      /* fall through */
-	    case PROTO_PAP:
-	      supported = 1;
-	      /* fall through */
 	    default:
 	      Log(LG_LCP, (" %s %s", oi->name, ProtoName(proto)));
 	      break;
@@ -888,33 +879,17 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      }
 	      break;
 	  }
-	  if (bogus || !supported) {
-	    if (mode == MODE_REQ) {
-	      if (Acceptable(&lnk->conf.options, LINK_CONF_CHAPMD5))
-		FsmNak(fp, LcpAuthProtoNak(PROTO_CHAP, CHAP_ALG_MD5));
-	      else if (Acceptable(&lnk->conf.options, LINK_CONF_PAP))
-		FsmNak(fp, LcpAuthProtoNak(PROTO_PAP, 0));
-	      else
-		FsmRej(fp, opt);
-	    }
-	    break;
+	  if (!bogus) {
+	    protoPos = LcpFindAuthProto(proto, proto == PROTO_CHAP ? opt->data[2] : 0);
+	    authProto = (protoPos == -1) ? NULL : &gLcpAuthProtos[protoPos];
 	  }
-
-	  protoPos = LcpFindAuthProto(proto, proto == PROTO_CHAP ? opt->data[2] : 0);
-	  authProto = (protoPos == -1) ? NULL : &gLcpAuthProtos[protoPos];
 
 	  /* Deal with it */
 	  switch (mode) {
 	    case MODE_REQ:
 
-	      /* this should never happen */
-	      if (authProto == NULL) {
-		FsmRej(fp, opt);
-		break;
-	      }
-
 	      /* let us check, whether the requested auth-proto is acceptable */
-	      if (Acceptable(&lnk->conf.options, authProto->conf)) {
+	      if ((authProto != NULL) && Acceptable(&lnk->conf.options, authProto->conf)) {
 		lcp->peer_auth = proto;
 	        if (proto == PROTO_CHAP)
 		  lcp->peer_chap_alg = opt->data[2];
