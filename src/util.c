@@ -319,7 +319,7 @@ IndexConfFile(FILE *fp, struct configfile **cf)
       continue;
     if ((s = strtok(line, " \t\f:"))) {
 	(*tmp)=Malloc(MB_CMDL, sizeof(struct configfile));
-	(*tmp)->label=strcpy(Malloc(MB_CMDL, strlen(s)),s);
+	(*tmp)->label=strcpy(Malloc(MB_CMDL, strlen(s)+1),s);
 	(*tmp)->linenum=lineNum;
 	(*tmp)->seek=ftello(fp);
 	tmp=&((*tmp)->next);
@@ -408,7 +408,7 @@ OpenConfFile(const char *name, struct configfile **cf)
     }
     if (!(*tmp)) {
 	(*tmp) = Malloc(MB_CMD, sizeof(struct configfiles));
-	(*tmp)->filename = strcpy(Malloc(MB_CMD, strlen(name)),name);
+	(*tmp)->filename = strcpy(Malloc(MB_CMD, strlen(name)+1),name);
 	(*tmp)->sections = NULL;
 	(*tmp)->next = NULL;
 	IndexConfFile(fp, &((*tmp)->sections));
