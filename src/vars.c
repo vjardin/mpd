@@ -144,10 +144,10 @@ Do(int which, int ac, char *av[], Options opt, ConfInfo list)
 	if (!strcasecmp(*av, "help") || !strcmp(*av, "?"))
 	  OptStat(opt, list);
 	else
-	  Log(LG_ERR, ("mpd: option \"%s\" unknown", *av));
+	  Log(LG_ERR, ("option \"%s\" unknown", *av));
 	break;
       case -2:
-	Log(LG_ERR, ("mpd: option \"%s\" ambiguous", *av));
+	Log(LG_ERR, ("option \"%s\" ambiguous", *av));
 	break;
       default:
 	{
@@ -165,7 +165,7 @@ Do(int which, int ac, char *av[], Options opt, ConfInfo list)
 	      if (!c->peered)
 	      {
 		if (scold)
-		  Log(LG_ERR, ("mpd: %s %s: not applicable",
+		  Log(LG_ERR, ("'%s %s' is not applicable",
 		    "accept", c->name));
 	      }
 	      else
@@ -175,7 +175,7 @@ Do(int which, int ac, char *av[], Options opt, ConfInfo list)
 	      if (!c->peered)
 	      {
 		if (scold)
-		  Log(LG_ERR, ("mpd: %s %s: not applicable", "deny", c->name));
+		  Log(LG_ERR, ("'%s %s' is not applicable", "deny", c->name));
 	      }
 	      else
 		Deny(opt, c->option);

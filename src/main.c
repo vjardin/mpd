@@ -219,7 +219,7 @@ main(int ac, char *av[])
     ReadFile(gConfigFile, DEFAULT_CONF, DoCommand);
   else {
     if (ReadFile(gConfigFile, gPeerSystem, DoCommand) < 0) {
-      Log(LG_ERR, ("mpd: can't read configuration for \"%s\"", gPeerSystem));
+      Log(LG_ERR, ("can't read configuration for \"%s\"", gPeerSystem));
       DoExit(EX_CONFIG);
     }
   }
@@ -238,9 +238,9 @@ main(int ac, char *av[])
 void
 Greetings(void)
 {
-  LogStdout("Multi-link PPP for FreeBSD, by Archie L. Cobbs.");
-  LogStdout("Based on iij-ppp, by Toshiharu OHNO.");
-  Log(LG_ALWAYS, ("mpd: pid %lu, version %s", (u_long) gPid, gVersion));
+  LogStdout("Multi-link PPP daemon for FreeBSD");
+  Log(LG_ALWAYS, ("process %lu started, version %s", (u_long) gPid, gVersion));
+  LogStdout(" ");
 }
 
 /*
@@ -275,7 +275,7 @@ DoExit(int code)
   gShutdownInProgress=1;
   /* Weak attempt to record what happened */
   if (code == EX_ERRDEAD)
-    Log(LG_ERR, ("mpd: fatal error, exiting"));
+    Log(LG_ERR, ("fatal error, exiting"));
 
   /* Shutdown stuff */
   if (code != EX_TERMINATE)	/* kludge to avoid double shutdown */
@@ -310,7 +310,7 @@ DoExit(int code)
   }
 
   /* Remove our PID file and exit */
-  Log(LG_ALWAYS, ("mpd: process %d terminated", gPid));
+  Log(LG_ALWAYS, ("process %d terminated", gPid));
   LogClose();
   (void) unlink(gPidFile);
   exit(code == EX_TERMINATE ? EX_NORMAL : code);
@@ -374,7 +374,7 @@ FatalSignal(sig)
   int				upLinkCount;
 
   /* If a SIGTERM or SIGINT, gracefully shutdown; otherwise shutdown now */
-  Log(LG_ERR, ("mpd: caught fatal signal %s", sys_signame[sig]));
+  Log(LG_ERR, ("caught fatal signal %s", sys_signame[sig]));
   gShutdownInProgress=1;
   for (k = 0; k < gNumBundles; k++) {
     if ((bund = gBundles[k]))
@@ -411,7 +411,7 @@ OpenSignal(int sig)
     RecordLinkUpDownReason(NULL, 1, STR_MANUALLY, NULL);
     BundOpenLink(lnk);
   } else
-    Log(LG_ALWAYS, ("mpd: rec'd signal %s, ignored", sys_signame[sig]));
+    Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
 
 }
 
@@ -430,7 +430,7 @@ CloseSignal(int sig)
     RecordLinkUpDownReason(NULL, 0, STR_MANUALLY, NULL);
     LinkClose(lnk);
   } else
-    Log(LG_ALWAYS, ("mpd: rec'd signal %s, ignored", sys_signame[sig]));
+    Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
 
 }
 

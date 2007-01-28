@@ -855,13 +855,13 @@ BundCreateCmd(int ac, char *av[], void *arg)
 #else
   if (strlen(av[0])>6) {
 #endif
-    Log(LG_ERR, ("mpd: bundle name \"%s\" is too long", av[0]));
+    Log(LG_ERR, ("bundle name \"%s\" is too long", av[0]));
     goto fail;
   }
 
   /* See if bundle name already taken */
   if ((bund = BundFind(av[0])) != NULL) {
-    Log(LG_ERR, ("mpd: bundle \"%s\" already exists", av[0]));
+    Log(LG_ERR, ("bundle \"%s\" already exists", av[0]));
     goto fail;
   }
 
@@ -887,7 +887,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
 #else
     if (strlen(av[k])>6) {
 #endif
-	Log(LG_ERR, ("mpd: link name \"%s\" is too long", av[k]));
+	Log(LG_ERR, ("link name \"%s\" is too long", av[k]));
 	goto fail;
     }
     if ((new_link = LinkNew(av[k], bund, bund->n_links)) == NULL)
@@ -900,7 +900,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
 
   /* We need at least one link in the bundle */
   if (bund->n_links == 0) {
-    Log(LG_ERR, ("mpd: bundle \"%s\" creation failed: no links", av[0]));
+    Log(LG_ERR, ("bundle \"%s\" creation failed: no links", av[0]));
     Freee(MB_LINK, bund->links);
     NgFuncShutdown(bund);
 fail2:

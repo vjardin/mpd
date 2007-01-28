@@ -537,10 +537,10 @@ PptpCtrlListen(int enable, in_port_t port, int allow_multiple)
       if (errno == EADDRINUSE || errno == EADDRNOTAVAIL)
 	EventRegister(&gListenRetry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
 	  0, PptpCtrlListenRetry, (void *)(intptr_t)port);
-      Log(LG_ERR, ("mpd: can't get PPTP listening socket"));
+      Log(LG_ERR, ("can't get PPTP listening socket"));
       return(-1);
     }
-    Log(LG_PHYS2, ("mpd: local IP address for PPTP is %s", u_addrtoa(&gListenIp,buf,sizeof(buf))));
+    Log(LG_PHYS2, ("local IP address for PPTP is %s", u_addrtoa(&gListenIp,buf,sizeof(buf))));
     EventRegister(&gListenEvent, EVENT_READ,
       gListenSock, EVENT_RECURRING, PptpCtrlListenEvent, NULL);
   } else {
@@ -730,13 +730,13 @@ PptpCtrlListenEvent(int type, void *cookie)
   if ((sock = TcpAcceptConnection(gListenSock, &peerst, FALSE)) < 0)
     return;
   sockaddrtou_addr(&peerst,&addr,&port);
-  Log(LG_PPTP, ("mpd: PPTP connection from %s %u",
+  Log(LG_PPTP, ("PPTP connection from %s %u",
     u_addrtoa(&addr,buf,sizeof(buf)), port));
 
   /* Initialize a new control block */
   if ((c = PptpCtrlGetCtrl(FALSE, &any, &addr, port,
     ebuf, sizeof(ebuf))) == NULL) {
-    Log(LG_PPTP, ("mpd: pptp connection failed: %s", ebuf));
+    Log(LG_PPTP, ("PPTP connection failed: %s", ebuf));
     close(sock);
     return;
   }

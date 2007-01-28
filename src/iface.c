@@ -1216,11 +1216,11 @@ IfaceSetCommand(int ac, char *av[], void *arg)
 	if (ac != 2)
 	  return(-1);
 	if (!ParseRange(av[0], &self_addr, ALLOW_IPV4)) {
-	  Log(LG_ERR, ("mpd: bad IP address \"%s\"", av[0]));
+	  Log(LG_ERR, ("bad IP address \"%s\"", av[0]));
 	  break;
 	}
 	if (!ParseAddr(av[1], &peer_addr, ALLOW_IPV4)) {
-	  Log(LG_ERR, ("mpd: bad IP address \"%s\"", av[1]));
+	  Log(LG_ERR, ("bad IP address \"%s\"", av[1]));
 	  break;
 	}
 

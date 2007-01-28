@@ -74,9 +74,9 @@
   	ConsoleSetCommand, NULL, (void *) SET_PORT },
     { "ip <ip>",		"Set IP address" ,
   	ConsoleSetCommand, NULL, (void *) SET_IP },
-    { "enable",			"Enable console" ,
+    { "enable [opt ...]",	"Enable this console option" ,
   	ConsoleSetCommand, NULL, (void *) SET_ENABLE },
-    { "disable",		"Disable console" ,
+    { "disable [opt ...]",	"Disable this console option" ,
   	ConsoleSetCommand, NULL, (void *) SET_DISABLE },
     { NULL },
   };
@@ -232,8 +232,7 @@ ConsoleConnect(int type, void *cookie)
   ghash_put(c->sessions, cs);
   Log(LG_CONSOLE, ("CONSOLE: Allocated new console session %p from %s", 
     cs, u_addrtoa(&cs->peer_addr,addrstr,sizeof(addrstr))));
-  cs->write(cs, "Multi-link PPP for FreeBSD, by Archie L. Cobbs.\r\n");
-  cs->write(cs, "Based on iij-ppp, by Toshiharu OHNO.\r\n\r\n");
+  cs->write(cs, "Multi-link PPP daemon for FreeBSD\r\n\r\n");
   cs->write(cs, options);
   cs->prompt(cs);
   return;
@@ -356,7 +355,8 @@ ConsoleSessionReadEvent(int type, void *cookie)
         ac2 = ParseLine(line, av2, sizeof(av2) / sizeof(*av2), 1);
 	snprintf(&compl[strlen(compl)], sizeof(compl) - strlen(compl), "%s ", av2[0]);
 	FreeArgs(ac2, av2);
-	if (cmd->func != CMD_SUBMENU) {
+	if (cmd->func != CMD_SUBMENU && 
+	  (i != 0 || strncmp(av[0], "help", strlen(av[0])) !=0)) {
 	    i++;
 	    if (i < ac) {
 		cs->write(cs, "\a");
@@ -367,8 +367,9 @@ ConsoleSessionReadEvent(int type, void *cookie)
 		}
 	    }
 	    break;
+	} else if (cmd->func == CMD_SUBMENU) {
+	    tab = cmd->arg;
 	}
-	tab = cmd->arg;
       }
       for (i = 0; i < cs->cmd_len; i++)
 	cs->write(cs, "\b \b");
@@ -381,6 +382,7 @@ notfound:
     case CTRL('C'):
       if (cs->telnet)
 	break;
+      cs->write(cs, "\r\n");
       Log(LG_CONSOLE, ("CONSOLE: CTRL-C"));
       memset(cs->cmd, 0, MAX_CONSOLE_LINE);
       cs->cmd_len = 0;
@@ -390,8 +392,10 @@ notfound:
     case CTRL('P'):	/* page up */
       if ((*cs->history) && 
         (strncmp(cs->cmd, cs->history, MAX_CONSOLE_LINE) != 0)) {
-        if (cs->cmd_len>0)
+        if (cs->cmd_len>0) {
+    	    cs->write(cs, "\r\n");
 	    cs->prompt(cs);
+	}
 	memcpy(cs->cmd, cs->history, MAX_CONSOLE_LINE);
 	cs->cmd_len = strlen(cs->cmd);
 	cs->write(cs, cs->cmd);
@@ -401,6 +405,7 @@ notfound:
         if (cs->cmd_len>0) {
 	    if (strncmp(cs->cmd, cs->history, MAX_CONSOLE_LINE) != 0) {
 		memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
+    		cs->write(cs, "\r\n");
 		cs->prompt(cs);
 	    } else {
     		for (i = 0; i < cs->cmd_len; i++)
@@ -425,7 +430,10 @@ notfound:
     case '\r':
     case '?':
     { 
-
+      if (c == '?')
+        cs->write(cs, "?");
+      cs->write(cs, "\r\n");
+      
       cs->telnet = FALSE;
       if (cs->state == STATE_USERNAME) {
 	cs->user.username = typed_mem_strdup(MB_CONS, cs->cmd);
@@ -446,7 +454,7 @@ notfound:
 	  goto failed;
 
 	cs->state = STATE_AUTHENTIC;
-	cs->write(cs, "\r\nmpd: pid %lu, version %s\r\n", 
+	cs->write(cs, "\r\nWelcome!\r\nMpd pid %lu, version %s\r\n", 
 		(u_long) gPid, gVersion);
 	goto success;
 
@@ -464,9 +472,6 @@ success:
 	break;
       }
 
-      if (c == '?')
-        cs->write(cs, "?");
-      cs->write(cs, "\r\n");
       memcpy(line, cs->cmd, sizeof(line));
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
@@ -590,10 +595,10 @@ ConsoleSessionShowPrompt(ConsoleSession cs)
     cs->write(cs, "Username: ");
     break;
   case STATE_PASSWORD:
-    cs->write(cs, "\r\nPassword: ");
+    cs->write(cs, "Password: ");
     break;
   case STATE_AUTHENTIC:
-    cs->write(cs, "\r\n[%s] ", cs->link->name);
+    cs->write(cs, "[%s] ", cs->link->name);
     break;
   }
 }

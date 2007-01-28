@@ -239,7 +239,7 @@ LinkNew(char *name, Bund b, int bI)
   /* Check if name is already used */
   for (k = 0; k < gNumLinks; k++) {
     if (gLinks[k] && !strcmp(gLinks[k]->name, name)) {
-      Log(LG_ERR, ("mpd: link \"%s\" already defined in bundle \"%s\"",
+      Log(LG_ERR, ("link \"%s\" already defined in bundle \"%s\"",
 	name, gLinks[k]->bund->name));
       return(NULL);
     }

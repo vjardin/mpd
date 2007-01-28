@@ -59,9 +59,9 @@
   	WebSetCommand, NULL, (void *) SET_PORT },
     { "ip <ip>",		"Set IP address" ,
   	WebSetCommand, NULL, (void *) SET_IP },
-    { "enable",			"Enable web" ,
+    { "enable [opt ...]",	"Enable web option" ,
   	WebSetCommand, NULL, (void *) SET_ENABLE },
-    { "disable",		"Disable web" ,
+    { "disable [opt ...]",	"Disable web option" ,
   	WebSetCommand, NULL, (void *) SET_DISABLE },
     { NULL },
   };

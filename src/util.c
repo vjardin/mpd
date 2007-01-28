@@ -478,7 +478,7 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultsize)
 /* Report any overflow */
 
   if (linelen >= sizeof(line) - 1)
-    Log(LG_ERR, ("mpd: warning: line too long, truncated"));
+    Log(LG_ERR, ("warning: line too long, truncated"));
 
 /* Copy line and return */
 
@@ -516,7 +516,7 @@ ReadLine(FILE *fp, int *lineNum, char *result, int resultsize)
 
 	/* Truncate long lines */
 	if (strlen(result) > (resultsize - 2)) {
-    	    Log(LG_ERR, ("mpd: warning: line too long, truncated"));
+    	    Log(LG_ERR, ("warning: line too long, truncated"));
     	    while ((ch = getc(fp)) != EOF && ch != '\n');
 	}
 
@@ -880,14 +880,14 @@ PIDCheck(const char *filename, int killem)
 
     if (!killem)
     {
-      Log(LG_ERR, ("mpd: already running as process %d", old_pid));
+      Log(LG_ERR, ("already running as process %d", old_pid));
       return(-1);
     }
     if (kill(old_pid, SIGTERM) < 0)
       switch (errno)
       {
 	case ESRCH:
-	  Log(LG_ERR, ("mpd: process %d no longer exists", old_pid));
+	  Log(LG_ERR, ("process %d no longer exists", old_pid));
 	  break;
 	default:
 	  Perror("%s: kill(%d)", __FUNCTION__, old_pid);
@@ -896,12 +896,12 @@ PIDCheck(const char *filename, int killem)
 
   /* Wait and try again */
 
-    Log(LG_ERR, ("mpd: waiting for process %d to die...", old_pid));
+    Log(LG_ERR, ("waiting for process %d to die...", old_pid));
     sleep(1);
   }
   if (n_tries == MAX_LOCK_ATTEMPTS)
   {
-    Log(LG_ERR, ("mpd: can't lock %s after %d attempts", filename, n_tries));
+    Log(LG_ERR, ("can't lock %s after %d attempts", filename, n_tries));
     return(-1);
   }
 
@@ -995,7 +995,7 @@ TcpGetListenPort(struct u_addr *addr, in_port_t port, int block)
   if ((sock = GetInetSocket(SOCK_STREAM, addr, port, block, ebuf, sizeof(ebuf))) < 0)
   {
     saverrno = errno;
-    Log(LG_ERR, ("mpd: %s", ebuf));
+    Log(LG_ERR, ("%s", ebuf));
     errno = saverrno;
     return(-1);
   }

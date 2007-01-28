@@ -181,7 +181,7 @@ LogOpen(void)
 #endif
 
   if (alog_configure(0, &gLogConf) == -1) {
-    warn("mpd: alog_configure failed");
+    warn("alog_configure failed");
     return(-1);
   }
   alog_set_channel(0);
@@ -509,9 +509,8 @@ Perror(const char *fmt, ...)
   va_list	args;
   char		buf[200];
 
-  snprintf(buf, sizeof(buf), "mpd: ");
   va_start(args, fmt);
-  vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, args);
+  vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
   snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
     ": %s", strerror(errno));

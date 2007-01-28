@@ -333,7 +333,7 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
   if (cmd->func == CMD_SUBMENU)
     rtn = DoCommandTab((CmdTab) cmd->arg, ac - 1, av + 1);
   else if (cmd->func == CMD_UNIMPL)
-    Log(LG_ERR, ("mpd: %s: unimplemented command", av[0]));
+    Log(LG_ERR, ("command '%s' is not implemented", av[0]));
   else
     rtn = (cmd->func)(ac - 1, av + 1, cmd->arg);
 
@@ -695,7 +695,7 @@ GetLayer(const char *name)
     }
   }
   if (found < 0) {
-    Log(LG_ERR, ("mpd: unknown layer \"%s\": try \"show layers\"", name));
+    Log(LG_ERR, ("unknown layer \"%s\": try \"show layers\"", name));
     return(NULL);
   }
   return(&gLayers[found]);
@@ -787,7 +787,7 @@ int
 AdmitBund(CmdTab cmd)
 {
   if (!bund) {
-    Log(LG_ERR, ("mpd: no bundles defined"));
+    Log(LG_ERR, ("no bundles defined"));
     return(FALSE);
   }
   return(TRUE);
@@ -803,11 +803,11 @@ AdmitDev(CmdTab cmd)
   if (!AdmitBund(cmd))
     return(FALSE);
   if (lnk->phys->type == NULL) {
-    Log(LG_ERR, ("mpd: type of link \"%s\" is unspecified", lnk->name));
+    Log(LG_ERR, ("type of link \"%s\" is unspecified", lnk->name));
     return(FALSE);
   }
   if (!strcmp(cmd->name, lnk->phys->type->name)) {
-    Log(LG_ERR, ("mpd: link \"%s\" is type %s, not %s",
+    Log(LG_ERR, ("link \"%s\" is type %s, not %s",
       lnk->name, lnk->phys->type->name, cmd->name));
     return(FALSE);
   }

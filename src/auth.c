@@ -799,7 +799,7 @@ AuthGetData(AuthData auth, int complain)
   /* Check authname, must be non-empty */
   if (*auth->params.authname == 0) {
     if (complain)
-      Log(LG_AUTH, ("mpd: empty auth name"));
+      Log(LG_AUTH, ("%s: empty auth name", __FUNCTION__));
     return(-1);
   }
 
