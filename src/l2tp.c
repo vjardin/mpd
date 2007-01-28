@@ -75,7 +75,6 @@
 	struct optinfo	options;
     } conf;
     u_char		opened:1;	/* PPPoE opened by phys */
-    u_char		originate:1;	/* Call originated locally */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
     char		callingnum[64];	/* current L2TP phone number */
     char		callednum[64];	/* current L2TP phone number */
@@ -286,7 +285,6 @@ L2tpOpen(PhysInfo p)
 		return;
 	};
 	
-	pi->originate = 1;
 	strlcpy(pi->callingnum, pi->conf.callingnum, sizeof(pi->callingnum));
 	strlcpy(pi->callednum, pi->conf.callednum, sizeof(pi->callednum));
 
@@ -494,7 +492,7 @@ L2tpClose(PhysInfo p)
     L2tpInfo      const pi = (L2tpInfo) p->info;
 
     pi->opened = 0;
-    pi->originate = 0;
+    pi->incoming = 0;
     if (p->state == PHYS_STATE_DOWN)
     	return;
     PhysDown(0, NULL);
@@ -562,7 +560,7 @@ L2tpOriginated(PhysInfo p)
 {
   L2tpInfo	const l2tp = (L2tpInfo) p->info;
 
-  return(l2tp->originate ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
+  return(l2tp->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
 }
 
 static int
@@ -626,7 +624,7 @@ L2tpStat(PhysInfo p)
   Printf("L2TP status:\r\n");
   Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
   if (p->state != PHYS_STATE_DOWN) {
-    Printf("\tIncoming     : %s\r\n", (l2tp->originate?"NO":"YES"));
+    Printf("\tIncoming     : %s\r\n", (l2tp->incoming?"YES":"NO"));
     if (l2tp->tun) {
 	Printf("\tCurrent self : %s, port %u\r\n",
 	    u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
