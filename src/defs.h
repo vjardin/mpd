@@ -24,7 +24,7 @@
   #define      USE_NG_NETFLOW
   #define      USE_NG_NAT
 #endif
-#if (__FreeBSD_version >= 700028)
+#if ((__FreeBSD_version >= 602104 && __FreeBSD_version < 700000) || __FreeBSD_version >= 700029)
   #define      USE_NG_DEFLATE
   #define      USE_NG_PRED1
 #endif
