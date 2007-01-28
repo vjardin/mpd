@@ -57,6 +57,8 @@
 	</item>
 	<item> Changes:
 	<itemize>
+	  <item> "lcp" layer in open/close commands replaced by "link".
+	  </item>
 	  <item> Auth configuration (set auth ...) moved from bundle layer to lcp. 
 		 It works per link now.
 	  </item>
