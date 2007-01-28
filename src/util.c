@@ -395,8 +395,7 @@ OpenConfFile(const char *name, struct configfile **cf)
 
   if ((fp = fopen(pathname, "r")) == NULL)
   {
-    Perror("fopen(%s)", pathname);
-    Log(LG_ERR, ("Can't open file '%s'", pathname));
+    Perror("%s: Can't open file '%s'", __FUNCTION__, pathname);
     return(NULL);
   }
   (void) fcntl(fileno(fp), F_SETFD, 1);
@@ -719,14 +718,14 @@ UuLock(const char *ttyname)
 
     if ((fd = open(tbuf, O_RDWR, 0)) < 0)
     {
-      Perror("UuLock: open(%s)", tbuf);
+      Perror("%s: open(%s)", __FUNCTION__, tbuf);
       return(-1);
     }
 
     if (read(fd, pid_buf, sizeof(pid_buf)) <= 0)
     {
       (void)close(fd);
-      Perror("UuLock: read");
+      Perror("%s: read", __FUNCTION__);
       return(-1);
     }
 
@@ -743,7 +742,7 @@ UuLock(const char *ttyname)
     if (lseek(fd, (off_t) 0, L_SET) < 0)
     {
       (void)close(fd);
-      Perror("UuLock: lseek");
+      Perror("%s: lseek", __FUNCTION__);
       return(-1);
     }
   }
@@ -755,7 +754,7 @@ UuLock(const char *ttyname)
   {
     (void)close(fd);
     (void)unlink(tbuf);
-    Perror("UuLock: write");
+    Perror("%s: write", __FUNCTION__);
     return(-1);
   }
   (void)close(fd);
@@ -855,7 +854,7 @@ PIDCheck(const char *filename, int killem)
 
     if (errno != EAGAIN)
     {
-      Perror("open(%s)", filename);
+      Perror("%s: open(%s)", __FUNCTION__, filename);
       return(-1);
     }
 
@@ -863,7 +862,7 @@ PIDCheck(const char *filename, int killem)
 
     if ((fp = fopen(filename, "r")) == NULL)
     {
-      Perror("fopen(%s)", filename);
+      Perror("%s: fopen(%s)", __FUNCTION__, filename);
       return(-1);
     }
 
@@ -891,7 +890,7 @@ PIDCheck(const char *filename, int killem)
 	  Log(LG_ERR, ("mpd: process %d no longer exists", old_pid));
 	  break;
 	default:
-	  Perror("kill(%d)", old_pid);
+	  Perror("%s: kill(%d)", __FUNCTION__, old_pid);
 	  return(-1);
       }
 
@@ -914,7 +913,7 @@ PIDCheck(const char *filename, int killem)
 
   if ((lockFp = fdopen(fd, "r+")) == NULL)
   {
-    Perror("fdopen");
+    Perror("%s: fdopen", __FUNCTION__);
     return(-1);
   }
   setbuf(lockFp, NULL);
@@ -1005,7 +1004,7 @@ TcpGetListenPort(struct u_addr *addr, in_port_t port, int block)
 
   if (listen(sock, 2) < 0)
   {
-    Perror("listen");
+    Perror("%s: listen", __FUNCTION__);
     (void) close(sock);
     return(-1);
   }
@@ -1033,7 +1032,7 @@ TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
 
   memset(addr, 0, sizeof(*addr));
   if ((new_sock = accept(sock, (struct sockaddr *) addr, &size)) < 0) {
-    Perror("accept");
+    Perror("%s: accept", __FUNCTION__);
     return(-1);
   }
   
@@ -1054,7 +1053,7 @@ TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
   {
     (void) fcntl(new_sock, F_SETFD, 1);
     if (fcntl(new_sock, F_SETFL, O_NONBLOCK) < 0) {
-      Perror("fcntl");
+      Perror("%s: fcntl", __FUNCTION__);
       return(-1);
     }
   }
@@ -1207,14 +1206,14 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
 
   /* Get interface list */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("%s: Socket creation error: %s", __FUNCTION__, strerror(errno));
+    Perror("%s: Socket creation error", __FUNCTION__);
     return(-1);
   }
 
   ifc.ifc_len = sizeof(ifs);
   ifc.ifc_req = ifs;
   if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-    Perror("%s: ioctl(SIOCGIFCONF): %s", __FUNCTION__, strerror(errno));
+    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
     close(s);
     return(-1);
   }
@@ -1275,14 +1274,14 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 
   /* Get interface list */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("%s: Socket creation error: %s", __FUNCTION__, strerror(errno));
+    Perror("%s: Socket creation error", __FUNCTION__);
     return(-1);
   }
 
   ifc.ifc_len = sizeof(ifs);
   ifc.ifc_req = ifs;
   if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-    Perror("%s: ioctl(SIOCGIFCONF): %s", __FUNCTION__, strerror(errno));
+    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
     close(s);
     return(-1);
   }

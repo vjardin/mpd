@@ -65,8 +65,8 @@ MsgRegister(void (*func)(int type, void *arg), int prio)
   if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
     if (pipe(msgpipe) < 0)
     {
-	Perror("%s: Can't create message pipe: %s", 
-	    __FUNCTION__, strerror(errno));
+	Perror("%s: Can't create message pipe", 
+	    __FUNCTION__);
 	DoExit(EX_ERRDEAD);
     }
     fcntl(msgpipe[PIPE_READ], F_SETFD, 1);
@@ -102,12 +102,12 @@ MsgEvent(int type, void *cookie)
     if ((nread = read(msgpipe[PIPE_READ],
       (u_char *) &msg + nrode, sizeof(msg) - nrode)) < 0)
     {
-      Perror("%s: Can't read from message pipe: %s", __FUNCTION__, strerror(errno));
+      Perror("%s: Can't read from message pipe", __FUNCTION__);
       DoExit(EX_ERRDEAD);
     }
     if (nread == 0)
     {
-      Perror("%s: Unexpected EOF on message pipe!", __FUNCTION__);
+      Log(LG_ERR, ("%s: Unexpected EOF on message pipe!", __FUNCTION__));
       DoExit(EX_ERRDEAD);
     }
   }
@@ -138,11 +138,11 @@ MsgSend(MsgHandler m, int type, void *arg)
     if ((nw = write(msgpipe[PIPE_WRITE],
       (u_char *) &msg + nwrote, sizeof(msg) - nwrote)) < 0)
     {
-      Perror("%s: Message pipe write error: %s", __FUNCTION__, strerror(errno));
+      Perror("%s: Message pipe write error", __FUNCTION__);
       DoExit(EX_ERRDEAD);
     }
   if (nwrote < sizeof(msg)) {
-      Perror("%s: Can't write to message pipe, fatal pipe overflow!", __FUNCTION__);
+      Log(LG_ERR, ("%s: Can't write to message pipe, fatal pipe overflow!", __FUNCTION__));
       DoExit(EX_ERRDEAD);
   }
 }
