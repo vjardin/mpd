@@ -1288,6 +1288,12 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 	      /* this was taken from userland ppp */
 	      case RAD_MICROSOFT_MS_CHAP2_SUCCESS:
+	        if (auth->mschapv2resp != NULL) {
+	    	    Freee(MB_AUTH, auth->mschapv2resp);
+		    auth->mschapv2resp = NULL;
+		}
+		if (len == 0)
+		    break;
 		if (len < 3 || ((const char *)data)[1] != '=') {
 		  /*
 		   * Only point at the String field if we don't think the
@@ -1295,13 +1301,14 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		   */
 		  data = (const char *)data + 1;
 		  len--;
-		} else
+		} else {
 		  Log(LG_RADIUS, ("[%s] RADIUS: %s: Warning: The MS-CHAP2-Success attribute is mis-formatted. Compensating",
 		    lnk->name, __func__));
-		  if ((tmpval = rad_cvt_string((const char *)data, len)) == NULL) {
-		  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_cvt_string failed: %s",
-		    lnk->name, __func__, rad_strerror(auth->radius.handle)));
-		  return RAD_NACK;
+		}
+		if ((tmpval = rad_cvt_string((const char *)data, len)) == NULL) {
+		    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_cvt_string failed: %s",
+			lnk->name, __func__, rad_strerror(auth->radius.handle)));
+		    return RAD_NACK;
 		}
 		auth->mschapv2resp = Malloc(MB_AUTH, len + 1);
 		memcpy(auth->mschapv2resp, tmpval, len + 1);

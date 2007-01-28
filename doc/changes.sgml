@@ -100,6 +100,9 @@
 	  </item>
 	  <item> Fixed bug in AUTHPROTO negotiation.
 	  </item>
+	  <item> Fixed bug in RAD_MICROSOFT_MS_CHAP2_SUCCESS handeling.
+		 Needs testing.
+	  </item>
 	</itemize>
     </itemize>
   </p>
