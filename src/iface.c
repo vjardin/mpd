@@ -1359,14 +1359,14 @@ IfaceSetMTU(int mtu)
 
   /* Get socket */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("socket");
-    DoExit(EX_ERRDEAD);
+    Perror("[%s] IFACE: Can't get socket to set MTU!", bund->name);
+    return;
   }
 
   if ((bund->params.mtu > 0) && (mtu > bund->params.mtu)) {
     mtu = bund->params.mtu;
-    Log(LG_IFACE2, ("[%s] IFACE: using max. mtu: %d",
-      bund->name, iface->max_mtu));
+    Log(LG_IFACE2, ("[%s] IFACE: forcing MTU of auth backend: %d bytes",
+      bund->name, mtu));
   }
 
   /* Limit MTU to configured maximum */
@@ -1378,10 +1378,10 @@ IfaceSetMTU(int mtu)
   memset(&ifr, 0, sizeof(ifr));
   strncpy(ifr.ifr_name, bund->iface.ifname, sizeof(ifr.ifr_name));
   ifr.ifr_mtu = mtu;
-  Log(LG_IFACE2, ("[%s] setting interface %s MTU to %d bytes",
+  Log(LG_IFACE2, ("[%s] IFACE: setting %s MTU to %d bytes",
     bund->name, bund->iface.ifname, mtu));
   if (ioctl(s, SIOCSIFMTU, (char *)&ifr) < 0)
-    Perror("ioctl(%s, %s)", bund->iface.ifname, "SIOCSIFMTU");
+    Perror("[%s] IFACE: ioctl(%s, %s)", bund->name, bund->iface.ifname, "SIOCSIFMTU");
   close(s);
 
   /* Save MTU */
