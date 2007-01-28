@@ -316,8 +316,8 @@ NgFuncInit(Bund b, const char *reqIface)
       b->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
     goto fail;
   }
-  Log(LG_ALWAYS, ("[%s] %s node is \"%s\"",
-    b->name, NG_PPP_NODE_TYPE, nm.name));
+//  Log(LG_ALWAYS, ("[%s] %s node is \"%s\"",
+//    b->name, NG_PPP_NODE_TYPE, nm.name));
 
   /* Get PPP node ID */
   if (NgSendMsg(b->csock, MPD_HOOK_PPP,
@@ -560,7 +560,7 @@ NgFuncInitNetflow(Bund b)
           strerror(errno)));
 	goto fail;
       }
-      Log(LG_ALWAYS, ("%s node is \"%s\"", NG_NETFLOW_NODE_TYPE, nm.name));
+//      Log(LG_ALWAYS, ("%s node is \"%s\"", NG_NETFLOW_NODE_TYPE, nm.name));
 
       /* Connect ng_ksocket(4) node for export. */
       snprintf(mp.type, sizeof(mp.type), "%s", NG_KSOCKET_NODE_TYPE);
@@ -766,7 +766,7 @@ NgFuncInitMSS(Bund b)
         strerror(errno)));
       goto fail;
     }
-    Log(LG_ALWAYS, ("%s node is \"%s\"", NG_TCPMSS_NODE_TYPE, nm.name));
+//    Log(LG_ALWAYS, ("%s node is \"%s\"", NG_TCPMSS_NODE_TYPE, nm.name));
   }
   /* Connect ng_bpf(4) node to the ng_tcpmss(4) node. */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);

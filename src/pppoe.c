@@ -918,8 +918,8 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
 	if (n) {
 	    /* Create a new netgraph node */
 	    if (NgMkSockNode(NULL, &PIf->csock, &PIf->dsock) < 0) {
-		Log(LG_ERR, ("[%s] PPPoE: can't create ctrl socket: %s",
-		    lnk->name, strerror(errno)));
+		Log(LG_ERR, ("PPPoE: Can't create listening ctrl socket: %s",
+		    strerror(errno)));
 		return(0);
 	    }
 	    (void)fcntl(PIf->csock, F_SETFD, 1);
@@ -933,8 +933,8 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
   
 	if (NgSendMsg(PIf->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	    sizeof(cn)) < 0) {
-		Log(LG_ERR, ("[%s] PPPoE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-		    bund->name, ".:", cn.ourhook, cn.path, cn.peerhook,
+		Log(LG_ERR, ("PPPoE: Can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+		    ".:", cn.ourhook, cn.path, cn.peerhook,
 		    strerror(errno)));
 		return(0);
 	}
@@ -947,14 +947,16 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
 	idata->data_len = strlen(session);
 	strncpy(idata->data, session, MAX_SESSION);
 
-	Log(LG_PHYS, ("[%s] PPPoE server listening on %s for service \"%s\"",
-		lnk->name, path, idata->data));
 	if (NgSendMsg(PIf->csock, pat, NGM_PPPOE_COOKIE, NGM_PPPOE_LISTEN,
 	    idata, sizeof(*idata) + idata->data_len) < 0) {
-		Log(LG_ERR, ("[%s] PPPoE: can't send NGM_PPPOE_LISTEN to %s hook "
-		    "%s : %s", lnk->name, pat, idata->hook, strerror(errno)));
+		Log(LG_ERR, ("PPPoE: Can't send NGM_PPPOE_LISTEN to %s hook "
+		    "%s : %s", pat, idata->hook, strerror(errno)));
 		return (0);
 	}
+
+	Log(LG_PHYS, ("PPPoE: waiting for connection on %s, service \"%s\"",
+		path, idata->data));
+
 	/* Register an event listening to the data socket. */
 	EventRegister(&(PIf->dataEvent), EVENT_READ, PIf->dsock,
 	    EVENT_RECURRING, PppoeListenEvent, PIf);
