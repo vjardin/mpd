@@ -356,7 +356,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
 	snprintf(&compl[strlen(compl)], sizeof(compl) - strlen(compl), "%s ", av2[0]);
 	FreeArgs(ac2, av2);
 	if (cmd->func != CMD_SUBMENU && 
-	  (i != 0 || strncmp(av[0], "help", strlen(av[0])) !=0)) {
+	  (i != 0 || strcmp(compl, "help ") !=0)) {
 	    i++;
 	    if (i < ac) {
 		cs->write(cs, "\a");
