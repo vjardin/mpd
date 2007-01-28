@@ -42,7 +42,7 @@
   };
   typedef struct layer	*Layer;
 
-  #define DEFAULT_OPEN_LAYER	"lcp"
+  #define DEFAULT_OPEN_LAYER	"link"
 
   /* Set menu options */
   enum {
@@ -263,10 +263,10 @@
       BundClose,
       "Multilink bundle"
     },
-    { "lcp",
-      LcpOpen,
-      LcpClose,
-      "LCP: link control protocol"
+    { "link",
+      LinkOpenCmd,
+      LinkCloseCmd,
+      "Link layer"
     },
     { "phys",
       PhysOpen,

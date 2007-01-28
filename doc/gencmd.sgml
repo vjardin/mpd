@@ -189,7 +189,7 @@ IP control protocol FSM. This is normally opened and closed automatically.
 Compression control protocol FSM.
 This is normally opened and closed automatically.
 
-<tag>lcp</tag>
+<tag>link</tag>
 
 Link control protocol FSM. This is default layer for open/close commands.
 Opening of this layer initiates outgoing call by this link.
@@ -201,7 +201,7 @@ This is normally opened and closed automatically.
 
 </descrip>
 
-Normally, only the <tt>iface</tt> and <tt>lcp</tt> layers should be explicitly
+Normally, only the <tt>iface</tt> and <tt>link</tt> layers should be explicitly
 opened or closed. This is because the other layers are programmed
 to automatically open and close when appropriate. Note that
 the <bf>SIGUSR1</bf> and <bf>SIGUSR2</bf> signals are an alternative

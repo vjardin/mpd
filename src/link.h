@@ -161,6 +161,8 @@
   extern void	LinkDown(Link l);
   extern void	LinkOpen(Link l);
   extern void	LinkClose(Link l);
+  extern void	LinkOpenCmd(void);
+  extern void	LinkCloseCmd(void);
 
   extern Link	LinkNew(char *name, Bund b, int bI);
   extern Link	LinkCopy(void);

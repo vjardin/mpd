@@ -438,7 +438,6 @@ BundOpenLink(Link l)
   Log(LG_BUND, ("[%s] opening link \"%s\"...", l->bund->name, l->name));
   LinkOpen(l);
   l->bund->bm.links_open = 1;
-  l->last_open = time(NULL);
 }
 
 /*

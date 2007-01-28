@@ -113,6 +113,26 @@
   };
 
 /*
+ * LinkOpenCmd()
+ */
+
+void
+LinkOpenCmd(void)
+{
+  LinkOpen(lnk);
+}
+
+/*
+ * LinkCloseCmd()
+ */
+
+void
+LinkCloseCmd(void)
+{
+  LinkClose(lnk);
+}
+
+/*
  * LinkOpen()
  */
 
@@ -164,6 +184,7 @@ LinkMsg(int type, void *arg)
   Log(LG_LINK, ("[%s] link: %s event", lnk->name, MsgName(type)));
   switch (type) {
     case MSG_OPEN:
+      lnk->last_open = time(NULL);
       lnk->num_redial = 0;
       LcpOpen();
       break;
