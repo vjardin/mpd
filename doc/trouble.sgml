@@ -53,6 +53,8 @@ The following node types are or may be needed:
 <item><tt>ng_ksocket</tt></item>
 <item><tt>ng_tty</tt></item>
 <item><tt>ng_pppoe</tt></item>
+<item><tt>ng_ether</tt></item>
+<item><tt>ng_l2tp</tt></item>
 </itemize>
 
 <tag><bf>
@@ -68,8 +70,7 @@ My configuration doesn't seem to be working as expected.
 </bf></tag>
 
 Make sure your <tt>mpd.conf</tt> and <tt>mpd.links</tt> files are
-formatted properly. Labels must be left-justified, and blank lines
-must exist between sections to separate them.
+formatted properly. Labels must be left-justified, while other lines must not.
 
 <tag><bf>
 I'm getting no valid response from the RADIUS server.
@@ -98,20 +99,8 @@ mpd gets into some kind of infinite loop.
 </bf></tag>
 
 This is because mpd is trying to ``redial,'' which of course is not
-appropriate for dial-in links. Use <tt>set link max-redial -1</tt>
-to disable the redial function.
-
-<tag><bf>
-I've configured lots and lots of bundles. But after creating 100
-of them (or some other power of 10) mpd starts getting ``Address
-already in use'' errors.
-</bf></tag>
-
-This is because the names assigned to the netgraph nodes are too
-long, being truncated, and the conflicting with existing names.
-The maximum length of a netgraph node name is 15 characters.
-The names are derived from the bundle names assigned in
-<tt>mpd.conf</tt>. So try shortening your bundle names.
+appropriate for dial-in links. Use <tt>set link max-redial -1</tt> and 
+<tt>set bundle yes noretry</tt> to disable the redial function.
 
 <tag><bf>
 I'm using mpd as PPTP server for Windows XP clients, when accessing bigger
@@ -136,7 +125,6 @@ Problems with MPPE stateless when connecting to Cisco devices.
 
 Upgrade the IOS of your device, see:
 <tt>CSCdu30944  MPPE rejects stateless        Fixed in 12.3(11.4)</tt>
-
 
 </descrip>
 

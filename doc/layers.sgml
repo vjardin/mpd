@@ -27,9 +27,7 @@
 	the link(s) are actually connected and transmitting packets.
 
 	At the bundle layer you configure multi-link
-	PPP settings, authentication credentials for the
-	bundle (i.e., login and password),
-	and the link management policy. The link management
+	PPP settings and the link management policy. The link management
 	policy determines whether mpd tries to keep all the links
 	connected all the time, or whether it adds and subtracts
 	links depending on demand, and if so, according to what parameters.

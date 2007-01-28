@@ -51,10 +51,10 @@ that are not included with the normal mpd distribution.
 
 <tag><tt>pred1</tt></tag>
 
-This option enables Predictor-1 (rfc 1978) compression.
+This option enables Predictor-1 (RFC 1978) compression.
+Predictor-1 compression is much faster then Deflate.
 <P>
 This option require ng_pred1 Netgraph node type.
-<P>
 If there no ng_pred1 in system, this algorithm is supported
 in user-level, but will consume more CPU power. To reduce packet 
 loss in user-level on fast links it is recommended to increase 
@@ -62,7 +62,8 @@ values of net.graph.recvspace and net.graph.maxdgram sysctl variables.
 
 <tag><tt>deflate</tt></tag>
 
-This option enables Deflate (rfc 1979) compression.
+This option enables Deflate (RFC 1979) compression.
+Deflate compression usually gives better compression ratio then Predictor-1.
 <P>
 This option require ng_deflate Netgraph node type.
 
@@ -77,12 +78,17 @@ you must use additional options (below) for that.
 This option is required because of the way Microsoft implemented MPPC and
 MPPE as additional, optional sub-components of the MPPC protocol.
 
+Note: in order for MPPE to work, MS-CHAPv1 or MS-CHAPv2 is
+mandatory, because the MPPE keys are generated using the results
+from authentication.
+
 <tag><tt>mpp-compress</tt></tag>
 
-Enables MPPC compression. 
+Enables MPPC compression. This is the only compression method supported by 
+Microsoft Windows RAS.
 <P>
-This option requires compression support from ng_mppc node 
-which is not implemented.
+This option requires compression support from ng_mppc node which is 
+usually not implemented as it require some Hi/Fn proprietary files.
 
 <tag><tt>mpp-e40</tt></tag>
 

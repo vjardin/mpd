@@ -66,10 +66,11 @@ This option enables DESE (rfc 1969) encryption.
 This algorithm implemented in user-level, so require much CPU power
 on fast (>10Mbit/s) links.
 <P>
-<bf>Note:</bf> Because of data padding to the next 8 octets boundary,
-required by block nature of DES encryption, dese-old option can have 
-interoperability issues with other protocols which work over it. 
-As example, it is incompatible with Predictor-1 and Deflate compressions.
+<bf>Note:</bf> DESE protocol is deprecated. Because of data padding 
+to the next 8 octets boundary, required by block nature of DES encryption, 
+dese-old option can have interoperability issues with other protocols 
+which work over it. As example, it is incompatible with Predictor-1 and 
+Deflate compressions.
 
 </descrip>
 

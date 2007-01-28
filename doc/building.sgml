@@ -27,7 +27,9 @@
   <tag><tt>PHYSTYPE_TCP</tt></tag><p>
   <tag><tt>PHYSTYPE_UDP</tt></tag><p>
   <tag><tt>PHYSTYPE_NG_SOCKET</tt></tag><p>
-  <tag><tt>PHYSTYPE_PPTP</tt></tag>
+  <tag><tt>PHYSTYPE_PPTP</tt></tag><p>
+  <tag><tt>PHYSTYPE_L2TP</tt></tag><p>
+  <tag><tt>PHYSTYPE_PPPOE</tt></tag><p>
 
   Define these to include support for the corresponding device type.
 
@@ -37,8 +39,7 @@
 
   These enable support for the corresponding compression types.
   Note that STAC and MPPC compression require proprietary source
-  files that are not included. DEFLATE is unimplemented. All of
-  these are not very well tested.
+  files that are not included.
 
   <tag><tt>ENCRYPTION_DES</tt></tag><p>
 
