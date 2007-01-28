@@ -56,10 +56,6 @@ set console enable <em>option ...</em>
 
 These commands configure various console options.
 
-<p>
-The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands determine
-whether we want the corresponding option.
-
 The options available for the console are:
 
 <tag><tt>logging</tt></tag>
