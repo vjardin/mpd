@@ -674,12 +674,12 @@ ExclusiveCloseDevice(int fd, const char *pathname)
     {
       Log(LG_ERR, ("[%s] can't close %s: %s",
 	lnk->name, pathname, strerror(errno)));
-      DoExit(EX_ERRDEAD);
+      break;
     }
 
 /* Did we succeed? */
 
-  if (rtn < 0)
+  if ((rtn < 0) && (errno == EINTR))
   {
     Log(LG_ERR, ("[%s] can't close %s after %d secs",
       lnk->name, pathname, MAX_OPEN_DELAY));
