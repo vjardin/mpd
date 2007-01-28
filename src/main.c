@@ -46,7 +46,7 @@
     { 1, 'd',	"directory",	"config-dir",
 				"Set config file directory"	},
     { 0, 'k',	"kill",		"",
-				"Kill any running mpd process"	},
+				"Kill running mpd process before start"	},
     { 1, 'f',	"file",		"config-file",
 				"Set configuration file"	},
     { 1, 'p',	"pidfile",	"filename",
