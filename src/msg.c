@@ -65,7 +65,8 @@ MsgRegister(void (*func)(int type, void *arg), int prio)
   if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
     if (pipe(msgpipe) < 0)
     {
-	Log(LG_ERR, ("mpd: pipe: %s", strerror(errno)));
+	Perror("%s: Can't create message pipe: %s", 
+	    __FUNCTION__, strerror(errno));
 	DoExit(EX_ERRDEAD);
     }
     fcntl(msgpipe[PIPE_READ], F_SETFD, 1);
@@ -101,12 +102,12 @@ MsgEvent(int type, void *cookie)
     if ((nread = read(msgpipe[PIPE_READ],
       (u_char *) &msg + nrode, sizeof(msg) - nrode)) < 0)
     {
-      Log(LG_ERR, ("mpd: %s: read: %s", __FUNCTION__, strerror(errno)));
+      Perror("%s: Can't read from message pipe: %s", __FUNCTION__, strerror(errno));
       DoExit(EX_ERRDEAD);
     }
     if (nread == 0)
     {
-      Log(LG_ERR, ("mpd: %s: EOF", __FUNCTION__));
+      Perror("%s: Unexpected EOF on message pipe!", __FUNCTION__);
       DoExit(EX_ERRDEAD);
     }
   }
@@ -124,7 +125,7 @@ void
 MsgSend(MsgHandler m, int type, void *arg)
 {
   struct mpmsg	msg;
-  int		nw, nwrote;
+  int		nw, nwrote, retry;
 
   if (m == NULL)
     return;
@@ -133,13 +134,17 @@ MsgSend(MsgHandler m, int type, void *arg)
   msg.arg = arg;
   msg.bund = m->bund;
   msg.lnk = m->lnk;
-  for (nwrote = 0; nwrote < sizeof(msg); nwrote += nw)
+  for (nwrote = 0, retry = 10; nwrote < sizeof(msg) && retry > 0; nwrote += nw, retry--)
     if ((nw = write(msgpipe[PIPE_WRITE],
       (u_char *) &msg + nwrote, sizeof(msg) - nwrote)) < 0)
     {
-      Perror("MsgSend: write");
+      Perror("%s: Message pipe write error: %s", __FUNCTION__, strerror(errno));
       DoExit(EX_ERRDEAD);
     }
+  if (nwrote < sizeof(msg)) {
+      Perror("%s: Can't write to message pipe, fatal pipe overflow!", __FUNCTION__);
+      DoExit(EX_ERRDEAD);
+  }
 }
 
 /*
@@ -152,7 +157,7 @@ MsgReregister()
   if (EventRegister(&msgevent, EVENT_READ,
     msgpipe[PIPE_READ], 0, MsgEvent, NULL) < 0)
   {
-    Log(LG_ERR, ("mpd: can't register event"));
+    Perror("%s: Can't register event!", __FUNCTION__);
     DoExit(EX_ERRDEAD);
   }
 }

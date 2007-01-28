@@ -1207,14 +1207,14 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
 
   /* Get interface list */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("socket");
-    DoExit(EX_ERRDEAD);
+    Perror("%s: Socket creation error: %s", __FUNCTION__, strerror(errno));
+    return(-1);
   }
 
   ifc.ifc_len = sizeof(ifs);
   ifc.ifc_req = ifs;
   if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-    Perror("ioctl(SIOCGIFCONF)");
+    Perror("%s: ioctl(SIOCGIFCONF): %s", __FUNCTION__, strerror(errno));
     close(s);
     return(-1);
   }
@@ -1275,14 +1275,14 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 
   /* Get interface list */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("socket");
-    DoExit(EX_ERRDEAD);
+    Perror("%s: Socket creation error: %s", __FUNCTION__, strerror(errno));
+    return(-1);
   }
 
   ifc.ifc_len = sizeof(ifs);
   ifc.ifc_req = ifs;
   if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-    Perror("ioctl(SIOCGIFCONF)");
+    Perror("%s: ioctl(SIOCGIFCONF): %s", __FUNCTION__, strerror(errno));
     close(s);
     return(-1);
   }
