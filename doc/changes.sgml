@@ -6,6 +6,18 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.0rc1:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Idle timeout fixed.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 4.0b5:
     <itemize>
 	<item>New features:
