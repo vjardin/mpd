@@ -1009,9 +1009,10 @@ IfaceIdleTimeout(void *arg)
   memcpy(&iface->idleStats, u.reply.data, sizeof(iface->idleStats));
 
   /* Mark current traffic period if there was traffic */
-  if (iface->idleStats.recvMatchFrames > oldStats.recvMatchFrames)
+  if (iface->idleStats.recvFrames + iface->idleStats.xmitFrames > 
+	oldStats.recvFrames + oldStats.xmitFrames) {
     iface->traffic[0] = TRUE;
-  else {		/* no demand traffic for a whole idle timeout period? */
+  } else {		/* no demand traffic for a whole idle timeout period? */
     for (k = 0; k < IFACE_IDLE_SPLIT && !iface->traffic[k]; k++);
     if (k == IFACE_IDLE_SPLIT) {
       IfaceIdleTimerExpired(NULL);
