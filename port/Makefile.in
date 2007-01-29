@@ -21,7 +21,7 @@ MTREE_FILE=	${FILESDIR}/mpd4.mtree
 MAN8=		mpd4.8
 MANCOMPRESSED=	maybe
 USE_RC_SUBR=	mpd4.sh
-HTMLNUM=@HTMLNUM@
+HTMLNUM!=	@HTMLNUM@
 CONFSUF=	conf links secret script
 PORTDOCS=	${HTMLNUM:S/^/mpd/:S/$/.html/} mpd.html mpd.ps README	\
 		mpd_toc.html
