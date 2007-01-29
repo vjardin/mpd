@@ -55,7 +55,7 @@ This option enables Predictor-1 (RFC 1978) compression.
 Predictor-1 compression is much faster then Deflate.
 <P>
 This option require ng_pred1 Netgraph node type, which is present
-since FreeBSD 6.2-STABLE of 2006-01-28.
+since FreeBSD 6.2-STABLE of 2007-01-28.
 If there no ng_pred1 in system, this algorithm is supported
 in user-level, but will consume more CPU power. To reduce packet 
 loss in user-level on fast links it is recommended to increase 
@@ -67,7 +67,7 @@ This option enables Deflate (RFC 1979) compression.
 Deflate compression usually gives better compression ratio then Predictor-1.
 <P>
 This option require ng_deflate Netgraph node type, which is present
-since FreeBSD 6.2-STABLE of 2006-01-28.
+since FreeBSD 6.2-STABLE of 2007-01-28.
 
 <tag><tt>mppc</tt></tag>
 
