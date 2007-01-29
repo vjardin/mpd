@@ -2,7 +2,7 @@
 VERSION!=	cat ../src/Makefile | grep ^VERSION | awk '{ print $$2 }'
 HTMLNUM!=	( cd ../mpd4-${VERSION}/doc && ls *[0-9]*.html | 	\
 		sed -e 's/mpd//' -e 's/\.html//' | sort -n | 		\
-		tail -n 1 | sed -e 's/^/jot /' -e 's/$/ 1/' )
+		tail -n 1 | sed -e 's/^/jot /' -e 's/$$/ 1/' )
 
 PDIR=		port.temp
 
