@@ -480,7 +480,7 @@ PptpResult(void *cookie, const char *errmsg)
   lnk = (Link) cookie;
   bund = lnk->bund;
   p = lnk->phys;
-  pptp = (PptpInfo) lnk->phys->info;
+  pptp = (PptpInfo) p->info;
 
   switch (p->state) {
     case PHYS_STATE_CONNECTING:
@@ -771,7 +771,7 @@ PptpCancel(void *cookie)
   lnk = (Link) cookie;
   bund = lnk->bund;
   p = lnk->phys;
-  pptp = (PptpInfo) lnk->phys->info;
+  pptp = (PptpInfo) p->info;
 
   Log(LG_PHYS, ("[%s] PPTP call cancelled in state %s",
     lnk->name, gPhysStateNames[p->state]));
