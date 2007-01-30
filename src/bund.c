@@ -250,7 +250,7 @@ BundJoin(void)
 
     /* generate a uniq session id */
     snprintf(bund->session_id, LINK_MAX_NAME, "%d-%s",
-      time(NULL) % 10000000, bund->name);
+      (int)(time(NULL) % 10000000), bund->name);
   }
 
   /* Update PPP node configuration */
@@ -258,7 +258,7 @@ BundJoin(void)
 
   /* generate a uniq session id */
   snprintf(lnk->session_id, LINK_MAX_NAME, "%d-%s",
-    time(NULL) % 10000000, lnk->name);
+    (int)(time(NULL) % 10000000), lnk->name);
 
   /* What to do when the first link comes up */
   if (bm->n_up == 1) {
