@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Idle timeout fixed.
 	  </item>
+	  <item> Fixed bug with 'selt l2tp self ' specified at the server side.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

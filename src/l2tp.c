@@ -801,7 +801,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		if ((p->state != PHYS_STATE_DOWN) ||
 		    (now-p->lastClose < L2TP_REOPEN_PAUSE) ||
 		    !Enabled(&pi->conf.options, L2TP_CONF_INCOMING) ||
-		    ((!u_addrempty(&pi->conf.self_addr)) && u_addrcompare(&pi->conf.self_addr, &tun->peer_addr)) ||
+		    ((!u_addrempty(&pi->conf.self_addr)) && u_addrcompare(&pi->conf.self_addr, &tun->self_addr)) ||
 		    (pi->conf.self_port != 0 && pi->conf.self_port != tun->self_port) ||
 		    (!IpAddrInRange(&pi->conf.peer_addr_req, &tun->peer_addr)) ||
 		    (pi->conf.peer_port_req != 0 && pi->conf.peer_port_req != tun->peer_port))
