@@ -1108,7 +1108,7 @@ PppoeSetCommand(int ac, char *av[], void *arg)
 	const char *colon;
 
 	if (lnk->phys->type != &gPppoePhysType) {
-		Log(LG_ERR, ("[%s] PPPoE: Link type is not pppoe", lnk->name));
+		Log(LG_ERR, ("[%s] link type is not pppoe!", lnk->name));
 		return(0);
 	}
 	switch ((intptr_t)arg) {

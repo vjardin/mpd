@@ -827,9 +827,14 @@ PptpListenUpdate(void)
 static int
 PptpSetCommand(int ac, char *av[], void *arg)
 {
-  PptpInfo		const pptp = (PptpInfo) lnk->phys->info;
-  struct u_range	rng;
-  int			port;
+	PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
+	struct u_range	rng;
+	int		port;
+
+	if (lnk->phys->type != &gPptpPhysType) {
+		Log(LG_ERR, ("[%s] link type is not pptp!", lnk->name));
+		return(0);
+	}
 
   switch ((intptr_t)arg) {
     case SET_SELFADDR:
