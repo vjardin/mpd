@@ -14,6 +14,8 @@
 	  </item>
 	  <item> Fixed bug with 'set l2tp self ' specified at the server side.
 	  </item>
+	  <item> Check of the current device type fot device-specific commands added.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
