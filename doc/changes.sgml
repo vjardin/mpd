@@ -14,7 +14,9 @@
 	  </item>
 	  <item> Fixed bug with 'set l2tp self ' specified at the server side.
 	  </item>
-	  <item> Check of the current device type fot device-specific commands added.
+	  <item> Device type check for device-specific commands added.
+	  </item>
+	  <item> IPCP reject is not fatal by itself now.
 	  </item>
 	</itemize>
 	</item>

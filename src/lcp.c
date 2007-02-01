@@ -700,7 +700,6 @@ LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp)
       break;
     case PROTO_IPCP:
       rej = &bund->ipcp.fsm;
-      fatal = TRUE;
       break;
     case PROTO_IPV6CP:
       rej = &bund->ipv6cp.fsm;
