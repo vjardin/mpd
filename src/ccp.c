@@ -835,6 +835,7 @@ fail:
     " negotiated in both directions", Pref(&ccp->fsm)));
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
   FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
+  FsmFailure(&bund->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
   return(-1);
 }
 
