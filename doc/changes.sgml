@@ -18,6 +18,10 @@
 	  </item>
 	  <item> IPCP reject is not fatal by itself now.
 	  </item>
+	  <item> Up/down-script will now be called not for the whole interface, 
+		 but for each of negotiated protocols. Proto parameter should 
+		 be checked in the script!
+	  </item>
 	</itemize>
 	</item>
     </itemize>

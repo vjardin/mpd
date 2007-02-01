@@ -76,7 +76,8 @@
     struct u_range	self_addr;		/* Interface's IP address */
     struct u_addr	peer_addr;		/* Peer's IP address */
     struct u_addr	proxy_addr;		/* Proxied IP address */
-    struct in6_addr	ipv6_addr;
+    struct u_addr	self_ipv6_addr;
+    struct u_addr	peer_ipv6_addr;
     struct pppTimer	idleTimer;		/* Idle timer */
     struct pppTimer	sessionTimer;		/* Session timer */
     char		up_script[IFACE_MAX_SCRIPT];

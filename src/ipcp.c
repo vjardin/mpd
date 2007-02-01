@@ -187,6 +187,8 @@ IpcpStat(int ac, char *av[], void *arg)
     u_rangetoa(&ipcp->conf.self_allow,buf,sizeof(buf)));
   Printf("\tPeer: %s\r\n",
     u_rangetoa(&ipcp->conf.peer_allow,buf,sizeof(buf)));
+  Printf("IPCP Options:\r\n");
+  OptStat(&ipcp->conf.options, gConfList);
   Printf("Current addressing:\r\n");
   Printf("\tSelf: %s\r\n", inet_ntoa(ipcp->want_addr));
   Printf("\tPeer: %s\r\n", inet_ntoa(ipcp->peer_addr));
@@ -215,8 +217,6 @@ IpcpStat(int ac, char *av[], void *arg)
   Printf("  %15s\r\n", inet_ntoa(ipcp->want_dns[1]));
   Printf("NBNS servers: %15s", inet_ntoa(ipcp->want_nbns[0]));
   Printf("  %15s\r\n", inet_ntoa(ipcp->want_nbns[1]));
-  Printf("IPCP Options:\r\n");
-  OptStat(&ipcp->conf.options, gConfList);
 
   /* Get VJC state */
   snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name, NG_PPP_HOOK_VJC_IP);

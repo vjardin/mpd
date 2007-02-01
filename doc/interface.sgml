@@ -88,16 +88,17 @@ Sets the session timeout value for the bundle.
 <tag><tt>set iface up-script <em>script</em> </tt></tag><p>
 <tag><tt>set iface down-script <em>script</em> </tt></tag><p>
 
-Mpd can optionally run a user program every time the interface
-is brought up or down.
+Mpd can optionally run a user program every time one of network
+protocols at the interface is brought up or down.
 The <tt><bf>up-script</bf></tt> is called like this:
 <tscreen><tt>
-<em>script</em> <em>interface</em> inet <em>local-ip</em> <em>remote-ip</em> <em>authname</em> [ dns1 <em>server-ip</em> ] [ dns2 <em>server-ip</em> ]
+<em>script</em> <em>interface</em> <em>proto</em> <em>local-ip</em> 
+<em>remote-ip</em> <em>authname</em> [ dns1 <em>server-ip</em> ] [ dns2 <em>server-ip</em> ]
 </tt></tscreen>
 
 The <tt><bf>down-script</bf></tt> is called like this:
 <tscreen><tt>
-<em>script</em> <em>interface</em> inet <em>authname</em>
+<em>script</em> <em>interface</em> <em>proto</em> <em>authname</em>
 </tt></tscreen>
 
 <tag><tt>

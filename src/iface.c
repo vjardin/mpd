@@ -377,27 +377,6 @@ IfaceUp(int ready)
 
   if (ready) {
 
-  /* Call "up" script */
-  if (*iface->up_script) {
-    char	selfbuf[40],peerbuf[40];
-    char	ns1buf[21], ns2buf[21];
-
-    if(bund->ipcp.want_dns[0].s_addr != 0)
-      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(bund->ipcp.want_dns[0]));
-    else
-      ns1buf[0] = '\0';
-    if(bund->ipcp.want_dns[1].s_addr != 0)
-      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(bund->ipcp.want_dns[1]));
-    else
-      ns2buf[0] = '\0';
-
-    ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
-      iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
-      u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
-      *bund->params.authname ? bund->params.authname : "-", 
-      ns1buf, ns2buf);
-  }
-
   /* Turn on interface traffic flow */
   if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
     Log(LG_IFACE2, ("[%s] enabling TCPMSSFIX", bund->name));
@@ -444,13 +423,6 @@ IfaceDown(void)
 
   TimerStop(&iface->idleTimer);
   TimerStop(&iface->sessionTimer);
-
-  /* Call "down" script */
-  if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, "%s %s inet %s",
-      iface->down_script, iface->ifname, 
-      *bund->params.authname ? bund->params.authname : "-");
-  }
 
   /* Remove rule ACLs */
   rp = &rule_pool;
@@ -800,6 +772,27 @@ IfaceIpIfaceUp(int ready)
   }
 #endif
 
+  /* Call "up" script */
+  if (*iface->up_script) {
+    char	selfbuf[40],peerbuf[40];
+    char	ns1buf[21], ns2buf[21];
+
+    if(bund->ipcp.want_dns[0].s_addr != 0)
+      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(bund->ipcp.want_dns[0]));
+    else
+      ns1buf[0] = '\0';
+    if(bund->ipcp.want_dns[1].s_addr != 0)
+      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(bund->ipcp.want_dns[1]));
+    else
+      ns2buf[0] = '\0';
+
+    ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
+      iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
+      u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
+      *bund->params.authname ? bund->params.authname : "-", 
+      ns1buf, ns2buf);
+  }
+
 }
 
 /*
@@ -814,6 +807,13 @@ IfaceIpIfaceDown(void)
   IfaceState	const iface = &bund->iface;
   int		k;
   char          buf[64];
+
+  /* Call "down" script */
+  if (*iface->down_script) {
+    ExecCmd(LG_IFACE2, "%s %s inet %s",
+      iface->down_script, iface->ifname, 
+      *bund->params.authname ? bund->params.authname : "-");
+  }
 
   /* Delete dynamic routes */
   for (k = 0; k < bund->params.n_routes; k++) {
@@ -875,28 +875,30 @@ IfaceIpv6IfaceUp(int ready)
 
   if (ready) {
 
-    iface->ipv6_addr.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
-    iface->ipv6_addr.__u6_addr.__u6_addr16[1] = 0x0000;
-    iface->ipv6_addr.__u6_addr.__u6_addr16[2] = 0x0000;
-    iface->ipv6_addr.__u6_addr.__u6_addr16[3] = 0x0000;
-    iface->ipv6_addr.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.myintid)[0];
-    iface->ipv6_addr.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.myintid)[1];
-    iface->ipv6_addr.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.myintid)[2];
-    iface->ipv6_addr.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.myintid)[3];
+    iface->self_ipv6_addr.family = AF_INET6;
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.myintid)[0];
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.myintid)[1];
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.myintid)[2];
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.myintid)[3];
+
+    iface->peer_ipv6_addr.family = AF_INET6;
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.hisintid)[0];
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.hisintid)[1];
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.hisintid)[2];
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.hisintid)[3];
 
     /* Set addresses and bring interface up */
-    ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s",
+    ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s",
 	PATH_IFCONFIG, iface->ifname, 
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
-	iface->ifname);
-
+	u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
   }
   
   /* Add static routes */
@@ -917,6 +919,18 @@ IfaceIpv6IfaceUp(int ready)
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
     }
   }
+
+  /* Call "up" script */
+  if (*iface->up_script) {
+    char	selfbuf[64],peerbuf[64];
+
+    ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s %s%%%s %s",
+      iface->up_script, iface->ifname, 
+      u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
+      u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
+      *bund->params.authname ? bund->params.authname : "-");
+  }
+
 }
 
 /*
@@ -929,8 +943,15 @@ void
 IfaceIpv6IfaceDown(void)
 {
   IfaceState	const iface = &bund->iface;
-  int 		i,k,empty;
+  int 		k;
   char		buf[64];
+
+  /* Call "down" script */
+  if (*iface->down_script) {
+    ExecCmd(LG_IFACE2, "%s %s inet6 %s",
+      iface->down_script, iface->ifname, 
+      *bund->params.authname ? bund->params.authname : "-");
+  }
 
   /* Delete dynamic routes */
   for (k = 0; k < bund->params.n_routes; k++) {
@@ -957,25 +978,11 @@ IfaceIpv6IfaceDown(void)
     }
   }
 
-  empty=1;
-  for (i=0;i<4;i++) {
-    if (iface->ipv6_addr.__u6_addr.__u6_addr32[i])
-	empty=0;
-  }
-
-  if (!empty) {
+  if (!u_addrempty(&iface->self_ipv6_addr)) {
     /* Bring down system interface */
-    ExecCmd(LG_IFACE2, "%s %s inet6 %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x%%%s delete",
-	PATH_IFCONFIG, iface->ifname, 
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[0]),
-	ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[1]),
-        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[2]),
-        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[3]),
-        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[4]),
-        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[5]),
-        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[6]),
-        ntohs(iface->ipv6_addr.__u6_addr.__u6_addr16[7]),
-        iface->ifname);
+    ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s delete",
+	PATH_IFCONFIG, iface->ifname,
+        u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
   }
 
 }
@@ -1325,23 +1332,42 @@ IfaceStat(int ac, char *av[], void *arg)
   int		k;
   char          buf[64];
 
-  Printf("Interface %s:\r\n", iface->ifname);
-  Printf("\tStatus       : %s\r\n", iface->open ? "OPEN" : "CLOSED");
-  Printf("\tIP Addresses : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
-  Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));
-  Printf("\tMaximum MTU  : %d bytes\r\n", iface->max_mtu);
-  Printf("\tCurrent MTU  : %d bytes\r\n", iface->mtu);
-  Printf("\tIdle timeout : %d seconds\r\n", iface->idle_timeout);
+  Printf("Interface configuration:\r\n");
+  Printf("\tName            : %s\r\n", iface->ifname);
+  Printf("\tMaximum MTU     : %d bytes\r\n", iface->max_mtu);
+  Printf("\tIdle timeout    : %d seconds\r\n", iface->idle_timeout);
   Printf("\tSession timeout : %d seconds\r\n", iface->session_timeout);
-  Printf("\tEvent scripts: UP: \"%s\"  DOWN: \"%s\"\r\n",
-    *iface->up_script ? iface->up_script : "<none>",
+  Printf("\tEvent scripts\r\n");
+  Printf("\t  up-script     : \"%s\"\r\n",
+    *iface->up_script ? iface->up_script : "<none>");
+  Printf("\t  down-script   : \"%s\"\r\n",
     *iface->down_script ? iface->down_script : "<none>");
-  Printf("Static routes via peer:\r\n");
-  for (k = 0; k < iface->n_routes; k++) {
-    Printf("\t%s\r\n", u_rangetoa(&iface->routes[k].dest,buf,sizeof(buf)));
-  }
-  Printf("Interface level options:\r\n");
+  Printf("Interface options:\r\n");
   OptStat(&iface->options, gConfList);
+  if (iface->n_routes) {
+    Printf("Static routes via peer:\r\n");
+    for (k = 0; k < iface->n_routes; k++) {
+	Printf("\t%s\r\n", u_rangetoa(&iface->routes[k].dest,buf,sizeof(buf)));
+    }
+  }
+  Printf("Interface status:\r\n");
+  Printf("\tStatus          : %s\r\n", iface->open ? "OPEN" : "CLOSED");
+  Printf("\tMTU             : %d bytes\r\n", iface->mtu);
+  if (!u_rangeempty(&iface->self_addr)) {
+    Printf("\tIP Addresses    : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
+    Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));
+  }
+  if (!u_addrempty(&iface->self_ipv6_addr)) {
+    Printf("\tIPv6 Addresses  : %s%%%s -> ", 
+	u_addrtoa(&iface->self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+    Printf("%s%%%s\r\n", u_addrtoa(&iface->peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+  }
+  if (bund->params.n_routes) {
+    Printf("Dynamic routes via peer:\r\n");
+    for (k = 0; k < bund->params.n_routes; k++) {
+	Printf("\t%s\r\n", u_rangetoa(&bund->params.routes[k].dest,buf,sizeof(buf)));
+    }
+  }
   return(0);
 }
 
