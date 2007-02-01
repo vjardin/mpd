@@ -362,8 +362,11 @@ EcpClose(void)
 static void
 EcpFailure(Fsm f, enum fsmfail reason)
 {
-  if (Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD))
+  EcpClose();
+  if (Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD)) {
     FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
+    FsmFailure(&bund->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
+  }
 }
 
 /*
