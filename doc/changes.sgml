@@ -22,6 +22,8 @@
 		 but for each of negotiated protocols. Proto parameter should 
 		 be checked in the script!
 	  </item>
+	  <item> Fixed ng_ppp link bandwidth configuration.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
