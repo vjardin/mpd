@@ -225,7 +225,7 @@ BundJoin(void)
   bund->pppConfig.links[lnk->bundleIndex].mru = lcp->peer_mru;
   bund->pppConfig.links[lnk->bundleIndex].enableACFComp = lcp->peer_acfcomp;
   bund->pppConfig.links[lnk->bundleIndex].enableProtoComp = lcp->peer_protocomp;
-  bund->pppConfig.links[lnk->bundleIndex].bandwidth = (lnk->bandwidth + 5) / 10;
+  bund->pppConfig.links[lnk->bundleIndex].bandwidth = (lnk->bandwidth / 8 + 5) / 10;
   bund->pppConfig.links[lnk->bundleIndex].latency = (lnk->latency + 500) / 1000;
 
   /* What to do when the first link comes up */
@@ -999,8 +999,8 @@ BundStat(int ac, char *av[], void *arg)
   BundShowLinks(sb);
   Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");
   Printf("\tSession-Id     : %s\r\n", sb->session_id);
-  Printf("\tTotal bandwidth: %u\r\n", tbw);
-  Printf("\tAvail bandwidth: %u\r\n", bw);
+  Printf("\tTotal bandwidth: %u bits/sec\r\n", tbw);
+  Printf("\tAvail bandwidth: %u bits/sec\r\n", bw);
   Printf("\tPeer authname  : \"%s\"\r\n", sb->params.authname);
   Printf("\tPeer discrim.  : %s\r\n", MpDiscrimText(&sb->peer_discrim));
 
