@@ -583,14 +583,25 @@ LinkSetCommand(int ac, char *av[], void *arg)
     case SET_BANDWIDTH:
       val = atoi(*av);
       if (val <= 0)
-	Log(LG_ERR, ("Bandwidth must be positive"));
-      else
+	Log(LG_ERR, ("[%s] Bandwidth must be positive", lnk->name));
+      else if (val > NG_PPP_MAX_BANDWIDTH * 10 * 8) {
+	lnk->bandwidth = NG_PPP_MAX_BANDWIDTH * 10 * 8;
+	Log(LG_ERR, ("[%s] Bandwidth truncated to %d bit/s", lnk->name, 
+	    lnk->bandwidth));
+      } else
 	lnk->bandwidth = val;
       break;
 
     case SET_LATENCY:
       val = atoi(*av);
-      lnk->latency = val;
+      if (val < 0)
+	Log(LG_ERR, ("[%s] Latency must be not negative", lnk->name));
+      else if (val > NG_PPP_MAX_LATENCY * 1000) {
+	Log(LG_ERR, ("[%s] Latency truncated to %d usec", lnk->name, 
+	    NG_PPP_MAX_LATENCY * 1000));
+	lnk->latency = NG_PPP_MAX_LATENCY * 1000;
+      } else
+        lnk->latency = val;
       break;
 
     case SET_DEVTYPE:
