@@ -11,6 +11,7 @@ PROG?=			mpd4
 PREFIX?=		/usr/local
 BINDIR?=		${PREFIX}/sbin
 VERSION=		4.0rc1
+NOMAN=
 NO_MAN=
 
 # Default configuration directory
