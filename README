@@ -19,7 +19,7 @@ Checklist for spinning a new release
 
 5. Submit the resulting two files to the ports maintainer:
 
-	mpd4-x.xy.tar.gz	Distribution file
+	mpd-x.xy.tar.gz		Distribution file
 	port.tgz		Updated port
 
 

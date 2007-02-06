@@ -2,7 +2,7 @@
 
 VERSION!=	cat src/Makefile | grep ^VERSION | awk '{ print $$2 }'
 
-DISTNAME=	mpd4-${VERSION}
+DISTNAME=	mpd-${VERSION}
 TARBALL=	${DISTNAME}.tar.gz
 PORTBALL=	port.tgz
 CVSROOT?=	mpd.cvs.sourceforge.net:/cvsroot/mpd
