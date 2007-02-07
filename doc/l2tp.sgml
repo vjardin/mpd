@@ -30,6 +30,10 @@ set l2tp self <em>ipaddr</em> [ <em>port</em> ]
 </tt></tag>
 
 Sets the local IP address and port for the L2TP connection.
+There is known implementation bug if this option is not set 
+while accepting incoming connections on the router with multiple 
+IPs and clients are connecting not to the nearest address of 
+this router.
 
 <tag><tt>
 set l2tp peer <em>ipaddr</em> [ <em>port</em> ]
