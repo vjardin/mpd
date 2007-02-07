@@ -20,6 +20,11 @@
   be supplied by your ISP. If you do not have a service name, then
   the empty string (the default) often suffices.
 
+  <p>
+  <bf>Note:</bf> There is a bug in Windows 2000 PPPoE implementation
+  which makes connection impossible due to LCP mru negotiation failure.
+  Other Windows version have no this bug.
+  
 <descrip>
 
 <tag><tt>
