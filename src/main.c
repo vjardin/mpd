@@ -17,7 +17,6 @@
 #include "console.h"
 #include "web.h"
 #include "ngfunc.h"
-#include "msgdef.h"
 #include "util.h"
 
 /*
@@ -377,8 +376,12 @@ FatalSignal(sig)
   Log(LG_ERR, ("caught fatal signal %s", sys_signame[sig]));
   gShutdownInProgress=1;
   for (k = 0; k < gNumBundles; k++) {
-    if ((bund = gBundles[k]))
-      RecordLinkUpDownReason(NULL, 0, STR_PORT_SHUTDOWN, NULL);
+    if ((bund = gBundles[k])) {
+      if (sig != SIGTERM && sig != SIGINT)
+        RecordLinkUpDownReason(NULL, 0, STR_FATAL_SHUTDOWN, NULL);
+      else
+        RecordLinkUpDownReason(NULL, 0, STR_ADMIN_SHUTDOWN, NULL);
+    }
   }
   upLinkCount = 0;
   for (k = 0; k < gNumLinks; k++) {
@@ -386,8 +389,12 @@ FatalSignal(sig)
 	upLinkCount++;
   }
 
+  /* We are going down. No more signals. */
+  signal(SIGINT, SIG_IGN);
+  signal(SIGTERM, SIG_IGN);
   signal(SIGUSR1, SIG_IGN);
   signal(SIGUSR2, SIG_IGN);
+
   if (sig != SIGTERM && sig != SIGINT)
     DoExit(EX_ERRDEAD);
 

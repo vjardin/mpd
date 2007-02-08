@@ -15,7 +15,6 @@
 #include "command.h"
 #include "input.h"
 #include "ngfunc.h"
-#include "msgdef.h"
 #include "util.h"
 
 /*
@@ -119,6 +118,7 @@
 void
 LinkOpenCmd(void)
 {
+  RecordLinkUpDownReason(lnk, 1, STR_MANUALLY, NULL);
   LinkOpen(lnk);
 }
 
@@ -129,6 +129,7 @@ LinkOpenCmd(void)
 void
 LinkCloseCmd(void)
 {
+  RecordLinkUpDownReason(lnk, 0, STR_MANUALLY, NULL);
   LinkClose(lnk);
 }
 
@@ -403,9 +404,11 @@ RecordLinkUpDownReason2(Link l, int up, const char *key, const char *fmt, va_lis
   buf = *cpp;
 
   /* Record reason */
-  snprintf(buf, RBUF_SIZE, "%s:", lcats(key));
-  if (fmt)
+  if (fmt) {
+    snprintf(buf, RBUF_SIZE, "%s:", key);
     vsnprintf(buf + strlen(buf), RBUF_SIZE - strlen(buf), fmt, args);
+  } else 
+    snprintf(buf, RBUF_SIZE, "%s", key);
 }
 
 void

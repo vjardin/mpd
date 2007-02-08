@@ -17,7 +17,6 @@
 #include "event.h"
 #include "util.h"
 #include "log.h"
-#include "msgdef.h"
 
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
@@ -273,7 +272,7 @@ ModemStart(void *arg)
 fail:
     m->opened = FALSE;
     m->lastClosed = time(NULL);
-    PhysDown(STR_ERROR, lcats(STR_DEV_NOT_READY));
+    PhysDown(STR_ERROR, STR_DEV_NOT_READY);
     return;
   }
 
@@ -397,7 +396,7 @@ failed:
 
   /* Do async <-> sync conversion via netgraph node */
   if (ModemInstallNodes(m) < 0) {
-    msg = lcats(STR_DEV_NOT_READY);
+    msg = STR_DEV_NOT_READY;
     goto failed;
   }
 
@@ -460,12 +459,12 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
   {
     if (strcasecmp(idleResult, MODEM_IDLE_RESULT_ANSWER) == 0) {
       Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "answer"));
-      RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, msg ? "%s" : "", msg);
+      RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, msg ? "%s" : NULL, msg);
       m->answering = TRUE;
       BundOpenLink(lnk);
     } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
       Log(LG_PHYS, ("[%s] opening link in %s mode", lnk->name, "ringback"));
-      RecordLinkUpDownReason(NULL, 1, STR_RINGBACK, msg ? "%s" : "", msg);
+      RecordLinkUpDownReason(lnk, 1, STR_RINGBACK, msg ? "%s" : NULL, msg);
       m->answering = FALSE;
       BundOpenLink(lnk);
     } else {
@@ -694,13 +693,13 @@ ModemCheck(void *arg)
   }
   if ((m->watch & TIOCM_CAR) && !(state & TIOCM_CAR)) {
     Log(LG_PHYS, ("[%s] carrier detect (CD) signal lost", lnk->name));
-    PhysDown(STR_DROPPED, "%s", lcats(STR_LOST_CD));
+    PhysDown(STR_DROPPED, "%s", STR_LOST_CD);
     ModemDoClose(m, FALSE);
     return;
   }
   if ((m->watch & TIOCM_DSR) && !(state & TIOCM_DSR)) {
     Log(LG_PHYS, ("[%s] data-set ready (DSR) signal lost", lnk->name));
-    PhysDown(STR_DROPPED, "%s", lcats(STR_LOST_DSR));
+    PhysDown(STR_DROPPED, "%s", STR_LOST_DSR);
     ModemDoClose(m, FALSE);
     return;
   }

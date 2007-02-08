@@ -11,7 +11,6 @@
 #include "pppoe.h"
 #include "ngfunc.h"
 #include "log.h"
-#include "msgdef.h"
 #include "util.h"
 
 #include <net/ethernet.h>
@@ -875,7 +874,7 @@ PppoeListenEvent(int type, void *arg)
 		    PPPOE_CONNECT_TIMEOUT * SECONDS, PppoeConnectTimeout, p);
 		TimerStart(&p->connectTimer);
 
-		RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
+		RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, NULL);
 		BundOpenLink(lnk);
 
 		/* Done. */

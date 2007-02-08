@@ -70,7 +70,7 @@ SetStatus(int code, const char *key, ...)
 /* XXX do whatever */
 
   va_start(args, key);
-  vsnlcatf(buf, sizeof(buf), key, args);
+  vsnprintf(buf, sizeof(buf), key, args);
   va_end(args);
 }
 

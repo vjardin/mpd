@@ -12,7 +12,6 @@
 #include "phys.h"
 #include "ngfunc.h"
 #include "log.h"
-#include "msgdef.h"
 
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__

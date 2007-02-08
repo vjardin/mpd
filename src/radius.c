@@ -15,7 +15,6 @@
 #ifdef PHYSTYPE_NG_SOCKET
 #include "ng.h"
 #endif
-#include "msgdef.h"
 #include "util.h"
 
 #include <sys/types.h>
@@ -295,13 +294,15 @@ RadiusAccount(AuthData auth)
       }
 
       if (lnk->downReason != NULL) {
-	if (!strcmp(lnk->downReason, "")) {
+	if ((!lnk->downReasonValid) || (!strcmp(lnk->downReason, ""))) {
 	  termCause = RAD_TERM_NAS_REQUEST;
+	} else if (!strncmp(lnk->downReason, STR_MANUALLY, strlen(STR_MANUALLY))) {
+	  termCause = RAD_TERM_ADMIN_RESET;
 	} else if (!strncmp(lnk->downReason, STR_PEER_DISC, strlen(STR_PEER_DISC))) {
 	  termCause = RAD_TERM_USER_REQUEST;
-	} else if (!strncmp(lnk->downReason, STR_QUIT, strlen(STR_QUIT))) {
+	} else if (!strncmp(lnk->downReason, STR_ADMIN_SHUTDOWN, strlen(STR_ADMIN_SHUTDOWN))) {
 	  termCause = RAD_TERM_ADMIN_REBOOT;
-	} else if (!strncmp(lnk->downReason, STR_PORT_SHUTDOWN, strlen(STR_PORT_SHUTDOWN))) {
+	} else if (!strncmp(lnk->downReason, STR_FATAL_SHUTDOWN, strlen(STR_FATAL_SHUTDOWN))) {
 	  termCause = RAD_TERM_NAS_REBOOT;
 	} else if (!strncmp(lnk->downReason, STR_IDLE_TIMEOUT, strlen(STR_IDLE_TIMEOUT))) {
 	  termCause = RAD_TERM_IDLE_TIMEOUT;
@@ -315,6 +316,8 @@ RadiusAccount(AuthData auth)
 	  termCause = RAD_TERM_SERVICE_UNAVAILABLE;
 	} else if (!strncmp(lnk->downReason, STR_LOGIN_FAIL, strlen(STR_LOGIN_FAIL))) {
 	  termCause = RAD_TERM_USER_ERROR;
+	} else if (!strncmp(lnk->downReason, STR_PORT_UNNEEDED, strlen(STR_PORT_UNNEEDED))) {
+	  termCause = RAD_TERM_PORT_UNNEEDED;
 	};
 	Log(LG_RADIUS, ("[%s] RADIUS: Termination cause: %s, RADIUS: %d",
 	  lnk->name, lnk->downReason, termCause));

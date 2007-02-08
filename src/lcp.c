@@ -21,7 +21,6 @@
 #endif
 #include "link.h"
 #include "msg.h"
-#include "msgdef.h"
 #include "util.h"
 
 /*
@@ -467,7 +466,7 @@ LcpNewPhase(int new)
 	    lnk->name, bund->name));
 	  SetStatus(ADLG_WAN_NEGOTIATION_FAILURE, STR_MULTI_FAIL);
 	  RecordLinkUpDownReason(lnk,
-	    0, STR_PROTO_ERR, "%s", lcats(STR_MULTI_FAIL));
+	    0, STR_PROTO_ERR, "%s", STR_MULTI_FAIL);
 	  LinkClose(lnk);
 	  lnk->joined_bund = 0;
 	  break;
@@ -518,8 +517,7 @@ LcpAuthResult(int success)
   } else {
     SetStatus(ADLG_WAN_AUTHORIZATION_FAILURE, STR_PPP_AUTH_FAILURE);
     RecordLinkUpDownReason(lnk, 0, STR_LOGIN_FAIL,
-      "%s", lcats(STR_PPP_AUTH_FAILURE2));
-//    PhysClose();
+      "%s", STR_PPP_AUTH_FAILURE2);
     FsmFailure(&lnk->lcp.fsm, FAIL_NEGOT_FAILURE);
   }
 }
@@ -723,7 +721,7 @@ LcpFailure(Fsm fp, enum fsmfail reason)
 {
   char	buf[100];
 
-  snlcatf(buf, sizeof(buf), STR_LCP_FAILED, FsmFailureStr(reason));
+  snprintf(buf, sizeof(buf), STR_LCP_FAILED, FsmFailureStr(reason));
   SetStatus(ADLG_WAN_NEGOTIATION_FAILURE, STR_COPY, buf);
   RecordLinkUpDownReason(lnk, 0, reason == FAIL_ECHO_TIMEOUT ?
     STR_ECHO_TIMEOUT : STR_PROTO_ERR, "%s", buf);

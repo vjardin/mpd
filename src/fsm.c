@@ -14,7 +14,6 @@
 #include "ppp.h"
 #include "fsm.h"
 #include "ngfunc.h"
-#include "msgdef.h"
 #include "util.h"
 
 /*
@@ -809,8 +808,9 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
 static void
 FsmRecvTermReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
-  RecordLinkUpDownReason(fp->type->link_layer ? lnk : NULL,
-    0, STR_PEER_DISC, lcats(STR_PEER_DISCONNECT));
+  if (fp->type->link_layer) {
+    RecordLinkUpDownReason(lnk,	0, STR_PEER_DISC, NULL);
+  }
   switch (fp->state) {
     case ST_INITIAL:
     case ST_STARTING:
@@ -1036,25 +1036,25 @@ FsmFailureStr(enum fsmfail reason)
 
   switch (reason) {
     case FAIL_NEGOT_FAILURE:
-      string = lcats(STR_FAIL_NEGOT_FAILURE);
+      string = STR_FAIL_NEGOT_FAILURE;
       break;
     case FAIL_RECD_BADMAGIC:
-      string = lcats(STR_FAIL_RECD_BADMAGIC);
+      string = STR_FAIL_RECD_BADMAGIC;
       break;
     case FAIL_RECD_CODEREJ:
-      string = lcats(STR_FAIL_RECD_CODEREJ);
+      string = STR_FAIL_RECD_CODEREJ;
       break;
     case FAIL_RECD_PROTREJ:
-      string = lcats(STR_FAIL_RECD_PROTREJ);
+      string = STR_FAIL_RECD_PROTREJ;
       break;
     case FAIL_WAS_PROTREJ:
-      string = lcats(STR_FAIL_WAS_PROTREJ);
+      string = STR_FAIL_WAS_PROTREJ;
       break;
     case FAIL_ECHO_TIMEOUT:
-      string = lcats(STR_FAIL_ECHO_TIMEOUT);
+      string = STR_FAIL_ECHO_TIMEOUT;
       break;
     case FAIL_CANT_ENCRYPT:
-      string = lcats(STR_FAIL_CANT_ENCRYPT);
+      string = STR_FAIL_CANT_ENCRYPT;
       break;
     default:
       assert(0);

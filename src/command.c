@@ -28,7 +28,6 @@
 #include "custom.h"
 #include "ngfunc.h"
 #include "util.h"
-#include "msgdef.h"
 
 /*
  * DEFINITIONS
@@ -584,7 +583,6 @@ ExitCommand(int ac, char *av[], void *arg)
 static int
 QuitCommand(int ac, char *av[], void *arg)
 {
-  RecordLinkUpDownReason(NULL, 0, STR_QUIT, NULL);
   SendSignal(SIGTERM);
   exitflag = TRUE;
   return(0);

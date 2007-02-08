@@ -14,7 +14,6 @@
 #include "pptp.h"
 #include "pptp_ctrl.h"
 #include "log.h"
-#include "msgdef.h"
 
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
@@ -237,7 +236,7 @@ PptpOpen(PhysInfo p)
       }
       if (PptpOriginate(pptp) < 0) {
 	Log(LG_PHYS, ("[%s] PPTP call failed", lnk->name));
-	PhysDown(STR_CON_FAILED0, NULL);
+	PhysDown(STR_ERROR, NULL);
 	return;
       }
       p->state = PHYS_STATE_CONNECTING;
@@ -510,7 +509,7 @@ PptpResult(void *cookie, const char *errmsg)
       assert(errmsg);
       Log(LG_PHYS, ("[%s] PPTP call terminated", lnk->name));
       PptpDoClose(p);
-      PhysDown(0, NULL);
+      PhysDown(STR_DROPPED, NULL);
       p->state = PHYS_STATE_DOWN;
       u_addrclear(&pptp->peer_addr);
       pptp->peer_port = 0;
@@ -736,6 +735,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   bund = lnk->bund;
 
   Log(LG_PHYS, ("[%s] Accepting PPTP connection", lnk->name));
+  RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, NULL);
   BundOpenLink(lnk);
 
   /* Got one */

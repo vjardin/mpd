@@ -18,7 +18,6 @@
 #include "custom.h"
 #include "ngfunc.h"
 #include "netgraph.h"
-#include "msgdef.h"
 #include "util.h"
 
 #include <sys/sockio.h>
@@ -537,7 +536,7 @@ IfaceListenInput(int proto, Mbuf pkt)
   /* Maybe do dial-on-demand here */
   } else if (iface->open && isDemand) {
     Log(LG_IFACE, ("[%s] outgoing packet is demand", bund->name));
-    RecordLinkUpDownReason(NULL, 1, STR_DEMAND, "%s", AsciifyPacket(pkt));
+    RecordLinkUpDownReason(NULL, 1, STR_DEMAND, NULL);
     BundOpenLinks();
     IfaceCachePkt(proto, pkt);
   } else {

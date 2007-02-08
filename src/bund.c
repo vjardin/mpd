@@ -20,7 +20,6 @@
 #include "custom.h"
 #include "ngfunc.h"
 #include "log.h"
-#include "msgdef.h"
 #include "util.h"
 
 #ifdef __DragonFly__
@@ -1300,6 +1299,7 @@ BundBmTimeout(void *arg)
     Log(LG_BUND, ("[%s] opening link %s due to increased demand",
       bund->name, bund->links[k]->name));
     bund->bm.last_open = now;
+    RecordLinkUpDownReason(lnk, 1, STR_PORT_NEEDED, NULL);
     BundOpenLink(bund->links[k]);
   }
 
@@ -1314,6 +1314,7 @@ BundBmTimeout(void *arg)
     Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
       bund->name, bund->links[k]->name));
     bund->bm.last_close = now;
+    RecordLinkUpDownReason(lnk, 0, STR_PORT_UNNEEDED, NULL);
     BundCloseLink(bund->links[k]);
   }
 

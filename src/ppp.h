@@ -54,6 +54,7 @@
 #include "defs.h"
 #include "bund.h"
 #include "link.h"
+#include "msgdef.h"
 
 /*
  * DEFINITIONS
@@ -65,13 +66,6 @@
   /* Giant Mutex handling */
   #define GIANT_MUTEX_LOCK()	assert(pthread_mutex_lock(&gGiantMutex) == 0)
   #define GIANT_MUTEX_UNLOCK()	assert(pthread_mutex_unlock(&gGiantMutex) == 0)
-
-/* Wrappers for strings, other hacks */
-
-  #define lcats(x)		x
-  #define AsciifyPacket(x)	0
-  #define snlcatf		snprintf
-  #define vsnlcatf		vsnprintf
 
   #define ADLG_WAN_AUTHORIZATION_FAILURE	0
   #define ADLG_WAN_CONNECTED			1

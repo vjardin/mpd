@@ -651,7 +651,7 @@ ChatDoCmd(ChatInfo c, int ac, char *av[])
 
 	if (LocatPush(LOCAT_SCRIPT_FILE) >= 0)
 	{
-	  value = lcats(strtoul(av[2], NULL, 0));
+	  value = strtoul(av[2], NULL, 0);
 	  LocatPop();
 	}
 	if (ChatVarSet(c, av[1], value, 1, 0) < 0)
@@ -787,7 +787,7 @@ ChatDoCmd(ChatInfo c, int ac, char *av[])
 	}
 	if (LocatPush(LOCAT_SCRIPT_FILE) >= 0)
 	{
-	  msg = lcats(strtoul(lcat, NULL, 0));
+	  msg = strtoul(lcat, NULL, 0);
 	  LocatPop();
 	}
 	ChatLog(c, code, msg);

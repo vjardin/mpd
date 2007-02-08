@@ -13,7 +13,6 @@
 #include "l2tp_avp.h"
 #include "l2tp_ctrl.h"
 #include "log.h"
-#include "msgdef.h"
 
 #include <sys/types.h>
 #include <pdel/util/ghash.h>
@@ -321,7 +320,7 @@ L2tpOpen(PhysInfo p)
 				avps)) == NULL) {
 			    Log(LG_ERR, ("[%s] ppp_l2tp_initiate: %s", 
 				lnk->name, strerror(errno)));
-			    PhysDown(STR_DROPPED, NULL);
+			    PhysDown(STR_ERROR, NULL);
 			    ppp_l2tp_avp_list_destroy(&avps);
 			    pi->sess = NULL;
 			    pi->tun = NULL;
@@ -692,7 +691,7 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			    Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0, 
 			    avps)) == NULL) {
 			Log(LG_ERR, ("ppp_l2tp_initiate: %s", strerror(errno)));
-			PhysDown(STR_DROPPED, NULL);
+			PhysDown(STR_ERROR, NULL);
 			pi->sess = NULL;
 			pi->tun = NULL;
 			continue;
@@ -823,7 +822,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		if (ptrs->callednum->number)
 		    strlcpy(pi->callednum, ptrs->callednum->number, sizeof(pi->callednum));
 
-		RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
+		RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, NULL);
 		BundOpenLink(lnk);
 
 		ppp_l2tp_sess_set_cookie(sess, lnk);

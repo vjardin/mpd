@@ -11,7 +11,6 @@
 #include "ngfunc.h"
 #include "tcp.h"
 #include "log.h"
-#include "msgdef.h"
 
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
@@ -436,7 +435,7 @@ TcpAcceptEvent(int type, void *cookie)
 		Log(LG_PHYS, ("[%s] connected with %s %u", lnk->name,
 		    u_addrtoa(&addr, buf, sizeof(buf)), port));
 
-		RecordLinkUpDownReason(NULL, 1, STR_INCOMING_CALL, "", NULL);
+		RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, NULL);
 		BundOpenLink(lnk);
 
 		break;

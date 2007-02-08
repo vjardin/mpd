@@ -11,7 +11,6 @@
 #include "msg.h"
 #include "link.h"
 #include "devices.h"
-#include "msgdef.h"
 
 /*
  * The physical layer has four states: DOWN, OPENING, CLOSING, and UP.

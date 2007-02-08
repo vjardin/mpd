@@ -19,7 +19,6 @@
 #include "custom.h"
 #include "msg.h"
 #include "ngfunc.h"
-#include "msgdef.h"
 #include "util.h"
 
 #include <netgraph.h>
@@ -531,10 +530,9 @@ IpcpFailure(Fsm fp, enum fsmfail reason)
 {
   char	buf[100];
 
-  snlcatf(buf, sizeof(buf), STR_IPCP_FAILED, FsmFailureStr(reason));
+  snprintf(buf, sizeof(buf), STR_IPCP_FAILED, FsmFailureStr(reason));
   SetStatus(ADLG_WAN_NEGOTIATION_FAILURE, STR_COPY, buf);
   RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, "%s", buf);
-  RecordLinkUpDownReason(NULL, 1, STR_REDIAL, NULL);
 }
 
 /*
