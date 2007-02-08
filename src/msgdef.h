@@ -31,8 +31,6 @@
 #define STR_INCOMING_CALL	"Incoming call"
 #define STR_PPP_DISABLED	"Port disabled."
 #define STR_ERROR		"Error"
-#define STR_UNKNOWN		"Unknown"
-#define STR_UNKNOWN_REASON	"unknown reason"
 #define STR_PORT_NEEDED		"Increased demand"
 #define STR_PORT_UNNEEDED	"Decreased demand"
 
