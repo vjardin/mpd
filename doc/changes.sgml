@@ -6,6 +6,18 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.1rc2:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Better up/down reason tracking.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+
+  <p>
     Mpd version was bumped from 4.0rc2 to 4.1rc2 due to large number of changes 
     done since 4.0b4 and FreeBSD ports version number conflict.
   </p>
