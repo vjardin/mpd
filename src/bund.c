@@ -518,6 +518,7 @@ BundNcpsFinish(int proto)
     bund->ncpstarted &= (~((1<<proto)>>1));
     if (!bund->ncpstarted) {
 	Log(LG_BUND, ("[%s] No NCPs left. Closing links...", bund->name));
+	RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, NULL);
 	BundCloseLinks(); /* We have nothing to live for */
     }
 }
