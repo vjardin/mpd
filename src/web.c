@@ -435,7 +435,7 @@ WebServletRun(struct http_servlet *servlet,
 	WebShowCSS(f);
     } else {
 	http_response_set_header(resp, 0, "Content-Type", "text/html");
-	http_response_set_header(resp, 1, "Pragms", "no-cache");
+	http_response_set_header(resp, 1, "Pragma", "no-cache");
 	http_response_set_header(resp, 1, "Cache-Control", "no-cache, must-revalidate");
 	
 	pthread_cleanup_push(WebServletRunCleanup, NULL);
@@ -444,7 +444,7 @@ WebServletRun(struct http_servlet *servlet,
 	    "PUBLIC \"-//W3C//DTD HTML 4.01//EN\" "
 	    "\"http://www.w3.org/TR/html4/strict.dtd\">\n");
 	fprintf(f, "<HTML>\n");
-	fprintf(f, "<HEAD><TITLE>Multi-link PPP Daemon</TITLE>\n");
+	fprintf(f, "<HEAD><TITLE>Multi-link PPP Daemon for FreeBSD (mpd)</TITLE>\n");
 	fprintf(f, "<LINK rel='stylesheet' href='/mpd.css' type='text/css'>\n");
 	fprintf(f, "</HEAD>\n<BODY>\n");
 	fprintf(f, "<H1>Multi-link PPP Daemon for FreeBSD</H1>\n");
@@ -477,10 +477,7 @@ WebAuth(void *arg, struct http_request *req, const char *username,
 
     u = ghash_get(w->users, &username);
 
-    if (!u) 
-      return "Access Denied";
-
-    if (strcmp(u->password, password)) 
+    if ((u == NULL) || strcmp(u->password, password)) 
       return "Access Denied";
 
     return NULL;    
