@@ -251,17 +251,21 @@ AuthStart(void)
   a->chap.recv_alg = lnk->lcp.want_chap_alg;
   a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
 
-  /* remember peer's IP address */
-  if (lnk->phys->type && lnk->phys->type->peeraddr)
-    lnk->phys->type->peeraddr(lnk->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
+  if (lnk->phys->type) {
+    PhysType	pt = lnk->phys->type;
   
-  /* remember calling number */
-  if (lnk->phys->type && lnk->phys->type->callingnum)
-    lnk->phys->type->callingnum(lnk->phys, a->params.callingnum, sizeof(a->params.callingnum));
+    /* remember peer's IP address */
+    if (pt->peeraddr)
+	pt->peeraddr(lnk->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
   
-  /* remember called number */
-  if (lnk->phys->type && lnk->phys->type->callednum)
-    lnk->phys->type->callednum(lnk->phys, a->params.callednum, sizeof(a->params.callednum));
+    /* remember calling number */
+    if (pt->callingnum)
+	pt->callingnum(lnk->phys, a->params.callingnum, sizeof(a->params.callingnum));
+  
+    /* remember called number */
+    if (pt->callednum)
+	pt->callednum(lnk->phys, a->params.callednum, sizeof(a->params.callednum));
+  }
   
   Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
     Pref(&lnk->lcp.fsm),
