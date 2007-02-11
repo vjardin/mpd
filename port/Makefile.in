@@ -14,7 +14,7 @@ DIST_SUBDIR=	mpd4
 LATEST_LINK=    mpd4
 
 MAINTAINER=	mav@alkar.net
-COMMENT=	Multi-link PPP daemon based on netgraph(4) [development version]
+COMMENT=	Multi-link PPP daemon based on netgraph(4)
 
 LIB_DEPENDS=	pdel.0:${PORTSDIR}/devel/libpdel
 
