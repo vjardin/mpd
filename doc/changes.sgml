@@ -8,6 +8,14 @@
   <p>
     Changes since version 4.1rc2:
     <itemize>
+	<item> Changes:
+	<itemize>
+	  <item> Default value of link's max-redial parameter changed to -1.
+	  </item>
+	  <item> Bundle's noretry option is enabled by default now.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Better up/down reason tracking.

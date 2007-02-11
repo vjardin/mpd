@@ -942,6 +942,8 @@ fail:
   Disable(&bund->conf.options, BUND_CONF_COMPRESSION);
   Disable(&bund->conf.options, BUND_CONF_ENCRYPTION);
   Disable(&bund->conf.options, BUND_CONF_CRYPT_REQD);
+  
+  Enable(&bund->conf.options, BUND_CONF_NORETRY);
 
   /* Init NCP's */
   IpcpInit();

@@ -263,6 +263,7 @@ LinkNew(char *name, Bund b, int bI)
   lnk->conf.mru = LCP_DEFAULT_MRU;
   lnk->conf.mtu = LCP_DEFAULT_MRU;
   lnk->conf.accmap = 0x000a0000;
+  lnk->conf.max_redial = -1;
   lnk->conf.retry_timeout = LINK_DEFAULT_RETRY;
   lnk->bandwidth = LINK_DEFAULT_BANDWIDTH;
   lnk->latency = LINK_DEFAULT_LATENCY;
