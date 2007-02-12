@@ -822,7 +822,7 @@ RadiusPutAuth(AuthData auth)
 {
   Link			lnk = auth->lnk;	/* hide the global "lnk" */
   ChapInfo		const chap = &lnk->lcp.auth.chap;
-  PapInfo		const pap = &lnk->lcp.auth.pap;
+  PapParams		const pp = &auth->params.pap;
   
   struct rad_chapvalue		rad_chapval;
   struct rad_mschapvalue	rad_mschapval;
@@ -927,7 +927,7 @@ RadiusPutAuth(AuthData auth)
         
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_PAP peer name: %s",
       auth->info.lnkname, __func__, auth->params.authname));
-    if (rad_put_string(auth->radius.handle, RAD_USER_PASSWORD, pap->peer_pass) == -1) {
+    if (rad_put_string(auth->radius.handle, RAD_USER_PASSWORD, pp->peer_pass) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(password) failed %s", 
 	auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
       return (RAD_NACK);

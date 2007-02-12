@@ -90,6 +90,8 @@
     char		authname[AUTH_MAX_AUTHNAME];
     char		password[AUTH_MAX_PASSWORD];
 
+    struct papparams	pap;
+
     struct u_range	range;		/* IP range allowed to user */
     u_int		range_valid:1;  /* range is valid */
     struct in_addr	mask;		/* IP Netmask */

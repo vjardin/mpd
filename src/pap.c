@@ -110,6 +110,7 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
 {
   Auth			const a = &lnk->lcp.auth;
   PapInfo		const pap = &a->pap;
+  PapParams		const pp = &a->params.pap;
 
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] PAP: rec'd %s #%d",
@@ -149,9 +150,10 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
 	memcpy(pass, pass_ptr, pass_len);
 	pass[pass_len] = 0;
 
-	strlcpy(pap->peer_name, name, sizeof(pap->peer_name));
-	strlcpy(pap->peer_pass, pass, sizeof(pap->peer_pass));
+	strlcpy(pp->peer_name, name, sizeof(pp->peer_name));
+	strlcpy(pp->peer_pass, pass, sizeof(pp->peer_pass));
 	strlcpy(auth->params.authname, name, sizeof(auth->params.authname));
+	auth->params.password[0] = 0;
 
 	auth->finish = PapInputFinish;
 	AuthAsyncStart(auth);
@@ -204,7 +206,7 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
  
 void PapInputFinish(AuthData auth)
 {
-  PapInfo	pap = &lnk->lcp.auth.pap;
+  PapParams	pap = &auth->params.pap;
   const char	*Mesg;
   
   Log(LG_AUTH, ("[%s] PAP: PapInputFinish: status %s", 

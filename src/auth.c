@@ -778,8 +778,10 @@ AuthAccountFinish(void *arg, int was_canceled)
   Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
     auth->lnk->name));
 
-  /* Copy back modified data. */
-  authparamsCopy(&auth->params,&lnk->lcp.auth.params);
+  if (auth->acct_type != AUTH_ACCT_STOP) {
+    /* Copy back modified data. */
+    authparamsCopy(&auth->params,&lnk->lcp.auth.params);
+  }
 
   AuthDataDestroy(auth);
 }
@@ -1010,7 +1012,7 @@ AuthSystem(AuthData auth)
   Link		const lnk = auth->lnk;	/* hide the global "lnk" */
   Auth		const a = &lnk->lcp.auth;
   ChapInfo	chap = &a->chap;
-  PapInfo	pap = &a->pap;
+  PapParams	pp = &auth->params.pap;
   struct passwd	*pw;
   struct passwd pwc;
   u_char	*bin;
@@ -1041,7 +1043,7 @@ AuthSystem(AuthData auth)
   if (auth->proto == PROTO_PAP) {
     /* protect non-ts crypt() */
     GIANT_MUTEX_LOCK();
-    if (strcmp(crypt(pap->peer_pass, pwc.pw_passwd), pwc.pw_passwd) == 0) {
+    if (strcmp(crypt(pp->peer_pass, pwc.pw_passwd), pwc.pw_passwd) == 0) {
       auth->status = AUTH_STATUS_SUCCESS;
       auth->params.authentic = AUTH_CONF_OPIE;      
     } else {
@@ -1085,9 +1087,7 @@ AuthSystem(AuthData auth)
 static void
 AuthOpie(AuthData auth)
 {
-  Link		lnk = auth->lnk;	/* hide the global "lnk" */
-  Auth		const a = &lnk->lcp.auth;
-  PapInfo	const pap = &a->pap;
+  PapParams	const pp = &auth->params.pap;
   struct	opie_otpkey key;
   char		opieprompt[OPIE_CHALLENGE_MAX + 1];
   int		ret, n;
@@ -1120,7 +1120,7 @@ AuthOpie(AuthData auth)
   Log(LG_AUTH, (" Opieprompt:%s", opieprompt));
 
   if (auth->proto == PROTO_PAP ) {
-    if (!opieverify(&auth->opie.data, pap->peer_pass)) {
+    if (!opieverify(&auth->opie.data, pp->peer_pass)) {
       auth->params.authentic = AUTH_CONF_OPIE;
       auth->status = AUTH_STATUS_SUCCESS;
     } else {

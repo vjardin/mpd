@@ -29,10 +29,14 @@
     short		next_id;			/* Packet id */
     short		retry;				/* Resend count */
     struct pppTimer	timer;				/* Resend timer */
+  };
+  typedef struct papinfo	*PapInfo;
+
+  struct papparams {
     char		peer_pass[AUTH_MAX_PASSWORD];
     char		peer_name[AUTH_MAX_AUTHNAME];    
   };
-  typedef struct papinfo	*PapInfo;
+  typedef struct papparams	*PapParams;
 
   struct authdata;
   
