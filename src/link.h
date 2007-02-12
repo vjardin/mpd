@@ -114,6 +114,7 @@
   /* Total state of a link */
   struct linkst {
     char		name[LINK_MAX_NAME];	/* Human readable name */
+    char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq msession-id */
     char		session_id[AUTH_MAX_SESSIONID];	/* a uniq session-id */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */

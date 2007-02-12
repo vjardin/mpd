@@ -480,13 +480,12 @@ static short
 MppcEnabledMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
-  Auth		const a = &lnk->lcp.auth;
   short		ret;
  
   switch (type) {
   case 40:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (a->params.msoft.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
+      ret = (bund->params.msoft.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
       ret = Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
     }
@@ -495,7 +494,7 @@ MppcEnabledMppeType(short type)
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (a->params.msoft.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
+      ret = (bund->params.msoft.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
       ret = Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
     }
@@ -506,7 +505,7 @@ MppcEnabledMppeType(short type)
   case 128:
   default:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (a->params.msoft.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
+      ret = (bund->params.msoft.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
     }
@@ -519,13 +518,12 @@ static short
 MppcAcceptableMppeType(short type)
 {
   CcpState	const ccp = &bund->ccp;
-  Auth		const a = &lnk->lcp.auth;
   short		ret;
   
   switch (type) {
   case 40:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = a->params.msoft.types & MPPE_TYPE_40BIT;
+      ret = bund->params.msoft.types & MPPE_TYPE_40BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe40);
     }
@@ -534,7 +532,7 @@ MppcAcceptableMppeType(short type)
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = a->params.msoft.types & MPPE_TYPE_56BIT;
+      ret = bund->params.msoft.types & MPPE_TYPE_56BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe56);
     }
@@ -545,7 +543,7 @@ MppcAcceptableMppeType(short type)
   case 128:
   default:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = a->params.msoft.types & MPPE_TYPE_128BIT;
+      ret = bund->params.msoft.types & MPPE_TYPE_128BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe128);
     }
@@ -581,30 +579,30 @@ MppeInitKey(MppcInfo mppc, int dir)
       break;
     case LINK_ORIGINATE_UNKNOWN:
     default:
-      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", lnk->name));
+      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", bund->name));
       goto fail;
   }
 
   /* Compute basis for the session key (ie, "start key" or key0) */
   if (bits & MPPE_128) {
-    if (!lnk->lcp.auth.params.msoft.has_nt_hash) {
+    if (!bund->params.msoft.has_nt_hash) {
       Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv1 and MPPE 128", 
-        lnk->name));
+        bund->name));
       goto fail;
     }
-    memcpy(hash, lnk->lcp.auth.params.msoft.nt_hash_hash, sizeof(hash));
+    memcpy(hash, bund->params.msoft.nt_hash_hash, sizeof(hash));
     KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
     KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
     MsoftGetStartKey(chal, hash);
     KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    if (!lnk->lcp.auth.params.msoft.has_lm_hash) {
+    if (!bund->params.msoft.has_lm_hash) {
       Log(LG_ERR, ("[%s] The LM-Hash is not set, but needed for MS-CHAPv1 and MPPE 40, 56", 
-        lnk->name));
+        bund->name));
       goto fail;
     }
 
-    memcpy(hash, lnk->lcp.auth.params.msoft.lm_hash, 8);
+    memcpy(hash, bund->params.msoft.lm_hash, 8);
     KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
   }
   memcpy(key0, hash, MPPE_KEY_LEN);
@@ -629,10 +627,10 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   u_char	hash[16];
   u_char	*resp;
 
-  if (lnk->lcp.auth.params.msoft.has_keys)
+  if (bund->params.msoft.has_keys)
   { 
-    memcpy(mppc->xmit_key0, lnk->lcp.auth.params.msoft.xmit_key, MPPE_KEY_LEN);
-    memcpy(mppc->recv_key0, lnk->lcp.auth.params.msoft.recv_key, MPPE_KEY_LEN);
+    memcpy(mppc->xmit_key0, bund->params.msoft.xmit_key, MPPE_KEY_LEN);
+    memcpy(mppc->recv_key0, bund->params.msoft.recv_key, MPPE_KEY_LEN);
     return;
   }
 
@@ -646,18 +644,18 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
       break;
     case LINK_ORIGINATE_UNKNOWN:
     default:
-      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", lnk->name));
+      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", bund->name));
       goto fail;
   }
 
-  if (!lnk->lcp.auth.params.msoft.has_nt_hash) {
+  if (!bund->params.msoft.has_nt_hash) {
     Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv2 and MPPE", 
-      lnk->name));
+      bund->name));
     goto fail;
   }
 
   /* Compute basis for the session key (ie, "start key" or key0) */
-  memcpy(hash, lnk->lcp.auth.params.msoft.nt_hash_hash, sizeof(hash));
+  memcpy(hash, bund->params.msoft.nt_hash_hash, sizeof(hash));
   KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
   KEYDEBUG((resp, CHAP_MSOFTv2_CHAL_LEN, "Response"));
   MsoftGetMasterKey(resp, hash);

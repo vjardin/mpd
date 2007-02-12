@@ -248,12 +248,16 @@ BundJoin(void)
 #endif
 
     /* generate a uniq session id */
-    snprintf(bund->session_id, LINK_MAX_NAME, "%d-%s",
+    snprintf(bund->msession_id, LINK_MAX_NAME, "%d-%s",
       (int)(time(NULL) % 10000000), bund->name);
   }
 
   /* Update PPP node configuration */
   NgFuncSetConfig();
+
+  /* copy multysession-id to link */
+  strncpy(lnk->msession_id, bund->msession_id,
+    sizeof(lnk->msession_id));
 
   /* generate a uniq session id */
   snprintf(lnk->session_id, LINK_MAX_NAME, "%d-%s",
@@ -1000,7 +1004,7 @@ BundStat(int ac, char *av[], void *arg)
   Printf("\tLinks          : ");
   BundShowLinks(sb);
   Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");
-  Printf("\tSession-Id     : %s\r\n", sb->session_id);
+  Printf("\tM-Session-Id   : %s\r\n", sb->msession_id);
   Printf("\tTotal bandwidth: %u bits/sec\r\n", tbw);
   Printf("\tAvail bandwidth: %u bits/sec\r\n", bw);
   Printf("\tPeer authname  : \"%s\"\r\n", sb->params.authname);

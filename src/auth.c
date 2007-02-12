@@ -531,8 +531,9 @@ AuthDataNew(void)
   auth->conf = lnk->lcp.auth.conf;
   auth->lnk = LinkCopy();
 
-  strlcpy(auth->info.ifname, bund->iface.ifname, sizeof(auth->info.ifname));
-  strlcpy(auth->info.session_id, bund->session_id, sizeof(auth->info.session_id));
+  strlcpy(auth->info.lnkname, lnk->name, sizeof(auth->info.lnkname));
+  strlcpy(auth->info.msession_id, lnk->msession_id, sizeof(auth->info.msession_id));
+  strlcpy(auth->info.session_id, lnk->session_id, sizeof(auth->info.session_id));
 
   auth->info.n_links = bund->n_links;
   auth->info.peer_addr = bund->ipcp.peer_addr;
@@ -720,7 +721,7 @@ AuthAccount(void *arg)
     struct utmp	ut;
 
     memset(&ut, 0, sizeof(ut));
-    strlcpy(ut.ut_line, auth->info.ifname, sizeof(ut.ut_line));
+    strlcpy(ut.ut_line, auth->info.lnkname, sizeof(ut.ut_line));
 
     if (auth->acct_type == AUTH_ACCT_START) {
 

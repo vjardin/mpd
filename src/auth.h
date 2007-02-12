@@ -189,8 +189,9 @@
     struct {		/* informational (read-only) data needed for e.g. accouting */
       struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
       short		n_links;	/* number of links in the bundle */
-      char		session_id[AUTH_MAX_SESSIONID];	/* bundle's session-id */
-      char		ifname[IFNAMSIZ + 1];	/* name of the interface, i.e. ngX */
+      char		msession_id[AUTH_MAX_SESSIONID]; /* multy-session-id */
+      char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
+      char		lnkname[LINK_MAX_NAME];	/* name of the link */
     } info;
     struct authparams	params;		/* params to pass to from auth backend */
   };

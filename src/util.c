@@ -793,7 +793,7 @@ WriteMbuf(Mbuf *mp, int fd, const char *label)
     {
       if (errno == EAGAIN)
 	return(0);
-      Log(LG_ERR, ("[%s] %s write: %s", lnk->name, label, strerror(errno)));
+      Log(LG_ERR, ("%s write: %s", label, strerror(errno)));
       return(-1);
     }
     bp->offset += nw;
