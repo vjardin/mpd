@@ -10,7 +10,7 @@
 
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
-#include <netgraph/mppc/ng_deflate.h>
+#include <netgraph/deflate/ng_deflate.h>
 #else
 #include <netgraph/ng_deflate.h>
 #endif

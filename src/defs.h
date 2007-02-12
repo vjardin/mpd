@@ -37,9 +37,13 @@
   #define FALSE 		0
 #endif
 
-  #ifndef MPD_VENDOR
+#ifndef MPD_VENDOR
+#ifdef __DragonFly__
+  #define MPD_VENDOR		"DragonFlyBSD MPD"
+#else
   #define MPD_VENDOR		"FreeBSD MPD"
-  #endif
+#endif
+#endif
 
   /* Exit codes */
   #define EX_NORMAL		EX_OK
