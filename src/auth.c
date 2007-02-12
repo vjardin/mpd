@@ -538,6 +538,9 @@ AuthDataNew(void)
   auth->info.n_links = bund->n_links;
   auth->info.peer_addr = bund->ipcp.peer_addr;
 
+  /* Copy current link statistics */
+  memcpy(&auth->info.stats, &lnk->stats, sizeof(auth->info.stats));
+
   authparamsCopy(&a->params,&auth->params);
 
   return auth;
@@ -776,8 +779,7 @@ AuthAccountFinish(void *arg, int was_canceled)
     auth->lnk->name));
 
   /* Copy back modified data. */
-  lnk->stats.old_recvOctets = auth->lnk->stats.old_recvOctets;
-  lnk->stats.old_xmitOctets = auth->lnk->stats.old_xmitOctets;
+  authparamsCopy(&auth->params,&lnk->lcp.auth.params);
 
   AuthDataDestroy(auth);
 }

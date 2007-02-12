@@ -11,6 +11,7 @@
 #define	_AUTH_H_
 
 #include "timer.h"
+#include "ppp.h"
 #include "pap.h"
 #include "chap.h"
 #include "eap.h"
@@ -118,6 +119,8 @@
 
     int			authentic;	/* wich backend was used */
 
+    struct linkstats	prev_stats;	/* Previous link statistics */
+
     struct {
       int	policy;			/* MPPE_POLICY_* */
       int	types;			/* MPPE_TYPE_*BIT bitmask */
@@ -192,6 +195,7 @@
       char		msession_id[AUTH_MAX_SESSIONID]; /* multy-session-id */
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
+      struct linkstats	stats;		/* Current link statistics */
     } info;
     struct authparams	params;		/* params to pass to from auth backend */
   };

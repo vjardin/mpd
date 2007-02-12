@@ -52,9 +52,6 @@
 
 
 #include "defs.h"
-#include "bund.h"
-#include "link.h"
-#include "msgdef.h"
 
 /*
  * DEFINITIONS
@@ -75,6 +72,25 @@
   #define ADLG_WAN_MESSAGE			5
   #define ADLG_WAN_NEGOTIATION_FAILURE		6
   #define ADLG_WAN_WAIT_FOR_DEMAND		7
+
+  /* internal 64 bit counters as workaround for the 32 bit 
+   * limitation for ng_ppp_link_stat
+   */
+  struct linkstats {
+	u_int64_t 	xmitFrames;	/* xmit frames on link */
+	u_int64_t 	xmitOctets;	/* xmit octets on link */
+	u_int64_t 	recvFrames;	/* recv frames on link */
+	u_int64_t	recvOctets;	/* recv octets on link */
+	u_int64_t 	badProtos;	/* frames rec'd with bogus protocol */
+	u_int64_t 	runts;		/* Too short MP fragments */
+	u_int64_t 	dupFragments;	/* MP frames with duplicate seq # */
+	u_int64_t	dropFragments;	/* MP fragments we had to drop */
+  };
+  typedef struct linkstat *LinkStats;
+
+#include "bund.h"
+#include "link.h"
+#include "msgdef.h"
 
 /*
  * VARIABLES

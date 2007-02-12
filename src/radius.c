@@ -197,17 +197,17 @@ RadiusAccount(AuthData auth)
   if (auth->acct_type == AUTH_ACCT_UPDATE &&
       (auth->conf.acct_update_lim_recv > 0 ||
        auth->conf.acct_update_lim_xmit > 0)) {
-    if (lnk->stats.recvOctets - lnk->stats.old_recvOctets <
-        auth->conf.acct_update_lim_recv &&
-        lnk->stats.xmitOctets - lnk->stats.old_xmitOctets <
-        auth->conf.acct_update_lim_xmit) {
+    if ((auth->info.stats.recvOctets - auth->params.prev_stats.recvOctets <
+    	    auth->conf.acct_update_lim_recv) &&
+        (auth->info.stats.xmitOctets - auth->params.prev_stats.xmitOctets <
+    	    auth->conf.acct_update_lim_xmit)) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: shouldn't send Interim-Update",
         auth->info.lnkname, __func__));
       return;
      } else {
 	/* Save old statistics. */
-	lnk->stats.old_recvOctets = lnk->stats.recvOctets;
-	lnk->stats.old_xmitOctets = lnk->stats.xmitOctets;
+	memcpy(&auth->params.prev_stats, &auth->info.stats, 
+	    sizeof(auth->params.prev_stats));
      }
   }
 
@@ -346,23 +346,23 @@ RadiusAccount(AuthData auth)
     }
 
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_INPUT_OCTETS): %lu", 
-      auth->info.lnkname, __func__, (long unsigned int)(lnk->stats.recvOctets % MAX_U_INT32)));
+      auth->info.lnkname, __func__, (long unsigned int)(auth->info.stats.recvOctets % MAX_U_INT32)));
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_INPUT_PACKETS): %lu", 
-      auth->info.lnkname, __func__, (long unsigned int)(lnk->stats.recvFrames)));
+      auth->info.lnkname, __func__, (long unsigned int)(auth->info.stats.recvFrames)));
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_OUTPUT_OCTETS): %lu", 
-      auth->info.lnkname, __func__, (long unsigned int)(lnk->stats.xmitOctets % MAX_U_INT32)));
+      auth->info.lnkname, __func__, (long unsigned int)(auth->info.stats.xmitOctets % MAX_U_INT32)));
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_OUTPUT_PACKETS): %lu", 
-      auth->info.lnkname, __func__, (long unsigned int)(lnk->stats.xmitFrames)));
+      auth->info.lnkname, __func__, (long unsigned int)(auth->info.stats.xmitFrames)));
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_INPUT_GIGAWORDS): %lu", 
-      auth->info.lnkname, __func__, (long unsigned int)(lnk->stats.recvOctets / MAX_U_INT32)));
+      auth->info.lnkname, __func__, (long unsigned int)(auth->info.stats.recvOctets / MAX_U_INT32)));
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_OUTPUT_GIGAWORDS): %lu", 
-      auth->info.lnkname, __func__, (long unsigned int)(lnk->stats.xmitOctets / MAX_U_INT32)));
-    if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, lnk->stats.recvOctets % MAX_U_INT32) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, lnk->stats.recvFrames) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, lnk->stats.xmitOctets % MAX_U_INT32) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, lnk->stats.xmitFrames) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, lnk->stats.recvOctets / MAX_U_INT32) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, lnk->stats.xmitOctets / MAX_U_INT32) != 0) {
+      auth->info.lnkname, __func__, (long unsigned int)(auth->info.stats.xmitOctets / MAX_U_INT32)));
+    if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, auth->info.stats.recvOctets % MAX_U_INT32) != 0 ||
+	rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, auth->info.stats.recvFrames) != 0 ||
+	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, auth->info.stats.xmitOctets % MAX_U_INT32) != 0 ||
+	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, auth->info.stats.xmitFrames) != 0 ||
+	rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, auth->info.stats.recvOctets / MAX_U_INT32) != 0 ||
+	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, auth->info.stats.xmitOctets / MAX_U_INT32) != 0) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", auth->info.lnkname, __func__,
 	rad_strerror(auth->radius.handle)));
       return;
@@ -436,7 +436,7 @@ static int
 RadiusAddServer(AuthData auth, short request_type)
 {
   int		i;
-  RadConf	const c = &lnk->lcp.auth.conf.radius;
+  RadConf	const c = &auth->conf.radius;
   RadServe_Conf	s;
 
   if (c->server == NULL)

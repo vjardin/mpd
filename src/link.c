@@ -504,21 +504,21 @@ LinkUpdateStats(void)
   struct ng_ppp_link_stat	stats;
 
   if (NgFuncGetStats(lnk->bundleIndex, FALSE, &stats) != -1) {
-    lnk->stats.xmitFrames += abs(stats.xmitFrames - lnk->stats.oldStats.xmitFrames);
-    lnk->stats.xmitOctets += abs(stats.xmitOctets - lnk->stats.oldStats.xmitOctets);
-    lnk->stats.recvFrames += abs(stats.recvFrames - lnk->stats.oldStats.recvFrames);
-    lnk->stats.recvOctets += abs(stats.recvOctets - lnk->stats.oldStats.recvOctets);
-    lnk->stats.badProtos  += abs(stats.badProtos - lnk->stats.oldStats.badProtos);
+    lnk->stats.xmitFrames += abs(stats.xmitFrames - lnk->oldStats.xmitFrames);
+    lnk->stats.xmitOctets += abs(stats.xmitOctets - lnk->oldStats.xmitOctets);
+    lnk->stats.recvFrames += abs(stats.recvFrames - lnk->oldStats.recvFrames);
+    lnk->stats.recvOctets += abs(stats.recvOctets - lnk->oldStats.recvOctets);
+    lnk->stats.badProtos  += abs(stats.badProtos - lnk->oldStats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-    lnk->stats.runts	  += abs(stats.runts - lnk->stats.oldStats.runts);
+    lnk->stats.runts	  += abs(stats.runts - lnk->oldStats.runts);
 #endif
-    lnk->stats.dupFragments += abs(stats.dupFragments - lnk->stats.oldStats.dupFragments);
+    lnk->stats.dupFragments += abs(stats.dupFragments - lnk->oldStats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-    lnk->stats.dropFragments += abs(stats.dropFragments - lnk->stats.oldStats.dropFragments);
+    lnk->stats.dropFragments += abs(stats.dropFragments - lnk->oldStats.dropFragments);
 #endif
   }
 
-  lnk->stats.oldStats = stats;
+  lnk->oldStats = stats;
 }
 
 /* 
