@@ -29,7 +29,7 @@
   static int	ChapParsePkt(const u_char *pkt, const int pkt_len,
 		  char *peer_name, u_char *chap_value,
 		  int *chap_value_size);
-  static char	*ChapGetSecret(AuthData auth);
+  static char	*ChapGetSecret(Link lnk, int alg, char *password);
   static void	ChapGenRandom(u_char *buf, int len);
 
 /*
@@ -334,7 +334,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	  break;
 	}
 
-	secret = ChapGetSecret(auth);
+	secret = ChapGetSecret(lnk, chap->xmit_alg, auth->params.password);
 
 	/* Get hash value */
 	if ((hash_value_size = ChapHash(chap->xmit_alg, hash_value, auth->id,
@@ -489,7 +489,7 @@ ChapInputFinish(AuthData auth)
   if (chap->recv_alg == CHAP_ALG_MSOFTv2)
     memcpy(hash_value, chap->value, 16);
     
-  secret = ChapGetSecret(auth);
+  secret = ChapGetSecret(lnk, chap->recv_alg, auth->params.password);
 
   /* Get expected hash value */
   if ((hash_value_size = ChapHash(chap->recv_alg, hash_value, auth->id,
@@ -564,23 +564,19 @@ goodResponse:
  */
 
 static char *
-ChapGetSecret(AuthData auth)
+ChapGetSecret(Link lnk, int alg, char *password)
 {
   Auth		a = &lnk->lcp.auth;
-  ChapInfo	chap = &a->chap;
   char		*pw;
-  int		alg;
-  
-  alg = auth->code == CHAP_CHALLENGE ? chap->xmit_alg : chap->recv_alg;
   
   if (alg == CHAP_ALG_MD5)
-    pw = auth->params.password;
+    pw = password;
   else {
     if (!a->params.msoft.has_nt_hash)
     {
-      NTPasswordHash(auth->params.password, a->params.msoft.nt_hash);
+      NTPasswordHash(password, a->params.msoft.nt_hash);
       NTPasswordHashHash(a->params.msoft.nt_hash, a->params.msoft.nt_hash_hash);
-      LMPasswordHash(auth->params.password, a->params.msoft.lm_hash);
+      LMPasswordHash(password, a->params.msoft.lm_hash);
       a->params.msoft.has_nt_hash = TRUE;
       a->params.msoft.has_lm_hash = TRUE;
     }
