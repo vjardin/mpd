@@ -638,23 +638,9 @@ RadiusOpen(AuthData auth, short request_type)
 
 }
 
-static int 
-GetLinkID(Link lnk) {
-    int port, i;
-    
-    port =- 1;    
-    for (i = 0; i < gNumLinks; i++) {
-      if (gLinks[i] && !strcmp(gLinks[i]->name, lnk->name)) {
-	port = i;
-      }
-    }
-    return port;
-};
-
 static int
 RadiusStart(AuthData auth, short request_type)
 {
-  Link		lnk = auth->lnk;	/* hide the global "lnk" */
   RadConf 	const conf = &auth->conf.radius;  
   char		host[MAXHOSTNAMELEN];
   int		porttype;
@@ -719,8 +705,8 @@ RadiusStart(AuthData auth, short request_type)
 #endif
 
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT): %d", 
-    auth->info.lnkname, __func__, GetLinkID(lnk)));
-  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT, GetLinkID(lnk)) == -1)  {
+    auth->info.lnkname, __func__, auth->info.linkID));
+  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT, auth->info.linkID) == -1)  {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT) failed %s", 
       auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
     return (RAD_NACK);

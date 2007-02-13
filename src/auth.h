@@ -173,7 +173,6 @@
    * and Mpd's internal structs.
    */
   struct authdata {
-    Link		lnk;		/* a copy of the link */
     struct authconf	conf;		/* a copy of bundle's authconf */
     int			proto;		/* wich proto are we using, PAP, CHAP, ... */
     u_int		id;		/* Actual, packet id */    
@@ -186,6 +185,7 @@
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */
     void		(*finish)(struct authdata *auth); /* Finish handler */
     int			acct_type;	/* Accounting type, Start, Stop, Update */
+    u_char		eap_radius;
     struct {
       struct rad_handle	*handle;	/* the RADIUS handle */
     } radius;
@@ -202,6 +202,7 @@
       char		*downReason;	/* Reason for link going down */
       time_t		last_open;	/* Time this link last was opened */
       PhysType		phys_type;	/* Device type descriptor */
+      int		linkID;		/* Absolute link number */
     } info;
     struct authparams	params;		/* params to pass to from auth backend */
   };

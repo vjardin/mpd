@@ -44,7 +44,7 @@
  * FUNCTIONS
  */
 
-  extern void	PapStart(PapInfo pap, int which);
+  extern void	PapStart(Link lnk, int which);
   extern void	PapStop(PapInfo pap);
   extern void	PapInput(struct authdata *auth, const u_char *pkt, u_short len);
   extern void	PapInputFinish(struct authdata *auth);

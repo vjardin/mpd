@@ -290,13 +290,13 @@ AuthStart(void)
     case 0:
       break;
     case PROTO_PAP:
-      PapStart(&a->pap, AUTH_SELF_TO_PEER);
+      PapStart(lnk, AUTH_SELF_TO_PEER);
       break;
     case PROTO_CHAP:
       ChapStart(lnk, AUTH_SELF_TO_PEER);
       break;
     case PROTO_EAP:
-      EapStart(&a->eap, AUTH_SELF_TO_PEER);
+      EapStart(lnk, AUTH_SELF_TO_PEER);
       break;
     default:
       assert(0);
@@ -307,13 +307,13 @@ AuthStart(void)
     case 0:
       break;
     case PROTO_PAP:
-      PapStart(&a->pap, AUTH_PEER_TO_SELF);
+      PapStart(lnk, AUTH_PEER_TO_SELF);
       break;
     case PROTO_CHAP:
       ChapStart(lnk, AUTH_PEER_TO_SELF);
       break;
     case PROTO_EAP:
-      EapStart(&a->eap, AUTH_PEER_TO_SELF);
+      EapStart(lnk, AUTH_PEER_TO_SELF);
       break;
     default:
       assert(0);
@@ -516,6 +516,18 @@ AuthCleanup(void)
   authparamsDestroy(&a->params);
 }
 
+static int 
+GetLinkID(Link lnk) {
+    int port, i;
+    
+    port =- 1;    
+    for (i = 0; i < gNumLinks; i++) {
+      if (gLinks[i] && gLinks[i] != lnk) {
+	port = i;
+      }
+    }
+    return port;
+};
 
 /* 
  * AuthDataNew()
@@ -531,7 +543,6 @@ AuthDataNew(void)
 
   auth = Malloc(MB_AUTH, sizeof(*auth));
   auth->conf = lnk->lcp.auth.conf;
-  auth->lnk = LinkCopy();
 
   strlcpy(auth->info.lnkname, lnk->name, sizeof(auth->info.lnkname));
   strlcpy(auth->info.msession_id, lnk->msession_id, sizeof(auth->info.msession_id));
@@ -550,6 +561,7 @@ AuthDataNew(void)
 
   auth->info.last_open = lnk->last_open;
   auth->info.phys_type = lnk->phys->type;
+  auth->info.linkID = GetLinkID(lnk);
 
   authparamsCopy(&a->params,&auth->params);
 
@@ -566,8 +578,6 @@ void
 AuthDataDestroy(AuthData auth)
 {
   authparamsDestroy(&auth->params);
-  Freee(MB_BUND, auth->lnk->downReason);
-  Freee(MB_BUND, auth->lnk);
   Freee(MB_AUTH, auth->info.downReason);
   Freee(MB_AUTH, auth->reply_message);
   Freee(MB_AUTH, auth->mschap_error);
@@ -724,9 +734,8 @@ static void
 AuthAccount(void *arg)
 {
   AuthData	const auth = (AuthData)arg;
-  Link		const lnk = auth->lnk;	/* hide the global "lnk" */
   
-  Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", lnk->name));
+  Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", auth->info.lnkname));
 
   if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
     RadiusAccount(auth);
@@ -743,12 +752,12 @@ AuthAccount(void *arg)
       strlcpy(ut.ut_name, auth->params.authname, sizeof(ut.ut_name));
       time(&ut.ut_time);
       login(&ut);
-      Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", lnk->name, ut.ut_line, 
+      Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
         ut.ut_name, ut.ut_host));
     }
   
     if (auth->acct_type == AUTH_ACCT_STOP) {
-      Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", lnk->name, ut.ut_line));
+      Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", auth->info.lnkname, ut.ut_line));
       logout(ut.ut_line);
       logwtmp(ut.ut_line, "", "");
     }
@@ -769,7 +778,7 @@ AuthAccountFinish(void *arg, int was_canceled)
 
   if (was_canceled)
     Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
-      auth->lnk->name));
+      auth->info.lnkname));
     
   /* Cleanup */
   RadiusClose(auth);
@@ -779,7 +788,7 @@ AuthAccountFinish(void *arg, int was_canceled)
     return;
   }  
 
-  av[0] = auth->lnk->name;
+  av[0] = auth->info.lnkname;
   /* Re-Activate lnk and bund */
   if (LinkCommand(1, av, NULL) == -1) {
     AuthDataDestroy(auth);
@@ -787,7 +796,7 @@ AuthAccountFinish(void *arg, int was_canceled)
   }    
 
   Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
-    auth->lnk->name));
+    auth->info.lnkname));
 
   if (auth->acct_type != AUTH_ACCT_STOP) {
     /* Copy back modified data. */
@@ -874,12 +883,6 @@ AuthAsyncStart(AuthData auth)
     return;
   }
 
-  /* refresh the copy of the link */
-  if (auth->lnk != NULL) {
-    Freee(MB_AUTH, auth->lnk->downReason);
-    Freee(MB_AUTH, auth->lnk);
-  }
-  auth->lnk = LinkCopy();
   if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
     AuthAsyncFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Auth-Thread %d", 
@@ -901,40 +904,36 @@ static void
 AuthAsync(void *arg)
 {
   AuthData	const auth = (AuthData)arg;
-  Link		const lnk = auth->lnk;	/* hide the global "lnk" */
-  Auth		const a = &lnk->lcp.auth;
-  EapInfo	const eap = &a->eap;
 
-  Log(LG_AUTH, ("[%s] AUTH: Auth-Thread started", lnk->name));
+  Log(LG_AUTH, ("[%s] AUTH: Auth-Thread started", auth->info.lnkname));
 
-  if (auth->proto == PROTO_EAP 
-      && Enabled(&eap->conf.options, EAP_CONF_RADIUS)) {
+  if (auth->proto == PROTO_EAP && auth->eap_radius) {
     RadiusEapProxy(auth);
     return;
   } else if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_AUTH)) {
-    Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", lnk->name));
+    Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", auth->info.lnkname));
     RadiusAuthenticate(auth);
     Log(LG_AUTH, ("[%s] AUTH: RADIUS returned %s", 
-      lnk->name, AuthStatusText(auth->status)));
+      auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS)
       return;
   }
 
   if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM)) {
-    Log(LG_AUTH, ("[%s] AUTH: Trying SYSTEM", lnk->name));
+    Log(LG_AUTH, ("[%s] AUTH: Trying SYSTEM", auth->info.lnkname));
     AuthSystem(auth);
     Log(LG_AUTH, ("[%s] AUTH: SYSTEM returned %s", 
-      lnk->name, AuthStatusText(auth->status)));
+      auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
       return;
   }
   
   if (Enabled(&auth->conf.options, AUTH_CONF_OPIE)) {
-    Log(LG_AUTH, ("[%s] AUTH: Trying OPIE", lnk->name));
+    Log(LG_AUTH, ("[%s] AUTH: Trying OPIE", auth->info.lnkname));
     AuthOpie(auth);
     Log(LG_AUTH, ("[%s] AUTH: OPIE returned %s", 
-      lnk->name, AuthStatusText(auth->status)));
+      auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
       return;
@@ -942,16 +941,16 @@ AuthAsync(void *arg)
   
   if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
     auth->params.authentic = AUTH_CONF_INTERNAL;
-    Log(LG_AUTH, ("[%s] AUTH: Trying INTERNAL", lnk->name));
+    Log(LG_AUTH, ("[%s] AUTH: Trying INTERNAL", auth->info.lnkname));
     AuthInternal(auth);
     Log(LG_AUTH, ("[%s] AUTH: INTERNAL returned %s", 
-      lnk->name, AuthStatusText(auth->status)));
+      auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
       return;
   } 
 
-  Log(LG_ERR, ("[%s] AUTH: ran out of backends", lnk->name));
+  Log(LG_ERR, ("[%s] AUTH: ran out of backends", auth->info.lnkname));
   auth->status = AUTH_STATUS_FAIL;
   auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
 }
@@ -969,7 +968,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
   char		*av[1];
 
   if (was_canceled)
-    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->lnk->name));
+    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->info.lnkname));
 
   /* cleanup */
   RadiusClose(auth);
@@ -979,7 +978,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
     return;
   }  
   
-  av[0] = auth->lnk->name;
+  av[0] = auth->info.lnkname;
   /* Re-Activate lnk and bund */
   if (LinkCommand(1, av, NULL) == -1) {
     AuthDataDestroy(auth);

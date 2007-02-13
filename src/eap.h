@@ -101,7 +101,7 @@
  */
 
   extern void	EapInit(void);
-  extern void	EapStart(EapInfo eap, int which);
+  extern void	EapStart(Link lnk, int which);
   extern void	EapStop(EapInfo eap);
   extern void	EapInput(struct authdata *auth, const u_char *pkt, u_short len);
   extern const	char *EapCode(u_char code);

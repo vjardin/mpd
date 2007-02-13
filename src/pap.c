@@ -19,7 +19,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void	PapSendRequest(PapInfo pap);
+  static void	PapSendRequest(Link lnk);
   static void	PapTimeout(void *ptr);
 
 /*
@@ -27,8 +27,10 @@
  */
 
 void
-PapStart(PapInfo pap, int which)
+PapStart(Link lnk, int which)
 {
+  PapInfo pap = &lnk->lcp.auth.pap;
+
   switch (which) {
     case AUTH_PEER_TO_SELF:	/* Just wait for peer's request */
       break;
@@ -44,7 +46,7 @@ PapStart(PapInfo pap, int which)
       TimerStart(&pap->timer);
 
       /* Send first request */
-      PapSendRequest(pap);
+      PapSendRequest(lnk);
       break;
 
     default:
@@ -69,8 +71,9 @@ PapStop(PapInfo pap)
  */
 
 static void
-PapSendRequest(PapInfo pap)
+PapSendRequest(Link lnk)
 {
+    PapInfo		pap = &lnk->lcp.auth.pap;
     char		password[AUTH_MAX_PASSWORD];
     int			name_len, pass_len;
     u_char		*pkt;
@@ -265,12 +268,13 @@ goodRequest:
 static void
 PapTimeout(void *ptr)
 {
-  PapInfo	const pap = (PapInfo) ptr;
+  Link		const lnk = (Link) ptr;
+  PapInfo	const pap = (PapInfo) &lnk->lcp.auth.pap;
 
   TimerStop(&pap->timer);
   if (--pap->retry > 0) {
     TimerStart(&pap->timer);
-    PapSendRequest(pap);
+    PapSendRequest(lnk);
   }
 }
 
