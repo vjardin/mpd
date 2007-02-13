@@ -153,6 +153,7 @@ EapSendRequest(u_char type)
   Auth		const a = &lnk->lcp.auth;
   EapInfo	const eap = &a->eap;
   ChapInfo	const chap = &a->chap;
+  ChapParams	const cp = &a->params.chap;
   int		i = 0;
   u_char	req_type = 0;
 
@@ -181,16 +182,16 @@ EapSendRequest(u_char type)
     case EAP_TYPE_MD5CHAL:
 
       /* Invalidate any old challenge data */
-      chap->chal_len = 0;
+      cp->chal_len = 0;
       /* Initialize retry counter and timer */
       chap->next_id = 1;
       chap->retry = AUTH_RETRIES;
       chap->proto = PROTO_EAP;
 
       if (req_type == EAP_TYPE_MD5CHAL) {
-	chap->recv_alg = CHAP_ALG_MD5;
+	cp->recv_alg = CHAP_ALG_MD5;
       } else {
-	chap->recv_alg = CHAP_ALG_MSOFTv2;
+	cp->recv_alg = CHAP_ALG_MSOFTv2;
       }
 
       TimerInit(&chap->chalTimer, "ChalTimer",
@@ -198,7 +199,7 @@ EapSendRequest(u_char type)
       TimerStart(&chap->chalTimer);
 
       /* Send first challenge */
-      ChapSendChallenge(chap);
+      ChapSendChallenge(lnk);
       break;
 
     default:

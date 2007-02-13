@@ -52,18 +52,23 @@
     short		retry;				/* Resend count */
     struct pppTimer	chalTimer;			/* Challenge timer */
     struct pppTimer	respTimer;			/* Reponse timer */
-    char		chal_data[CHAP_MAX_VAL];	/* Challenge sent */
-    short		chal_len;			/* Challenge length */
     u_char		xmit_alg;			/* Peer auth us with */
-    u_char		recv_alg;			/* We auth peer with */
     u_char		resp_id;			/* Response ID */
     u_char		*resp;				/* Response packet */
     short		resp_len;			/* Response length */
-    u_char		value[CHAP_MAX_VAL];		/* Chap packet */
-    int			value_len;			/* Packet length */
     int			proto;				/* CHAP, EAP */
   };
   typedef struct chapinfo	*ChapInfo;
+
+  struct chapparams
+  {
+    u_char		recv_alg;			/* We auth peer with */
+    char		chal_data[CHAP_MAX_VAL];	/* Challenge sent */
+    short		chal_len;			/* Challenge length */
+    u_char		value[CHAP_MAX_VAL];		/* Chap packet */
+    int			value_len;			/* Packet length */
+  };
+  typedef struct chapparams	*ChapParams;
 
   struct mschapvalue {
     u_char	lmHash[24];
@@ -92,10 +97,10 @@
  * FUNCTIONS
  */
 
-  extern void	ChapStart(ChapInfo chap, int which);
+  extern void	ChapStart(Link lnk, int which);
   extern void	ChapStop(ChapInfo chap);
   extern void	ChapInput(struct authdata *auth, const u_char *pkt, u_short len);
-  extern void	ChapSendChallenge(ChapInfo chap);
+  extern void	ChapSendChallenge(Link lnk);
   extern void	ChapChalTimeout(void *ptr);
   extern const	char *ChapCode(int code);
   extern void	ChapInputFinish(struct authdata *auth);

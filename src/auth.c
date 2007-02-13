@@ -250,7 +250,7 @@ AuthStart(void)
   /* What auth protocols were negotiated by LCP? */
   a->self_to_peer = lnk->lcp.peer_auth;
   a->peer_to_self = lnk->lcp.want_auth;
-  a->chap.recv_alg = lnk->lcp.want_chap_alg;
+  a->params.chap.recv_alg = lnk->lcp.want_chap_alg;
   a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
 
   if (lnk->phys->type) {
@@ -293,7 +293,7 @@ AuthStart(void)
       PapStart(&a->pap, AUTH_SELF_TO_PEER);
       break;
     case PROTO_CHAP:
-      ChapStart(&a->chap, AUTH_SELF_TO_PEER);
+      ChapStart(lnk, AUTH_SELF_TO_PEER);
       break;
     case PROTO_EAP:
       EapStart(&a->eap, AUTH_SELF_TO_PEER);
@@ -310,7 +310,7 @@ AuthStart(void)
       PapStart(&a->pap, AUTH_PEER_TO_SELF);
       break;
     case PROTO_CHAP:
-      ChapStart(&a->chap, AUTH_PEER_TO_SELF);
+      ChapStart(lnk, AUTH_PEER_TO_SELF);
       break;
     case PROTO_EAP:
       EapStart(&a->eap, AUTH_PEER_TO_SELF);
@@ -1027,9 +1027,6 @@ AuthInternal(AuthData auth)
 static void
 AuthSystem(AuthData auth)
 {
-  Link		const lnk = auth->lnk;	/* hide the global "lnk" */
-  Auth		const a = &lnk->lcp.auth;
-  ChapInfo	chap = &a->chap;
   PapParams	pp = &auth->params.pap;
   struct passwd	*pw;
   struct passwd pwc;
@@ -1071,7 +1068,8 @@ AuthSystem(AuthData auth)
     GIANT_MUTEX_UNLOCK();
     return;
   } else if (auth->proto == PROTO_CHAP 
-      && (chap->recv_alg == CHAP_ALG_MSOFT || chap->recv_alg == CHAP_ALG_MSOFTv2)) {
+      && (auth->params.chap.recv_alg == CHAP_ALG_MSOFT 
+        || auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2)) {
 
     if (!strstr(pwc.pw_passwd, "$3$$")) {
       Log(LG_AUTH, (" Password has the wrong format, nth ($3$) is needed"));

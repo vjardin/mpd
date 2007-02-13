@@ -817,8 +817,7 @@ RadiusStart(AuthData auth, short request_type)
 static int 
 RadiusPutAuth(AuthData auth)
 {
-  Link			lnk = auth->lnk;	/* hide the global "lnk" */
-  ChapInfo		const chap = &lnk->lcp.auth.chap;
+  ChapParams		const cp = &auth->params.chap;
   PapParams		const pp = &auth->params.pap;
   
   struct rad_chapvalue		rad_chapval;
@@ -834,25 +833,25 @@ RadiusPutAuth(AuthData auth)
   }
 
   if (auth->proto == PROTO_CHAP || auth->proto == PROTO_EAP) {
-    switch (chap->recv_alg) {
+    switch (cp->recv_alg) {
 
       case CHAP_ALG_MSOFT:
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) peer name: %s", 
 	  auth->info.lnkname, __func__, auth->params.authname));
-	if (chap->value_len != 49) {
+	if (cp->value_len != 49) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) unrecognised key length %d/%d",
-	    auth->info.lnkname, __func__, chap->value_len, 49));
+	    auth->info.lnkname, __func__, cp->value_len, 49));
 	return RAD_NACK;
 	}
 
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE,
-	    chap->chal_data, chap->chal_len) == -1)  {
+	    cp->chal_data, cp->chal_len) == -1)  {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s",
 	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
 	  return (RAD_NACK);
 	}
 
-	mschapval = (struct mschapvalue *)chap->value;
+	mschapval = (struct mschapvalue *)cp->value;
 	rad_mschapval.ident = auth->id;
 	rad_mschapval.flags = 0x01;
 	memcpy(rad_mschapval.lm_response, mschapval->lmHash, 24);
@@ -871,19 +870,19 @@ RadiusPutAuth(AuthData auth)
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) peer name: %s",
 	  auth->info.lnkname, __func__, auth->params.authname));
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT,
-	    RAD_MICROSOFT_MS_CHAP_CHALLENGE, chap->chal_data, chap->chal_len) == -1) {
+	    RAD_MICROSOFT_MS_CHAP_CHALLENGE, cp->chal_data, cp->chal_len) == -1) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_CHALLENGE) failed %s",
 	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
 	  return (RAD_NACK);
 	}
 
-	if (chap->value_len != sizeof(*mschapv2val)) {
+	if (cp->value_len != sizeof(*mschapv2val)) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d", auth->info.lnkname,
-	    __func__, chap->value_len, sizeof(*mschapv2val)));
+	    __func__, cp->value_len, sizeof(*mschapv2val)));
 	  return RAD_NACK;
 	}
       
-	mschapv2val = (struct mschapv2value *)chap->value;
+	mschapv2val = (struct mschapv2value *)cp->value;
 	rad_mschapv2val.ident = auth->id;
 	rad_mschapv2val.flags = mschapv2val->flags;
 	memcpy(rad_mschapv2val.response, mschapv2val->ntHash,
@@ -904,11 +903,11 @@ RadiusPutAuth(AuthData auth)
       case CHAP_ALG_MD5:
 	/* RADIUS requires the CHAP Ident in the first byte of the CHAP-Password */
 	rad_chapval.ident = auth->id;
-	memcpy(rad_chapval.response, chap->value, chap->value_len);
+	memcpy(rad_chapval.response, cp->value, cp->value_len);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RADIUS_CHAP (MD5) peer name: %s", 
 	  auth->info.lnkname, __func__, auth->params.authname));
-	if (rad_put_attr(auth->radius.handle, RAD_CHAP_PASSWORD, &rad_chapval, chap->value_len + 1) == -1 ||
-	    rad_put_attr(auth->radius.handle, RAD_CHAP_CHALLENGE, chap->chal_data, chap->chal_len) == -1) {
+	if (rad_put_attr(auth->radius.handle, RAD_CHAP_PASSWORD, &rad_chapval, cp->value_len + 1) == -1 ||
+	    rad_put_attr(auth->radius.handle, RAD_CHAP_CHALLENGE, cp->chal_data, cp->chal_len) == -1) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(password) failed %s",
 	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
 	  return (RAD_NACK);
@@ -917,7 +916,7 @@ RadiusPutAuth(AuthData auth)
       
       default:
 	Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS unkown CHAP ALG %d", 
-	  auth->info.lnkname, __func__, chap->recv_alg));
+	  auth->info.lnkname, __func__, cp->recv_alg));
 	return (RAD_NACK);
     }
   } else if (auth->proto == PROTO_PAP) {
@@ -1037,8 +1036,7 @@ RadiusSendRequest(AuthData auth)
 static int
 RadiusGetParams(AuthData auth, int eap_proxy)
 {
-  Link		lnk = auth->lnk;	/* hide the global "lnk" */
-  ChapInfo	const chap = &lnk->lcp.auth.chap;
+  ChapParams	const cp = &auth->params.chap;
   int		res, i, j;
   size_t	len;
   const void	*data;
@@ -1498,7 +1496,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   }
 
   /* sanity check, this happens when FreeRADIUS has no msoft-dictionary loaded */
-  if (auth->proto == PROTO_CHAP && chap->recv_alg == CHAP_ALG_MSOFTv2
+  if (auth->proto == PROTO_CHAP && cp->recv_alg == CHAP_ALG_MSOFTv2
     && auth->mschapv2resp == NULL && auth->mschap_error == NULL) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: PANIC no MS-CHAPv2 response received",
       auth->info.lnkname, __func__));
