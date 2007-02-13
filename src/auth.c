@@ -31,13 +31,15 @@
  */
 
   static void		AuthTimeout(void *arg);
-  static int		AuthGetExternalPassword(char * extcmd, AuthData auth);
+  static int		AuthGetExternalPassword(char * extcmd, char *authname,
+			    char *password, size_t passlen);
   static void		AuthAsync(void *arg);
   static void		AuthAsyncFinish(void *arg, int was_canceled);
   static int		AuthPreChecks(AuthData auth, int complain);
   static void		AuthAccountTimeout(void *a);
   static void		AuthAccount(void *arg);
   static void		AuthAccountFinish(void *arg, int was_canceled);
+  static void		AuthInternal(AuthData auth);
   static void		AuthSystem(AuthData auth);
   static void		AuthOpie(AuthData auth);
   static const char	*AuthCode(int proto, u_char code);
@@ -793,31 +795,17 @@ AuthAccountFinish(void *arg, int was_canceled)
  */
 
 int
-AuthGetData(AuthData auth, int complain)
+AuthGetData(char *authname, char *password, size_t passlen, 
+    struct u_range *range, u_char *range_valid)
 {
-  /* uncomment this, if access to the link is needed */
-  /*Link		lnk = auth->lnk;*/	/* hide the global "lnk" */
   FILE		*fp;
   int		ac;
   char		*av[20];
   char		*line;
 
-  /* Default to generic failure reason */
-  auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
-
   /* Check authname, must be non-empty */
-  if (*auth->params.authname == 0) {
-    if (complain)
-      Log(LG_AUTH, ("%s: empty auth name", __FUNCTION__));
+  if (authname == NULL || authname[0] == 0) {
     return(-1);
-  }
-
-  /* Use manually configured login and password, if given */
-  if (*auth->conf.password && !strcmp(auth->params.authname, auth->conf.authname)) {
-    snprintf(auth->params.password, sizeof(auth->params.password), "%s", auth->conf.password);
-    memset(&auth->params.range, 0, sizeof(auth->params.range));
-    auth->params.range_valid = FALSE;
-    return(0);
   }
 
   /* Search secrets file */
@@ -828,21 +816,25 @@ AuthGetData(AuthData auth, int complain)
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
     Freee(MB_UTIL, line);
     if (ac >= 2
-	&& (strcmp(av[0], auth->params.authname) == 0
+	&& (strcmp(av[0], authname) == 0
 	 || (av[1][0] == '!' && strcmp(av[0], "*") == 0))) {
       if (av[1][0] == '!') {		/* external auth program */
-	if (AuthGetExternalPassword((av[1]+1), auth) == -1) {
+	if (AuthGetExternalPassword((av[1]+1), 
+	    authname, password, passlen) == -1) {
 	  FreeArgs(ac, av);
 	  fclose(fp);
 	  return(-1);
 	}
       } else {
-	snprintf(auth->params.password, sizeof(auth->params.password), "%s", av[1]);
+	strlcpy(password, av[1], passlen);
       }
-      memset(&auth->params.range, 0, sizeof(auth->params.range));
-      auth->params.range_valid = FALSE;
-      if (ac >= 3)
-	auth->params.range_valid = ParseRange(av[2], &auth->params.range, ALLOW_IPV4);
+      if (range != NULL && range_valid != NULL) {
+        u_rangeclear(range);
+        if (ac >= 3)
+	    *range_valid = ParseRange(av[2], range, ALLOW_IPV4);
+	else
+	    *range_valid = FALSE;
+      }
       FreeArgs(ac, av);
       fclose(fp);
       return(0);
@@ -930,7 +922,7 @@ AuthAsync(void *arg)
   }
   
   if (Enabled(&auth->conf.options, AUTH_CONF_OPIE)) {
-    Log(LG_AUTH, ("[%s] AUTH: Trying OPIE ", lnk->name));
+    Log(LG_AUTH, ("[%s] AUTH: Trying OPIE", lnk->name));
     AuthOpie(auth);
     Log(LG_AUTH, ("[%s] AUTH: OPIE returned %s", 
       lnk->name, AuthStatusText(auth->status)));
@@ -941,17 +933,13 @@ AuthAsync(void *arg)
   
   if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
     auth->params.authentic = AUTH_CONF_INTERNAL;
-    Log(LG_AUTH, ("[%s] AUTH: Trying secret file: %s ", lnk->name, SECRET_FILE));
-    Log(LG_AUTH, (" Peer name: \"%s\"", auth->params.authname));
-    if (AuthGetData(auth, 1) < 0) {
-      Log(LG_AUTH, (" User \"%s\" not found in secret file", auth->params.authname));
-      auth->status = AUTH_STATUS_FAIL;
+    Log(LG_AUTH, ("[%s] AUTH: Trying INTERNAL", lnk->name));
+    AuthInternal(auth);
+    Log(LG_AUTH, ("[%s] AUTH: INTERNAL returned %s", 
+      lnk->name, AuthStatusText(auth->status)));
+    if (auth->status == AUTH_STATUS_SUCCESS 
+      || auth->status == AUTH_STATUS_UNDEF)
       return;
-    }
-
-    /* the finish handler make's the validation */
-    auth->status = AUTH_STATUS_UNDEF;
-    return;
   } 
 
   Log(LG_ERR, ("[%s] AUTH: ran out of backends", lnk->name));
@@ -998,6 +986,27 @@ AuthAsyncFinish(void *arg, int was_canceled)
     strcpy(auth->ack_mesg, auth->mschapv2resp);
   
   auth->finish(auth);
+}
+
+/*
+ * AuthInternal()
+ * 
+ * Authenticate against mpd.secrets
+ */
+ 
+static void
+AuthInternal(AuthData auth)
+{
+    if (AuthGetData(auth->params.authname, auth->params.password, 
+	    sizeof(auth->params.password), &auth->params.range, 
+	    &auth->params.range_valid) < 0) {
+	Log(LG_AUTH, ("AUTH: User \"%s\" not found in secret file", 
+	    auth->params.authname));
+	auth->status = AUTH_STATUS_FAIL;
+	auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+	return;
+    }
+    auth->status = AUTH_STATUS_UNDEF;
 }
 
 /*
@@ -1130,14 +1139,12 @@ AuthOpie(AuthData auth)
     return;
   }
 
-  if (AuthGetData(auth, 1) < 0) {
+  if (AuthGetData(auth->params.authname, secret, sizeof(secret), NULL, NULL) < 0) {
     Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->params.authname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;    
     return;
   }
-  
-  strlcpy(secret, auth->params.password, sizeof(secret));
   
   opiekeycrunch(OPIE_ALG_MD5, &key, auth->opie.data.opie_seed, secret);
   n = auth->opie.data.opie_n - 1;
@@ -1351,31 +1358,31 @@ AuthMPPETypesname(int types)
  * -1 on error (can't fork, no data read, whatever)
  */
 static int
-AuthGetExternalPassword(char * extcmd, AuthData auth)
+AuthGetExternalPassword(char * extcmd, char *authname, char *password, size_t passlen)
 {
   char cmd[AUTH_MAX_PASSWORD + 5 + AUTH_MAX_AUTHNAME];
   int ok = 0;
   FILE *fp;
   int len;
 
-  snprintf(cmd, sizeof(cmd), "%s %s", extcmd, auth->params.authname);
-  Log(LG_AUTH, ("Invoking external auth program: %s", cmd));
+  snprintf(cmd, sizeof(cmd), "%s %s", extcmd, authname);
+  Log(LG_AUTH, ("Invoking external auth program: '%s'", cmd));
   if ((fp = popen(cmd, "r")) == NULL) {
     Perror("Popen");
     return (-1);
   }
-  if (fgets(auth->params.password, sizeof(auth->params.password), fp) != NULL) {
-    len = strlen(auth->params.password);	/* trim trailing newline */
-    if (len > 0 && auth->params.password[len - 1] == '\n')
-      auth->params.password[len - 1] = '\0';
-    ok = (*auth->params.password != '\0');
+  if (fgets(password, passlen, fp) != NULL) {
+    len = strlen(password);	/* trim trailing newline */
+    if (len > 0 && password[len - 1] == '\n')
+      password[len - 1] = '\0';
+    ok = (password[0] != '\0');
   } else {
     if (ferror(fp))
       Perror("Error reading from external auth program");
   }
   if (!ok)
     Log(LG_AUTH, ("External auth program failed for user \"%s\"", 
-      auth->params.authname));
+      authname));
   pclose(fp);
   return (ok ? 0 : -1);
 }

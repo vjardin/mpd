@@ -93,7 +93,7 @@
     struct papparams	pap;
 
     struct u_range	range;		/* IP range allowed to user */
-    u_int		range_valid:1;  /* range is valid */
+    u_char		range_valid;	/* range is valid */
     struct in_addr	mask;		/* IP Netmask */
 
     unsigned long	class;      	/* Class */
@@ -228,7 +228,8 @@
   extern void		AuthAccountStart(int type);
   extern AuthData	AuthDataNew(void);
   extern void		AuthDataDestroy(AuthData auth);
-  extern int		AuthGetData(AuthData auth, int complain);
+  extern int		AuthGetData(char *authname, char *password, size_t passlen, 
+			    struct u_range *range, u_char *range_valid);
   extern void		AuthAsyncStart(AuthData auth);
   extern const char	*AuthFailMsg(AuthData auth, int alg);
   extern const char	*AuthStatusText(int status);

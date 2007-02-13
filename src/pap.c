@@ -71,32 +71,35 @@ PapStop(PapInfo pap)
 static void
 PapSendRequest(PapInfo pap)
 {
-  struct authdata	auth;    
-  int			name_len, pass_len;
-  u_char		*pkt;
+    char		password[AUTH_MAX_PASSWORD];
+    int			name_len, pass_len;
+    u_char		*pkt;
 
-  /* Get password corresponding to my authname */
-  memset(&auth, 0, sizeof(auth));
-  auth.conf = lnk->lcp.auth.conf;
-  strlcpy(auth.params.authname, lnk->lcp.auth.conf.authname, sizeof(auth.params.authname));
-  Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", lnk->name, auth.params.authname));
-  if (AuthGetData(&auth, 1) < 0)
-    Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth.params.authname));
+    /* Get password corresponding to my authname */
+    Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", 
+	lnk->name, lnk->lcp.auth.conf.authname));
+    if (lnk->lcp.auth.conf.password[0] != 0) {
+	strncpy(password, lnk->lcp.auth.conf.password, sizeof(password));
+    } else if (AuthGetData(lnk->lcp.auth.conf.authname, password, 
+	    sizeof(password), NULL, NULL) < 0) {
+	Log(LG_AUTH, (" Warning: no secret for \"%s\" found", 
+	    lnk->lcp.auth.conf.authname));
+    }
 
-  /* Build response packet */
-  name_len = strlen(auth.params.authname);
-  pass_len = strlen(auth.params.password);
+    /* Build response packet */
+    name_len = strlen(lnk->lcp.auth.conf.authname);
+    pass_len = strlen(password);
 
-  pkt = Malloc(MB_AUTH, 1 + name_len + 1 + pass_len);
-  pkt[0] = name_len;
-  memcpy(pkt + 1, auth.params.authname, name_len);
-  pkt[1 + name_len] = pass_len;
-  memcpy(pkt + 1 + name_len + 1, auth.params.password, pass_len);
+    pkt = Malloc(MB_AUTH, 1 + name_len + 1 + pass_len);
+    pkt[0] = name_len;
+    memcpy(pkt + 1, lnk->lcp.auth.conf.authname, name_len);
+    pkt[1 + name_len] = pass_len;
+    memcpy(pkt + 1 + name_len + 1, password, pass_len);
 
-  /* Send it off */
-  AuthOutput(PROTO_PAP, PAP_REQUEST, pap->next_id++, pkt,
-    1 + name_len + 1 + pass_len, 0, 0);
-  Freee(MB_AUTH, pkt);
+    /* Send it off */
+    AuthOutput(PROTO_PAP, PAP_REQUEST, pap->next_id++, pkt,
+	1 + name_len + 1 + pass_len, 0, 0);
+    Freee(MB_AUTH, pkt);
 }
 
 /*

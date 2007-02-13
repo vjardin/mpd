@@ -329,9 +329,15 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	strlcpy(auth->params.authname, name, sizeof(auth->params.authname));
 
 	/* Get the corresponding secret */
-	if (AuthGetData(auth, 1) < 0) {
-	  Log(LG_AUTH, (" Warning: no secret for \"%s\" found", auth->params.authname));
-	  break;
+	if ((strcmp(auth->conf.authname, auth->params.authname) == 0) && 
+	    auth->conf.password[0] != 0) {
+		strncpy(auth->params.password, auth->conf.password, 
+		    sizeof(auth->params.password));
+	} else if (AuthGetData(auth->params.authname, auth->params.password, 
+	    sizeof(auth->params.password), NULL, NULL) < 0) {
+		Log(LG_AUTH, (" Warning: no secret for \"%s\" found", 
+		    auth->params.authname));
+		break;
 	}
 
 	secret = ChapGetSecret(lnk, chap->xmit_alg, auth->params.password);

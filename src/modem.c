@@ -237,7 +237,7 @@ ModemStart(void *arg)
 {
   ModemInfo		const m = (ModemInfo) arg;
   const time_t		now = time(NULL);
-  struct authdata	auth;
+  char			password[AUTH_MAX_PASSWORD];
   FILE			*scriptfp;
 
   /* If we're idle, and there's no idle script, there's nothing to do */
@@ -276,13 +276,15 @@ fail:
     return;
   }
 
-  /* Preset some special chat variables */
-  ChatPresetVar(m->chat, CHAT_VAR_DEVICE, m->device);
-  ChatPresetVar(m->chat, CHAT_VAR_LOGIN, lnk->lcp.auth.conf.authname);
-  memset(&auth, 0, sizeof(auth));
-  strlcpy(auth.params.authname, lnk->lcp.auth.conf.authname, sizeof(auth.params.authname));
-  if (AuthGetData(&auth, 0) >= 0)
-    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, auth.params.password);
+    /* Preset some special chat variables */
+    ChatPresetVar(m->chat, CHAT_VAR_DEVICE, m->device);
+    ChatPresetVar(m->chat, CHAT_VAR_LOGIN, lnk->lcp.auth.conf.authname);
+    if (lnk->lcp.auth.conf.password[0] != 0) {
+	ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, lnk->lcp.auth.conf.password);
+    } else if (AuthGetData(lnk->lcp.auth.conf.authname,
+	password, sizeof(password), NULL, NULL) >= 0) {
+	    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, password);
+    }
 
   /* Run connect or idle script as appropriate */
   if (!m->opened) {
