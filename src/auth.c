@@ -543,6 +543,14 @@ AuthDataNew(void)
   /* Copy current link statistics */
   memcpy(&auth->info.stats, &lnk->stats, sizeof(auth->info.stats));
 
+  if (lnk->downReasonValid) {
+    auth->info.downReason = Malloc(MB_LINK, strlen(lnk->downReason) + 1);
+    strcpy(auth->info.downReason, lnk->downReason);
+  }
+
+  auth->info.last_open = lnk->last_open;
+  auth->info.phys_type = lnk->phys->type;
+
   authparamsCopy(&a->params,&auth->params);
 
   return auth;
@@ -560,6 +568,7 @@ AuthDataDestroy(AuthData auth)
   authparamsDestroy(&auth->params);
   Freee(MB_BUND, auth->lnk->downReason);
   Freee(MB_BUND, auth->lnk);
+  Freee(MB_AUTH, auth->info.downReason);
   Freee(MB_AUTH, auth->reply_message);
   Freee(MB_AUTH, auth->mschap_error);
   Freee(MB_AUTH, auth->mschapv2resp);

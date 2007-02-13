@@ -233,6 +233,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
   Auth		const a = &lnk->lcp.auth;
   ChapInfo	const chap = &a->chap;
   char		peer_name[CHAP_MAX_NAME + 1];
+  char		password[AUTH_MAX_PASSWORD];
   u_char	hash_value[CHAP_MAX_VAL];
   int		hash_value_size;
   const char	*failMesg;  
@@ -331,16 +332,15 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	/* Get the corresponding secret */
 	if ((strcmp(auth->conf.authname, auth->params.authname) == 0) && 
 	    auth->conf.password[0] != 0) {
-		strncpy(auth->params.password, auth->conf.password, 
-		    sizeof(auth->params.password));
-	} else if (AuthGetData(auth->params.authname, auth->params.password, 
-	    sizeof(auth->params.password), NULL, NULL) < 0) {
+		strncpy(password, auth->conf.password, sizeof(password));
+	} else if (AuthGetData(auth->params.authname, password, 
+	    sizeof(password), NULL, NULL) < 0) {
 		Log(LG_AUTH, (" Warning: no secret for \"%s\" found", 
 		    auth->params.authname));
 		break;
 	}
 
-	secret = ChapGetSecret(lnk, chap->xmit_alg, auth->params.password);
+	secret = ChapGetSecret(lnk, chap->xmit_alg, password);
 
 	/* Get hash value */
 	if ((hash_value_size = ChapHash(chap->xmit_alg, hash_value, auth->id,

@@ -178,7 +178,6 @@ void
 RadiusAccount(AuthData auth) 
 {
   char  *username;
-  Link	const lnk = auth->lnk;		/* hide the global "lnk" */
   int	authentic;
 
   Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s (Type: %d)", 
@@ -282,51 +281,49 @@ RadiusAccount(AuthData auth)
       || auth->acct_type == AUTH_ACCT_UPDATE) {
 
     if (auth->acct_type == AUTH_ACCT_STOP) {
-      int	termCause = RAD_TERM_PORT_ERROR;
+        int	termCause = RAD_TERM_PORT_ERROR;
 
-      Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_STATUS_TYPE): RAD_STOP", 
-	auth->info.lnkname, __func__));
-      if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_STOP)) {
-	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_STATUS_TYPE): %s", 
-	  auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
-	return;
-      }
+        Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_STATUS_TYPE): RAD_STOP", 
+	    auth->info.lnkname, __func__));
+        if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_STOP)) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_STATUS_TYPE): %s", 
+		auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
+	    return;
+        }
 
-      if (lnk->downReason != NULL) {
-	if ((!lnk->downReasonValid) || (!strcmp(lnk->downReason, ""))) {
+	if ((auth->info.downReason == NULL) || (!strcmp(auth->info.downReason, ""))) {
 	  termCause = RAD_TERM_NAS_REQUEST;
-	} else if (!strncmp(lnk->downReason, STR_MANUALLY, strlen(STR_MANUALLY))) {
+	} else if (!strncmp(auth->info.downReason, STR_MANUALLY, strlen(STR_MANUALLY))) {
 	  termCause = RAD_TERM_ADMIN_RESET;
-	} else if (!strncmp(lnk->downReason, STR_PEER_DISC, strlen(STR_PEER_DISC))) {
+	} else if (!strncmp(auth->info.downReason, STR_PEER_DISC, strlen(STR_PEER_DISC))) {
 	  termCause = RAD_TERM_USER_REQUEST;
-	} else if (!strncmp(lnk->downReason, STR_ADMIN_SHUTDOWN, strlen(STR_ADMIN_SHUTDOWN))) {
+	} else if (!strncmp(auth->info.downReason, STR_ADMIN_SHUTDOWN, strlen(STR_ADMIN_SHUTDOWN))) {
 	  termCause = RAD_TERM_ADMIN_REBOOT;
-	} else if (!strncmp(lnk->downReason, STR_FATAL_SHUTDOWN, strlen(STR_FATAL_SHUTDOWN))) {
+	} else if (!strncmp(auth->info.downReason, STR_FATAL_SHUTDOWN, strlen(STR_FATAL_SHUTDOWN))) {
 	  termCause = RAD_TERM_NAS_REBOOT;
-	} else if (!strncmp(lnk->downReason, STR_IDLE_TIMEOUT, strlen(STR_IDLE_TIMEOUT))) {
+	} else if (!strncmp(auth->info.downReason, STR_IDLE_TIMEOUT, strlen(STR_IDLE_TIMEOUT))) {
 	  termCause = RAD_TERM_IDLE_TIMEOUT;
-	} else if (!strncmp(lnk->downReason, STR_SESSION_TIMEOUT, strlen(STR_SESSION_TIMEOUT))) {
+	} else if (!strncmp(auth->info.downReason, STR_SESSION_TIMEOUT, strlen(STR_SESSION_TIMEOUT))) {
 	  termCause = RAD_TERM_SESSION_TIMEOUT;
-	} else if (!strncmp(lnk->downReason, STR_DROPPED, strlen(STR_DROPPED))) {
+	} else if (!strncmp(auth->info.downReason, STR_DROPPED, strlen(STR_DROPPED))) {
 	  termCause = RAD_TERM_LOST_CARRIER;
-	} else if (!strncmp(lnk->downReason, STR_ECHO_TIMEOUT, strlen(STR_ECHO_TIMEOUT))) {
+	} else if (!strncmp(auth->info.downReason, STR_ECHO_TIMEOUT, strlen(STR_ECHO_TIMEOUT))) {
 	  termCause = RAD_TERM_LOST_SERVICE;
-	} else if (!strncmp(lnk->downReason, STR_PROTO_ERR, strlen(STR_PROTO_ERR))) {
+	} else if (!strncmp(auth->info.downReason, STR_PROTO_ERR, strlen(STR_PROTO_ERR))) {
 	  termCause = RAD_TERM_SERVICE_UNAVAILABLE;
-	} else if (!strncmp(lnk->downReason, STR_LOGIN_FAIL, strlen(STR_LOGIN_FAIL))) {
+	} else if (!strncmp(auth->info.downReason, STR_LOGIN_FAIL, strlen(STR_LOGIN_FAIL))) {
 	  termCause = RAD_TERM_USER_ERROR;
-	} else if (!strncmp(lnk->downReason, STR_PORT_UNNEEDED, strlen(STR_PORT_UNNEEDED))) {
+	} else if (!strncmp(auth->info.downReason, STR_PORT_UNNEEDED, strlen(STR_PORT_UNNEEDED))) {
 	  termCause = RAD_TERM_PORT_UNNEEDED;
 	};
 	Log(LG_RADIUS, ("[%s] RADIUS: Termination cause: %s, RADIUS: %d",
-	  auth->info.lnkname, lnk->downReason, termCause));
-      }
+	  auth->info.lnkname, auth->info.downReason, termCause));
 
-      if (rad_put_int(auth->radius.handle, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
-	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_TERMINATE_CAUSE) failed: %s",
-	  auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
-	return;
-      } 
+        if (rad_put_int(auth->radius.handle, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_TERMINATE_CAUSE) failed: %s",
+		auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
+	    return;
+        } 
     } else {
       Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_STATUS_TYPE): RAD_UPDATE", 
 	auth->info.lnkname, __func__));
@@ -338,8 +335,8 @@ RadiusAccount(AuthData auth)
     }
 
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME): %ld", 
-      auth->info.lnkname, __func__, (long int)(time(NULL) - lnk->last_open)));
-    if (rad_put_int(auth->radius.handle, RAD_ACCT_SESSION_TIME, time(NULL) - lnk->last_open) != 0) {
+      auth->info.lnkname, __func__, (long int)(time(NULL) - auth->info.last_open)));
+    if (rad_put_int(auth->radius.handle, RAD_ACCT_SESSION_TIME, time(NULL) - auth->info.last_open) != 0) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_ACCT_SESSION_TIME) failed: %s",
 	auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
       return;
@@ -730,17 +727,17 @@ RadiusStart(AuthData auth, short request_type)
   }
 
 #ifdef PHYSTYPE_MODEM
-  if (lnk->phys->type == &gModemPhysType) {
+  if (auth->info.phys_type == &gModemPhysType) {
     porttype = RAD_ASYNC;
   } else 
 #endif
 #ifdef PHYSTYPE_NG_SOCKET
-  if (lnk->phys->type == &gNgPhysType) {
+  if (auth->info.phys_type == &gNgPhysType) {
     porttype = RAD_SYNC;
   } else 
 #endif
 #ifdef PHYSTYPE_PPPOE
-  if (lnk->phys->type == &gPppoePhysType) {
+  if (auth->info.phys_type == &gPppoePhysType) {
     porttype = RAD_ETHERNET;
   } else 
 #endif

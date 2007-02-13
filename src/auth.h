@@ -198,6 +198,9 @@
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
       struct linkstats	stats;		/* Current link statistics */
+      char		*downReason;	/* Reason for link going down */
+      time_t		last_open;	/* Time this link last was opened */
+      PhysType		phys_type;	/* Device type descriptor */
     } info;
     struct authparams	params;		/* params to pass to from auth backend */
   };
