@@ -523,7 +523,7 @@ EcpLayerUp(Fsm fp)
   }
 
   Log(LG_ECP, ("  Encrypt using: %s", !ecp->xmit ? "none" : ecp->xmit->name));
-  Log(LG_ECP, ("  Decrype using: %s", !ecp->recv ? "none" : ecp->recv->name));
+  Log(LG_ECP, ("  Decrypt using: %s", !ecp->recv ? "none" : ecp->recv->name));
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
