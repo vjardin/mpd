@@ -809,7 +809,7 @@ PppoeListenEvent(int type, void *arg)
 		if (NgSendMsg(p->PIf->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT,
 		    &cn, sizeof(cn)) < 0) {
 			Log(LG_ERR, ("[%s] PPPoE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-			    bund->name, ".:", cn.ourhook, cn.path,
+			    lnk->name, ".:", cn.ourhook, cn.path,
 			    cn.peerhook, strerror(errno)));
 			goto disconnect_ppp;
 		}
