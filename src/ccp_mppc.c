@@ -102,7 +102,7 @@ MppcInit(int dir)
   int			cmd;
 
   /* Which type of MS-CHAP did we do? */
-  if (bund->links[0]->originate == LINK_ORIGINATE_LOCAL)
+  if (bund->originate == LINK_ORIGINATE_LOCAL)
     mschap = lnk->lcp.peer_chap_alg;
   else
     mschap = lnk->lcp.want_chap_alg;
@@ -570,7 +570,7 @@ MppeInitKey(MppcInfo mppc, int dir)
   u_char	*chal;
 
   /* The secret comes from the originating caller's credentials */
-  switch (lnk->originate) {
+  switch (bund->originate) {
     case LINK_ORIGINATE_LOCAL:
       chal = bund->ccp.mppc.peer_msChal;
       break;
@@ -635,7 +635,7 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   }
 
   /* The secret comes from the originating caller's credentials */
-  switch (lnk->originate) {
+  switch (bund->originate) {
     case LINK_ORIGINATE_LOCAL:
       resp = bund->ccp.mppc.self_ntResp;
       break;
@@ -662,7 +662,7 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   KEYDEBUG((hash, sizeof(hash), "GetMasterKey"));
   MsoftGetAsymetricStartKey(hash,
     (dir == COMP_DIR_RECV) ^
-      (bund->links[0]->originate == LINK_ORIGINATE_LOCAL));
+      (bund->originate == LINK_ORIGINATE_LOCAL));
   KEYDEBUG((hash, sizeof(hash), "GetAsymmetricKey"));
   memcpy(key0, hash, MPPE_KEY_LEN);
   KEYDEBUG((key0, MPPE_KEY_LEN, "InitialKey"));

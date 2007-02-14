@@ -250,6 +250,8 @@ BundJoin(void)
     /* generate a uniq session id */
     snprintf(bund->msession_id, LINK_MAX_NAME, "%d-%s",
       (int)(time(NULL) % 10000000), bund->name);
+      
+    bund->originate = lnk->originate;
   }
 
   /* Update PPP node configuration */

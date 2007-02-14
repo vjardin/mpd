@@ -168,6 +168,7 @@
     u_char		nat:1;		/* Bundle has to ng_nat(4). */
     #define NETFLOW_IN	1
     #define NETFLOW_OUT	2
+    u_char		originate:2;	/* Who originated the connection */
     
     struct authparams   params;         /* params to pass to from auth backend */
   };
