@@ -38,10 +38,6 @@
     u_int32_t	xmit_bits;		/* xmit config bits */
     u_char	xmit_key0[MPPE_KEY_LEN];/* xmit start key */
     u_char	recv_key0[MPPE_KEY_LEN];/* recv start key */
-    u_char	self_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
-    u_char	peer_msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
-    u_char	self_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
-    u_char	peer_ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
   };
   typedef struct mppcinfo	*MppcInfo;
 

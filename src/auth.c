@@ -250,8 +250,6 @@ AuthStart(void)
   /* What auth protocols were negotiated by LCP? */
   a->self_to_peer = lnk->lcp.peer_auth;
   a->peer_to_self = lnk->lcp.want_auth;
-  a->params.chap.recv_alg = lnk->lcp.want_chap_alg;
-  a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
 
   if (lnk->phys->type) {
     PhysType	pt = lnk->phys->type;

@@ -133,6 +133,12 @@
       u_char	lm_hash[16];		/* LM-Hash */
       int	has_keys;
       u_char	nt_hash_hash[16];	/* NT-Hash-Hash */
+
+      u_char	chap_alg;		/* Callers's CHAP algorithm */
+
+      u_char	msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
+      u_char	ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
+
       /* Keys when using MS-CHAPv2 or EAP */
       u_char	xmit_key[MPPE_KEY_LEN];	/* xmit start key */
       u_char	recv_key[MPPE_KEY_LEN];	/* recv start key */

@@ -102,10 +102,7 @@ MppcInit(int dir)
   int			cmd;
 
   /* Which type of MS-CHAP did we do? */
-  if (bund->originate == LINK_ORIGINATE_LOCAL)
-    mschap = lnk->lcp.peer_chap_alg;
-  else
-    mschap = lnk->lcp.want_chap_alg;
+  mschap = bund->params.msoft.chap_alg;
 
   /* Initialize configuration structure */
   memset(&conf, 0, sizeof(conf));
@@ -570,18 +567,7 @@ MppeInitKey(MppcInfo mppc, int dir)
   u_char	*chal;
 
   /* The secret comes from the originating caller's credentials */
-  switch (bund->originate) {
-    case LINK_ORIGINATE_LOCAL:
-      chal = bund->ccp.mppc.peer_msChal;
-      break;
-    case LINK_ORIGINATE_REMOTE:
-      chal = bund->ccp.mppc.self_msChal;
-      break;
-    case LINK_ORIGINATE_UNKNOWN:
-    default:
-      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", bund->name));
-      goto fail;
-  }
+  chal = bund->params.msoft.msChal;
 
   /* Compute basis for the session key (ie, "start key" or key0) */
   if (bits & MPPE_128) {
@@ -635,18 +621,7 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
   }
 
   /* The secret comes from the originating caller's credentials */
-  switch (bund->originate) {
-    case LINK_ORIGINATE_LOCAL:
-      resp = bund->ccp.mppc.self_ntResp;
-      break;
-    case LINK_ORIGINATE_REMOTE:
-      resp = bund->ccp.mppc.peer_ntResp;
-      break;
-    case LINK_ORIGINATE_UNKNOWN:
-    default:
-      Log(LG_ERR, ("[%s] can't determine link direction for MPPE", bund->name));
-      goto fail;
-  }
+  resp = bund->params.msoft.ntResp;
 
   if (!bund->params.msoft.has_nt_hash) {
     Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv2 and MPPE", 

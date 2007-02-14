@@ -45,10 +45,19 @@
 void
 ChapStart(Link lnk, int which)
 {
+  Auth 		a = &lnk->lcp.auth;
   ChapInfo 	chap = &lnk->lcp.auth.chap;
   ChapParams	cp = &lnk->lcp.auth.params.chap;
   
   chap->proto = PROTO_CHAP;
+
+  a->params.chap.recv_alg = lnk->lcp.want_chap_alg;
+  a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
+
+  if (lnk->originate == LINK_ORIGINATE_LOCAL)
+    a->params.msoft.chap_alg = lnk->lcp.peer_chap_alg;
+  else
+    a->params.msoft.chap_alg = lnk->lcp.want_chap_alg;
   
   switch (which)
   {
@@ -99,8 +108,9 @@ ChapStop(ChapInfo chap)
 void
 ChapSendChallenge(Link lnk)
 {
-  ChapInfo	chap = &lnk->lcp.auth.chap;
-  ChapParams	cp = &lnk->lcp.auth.params.chap;
+  Auth          const a = &lnk->lcp.auth;
+  ChapInfo	chap = &a->chap;
+  ChapParams	cp = &a->params.chap;
   u_char	*pkt;
 
   /* don't generate new challenges on re-transmit */
@@ -111,17 +121,17 @@ ChapSendChallenge(Link lnk)
   switch (cp->recv_alg) {
     case CHAP_ALG_MSOFT: {
 	cp->chal_len = CHAP_MSOFT_CHAL_LEN;
-	if (!memcmp(bund->ccp.mppc.self_msChal, gMsoftZeros, cp->chal_len)) {
-	  ChapGenRandom(cp->chal_data, cp->chal_len);
-	  memcpy(bund->ccp.mppc.self_msChal, cp->chal_data, cp->chal_len);
+	ChapGenRandom(cp->chal_data, cp->chal_len);
+	if (lnk->originate == LINK_ORIGINATE_REMOTE) {
+	  memcpy(a->params.msoft.msChal, cp->chal_data, cp->chal_len);
 	}
       }
       break;
     case CHAP_ALG_MSOFTv2:
       cp->chal_len = CHAP_MSOFTv2_CHAL_LEN;
-      if (!memcmp(bund->ccp.mppc.self_msChal, gMsoftZeros, cp->chal_len)) {
-	ChapGenRandom(cp->chal_data, cp->chal_len);
-	memcpy(bund->ccp.mppc.self_msChal, cp->chal_data, cp->chal_len);
+      ChapGenRandom(cp->chal_data, cp->chal_len);
+      if (lnk->originate == LINK_ORIGINATE_REMOTE) {
+	memcpy(a->params.msoft.msChal, cp->chal_data, cp->chal_len);
       }
       break;
     case CHAP_ALG_MD5:
@@ -360,16 +370,16 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
 	switch (chap->xmit_alg) {
 	case CHAP_ALG_MSOFT:
-  	  if (!memcmp(bund->ccp.mppc.peer_msChal, gMsoftZeros, CHAP_MSOFT_CHAL_LEN))
-	    memcpy(bund->ccp.mppc.peer_msChal, value, CHAP_MSOFT_CHAL_LEN);
+  	  if (lnk->originate == LINK_ORIGINATE_LOCAL)
+		memcpy(a->params.msoft.msChal, value, CHAP_MSOFT_CHAL_LEN);
 	  break;
 	case CHAP_ALG_MSOFTv2:
-  	  if (!memcmp(bund->ccp.mppc.peer_msChal, gMsoftZeros, CHAP_MSOFTv2_CHAL_LEN))
-	    memcpy(bund->ccp.mppc.peer_msChal, value, CHAP_MSOFTv2_CHAL_LEN);
-	  if (!memcmp(bund->ccp.mppc.self_ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN))
-	    memcpy(bund->ccp.mppc.self_ntResp,
-	      hash_value + offsetof(struct mschapv2value, ntHash),
-	      CHAP_MSOFTv2_RESP_LEN);
+  	  if (lnk->originate == LINK_ORIGINATE_LOCAL) {
+		memcpy(a->params.msoft.msChal, value, CHAP_MSOFTv2_CHAL_LEN);
+		memcpy(a->params.msoft.ntResp,
+	    	    hash_value + offsetof(struct mschapv2value, ntHash),
+		    CHAP_MSOFTv2_RESP_LEN);
+	  }
 	  break;
 	}
 
@@ -557,9 +567,10 @@ goodResponse:
     opieverify(&auth->opie.data, auth->params.password);
 
   /* Need to remember MS-CHAP stuff for use with MPPE encryption */
-  if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2 
-    && !memcmp(bund->ccp.mppc.peer_ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN))
-    memcpy(bund->ccp.mppc.peer_ntResp,
+  if (lnk->originate == LINK_ORIGINATE_REMOTE
+    && auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2 
+    && !memcmp(a->params.msoft.ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN))
+    memcpy(a->params.msoft.ntResp,
       auth->params.chap.value + offsetof(struct mschapv2value, ntHash),
       CHAP_MSOFTv2_RESP_LEN);
   

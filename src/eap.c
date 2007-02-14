@@ -88,6 +88,7 @@ EapInit()
 void
 EapStart(Link lnk, int which)
 {
+  Auth		a = &lnk->lcp.auth;
   EapInfo	eap = &lnk->lcp.auth.eap;
   int	i;
 
@@ -101,6 +102,14 @@ EapStart(Link lnk, int which)
   /* fill a list of acceptable auth types */
   if (Acceptable(&eap->conf.options, EAP_CONF_MD5))
     eap->peer_types[0] = EAP_TYPE_MD5CHAL;
+
+  a->params.chap.recv_alg = lnk->lcp.want_chap_alg;
+  a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
+
+  if (lnk->originate == LINK_ORIGINATE_LOCAL)
+    a->params.msoft.chap_alg = lnk->lcp.peer_chap_alg;
+  else
+    a->params.msoft.chap_alg = lnk->lcp.want_chap_alg;
 
   switch (which) {
     case AUTH_PEER_TO_SELF:
