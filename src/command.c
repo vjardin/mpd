@@ -804,8 +804,8 @@ AdmitDev(CmdTab cmd)
     Log(LG_ERR, ("type of link \"%s\" is unspecified", lnk->name));
     return(FALSE);
   }
-  if (!strcmp(cmd->name, lnk->phys->type->name)) {
-    Log(LG_ERR, ("link \"%s\" is type %s, not %s",
+  if (strncmp(cmd->name, lnk->phys->type->name, strlen(lnk->phys->type->name))) {
+    Log(LG_ERR, ("[%s] link type is %s, '%s' command isn't allowed here!",
       lnk->name, lnk->phys->type->name, cmd->name));
     return(FALSE);
   }

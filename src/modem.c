@@ -773,10 +773,6 @@ ModemSetCommand(int ac, char *av[], void *arg)
 {
   ModemInfo	const m = (ModemInfo) lnk->phys->info;
 
-  if (lnk->phys->type != &gModemPhysType) {
-    Log(LG_ERR, ("[%s] link type is not modem", lnk->name));
-    return(0);
-  }
   switch ((intptr_t)arg) {
     case SET_DEVICE:
       if (ac == 1)

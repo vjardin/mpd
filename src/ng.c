@@ -161,10 +161,6 @@ NgSetCommand(int ac, char *av[], void *arg)
 {
   NgInfo	const ng = (NgInfo) lnk->phys->info;
 
-  if (lnk->phys->type != &gNgPhysType) {
-    Log(LG_ERR, ("[%s] link type is not netgraph!", lnk->name));
-    return(0);
-  }
   switch ((intptr_t)arg) {
     case SET_NODE:
       if (ac != 1)

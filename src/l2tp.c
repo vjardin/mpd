@@ -1244,11 +1244,6 @@ L2tpSetCommand(int ac, char *av[], void *arg)
 	struct u_range	rng;
 	int		port;
 
-	if (lnk->phys->type != &gL2tpPhysType) {
-		Log(LG_ERR, ("[%s] link type is not l2tp!", lnk->name));
-		return(0);
-	}
-	
   switch ((intptr_t)arg) {
     case SET_SELFADDR:
     case SET_PEERADDR:

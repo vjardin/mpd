@@ -589,11 +589,6 @@ UdpSetCommand(int ac, char *av[], void *arg)
 {
 	UdpInfo		const pi = (UdpInfo) lnk->phys->info;
 	struct sockaddr_storage	*sin;
-
-	if (lnk->phys->type != &gUdpPhysType) {
-		Log(LG_ERR, ("[%s] link type is not udp!", lnk->name));
-		return(0);
-	}
 	
   switch ((intptr_t)arg) {
     case SET_PEERADDR:

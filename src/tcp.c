@@ -778,11 +778,7 @@ TcpSetCommand(int ac, char *av[], void *arg)
 {
 	TcpInfo	const pi = (TcpInfo) lnk->phys->info;
 	struct sockaddr_storage *sin;   
-  
-	if (lnk->phys->type != &gTcpPhysType) {
-		Log(LG_ERR, ("[%s] link type is not tcp!", lnk->name));
-		return(0);
-	}
+
 	switch ((intptr_t)arg) {
 	case SET_PEERADDR:
 		if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
