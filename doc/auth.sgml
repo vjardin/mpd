@@ -37,17 +37,17 @@ lookup the password corresponding to
 <tt>mpd.secrets</tt> and are only dialing out, you can use this
 command instead.
 
-<tag><tt>max-logins <em>num</em></tt></tag>
+<tag><tt>set auth max-logins <em>num</em></tt></tag>
 
 Limit the max. amount of concurrent logins with the same username.
 If set to zero, then this feature is disabled.
 
-<tag><tt>acct-update <em>seconds</em></tt></tag>
+<tag><tt>set auth acct-update <em>seconds</em></tt></tag>
 
 Enables periodic accounting updates, if set to a value greater then 
 zero.
 
-<tag><tt>timeout <em>seconds</em></tt></tag>
+<tag><tt>set auth timeout <em>seconds</em></tt></tag>
 
 Sets the timeout for the whole authentication process.
 It defaults to 40 seconds. 
