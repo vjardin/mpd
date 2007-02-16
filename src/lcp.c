@@ -788,6 +788,11 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      FsmAck(fp, opt);
 	      break;
 	    case MODE_NAK:
+	      /* Windows 2000 PPPoE bug workaround */
+	      if (mru == lcp->want_mru) {
+	        LCP_PEER_REJ(lcp, opt->type);
+		break;
+	      }
 	      if (mru >= LCP_MIN_MRU
 		  && (mru <= lnk->phys->type->mru || mru < lcp->want_mru))
 		lcp->want_mru = mru;
