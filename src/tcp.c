@@ -391,14 +391,14 @@ TcpAcceptEvent(int type, void *cookie)
 	}
 
 	/* Examine all TCP links. */
-	for (k = 0; k < gNumLinks; k++) {
+	for (k = 0; k < gNumPhyses; k++) {
 		PhysInfo p;
 	        TcpInfo pi;
 
-		if (gLinks[k] && gLinks[k]->phys->type != &gTcpPhysType)
+		if (gPhyses[k] && gPhyses[k]->type != &gTcpPhysType)
 			continue;
 
-		p = gLinks[k]->phys;
+		p = gPhyses[k];
 		pi = (TcpInfo)p->info;
 
 		if ((If!=pi->If) ||
@@ -410,7 +410,7 @@ TcpAcceptEvent(int type, void *cookie)
 			continue;
 
 		/* Restore context. */
-		lnk = gLinks[k];
+		lnk = p->link;
 		bund = lnk->bund;
 
 		Log(LG_PHYS, ("[%s] Accepting connection", p->name));
@@ -707,22 +707,24 @@ TcpListenUpdate(void *arg)
 	TcpListenUpdateSheduled = 0;
 
 	/* Examine all PPPoE links. */
-	for (k = 0; k < gNumLinks; k++) {
+	for (k = 0; k < gNumPhyses; k++) {
+        	PhysInfo p;
         	TcpInfo pi;
 		int i, j = -1;
 
-		if (gLinks[k] == NULL ||
-		    gLinks[k]->phys->type != &gTcpPhysType)
+		if (gPhyses[k] == NULL ||
+		    gPhyses[k]->type != &gTcpPhysType)
 			continue;
 
-		pi = (TcpInfo)gLinks[k]->phys->info;
+		p = gPhyses[k];
+		pi = (TcpInfo)p->info;
 
 		if (!Enabled(&pi->conf.options, TCP_CONF_INCOMING))
 			continue;
 
 		if (!pi->conf.self_port) {
 			Log(LG_ERR, ("Tcp: Skipping link %s with undefined "
-			    "port number", gLinks[k]->name));
+			    "port number", p->name));
 			continue;
 		}
 
@@ -734,7 +736,7 @@ TcpListenUpdate(void *arg)
 		if (j == -1) {
 			if (TcpIfCount>=TCP_MAXPARENTIFS) {
 			    Log(LG_ERR, ("[%s] TCP: Too many different parent interfaces! ", 
-				gLinks[k]->name));
+				p->name));
 			    continue;
 			}
 			u_addrcopy(&pi->conf.self_addr,&TcpIfs[TcpIfCount].self_addr);

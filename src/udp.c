@@ -410,14 +410,14 @@ UdpAcceptEvent(int type, void *cookie)
 	}
 
 	/* Examine all UDP links. */
-	for (k = 0; k < gNumLinks; k++) {
+	for (k = 0; k < gNumPhyses; k++) {
 		PhysInfo p;
 	        UdpInfo pi;
 
-		if (gLinks[k] && gLinks[k]->phys->type != &gUdpPhysType)
+		if (gPhyses[k] && gPhyses[k]->type != &gUdpPhysType)
 			continue;
 
-		p = gLinks[k]->phys;
+		p = gPhyses[k];
 		pi = (UdpInfo)p->info;
 
 		if ((If!=pi->If) ||
@@ -429,7 +429,7 @@ UdpAcceptEvent(int type, void *cookie)
 			continue;
 
 		/* Restore context. */
-		lnk = gLinks[k];
+		lnk = p->link;
 		bund = lnk->bund;
 
 		Log(LG_PHYS, ("[%s] Accepting connection", p->name));
@@ -516,22 +516,24 @@ UdpListenUpdate(void *arg)
 	UdpListenUpdateSheduled = 0;
 
 	/* Examine all UDP links. */
-	for (k = 0; k < gNumLinks; k++) {
+	for (k = 0; k < gNumPhyses; k++) {
+        	PhysInfo p;
         	UdpInfo pi;
 		int i, j = -1;
 
-		if (gLinks[k] == NULL ||
-		    gLinks[k]->phys->type != &gUdpPhysType)
+		if (gPhyses[k] == NULL ||
+		    gPhyses[k]->type != &gUdpPhysType)
 			continue;
 
-		pi = (UdpInfo)gLinks[k]->phys->info;
+		p = gPhyses[k];
+		pi = (UdpInfo)p->info;
 
 		if (!Enabled(&pi->conf.options, UDP_CONF_INCOMING))
 			continue;
 
 		if (!pi->conf.self_port) {
 			Log(LG_ERR, ("UDP: Skipping link %s with undefined "
-			    "port number", gLinks[k]->name));
+			    "port number", p->name));
 			continue;
 		}
 
@@ -543,7 +545,7 @@ UdpListenUpdate(void *arg)
 		if (j == -1) {
 			if (UdpIfCount>=UDP_MAXPARENTIFS) {
 			    Log(LG_ERR, ("[%s] UDP: Too many different listening ports! ", 
-				gLinks[k]->name));
+				p->name));
 			    continue;
 			}
 			u_addrcopy(&pi->conf.self_addr,&UdpIfs[UdpIfCount].self_addr);

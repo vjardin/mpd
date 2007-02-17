@@ -71,8 +71,10 @@
 
   Link			lnk;
   Bund			bund;
+  PhysInfo		*gPhyses;
   Link			*gLinks;
   Bund			*gBundles;
+  int			gNumPhyses;
   int			gNumLinks;
   int			gNumBundles;
   ConsoleSession	gConsoleSession;

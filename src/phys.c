@@ -11,6 +11,7 @@
 #include "msg.h"
 #include "link.h"
 #include "devices.h"
+#include "util.h"
 
 /*
  * The physical layer has four states: DOWN, OPENING, CLOSING, and UP.
@@ -82,11 +83,20 @@ PhysInfo
 PhysInit(char *name)
 {
   PhysInfo	p;
+  int		k;
 
   p = Malloc(MB_PHYS, sizeof(*p));
   strlcpy(p->name, name, sizeof(p->name));
   p->state = PHYS_STATE_DOWN;
   p->msgs = MsgRegister(PhysMsg, 0);
+
+  /* Find a free link pointer */
+  for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
+  if (k == gNumPhyses)			/* add a new link pointer */
+    LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
+
+  gPhyses[k] = p;
+
   return(p);
 }
 

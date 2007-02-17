@@ -649,21 +649,21 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 	Log(LG_PHYS, ("L2TP: Control connection %p connected", ctrl));
 
 	/* Examine all L2TP links. */
-	for (k = 0; k < gNumLinks; k++) {
-	        L2tpInfo pi;
+	for (k = 0; k < gNumPhyses; k++) {
 		PhysInfo p;
+	        L2tpInfo pi;
 
-		if (gLinks[k] && gLinks[k]->phys->type != &gL2tpPhysType)
+		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
-		p = gLinks[k]->phys;
+		p = gPhyses[k];
 		pi = (L2tpInfo)p->info;
 
 		if (pi->tun != tun)
 			continue;
 
 		/* Restore context. */
-		lnk = gLinks[k];
+		lnk = p->link;
 		bund = lnk->bund;
 
 		tun->connected = 1;
@@ -719,21 +719,21 @@ ppp_l2tp_ctrl_terminated_cb(struct ppp_l2tp_ctrl *ctrl,
 	    ctrl, error, errmsg));
 
 	/* Examine all L2TP links. */
-	for (k = 0; k < gNumLinks; k++) {
-	        L2tpInfo pi;
+	for (k = 0; k < gNumPhyses; k++) {
 		PhysInfo p;
+	        L2tpInfo pi;
 
-		if (gLinks[k] && gLinks[k]->phys->type != &gL2tpPhysType)
+		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
-		p = gLinks[k]->phys;
+		p = gPhyses[k];
 		pi = (L2tpInfo)p->info;
 
 		if (pi->tun != tun)
 			continue;
 
 		/* Restore context. */
-		lnk = gLinks[k];
+		lnk = p->link;
 		bund = lnk->bund;
 
 		p->state = PHYS_STATE_DOWN;
@@ -787,14 +787,14 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	    (out?"Outgoing":"Incoming"), ctrl));
 
 	/* Examine all L2TP links. */
-	for (k = 0; k < gNumLinks; k++) {
+	for (k = 0; k < gNumPhyses; k++) {
 	        L2tpInfo pi;
 		PhysInfo p;
 
-		if (gLinks[k] && gLinks[k]->phys->type != &gL2tpPhysType)
+		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
-		p = gLinks[k]->phys;
+		p = gPhyses[k];
 		pi = (L2tpInfo)p->info;
 
 		if ((p->state != PHYS_STATE_DOWN) ||
@@ -807,7 +807,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 			continue;
 
 		/* Restore context. */
-		lnk = gLinks[k];
+		lnk = p->link;
 		bund = lnk->bund;
 
 		Log(LG_PHYS, ("[%s] L2TP: %s call %p via control connection %p accepted", 
@@ -1204,9 +1204,9 @@ L2tpListenUpdate(void *arg)
   int	k;
 
   /* Examine all L2TP links */
-  for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && gLinks[k]->phys->type == &gL2tpPhysType) {
-        L2tpInfo	const p = (L2tpInfo)gLinks[k]->phys->info;
+  for (k = 0; k < gNumPhyses; k++) {
+    if (gPhyses[k] && gPhyses[k]->type == &gL2tpPhysType) {
+        L2tpInfo	const p = (L2tpInfo)gPhyses[k]->info;
 
         if (Enabled(&p->conf.options, L2TP_CONF_INCOMING)) {
 	    struct ghash_walk walk;

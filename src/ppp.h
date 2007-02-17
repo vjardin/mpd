@@ -90,15 +90,18 @@
 
 #include "bund.h"
 #include "link.h"
+#include "phys.h"
 #include "msgdef.h"
 
 /*
  * VARIABLES
  */
 
+  extern PhysInfo	*gPhyses;		/* Physes */
   extern Link		*gLinks;		/* Links */
   extern Bund		*gBundles;		/* Bundles */
 
+  extern int		gNumPhyses;		/* Total number of phys */
   extern int		gNumLinks;		/* Total number of links */
   extern int		gNumBundles;		/* Total number of bundles */
   extern struct console	gConsole;

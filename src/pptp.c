@@ -673,7 +673,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	const char *subAddress)
 {
   struct pptplinkinfo	linfo;
-  Link			l = NULL;
+  PhysInfo		p = NULL;
   PptpInfo		pi = NULL;
   int			k;
   time_t  		now = time(NULL);
@@ -691,43 +691,44 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   }
 
   /* Find a suitable link; prefer the link best matching peer's IP address */
-  for (k = 0; k < gNumLinks; k++) {
-    Link	const l2 = gLinks[k];
-    PptpInfo	pptp2 = (PptpInfo) l2->phys->info;
+  for (k = 0; k < gNumPhyses; k++) {
+    PhysInfo	const p2 = gPhyses[k];
+    PptpInfo	pi2 = (PptpInfo) p->info;
 
     /* See if link is feasible */
-    if (l2 != NULL
-	&& l2->phys->type == &gPptpPhysType
-	&& l2->phys->state == PHYS_STATE_DOWN
-	&& (now - l2->phys->lastClose) >= PPTP_REOPEN_PAUSE
-	&& Enabled(&pptp2->conf.options, PPTP_CONF_INCOMING)
-	&& IpAddrInRange(&pptp2->conf.peer_addr_req, &peer)
-	&& (!pptp2->conf.peer_port_req || pptp2->conf.peer_port_req == port)) {
+    if (p2 != NULL
+	&& p2->type == &gPptpPhysType
+	&& p2->state == PHYS_STATE_DOWN
+	&& (now - p2->lastClose) >= PPTP_REOPEN_PAUSE
+	&& Enabled(&pi2->conf.options, PPTP_CONF_INCOMING)
+	&& IpAddrInRange(&pi2->conf.peer_addr_req, &peer)
+	&& (!pi2->conf.peer_port_req || pi2->conf.peer_port_req == port)) {
 
       /* Link is feasible; now see if it's preferable */
-      if (!pi || pptp2->conf.peer_addr_req.width > pi->conf.peer_addr_req.width) {
-	l = l2;
-	pi = pptp2;
+      if (!pi || pi2->conf.peer_addr_req.width > pi->conf.peer_addr_req.width) {
+	p = p2;
+	pi = pi2;
+	break;
       }
     }
   }
 
   /* If no link is suitable, can't take the call */
-  if (l == NULL) {
+  if (p == NULL) {
     Log(LG_PHYS, ("No free PPTP link with requested parameters "
 	"was found"));
     return(linfo);
   }
 
   /* Open link to pick up the call */
-  lnk = l;
+  lnk = p->link;
   bund = lnk->bund;
 
-  Log(LG_PHYS, ("[%s] Accepting PPTP connection", lnk->name));
-  PhysIncoming(lnk->phys);
+  Log(LG_PHYS, ("[%s] Accepting PPTP connection", p->name));
+  PhysIncoming(p);
 
   /* Got one */
-  linfo.cookie = l->phys;
+  linfo.cookie = p;
   lnk->phys->state = PHYS_STATE_CONNECTING;
   pi->cinfo = *cinfo;
   pi->originate = FALSE;
@@ -785,9 +786,9 @@ PptpListenUpdate(void)
   int	k;
 
   /* Examine all PPTP links */
-  for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && gLinks[k]->phys->type == &gPptpPhysType) {
-      PptpInfo	const p = (PptpInfo)gLinks[k]->phys->info;
+  for (k = 0; k < gNumPhyses; k++) {
+    if (gPhyses[k] && gPhyses[k]->type == &gPptpPhysType) {
+      PptpInfo	const p = (PptpInfo)gPhyses[k]->info;
 
       if (Enabled(&p->conf.options, PPTP_CONF_INCOMING))
 	allow_incoming = 1;

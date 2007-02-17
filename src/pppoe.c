@@ -387,12 +387,12 @@ PppoeCtrlReadEvent(int type, void *arg)
 	    case NGM_PPPOE_FAIL:
 	    case NGM_PPPOE_CLOSE:
 		/* Restore context. */
-		for (k = 0; k < gNumLinks; k++) {
+		for (k = 0; k < gNumPhyses; k++) {
 
-		    if (gLinks[k] && gLinks[k]->phys->type != &gPppoePhysType)
+		    if (gPhyses[k] && gPhyses[k]->type != &gPppoePhysType)
 			continue;
 
-		    p = gLinks[k]->phys;
+		    p = gPhyses[k];
 		    pi = (PppoeInfo)p->info;
 		    
 		    snprintf(ppphook, NG_HOOKLEN, "mpd%d-%s", gPid, p->name);
@@ -747,14 +747,14 @@ PppoeListenEvent(int type, void *arg)
 	}
 
 	/* Examine all PPPoE links. */
-	for (k = 0; k < gNumLinks; k++) {
+	for (k = 0; k < gNumPhyses; k++) {
 		PhysInfo p;
 	        PppoeInfo pi;
 
-		if (gLinks[k] && gLinks[k]->phys->type != &gPppoePhysType)
+		if (gPhyses[k] && gPhyses[k]->type != &gPppoePhysType)
 			continue;
 
-		p = gLinks[k]->phys;
+		p = gPhyses[k];
 		pi = (PppoeInfo)p->info;
 
 		if ((PIf!=pi->PIf) ||
@@ -1034,31 +1034,31 @@ PppoeListenUpdate(void *arg)
 	PppoeListenUpdateSheduled = 0;
 
 	/* Examine all PPPoE links. */
-	for (k = 0; k < gNumLinks; k++) {
-        	PhysInfo ph;
-        	PppoeInfo p;
+	for (k = 0; k < gNumPhyses; k++) {
+        	PppoeInfo pi;
+        	PhysInfo p;
 		int i, j = -1;
 
-		if (gLinks[k] == NULL ||
-		    gLinks[k]->phys->type != &gPppoePhysType)
+		if (gPhyses[k] == NULL ||
+		    gPhyses[k]->type != &gPppoePhysType)
 			continue;
 
-		ph = gLinks[k]->phys;
-		p = (PppoeInfo)ph->info;
+		p = gPhyses[k];
+		pi = (PppoeInfo)p->info;
 
-		if (!(strcmp(p->path, "undefined:")
-		    &&strcmp(p->session, "undefined:"))) {
+		if (!(strcmp(pi->path, "undefined:")
+		    &&strcmp(pi->session, "undefined:"))) {
 			Log(LG_ERR, ("PPPoE: Skipping link %s with undefined "
-			    "interface or session", gLinks[k]->name));
+			    "interface or session", p->name));
 			continue;
 		}
 
-		if (!Enabled(&p->options, PPPOE_CONF_INCOMING))
+		if (!Enabled(&pi->options, PPPOE_CONF_INCOMING))
 			continue;
 
 		for (i = 0; i < PppoeIfCount; i++)
-			if ((strcmp(PppoeIfs[i].ifnodepath, p->path) == 0) &&
-			    (strcmp(PppoeIfs[i].session, p->session) == 0)) {
+			if ((strcmp(PppoeIfs[i].ifnodepath, pi->path) == 0) &&
+			    (strcmp(PppoeIfs[i].session, pi->session) == 0)) {
 				j = i;
 				break;
 			}
@@ -1066,25 +1066,25 @@ PppoeListenUpdate(void *arg)
 		if (j == -1) {
 			if (PppoeIfCount>=PPPOE_MAXPARENTIFS) {
 			    Log(LG_ERR, ("[%s] PPPoE: Too many different parent interfaces! ", 
-				ph->name));
+				p->name));
 			    continue;
 			}
-			if (ListenPppoeNode(p->path, p->hook,
-			    &(PppoeIfs[PppoeIfCount]), p->session, 1)) {
+			if (ListenPppoeNode(pi->path, pi->hook,
+			    &(PppoeIfs[PppoeIfCount]), pi->session, 1)) {
 				snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
 				    sizeof(PppoeIfs[PppoeIfCount].ifnodepath),
-				    "%s", p->path);
+				    "%s", pi->path);
 				snprintf(PppoeIfs[PppoeIfCount].session,
 				    sizeof(PppoeIfs[PppoeIfCount].session),
-				    "%s",p->session);
+				    "%s",pi->session);
 				PppoeIfs[PppoeIfCount].listen = 1;
-				p->PIf=&PppoeIfs[PppoeIfCount];
+				pi->PIf=&PppoeIfs[PppoeIfCount];
 				PppoeIfCount++;
 			}
 		} else {
 			if ((PppoeIfs[j].listen == 0) &&
-			    (ListenPppoeNode(p->path, p->hook, &(PppoeIfs[j]),
-			    p->session, 0)))
+			    (ListenPppoeNode(pi->path, pi->hook, &(PppoeIfs[j]),
+			    pi->session, 0)))
 				PppoeIfs[j].listen=1;
 		}
 	}
