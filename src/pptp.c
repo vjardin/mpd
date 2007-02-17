@@ -355,7 +355,7 @@ PptpKillNode(PhysInfo p)
 
 	/* Get a temporary netgraph socket node */
 	if (NgMkSockNode(NULL, &csock, NULL) == -1) {
-		Log(LG_ERR, ("L2TP: NgMkSockNode: %s", strerror(errno)));
+		Log(LG_ERR, ("PPTP: NgMkSockNode: %s", strerror(errno)));
 		return;
 	}
 	

@@ -220,7 +220,7 @@ TcpOpen(PhysInfo p)
 #endif
 
         if (!PhysGetUpperHook(p, path, hook)) {
-		Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", p->name));
+		Log(LG_PHYS, ("[%s] TCP: can't get upper hook", p->name));
     		goto fail;
         }
     
