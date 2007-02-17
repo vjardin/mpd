@@ -27,7 +27,6 @@
  * XXX this device type not completely correct, 
  * as it can deliver out-of-order frames. This can make problems 
  * for different compression and encryption protocols.
- * We need to use a somw node type that prepends sequence numbers
  */
 
 /*
@@ -55,6 +54,7 @@
     struct UdpIf 	*If;
     struct u_addr	peer_addr;
     in_port_t		peer_port;
+    ng_ID_t		node_id;
   };
   typedef struct udpinfo	*UdpInfo;
 
@@ -170,40 +170,79 @@ UdpInit(PhysInfo p)
 static void
 UdpOpen(PhysInfo p)
 {
-  UdpInfo		const pi = (UdpInfo) lnk->phys->info;
-  char        		path[NG_PATHLEN+1];
-  struct ngm_mkpeer	mkp;
-  struct sockaddr_storage	addr;
-    union {
-        u_char buf[sizeof(struct ng_ksocket_sockopt) + sizeof(int)];
-        struct ng_ksocket_sockopt ksso;
-    } u;
-    struct ng_ksocket_sockopt *const ksso = &u.ksso;
+	UdpInfo			const pi = (UdpInfo) p->info;
+	char        		path[NG_PATHLEN+1];
+	char        		hook[NG_HOOKLEN+1];
+	struct ngm_mkpeer	mkp;
+	struct ngm_name         nm;
+	struct sockaddr_storage	addr;
+        union {
+            u_char buf[sizeof(struct ng_ksocket_sockopt) + sizeof(int)];
+            struct ng_ksocket_sockopt ksso;
+        } u;
+        struct ng_ksocket_sockopt *const ksso = &u.ksso;
+	union {
+    	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+    	    struct ng_mesg reply;
+	} repbuf;
+	struct ng_mesg *const reply = &repbuf.reply;
+	struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
+	int			csock;
 
-  /* Attach ksocket node to PPP node */
-  snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
-  snprintf(mkp.ourhook, sizeof(mkp.ourhook),
-    "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  if ((pi->conf.self_addr.family==AF_INET6) || 
-    (pi->conf.self_addr.family==AF_UNSPEC && pi->conf.peer_addr.family==AF_INET6)) {
-    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-  } else {
-    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/dgram/udp");
-  }
-  if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
-      NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-    Log(LG_ERR, ("[%s] can't attach %s node: %s",
-      p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-    goto fail;
-  }
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, mkp.ourhook);
+	/* Create a new netgraph node to control TCP ksocket node. */
+	if (NgMkSockNode(NULL, &csock, NULL) < 0) {
+		Log(LG_ERR, ("[%s] TCP can't create control socket: %s",
+		    p->name, strerror(errno)));
+		goto fail;
+	}
+	(void)fcntl(csock, F_SETFD, 1);
+
+        if (!PhysGetUpperHook(p, path, hook)) {
+		Log(LG_PHYS, ("[%s] UDP: can't get upper hook", p->name));
+    		goto fail;
+        }
+
+	/* Attach ksocket node to PPP node */
+	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
+	snprintf(mkp.ourhook, sizeof(mkp.ourhook), hook);
+	if ((pi->conf.self_addr.family==AF_INET6) || 
+	    (pi->conf.self_addr.family==AF_UNSPEC && pi->conf.peer_addr.family==AF_INET6)) {
+	        snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	} else {
+	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/dgram/udp");
+	}
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
+	    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
+	        Log(LG_ERR, ("[%s] can't attach %s node: %s",
+	    	    p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		goto fail;
+	}
+
+	strlcat(path, ".", sizeof(path));
+	strlcat(path, hook, sizeof(path));
+
+	/* Give it a name */
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, p->name);
+	if (NgSendMsg(csock, path,
+	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+		Log(LG_ERR, ("[%s] can't name %s node: %s",
+		    p->name, NG_BPF_NODE_TYPE, strerror(errno)));
+	}
+
+	/* Get ksocket node ID */
+	if (NgSendMsg(csock, path,
+    	    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) != -1) {
+		if (NgRecvMsg(csock, reply, sizeof(repbuf), NULL) != -1) {
+	    	    pi->node_id = ninfo->id;
+		}
+	}
 
   if ((pi->incoming) || (pi->conf.self_port != 0)) {
     /* Setsockopt socket. */
     ksso->level=SOL_SOCKET;
     ksso->name=SO_REUSEPORT;
     ((int *)(ksso->value))[0]=1;
-    if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
+    if (NgSendMsg(csock, path, NGM_KSOCKET_COOKIE,
         NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
     	Log(LG_ERR, ("[%s] can't setsockopt() %s node: %s",
     	    p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -212,7 +251,7 @@ UdpOpen(PhysInfo p)
 
     /* Bind socket */
     u_addrtosockaddr(&pi->conf.self_addr, pi->conf.self_port, &addr);
-    if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
+    if (NgSendMsg(csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
 	Log(LG_ERR, ("[%s] can't bind() %s node: %s",
     	    p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -232,12 +271,14 @@ UdpOpen(PhysInfo p)
   u_addrtosockaddr(&pi->peer_addr, pi->peer_port, &addr);
 
   /* Connect socket if peer address and port is specified */
-  if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
+  if (NgSendMsg(csock, path, NGM_KSOCKET_COOKIE,
 	NGM_KSOCKET_CONNECT, &addr, addr.ss_len) < 0) {
     Log(LG_ERR, ("[%s] can't connect() %s node: %s",
 	p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     goto fail;
   }
+  
+  close(csock);
 
   /* OK */
   p->state = PHYS_STATE_UP;
@@ -252,6 +293,8 @@ fail:
     pi->peer_port=0;
     PhysDown(p, STR_ERROR, NULL);
 
+    if (csock>0)
+	close(csock);
 }
 
 /*
@@ -261,7 +304,7 @@ fail:
 static void
 UdpClose(PhysInfo p)
 {
-  UdpInfo const pi = (UdpInfo) lnk->phys->info;
+  UdpInfo const pi = (UdpInfo) p->info;
   if (p->state != PHYS_STATE_DOWN) {
     UdpDoClose(p);
     pi->incoming=0;
@@ -279,11 +322,26 @@ UdpClose(PhysInfo p)
 static void
 UdpDoClose(PhysInfo p)
 {
-  char	hook[NG_HOOKLEN + 1];
+	UdpInfo	const pi = (UdpInfo) p->info;
+	char	path[NG_PATHLEN + 1];
+	int	csock;
 
-  snprintf(hook, sizeof(hook),
-    "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  NgFuncDisconnect(bund->csock, bund->name, MPD_HOOK_PPP, hook);
+	if (pi->node_id == 0)
+		return;
+
+	/* Get a temporary netgraph socket node */
+	if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+		Log(LG_ERR, ("UDP: NgMkSockNode: %s", strerror(errno)));
+		return;
+	}
+	
+	/* Disconnect session hook. */
+	snprintf(path, sizeof(path), "[%lx]:", (u_long)pi->node_id);
+	NgFuncShutdownNode(csock, p->name, path);
+	
+	close(csock);
+	
+	pi->node_id = 0;
 }
 
 /*
@@ -352,7 +410,7 @@ UdpCalledNum(PhysInfo p, void *buf, int buf_len)
 void
 UdpStat(PhysInfo p)
 {
-	UdpInfo const pi = (UdpInfo) lnk->phys->info;
+	UdpInfo const pi = (UdpInfo) p->info;
 	char	buf[64];
 
 	Printf("UDP configuration:\r\n");
@@ -427,10 +485,6 @@ UdpAcceptEvent(int type, void *cookie)
 		    ((!u_addrempty(&pi->conf.peer_addr)) && u_addrcompare(&pi->conf.peer_addr, &addr)) ||
 		    (pi->conf.peer_port != 0 && pi->conf.peer_port != port))
 			continue;
-
-		/* Restore context. */
-		lnk = p->link;
-		bund = lnk->bund;
 
 		Log(LG_PHYS, ("[%s] Accepting connection", p->name));
 
