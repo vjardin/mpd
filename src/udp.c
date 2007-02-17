@@ -85,7 +85,7 @@ enum {
   static int	UdpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	UdpCalledNum(PhysInfo p, void *buf, int buf_len);
 
-  static void	UdpDoClose(UdpInfo pi);
+  static void	UdpDoClose(PhysInfo p);
   static int	UdpSetCommand(int ac, char *av[], void *arg);
 
 /*
@@ -193,7 +193,7 @@ UdpOpen(PhysInfo p)
   if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     Log(LG_ERR, ("[%s] can't attach %s node: %s",
-      lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+      p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     goto fail;
   }
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, mkp.ourhook);
@@ -206,7 +206,7 @@ UdpOpen(PhysInfo p)
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
         NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
     	Log(LG_ERR, ("[%s] can't setsockopt() %s node: %s",
-    	    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+    	    p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	goto fail;
     }
 
@@ -215,7 +215,7 @@ UdpOpen(PhysInfo p)
     if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
 	Log(LG_ERR, ("[%s] can't bind() %s node: %s",
-    	    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+    	    p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	goto fail;
     }
   }
@@ -225,7 +225,7 @@ UdpOpen(PhysInfo p)
 	u_addrcopy(&pi->conf.peer_addr,&pi->peer_addr);
 	pi->peer_port = pi->conf.peer_port;
     } else {
-	Log(LG_ERR, ("[%s] Can't connect without peer specified", lnk->name));
+	Log(LG_ERR, ("[%s] Can't connect without peer specified", p->name));
 	goto fail;
     }
   }
@@ -235,22 +235,22 @@ UdpOpen(PhysInfo p)
   if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
 	NGM_KSOCKET_CONNECT, &addr, addr.ss_len) < 0) {
     Log(LG_ERR, ("[%s] can't connect() %s node: %s",
-	lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     goto fail;
   }
 
   /* OK */
   p->state = PHYS_STATE_UP;
-  PhysUp();
+  PhysUp(p);
   return;
 
 fail:
-    UdpDoClose(pi);
+    UdpDoClose(p);
     pi->incoming=0;
     p->state = PHYS_STATE_DOWN;
     u_addrclear(&pi->peer_addr);
     pi->peer_port=0;
-    PhysDown(STR_ERROR, NULL);
+    PhysDown(p, STR_ERROR, NULL);
 
 }
 
@@ -263,12 +263,12 @@ UdpClose(PhysInfo p)
 {
   UdpInfo const pi = (UdpInfo) lnk->phys->info;
   if (p->state != PHYS_STATE_DOWN) {
-    UdpDoClose(pi);
+    UdpDoClose(p);
     pi->incoming=0;
     p->state = PHYS_STATE_DOWN;
     u_addrclear(&pi->peer_addr);
     pi->peer_port=0;
-    PhysDown(0, NULL);
+    PhysDown(p, 0, NULL);
   }
 }
 
@@ -277,7 +277,7 @@ UdpClose(PhysInfo p)
  */
 
 static void
-UdpDoClose(UdpInfo pi)
+UdpDoClose(PhysInfo p)
 {
   char	hook[NG_HOOKLEN + 1];
 
@@ -411,18 +411,18 @@ UdpAcceptEvent(int type, void *cookie)
 
 	/* Examine all UDP links. */
 	for (k = 0; k < gNumLinks; k++) {
+		PhysInfo p;
 	        UdpInfo pi;
-		PhysInfo ph;
 
 		if (gLinks[k] && gLinks[k]->phys->type != &gUdpPhysType)
 			continue;
 
-		ph = gLinks[k]->phys;
-		pi = (UdpInfo)ph->info;
+		p = gLinks[k]->phys;
+		pi = (UdpInfo)p->info;
 
 		if ((If!=pi->If) ||
-		    (ph->state != PHYS_STATE_DOWN) ||
-		    (now-ph->lastClose < UDP_REOPEN_PAUSE) ||
+		    (p->state != PHYS_STATE_DOWN) ||
+		    (now-p->lastClose < UDP_REOPEN_PAUSE) ||
 		    !Enabled(&pi->conf.options, UDP_CONF_INCOMING) ||
 		    ((!u_addrempty(&pi->conf.peer_addr)) && u_addrcompare(&pi->conf.peer_addr, &addr)) ||
 		    (pi->conf.peer_port != 0 && pi->conf.peer_port != port))
@@ -432,19 +432,18 @@ UdpAcceptEvent(int type, void *cookie)
 		lnk = gLinks[k];
 		bund = lnk->bund;
 
-		Log(LG_PHYS, ("[%s] Accepting connection", lnk->name));
+		Log(LG_PHYS, ("[%s] Accepting connection", p->name));
 
 		sockaddrtou_addr(&saddr, &pi->peer_addr, &pi->peer_port);
 
 		pi->incoming=1;
-		ph->state = PHYS_STATE_READY;
+		p->state = PHYS_STATE_READY;
 
 		/* Report connected. */
-		Log(LG_PHYS, ("[%s] connected with %s %u", lnk->name,
+		Log(LG_PHYS, ("[%s] connected with %s %u", p->name,
 		    u_addrtoa(&addr, buf, sizeof(buf)), port));
 
-		RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, NULL);
-		BundOpenLink(lnk);
+		PhysIncoming(p);
 
 		break;
 	}

@@ -84,7 +84,7 @@ static int	TcpCallingNum(PhysInfo p, void *buf, int buf_len);
 static int	TcpCalledNum(PhysInfo p, void *buf, int buf_len);
 
 static void	TcpDoClose(PhysInfo p);
-static int	TcpAsyncConfig(TcpInfo tcp);
+static int	TcpAsyncConfig(PhysInfo p);
 static void	TcpAcceptEvent(int type, void *cookie);
 static void	TcpConnectEvent(int type, void *cookie);
 
@@ -165,14 +165,14 @@ TcpInit(PhysInfo p)
 	pi->peer_port=0;
 
 	/* Attach async node to PPP node. */
-	if (TcpAsyncConfig(pi))
+	if (TcpAsyncConfig(p))
 	    return -1;
 
 	return (0);
 }
 
 static int
-TcpAsyncConfig(TcpInfo tcp)
+TcpAsyncConfig(PhysInfo p)
 {
 	struct ngm_mkpeer mkp;
 	struct ng_async_cfg	acfg;
@@ -180,12 +180,12 @@ TcpAsyncConfig(TcpInfo tcp)
 
 	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_ASYNC_NODE_TYPE);
 	snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s%d",
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
+	    NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
 	snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_ASYNC_HOOK_SYNC);
 	if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
 	    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
 		Log(LG_ERR, ("[%s] can't attach %s %s node: %s",
-		    lnk->name, NG_ASYNC_NODE_TYPE, mkp.ourhook, strerror(errno)));
+		    p->name, NG_ASYNC_NODE_TYPE, mkp.ourhook, strerror(errno)));
 		return (errno);
 	}
 	
@@ -196,10 +196,10 @@ TcpAsyncConfig(TcpInfo tcp)
 	acfg.amru = TCP_MRU;
 	acfg.smru = TCP_MTU;
 	snprintf(path, sizeof(path), ".:%s.%s%d", MPD_HOOK_PPP,
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
+	    NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
 	if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
 	    NGM_ASYNC_CMD_SET_CONFIG, &acfg, sizeof(acfg)) < 0) {
-		Log(LG_ERR, ("[%s] can't config %s", lnk->name, path));
+		Log(LG_ERR, ("[%s] can't config %s", p->name, path));
 		return (errno);
 	}
 
@@ -213,7 +213,7 @@ TcpAsyncConfig(TcpInfo tcp)
 static void
 TcpOpen(PhysInfo p)
 {
-	TcpInfo	const pi = (TcpInfo) lnk->phys->info;
+	TcpInfo	const pi = (TcpInfo) p->info;
 	struct ngm_mkpeer mkp;
 	char path[NG_PATHLEN + 1];
 	struct sockaddr_storage addr;
@@ -221,19 +221,19 @@ TcpOpen(PhysInfo p)
 	char buf[64];
 
 	if (pi->incoming) {
-		Log(LG_PHYS2, ("[%s] %s() on incoming call", lnk->name,
+		Log(LG_PHYS2, ("[%s] %s() on incoming call", p->name,
 		    __func__));
 		p->state = PHYS_STATE_UP;
-		PhysUp();
+		PhysUp(p);
 		return;
 	}
 
 	if (!Enabled(&pi->conf.options, TCP_CONF_ORIGINATE)) {
 		Log(LG_ERR, ("[%s] Originate option is not enabled",
-		    lnk->name));
+		    p->name));
 		p->state = PHYS_STATE_DOWN;
 		TcpDoClose(p);
-		PhysDown(STR_DEV_NOT_READY, NULL);
+		PhysDown(p, STR_DEV_NOT_READY, NULL);
 		return;
 	};
 
@@ -243,7 +243,7 @@ TcpOpen(PhysInfo p)
 	/* Create a new netgraph node to control TCP ksocket node. */
 	if (NgMkSockNode(NULL, &pi->csock, NULL) < 0) {
 		Log(LG_ERR, ("[%s] TCP can't create control socket: %s",
-		    lnk->name, strerror(errno)));
+		    p->name, strerror(errno)));
 		goto fail;
 	}
 	(void)fcntl(pi->csock, F_SETFD, 1);
@@ -263,7 +263,7 @@ TcpOpen(PhysInfo p)
 	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
 	if (NgSendMsg(pi->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER, &mkp,
 	    sizeof(mkp)) < 0) {
-		Log(LG_ERR, ("[%s] can't attach %s node: %s", lnk->name,
+		Log(LG_ERR, ("[%s] can't attach %s node: %s", p->name,
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		goto fail;
 	}
@@ -275,7 +275,7 @@ TcpOpen(PhysInfo p)
 	rval = NgSendMsg(pi->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_CONNECT, &addr, addr.ss_len);
 	if (rval < 0 && errno != EINPROGRESS) {
-		Log(LG_ERR, ("[%s] can't connect() %s node: %s", lnk->name,
+		Log(LG_ERR, ("[%s] can't connect() %s node: %s", p->name,
 		    NG_KSOCKET_NODE_TYPE, strerror(errno))); 
 		goto fail;
 	}
@@ -283,12 +283,12 @@ TcpOpen(PhysInfo p)
 	p->state = PHYS_STATE_CONNECTING;
 
 	if (rval == 0)	/* Can happen when peer is local. */
-		TcpConnectEvent(EVENT_READ, lnk);
+		TcpConnectEvent(EVENT_READ, p);
 	else {
 		assert(errno == EINPROGRESS);
 		EventRegister(&pi->ev_connect, EVENT_READ, pi->csock,
-		    0, TcpConnectEvent, lnk);
-		Log(LG_PHYS, ("[%s] connecting to %s %u", lnk->name,
+		    0, TcpConnectEvent, p);
+		Log(LG_PHYS, ("[%s] connecting to %s %u", p->name,
 		    u_addrtoa(&pi->conf.peer_addr, buf, sizeof(buf)), pi->conf.peer_port));
 	}
 
@@ -296,7 +296,7 @@ TcpOpen(PhysInfo p)
 fail:
 	p->state = PHYS_STATE_DOWN;
 	TcpDoClose(p);
-	PhysDown(STR_ERROR, NULL);
+	PhysDown(p, STR_ERROR, NULL);
 }
 
 /*
@@ -310,20 +310,22 @@ TcpConnectEvent(int type, void *cookie)
 		struct ng_mesg	resp;
 		int32_t		rval;
 	} cn;
-	TcpInfo	pi;
+	PhysInfo	p;
+	TcpInfo		pi;
 	char path[NG_PATHLEN + 1];
 
 	/* Restore context. */
-	lnk = (Link) cookie;
+	p = (PhysInfo)cookie;
+	pi = (TcpInfo)p->info;
+	lnk = p->link;
 	bund = lnk->bund;
-	pi = (TcpInfo) lnk->phys->info;
 
 	assert(type == EVENT_READ);
 
 	/* Check whether the connection was successful or not. */
 	if (NgRecvMsg(pi->csock, &cn.resp, sizeof(cn), path) < 0) {
 		Log(LG_ERR, ("[%s] error reading message from \"%s\": %s",
-		    lnk->name, path, strerror(errno)));
+		    p->name, path, strerror(errno)));
 		goto failed;
 	}
 
@@ -331,22 +333,22 @@ TcpConnectEvent(int type, void *cookie)
 	assert(cn.resp.header.cmd == NGM_KSOCKET_CONNECT);
 
 	if (cn.rval != 0) {
-		Log(LG_PHYS, ("[%s] failed to connect: %s", lnk->name,
+		Log(LG_PHYS, ("[%s] failed to connect: %s", p->name,
 		    strerror(cn.rval)));
 		goto failed;
 	}
 
 	/* Report connected. */
-	Log(LG_PHYS, ("[%s] connection established", lnk->name));
+	Log(LG_PHYS, ("[%s] connection established", p->name));
 
-	lnk->phys->state = PHYS_STATE_UP;
-	PhysUp();
+	p->state = PHYS_STATE_UP;
+	PhysUp(p);
 
 	return;
 failed:
-	lnk->phys->state = PHYS_STATE_DOWN;
-	TcpDoClose(lnk->phys);
-	PhysDown(STR_ERROR, NULL);
+	p->state = PHYS_STATE_DOWN;
+	TcpDoClose(p);
+	PhysDown(p, STR_ERROR, NULL);
 
 }
 
@@ -374,8 +376,8 @@ TcpAcceptEvent(int type, void *cookie)
 
 	/* Accept cloned ng_ksocket(4). */
 	if (NgRecvMsg(If->csock, &ac.resp, sizeof(ac), NULL) < 0) {
-		Log(LG_ERR, ("[%s] error reading message from \"%s\": %s",
-		    lnk->name, path, strerror(errno)));
+		Log(LG_ERR, ("TCP: error reading message from \"%s\": %s",
+		    path, strerror(errno)));
 		goto failed;
 	}
 	sockaddrtou_addr(&ac.sin, &addr, &port);
@@ -390,18 +392,18 @@ TcpAcceptEvent(int type, void *cookie)
 
 	/* Examine all TCP links. */
 	for (k = 0; k < gNumLinks; k++) {
+		PhysInfo p;
 	        TcpInfo pi;
-		PhysInfo ph;
 
 		if (gLinks[k] && gLinks[k]->phys->type != &gTcpPhysType)
 			continue;
 
-		ph = gLinks[k]->phys;
-		pi = (TcpInfo)ph->info;
+		p = gLinks[k]->phys;
+		pi = (TcpInfo)p->info;
 
 		if ((If!=pi->If) ||
-		    (ph->state != PHYS_STATE_DOWN) ||
-		    (now-ph->lastClose < TCP_REOPEN_PAUSE) ||
+		    (p->state != PHYS_STATE_DOWN) ||
+		    (now-p->lastClose < TCP_REOPEN_PAUSE) ||
 		    !Enabled(&pi->conf.options, TCP_CONF_INCOMING) ||
 		    ((!u_addrempty(&pi->conf.peer_addr)) && u_addrcompare(&pi->conf.peer_addr, &addr)) ||
 		    (pi->conf.peer_port != 0 && pi->conf.peer_port != port))
@@ -411,7 +413,7 @@ TcpAcceptEvent(int type, void *cookie)
 		lnk = gLinks[k];
 		bund = lnk->bund;
 
-		Log(LG_PHYS, ("[%s] Accepting connection", lnk->name));
+		Log(LG_PHYS, ("[%s] Accepting connection", p->name));
 
 		sockaddrtou_addr(&ac.sin, &pi->peer_addr, &pi->peer_port);
 
@@ -424,19 +426,18 @@ TcpAcceptEvent(int type, void *cookie)
 		if (NgSendMsg(bund->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT,
 		    &cn, sizeof(cn)) < 0) {
 			Log(LG_ERR, ("[%s] can't connect new born ksocket: %s",
-			    lnk->name, strerror(errno)));
+			    p->name, strerror(errno)));
 			goto failed;
 	  	}
 
 		pi->incoming=1;
-		ph->state = PHYS_STATE_READY;
+		p->state = PHYS_STATE_READY;
 
 		/* Report connected. */
-		Log(LG_PHYS, ("[%s] connected with %s %u", lnk->name,
+		Log(LG_PHYS, ("[%s] connected with %s %u", p->name,
 		    u_addrtoa(&addr, buf, sizeof(buf)), port));
 
-		RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, NULL);
-		BundOpenLink(lnk);
+		PhysIncoming(p);
 
 		break;
 	}
@@ -452,8 +453,8 @@ failed:
 	/* Tell that we are willing to receive accept message. */
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
-		Log(LG_ERR, ("[%s] can't accept on %s node: %s",
-		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		Log(LG_ERR, ("TCP: can't accept on %s node: %s",
+		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	}
 	EventRegister(&If->ctrlEvent, EVENT_READ, If->csock,
 	    0, TcpAcceptEvent, If);
@@ -477,7 +478,7 @@ TcpClose(PhysInfo p)
 	    u_addrclear(&pi->peer_addr);
 	    pi->peer_port=0;
 
-	    PhysDown(0, NULL);
+	    PhysDown(p, 0, NULL);
 	}
 }
 
@@ -584,7 +585,7 @@ TcpCalledNum(PhysInfo p, void *buf, int buf_len)
 void
 TcpStat(PhysInfo p)
 {
-	TcpInfo const pi = (TcpInfo) lnk->phys->info;
+	TcpInfo const pi = (TcpInfo) p->info;
 	char	buf[64];
 
 	Printf("TCP configuration:\r\n");
@@ -619,8 +620,8 @@ ListenTcpNode(struct TcpIf *If)
 	
 	/* Create a new netgraph node */
 	if (NgMkSockNode(NULL, &If->csock, NULL) < 0) {
-	    Log(LG_ERR, ("[%s] PPPoE: can't create ctrl socket: %s",
-	        lnk->name, strerror(errno)));
+	    Log(LG_ERR, ("TCP: can't create ctrl socket: %s",
+	        strerror(errno)));
 	    return(0);
 	}
 	(void)fcntl(If->csock, F_SETFD, 1);
@@ -636,8 +637,8 @@ ListenTcpNode(struct TcpIf *If)
 	}
 	if (NgSendMsg(If->csock, ".", NGM_GENERIC_COOKIE, NGM_MKPEER,
 	    &mkp, sizeof(mkp)) < 0) {
-		Log(LG_ERR, ("[%s] can't attach %s node: %s",
-		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		Log(LG_ERR, ("TCP: can't attach %s node: %s",
+		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
 	}
@@ -648,8 +649,8 @@ ListenTcpNode(struct TcpIf *If)
 	((int *)(ksso->value))[0]=1;
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
-		Log(LG_ERR, ("[%s] can't setsockopt() %s node: %s",
-		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		Log(LG_ERR, ("TCP: can't setsockopt() %s node: %s",
+		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
 	}
@@ -658,8 +659,8 @@ ListenTcpNode(struct TcpIf *If)
 	u_addrtosockaddr(&If->self_addr, If->self_port, &addr);
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
-		Log(LG_ERR, ("[%s] can't bind() %s node: %s",
-		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		Log(LG_ERR, ("TCP: can't bind() %s node: %s",
+		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
 	}
@@ -667,8 +668,8 @@ ListenTcpNode(struct TcpIf *If)
 	/* Listen. */
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_LISTEN, &backlog, sizeof(backlog)) < 0) {
-		Log(LG_ERR, ("[%s] can't listen() on %s node: %s",
-		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		Log(LG_ERR, ("TCP: can't listen() on %s node: %s",
+		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
 	}
@@ -676,14 +677,14 @@ ListenTcpNode(struct TcpIf *If)
 	/* Tell that we are willing to receive accept message. */
 	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
-		Log(LG_ERR, ("[%s] can't accept() on %s node: %s",
-		    lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		Log(LG_ERR, ("TCP: can't accept() on %s node: %s",
+		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		error = errno;
 		goto fail2;
 	}
 
-	Log(LG_PHYS, ("[%s] waiting for connection on %s %u",
-	    lnk->name, u_addrtoa(&If->self_addr, buf, sizeof(buf)), If->self_port));
+	Log(LG_PHYS, ("TCP: waiting for connection on %s %u",
+	    u_addrtoa(&If->self_addr, buf, sizeof(buf)), If->self_port));
 	EventRegister(&If->ctrlEvent, EVENT_READ, If->csock,
 	    0, TcpAcceptEvent, If);
 

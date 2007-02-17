@@ -98,12 +98,12 @@
   static int	PptpCalledNum(PhysInfo p, void *buf, int buf_len);
 
   static void	PptpInitCtrl(void);
-  static int	PptpOriginate(PptpInfo pptp);
-  static void	PptpDoClose(PhysInfo pptp);
-  static void	PptpKillNode(PptpInfo pptp);
+  static int	PptpOriginate(PhysInfo p);
+  static void	PptpDoClose(PhysInfo p);
+  static void	PptpKillNode(PhysInfo p);
   static void	PptpResult(void *cookie, const char *errmsg);
   static void	PptpCancel(void *cookie);
-  static int	PptpHookUp(PptpInfo pptp);
+  static int	PptpHookUp(PhysInfo p);
 
   static struct pptplinkinfo	PptpIncoming(struct pptpctrlinfo cinfo,
 				  struct u_addr peer, in_port_t port, int bearType,
@@ -191,17 +191,6 @@ static int
 PptpInit(PhysInfo p)
 {
   PptpInfo	pptp;
-//  int		k;
-
-  /* Only one PPTP link is allowed in a bundle XXX but this should be allowed */
-/* XXX Why only one? Commented it out.
-  for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && gLinks[k] != lnk && gLinks[k]->bund == bund) {
-      Log(LG_ERR, ("[%s] only one PPTP link allowed per bundle", lnk->name));
-      return(-1);
-    }
-  }
-*/
 
   /* Initialize this link */
   pptp = (PptpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pptp)));
@@ -220,7 +209,7 @@ PptpInit(PhysInfo p)
 static void
 PptpOpen(PhysInfo p)
 {
-  PptpInfo		const pptp = (PptpInfo) lnk->phys->info;
+  PptpInfo		const pptp = (PptpInfo) p->info;
 
   /* Initialize if needed */
   if (!gInitialized)
@@ -230,13 +219,13 @@ PptpOpen(PhysInfo p)
   switch (p->state) {
     case PHYS_STATE_DOWN:
       if (!Enabled(&pptp->conf.options, PPTP_CONF_ORIGINATE)) {
-	Log(LG_ERR, ("[%s] pptp originate option is not enabled", lnk->name));
-	PhysDown(STR_DEV_NOT_READY, NULL);
+	Log(LG_ERR, ("[%s] pptp originate option is not enabled", p->name));
+	PhysDown(p, STR_DEV_NOT_READY, NULL);
 	return;
       }
-      if (PptpOriginate(pptp) < 0) {
-	Log(LG_PHYS, ("[%s] PPTP call failed", lnk->name));
-	PhysDown(STR_ERROR, NULL);
+      if (PptpOriginate(p) < 0) {
+	Log(LG_PHYS, ("[%s] PPTP call failed", p->name));
+	PhysDown(p, STR_ERROR, NULL);
 	return;
       }
       p->state = PHYS_STATE_CONNECTING;
@@ -248,8 +237,8 @@ PptpOpen(PhysInfo p)
       if (!pptp->incoming) {
 
 	/* Hook up nodes */
-	Log(LG_PHYS, ("[%s] attaching to peer's outgoing call", lnk->name));
-	if (PptpHookUp(pptp) < 0) {
+	Log(LG_PHYS, ("[%s] attaching to peer's outgoing call", p->name));
+	if (PptpHookUp(p) < 0) {
 	  PptpDoClose(p);	/* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
 	}
@@ -257,13 +246,13 @@ PptpOpen(PhysInfo p)
 	(*pptp->cinfo.answer)(pptp->cinfo.cookie,
 	  PPTP_OCR_RESL_OK, 0, 0, 64000 /*XXX*/ );
 	p->state = PHYS_STATE_UP;
-	PhysUp();
+	PhysUp(p);
 	return;
       }
       return; 	/* wait for peer's incoming pptp call to complete */
 
     case PHYS_STATE_UP:
-      PhysUp();
+      PhysUp(p);
       return;
 
     default:
@@ -278,8 +267,9 @@ PptpOpen(PhysInfo p)
  */
 
 static int
-PptpOriginate(PptpInfo pptp)
+PptpOriginate(PhysInfo p)
 {
+  PptpInfo		const pptp = (PptpInfo) p->info;
   struct pptpctrlinfo	cinfo;
   struct pptplinkinfo	linfo;
   struct u_addr		ip = pptp->conf.peer_addr_req.addr;
@@ -289,7 +279,7 @@ PptpOriginate(PptpInfo pptp)
   pptp->originate = TRUE;
   pptp->incoming = !Enabled(&pptp->conf.options, PPTP_CONF_OUTCALL);
   memset(&linfo, 0, sizeof(linfo));
-  linfo.cookie = lnk;
+  linfo.cookie = p;
   linfo.result = PptpResult;
   linfo.setLinkInfo = NULL;
   linfo.cancel = PptpCancel;
@@ -330,9 +320,7 @@ PptpClose(PhysInfo p)
 static void
 PptpShutdown(PhysInfo p)
 {
-  PptpInfo	const pptp = (PptpInfo) p->info;
-
-  PptpKillNode(pptp);
+  PptpKillNode(p);
 }
 
 /*
@@ -346,7 +334,7 @@ PptpDoClose(PhysInfo p)
 
   if (p->state != PHYS_STATE_DOWN) {		/* avoid double close */
     (*pptp->cinfo.close)(pptp->cinfo.cookie, PPTP_CDN_RESL_ADMIN, 0, 0);
-    PptpKillNode(pptp);
+    PptpKillNode(p);
   }
 }
 
@@ -355,13 +343,13 @@ PptpDoClose(PhysInfo p)
  */
 
 static void
-PptpKillNode(PptpInfo pptp)
+PptpKillNode(PhysInfo p)
 {
   char	path[NG_PATHLEN + 1];
 
   snprintf(path, sizeof(path), "%s.%s%d",
-    MPD_HOOK_PPP, NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  NgFuncShutdownNode(bund, lnk->name, path);
+    MPD_HOOK_PPP, NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
+  NgFuncShutdownNode(bund, p->name, path);
 }
 
 /*
@@ -412,7 +400,7 @@ PptpCalledNum(PhysInfo p, void *buf, int buf_len)
 void
 PptpStat(PhysInfo p)
 {
-  PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
+  PptpInfo	const pptp = (PptpInfo) p->info;
   char		buf[32];
 
   Printf("PPTP configuration:\r\n");
@@ -453,7 +441,7 @@ PptpInitCtrl(void)
     GetAnyIpAddress(&gLocalIp, NULL);
 #endif
   if (PptpCtrlInit(PptpIncoming, PptpOutgoing, gLocalIp) < 0) {
-    Log(LG_ERR, ("[%s] PPTP ctrl init failed", lnk->name));
+    Log(LG_ERR, ("PPTP ctrl init failed"));
     return;
   }
   gInitialized = TRUE;
@@ -476,28 +464,28 @@ PptpResult(void *cookie, const char *errmsg)
   if (!cookie)
     return;
 
-  lnk = (Link) cookie;
-  bund = lnk->bund;
-  p = lnk->phys;
+  p = (PhysInfo)cookie;
   pptp = (PptpInfo) p->info;
+  lnk = p->link;
+  bund = lnk->bund;
 
   switch (p->state) {
     case PHYS_STATE_CONNECTING:
       if (!errmsg) {
 
 	/* Hook up nodes */
-	Log(LG_PHYS, ("[%s] PPTP call successful", lnk->name));
-	if (PptpHookUp(pptp) < 0) {
+	Log(LG_PHYS, ("[%s] PPTP call successful", p->name));
+	if (PptpHookUp(p) < 0) {
 	  PptpDoClose(p); /* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
 	}
 
 	/* OK */
 	p->state = PHYS_STATE_UP;
-	PhysUp();
+	PhysUp(p);
       } else {
-	Log(LG_PHYS, ("[%s] PPTP call failed", lnk->name));
-	PhysDown(STR_CON_FAILED, "%s", errmsg);
+	Log(LG_PHYS, ("[%s] PPTP call failed", p->name));
+	PhysDown(p, STR_CON_FAILED, "%s", errmsg);
 	p->state = PHYS_STATE_DOWN;
 	u_addrclear(&pptp->peer_addr);
 	pptp->peer_port = 0;
@@ -507,9 +495,9 @@ PptpResult(void *cookie, const char *errmsg)
       break;
     case PHYS_STATE_UP:
       assert(errmsg);
-      Log(LG_PHYS, ("[%s] PPTP call terminated", lnk->name));
+      Log(LG_PHYS, ("[%s] PPTP call terminated", p->name));
       PptpDoClose(p);
-      PhysDown(STR_DROPPED, NULL);
+      PhysDown(p, STR_DROPPED, NULL);
       p->state = PHYS_STATE_DOWN;
       u_addrclear(&pptp->peer_addr);
       pptp->peer_port = 0;
@@ -530,8 +518,9 @@ PptpResult(void *cookie, const char *errmsg)
  */
 
 static int
-PptpHookUp(PptpInfo pptp)
+PptpHookUp(PhysInfo p)
 {
+  const PptpInfo		pi = (PptpInfo)p->info;
   char	        		ksockpath[NG_PATHLEN+1];
   char	        		pptppath[NG_PATHLEN+1];
   struct ngm_mkpeer		mkp;
@@ -546,7 +535,7 @@ PptpHookUp(PptpInfo pptp)
 
   /* Get session info */
   memset(&gc, 0, sizeof(gc));
-  PptpCtrlGetSessionInfo(&pptp->cinfo, &u_self_addr,
+  PptpCtrlGetSessionInfo(&pi->cinfo, &u_self_addr,
     &u_peer_addr, &gc.cid, &gc.peerCid, &gc.recvWin, &gc.peerPpd);
     
   u_addrtosockaddr(&u_self_addr, 0, &self_addr);
@@ -561,7 +550,7 @@ PptpHookUp(PptpInfo pptp)
   if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     Log(LG_ERR, ("[%s] can't attach %s node: %s",
-      lnk->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
+      p->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
     return(-1);
   }
   snprintf(pptppath, sizeof(pptppath), "%s.%s", MPD_HOOK_PPP, mkp.ourhook);
@@ -578,7 +567,7 @@ PptpHookUp(PptpInfo pptp)
   if (NgSendMsg(bund->csock, pptppath, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     Log(LG_ERR, ("[%s] can't attach %s node: %s",
-      lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+      p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }
   snprintf(ksockpath, sizeof(ksockpath),
@@ -591,14 +580,14 @@ PptpHookUp(PptpInfo pptp)
     if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
 	NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
 	    Log(LG_ERR, ("[%s] can't setsockopt %s node: %s",
-		lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+		p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     }
 
   /* Bind ksocket socket to local IP address */
   if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_BIND, &self_addr, self_addr.ss_len) < 0) {
     Log(LG_ERR, ("[%s] can't bind() %s node: %s",
-      lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+      p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }
 
@@ -607,24 +596,24 @@ PptpHookUp(PptpInfo pptp)
       NGM_KSOCKET_CONNECT, &peer_addr, peer_addr.ss_len) < 0
       && errno != EINPROGRESS) {	/* happens in -current (weird) */
     Log(LG_ERR, ("[%s] can't connect() %s node: %s",
-      lnk->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+      p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     return(-1);
   }
 
   /* Configure PPTP/GRE node */
   gc.enabled = 1;
-  gc.enableDelayedAck = Enabled(&pptp->conf.options, PPTP_CONF_DELAYED_ACK);
+  gc.enableDelayedAck = Enabled(&pi->conf.options, PPTP_CONF_DELAYED_ACK);
 #if NGM_PPTPGRE_COOKIE >= 942783547
-  gc.enableAlwaysAck = Enabled(&pptp->conf.options, PPTP_CONF_ALWAYS_ACK);
+  gc.enableAlwaysAck = Enabled(&pi->conf.options, PPTP_CONF_ALWAYS_ACK);
 #endif
 #if NGM_PPTPGRE_COOKIE >= 1082548365
-  gc.enableWindowing = Enabled(&pptp->conf.options, PPTP_CONF_WINDOWING);
+  gc.enableWindowing = Enabled(&pi->conf.options, PPTP_CONF_WINDOWING);
 #endif
 
   if (NgSendMsg(bund->csock, pptppath, NGM_PPTPGRE_COOKIE,
       NGM_PPTPGRE_SET_CONFIG, &gc, sizeof(gc)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s node: %s",
-      lnk->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
+      p->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
     return(-1);
   }
 
@@ -685,7 +674,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 {
   struct pptplinkinfo	linfo;
   Link			l = NULL;
-  PptpInfo		pptp = NULL;
+  PptpInfo		pi = NULL;
   int			k;
   time_t  		now = time(NULL);
 
@@ -716,9 +705,9 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	&& (!pptp2->conf.peer_port_req || pptp2->conf.peer_port_req == port)) {
 
       /* Link is feasible; now see if it's preferable */
-      if (!pptp || pptp2->conf.peer_addr_req.width > pptp->conf.peer_addr_req.width) {
+      if (!pi || pptp2->conf.peer_addr_req.width > pi->conf.peer_addr_req.width) {
 	l = l2;
-	pptp = pptp2;
+	pi = pptp2;
       }
     }
   }
@@ -735,19 +724,18 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   bund = lnk->bund;
 
   Log(LG_PHYS, ("[%s] Accepting PPTP connection", lnk->name));
-  RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, NULL);
-  BundOpenLink(lnk);
+  PhysIncoming(lnk->phys);
 
   /* Got one */
-  linfo.cookie = lnk;
+  linfo.cookie = l->phys;
   lnk->phys->state = PHYS_STATE_CONNECTING;
-  pptp->cinfo = *cinfo;
-  pptp->originate = FALSE;
-  pptp->incoming = incoming;
-  pptp->peer_addr = peer;
-  pptp->peer_port = port;
-  strlcpy(pptp->callingnum, callingNum, sizeof(pptp->callingnum));
-  strlcpy(pptp->callednum, calledNum, sizeof(pptp->callednum));
+  pi->cinfo = *cinfo;
+  pi->originate = FALSE;
+  pi->incoming = incoming;
+  pi->peer_addr = peer;
+  pi->peer_port = port;
+  strlcpy(pi->callingnum, callingNum, sizeof(pi->callingnum));
+  strlcpy(pi->callednum, calledNum, sizeof(pi->callednum));
   return(linfo);
 }
 
@@ -761,28 +749,28 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 static void
 PptpCancel(void *cookie)
 {
-  PptpInfo	pptp;
+  PptpInfo	pi;
   PhysInfo 	p;
 
   /* It this fake call? */
   if (!cookie)
     return;
 
-  lnk = (Link) cookie;
+  p = (PhysInfo)cookie;
+  pi = (PptpInfo) p->info;
+  lnk = p->link;
   bund = lnk->bund;
-  p = lnk->phys;
-  pptp = (PptpInfo) p->info;
 
   Log(LG_PHYS, ("[%s] PPTP call cancelled in state %s",
-    lnk->name, gPhysStateNames[p->state]));
+    p->name, gPhysStateNames[p->state]));
   if (p->state == PHYS_STATE_DOWN)
     return;
-  PhysDown(STR_CON_FAILED0, NULL);
+  PhysDown(p, STR_CON_FAILED0, NULL);
   p->state = PHYS_STATE_DOWN;
-  u_addrclear(&pptp->peer_addr);
-  pptp->peer_port = 0;
-  pptp->callingnum[0]=0;
-  pptp->callednum[0]=0;
+  u_addrclear(&pi->peer_addr);
+  pi->peer_port = 0;
+  pi->callingnum[0]=0;
+  pi->callednum[0]=0;
 }
 
 /*
@@ -827,7 +815,7 @@ PptpListenUpdate(void)
 static int
 PptpSetCommand(int ac, char *av[], void *arg)
 {
-	PptpInfo	const pptp = (PptpInfo) lnk->phys->info;
+	PptpInfo	const pi = (PptpInfo) lnk->phys->info;
 	struct u_range	rng;
 	int		port;
 
@@ -846,27 +834,27 @@ PptpSetCommand(int ac, char *av[], void *arg)
 	gLocalIp = rng.addr;
 	gLocalPort = port;
       } else {
-	pptp->conf.peer_addr_req = rng;
-	pptp->conf.peer_port_req = port;
+	pi->conf.peer_addr_req = rng;
+	pi->conf.peer_port_req = port;
       }
       PptpListenUpdate();
       break;
     case SET_CALLINGNUM:
       if (ac != 1)
 	return(-1);
-      snprintf(pptp->conf.callingnum, sizeof(pptp->conf.callingnum), "%s", av[0]);
+      snprintf(pi->conf.callingnum, sizeof(pi->conf.callingnum), "%s", av[0]);
       break;
     case SET_CALLEDNUM:
       if (ac != 1)
 	return(-1);
-      snprintf(pptp->conf.callednum, sizeof(pptp->conf.callednum), "%s", av[0]);
+      snprintf(pi->conf.callednum, sizeof(pi->conf.callednum), "%s", av[0]);
       break;
     case SET_ENABLE:
-      EnableCommand(ac, av, &pptp->conf.options, gConfList);
+      EnableCommand(ac, av, &pi->conf.options, gConfList);
       PptpListenUpdate();
       break;
     case SET_DISABLE:
-      DisableCommand(ac, av, &pptp->conf.options, gConfList);
+      DisableCommand(ac, av, &pi->conf.options, gConfList);
       PptpListenUpdate();
       break;
     default:

@@ -24,7 +24,7 @@
  * FUNCTIONS
  */
 
-  extern const char		*ModemGetVar(const char *name);
+  extern const char		*ModemGetVar(PhysInfo p, const char *name);
 
 #endif
 

@@ -50,6 +50,7 @@
   typedef struct phystype	*PhysType;
 
   struct physinfo {
+    char		name[LINK_MAX_NAME];	/* Human readable name */
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
     u_char		state;			/* Device current state */
@@ -57,6 +58,7 @@
     time_t		lastClose;		/* Time of last close */
     MsgHandler		msgs;			/* Message channel */
     struct pppTimer	openTimer;		/* Open retry timer */
+    Link		link;			/* Link connected to the device */
   };
 
 /*
@@ -73,10 +75,11 @@
   extern void		PhysOpen(void);
   extern void		PhysClose(void);
   extern void		PhysUpdate(void);
-  extern void		PhysUp(void);
-  extern void		PhysDown(const char *reason, const char *details, ...);
+  extern void		PhysUp(PhysInfo p);
+  extern void		PhysDown(PhysInfo p, const char *reason, const char *details, ...);
+  extern void		PhysIncoming(PhysInfo p);
 
-  extern PhysInfo	PhysInit(void);
+  extern PhysInfo	PhysInit(char *name);
   extern void		PhysSetDeviceType(char *typename);
   extern int		PhysGetOriginate(void);
   extern int		PhysStat(int ac, char *av[], void *arg);

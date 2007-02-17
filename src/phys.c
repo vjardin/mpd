@@ -79,11 +79,12 @@
  */
 
 PhysInfo
-PhysInit(void)
+PhysInit(char *name)
 {
   PhysInfo	p;
 
   p = Malloc(MB_PHYS, sizeof(*p));
+  strlcpy(p->name, name, sizeof(p->name));
   p->state = PHYS_STATE_DOWN;
   p->msgs = MsgRegister(PhysMsg, 0);
   return(p);
@@ -114,9 +115,9 @@ PhysClose(void)
  */
 
 void
-PhysUp(void)
+PhysUp(PhysInfo p)
 {
-  MsgSend(lnk->phys->msgs, MSG_UP, NULL);
+  MsgSend(p->msgs, MSG_UP, NULL);
 }
 
 /*
@@ -124,19 +125,30 @@ PhysUp(void)
  */
 
 void
-PhysDown(const char *reason, const char *details, ...)
+PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 {
   struct downmsg	*dm = Malloc(MB_PHYS, sizeof(*dm));
   va_list		args;
 
-  lnk->phys->lastClose = time(NULL); /* dirty hack to avoid race condition */
+  p->lastClose = time(NULL); /* dirty hack to avoid race condition */
   dm->reason = reason;
   if (details) {
     va_start(args, details);
     vsnprintf(dm->buf, sizeof(dm->buf), details, args);
     va_end(args);
   }
-  MsgSend(lnk->phys->msgs, MSG_DOWN, dm);
+  MsgSend(p->msgs, MSG_DOWN, dm);
+}
+
+/*
+ * PhysIncoming()
+ */
+
+void
+PhysIncoming(PhysInfo p)
+{
+  RecordLinkUpDownReason(p->link, 1, STR_INCOMING_CALL, NULL);
+  BundOpenLink(p->link);
 }
 
 /*

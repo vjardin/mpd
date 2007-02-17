@@ -300,7 +300,8 @@ LinkNew(char *name, Bund b, int bI)
   Enable(&lnk->conf.options, LINK_CONF_CHECK_MAGIC);
 
   /* Initialize link layer stuff */
-  lnk->phys = PhysInit();
+  lnk->phys = PhysInit(lnk->name);
+  lnk->phys->link = lnk;
   LcpInit();
   EapInit();
 
