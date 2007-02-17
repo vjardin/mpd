@@ -56,6 +56,7 @@
     char		callingnum[64];	/* PPTP phone number to use */
     char		callednum[64];	/* PPTP phone number to use */
     struct pptpctrlinfo	cinfo;
+    ng_ID_t		node_id;
   };
   typedef struct pptpinfo	*PptpInfo;
 
@@ -345,11 +346,26 @@ PptpDoClose(PhysInfo p)
 static void
 PptpKillNode(PhysInfo p)
 {
-  char	path[NG_PATHLEN + 1];
+	PptpInfo const	pptp = (PptpInfo) p->info;
+	char		path[NG_PATHLEN + 1];
+	int		csock = -1;
 
-  snprintf(path, sizeof(path), "%s.%s%d",
-    MPD_HOOK_PPP, NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
-  NgFuncShutdownNode(bund->csock, p->name, path);
+	if (pptp->node_id == 0)
+		return;
+
+	/* Get a temporary netgraph socket node */
+	if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+		Log(LG_ERR, ("L2TP: NgMkSockNode: %s", strerror(errno)));
+		return;
+	}
+	
+	/* Disconnect session hook. */
+	snprintf(path, sizeof(path), "[%lx]:", (u_long)pptp->node_id);
+	NgFuncShutdownNode(csock, p->name, path);
+	
+	close(csock);
+	
+	pptp->node_id = 0;
 }
 
 /*
@@ -466,8 +482,6 @@ PptpResult(void *cookie, const char *errmsg)
 
   p = (PhysInfo)cookie;
   pptp = (PptpInfo) p->info;
-  lnk = p->link;
-  bund = lnk->bund;
 
   switch (p->state) {
     case PHYS_STATE_CONNECTING:
@@ -532,6 +546,15 @@ PptpHookUp(PhysInfo p)
 	struct ng_ksocket_sockopt ksso;
   } u;
   struct ng_ksocket_sockopt *const ksso = &u.ksso;
+  int		csock = -1;
+  char        	path[NG_PATHLEN + 1];
+  char		hook[NG_HOOKLEN + 1];
+    union {
+        u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+        struct ng_mesg reply;
+    } repbuf;
+    struct ng_mesg *const reply = &repbuf.reply;
+    struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
 
   /* Get session info */
   memset(&gc, 0, sizeof(gc));
@@ -541,19 +564,38 @@ PptpHookUp(PhysInfo p)
   u_addrtosockaddr(&u_self_addr, 0, &self_addr);
   u_addrtosockaddr(&u_peer_addr, 0, &peer_addr);
 
+    if (!PhysGetUpperHook(p, path, hook)) {
+        Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", p->name));
+        return(-1);
+    }
+    
+    /* Get a temporary netgraph socket node */
+    if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+	Log(LG_ERR, ("L2TP: NgMkSockNode: %s", strerror(errno)));
+	return(-1);
+    }
+
   /* Attach PPTP/GRE node to PPP node */
   snprintf(mkp.type, sizeof(mkp.type), "%s", NG_PPTPGRE_NODE_TYPE);
-  snprintf(mkp.ourhook, sizeof(mkp.ourhook),
-    "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
+  snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s", hook);
   snprintf(mkp.peerhook, sizeof(mkp.peerhook),
     "%s", NG_PPTPGRE_HOOK_UPPER);
-  if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
+  if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     Log(LG_ERR, ("[%s] can't attach %s node: %s",
       p->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
+    close(csock);
     return(-1);
   }
-  snprintf(pptppath, sizeof(pptppath), "%s.%s", MPD_HOOK_PPP, mkp.ourhook);
+  snprintf(pptppath, sizeof(pptppath), "%s.%s", path, hook);
+
+    /* Get l2tp node ID */
+    if (NgSendMsg(csock, pptppath,
+        NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) != -1) {
+	    if (NgRecvMsg(csock, reply, sizeof(repbuf), NULL) != -1) {
+	        pi->node_id = ninfo->id;
+	    }
+    }
 
   /* Attach ksocket node to PPTP/GRE node */
   snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
@@ -564,10 +606,11 @@ PptpHookUp(PhysInfo p)
   } else {
     snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/raw/gre");
   }
-  if (NgSendMsg(bund->csock, pptppath, NGM_GENERIC_COOKIE,
+  if (NgSendMsg(csock, pptppath, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     Log(LG_ERR, ("[%s] can't attach %s node: %s",
       p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+    close(csock);
     return(-1);
   }
   snprintf(ksockpath, sizeof(ksockpath),
@@ -577,26 +620,28 @@ PptpHookUp(PhysInfo p)
     ksso->level=SOL_SOCKET;
     ksso->name=SO_RCVBUF;
     ((int *)(ksso->value))[0]=48*1024;
-    if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
+    if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
 	NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
 	    Log(LG_ERR, ("[%s] can't setsockopt %s node: %s",
 		p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     }
 
   /* Bind ksocket socket to local IP address */
-  if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
+  if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_BIND, &self_addr, self_addr.ss_len) < 0) {
     Log(LG_ERR, ("[%s] can't bind() %s node: %s",
       p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+    close(csock);
     return(-1);
   }
 
   /* Connect ksocket socket to remote IP address */
-  if (NgSendMsg(bund->csock, ksockpath, NGM_KSOCKET_COOKIE,
+  if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_CONNECT, &peer_addr, peer_addr.ss_len) < 0
       && errno != EINPROGRESS) {	/* happens in -current (weird) */
     Log(LG_ERR, ("[%s] can't connect() %s node: %s",
       p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+    close(csock);
     return(-1);
   }
 
@@ -610,12 +655,15 @@ PptpHookUp(PhysInfo p)
   gc.enableWindowing = Enabled(&pi->conf.options, PPTP_CONF_WINDOWING);
 #endif
 
-  if (NgSendMsg(bund->csock, pptppath, NGM_PPTPGRE_COOKIE,
+  if (NgSendMsg(csock, pptppath, NGM_PPTPGRE_COOKIE,
       NGM_PPTPGRE_SET_CONFIG, &gc, sizeof(gc)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s node: %s",
       p->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
+    close(csock);
     return(-1);
   }
+  
+  close(csock);
 
   /* Done */
   return(0);
@@ -693,7 +741,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   /* Find a suitable link; prefer the link best matching peer's IP address */
   for (k = 0; k < gNumPhyses; k++) {
     PhysInfo	const p2 = gPhyses[k];
-    PptpInfo	pi2 = (PptpInfo) p->info;
+    PptpInfo	pi2 = (PptpInfo) p2->info;
 
     /* See if link is feasible */
     if (p2 != NULL
@@ -720,16 +768,12 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
     return(linfo);
   }
 
-  /* Open link to pick up the call */
-  lnk = p->link;
-  bund = lnk->bund;
-
   Log(LG_PHYS, ("[%s] Accepting PPTP connection", p->name));
   PhysIncoming(p);
 
   /* Got one */
   linfo.cookie = p;
-  lnk->phys->state = PHYS_STATE_CONNECTING;
+  p->state = PHYS_STATE_CONNECTING;
   pi->cinfo = *cinfo;
   pi->originate = FALSE;
   pi->incoming = incoming;
@@ -759,8 +803,6 @@ PptpCancel(void *cookie)
 
   p = (PhysInfo)cookie;
   pi = (PptpInfo) p->info;
-  lnk = p->link;
-  bund = lnk->bund;
 
   Log(LG_PHYS, ("[%s] PPTP call cancelled in state %s",
     p->name, gPhysStateNames[p->state]));
@@ -784,6 +826,7 @@ PptpListenUpdate(void)
   int	allow_incoming = 0;
   int	allow_multiple = 1;
   int	k;
+  char	buf[64];
 
   /* Examine all PPTP links */
   for (k = 0; k < gNumPhyses; k++) {
@@ -807,6 +850,10 @@ PptpListenUpdate(void)
 
   /* Set up listening for incoming connections */
   PptpCtrlListen(allow_incoming, gLocalPort, allow_multiple);
+
+    Log(LG_PHYS, ("PPTP: waiting for connection on %s %u",
+        u_addrtoa(&gLocalIp, buf, sizeof(buf)), gLocalPort));
+	
 }
 
 /*
