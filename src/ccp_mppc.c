@@ -156,7 +156,7 @@ MppcInit(int dir)
       NGM_MPPC_COOKIE, cmd, &conf, sizeof(conf)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
       bund->name, NG_MPPC_NODE_TYPE, path, strerror(errno)));
-    NgFuncDisconnect(MPD_HOOK_PPP, ppphook);
+    NgFuncDisconnect(bund->csock, bund->name, MPD_HOOK_PPP, ppphook);
     return(-1);
   }
 
@@ -260,7 +260,7 @@ MppcCleanup(int dir)
       return;
   }
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  (void)NgFuncShutdownNode(bund, bund->name, path);
+  (void)NgFuncShutdownNode(bund->csock, bund->name, path);
 }
 
 /*

@@ -283,7 +283,7 @@ UdpDoClose(PhysInfo p)
 
   snprintf(hook, sizeof(hook),
     "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  NgFuncDisconnect(MPD_HOOK_PPP, hook);
+  NgFuncDisconnect(bund->csock, bund->name, MPD_HOOK_PPP, hook);
 }
 
 /*
@@ -448,7 +448,7 @@ UdpAcceptEvent(int type, void *cookie)
 		break;
 	}
 
-	if (k == gNumLinks) {
+	if (k == gNumPhyses) {
 	    Log(LG_PHYS, ("No free UDP link with requested parameters "
 	        "was found"));
 	}

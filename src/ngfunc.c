@@ -1166,7 +1166,7 @@ NgFuncShutdownGlobal(Bund b)
     return;
 
   snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
-  NgFuncShutdownNode(b, "netflow", path);
+  NgFuncShutdownNode(b->csock, "netflow", path);
 #endif
 }
 
@@ -1196,7 +1196,7 @@ NgFuncShutdownInternal(Bund b, int iface, int ppp)
 
   if (iface) {
     snprintf(path, sizeof(path), "%s:", b->iface.ifname);
-    NgFuncShutdownNode(b, b->name, path);
+    NgFuncShutdownNode(b->csock, b->name, path);
   }
   lnk_save = lnk;
   bund_save = bund;
@@ -1211,15 +1211,15 @@ NgFuncShutdownInternal(Bund b, int iface, int ppp)
   if (ppp) {
     if (b->tee) {
 	snprintf(path, sizeof(path), "%s-tee:", b->iface.ifname);
-	NgFuncShutdownNode(b, b->name, path);
+	NgFuncShutdownNode(b->csock, b->name, path);
     }
     if (b->nat) {
 	snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
-	NgFuncShutdownNode(b, b->name, path);
+	NgFuncShutdownNode(b->csock, b->name, path);
     }
     snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_INET);
-    NgFuncShutdownNode(b, b->name, path);
-    NgFuncShutdownNode(b, b->name, MPD_HOOK_PPP);
+    NgFuncShutdownNode(b->csock, b->name, path);
+    NgFuncShutdownNode(b->csock, b->name, MPD_HOOK_PPP);
   }
   close(b->csock);
   b->csock = -1;
@@ -1234,11 +1234,11 @@ NgFuncShutdownInternal(Bund b, int iface, int ppp)
  */
 
 int
-NgFuncShutdownNode(Bund b, const char *label, const char *path)
+NgFuncShutdownNode(int csock, const char *label, const char *path)
 {
   int rtn;
 
-  if ((rtn = NgSendMsg(b->csock, path,
+  if ((rtn = NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_SHUTDOWN, NULL, 0)) < 0) {
     if (errno != ENOENT) {
       Log(LG_ERR, ("[%s] can't shutdown \"%s\": %s",
@@ -1519,16 +1519,16 @@ NgFuncConnect(const char *path, const char *hook,
  */
 
 int
-NgFuncDisconnect(const char *path, const char *hook)
+NgFuncDisconnect(int csock, char *label, const char *path, const char *hook)
 {
   struct ngm_rmhook	rm;
 
   /* Disconnect hook */
   snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", hook);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
     Log(LG_ERR, ("[%s] can't remove hook %s from node \"%s\": %s",
-      bund->name, hook, path, strerror(errno)));
+      label, hook, path, strerror(errno)));
     return(-1);
   }
   return(0);

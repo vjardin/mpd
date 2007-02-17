@@ -349,7 +349,7 @@ PptpKillNode(PhysInfo p)
 
   snprintf(path, sizeof(path), "%s.%s%d",
     MPD_HOOK_PPP, NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
-  NgFuncShutdownNode(bund, p->name, path);
+  NgFuncShutdownNode(bund->csock, p->name, path);
 }
 
 /*

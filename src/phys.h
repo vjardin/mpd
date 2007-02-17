@@ -78,6 +78,7 @@
   extern void		PhysUp(PhysInfo p);
   extern void		PhysDown(PhysInfo p, const char *reason, const char *details, ...);
   extern void		PhysIncoming(PhysInfo p);
+  extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
 
   extern PhysInfo	PhysInit(char *name);
   extern void		PhysSetDeviceType(char *typename);

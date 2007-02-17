@@ -442,11 +442,11 @@ TcpAcceptEvent(int type, void *cookie)
 		break;
 	}
 
-	if (k == gNumLinks) {
+	if (k == gNumPhyses) {
 	    Log(LG_PHYS, ("No free TCP link with requested parameters "
 	        "was found"));
 	    snprintf(path, sizeof(path), "[%x]:", ac.id);
-	    NgFuncShutdownNode(bund, "", path);
+	    NgFuncShutdownNode(bund->csock, "", path);
 	}
 
 failed:
@@ -495,7 +495,7 @@ TcpShutdown(PhysInfo p)
 
 	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
 	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-	NgFuncShutdownNode(bund, bund->name, path);
+	NgFuncShutdownNode(bund->csock, p->name, path);
 }
 
 /*
@@ -515,7 +515,7 @@ TcpDoClose(PhysInfo p)
 
 	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
 	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-	NgFuncDisconnect(path, NG_ASYNC_HOOK_ASYNC);
+	NgFuncDisconnect(bund->csock, bund->name, path, NG_ASYNC_HOOK_ASYNC);
 	EventUnRegister(&pi->ev_connect);
 }
 

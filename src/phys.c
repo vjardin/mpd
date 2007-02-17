@@ -175,6 +175,23 @@ PhysUpdate(void)
 }
 
 /*
+ * PhysGetUpperHook()
+ */
+
+int
+PhysGetUpperHook(PhysInfo p, char *path, char *hook)
+{
+    if (p->link && p->link->bund) {
+	snprintf(path, NG_PATHLEN, "[%lx]:", (u_long)p->link->bund->nodeID);
+	snprintf(hook, NG_HOOKLEN, "%s%d",
+	    NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
+	return 1;
+    }
+    return 0;
+}
+
+
+/*
  * PhysGetOriginate()
  *
  * This returns one of LINK_ORIGINATE_{UNKNOWN, LOCAL, REMOTE}

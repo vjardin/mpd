@@ -82,8 +82,8 @@
 
   extern int	NgFuncConnect(const char *path, const char *hook,
 			const char *path2, const char *hook2);
-  extern int	NgFuncDisconnect(const char *path, const char *hook);
-  extern int	NgFuncShutdownNode(Bund b, const char *label, const char *path);
+  extern int	NgFuncDisconnect(int csock, char *label, const char *path, const char *hook);
+  extern int	NgFuncShutdownNode(int csock, const char *label, const char *path);
   #ifdef USE_NG_TCPMSS
   extern void	NgFuncConfigTCPMSS(Bund b, uint16_t maxMSS);
   #endif

@@ -332,7 +332,7 @@ ModemDoClose(PhysInfo p, int opened)
   (void) write(m->fd, &ch, 1);	/* USR kludge to prevent dial lockup */
   if (*m->ttynode != '\0') {
     snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
-    NgFuncShutdownNode(bund, p->name, path);
+    NgFuncShutdownNode(bund->csock, p->name, path);
     *m->ttynode = '\0';
   }
   ExclusiveCloseDevice(m->fd, m->device);

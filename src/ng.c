@@ -133,7 +133,7 @@ NgClose(PhysInfo p)
 {
   NgInfo	const ng = (NgInfo) p->info;
 
-  NgFuncDisconnect(ng->path, ng->hook);
+  NgFuncDisconnect(bund->csock, bund->name, ng->path, ng->hook);
   p->state = PHYS_STATE_DOWN;
   PhysDown(p, 0, NULL);
 }

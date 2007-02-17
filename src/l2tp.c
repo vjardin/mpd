@@ -546,7 +546,7 @@ L2tpDoClose(PhysInfo p)
 
 	/* Disconnect session hook. */
 	snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
-	NgFuncDisconnect(path, hook);
+	NgFuncDisconnect(bund->csock, bund->name, path, hook);
     }
 }
 
