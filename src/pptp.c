@@ -589,7 +589,7 @@ PptpHookUp(PhysInfo p)
   }
   snprintf(pptppath, sizeof(pptppath), "%s.%s", path, hook);
 
-    /* Get l2tp node ID */
+    /* Get pptpgre node ID */
     if (NgSendMsg(csock, pptppath,
         NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) != -1) {
 	    if (NgRecvMsg(csock, reply, sizeof(repbuf), NULL) != -1) {
