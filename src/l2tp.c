@@ -115,6 +115,7 @@
   static int	L2tpCalledNum(PhysInfo p, void *buf, int buf_len);
 
   static void	L2tpDoClose(PhysInfo l2tp);
+  static void	L2tpHookUpIncoming(PhysInfo p);
 
   static void	L2tpNodeUpdate(PhysInfo p);
   static void	L2tpListenUpdate(void *arg);
@@ -266,6 +267,7 @@ L2tpOpen(PhysInfo p)
 		Log(LG_PHYS2, ("[%s] L2tpOpen() on incoming call", p->name));
 		if (p->state==PHYS_STATE_READY) {
 		    p->state = PHYS_STATE_UP;
+		    L2tpHookUpIncoming(p);
 		    PhysUp(p);
 		}
 		return;
@@ -535,18 +537,28 @@ L2tpShutdown(PhysInfo p)
 static void
 L2tpDoClose(PhysInfo p)
 {
-    L2tpInfo      const pi = (L2tpInfo) p->info;
-    const char *hook;
-    ng_ID_t node_id;
+    int		csock = -1;
+    L2tpInfo	const pi = (L2tpInfo) p->info;
+    const char	*hook;
+    ng_ID_t	node_id;
     char	path[NG_PATHLEN + 1];
 	
     if (pi->sess) {		/* avoid double close */
+
 	/* Get this link's node and hook */
 	ppp_l2tp_sess_get_hook(pi->sess, &node_id, &hook);
 
+	/* Get a temporary netgraph socket node */
+	if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+		Log(LG_ERR, ("L2TP: NgMkSockNode: %s", strerror(errno)));
+		return;
+	}
+	
 	/* Disconnect session hook. */
 	snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
-	NgFuncDisconnect(bund->csock, bund->name, path, hook);
+	NgFuncDisconnect(csock, p->name, path, hook);
+	
+	close(csock);
     }
 }
 
@@ -662,10 +674,6 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 		if (pi->tun != tun)
 			continue;
 
-		/* Restore context. */
-		lnk = p->link;
-		bund = lnk->bund;
-
 		tun->connected = 1;
 		/* Create number AVPs */
 		if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
@@ -731,10 +739,6 @@ ppp_l2tp_ctrl_terminated_cb(struct ppp_l2tp_ctrl *ctrl,
 
 		if (pi->tun != tun)
 			continue;
-
-		/* Restore context. */
-		lnk = p->link;
-		bund = lnk->bund;
 
 		p->state = PHYS_STATE_DOWN;
 		PhysDown(p, STR_DROPPED, NULL);
@@ -806,10 +810,6 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		    (pi->conf.peer_port_req != 0 && pi->conf.peer_port_req != tun->peer_port))
 			continue;
 
-		/* Restore context. */
-		lnk = p->link;
-		bund = lnk->bund;
-
 		Log(LG_PHYS, ("[%s] L2TP: %s call %p via control connection %p accepted", 
 		    p->name, (out?"Outgoing":"Incoming"), sess, ctrl));
 
@@ -847,38 +847,17 @@ static void
 ppp_l2tp_connected_cb(struct ppp_l2tp_sess *sess,
 	const struct ppp_l2tp_avp_list *avps)
 {
-        const char *hook;
-        ng_ID_t node_id;
-	char path[NG_PATHLEN + 1];
-	char linkHook[NG_HOOKLEN + 1];
 	PhysInfo p;
 	L2tpInfo pi;
 
 	p = ppp_l2tp_sess_get_cookie(sess);
 	pi = (L2tpInfo)p->info;
 
-	lnk = p->link;
-	bund = lnk->bund;
-
 	Log(LG_PHYS, ("[%s] L2TP: call %p connected", p->name, sess));
-
-	/* Get this link's node and hook */
-	ppp_l2tp_sess_get_hook(sess, &node_id, &hook);
-
-	/* Connect our ng_ppp(4) node link hook and ng_l2tp(4) node. */
-	snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
-	snprintf(linkHook, sizeof(linkHook), "%s%d",
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-	if (NgFuncConnect(MPD_HOOK_PPP, linkHook, path, hook) < 0) {
-		Log(LG_ERR, ("[%s] can't connect to ppp: %s",
-		    p->name, strerror(errno)));
-		ppp_l2tp_terminate(sess, L2TP_RESULT_ERROR,
-		    L2TP_ERROR_GENERIC, strerror(errno));
-		return;
-	}
 
 	if (pi->opened) {
 	    p->state = PHYS_STATE_UP;
+	    L2tpHookUpIncoming(p);
 	    PhysUp(p);
 	} else {
 	    p->state = PHYS_STATE_READY;
@@ -902,9 +881,6 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	p = ppp_l2tp_sess_get_cookie(sess);
 	pi = (L2tpInfo) p->info;
 
-        lnk = p->link;
-	bund = lnk->bund;
-
 	/* Control side is notifying us session is down */
 	snprintf(buf, sizeof(buf), "result=%u error=%u errmsg=\"%s\"",
 	    result, error, (errmsg != NULL) ? errmsg : "");
@@ -917,6 +893,53 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	pi->tun = NULL;
 	pi->callingnum[0]=0;
 	pi->callednum[0]=0;
+}
+
+/*
+ * Read an incoming packet that might be a new L2TP connection.
+ */
+ 
+static void
+L2tpHookUpIncoming(PhysInfo p)
+{
+	int		csock = -1;
+	L2tpInfo	pi = (L2tpInfo)p->info;
+        const char 	*hook;
+        ng_ID_t		node_id;
+	char		path[NG_PATHLEN + 1];
+	struct ngm_connect      cn;
+
+	/* Get a temporary netgraph socket node */
+	if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+		Log(LG_ERR, ("L2TP: NgMkSockNode: %s", strerror(errno)));
+		goto fail;
+	}
+
+	/* Get this link's node and hook */
+	ppp_l2tp_sess_get_hook(pi->sess, &node_id, &hook);
+
+	/* Connect our ng_ppp(4) node link hook and ng_l2tp(4) node. */
+	if (!PhysGetUpperHook(p, cn.path, cn.peerhook)) {
+	    Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", p->name));
+	    goto fail;
+	}
+	snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
+	snprintf(cn.ourhook, sizeof(cn.ourhook), hook);
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, 
+	    &cn, sizeof(cn)) < 0) {
+		Log(LG_ERR, ("[%s] L2TP: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    		    p->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+		goto fail;
+	}
+	close(csock);
+	return;
+
+fail:
+	/* Clean up after failure */
+	ppp_l2tp_terminate(pi->sess, L2TP_RESULT_ERROR,
+	    L2TP_ERROR_GENERIC, strerror(errno));
+	if (csock != -1)
+		(void)close(csock);
 }
 
 /*
