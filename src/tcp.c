@@ -52,6 +52,8 @@ struct tcpinfo {
 	struct u_addr	peer_addr;
 	in_port_t	peer_port;
 	EventRef	ev_connect;
+	ng_ID_t		async_node_id;
+	ng_ID_t		node_id;
 };
 
 typedef struct tcpinfo	*TcpInfo;
@@ -84,7 +86,6 @@ static int	TcpCallingNum(PhysInfo p, void *buf, int buf_len);
 static int	TcpCalledNum(PhysInfo p, void *buf, int buf_len);
 
 static void	TcpDoClose(PhysInfo p);
-static int	TcpAsyncConfig(PhysInfo p);
 static void	TcpAcceptEvent(int type, void *cookie);
 static void	TcpConnectEvent(int type, void *cookie);
 
@@ -164,45 +165,6 @@ TcpInit(PhysInfo p)
 	u_addrclear(&pi->peer_addr);
 	pi->peer_port=0;
 
-	/* Attach async node to PPP node. */
-	if (TcpAsyncConfig(p))
-	    return -1;
-
-	return (0);
-}
-
-static int
-TcpAsyncConfig(PhysInfo p)
-{
-	struct ngm_mkpeer mkp;
-	struct ng_async_cfg	acfg;
-	char path[NG_PATHLEN + 1];
-
-	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_ASYNC_NODE_TYPE);
-	snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s%d",
-	    NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
-	snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_ASYNC_HOOK_SYNC);
-	if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_GENERIC_COOKIE,
-	    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-		Log(LG_ERR, ("[%s] can't attach %s %s node: %s",
-		    p->name, NG_ASYNC_NODE_TYPE, mkp.ourhook, strerror(errno)));
-		return (errno);
-	}
-	
-	/* Configure the async converter node. */
-	memset(&acfg, 0, sizeof(acfg));
-	acfg.enabled = TRUE;
-	acfg.accm = 0;  /* we do not need thie on TCP */
-	acfg.amru = TCP_MRU;
-	acfg.smru = TCP_MTU;
-	snprintf(path, sizeof(path), ".:%s.%s%d", MPD_HOOK_PPP,
-	    NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
-	if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
-	    NGM_ASYNC_CMD_SET_CONFIG, &acfg, sizeof(acfg)) < 0) {
-		Log(LG_ERR, ("[%s] can't config %s", p->name, path));
-		return (errno);
-	}
-
 	return (0);
 }
 
@@ -213,22 +175,24 @@ TcpAsyncConfig(PhysInfo p)
 static void
 TcpOpen(PhysInfo p)
 {
-	TcpInfo	const pi = (TcpInfo) p->info;
-	struct ngm_mkpeer mkp;
-	char path[NG_PATHLEN + 1];
+	TcpInfo	const 		pi = (TcpInfo) p->info;
+	struct ngm_mkpeer	mkp;
+	struct ngm_connect	cn;
+	struct ngm_name		nm;
+	char 			path[NG_PATHLEN + 1];
+	char 			hook[NG_HOOKLEN + 1];
 	struct sockaddr_storage addr;
-	int rval;
-	char buf[64];
+	struct ng_async_cfg	acfg;
+	int 			rval;
+	char 			buf[64];
+    union {
+        u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+        struct ng_mesg reply;
+    } repbuf;
+    struct ng_mesg *const reply = &repbuf.reply;
+    struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
 
-	if (pi->incoming) {
-		Log(LG_PHYS2, ("[%s] %s() on incoming call", p->name,
-		    __func__));
-		p->state = PHYS_STATE_UP;
-		PhysUp(p);
-		return;
-	}
-
-	if (!Enabled(&pi->conf.options, TCP_CONF_ORIGINATE)) {
+	if ((!pi->incoming) && (!Enabled(&pi->conf.options, TCP_CONF_ORIGINATE))) {
 		Log(LG_ERR, ("[%s] Originate option is not enabled",
 		    p->name));
 		p->state = PHYS_STATE_DOWN;
@@ -237,9 +201,6 @@ TcpOpen(PhysInfo p)
 		return;
 	};
 
-	u_addrcopy(&pi->conf.peer_addr,&pi->peer_addr);
-	pi->conf.peer_port = pi->peer_port;
-
 	/* Create a new netgraph node to control TCP ksocket node. */
 	if (NgMkSockNode(NULL, &pi->csock, NULL) < 0) {
 		Log(LG_ERR, ("[%s] TCP can't create control socket: %s",
@@ -247,6 +208,87 @@ TcpOpen(PhysInfo p)
 		goto fail;
 	}
 	(void)fcntl(pi->csock, F_SETFD, 1);
+
+#if NG_NODESIZ>=32
+	/* Give it a name */
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, p->name);
+	if (NgSendMsg(pi->csock, ".:",
+	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+		Log(LG_ERR, ("[%s] can't name %s node: %s",
+		    p->name, NG_BPF_NODE_TYPE, strerror(errno)));
+	}
+#endif
+
+        if (!PhysGetUpperHook(p, path, hook)) {
+		Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", p->name));
+    		goto fail;
+        }
+    
+	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_ASYNC_NODE_TYPE);
+	snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s", hook);
+	snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_ASYNC_HOOK_SYNC);
+	if (NgSendMsg(pi->csock, path, NGM_GENERIC_COOKIE,
+	    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
+		Log(LG_ERR, ("[%s] can't attach %s %s node: %s",
+		    p->name, NG_ASYNC_NODE_TYPE, mkp.ourhook, strerror(errno)));
+		goto fail;
+	}
+	
+	strlcat(path, ".", sizeof(path));
+	strlcat(path, hook, sizeof(path));
+	
+#if NG_NODESIZ>=32
+	/* Give it a name */
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-as", gPid, p->name);
+	if (NgSendMsg(pi->csock, path,
+	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+		Log(LG_ERR, ("[%s] can't name %s node: %s",
+		    p->name, NG_BPF_NODE_TYPE, strerror(errno)));
+	}
+#endif
+
+	/* Get async node ID */
+	if (NgSendMsg(pi->csock, path,
+    	    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) != -1) {
+		if (NgRecvMsg(pi->csock, reply, sizeof(repbuf), NULL) != -1) {
+	    	    pi->async_node_id = ninfo->id;
+		}
+	}
+
+	/* Configure the async converter node. */
+	memset(&acfg, 0, sizeof(acfg));
+	acfg.enabled = TRUE;
+	acfg.accm = 0;  /* we do not need thie on TCP */
+	acfg.amru = TCP_MRU;
+	acfg.smru = TCP_MTU;
+	if (NgSendMsg(pi->csock, path, NGM_ASYNC_COOKIE,
+	    NGM_ASYNC_CMD_SET_CONFIG, &acfg, sizeof(acfg)) < 0) {
+		Log(LG_ERR, ("[%s] can't config %s", p->name, path));
+		goto fail;
+	}
+
+	if (pi->incoming) {
+		Log(LG_PHYS2, ("[%s] %s() on incoming call", p->name,
+		    __func__));
+
+		/* Connect new born ksocket to our link. */
+		snprintf(cn.path, sizeof(cn.path), "[%x]:", pi->node_id);
+		snprintf(cn.ourhook, sizeof(cn.ourhook), NG_ASYNC_HOOK_ASYNC);
+		snprintf(cn.peerhook, sizeof(cn.peerhook), "data");
+		if (NgSendMsg(pi->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT,
+		    &cn, sizeof(cn)) < 0) {
+			Log(LG_ERR, ("[%s] can't connect new born ksocket: %s",
+			    p->name, strerror(errno)));
+			goto fail;
+	  	}
+
+		p->state = PHYS_STATE_UP;
+		PhysUp(p);
+		return;
+	}
+
+	u_addrcopy(&pi->conf.peer_addr,&pi->peer_addr);
+	pi->peer_port = pi->conf.peer_port;
 
 	/*
 	 * Attach fresh ksocket node next to async node.
@@ -259,8 +301,6 @@ TcpOpen(PhysInfo p)
 	} else {
 	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
 	}
-	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
 	if (NgSendMsg(pi->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER, &mkp,
 	    sizeof(mkp)) < 0) {
 		Log(LG_ERR, ("[%s] can't attach %s node: %s", p->name,
@@ -268,10 +308,19 @@ TcpOpen(PhysInfo p)
 		goto fail;
 	}
 
+	strlcat(path, ".", sizeof(path));
+	strlcat(path, NG_ASYNC_HOOK_ASYNC, sizeof(path));
+
+	/* Give it a name */
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, p->name);
+	if (NgSendMsg(pi->csock, path,
+	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+		Log(LG_ERR, ("[%s] can't name %s node: %s",
+		    p->name, NG_BPF_NODE_TYPE, strerror(errno)));
+	}
+
 	/* Start connecting to peer. */
 	u_addrtosockaddr(&pi->peer_addr, pi->peer_port, &addr);
-	snprintf(path, sizeof(path), "[%x]:%s%d.%s", bund->nodeID,
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex, NG_ASYNC_HOOK_ASYNC);
 	rval = NgSendMsg(pi->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_CONNECT, &addr, addr.ss_len);
 	if (rval < 0 && errno != EINPROGRESS) {
@@ -317,8 +366,6 @@ TcpConnectEvent(int type, void *cookie)
 	/* Restore context. */
 	p = (PhysInfo)cookie;
 	pi = (TcpInfo)p->info;
-	lnk = p->link;
-	bund = lnk->bund;
 
 	assert(type == EVENT_READ);
 
@@ -363,7 +410,7 @@ TcpAcceptEvent(int type, void *cookie)
 		uint32_t	id;
 		struct sockaddr_storage sin;
 	} ac;
-	struct ngm_connect cn;
+	struct ngm_name         nm;
 	char path[NG_PATHLEN + 1];
 	struct u_addr	addr;
 	in_port_t	port;
@@ -409,26 +456,20 @@ TcpAcceptEvent(int type, void *cookie)
 		    (pi->conf.peer_port != 0 && pi->conf.peer_port != port))
 			continue;
 
-		/* Restore context. */
-		lnk = p->link;
-		bund = lnk->bund;
-
 		Log(LG_PHYS, ("[%s] Accepting connection", p->name));
 
 		sockaddrtou_addr(&ac.sin, &pi->peer_addr, &pi->peer_port);
 
-		/* Connect new born ksocket to our link. */
-		snprintf(cn.path, sizeof(cn.path), "[%x]:", ac.id);
-		snprintf(cn.ourhook, sizeof(cn.ourhook), NG_ASYNC_HOOK_ASYNC);
-		snprintf(cn.peerhook, sizeof(cn.peerhook), "data");
-		snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
-		    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-		if (NgSendMsg(bund->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT,
-		    &cn, sizeof(cn)) < 0) {
-			Log(LG_ERR, ("[%s] can't connect new born ksocket: %s",
-			    p->name, strerror(errno)));
-			goto failed;
-	  	}
+		pi->node_id = ac.id;
+
+		/* Give it a name */
+		snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, p->name);
+		snprintf(path, sizeof(path), "[%x]:", ac.id);
+		if (NgSendMsg(If->csock, path,
+		    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+			Log(LG_ERR, ("[%s] can't name %s node: %s",
+			    p->name, NG_BPF_NODE_TYPE, strerror(errno)));
+		}
 
 		pi->incoming=1;
 		p->state = PHYS_STATE_READY;
@@ -446,7 +487,7 @@ TcpAcceptEvent(int type, void *cookie)
 	    Log(LG_PHYS, ("No free TCP link with requested parameters "
 	        "was found"));
 	    snprintf(path, sizeof(path), "[%x]:", ac.id);
-	    NgFuncShutdownNode(bund->csock, "", path);
+	    NgFuncShutdownNode(If->csock, "", path);
 	}
 
 failed:
@@ -489,13 +530,7 @@ TcpClose(PhysInfo p)
 static void
 TcpShutdown(PhysInfo p)
 {
-	char path[NG_PATHLEN + 1];
-
 	TcpDoClose(p);
-
-	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-	NgFuncShutdownNode(bund->csock, p->name, path);
 }
 
 /*
@@ -508,15 +543,27 @@ TcpDoClose(PhysInfo p)
 	char path[NG_PATHLEN + 1];
 	TcpInfo const pi = (TcpInfo) p->info;
 
-	if (pi->csock>=0) {
-	    close(pi->csock);
-	    pi->csock = -1;
-	}
-
-	snprintf(path, sizeof(path), "[%x]:%s%d", bund->nodeID,
-	    NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-	NgFuncDisconnect(bund->csock, bund->name, path, NG_ASYNC_HOOK_ASYNC);
 	EventUnRegister(&pi->ev_connect);
+
+	if (pi->csock<=0) {
+	    return;
+	};
+
+	if (pi->node_id != 0) {
+	    snprintf(path, sizeof(path), "[%lx]:", (u_long)pi->node_id);
+	    NgFuncShutdownNode(pi->csock, p->name, path);
+	    pi->node_id = 0;
+	}
+	
+	if (pi->async_node_id != 0) {
+	    snprintf(path, sizeof(path), "[%lx]:", (u_long)pi->async_node_id);
+	    NgFuncShutdownNode(pi->csock, p->name, path);
+	    pi->async_node_id = 0;
+	}
+	
+	close(pi->csock);
+	pi->csock = -1;
+	pi->node_id = 0;
 }
 
 /*
