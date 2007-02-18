@@ -64,6 +64,9 @@
 #ifdef LG_LINK
     ADD_OPT(LINK,	"Link events")
 #endif
+#ifdef LG_REP
+    ADD_OPT(REP,	"Repeater events")
+#endif
 #ifdef LG_LCP
     ADD_OPT(LCP,	"LCP negotiation")
 #endif
