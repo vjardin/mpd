@@ -26,6 +26,8 @@
     void	*arg;
     Bund	bund;
     Link	lnk;
+    Rep		rep;
+    PhysInfo	phys;
   };
   typedef struct mpmsg	*Msg;
 
@@ -35,6 +37,8 @@
     void	(*func)(int type, void *arg);
     Bund	bund;
     Link	lnk;
+    Rep		rep;
+    PhysInfo	phys;
   };
 
   int		msgpipe[2];
@@ -61,6 +65,8 @@ MsgRegister(void (*func)(int type, void *arg), int prio)
   m->func = func;
   m->bund = bund;
   m->lnk = lnk;
+  m->rep = rep;
+  m->phys = phys;
 
   if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
     if (pipe(msgpipe) < 0)
@@ -113,6 +119,8 @@ MsgEvent(int type, void *cookie)
   }
   lnk = msg.lnk;
   bund = msg.bund;
+  rep = msg.rep;
+  phys = msg.phys;
   (*msg.func)(msg.type, msg.arg);
   MsgReregister();
 }
@@ -134,6 +142,8 @@ MsgSend(MsgHandler m, int type, void *arg)
   msg.arg = arg;
   msg.bund = m->bund;
   msg.lnk = m->lnk;
+  msg.rep = m->rep;
+  msg.phys = m->phys;
   for (nwrote = 0, retry = 10; nwrote < sizeof(msg) && retry > 0; nwrote += nw, retry--)
     if ((nw = write(msgpipe[PIPE_WRITE],
       (u_char *) &msg + nwrote, sizeof(msg) - nwrote)) < 0)
