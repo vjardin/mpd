@@ -1465,7 +1465,7 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
   if (!gNgStatSock) {
     /* Create a netgraph socket node */
     if (NgMkSockNode(NULL, &gNgStatSock, NULL) < 0) {
-      Log(LG_ERR, ("can't create %s node: %s",
+      Log(LG_ERR, ("NgFuncSendQuery: can't create %s node: %s",
     	NG_SOCKET_NODE_TYPE, strerror(errno)));
       return(0);
     }
@@ -1478,8 +1478,8 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
 
   /* Read message */
   if ((len = NgRecvMsg(gNgStatSock, rbuf, replen, raddr)) < 0) {
-    Log(LG_ERR, ("[%s] can't read unexpected message: %s",
-      bund->name, strerror(errno)));
+    Log(LG_ERR, ("NgFuncSendQuery: can't read unexpected message: %s",
+      strerror(errno)));
     goto fail;
   }
 
