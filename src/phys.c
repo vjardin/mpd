@@ -262,12 +262,108 @@ PhysGetUpperHook(PhysInfo p, char *path, char *hook)
  */
 
 int
-PhysGetOriginate(void)
+PhysGetOriginate(PhysInfo p)
 {
-  PhysInfo	const p = phys;
   PhysType	const pt = p->type;
 
   return((pt && pt->originate) ? (*pt->originate)(p) : LINK_ORIGINATE_UNKNOWN);
+}
+
+/*
+ * PhysSetCalledNum()
+ */
+
+int
+PhysSetCallingNum(PhysInfo p, void *buf)
+{
+    PhysType	const pt = p->type;
+
+    if (pt && pt->setcallingnum)
+	return ((*pt->setcallingnum)(p, buf));
+    else
+	return (0);
+}
+
+/*
+ * PhysSetCalledNum()
+ */
+
+int
+PhysSetCalledNum(PhysInfo p, void *buf)
+{
+    PhysType	const pt = p->type;
+
+    if (pt && pt->setcallednum)
+	return ((*pt->setcallednum)(p, buf));
+    else
+	return (0);
+}
+
+/*
+ * PhysGetPeerAddr()
+ */
+
+int
+PhysGetPeerAddr(PhysInfo p, void *buf, int buf_len)
+{
+    PhysType	const pt = p->type;
+
+    if (pt && pt->peeraddr)
+	return ((*pt->peeraddr)(p, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
+ * PhysGetCalledNum()
+ */
+
+int
+PhysGetCallingNum(PhysInfo p, void *buf, int buf_len)
+{
+    PhysType	const pt = p->type;
+
+    if (pt && pt->callingnum)
+	return ((*pt->callingnum)(p, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
+ * PhysGetCalledNum()
+ */
+
+int
+PhysGetCalledNum(PhysInfo p, void *buf, int buf_len)
+{
+    PhysType	const pt = p->type;
+
+    if (pt && pt->callednum)
+	return ((*pt->callednum)(p, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
+ * PhysShutdown()
+ */
+
+void
+PhysShutdown(PhysInfo p)
+{
+    PhysType	const pt = p->type;
+    int		k;
+
+    if (pt && pt->shutdown)
+	(*pt->shutdown)(p);
+
+    for (k = 0; 
+	k < gNumPhyses && gPhyses[k] != p;
+	k++);
+    if (k < gNumPhyses)
+	gPhyses[k] = NULL;
+
+    Freee(MB_PHYS, p);
 }
 
 /*

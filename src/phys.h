@@ -41,6 +41,10 @@
     void	(*showstat)(PhysInfo p);	/* Shows type specific stats */
     int		(*originate)(PhysInfo p);	/* We originated connection? */
     int		(*setaccm)(PhysInfo p, u_int32_t accm);	/* Set async accm */
+    int		(*setcallingnum)(PhysInfo p, void *buf); 
+						/* sets the calling number */
+    int		(*setcallednum)(PhysInfo p, void *buf); 
+						/* sets the called number */
     int		(*peeraddr)(PhysInfo p, void *buf, int buf_len); 
 						/* returns the peer-address (IP, MAC, whatever) */
     int		(*callingnum)(PhysInfo p, void *buf, int buf_len); 
@@ -86,9 +90,16 @@
   extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
 
   extern int		PhysSetAccm(PhysInfo p, uint32_t accm);
+  extern int		PhysSetCallingNum(PhysInfo p, void *buf);
+  extern int		PhysSetCalledNum(PhysInfo p, void *buf);
+  extern int		PhysGetPeerAddr(PhysInfo p, void *buf, int buf_len);
+  extern int		PhysGetCallingNum(PhysInfo p, void *buf, int buf_len);
+  extern int		PhysGetCalledNum(PhysInfo p, void *buf, int buf_len);
+
   extern PhysInfo	PhysInit(char *name, Link l, Rep r);
+  extern void		PhysShutdown(PhysInfo p);
   extern void		PhysSetDeviceType(char *typename);
-  extern int		PhysGetOriginate(void);
+  extern int		PhysGetOriginate(PhysInfo p);
   extern int		PhysCommand(int ac, char *av[], void *arg);
   extern int		PhysStat(int ac, char *av[], void *arg);
   extern int		PhysCommand(int ac, char *av[], void *arg);

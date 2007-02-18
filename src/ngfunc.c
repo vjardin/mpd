@@ -1190,8 +1190,8 @@ NgFuncShutdownInternal(Bund b, int iface, int ppp)
   for (k = 0; k < b->n_links; k++) {
     lnk = b->links[k];
     bund = lnk->bund;
-    if (lnk && lnk->phys && lnk->phys->type && lnk->phys->type->shutdown)
-      (*lnk->phys->type->shutdown)(lnk->phys);
+    if (lnk && lnk->phys)
+      PhysShutdown(lnk->phys);
   }
   bund = bund_save;
   lnk = lnk_save;

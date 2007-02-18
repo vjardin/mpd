@@ -251,21 +251,14 @@ AuthStart(void)
   a->self_to_peer = lnk->lcp.peer_auth;
   a->peer_to_self = lnk->lcp.want_auth;
 
-  if (lnk->phys->type) {
-    PhysType	pt = lnk->phys->type;
-  
     /* remember peer's IP address */
-    if (pt->peeraddr)
-	pt->peeraddr(lnk->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
+    PhysGetPeerAddr(lnk->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
   
     /* remember calling number */
-    if (pt->callingnum)
-	pt->callingnum(lnk->phys, a->params.callingnum, sizeof(a->params.callingnum));
+    PhysGetCallingNum(lnk->phys, a->params.callingnum, sizeof(a->params.callingnum));
   
     /* remember called number */
-    if (pt->callednum)
-	pt->callednum(lnk->phys, a->params.callednum, sizeof(a->params.callednum));
-  }
+    PhysGetCalledNum(lnk->phys, a->params.callednum, sizeof(a->params.callednum));
   
   Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
     Pref(&lnk->lcp.fsm),

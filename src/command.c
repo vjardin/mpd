@@ -766,10 +766,7 @@ ShowSummary(int ac, char *av[], void *arg)
 	    }
 	    L=B->links[l];
 	    if (L) {
-		if (L->phys->type && L->phys->type->peeraddr)
-		    L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
-		else 
-		    buf[0] = 0;
+		PhysGetPeerAddr(L->phys, buf, sizeof(buf));
 		Printf("%s\t%s\t%s\t%s\t%s\t%8s\t%s", 
 		    L->name,
 		    (L->phys->type?L->phys->type->name:""),

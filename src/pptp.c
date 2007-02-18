@@ -94,6 +94,8 @@
   static void	PptpShutdown(PhysInfo p);
   static void	PptpStat(PhysInfo p);
   static int	PptpOriginated(PhysInfo p);
+  static int	PptpSetCallingNum(PhysInfo p, void *buf);
+  static int	PptpSetCalledNum(PhysInfo p, void *buf);
   static int	PptpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	PptpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	PptpCalledNum(PhysInfo p, void *buf, int buf_len);
@@ -142,6 +144,8 @@
     .shutdown		= PptpShutdown,
     .showstat		= PptpStat,
     .originate		= PptpOriginated,
+    .setcallingnum	= PptpSetCallingNum,
+    .setcallednum	= PptpSetCalledNum,
     .peeraddr		= PptpPeerAddr,
     .callingnum		= PptpCallingNum,
     .callednum		= PptpCalledNum,
@@ -378,6 +382,24 @@ PptpOriginated(PhysInfo p)
   PptpInfo	const pptp = (PptpInfo) p->info;
 
   return(pptp->originate ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
+}
+
+static int
+PptpSetCallingNum(PhysInfo p, void *buf)
+{
+    PptpInfo	const pptp = (PptpInfo) p->info;
+
+    strlcpy(pptp->conf.callingnum, buf, sizeof(pptp->conf.callingnum));
+    return(0);
+}
+
+static int
+PptpSetCalledNum(PhysInfo p, void *buf)
+{
+    PptpInfo	const pptp = (PptpInfo) p->info;
+
+    strlcpy(pptp->conf.callednum, buf, sizeof(pptp->conf.callednum));
+    return(0);
 }
 
 static int

@@ -284,21 +284,11 @@ WebShowSummary(FILE *f)
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->phys->state), L->name, gPhysStateNames[L->phys->state]);
 		if (L->phys->state != PHYS_STATE_DOWN) {
-		    if (L->phys->type && L->phys->type->peeraddr)
-			L->phys->type->peeraddr(L->phys, buf, sizeof(buf));
-		    else 
-			buf[0] = 0;
+		    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
 		    fprintf(f, "<TD>%s</TD>\n", buf);
-		    if (L->phys->type && L->phys->type->callingnum)
-			L->phys->type->callingnum(L->phys, buf, sizeof(buf));
-		    else 
-			buf[0] = 0;
-		    if (L->phys->type && L->phys->type->callednum)
-			L->phys->type->callednum(L->phys, buf2, sizeof(buf2));
-		    else 
-			buf2[0] = 0;
-		    if (L->phys->type && L->phys->type->originate && 
-			L->phys->type->originate(L->phys) == LINK_ORIGINATE_REMOTE) {
+		    PhysGetCallingNum(L->phys, buf, sizeof(buf));
+		    PhysGetCalledNum(L->phys, buf2, sizeof(buf2));
+		    if (PhysGetOriginate(L->phys) == LINK_ORIGINATE_REMOTE) {
 			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
 				buf2, buf);
 		    } else {

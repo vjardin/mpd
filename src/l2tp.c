@@ -113,6 +113,8 @@
   static int	L2tpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCalledNum(PhysInfo p, void *buf, int buf_len);
+  static int	L2tpSetCallingNum(PhysInfo p, void *buf);
+  static int	L2tpSetCalledNum(PhysInfo p, void *buf);
 
   static void	L2tpDoClose(PhysInfo l2tp);
   static void	L2tpHookUpIncoming(PhysInfo p);
@@ -156,6 +158,8 @@
     .shutdown		= L2tpShutdown,
     .showstat		= L2tpStat,
     .originate		= L2tpOriginated,
+    .setcallingnum	= L2tpSetCallingNum,
+    .setcallednum	= L2tpSetCalledNum,
     .peeraddr		= L2tpPeerAddr,
     .callingnum		= L2tpCallingNum,
     .callednum		= L2tpCalledNum,
@@ -572,6 +576,24 @@ L2tpOriginated(PhysInfo p)
   L2tpInfo	const l2tp = (L2tpInfo) p->info;
 
   return(l2tp->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+}
+
+static int
+L2tpSetCallingNum(PhysInfo p, void *buf)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) p->info;
+
+    strlcpy(l2tp->conf.callingnum, buf, sizeof(l2tp->conf.callingnum));
+    return(0);
+}
+
+static int
+L2tpSetCalledNum(PhysInfo p, void *buf)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) p->info;
+
+    strlcpy(l2tp->conf.callednum, buf, sizeof(l2tp->conf.callednum));
+    return(0);
 }
 
 static int

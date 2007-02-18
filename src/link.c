@@ -193,7 +193,7 @@ LinkMsg(int type, void *arg)
       LcpClose();
       break;
     case MSG_UP:
-      lnk->originate = PhysGetOriginate();
+      lnk->originate = PhysGetOriginate(lnk->phys);
       Log(LG_LINK, ("[%s] link: origination is %s",
 	lnk->name, LINK_ORIGINATION(lnk->originate)));
       LcpUp();
