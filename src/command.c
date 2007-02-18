@@ -121,21 +121,21 @@
     { "ipv6cp",				"IPV6CP status",
 	Ipv6cpStat, AdmitBund, NULL },
     { "iface",				"Interface status",
-	IfaceStat, NULL, NULL },
+	IfaceStat, AdmitBund, NULL },
     { "routes",				"IP routing table",
 	IpShowRoutes, NULL, NULL },
     { "layers",				"Layers to open/close",
 	ShowLayers, NULL, NULL },
     { "phys",				"Physical device status",
-	PhysStat, AdmitBund, NULL },
+	PhysStat, AdmitDev, NULL },
     { "link",				"Link status",
-	LinkStat, AdmitBund, NULL },
+	LinkStat, AdmitLink, NULL },
     { "auth",				"Auth status",
-	AuthStat, AdmitBund, NULL },
+	AuthStat, AdmitLink, NULL },
     { "radius",				"RADIUS status",
-	RadStat, AdmitBund, NULL },
+	RadStat, AdmitLink, NULL },
     { "lcp",				"LCP status",
-	LcpStat, AdmitBund, NULL },
+	LcpStat, AdmitLink, NULL },
     { "mem",				"Memory map",
 	MemStat, NULL, NULL },
     { "mp",				"Multi-link status",
@@ -159,7 +159,7 @@
     { "bundle ...",			"Bundle specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) BundSetCmds },
     { "link ...",			"Link specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) LinkSetCmds },
+	CMD_SUBMENU, AdmitLink, (void *) LinkSetCmds },
     { "iface ...",			"Interface specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) IfaceSetCmds },
     { "ipcp ...",			"IPCP specific stuff",
@@ -173,9 +173,9 @@
     { "eap ...",			"EAP specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) EapSetCmds },
     { "auth ...",			"Auth specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) AuthSetCmds },
+	CMD_SUBMENU, AdmitLink, (void *) AuthSetCmds },
     { "radius ...",			"RADIUS specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) RadiusSetCmds },
+	CMD_SUBMENU, AdmitLink, (void *) RadiusSetCmds },
     { "console ...",			"Console specific stuff",
 	CMD_SUBMENU, NULL, (void *) ConsoleSetCmds },
     { "web ...",			"Web specific stuff",
@@ -197,15 +197,17 @@
     { "new [-nti ng#] bundle link ...",	"Create new bundle",
     	BundCreateCmd, NULL, NULL },
     { "bundle [name]",			"Choose/list bundles",
-	BundCommand, AdmitBund, NULL },
+	BundCommand, NULL, NULL },
     { "custom ...",			"Custom stuff",
 	CMD_SUBMENU, NULL, (void *) CustomCmds },
     { "link name",			"Choose link",
-	LinkCommand, AdmitBund, NULL },
+	LinkCommand, NULL, NULL },
+    { "phys name",			"Choose phys",
+	PhysCommand, NULL, NULL },
     { "open [layer]",			"Open a layer",
-	OpenCommand, AdmitBund, NULL },
+	OpenCommand, AdmitLink, NULL },
     { "close [layer]",			"Close a layer",
-	CloseCommand, AdmitBund, NULL },
+	CloseCommand, AdmitLink, NULL },
     { "load label",			"Read from config file",
 	LoadCommand, NULL, NULL },
     { "set ...",			"Set parameters",
@@ -785,7 +787,21 @@ int
 AdmitBund(CmdTab cmd)
 {
   if (!bund) {
-    Log(LG_ERR, ("no bundles defined"));
+    Log(LG_ERR, ("no bundle selected"));
+    return(FALSE);
+  }
+  return(TRUE);
+}
+
+/*
+ * AdmitLink()
+ */
+
+int
+AdmitLink(CmdTab cmd)
+{
+  if (!lnk) {
+    Log(LG_ERR, ("no link selected"));
     return(FALSE);
   }
   return(TRUE);
@@ -798,15 +814,13 @@ AdmitBund(CmdTab cmd)
 int
 AdmitDev(CmdTab cmd)
 {
-  if (!AdmitBund(cmd))
-    return(FALSE);
-  if (lnk->phys->type == NULL) {
-    Log(LG_ERR, ("type of link \"%s\" is unspecified", lnk->name));
+  if (phys->type == NULL) {
+    Log(LG_ERR, ("type of link \"%s\" is unspecified", phys->name));
     return(FALSE);
   }
-  if (strncmp(cmd->name, lnk->phys->type->name, strlen(lnk->phys->type->name))) {
+  if (strncmp(cmd->name, phys->type->name, strlen(phys->type->name))) {
     Log(LG_ERR, ("[%s] link type is %s, '%s' command isn't allowed here!",
-      lnk->name, lnk->phys->type->name, cmd->name));
+      phys->name, phys->type->name, cmd->name));
     return(FALSE);
   }
   return(TRUE);

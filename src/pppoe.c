@@ -1111,7 +1111,7 @@ PppoeListenUpdate(void *arg)
 static int
 PppoeSetCommand(int ac, char *av[], void *arg)
 {
-	const PppoeInfo pi = (PppoeInfo) lnk->phys->info;
+	const PppoeInfo pi = (PppoeInfo) phys->info;
 	const char *hookname = ETHER_DEFAULT_HOOK;
 	const char *colon;
 
@@ -1139,7 +1139,7 @@ PppoeSetCommand(int ac, char *av[], void *arg)
 		break;
 	case SET_ENABLE:
           EnableCommand(ac, av, &pi->options, gConfList);
-    	  PppoeNodeUpdate(lnk->phys);
+    	  PppoeNodeUpdate(phys);
           break;
         case SET_DISABLE:
           DisableCommand(ac, av, &pi->options, gConfList);

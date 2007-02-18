@@ -82,9 +82,10 @@
   extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
 
   extern int		PhysSetAccm(PhysInfo p, uint32_t accm);
-  extern PhysInfo	PhysInit(char *name);
+  extern PhysInfo	PhysInit(char *name, Link l);
   extern void		PhysSetDeviceType(char *typename);
   extern int		PhysGetOriginate(void);
+  extern int		PhysCommand(int ac, char *av[], void *arg);
   extern int		PhysStat(int ac, char *av[], void *arg);
 
 #endif

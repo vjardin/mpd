@@ -60,6 +60,7 @@
     EventRef		writeEvent;
     Bund		bund;		/* my bundle */
     Link		link;		/* my link */
+    PhysInfo		phys;		/* my phys */
     struct console_user	user;
     struct u_addr	peer_addr;
     in_port_t           peer_port;

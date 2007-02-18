@@ -159,7 +159,7 @@ NgStat(PhysInfo p)
 static int
 NgSetCommand(int ac, char *av[], void *arg)
 {
-  NgInfo	const ng = (NgInfo) lnk->phys->info;
+  NgInfo	const ng = (NgInfo) phys->info;
 
   switch ((intptr_t)arg) {
     case SET_NODE:

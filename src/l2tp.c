@@ -1263,7 +1263,7 @@ L2tpListenUpdate(void *arg)
 static int
 L2tpSetCommand(int ac, char *av[], void *arg)
 {
-	L2tpInfo	const l2tp = (L2tpInfo) lnk->phys->info;
+	L2tpInfo	const l2tp = (L2tpInfo) phys->info;
 	struct u_range	rng;
 	int		port;
 
@@ -1298,11 +1298,11 @@ L2tpSetCommand(int ac, char *av[], void *arg)
       break;
     case SET_ENABLE:
       EnableCommand(ac, av, &l2tp->conf.options, gConfList);
-      L2tpNodeUpdate(lnk->phys);
+      L2tpNodeUpdate(phys);
       break;
     case SET_DISABLE:
       DisableCommand(ac, av, &l2tp->conf.options, gConfList);
-      L2tpNodeUpdate(lnk->phys);
+      L2tpNodeUpdate(phys);
       break;
     default:
       assert(0);

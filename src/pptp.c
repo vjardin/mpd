@@ -863,7 +863,7 @@ PptpListenUpdate(void)
 static int
 PptpSetCommand(int ac, char *av[], void *arg)
 {
-	PptpInfo	const pi = (PptpInfo) lnk->phys->info;
+	PptpInfo	const pi = (PptpInfo) phys->info;
 	struct u_range	rng;
 	int		port;
 

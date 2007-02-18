@@ -826,7 +826,7 @@ TcpNodeUpdate(PhysInfo p)
 static int
 TcpSetCommand(int ac, char *av[], void *arg)
 {
-	TcpInfo	const pi = (TcpInfo) lnk->phys->info;
+	TcpInfo	const pi = (TcpInfo) phys->info;
 	struct sockaddr_storage *sin;   
 
 	switch ((intptr_t)arg) {
@@ -842,7 +842,7 @@ TcpSetCommand(int ac, char *av[], void *arg)
 		break;
 	case SET_ENABLE:
 		EnableCommand(ac, av, &pi->conf.options, gConfList);
-    	    	TcpNodeUpdate(lnk->phys);
+    	    	TcpNodeUpdate(phys);
         	break;
         case SET_DISABLE:
     		DisableCommand(ac, av, &pi->conf.options, gConfList);

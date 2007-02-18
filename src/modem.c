@@ -793,7 +793,7 @@ ModemGetNgStats(PhysInfo p, struct ng_async_stat *sp)
 static int
 ModemSetCommand(int ac, char *av[], void *arg)
 {
-  PhysInfo	const p = lnk->phys;
+  PhysInfo	const p = phys;
   ModemInfo	const m = (ModemInfo) p->info;
 
   switch ((intptr_t)arg) {

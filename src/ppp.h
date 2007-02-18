@@ -118,6 +118,7 @@
 
   extern Bund		bund;			/* Current bundle */
   extern Link		lnk;			/* Current link */
+  extern PhysInfo	phys;			/* Current phys */
 
   extern const char	*gVersion;		/* Program version string */
   extern const char	*gConfigFile;		/* Main config file */

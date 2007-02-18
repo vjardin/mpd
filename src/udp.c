@@ -642,7 +642,7 @@ UdpNodeUpdate(PhysInfo p)
 static int
 UdpSetCommand(int ac, char *av[], void *arg)
 {
-	UdpInfo		const pi = (UdpInfo) lnk->phys->info;
+	UdpInfo		const pi = (UdpInfo) phys->info;
 	struct sockaddr_storage	*sin;
 	
   switch ((intptr_t)arg) {
@@ -658,7 +658,7 @@ UdpSetCommand(int ac, char *av[], void *arg)
       break;
     case SET_ENABLE:
 	EnableCommand(ac, av, &pi->conf.options, gConfList);
-    	UdpNodeUpdate(lnk->phys);
+    	UdpNodeUpdate(phys);
     	break;
     case SET_DISABLE:
 	DisableCommand(ac, av, &pi->conf.options, gConfList);

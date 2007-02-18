@@ -299,14 +299,11 @@ LinkNew(char *name, Bund b, int bI)
   Disable(&lnk->conf.options, LINK_CONF_PASSIVE);
   Enable(&lnk->conf.options, LINK_CONF_CHECK_MAGIC);
 
-  /* Initialize link layer stuff */
-  lnk->phys = PhysInit(lnk->name);
-  lnk->phys->link = lnk;
   LcpInit();
   EapInit();
 
-  /* Read special configuration for link, if any */
-  (void) ReadFile(LINKS_FILE, name, DoCommand);
+  /* Initialize link layer stuff */
+  lnk->phys = PhysInit(lnk->name, lnk);
 
   /* Hang out and be a link */
   return(lnk);
@@ -365,6 +362,7 @@ LinkCommand(int ac, char *av[], void *arg)
   } else {
     lnk = gLinks[k];
     bund = lnk->bund;
+    phys = lnk->phys;
   }
   return(0);
 }

@@ -80,7 +80,7 @@
  */
 
 PhysInfo
-PhysInit(char *name)
+PhysInit(char *name, Link l)
 {
   PhysInfo	p;
   int		k;
@@ -89,6 +89,7 @@ PhysInit(char *name)
   strlcpy(p->name, name, sizeof(p->name));
   p->state = PHYS_STATE_DOWN;
   p->msgs = MsgRegister(PhysMsg, 0);
+  p->link = l;
 
   /* Find a free link pointer */
   for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
@@ -96,6 +97,11 @@ PhysInit(char *name)
     LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
 
   gPhyses[k] = p;
+  
+  phys = p;
+
+  /* Read special configuration for link, if any */
+  (void) ReadFile(LINKS_FILE, name, DoCommand);
 
   return(p);
 }
@@ -107,7 +113,7 @@ PhysInit(char *name)
 void
 PhysOpen(void)
 {
-  MsgSend(lnk->phys->msgs, MSG_OPEN, NULL);
+  MsgSend(phys->msgs, MSG_OPEN, NULL);
 }
 
 /*
@@ -117,7 +123,7 @@ PhysOpen(void)
 void
 PhysClose(void)
 {
-  MsgSend(lnk->phys->msgs, MSG_CLOSE, NULL);
+  MsgSend(phys->msgs, MSG_CLOSE, NULL);
 }
 
 /*
@@ -181,7 +187,7 @@ PhysSetAccm(PhysInfo p, uint32_t accm)
 void
 PhysUpdate(void)
 {
-  const PhysInfo	p = lnk->phys;
+  const PhysInfo	p = phys;
 
   if (p->type->update != NULL)
     (*p->type->update)(p);
@@ -213,7 +219,7 @@ PhysGetUpperHook(PhysInfo p, char *path, char *hook)
 int
 PhysGetOriginate(void)
 {
-  PhysInfo	const p = lnk->phys;
+  PhysInfo	const p = phys;
   PhysType	const pt = p->type;
 
   return((pt && pt->originate) ? (*pt->originate)(p) : LINK_ORIGINATE_UNKNOWN);
@@ -226,7 +232,7 @@ PhysGetOriginate(void)
 void
 PhysSetDeviceType(char *typename)
 {
-  PhysInfo	const p = lnk->phys;
+  PhysInfo	const p = phys;
   PhysType	pt;
   int		k;
 
@@ -264,7 +270,7 @@ PhysSetDeviceType(char *typename)
 static void
 PhysMsg(int type, void *arg)
 {
-  PhysInfo	const p = lnk->phys;
+  PhysInfo	const p = phys;
   time_t	const now = time(NULL);
 
   Log(LG_PHYS2, ("[%s] device: %s event",
@@ -330,12 +336,60 @@ PhysMsg(int type, void *arg)
 static void
 PhysOpenTimeout(void *arg)
 {
-  PhysInfo	const p = lnk->phys;
+  PhysInfo	const p = phys;
 
   TimerStop(&p->openTimer);
   assert(p->want_open);
   PhysOpen();
 }
+
+/*
+ * PhysCommand()
+ */
+
+int
+PhysCommand(int ac, char *av[], void *arg)
+{
+  int	k;
+
+  if (ac != 1)
+    return(-1);
+
+  k = gNumPhyses;
+  if ((sscanf(av[0], "[%x]", &k) != 1) || (k < 0) || (k >= gNumLinks)) {
+     /* Find link */
+    for (k = 0;
+	k < gNumPhyses && strcmp(gPhyses[k]->name, av[0]);
+	k++);
+  };
+  if (k == gNumPhyses) {
+    Printf("Phys \"%s\" is not defined\r\n", av[0]);
+    return(0);
+  }
+
+  /* Change default link and bundle */
+  if (gConsoleSession) {
+    gConsoleSession->phys = gPhyses[k];
+    if (gConsoleSession->phys->link) {
+	gConsoleSession->link = gConsoleSession->phys->link;
+	gConsoleSession->bund = gConsoleSession->link->bund;
+    } else {
+	gConsoleSession->link = NULL;
+	gConsoleSession->bund = NULL;
+    }
+  } else {
+    phys = gPhyses[k];
+    if (phys->link) {
+	lnk = phys->link;
+	bund = lnk->bund;
+    } else {
+	lnk = NULL;
+	bund = NULL;
+    }
+  }
+  return(0);
+}
+
 
 /*
  * PhysStat()
@@ -344,7 +398,7 @@ PhysOpenTimeout(void *arg)
 int
 PhysStat(int ac, char *av[], void *arg)
 {
-  PhysInfo	const p = lnk->phys;
+  PhysInfo	const p = phys;
 
   Printf("\tType  : %s\r\n", p->type->name);
   if (p->type->showstat)
