@@ -48,9 +48,35 @@
     char	buf[256];
   };
 
+  /* Set menu options */
+  enum {
+    SET_DEVTYPE,
+    SET_ACCEPT,
+    SET_DENY,
+    SET_ENABLE,
+    SET_DISABLE,
+    SET_YES,
+    SET_NO,
+  };
+
+/*
+ * INTERNAL FUNCTIONS
+ */
+
+  static void	PhysOpenTimeout(void *arg);
+  static void	PhysMsg(int type, void *arg);
+  static int	PhysSetCommand(int ac, char *av[], void *arg);
+
 /*
  * GLOBAL VARIABLES
  */
+
+  const struct cmdtab PhysSetCmds[] = {
+    { "type type",			"Device type",
+	PhysSetCommand, NULL, (void *) SET_DEVTYPE },
+    { NULL },
+  };
+
 
   const PhysType gPhysTypes[] = {
 #define _WANT_DEVICE_TYPES
@@ -66,13 +92,6 @@
   };
 
 /*
- * INTERNAL FUNCTIONS
- */
-
-  static void	PhysOpenTimeout(void *arg);
-  static void	PhysMsg(int type, void *arg);
-
-/*
  * PhysInit()
  *
  * Initialize physical layer state. Note that
@@ -80,16 +99,19 @@
  */
 
 PhysInfo
-PhysInit(char *name, Link l)
+PhysInit(char *name, Link l, Rep r)
 {
   PhysInfo	p;
   int		k;
 
   p = Malloc(MB_PHYS, sizeof(*p));
+  phys = p;
+  
   strlcpy(p->name, name, sizeof(p->name));
   p->state = PHYS_STATE_DOWN;
   p->msgs = MsgRegister(PhysMsg, 0);
   p->link = l;
+  p->rep = r;
 
   /* Find a free link pointer */
   for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
@@ -97,8 +119,6 @@ PhysInit(char *name, Link l)
     LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
 
   gPhyses[k] = p;
-  
-  phys = p;
 
   /* Read special configuration for link, if any */
   (void) ReadFile(LINKS_FILE, name, DoCommand);
@@ -107,13 +127,33 @@ PhysInit(char *name, Link l)
 }
 
 /*
+ * PhysOpenCmd()
+ */
+
+void
+PhysOpenCmd(void)
+{
+    PhysOpen(phys);
+}
+
+/*
  * PhysOpen()
  */
 
 void
-PhysOpen(void)
+PhysOpen(PhysInfo p)
 {
-  MsgSend(phys->msgs, MSG_OPEN, NULL);
+  MsgSend(p->msgs, MSG_OPEN, NULL);
+}
+
+/*
+ * PhysCloseCmd()
+ */
+
+void
+PhysCloseCmd(void)
+{
+    PhysClose(phys);
 }
 
 /*
@@ -121,9 +161,9 @@ PhysOpen(void)
  */
 
 void
-PhysClose(void)
+PhysClose(PhysInfo p)
 {
-  MsgSend(phys->msgs, MSG_CLOSE, NULL);
+  MsgSend(p->msgs, MSG_CLOSE, NULL);
 }
 
 /*
@@ -163,8 +203,12 @@ PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 void
 PhysIncoming(PhysInfo p)
 {
-  RecordLinkUpDownReason(p->link, 1, STR_INCOMING_CALL, NULL);
-  BundOpenLink(p->link);
+    if (p->link) {
+	RecordLinkUpDownReason(p->link, 1, STR_INCOMING_CALL, NULL);
+	BundOpenLink(p->link);
+    } else if (p->rep) {
+        RepIncoming(p);
+    }
 }
 
 /*
@@ -205,10 +249,11 @@ PhysGetUpperHook(PhysInfo p, char *path, char *hook)
 	snprintf(hook, NG_HOOKLEN, "%s%d",
 	    NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
 	return 1;
+    } else if (p->rep) {
+	return RepGetHook(p, path, hook);
     }
     return 0;
 }
-
 
 /*
  * PhysGetOriginate()
@@ -236,10 +281,12 @@ PhysSetDeviceType(char *typename)
   PhysType	pt;
   int		k;
 
+    Log(LG_ERR, ("[%s] device type set to %s", p->name, typename));
+
   /* Make sure device type not already set */
   if (p->type) {
     Log(LG_ERR, ("[%s] device type already set to %s",
-      lnk->name, p->type->name));
+      p->name, p->type->name));
     return;
   }
 
@@ -249,7 +296,7 @@ PhysSetDeviceType(char *typename)
       break;
   }
   if (pt == NULL) {
-    Log(LG_ERR, ("[%s] device type \"%s\" unknown", lnk->name, typename));
+    Log(LG_ERR, ("[%s] device type \"%s\" unknown", p->name, typename));
     return;
   }
   p->type = pt;
@@ -257,7 +304,7 @@ PhysSetDeviceType(char *typename)
   /* Initialize type specific stuff */
   if ((p->type->init)(p) < 0) {
     Log(LG_ERR, ("[%s] type \"%s\" initialization failed",
-      lnk->name, p->type->name));
+      p->name, p->type->name));
     p->type = NULL;
     return;
   }
@@ -274,14 +321,15 @@ PhysMsg(int type, void *arg)
   time_t	const now = time(NULL);
 
   Log(LG_PHYS2, ("[%s] device: %s event",
-    lnk->name, MsgName(type)));
+    p->name, MsgName(type)));
   if (!p->type) {
-    Log(LG_ERR, ("[%s] this link has no type set", lnk->name));
+    Log(LG_ERR, ("[%s] this link has no type set", p->name));
     return;
   }
   switch (type) {
     case MSG_OPEN:
-      lnk->downReasonValid=0;
+      if (p->link)
+        p->link->downReasonValid=0;
       p->want_open = TRUE;
       if (now - p->lastClose < p->type->minReopenDelay) {
 	if (TimerRemain(&p->openTimer) < 0) {
@@ -290,7 +338,7 @@ PhysMsg(int type, void *arg)
 	  if ((random() ^ gPid ^ time(NULL)) & 1)
 		delay++;
 	  Log(LG_PHYS, ("[%s] pausing %d seconds before open",
-	    lnk->name, delay));
+	    p->name, delay));
 	  TimerStop(&p->openTimer);
 	  TimerInit(&p->openTimer, "PhysOpen",
 	    delay * SECONDS, PhysOpenTimeout, NULL);
@@ -310,21 +358,29 @@ PhysMsg(int type, void *arg)
       {
 	struct downmsg	*const dm = (struct downmsg *) arg;
 
-        lnk->upReasonValid=0;
 	p->lastClose = now;
-	if (*dm->buf) {
-	  SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_COPY, dm->buf);
-	  RecordLinkUpDownReason(lnk, 0, dm->reason, dm->buf);
-	} else {
-	  SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_CON_FAILED0);
-	  RecordLinkUpDownReason(lnk, 0, dm->reason, NULL);
+	if (p->link) {
+    	    p->link->upReasonValid=0;
+	    if (*dm->buf) {
+		SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_COPY, dm->buf);
+		RecordLinkUpDownReason(p->link, 0, dm->reason, dm->buf);
+	    } else {
+		SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_CON_FAILED0);
+		RecordLinkUpDownReason(p->link, 0, dm->reason, NULL);
+	    }
+	    LinkDown(p->link);
+	} else if (p->rep) {
+	    RepDown(p);
 	}
 	Freee(MB_PHYS, dm);
-	LinkDown(lnk);
       }
       break;
     case MSG_UP:
-      LinkUp(lnk);
+	if (p->link) {
+    	    LinkUp(p->link);
+	} else if (p->rep) {
+	    RepUp(p);
+	}
       break;
   }
 }
@@ -340,7 +396,7 @@ PhysOpenTimeout(void *arg)
 
   TimerStop(&p->openTimer);
   assert(p->want_open);
-  PhysOpen();
+  PhysOpen(p);
 }
 
 /*
@@ -386,6 +442,10 @@ PhysCommand(int ac, char *av[], void *arg)
 	lnk = NULL;
 	bund = NULL;
     }
+    if (phys->rep)
+	rep = phys->rep;
+    else
+	rep = NULL;
   }
   return(0);
 }
@@ -404,5 +464,51 @@ PhysStat(int ac, char *av[], void *arg)
   if (p->type->showstat)
     (*p->type->showstat)(p);
   return 0;
+}
+
+/*
+ * PhysSetCommand()
+ */
+
+static int
+PhysSetCommand(int ac, char *av[], void *arg)
+{
+  if (ac == 0)
+    return(-1);
+
+  switch ((intptr_t)arg) {
+    case SET_DEVTYPE:
+      PhysSetDeviceType(*av);
+      break;
+/*
+    case SET_ACCEPT:
+      AcceptCommand(ac, av, &phys->options, gConfList);
+      break;
+
+    case SET_DENY:
+      DenyCommand(ac, av, &phys->options, gConfList);
+      break;
+
+    case SET_ENABLE:
+      EnableCommand(ac, av, &phys->options, gConfList);
+      break;
+
+    case SET_DISABLE:
+      DisableCommand(ac, av, &phys->options, gConfList);
+      break;
+
+    case SET_YES:
+      YesCommand(ac, av, &phys->options, gConfList);
+      break;
+
+    case SET_NO:
+      NoCommand(ac, av, &phys->options, gConfList);
+      break;
+*/
+    default:
+      assert(0);
+  }
+
+  return(0);
 }
 

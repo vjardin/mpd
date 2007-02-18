@@ -44,6 +44,7 @@
   #define MB_WEB	"WEB"
   #define MB_IFACE	"IFACE"
   #define MB_BUND	"BUND"
+  #define MB_REP	"REP"
   #define MB_LINK	"LINK"
   #define MB_CHAT	"CHAT"
   #define MB_CMD	"CMD"

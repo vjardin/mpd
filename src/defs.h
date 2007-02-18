@@ -91,6 +91,8 @@
   typedef struct linkst *Link;
   struct bundle;
   typedef struct bundle *Bund;
+  struct rep;
+  typedef struct rep *Rep;
 
 #endif
 

@@ -90,6 +90,7 @@
 
 #include "bund.h"
 #include "link.h"
+#include "rep.h"
 #include "phys.h"
 #include "msgdef.h"
 
@@ -98,10 +99,12 @@
  */
 
   extern PhysInfo	*gPhyses;		/* Physes */
+  extern Rep		*gReps;			/* Repeaters */
   extern Link		*gLinks;		/* Links */
   extern Bund		*gBundles;		/* Bundles */
 
   extern int		gNumPhyses;		/* Total number of phys */
+  extern int		gNumReps;		/* Total number of repeaters */
   extern int		gNumLinks;		/* Total number of links */
   extern int		gNumBundles;		/* Total number of bundles */
   extern struct console	gConsole;
@@ -118,6 +121,7 @@
 
   extern Bund		bund;			/* Current bundle */
   extern Link		lnk;			/* Current link */
+  extern Rep		rep;			/* Current repeater */
   extern PhysInfo	phys;			/* Current phys */
 
   extern const char	*gVersion;		/* Program version string */

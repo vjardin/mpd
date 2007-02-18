@@ -68,7 +68,7 @@
  */
 
   extern int	NgFuncInit(Bund b, const char *reqIface);
-  extern void	NgFuncShutdown(Bund b);
+  extern void	NgFuncShutdownInternal(Bund b, int iface, int ppp);
   extern void	NgFuncShutdownGlobal(Bund b);
   extern void	NgFuncSetConfig(void);
   extern void	NgFuncConfigBPF(Bund b, int mode);

@@ -908,7 +908,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   if (bund->n_links == 0) {
     Log(LG_ERR, ("bundle \"%s\" creation failed: no links", av[0]));
     Freee(MB_LINK, bund->links);
-    NgFuncShutdown(bund);
+    BundShutdown(bund);
 fail2:
     Freee(MB_BUND, bund);
 fail:
@@ -964,6 +964,18 @@ fail:
   
   /* Done */
   return(0);
+}
+
+/*
+ * BundShutdown()
+ *
+ * Shutdown the netgraph stuff associated with bundle
+ */
+
+void
+BundShutdown(Bund b)
+{
+  NgFuncShutdownInternal(b, 1, 1);
 }
 
 /*

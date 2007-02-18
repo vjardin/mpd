@@ -71,11 +71,14 @@
 
   Link			lnk;
   Bund			bund;
+  Rep			rep;
   PhysInfo		phys;
   PhysInfo		*gPhyses;
+  Rep			*gReps;
   Link			*gLinks;
   Bund			*gBundles;
   int			gNumPhyses;
+  int			gNumReps;
   int			gNumLinks;
   int			gNumBundles;
   ConsoleSession	gConsoleSession;
@@ -307,7 +310,13 @@ DoExit(int code)
         NgFuncShutdownGlobal(bund);
 	global = 1;
       }
-      NgFuncShutdown(bund);
+      BundShutdown(bund);
+    }
+  }
+
+  for (k = 0; k < gNumReps; k++) {
+    if ((rep = gReps[k]) != NULL) {
+      RepShutdown(rep);
     }
   }
 

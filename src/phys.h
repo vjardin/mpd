@@ -60,6 +60,7 @@
     MsgHandler		msgs;			/* Message channel */
     struct pppTimer	openTimer;		/* Open retry timer */
     Link		link;			/* Link connected to the device */
+    Rep			rep;			/* Rep connected to the device */
   };
 
 /*
@@ -68,13 +69,16 @@
 
   extern const PhysType	gPhysTypes[];
   extern const char *gPhysStateNames[];
+  extern const struct cmdtab	PhysSetCmds[];
 
 /*
  * FUNCTIONS
  */
 
-  extern void		PhysOpen(void);
-  extern void		PhysClose(void);
+  extern void		PhysOpenCmd(void);
+  extern void		PhysOpen(PhysInfo p);
+  extern void		PhysCloseCmd(void);
+  extern void		PhysClose(PhysInfo p);
   extern void		PhysUpdate(void);
   extern void		PhysUp(PhysInfo p);
   extern void		PhysDown(PhysInfo p, const char *reason, const char *details, ...);
@@ -82,11 +86,12 @@
   extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
 
   extern int		PhysSetAccm(PhysInfo p, uint32_t accm);
-  extern PhysInfo	PhysInit(char *name, Link l);
+  extern PhysInfo	PhysInit(char *name, Link l, Rep r);
   extern void		PhysSetDeviceType(char *typename);
   extern int		PhysGetOriginate(void);
   extern int		PhysCommand(int ac, char *av[], void *arg);
   extern int		PhysStat(int ac, char *av[], void *arg);
+  extern int		PhysCommand(int ac, char *av[], void *arg);
 
 #endif
 

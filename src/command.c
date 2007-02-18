@@ -108,6 +108,8 @@
   static const struct cmdtab ShowCommands[] = {
     { "bundle [name]",			"Bundle status",
 	BundStat, AdmitBund, NULL },
+    { "repeater [name]",		"Repeater status",
+	RepStat, AdmitRep, NULL },
     { "ccp",				"CCP status",
 	CcpStat, AdmitBund, NULL },
     { "ecp",				"ECP status",
@@ -158,8 +160,12 @@
   static const struct cmdtab SetCommands[] = {
     { "bundle ...",			"Bundle specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) BundSetCmds },
+    { "repeater ...",			"Repeater specific stuff",
+	CMD_SUBMENU, AdmitRep, (void *) RepSetCmds },
     { "link ...",			"Link specific stuff",
 	CMD_SUBMENU, AdmitLink, (void *) LinkSetCmds },
+    { "phys ...",			"Phys specific stuff",
+	CMD_SUBMENU, AdmitPhys, (void *) PhysSetCmds },
     { "iface ...",			"Interface specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) IfaceSetCmds },
     { "ipcp ...",			"IPCP specific stuff",
@@ -196,6 +202,8 @@
   const struct cmdtab gCommands[] = {
     { "new [-nti ng#] bundle link ...",	"Create new bundle",
     	BundCreateCmd, NULL, NULL },
+    { "rnew repeater link1 link2",	"Create new repeater",
+    	RepCreateCmd, NULL, NULL },
     { "bundle [name]",			"Choose/list bundles",
 	BundCommand, NULL, NULL },
     { "custom ...",			"Custom stuff",
@@ -270,8 +278,8 @@
       "Link layer"
     },
     { "phys",
-      PhysOpen,
-      PhysClose,
+      PhysOpenCmd,
+      PhysCloseCmd,
       "Physical link layer"
     },
   };
@@ -808,18 +816,50 @@ AdmitLink(CmdTab cmd)
 }
 
 /*
+ * AdmitRep()
+ */
+
+int
+AdmitRep(CmdTab cmd)
+{
+  if (!rep) {
+    Log(LG_ERR, ("no repeater selected"));
+    return(FALSE);
+  }
+  return(TRUE);
+}
+
+/*
+ * AdmitPhys()
+ */
+
+int
+AdmitPhys(CmdTab cmd)
+{
+  if (!phys) {
+    Log(LG_ERR, ("no phys selected"));
+    return(FALSE);
+  }
+  return(TRUE);
+}
+
+/*
  * AdmitDev()
  */
 
 int
 AdmitDev(CmdTab cmd)
 {
+  if (!phys) {
+    Log(LG_ERR, ("no phys selected"));
+    return(FALSE);
+  }
   if (phys->type == NULL) {
-    Log(LG_ERR, ("type of link \"%s\" is unspecified", phys->name));
+    Log(LG_ERR, ("type of phys \"%s\" is unspecified", phys->name));
     return(FALSE);
   }
   if (strncmp(cmd->name, phys->type->name, strlen(phys->type->name))) {
-    Log(LG_ERR, ("[%s] link type is %s, '%s' command isn't allowed here!",
+    Log(LG_ERR, ("[%s] phys type is %s, '%s' command isn't allowed here!",
       phys->name, phys->type->name, cmd->name));
     return(FALSE);
   }

@@ -220,8 +220,10 @@ PppoeOpen(PhysInfo p)
 
 	pe->opened=1;
 
-	Disable(&p->link->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
-	Deny(&p->link->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
+	if (p->link) {
+	    Disable(&p->link->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
+	    Deny(&p->link->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
+	}
 
 	snprintf(session_hook, sizeof(session_hook), "mpd%d-%s", 
 	    gPid, p->name);

@@ -634,7 +634,7 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 LcpLayerStart(Fsm fp)
 {
-  PhysOpen();
+  PhysOpen(lnk->phys);
 }
 
 static void
@@ -647,7 +647,7 @@ static void
 LcpLayerFinish(Fsm fp)
 {
   LcpStopActivity();
-  PhysClose();
+  PhysClose(lnk->phys);
 }
 
 /*

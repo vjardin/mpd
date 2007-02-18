@@ -88,7 +88,6 @@
 			const char *ifname, char *buf, int max);
   static int	NgFuncIfaceExists(Bund b,
 			const char *ifname, char *buf, int max);
-  static void	NgFuncShutdownInternal(Bund b, int iface, int ppp);
 
   static void	NgFuncErrx(const char *fmt, ...);
   static void	NgFuncErr(const char *fmt, ...);
@@ -1171,22 +1170,10 @@ NgFuncShutdownGlobal(Bund b)
 }
 
 /*
- * NgFuncShutdown()
- *
- * Shutdown the netgraph stuff associated with the current bundle
- */
-
-void
-NgFuncShutdown(Bund b)
-{
-  NgFuncShutdownInternal(b, 1, 1);
-}
-
-/*
  * NgFuncShutdownInternal()
  */
 
-static void
+void
 NgFuncShutdownInternal(Bund b, int iface, int ppp)
 {
   char	path[NG_PATHLEN + 1];

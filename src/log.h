@@ -23,6 +23,7 @@
     LG_I_ALWAYS = 0,
     LG_I_BUND,
     LG_I_LINK,
+    LG_I_REP,
     LG_I_CHAT,
     LG_I_CHAT2,
     LG_I_IFACE,
@@ -57,6 +58,7 @@
 
   #define LG_BUND		(1 << LG_I_BUND)
   #define LG_LINK		(1 << LG_I_LINK)
+  #define LG_REP		(1 << LG_I_REP)
   #define LG_CHAT		(1 << LG_I_CHAT)
   #define LG_CHAT2		(1 << LG_I_CHAT2)
   #define LG_IFACE		(1 << LG_I_IFACE)
@@ -94,6 +96,7 @@
   #define LG_DEFAULT_OPT	(0			\
 				| LG_BUND		\
 				| LG_LINK		\
+				| LG_REP		\
 			        | LG_IFACE		\
 			        | LG_CONSOLE		\
 			        | LG_CHAT		\

@@ -49,6 +49,8 @@
   extern int	FindCommand(CmdTab cmds, char* str, CmdTab *cp);
   extern int	AdmitBund(CmdTab cmd);
   extern int	AdmitLink(CmdTab cmd);
+  extern int	AdmitRep(CmdTab cmd);
+  extern int	AdmitPhys(CmdTab cmd);
   extern int	AdmitDev(CmdTab cmd);
 
 #endif

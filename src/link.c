@@ -214,7 +214,7 @@ LinkMsg(int type, void *arg)
 	    lnk->name, lnk->num_redial));
 	  RecordLinkUpDownReason(lnk, 1, STR_REDIAL, NULL);
     	  LcpDown();
-	  PhysOpen();					/* Try again */
+	  PhysOpen(lnk->phys);		/* Try again */
 	}
       } else {
         LcpDown();
@@ -303,7 +303,7 @@ LinkNew(char *name, Bund b, int bI)
   EapInit();
 
   /* Initialize link layer stuff */
-  lnk->phys = PhysInit(lnk->name, lnk);
+  lnk->phys = PhysInit(lnk->name, lnk, NULL);
 
   /* Hang out and be a link */
   return(lnk);

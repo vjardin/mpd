@@ -90,7 +90,7 @@ COPTS+=		'-DMPD_VENDOR="${MPD_VENDOR}"'
 
 # Standard sources
 
-STDSRCS=        assert.c auth.c bund.c ccp.c chap.c \
+STDSRCS=        assert.c auth.c bund.c rep.c ccp.c chap.c \
 		console.c command.c ecp.c fsm.c iface.c input.c \
 		ip.c ipcp.c ipv6cp.c lcp.c link.c log.c main.c mbuf.c mp.c \
 		msg.c ngfunc.c pap.c phys.c proto.c radius.c timer.c \
