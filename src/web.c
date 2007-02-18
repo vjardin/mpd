@@ -238,10 +238,12 @@ WebShowCSS(FILE *f)
 static void
 WebShowSummary(FILE *f)
 {
-  int	b,l;
-  Bund	B;
-  Link  L;
-  char	buf[64],buf2[64];
+  int		b,l;
+  Bund		B;
+  Link  	L;
+  Rep		R;
+  PhysInfo	P;
+  char		buf[64],buf2[64];
 
   fprintf(f, "<H2>Current status summary</H2>\n");
   fprintf(f, "<table>\n");
@@ -301,6 +303,50 @@ WebShowSummary(FILE *f)
 		}
 		fprintf(f, "<TD><A href=\"/cmd?%s&amp;open\">[Open]</a><A href=\"/cmd?%s&amp;close\">[Close]</a></TD>\n", 
 		    L->name, L->name);
+		fprintf(f, "</TR>\n");
+		
+		shown = 1;
+	    }
+	}
+    }
+  }
+  for (b = 0; b<gNumReps; b++) {
+    R=gReps[b];
+    if (R) {
+	int shown = 0;
+	for (l = 0; l < 2; l++) {
+	    P=R->physes[l];
+	    if (P) {
+		fprintf(f, "<TR>\n");
+#define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
+#define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
+		if (!shown) {
+		    fprintf(f, "<TD rowspan=2 colspan=6>Repeater</TD>\n");
+		    fprintf(f, "<TD rowspan=2 class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;repeater\">%s</a></TD>\n", 
+			(R->p_up?"g":"r"), R->name, R->name);
+		}
+		fprintf(f, "<TD colspan=3></TD>\n");
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
+		    PHYS_COLOR(P->state), P->name, P->type?P->type->name:"");
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
+		    PHYS_COLOR(P->state), P->name, gPhysStateNames[P->state]);
+		if (P->state != PHYS_STATE_DOWN) {
+		    PhysGetPeerAddr(P, buf, sizeof(buf));
+		    fprintf(f, "<TD>%s</TD>\n", buf);
+		    PhysGetCallingNum(P, buf, sizeof(buf));
+		    PhysGetCalledNum(P, buf2, sizeof(buf2));
+		    if (PhysGetOriginate(P) == LINK_ORIGINATE_REMOTE) {
+			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
+				buf2, buf);
+		    } else {
+			    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
+				buf, buf2);
+		    }
+		} else {
+			fprintf(f, "<TD></TD>\n");
+			fprintf(f, "<TD colspan=3></TD>\n");
+		}
+		fprintf(f, "<TD></TD>\n");
 		fprintf(f, "</TR>\n");
 		
 		shown = 1;

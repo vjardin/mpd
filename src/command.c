@@ -129,7 +129,7 @@
     { "layers",				"Layers to open/close",
 	ShowLayers, NULL, NULL },
     { "phys",				"Physical device status",
-	PhysStat, AdmitDev, NULL },
+	PhysStat, AdmitPhys, NULL },
     { "link",				"Link status",
 	LinkStat, AdmitLink, NULL },
     { "auth",				"Auth status",
@@ -749,31 +749,56 @@ ShowTypes(int ac, char *av[], void *arg)
 static int
 ShowSummary(int ac, char *av[], void *arg)
 {
-  int	b,l;
-  Bund	B;
-  Link  L;
+  int		b,l;
+  Bund		B;
+  Link  	L;
+  Rep		R;
+  PhysInfo 	P;
   char	buf[64];
 
   Printf("Current daemon status summary\r\n");
-  Printf("Iface\tBund\tLink\tDevice\tIface\tLCP\tDevice\tUser\t\tFrom\r\n");
+  Printf("Iface\t\tBund\tLink\tLCP\tDevice\t\tUser\t\tFrom\r\n");
   for (b = 0; b<gNumBundles; b++) {
     B=gBundles[b];
     if (B) {
-	Printf("%s\t%s\t", B->iface.ifname, B->name);
+	Printf("%s\t%s\t%s\t", B->iface.ifname, (B->iface.up?"Up":"Down"), B->name);
 	for (l = 0; l < B->n_links; l++) {
 	    if (l != 0) {
-		Printf("\t\t");
+		Printf("\t\t\t");
 	    }
 	    L=B->links[l];
 	    if (L) {
 		PhysGetPeerAddr(L->phys, buf, sizeof(buf));
-		Printf("%s\t%s\t%s\t%s\t%s\t%8s\t%s", 
+		Printf("%s\t%s\t%s\t%s\t%8s\t%s", 
 		    L->name,
-		    (L->phys->type?L->phys->type->name:""),
-		    (B->iface.up?"Up":"Down"),
 		    FsmStateName(L->lcp.fsm.state),
+		    (L->phys->type?L->phys->type->name:""),
 		    gPhysStateNames[L->phys->state],
 		    L->lcp.auth.params.authname,
+		    buf
+		    );
+		Printf("\r\n");
+	    }
+	}
+    }
+  }
+  for (b = 0; b<gNumReps; b++) {
+    R=gReps[b];
+    if (R) {
+	Printf("Repeater\t%s\t", R->name);
+	for (l = 0; l < 2; l++) {
+	    if (l != 0) {
+		Printf("\t\t\t");
+	    }
+	    P=R->physes[l];
+	    if (P) {
+		PhysGetPeerAddr(P, buf, sizeof(buf));
+		Printf("%s\t%s\t%s\t%s\t%8s\t%s", 
+		    P->name,
+		    "",
+		    (P->type?P->type->name:""),
+		    gPhysStateNames[P->state],
+		    "",
 		    buf
 		    );
 		Printf("\r\n");
