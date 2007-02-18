@@ -314,7 +314,8 @@ int
 RepCreateCmd(int ac, char *av[], void *arg)
 {
   PhysInfo	new_link;
-  int	k;
+  int		k;
+  Rep		old_rep = rep;
 /*
   if (ac > 0 && av[0][0] == '-') {
     optreset = 1; 
@@ -364,11 +365,16 @@ RepCreateCmd(int ac, char *av[], void *arg)
     if (strlen(av[k])>6) {
 #endif
 	Log(LG_ERR, ("phys name \"%s\" is too long", av[k]));
+        RepShutdown(rep);
+	rep = old_rep;
 	return (-1);
     }
-    if ((new_link = PhysInit(av[k], NULL, rep)) == NULL)
+    if ((new_link = PhysInit(av[k], NULL, rep)) == NULL) {
       Log(LG_ERR, ("[%s] addition of link \"%s\" failed", av[0], av[k]));
-    else {
+      RepShutdown(rep);
+      rep = old_rep;
+      return (-1);
+    } else {
       rep->physes[k - 1] = new_link;
     }
   }
@@ -378,9 +384,6 @@ RepCreateCmd(int ac, char *av[], void *arg)
   if (k == gNumReps)			/* add a new repeater pointer */
     LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
   gReps[k] = rep;
-
-  /* Get message channel */
-//  rep->msgs = MsgRegister(RepMsg, 0);
 
   /* Done */
   return(0);
