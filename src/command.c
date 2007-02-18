@@ -206,6 +206,8 @@
     	RepCreateCmd, NULL, NULL },
     { "bundle [name]",			"Choose/list bundles",
 	BundCommand, NULL, NULL },
+    { "repeater [name]",		"Choose/list repeaters",
+	RepCommand, NULL, NULL },
     { "custom ...",			"Custom stuff",
 	CMD_SUBMENU, NULL, (void *) CustomCmds },
     { "link name",			"Choose link",
