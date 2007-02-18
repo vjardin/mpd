@@ -452,11 +452,18 @@ LcpNewPhase(int new)
       break;
 
     case PHASE_AUTHENTICATE:
+      PhysSetAccm(lnk->phys, lcp->peer_accmap|lcp->want_accmap);
       SetStatus(ADLG_WAN_CONNECTING, STR_LINK_AUTH);
       AuthStart();
       break;
 
     case PHASE_NETWORK:
+
+      PhysSetAccm(lnk->phys, lcp->peer_accmap|lcp->want_accmap);
+
+      /* Send ident string, if configured */
+      if (lnk->conf.ident != NULL)
+	FsmSendIdent(&lcp->fsm, lnk->conf.ident);
 
       /* Join my bundle */
       switch (BundJoin()) {
@@ -484,9 +491,6 @@ LcpNewPhase(int new)
       if (lnk->joined_bund)
 	lnk->num_redial = 0;
 
-      /* Send ident string, if configured */
-      if (lnk->conf.ident != NULL)
-	FsmSendIdent(&lcp->fsm, lnk->conf.ident);
       break;
 
     case PHASE_TERMINATE:

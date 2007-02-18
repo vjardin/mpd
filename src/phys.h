@@ -40,6 +40,7 @@
     void	(*shutdown)(PhysInfo p);	/* Destroy all nodes */
     void	(*showstat)(PhysInfo p);	/* Shows type specific stats */
     int		(*originate)(PhysInfo p);	/* We originated connection? */
+    int		(*setaccm)(PhysInfo p, u_int32_t accm);	/* Set async accm */
     int		(*peeraddr)(PhysInfo p, void *buf, int buf_len); 
 						/* returns the peer-address (IP, MAC, whatever) */
     int		(*callingnum)(PhysInfo p, void *buf, int buf_len); 
@@ -80,6 +81,7 @@
   extern void		PhysIncoming(PhysInfo p);
   extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
 
+  extern int		PhysSetAccm(PhysInfo p, uint32_t accm);
   extern PhysInfo	PhysInit(char *name);
   extern void		PhysSetDeviceType(char *typename);
   extern int		PhysGetOriginate(void);

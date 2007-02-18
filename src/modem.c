@@ -103,7 +103,7 @@
   static int		ModemInit(PhysInfo p);
   static void		ModemOpen(PhysInfo p);
   static void		ModemClose(PhysInfo p);
-  static void		ModemUpdate(PhysInfo p);
+  static int		ModemSetAccm(PhysInfo p, u_int32_t accm);
   static void		ModemStat(PhysInfo p);
   static int		ModemOriginated(PhysInfo p);
   static int		ModemPeerAddr(PhysInfo p, void *buf, int buf_len);
@@ -142,9 +142,9 @@
     .init		= ModemInit,
     .open		= ModemOpen,
     .close		= ModemClose,
-    .update 		= ModemUpdate,
     .showstat		= ModemStat,
     .originate		= ModemOriginated,
+    .setaccm 		= ModemSetAccm,
     .peeraddr		= ModemPeerAddr,
     .callingnum		= NULL,
     .callednum		= NULL,
@@ -195,9 +195,11 @@ ModemInit(PhysInfo p)
   m->fd = -1;
   m->opened = FALSE;
 
-  /* Set nominal link speed and bandwith for a modem connection */
-  lnk->latency = MODEM_DEFAULT_LATENCY;
-  lnk->bandwidth = MODEM_DEFAULT_BANDWIDTH;
+  if (p->link) {
+    /* Set nominal link speed and bandwith for a modem connection */
+    p->link->latency = MODEM_DEFAULT_LATENCY;
+    p->link->bandwidth = MODEM_DEFAULT_BANDWIDTH;
+  }
 
   /* Set default speed */
   strlcpy(defSpeed, MODEM_DEFAULT_SPEED, sizeof(defSpeed));
@@ -279,12 +281,14 @@ fail:
 
     /* Preset some special chat variables */
     ChatPresetVar(m->chat, CHAT_VAR_DEVICE, m->device);
-    ChatPresetVar(m->chat, CHAT_VAR_LOGIN, lnk->lcp.auth.conf.authname);
-    if (lnk->lcp.auth.conf.password[0] != 0) {
-	ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, lnk->lcp.auth.conf.password);
-    } else if (AuthGetData(lnk->lcp.auth.conf.authname,
-	password, sizeof(password), NULL, NULL) >= 0) {
-	    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, password);
+    if (p->link) {
+	ChatPresetVar(m->chat, CHAT_VAR_LOGIN, p->link->lcp.auth.conf.authname);
+	if (p->link->lcp.auth.conf.password[0] != 0) {
+	    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, p->link->lcp.auth.conf.password);
+	} else if (AuthGetData(p->link->lcp.auth.conf.authname,
+	    password, sizeof(password), NULL, NULL) >= 0) {
+		ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, password);
+	}
     }
 
   /* Run connect or idle script as appropriate */
@@ -344,23 +348,24 @@ ModemDoClose(PhysInfo p, int opened)
 }
 
 /*
- * ModemUpdate()
+ * ModemSetAccm()
  */
 
-static void
-ModemUpdate(PhysInfo p)
+static int
+ModemSetAccm(PhysInfo p, u_int32_t accm)
 {
   ModemInfo		const m = (ModemInfo) p->info;
-  LcpState		const lcp = &lnk->lcp;
   char        		path[NG_PATHLEN+1];
 
   /* Update async config */
-  m->acfg.accm = lcp->peer_accmap | lcp->want_accmap;
+  m->acfg.accm = accm;
   if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
       NGM_ASYNC_CMD_SET_CONFIG, &m->acfg, sizeof(m->acfg)) < 0) {
     Log(LG_PHYS, ("[%s] can't update config for %s: %s",
       p->name, path, strerror(errno)));
+      return (-1);
   }
+  return (0);
 }
 
 /*
@@ -393,8 +398,10 @@ failed:
 
   /* Set modem's reported connection speed (if any) as the link bandwidth */
   if ((cspeed = ChatGetVar(m->chat, CHAT_VAR_CONNECT_SPEED)) != NULL) {
-    if ((bw = (int) strtoul(cspeed, NULL, 10)) > 0)
-      lnk->bandwidth = bw;
+    if ((bw = (int) strtoul(cspeed, NULL, 10)) > 0) {
+	if (p->link)
+	    p->link->bandwidth = bw;
+    }
     Freee(MB_CHAT, cspeed);
   }
 
@@ -463,12 +470,14 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
   {
     if (strcasecmp(idleResult, MODEM_IDLE_RESULT_ANSWER) == 0) {
       Log(LG_PHYS, ("[%s] opening link in %s mode", p->name, "answer"));
-      RecordLinkUpDownReason(lnk, 1, STR_INCOMING_CALL, msg ? "%s" : NULL, msg);
+      if (p->link)
+        RecordLinkUpDownReason(p->link, 1, STR_INCOMING_CALL, msg ? "%s" : NULL, msg);
       m->answering = TRUE;
       PhysIncoming(p);
     } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
       Log(LG_PHYS, ("[%s] opening link in %s mode", p->name, "ringback"));
-      RecordLinkUpDownReason(lnk, 1, STR_RINGBACK, msg ? "%s" : NULL, msg);
+      if (p->link)
+        RecordLinkUpDownReason(p->link, 1, STR_RINGBACK, msg ? "%s" : NULL, msg);
       m->answering = FALSE;
       PhysIncoming(p);
     } else {
@@ -490,11 +499,10 @@ ModemInstallNodes(PhysInfo p)
   ModemInfo 		m = (ModemInfo) p->info;
   struct nodeinfo	ngtty;
   struct ngm_mkpeer	ngm;
+  struct ngm_connect	cn;
   char        		path[NG_PATHLEN+1];
-  char        		idpath[32];
   int			hotchar = PPP_FLAG;
   int			ldisc = NETGRAPHDISC;
-  char			linkHook[NG_HOOKLEN + 1];
 
   /* Install ng_tty line discipline */
   if (ioctl(m->fd, TIOCSETD, &ldisc) < 0) {
@@ -552,11 +560,18 @@ ModemInstallNodes(PhysInfo p)
     return(-1);
   }
 
-  /* Attach async node to PPP node */
-  snprintf(linkHook, sizeof(linkHook),
-    "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  snprintf(idpath, sizeof(idpath), "[%x]:", bund->nodeID);
-  NgFuncConnect(path, NG_ASYNC_HOOK_SYNC, idpath, linkHook);
+    /* Attach async node to PPP node */
+    if (!PhysGetUpperHook(p, cn.path, cn.peerhook)) {
+        Log(LG_PHYS, ("[%s] MODEM: can't get upper hook", p->name));
+	return (-1);
+    }
+    snprintf(cn.ourhook, sizeof(cn.ourhook), NG_ASYNC_HOOK_SYNC);
+    if (NgSendMsg(bund->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, 
+        &cn, sizeof(cn)) < 0) {
+    	    Log(LG_ERR, ("[%s] MODEM: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+	        p->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	    return (-1);
+    }
 
   /* OK */
   return(0);

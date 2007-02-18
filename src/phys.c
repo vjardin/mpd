@@ -162,6 +162,19 @@ PhysIncoming(PhysInfo p)
 }
 
 /*
+ * PhysSetAccm()
+ */
+
+int
+PhysSetAccm(PhysInfo p, uint32_t accm)
+{
+    if (p->type && p->type->setaccm)
+	return (*p->type->setaccm)(p, accm);
+    else 
+	return (0);
+}
+
+/*
  * PhysUpdate()
  */
 
