@@ -520,29 +520,14 @@ PhysCommand(int ac, char *av[], void *arg)
   }
 
   /* Change default link and bundle */
-  if (gConsoleSession) {
-    gConsoleSession->phys = gPhyses[k];
-    if (gConsoleSession->phys->link) {
-	gConsoleSession->link = gConsoleSession->phys->link;
-	gConsoleSession->bund = gConsoleSession->link->bund;
-    } else {
-	gConsoleSession->link = NULL;
-	gConsoleSession->bund = NULL;
-    }
-  } else {
     phys = gPhyses[k];
+    lnk = phys->link;
     if (phys->link) {
-	lnk = phys->link;
 	bund = lnk->bund;
     } else {
-	lnk = NULL;
 	bund = NULL;
     }
-    if (phys->rep)
-	rep = phys->rep;
-    else
-	rep = NULL;
-  }
+    rep = phys->rep;
   return(0);
 }
 

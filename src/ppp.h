@@ -142,6 +142,9 @@
   extern void		DoExit(int code);
   extern void		DoAssert(const char *file, int line, const char *x);
 
+  extern void		ContextSave(Context c);
+  extern void		ContextRestore(Context c);
+
   /* Custom stuff */
   extern void		SetStatus(int code, const char *fmt, ...);
 

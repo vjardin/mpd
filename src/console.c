@@ -222,8 +222,7 @@ ConsoleConnect(int type, void *cookie)
     goto fail;
 
   cs->console = c;
-  cs->bund = bund;
-  cs->link = lnk;
+  ContextSave(&cs->context);
   cs->close = ConsoleSessionClose;
   cs->write = ConsoleSessionWrite;
   cs->writev = ConsoleSessionWriteV;
@@ -279,15 +278,12 @@ ConsoleSessionReadEvent(int type, void *cookie)
   char			compl[MAX_CONSOLE_LINE], line[MAX_CONSOLE_LINE];
   char			*av[MAX_CONSOLE_ARGS], *av2[MAX_CONSOLE_ARGS];
   char			*av_copy[MAX_CONSOLE_ARGS];
-  Bund			bund_orig;
-  Link 			link_orig;
+  struct context	context_orig;
   char                  addrstr[INET6_ADDRSTRLEN];
 
   gConsoleSession = cs;
-  bund_orig = bund;
-  link_orig = lnk;
-  bund = cs->bund;
-  lnk = cs->link;
+  ContextSave(&context_orig);
+  ContextRestore(&cs->context);
   while(1) {
     if ((n = read(cs->fd, &c, 1)) <= 0) {
       if (n < 0) {
@@ -477,7 +473,7 @@ success:
       memcpy(av_copy, av, sizeof(av));
       if (c != '?') {
         Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
-	    cs->link->name, cs->user.username, cs->cmd));
+	    cs->context.phys->name, cs->user.username, cs->cmd));
         exitflag = DoCommand(ac, av, NULL, 0);
       } else {
         HelpCommand(ac, av, NULL);
@@ -486,6 +482,7 @@ success:
       FreeArgs(ac, av_copy);
       if (exitflag)
 	goto abort;
+      ContextSave(&cs->context);
       cs->prompt(cs);
       if (c != '?') {
 	memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
@@ -520,8 +517,7 @@ abort:
   cs->close(cs);
 out:
   gConsoleSession = NULL;
-  bund = bund_orig;
-  lnk = link_orig;
+  ContextRestore(&context_orig);
   return;
 }
 
@@ -598,7 +594,7 @@ ConsoleSessionShowPrompt(ConsoleSession cs)
     cs->write(cs, "Password: ");
     break;
   case STATE_AUTHENTIC:
-    cs->write(cs, "[%s] ", cs->link->name);
+    cs->write(cs, "[%s] ", cs->context.phys->name);
     break;
   }
 }

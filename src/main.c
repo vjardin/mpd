@@ -206,7 +206,7 @@ main(int ac, char *av[])
   signal(SIGHUP, SendSignal);
 
   /* Catastrophic signals */
-//  signal(SIGSEGV, SendSignal);
+  signal(SIGSEGV, SendSignal);
   signal(SIGBUS, SendSignal);
   signal(SIGABRT, SendSignal);
 
@@ -606,3 +606,20 @@ Usage(int ex)
   exit(ex);
 }
 
+void
+ContextSave(Context c)
+{
+    c->bund = bund;
+    c->lnk = lnk;
+    c->rep = rep;
+    c->phys = phys;
+};
+
+void
+ContextRestore(Context c)
+{
+    bund = c->bund;
+    lnk = c->lnk;
+    rep = c->rep;
+    phys = c->phys;
+};

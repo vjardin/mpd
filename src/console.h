@@ -10,7 +10,7 @@
 #ifndef _CONSOLE_H_
 #define	_CONSOLE_H_
 
-#include "defs.h"
+#include "ppp.h"
 
 /*
  * DEFINITIONS
@@ -44,6 +44,15 @@
 
   typedef struct console *Console;
 
+  struct context {
+	Bund		bund;
+	Link		lnk;
+	Rep		rep;
+	PhysInfo	phys;
+  };
+
+  typedef struct context *Context;
+
   struct console_user {
     char	*username;
     char	*password;
@@ -58,9 +67,7 @@
     void		*cookie;	/* device dependent cookie */
     EventRef		readEvent;
     EventRef		writeEvent;
-    Bund		bund;		/* my bundle */
-    Link		link;		/* my link */
-    PhysInfo		phys;		/* my phys */
+    struct context	context;
     struct console_user	user;
     struct u_addr	peer_addr;
     in_port_t           peer_port;
@@ -80,7 +87,6 @@
 
   typedef struct console_session *ConsoleSession;
 
-
 /*
  * VARIABLES
  */
@@ -96,7 +102,6 @@
   extern int	ConsoleOpen(Console c);
   extern int	ConsoleClose(Console c);
   extern int	ConsoleStat(int ac, char *av[], void *arg);
-
 
 #endif
 

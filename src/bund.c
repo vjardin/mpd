@@ -782,14 +782,9 @@ BundCommand(int ac, char *av[], void *arg)
 
       /* Change bundle, and link also if needed */
       if ((sb = BundFind(av[0])) != NULL) {
-	if (gConsoleSession) {
-	  gConsoleSession->bund = sb;
-	  gConsoleSession->link = sb->links[0];
-	} else {
-	  bund = sb;
-	  if (lnk->bund != bund)
+	bund = sb;
+	if (lnk->bund != bund)
 	    lnk = bund->links[0];
-	}
       } else
 	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
       break;
@@ -956,11 +951,6 @@ fail:
   Ipv6cpInit();
   CcpInit();
   EcpInit();
-  
-  if (gConsoleSession) {
-    gConsoleSession->bund = bund;
-    gConsoleSession->link = bund->links[0];
-  }
   
   /* Done */
   return(0);

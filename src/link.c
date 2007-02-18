@@ -355,15 +355,10 @@ LinkCommand(int ac, char *av[], void *arg)
     return(0);
   }
 
-  /* Change default link and bundle */
-  if (gConsoleSession) {
-    gConsoleSession->link = gLinks[k];
-    gConsoleSession->bund = gConsoleSession->link->bund;
-  } else {
+    /* Change default link and bundle */
     lnk = gLinks[k];
     bund = lnk->bund;
     phys = lnk->phys;
-  }
   return(0);
 }
 

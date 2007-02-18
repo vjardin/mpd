@@ -323,7 +323,7 @@ WebShowSummary(FILE *f)
 		if (!shown) {
 		    fprintf(f, "<TD rowspan=2 colspan=6>Repeater</TD>\n");
 		    fprintf(f, "<TD rowspan=2 class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;repeater\">%s</a></TD>\n", 
-			(R->p_up?"g":"r"), R->name, R->name);
+			(R->p_up?"g":"r"), P->name, R->name);
 		}
 		fprintf(f, "<TD colspan=3></TD>\n");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
@@ -375,15 +375,13 @@ WebRunCmd(FILE *f, const char *querry)
   char			*argv[MAX_CONSOLE_ARGS];
   char			*av[MAX_CONSOLE_ARGS];
   int			k;
-  Bund			bund_orig;
-  Link			link_orig;
+  struct context	context_orig;
   
   memset(cs, 0, sizeof(*cs));
 
   cs->cookie = f;
   cs->console = c;
-  cs->bund = bund;
-  cs->link = lnk;
+  ContextSave(&cs->context);
   cs->close = NULL;
   cs->write = WebConsoleSessionWrite;
   cs->writev = WebConsoleSessionWriteV;
@@ -402,7 +400,7 @@ WebRunCmd(FILE *f, const char *querry)
     for (k = 1; k < argc; k++) {
 	fprintf(f, "%s ",argv[k]);
     }
-    fprintf(f, "' for link '%s'</H2>\n", argv[0]);
+    fprintf(f, "' for phys '%s'</H2>\n", argv[0]);
 
     if ((!strcmp(argv[1], "show")) ||
 	(!strcmp(argv[1], "open")) ||
@@ -412,26 +410,24 @@ WebRunCmd(FILE *f, const char *querry)
     
 	fprintf(f, "<PRE>\n");
 
-	bund_orig = bund;
-	link_orig = lnk;
+	ContextSave(&context_orig);
+	ContextRestore(&cs->context);
+	
 	pthread_cleanup_push(WebRunCmdCleanup, NULL);
 	gConsoleSession = cs;
 
-	strcpy(buf1, "link");
+	strcpy(buf1, "phys");
         av[0] = buf1;
         av[1] = argv[0];
         DoCommand(2, av, NULL, 0);
   
-	bund = cs->bund;
-	lnk = cs->link;
-	
         for (k = 1; k < argc; k++) {
     	    av[k-1] = argv[k];
         }
         DoCommand(argc-1, av, NULL, 0);
 
-	bund = bund_orig;
-	lnk = link_orig;
+	ContextSave(&cs->context);
+	ContextRestore(&context_orig);
 	gConsoleSession = NULL;;
 	pthread_cleanup_pop(0);
 
