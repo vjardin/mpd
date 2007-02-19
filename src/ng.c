@@ -35,7 +35,6 @@
   struct nginfo {
     char	path[MAX_PATH + 1];	/* Node that takes PPP frames */
     char	hook[NG_HOOKLEN + 1];	/* Hook on that node */
-    u_int	ok:1;			/* Netgraph nodes are setup */
   };
   typedef struct nginfo	*NgInfo;
 
@@ -110,18 +109,43 @@ NgInit(PhysInfo p)
 static void
 NgOpen(PhysInfo p)
 {
-  NgInfo	const ng = (NgInfo) p->info;
-  char		linkHook[NG_HOOKLEN + 1];
+    NgInfo	const ng = (NgInfo) p->info;
+    char	path[NG_PATHLEN + 1];
+    int		csock = -1;
+    struct ngm_connect	cn;
 
-  snprintf(linkHook, sizeof(linkHook),
-    "%s%d", NG_PPP_HOOK_LINK_PREFIX, lnk->bundleIndex);
-  if (NgFuncConnect(MPD_HOOK_PPP, linkHook, ng->path, ng->hook) < 0) {
-    p->state = PHYS_STATE_DOWN;
-    PhysDown(p, STR_CON_FAILED0, NULL);
-  } else {
+    if (!PhysGetUpperHook(p, path, cn.ourhook)) {
+        Log(LG_PHYS, ("[%s] NG: can't get upper hook", p->name));
+	goto fail;
+    }
+    
+    /* Get a temporary netgraph socket node */
+    if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+	Log(LG_ERR, ("[%s] NG: NgMkSockNode: %s", 
+	    p->name, strerror(errno)));
+	goto fail;
+    }
+
+    snprintf(cn.path, sizeof(cn.path), "%s", ng->path);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", ng->hook);
+    if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] NG: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    	    p->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	goto fail;
+    }
+    
+    close(csock);
     p->state = PHYS_STATE_UP;
     PhysUp(p);
-  }
+    return;
+
+fail:
+    if (csock>=0) {
+	close(csock);
+	csock = -1;
+    }
+    p->state = PHYS_STATE_DOWN;
+    PhysDown(p, STR_CON_FAILED0, NULL);
 }
 
 /*
@@ -131,11 +155,24 @@ NgOpen(PhysInfo p)
 static void
 NgClose(PhysInfo p)
 {
-  NgInfo	const ng = (NgInfo) p->info;
+    NgInfo	const ng = (NgInfo) p->info;
+    int		csock = -1;
 
-  NgFuncDisconnect(bund->csock, bund->name, ng->path, ng->hook);
-  p->state = PHYS_STATE_DOWN;
-  PhysDown(p, 0, NULL);
+    /* Get a temporary netgraph socket node */
+    if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+	Log(LG_ERR, ("[%s] NG: NgMkSockNode: %s", 
+	    p->name, strerror(errno)));
+	goto fail;
+    }
+
+    NgFuncDisconnect(csock, p->name, ng->path, ng->hook);
+
+    close(csock);
+    /* FALL */
+
+fail:
+    p->state = PHYS_STATE_DOWN;
+    PhysDown(p, 0, NULL);
 }
 
 /*
