@@ -44,8 +44,6 @@
   static int	RepSetCommand(int ac, char *av[], void *arg);
   static void	RepShowLinks(Rep sb);
 
-  static void	RepMsg(int type, void *cookie);
-
 /*
  * GLOBAL VARIABLES
  */
@@ -240,31 +238,6 @@ RepGetHook(PhysInfo p, char *path, char *hook)
 }
 
 /*
- * RepMsg()
- *
- * Deal with incoming message to the bundle
- */
-
-static void
-RepMsg(int type, void *arg)
-{
-  Log(LG_REP, ("[%s] REP: %s event",
-    rep->name, MsgName(type)));
-  switch (type) {
-    case MSG_OPEN:
-//      rep->open = TRUE;
-      break;
-
-    case MSG_CLOSE:
-//      rep->open = FALSE;
-      break;
-
-    default:
-      assert(FALSE);
-  }
-}
-
-/*
  * RepCommand()
  *
  * Show list of all bundles or set bundle
@@ -370,7 +343,7 @@ RepCreateCmd(int ac, char *av[], void *arg)
 	return (-1);
     }
     if ((new_link = PhysInit(av[k], NULL, rep)) == NULL) {
-      Log(LG_ERR, ("[%s] addition of link \"%s\" failed", av[0], av[k]));
+      Log(LG_ERR, ("[%s] creation of phys \"%s\" failed", av[0], av[k]));
       RepShutdown(rep);
       rep = old_rep;
       return (-1);

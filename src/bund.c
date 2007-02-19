@@ -783,8 +783,11 @@ BundCommand(int ac, char *av[], void *arg)
       /* Change bundle, and link also if needed */
       if ((sb = BundFind(av[0])) != NULL) {
 	bund = sb;
-	if (lnk->bund != bund)
+	if (lnk == NULL || lnk->bund != bund) {
 	    lnk = bund->links[0];
+	}
+	phys = lnk->phys;
+	rep = NULL;
       } else
 	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
       break;

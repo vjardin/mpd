@@ -359,6 +359,7 @@ LinkCommand(int ac, char *av[], void *arg)
     lnk = gLinks[k];
     bund = lnk->bund;
     phys = lnk->phys;
+    rep = NULL;
   return(0);
 }
 

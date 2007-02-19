@@ -90,11 +90,11 @@
   extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
 
   extern int		PhysSetAccm(PhysInfo p, uint32_t accm);
-  extern int		PhysSetCallingNum(PhysInfo p, void *buf);
-  extern int		PhysSetCalledNum(PhysInfo p, void *buf);
-  extern int		PhysGetPeerAddr(PhysInfo p, void *buf, int buf_len);
-  extern int		PhysGetCallingNum(PhysInfo p, void *buf, int buf_len);
-  extern int		PhysGetCalledNum(PhysInfo p, void *buf, int buf_len);
+  extern int		PhysSetCallingNum(PhysInfo p, char *buf);
+  extern int		PhysSetCalledNum(PhysInfo p, char *buf);
+  extern int		PhysGetPeerAddr(PhysInfo p, char *buf, int buf_len);
+  extern int		PhysGetCallingNum(PhysInfo p, char *buf, int buf_len);
+  extern int		PhysGetCalledNum(PhysInfo p, char *buf, int buf_len);
 
   extern PhysInfo	PhysInit(char *name, Link l, Rep r);
   extern void		PhysShutdown(PhysInfo p);

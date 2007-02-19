@@ -66,6 +66,7 @@
   static void	PhysOpenTimeout(void *arg);
   static void	PhysMsg(int type, void *arg);
   static int	PhysSetCommand(int ac, char *av[], void *arg);
+  static PhysInfo	PhysFind(char *name);
 
 /*
  * GLOBAL VARIABLES
@@ -103,6 +104,12 @@ PhysInit(char *name, Link l, Rep r)
 {
   PhysInfo	p;
   int		k;
+
+  /* See if bundle name already taken */
+  if ((p = PhysFind(name)) != NULL) {
+    Log(LG_ERR, ("phys \"%s\" already exists", name));
+    return NULL;
+  }
 
   p = Malloc(MB_PHYS, sizeof(*p));
   phys = p;
@@ -274,7 +281,7 @@ PhysGetOriginate(PhysInfo p)
  */
 
 int
-PhysSetCallingNum(PhysInfo p, void *buf)
+PhysSetCallingNum(PhysInfo p, char *buf)
 {
     PhysType	const pt = p->type;
 
@@ -289,7 +296,7 @@ PhysSetCallingNum(PhysInfo p, void *buf)
  */
 
 int
-PhysSetCalledNum(PhysInfo p, void *buf)
+PhysSetCalledNum(PhysInfo p, char *buf)
 {
     PhysType	const pt = p->type;
 
@@ -304,9 +311,11 @@ PhysSetCalledNum(PhysInfo p, void *buf)
  */
 
 int
-PhysGetPeerAddr(PhysInfo p, void *buf, int buf_len)
+PhysGetPeerAddr(PhysInfo p, char *buf, int buf_len)
 {
     PhysType	const pt = p->type;
+
+    buf[0] = 0;
 
     if (pt && pt->peeraddr)
 	return ((*pt->peeraddr)(p, buf, buf_len));
@@ -319,9 +328,11 @@ PhysGetPeerAddr(PhysInfo p, void *buf, int buf_len)
  */
 
 int
-PhysGetCallingNum(PhysInfo p, void *buf, int buf_len)
+PhysGetCallingNum(PhysInfo p, char *buf, int buf_len)
 {
     PhysType	const pt = p->type;
+
+    buf[0] = 0;
 
     if (pt && pt->callingnum)
 	return ((*pt->callingnum)(p, buf, buf_len));
@@ -334,9 +345,11 @@ PhysGetCallingNum(PhysInfo p, void *buf, int buf_len)
  */
 
 int
-PhysGetCalledNum(PhysInfo p, void *buf, int buf_len)
+PhysGetCalledNum(PhysInfo p, char *buf, int buf_len)
 {
     PhysType	const pt = p->type;
+
+    buf[0] = 0;
 
     if (pt && pt->callednum)
 	return ((*pt->callednum)(p, buf, buf_len));
@@ -376,8 +389,6 @@ PhysSetDeviceType(char *typename)
   PhysInfo	const p = phys;
   PhysType	pt;
   int		k;
-
-    Log(LG_ERR, ("[%s] device type set to %s", p->name, typename));
 
   /* Make sure device type not already set */
   if (p->type) {
@@ -502,33 +513,66 @@ PhysOpenTimeout(void *arg)
 int
 PhysCommand(int ac, char *av[], void *arg)
 {
+  int		k;
+  PhysInfo	p;
+
+  switch (ac) {
+    case 0:
+
+        Printf("Defined phys items:\r\n");
+
+        for (k = 0; k < gNumPhyses; k++) {
+	    if ((p = gPhyses[k]) != NULL) {
+		if (p->link && p->link->bund)
+		    Printf("\t\"%s\" -> link \"%s\" -> bundle \"%s\"\r\n", 
+			p->name, p->link->name, p->link->bund->name);
+		else if (p->rep)
+		    Printf("\t\"%s\" -> repeater \"%s\"\r\n", p->name, p->rep->name);
+		else
+		    Printf("\t\"%s\" -> unknown\r\n", p->name);
+	    }
+	}
+      break;
+
+    case 1:
+
+	if ((p = PhysFind(av[0])) == NULL) {
+	    Printf("Phys \"%s\" is not defined\r\n", av[0]);
+	    return(0);
+	}
+
+	/* Change default link and bundle */
+        phys = p;
+        lnk = phys->link;
+        if (phys->link) {
+    	    bund = lnk->bund;
+	} else {
+	    bund = NULL;
+	}
+	rep = phys->rep;
+	break;
+
+    default:
+      return(-1);
+  }	
+  return(0);
+}
+
+/*
+ * PhysFind()
+ *
+ * Find a phys structure
+ */
+
+static PhysInfo
+PhysFind(char *name)
+{
   int	k;
 
-  if (ac != 1)
-    return(-1);
-
-  k = gNumPhyses;
-  if ((sscanf(av[0], "[%x]", &k) != 1) || (k < 0) || (k >= gNumLinks)) {
-     /* Find link */
-    for (k = 0;
-	k < gNumPhyses && strcmp(gPhyses[k]->name, av[0]);
-	k++);
-  };
-  if (k == gNumPhyses) {
-    Printf("Phys \"%s\" is not defined\r\n", av[0]);
-    return(0);
-  }
-
-  /* Change default link and bundle */
-    phys = gPhyses[k];
-    lnk = phys->link;
-    if (phys->link) {
-	bund = lnk->bund;
-    } else {
-	bund = NULL;
-    }
-    rep = phys->rep;
-  return(0);
+  for (k = 0;
+    k < gNumPhyses && strcmp(gPhyses[k]->name, name);
+    k++);
+  return((k < gNumPhyses) ? gPhyses[k] : NULL);
 }
 
 
