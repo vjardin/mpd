@@ -1,0 +1,38 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>Repeater layer commands<label id="repeater"></heading>
+
+<p>
+
+  This chapter describes commands that configure the repeater layer.
+  All of these commands (except <bf><tt>rnew</tt></bf>)
+  apply to the currently active repeater.
+  
+  Repeater repeats all connections, coming from one physical device, 
+  to another without any processing. This technology is also known as 
+  LAC (L2TP Access Concentrator) and PAC (PPTP Access Concentrator).
+  
+  For correct operation one device should be configured for accepting 
+  incoming connections while another for making outgoing connections.
+
+<descrip>
+
+<tag><tt>rnew </tt> <tt><em>name</em> <em>phys1</em> <em>phys2</em> </tt>
+</tag>
+
+This command creates a new repeater named <tt><em>name</em></tt>.
+
+Two physical devices that constitute the repeater are created and named
+<tt><em>phys1</em></tt> and <tt><em>phys2</em></tt>.  For each
+physical device, there must be a corresponding entry with the same name (i.e.,
+label) in <tt>mpd.links</tt>. This entry must at the very least
+define the type of the physical device (via the <tt>set phys type ...</tt> command).
+
+</descrip>
+
+
+</p>
+

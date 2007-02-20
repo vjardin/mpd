@@ -23,11 +23,13 @@
 <!ENTITY global SYSTEM "global.sgml">
 <!ENTITY console SYSTEM "console.sgml">
 <!ENTITY web SYSTEM "web.sgml">
-<!ENTITY netflow SYSTEM "netflow.sgml">
 <!ENTITY bundle SYSTEM "bundle.sgml">
+<!ENTITY repeater SYSTEM "repeater.sgml">
 <!ENTITY interface SYSTEM "interface.sgml">
+<!ENTITY netflow SYSTEM "netflow.sgml">
 <!ENTITY ipcp SYSTEM "ipcp.sgml">
 <!ENTITY links SYSTEM "links.sgml">
+<!ENTITY phys SYSTEM "phys.sgml">
 <!ENTITY compression SYSTEM "compression.sgml">
 <!ENTITY encryption SYSTEM "encryption.sgml">
 <!ENTITY authentication SYSTEM "auth.sgml">
@@ -109,16 +111,18 @@ You must be running FreeBSD version 4.x or higher.
 	&global;
 	&console;
 	&web;
-	&netflow;
 	&bundle;
+	&repeater;
 	&interface;
 	&ipcp;
 	&links;
+	&phys;
 	&compression;
 	&encryption;
 	&authentication;
 	&eap;
 	&radius;
+	&netflow;
 
     <chapt><heading>Device Types</heading>
 

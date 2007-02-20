@@ -17,15 +17,12 @@
 
 This command changes the currenly active bundle to the bundle named
 <tt><em>name</em></tt>. The currently active link is also
-changed, to the first link defined the bundle. If no
+changed, to the first link of the bundle. If no
 <tt><em>name</em></tt> is given, this command lists all
 of the defined bundles and their constituent links.
 The new bundle will be reflected in the prompt.
 
-<tag><tt>link <em>name</em></tt>
-</tag>
-
-<tag><tt>link [<em>number</em>] </tt>
+<tag><tt>link [ <em>name</em> | <em>[number]</em> ] </tt>
 </tag>
 
 This command changes the currenly active link to the link named
@@ -35,6 +32,28 @@ is changed to the bundle that owns link <tt><em>name</em></tt>.
 The new link will be reflected in the prompt.
 Link <em>number</em> (RAD_NAS_PORT) can be specified in hex form in 
 square brackets in place of name.
+
+<tag><tt>repeater [ <em>name</em> ] </tt>
+</tag>
+
+This command changes the currenly active repeater to the repeater named
+<tt><em>name</em></tt>. The currently active phys is also
+changed, to the first phys of the repeater. If no
+<tt><em>name</em></tt> is given, this command lists all
+of the defined repeaters and their constituent physes.
+The new phys will be reflected in the prompt.
+
+<tag><tt>phys [ <em>name</em> ] </tt>
+</tag>
+
+This command changes the currenly active phys to the phys named
+<tt><em>name</em></tt>. If this phys does not belong to
+the currently active bundle/repeater, then the currently active 
+bundle/repeater is changed to the bundle/repeater that owns 
+phys <tt><em>name</em></tt>. If no
+<tt><em>name</em></tt> is given, this command lists all
+of the defined physes and their bundles/repeaters.
+The new phys will be reflected in the prompt.
 
 <tag><tt>load <em>configuration</em></tt>
 </tag>
@@ -57,9 +76,10 @@ values for <tt><em>item</em></tt> are:
 Show status information about the currently active bundle.
 <tag>link</tag>
 Show status information about the currently active link.
+<tag>repeater</tag>
+Show status information about the currently active repeater.
 <tag>phys</tag>
-Show status information about the physical device 
-associated with the currently active link.
+Show status information about the currently active physical device.
 <tag>iface</tag>
 Show status information about the interface layer associated
 with the currently active bundle.

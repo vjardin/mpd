@@ -6,6 +6,28 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.1:
+    <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Implemented link repeater functionality (aka LAC/PAC).
+	  </item>
+	</itemize>
+	</item>
+	<item> Changes:
+	<itemize>
+	  <item> 'set link type ...' command removed. Use 'set phys type ...' instead.
+	  </item>
+	  <item> Auth subsystem refactored to avoid incorrect cross-level dependencies.
+	  </item>
+	  <item> Physival device level refactored to remove link and bundle level dependencies.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 4.1rc2:
     <itemize>
 	<item> Changes:

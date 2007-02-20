@@ -8,21 +8,9 @@
   <p>
   This chapter describes commands that configure the link layer.
   All of these commands apply to the currently active link, i.e.,
-  the link shown at the command line prompt.
-
-  These are only the type-independent link layer commands.
-  To configure properties specific to a particular link type,
-  see the chapter describing that type.
+  the link, which physical device shown at the command line prompt.
 
 <descrip>
-
-<tag><tt>
-set link type <em>type</em>
-</tt></tag>
-
-This command tells mpd what the link type for this link is.
-This should generally be the first command in the
-<tt>mpd.links</tt> entry for each link.
 
 <tag><tt>set link latency <em>microseconds</em></tt></tag><p>
 <tag><tt>set link bandwidth <em>bits-per-second</em></tt></tag><p>
