@@ -53,8 +53,9 @@ Use existing <tt>ng_netflow(4)</tt> node instead of creating a new one.
 set netflow hook <em>number</em>
 </tt></tag>
 
-Use <tt>ng_netflow(4)</tt> node's hook with specified number. For detailed
-information about naming of hooks, see <tt>ng_netflow(4)</tt> manual page.
+Use <tt>ng_netflow(4)</tt> node's hooks starting from specified number. 
+For detailed information about naming of hooks, see <tt>ng_netflow(4)</tt>
+manual page.
 
 </descrip>
 
