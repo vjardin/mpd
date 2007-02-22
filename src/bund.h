@@ -121,6 +121,7 @@
   /* Total state of a bundle */
   struct bundle {
     char		name[LINK_MAX_NAME];	/* Name of this bundle */
+    int			id;			/* Index of this bundle in gBundles */
     char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq session-id */    
     MsgHandler		msgs;			/* Bundle events */
     char		interface[10];		/* Interface I'm using */

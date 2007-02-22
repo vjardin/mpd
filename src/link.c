@@ -310,6 +310,28 @@ LinkNew(char *name, Bund b, int bI)
 }
 
 /*
+ * LinkShutdown()
+ *
+ */
+
+void
+LinkShutdown(Link l)
+{
+    int	k;
+    
+    for (k = 0; k < gNumLinks; k++) {
+	if (gLinks[k] == l) {
+	    gLinks[k] = NULL;
+	    break;
+	}
+    }
+    MsgUnRegister(&l->msgs);
+    if (l->phys)
+      PhysShutdown(l->phys);
+    Freee(MB_LINK, l);
+}
+
+/*
  * LinkCopy()
  *
  * Makes a copy of the active Link.

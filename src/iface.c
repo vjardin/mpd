@@ -29,9 +29,15 @@
 #ifdef __DragonFly__
 #include <netgraph/iface/ng_iface.h>
 #include <netgraph/bpf/ng_bpf.h>
+#include <netgraph/tee/ng_tee.h>
+#include <netgraph/ksocket/ng_ksocket.h>
+#include <netgraph/tcpmss/ng_tcpmss.h>
 #else
 #include <netgraph/ng_iface.h>
 #include <netgraph/ng_bpf.h>
+#include <netgraph/ng_tee.h>
+#include <netgraph/ng_ksocket.h>
+#include <netgraph/ng_tcpmss.h>
 #endif
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
@@ -39,16 +45,18 @@
 #ifdef USE_NG_NAT
 #include <netgraph/ng_nat.h>
 #endif
+#ifdef USE_NG_TCPMSS
+#include <netgraph/ng_tcpmss.h>
+#endif
+#ifdef USE_NG_NETFLOW
+#include <netgraph/netflow/ng_netflow.h>
+#endif
 
 /*
  * DEFINITIONS
  */
 
-  /*
-   * We are in a liberal position about MSS
-   * (RFC 879, section 7).
-   */
-  #define MAXMSS(mtu) (mtu - sizeof(struct ip) - sizeof(struct tcphdr))
+  #define TEMPHOOK		"temphook"
 
 /* Set menu options */
 
@@ -68,6 +76,29 @@
  * INTERNAL FUNCTIONS
  */
 
+  static int	IfaceNgIpInit(Bund b, int ready);
+  static void	IfaceNgIpShutdown(Bund b);
+  static int	IfaceNgIpv6Init(Bund b, int ready);
+  static void	IfaceNgIpv6Shutdown(Bund b);
+
+#ifdef USE_NG_NETFLOW
+  static int	IfaceInitNetflow(Bund b, char *path, char *hook);
+  static int	IfaceSetupNetflow(Bund b);
+  static void	IfaceShutdownNetflow(Bund b);
+#endif
+
+#ifdef USE_NG_NAT
+  static int	IfaceInitNAT(Bund b, char *path, char *hook);
+  static void	IfaceShutdownNAT(Bund b);
+#endif
+
+  static int	IfaceInitTee(Bund b, char *path, char *hook);
+  static void	IfaceShutdownTee(Bund b);
+
+  static int    IfaceInitMSS(Bund b, char *path, char *hook);
+  static void	IfaceSetupMSS(Bund b, uint16_t maxMSS);
+  static void	IfaceShutdownMSS(Bund b);
+
   static int	IfaceSetCommand(int ac, char *av[], void *arg);
   static void	IfaceSessionTimeout(void *arg);
   static void	IfaceIdleTimeout(void *arg);
@@ -80,9 +111,6 @@
   static int	IfaceAllocACL (struct acl_pool ***ap, int start, char * ifname, int number);
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
   static char *	IFaceParseACL (char * src, char * ifname);
-  #ifndef USE_NG_TCPMSS
-  static void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
-  #endif
   
 /*
  * GLOBAL VARIABLES
@@ -121,6 +149,10 @@
     { 0,	0,				NULL		},
   };
 
+  #ifdef USE_NG_TCPMSS
+  int gTcpMSSNodeRefs = 0;
+  #endif
+
   struct acl_pool * rule_pool = NULL; /* Pointer to the first element in the list of rules */
   struct acl_pool * pipe_pool = NULL; /* Pointer to the first element in the list of pipes */
   struct acl_pool * queue_pool = NULL; /* Pointer to the first element in the list of queues */
@@ -129,6 +161,29 @@
   int pipe_pool_start = 10000; /* Initial number of ipfw dummynet pipe pool */
   int queue_pool_start = 10000; /* Initial number of ipfw dummynet queue pool */
   int table_pool_start = 32; /* Initial number of ipfw tables pool */
+
+  /* A BPF filter that matches TCP SYN packets */
+  static const struct bpf_insn gTCPSYNProg[] = {
+/*00*/	BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 9),		/* A <- IP protocol */
+/*01*/	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, IPPROTO_TCP, 0, 6), /* !TCP => 8 */
+/*02*/	BPF_STMT(BPF_LD+BPF_H+BPF_ABS, 6),	/* A <- fragmentation offset */
+/*03*/	BPF_JUMP(BPF_JMP+BPF_JSET+BPF_K, 0x1fff, 4, 0),	/* fragment => 8 */
+/*04*/	BPF_STMT(BPF_LDX+BPF_B+BPF_MSH, 0),		/* X <- header len */
+/*05*/	BPF_STMT(BPF_LD+BPF_B+BPF_IND, 13),		/* A <- TCP flags */
+/*06*/	BPF_JUMP(BPF_JMP+BPF_JSET+BPF_K, TH_SYN, 0, 1),	/* !TH_SYN => 8 */
+/*07*/	BPF_STMT(BPF_RET+BPF_K, (u_int)-1),		/* accept packet */
+/*08*/	BPF_STMT(BPF_RET+BPF_K, 0),			/* reject packet */
+  };
+
+  #define TCPSYN_PROG_LEN	(sizeof(gTCPSYNProg) / sizeof(*gTCPSYNProg))
+
+  /* A BPF filter that matches nothing */
+  static const struct bpf_insn gNoMatchProg[] = {
+	BPF_STMT(BPF_RET+BPF_K, 0)
+  };
+
+  #define NOMATCH_PROG_LEN	(sizeof(gNoMatchProg) / sizeof(*gNoMatchProg))
+
 
 /*
  * IfaceInit()
@@ -172,7 +227,7 @@ IfaceOpen(void)
      cause us to open the lower layer(s) */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
     BundNcpsJoin(NCP_NONE);
-    NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
+//    NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
     SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
     return;
   }
@@ -198,9 +253,9 @@ IfaceClose(void)
   iface->open = FALSE;
 
   /* Take down system interface */
-  if (iface->ip_up) {
-    NgFuncConfigBPF(bund, BPF_MODE_OFF);
-  }
+//  if (iface->ip_up) {
+//    NgFuncConfigBPF(bund, BPF_MODE_OFF);
+//  }
 
   /* Close lower layer(s) */
   BundClose();
@@ -374,25 +429,9 @@ IfaceUp(int ready)
   ExecCmd(LG_IFACE2, "%s %s up %slink0", 
     PATH_IFCONFIG, iface->ifname, ready ? "-" : "");
 
-  if (ready) {
-
-  /* Turn on interface traffic flow */
-  if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
-    Log(LG_IFACE2, ("[%s] enabling TCPMSSFIX", bund->name));
-    NgFuncConfigBPF(bund, BPF_MODE_MSSFIX);
-#ifdef USE_NG_TCPMSS
-    NgFuncConfigTCPMSS(bund, MAXMSS(iface->mtu));
-#endif
-  }
-  else 
-    NgFuncConfigBPF(bund, BPF_MODE_ON);
-
   /* Send any cached packets */
   IfaceCacheSend();
-  
-  } else {
-    NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
-  }
+
 }
 
 /*
@@ -495,7 +534,7 @@ IfaceDown(void)
     ExecCmd(LG_IFACE2, "%s pipe delete%s",
       PATH_IPFW, cb);
 
-  NgFuncConfigBPF(bund, BPF_MODE_OFF);
+//  NgFuncConfigBPF(bund, BPF_MODE_OFF);
 }
 
 /*
@@ -562,7 +601,7 @@ IfaceListenOutput(int proto, Mbuf pkt)
   } else
     Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
        bund->name, MBLEN(pkt)));
-  NgFuncWriteFrame(bund->name, MPD_HOOK_MSSFIX_OUT, pkt);
+  NgFuncWriteFrame(bund->name, MPD_HOOK_TCPMSS_OUT, pkt);
 }
 #endif
 
@@ -705,6 +744,7 @@ IfaceIpIfaceUp(int ready)
   if (ready) {
     in_addrtou_range(&bund->ipcp.want_addr, 32, &iface->self_addr);
     in_addrtou_addr(&bund->ipcp.peer_addr, &iface->peer_addr);
+    IfaceNgIpInit(bund, ready);
   }
 
   /* Set addresses and bring interface up */
@@ -851,7 +891,8 @@ IfaceIpIfaceDown(void)
   /* Bring down system interface */
   ExecCmd(LG_IFACE2, "%s %s %s delete -link0", 
     PATH_IFCONFIG, iface->ifname, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
-
+    
+  IfaceNgIpShutdown(bund);
 }
 
 /*
@@ -893,6 +934,8 @@ IfaceIpv6IfaceUp(int ready)
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.hisintid)[1];
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.hisintid)[2];
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.hisintid)[3];
+
+    IfaceNgIpv6Init(bund, ready);
 
     /* Set addresses and bring interface up */
     ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s",
@@ -984,6 +1027,7 @@ IfaceIpv6IfaceDown(void)
         u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
   }
 
+  IfaceNgIpv6Shutdown(bund);
 }
 
 /*
@@ -1415,7 +1459,7 @@ IfaceSetMTU(int mtu)
 }
 
 #ifndef USE_NG_TCPMSS
-static void
+void
 IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
 {
   struct ip	*iphdr;
@@ -1463,3 +1507,543 @@ IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
   }
 }
 #endif
+
+static int
+IfaceNgIpInit(Bund b, int ready)
+{
+    struct ngm_connect	cn;
+    char		path[NG_PATHLEN + 1];
+    char		hook[NG_HOOKLEN + 1];
+
+    if (!ready) {
+	/* Dial-on-Demand mode */
+	/* Use demand hook of the socket node */
+	snprintf(path, sizeof(path), ".:");
+	strcpy(hook, MPD_HOOK_DEMAND_TAP);
+
+    } else {
+
+	snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
+	strcpy(hook, NG_PPP_HOOK_INET);
+
+#ifdef USE_NG_NAT
+	/* Add a nat node if configured */
+	if (b->nat) {
+	    if (IfaceInitNAT(b, path, hook))
+		goto fail;
+	}
+#endif
+
+	/* Add a tee node if configured */
+	if (b->tee) {
+	    if (IfaceInitTee(b, path, hook))
+		goto fail;
+	}
+  
+#ifdef USE_NG_NETFLOW
+	/* Connect a netflow node if configured */
+	if (b->netflow) {
+	    if (IfaceInitNetflow(b, path, hook))
+		goto fail;
+	}
+#endif	/* USE_NG_NETFLOW */
+
+    }
+
+    if (Enabled(&b->iface.options, IFACE_CONF_TCPMSSFIX)) {
+	if (IfaceInitMSS(b, path, hook))
+    	    goto fail;
+    }
+
+    /* Connect graph to the iface node. */
+    strcpy(cn.ourhook, hook);
+    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
+    if (NgSendMsg(b->csock, path,
+    	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	goto fail;
+    }
+
+    if (ready) {
+#ifdef USE_NG_NETFLOW
+	if (b->netflow)
+	    IfaceSetupNetflow(b);
+#endif /* USE_NG_NETFLOW */
+
+	if (Enabled(&b->iface.options, IFACE_CONF_TCPMSSFIX))
+	    IfaceSetupMSS(b, MAXMSS(b->iface.mtu));
+    }
+
+    /* OK */
+    return(0);
+
+fail:
+    return(-1);
+}
+
+/*
+ * IfaceNgIpShutdown()
+ */
+
+static void
+IfaceNgIpShutdown(Bund b)
+{
+#ifdef USE_NG_NAT
+    if (b->nat)
+	IfaceShutdownNAT(b);
+#endif
+    if (b->tee)
+	IfaceShutdownTee(b);
+#ifdef USE_NG_NETFLOW
+    if (b->netflow)
+	IfaceShutdownNetflow(b);
+#endif
+    if (Enabled(&b->iface.options, IFACE_CONF_TCPMSSFIX))
+	IfaceShutdownMSS(b);
+    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+}
+
+static int
+IfaceNgIpv6Init(Bund b, int ready)
+{
+    struct ngm_connect	cn;
+    char		path[NG_PATHLEN + 1];
+
+    if (!ready) {
+    } else {
+	/* Connect ipv6 hook of ng_ppp(4) node to the ng_iface(4) node. */
+	snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
+	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_IPV6);
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
+	if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+		sizeof(cn)) < 0) {
+    	    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+    		b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    goto fail;
+	}
+    }
+
+    /* OK */
+    return(0);
+
+fail:
+    return(-1);
+}
+
+/*
+ * IfaceNgIpv6Shutdown()
+ */
+
+static void
+IfaceNgIpv6Shutdown(Bund b)
+{
+    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_IPV6);
+}
+
+#ifdef USE_NG_NAT
+static int
+IfaceInitNAT(Bund b, char *path, char *hook)
+{
+    struct ngm_mkpeer	mp;
+    struct ngm_name	nm;
+  
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_NAT_NODE_TYPE);
+    strcpy(mp.ourhook, hook);
+    strcpy(mp.peerhook, NG_NAT_HOOK_IN);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+	b->name, NG_NAT_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      return(-1);
+    }
+    strlcat(path, ".", NG_PATHLEN);
+    strlcat(path, hook, NG_PATHLEN);
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-nat", gPid, b->name);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+      Log(LG_ERR, ("[%s] can't name %s node: %s",
+	b->name, NG_NAT_NODE_TYPE, strerror(errno)));
+      return(-1);
+    }
+    strcpy(hook, NG_NAT_HOOK_OUT);
+
+    /* Set NAT IP */
+    struct in_addr ip = { 1 }; // Setting something just to make it ready
+    if (NgSendMsg(b->csock, path,
+	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &ip, sizeof(ip)) < 0) {
+	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
+    	    b->name, strerror(errno)));
+    }
+
+    return(0);
+}
+
+static void
+IfaceShutdownNAT(Bund b)
+{
+    char	path[NG_PATHLEN+1];
+
+    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
+    NgFuncShutdownNode(b->csock, b->name, path);
+}
+#endif
+
+static int
+IfaceInitTee(Bund b, char *path, char *hook)
+{
+    struct ngm_mkpeer	mp;
+    struct ngm_name	nm;
+  
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+    strcpy(mp.ourhook, hook);
+    strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      return(-1);
+    }
+    strlcat(path, ".", NG_PATHLEN);
+    strlcat(path, hook, NG_PATHLEN);
+    snprintf(nm.name, sizeof(nm.name), "%s-tee", b->iface.ifname);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+      Log(LG_ERR, ("[%s] can't name %s node: %s",
+	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
+      return(-1);
+    }
+    strcpy(hook, NG_TEE_HOOK_LEFT);
+
+    return(0);
+}
+
+static void
+IfaceShutdownTee(Bund b)
+{
+    char	path[NG_PATHLEN+1];
+
+    snprintf(path, sizeof(path), "%s-tee:", b->iface.ifname);
+    NgFuncShutdownNode(b->csock, b->name, path);
+}
+
+#ifdef USE_NG_NETFLOW
+static int
+IfaceInitNetflow(Bund b, char *path, char *hook)
+{
+    struct ngm_connect	cn;
+
+    /* Create global ng_netflow(4) node if not yet. */
+    if (gNetflowNode == FALSE) {
+	if (NgFuncInitGlobalNetflow(b))
+	    return(-1);
+    }
+
+    /* Connect ng_netflow(4) node to the ng_bpf(4)/ng_tee(4) node. */
+    strcpy(cn.ourhook, hook);
+    snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
+    if (b->netflow == NETFLOW_OUT) {
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
+	    gNetflowIface + b->id);
+    } else {
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
+	    gNetflowIface + b->id);
+    }
+    if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+	sizeof(cn)) < 0) {
+      Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+      return (-1);
+    }
+    strlcat(path, ".", NG_PATHLEN);
+    strlcat(path, hook, NG_PATHLEN);
+    if (b->netflow == NETFLOW_OUT) {
+	snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_DATA,
+	    gNetflowIface + b->id);
+    } else {
+	snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_OUT,
+	    gNetflowIface + b->id);
+    }
+    return (0);
+}
+
+static int
+IfaceSetupNetflow(Bund b)
+{
+    char path[NG_PATHLEN + 1];
+    struct ng_netflow_setdlt	 nf_setdlt;
+    struct ng_netflow_setifindex nf_setidx;
+    
+    /* Configure data link type and interface index. */
+    snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+    nf_setdlt.iface = gNetflowIface + b->id;
+    nf_setdlt.dlt = DLT_RAW;
+    if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
+	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
+      Log(LG_ERR, ("[%s] can't configure data link type on %s: %s", b->name,
+	path, strerror(errno)));
+      goto fail;
+    }
+    if (b->netflow == NETFLOW_IN) {
+	nf_setidx.iface = gNetflowIface + b->id;
+	nf_setidx.index = if_nametoindex(b->iface.ifname);
+	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
+	    &nf_setidx, sizeof(nf_setidx)) < 0) {
+    	  Log(LG_ERR, ("[%s] can't configure interface index on %s: %s", b->name,
+	    path, strerror(errno)));
+    	  goto fail;
+	}
+    }
+
+    return 0;
+fail:
+    return -1;
+}
+
+static void
+IfaceShutdownNetflow(Bund b)
+{
+    char	path[NG_PATHLEN+1];
+    char	hook[NG_HOOKLEN+1];
+
+    snprintf(path, NG_PATHLEN, "%s:", gNetflowNodeName);
+    snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_DATA,
+	    gNetflowIface + b->id);
+    NgFuncDisconnect(b->csock, b->name, path, hook);
+    snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_OUT,
+	    gNetflowIface + b->id);
+    NgFuncDisconnect(b->csock, b->name, path, hook);
+}
+#endif
+
+static int
+IfaceInitMSS(Bund b, char *path, char *hook)
+{
+    struct ngm_connect	cn;
+
+#ifdef USE_NG_TCPMSS
+    if (gTcpMSSNodeRefs <= 0) {
+	/* Create global ng_tcpmss(4) node if not yet. */
+	struct ngm_mkpeer	mp;
+	struct ngm_name		nm;
+
+	/* Create a global tcpmss node. */
+	snprintf(mp.type, sizeof(mp.type), "%s", NG_TCPMSS_NODE_TYPE);
+	snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
+	snprintf(mp.peerhook, sizeof(mp.peerhook), "%s-in", b->name);
+	if (NgSendMsg(b->csock, path,
+    		NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
+    		NG_TCPMSS_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
+	    goto fail;
+	}
+
+	strlcat(path, ".", NG_PATHLEN);
+	strlcat(path, hook, NG_PATHLEN);
+	snprintf(hook, NG_HOOKLEN, "%s-out", b->name);
+
+	/* Set the new node's name. */
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-mss", gPid);
+	if (NgSendMsg(b->csock, path,
+    		NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    	    Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
+    		strerror(errno)));
+	    goto fail;
+	}
+
+    } else {
+
+        /* Connect ng_tcpmss(4) node. */
+        snprintf(cn.path, sizeof(cn.path), "mpd%d-mss:", gPid);
+        snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", hook);
+	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s-in", b->name);
+	if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+		sizeof(cn)) < 0) {
+    	    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+    		b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    goto fail;
+	}
+
+	strlcat(path, ".", NG_PATHLEN);
+	strlcat(path, hook, NG_PATHLEN);
+    }
+    
+    gTcpMSSNodeRefs++;
+    
+    snprintf(hook, NG_HOOKLEN, "%s-out", b->name);
+#else
+    struct ngm_mkpeer	mp;
+    struct ngm_name	nm;
+
+    /* Create a bpf node for SYN detection. */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_BPF_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "ppp");
+    if (NgSendMsg(b->csock, path,
+	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
+    	    NG_TCPMSS_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
+	goto fail;
+    }
+
+    strlcat(path, ".", NG_PATHLEN);
+    strlcat(path, hook, NG_PATHLEN);
+    strcpy(hook, "iface");
+
+#if NG_NODESIZ>=32
+    /* Set the new node's name. */
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-mss", gPid, b->name);
+    if (NgSendMsg(b->csock, path,
+	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    	Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
+    	    strerror(errno)));
+	goto fail;
+    }
+#endif
+
+    /* Connect to the bundle socket node. */
+    snprintf(cn.path, sizeof(cn.path), "%s", path);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_TCPMSS_IN);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", MPD_HOOK_TCPMSS_IN);
+    if (NgSendMsg(b->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+    	    sizeof(cn)) < 0) {
+    	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	goto fail;
+    }
+
+    snprintf(cn.path, sizeof(cn.path), "%s", path);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_TCPMSS_OUT);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", MPD_HOOK_TCPMSS_OUT);
+    if (NgSendMsg(b->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+    	    sizeof(cn)) < 0) {
+    	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	goto fail;
+    }
+#endif
+
+    return (0);
+fail:
+    return (-1);
+}
+
+/*
+ * BundConfigMSS()
+ *
+ * Configure the tcpmss node to reduce MSS to given value.
+ */
+
+static void
+IfaceSetupMSS(Bund b, uint16_t maxMSS)
+{
+#ifdef USE_NG_TCPMSS
+  struct	ng_tcpmss_config tcpmsscfg;
+  char		path[NG_PATHLEN];
+
+  snprintf(path, sizeof(path), "mpd%d-mss:", gPid);
+
+  /* Send configure message. */
+  memset(&tcpmsscfg, 0, sizeof(tcpmsscfg));
+  tcpmsscfg.maxMSS = maxMSS;
+
+  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-in", b->name);
+  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-out", b->name);
+  if (NgSendMsg(bund->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
+      &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
+    Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
+      NG_TCPMSS_NODE_TYPE, strerror(errno)));
+  }
+  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-out", b->name);
+  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-in", b->name);
+  if (NgSendMsg(bund->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
+      &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
+    Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
+      NG_TCPMSS_NODE_TYPE, strerror(errno)));
+  }
+#else
+    union {
+	u_char			buf[NG_BPF_HOOKPROG_SIZE(TCPSYN_PROG_LEN)];
+	struct ng_bpf_hookprog	hprog;
+    }				u;
+    struct ng_bpf_hookprog	*const hp = &u.hprog;
+
+    /* Setup programs for ng_bpf hooks */
+    memset(&u, 0, sizeof(u));
+    strcpy(hp->thisHook, "ppp");
+    hp->bpf_prog_len = TCPSYN_PROG_LEN;
+    memcpy(&hp->bpf_prog, &gTCPSYNProg,
+        TCPSYN_PROG_LEN * sizeof(*gTCPSYNProg));
+    strcpy(hp->ifMatch, MPD_HOOK_TCPMSS_IN);
+    strcpy(hp->ifNotMatch, "iface");
+
+    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_IN, NGM_BPF_COOKIE,
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+	Log(LG_ERR, ("[%s] can't set %s node program: %s",
+    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    }
+
+    memset(&u, 0, sizeof(u));
+    strcpy(hp->thisHook, "iface");
+    hp->bpf_prog_len = TCPSYN_PROG_LEN;
+    memcpy(&hp->bpf_prog, &gTCPSYNProg,
+        TCPSYN_PROG_LEN * sizeof(*gTCPSYNProg));
+    strcpy(hp->ifMatch, MPD_HOOK_TCPMSS_OUT);
+    strcpy(hp->ifNotMatch, "ppp");
+
+    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_OUT, NGM_BPF_COOKIE,
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+	Log(LG_ERR, ("[%s] can't set %s node program: %s",
+    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    }
+
+    memset(&u, 0, sizeof(u));
+    strcpy(hp->thisHook, MPD_HOOK_TCPMSS_IN);
+    hp->bpf_prog_len = NOMATCH_PROG_LEN;
+    memcpy(&hp->bpf_prog, &gNoMatchProg,
+        NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
+    strcpy(hp->ifMatch, "ppp");
+    strcpy(hp->ifNotMatch, "ppp");
+
+    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_IN, NGM_BPF_COOKIE,
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+	Log(LG_ERR, ("[%s] can't set %s node program: %s",
+    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    }
+
+    memset(&u, 0, sizeof(u));
+    strcpy(hp->thisHook, MPD_HOOK_TCPMSS_OUT);
+    hp->bpf_prog_len = NOMATCH_PROG_LEN;
+    memcpy(&hp->bpf_prog, &gNoMatchProg,
+        NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
+    strcpy(hp->ifMatch, "iface");
+    strcpy(hp->ifNotMatch, "iface");
+
+    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_OUT, NGM_BPF_COOKIE,
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+	Log(LG_ERR, ("[%s] can't set %s node program: %s",
+    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    }
+
+#endif /* USE_NG_TCPMSS */
+}
+
+static void
+IfaceShutdownMSS(Bund b)
+{
+#ifdef USE_NG_TCPMSS
+    char	path[NG_PATHLEN+1];
+    char	hook[NG_HOOKLEN+1];
+
+    snprintf(path, sizeof(path), "mpd%d-mss:", gPid);
+    snprintf(hook, NG_HOOKLEN, "%s-in", b->name);
+    NgFuncDisconnect(b->csock, b->name, path, hook);
+    snprintf(hook, NG_HOOKLEN, "%s-out", b->name);
+    NgFuncDisconnect(b->csock, b->name, path, hook);
+
+    gTcpMSSNodeRefs--;
+#else
+    NgFuncShutdownNode(b->csock, b->name, MPD_HOOK_TCPMSS_IN);
+#endif
+}

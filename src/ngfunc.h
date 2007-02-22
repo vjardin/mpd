@@ -35,19 +35,15 @@
    */
   #define MPD_HOOK_PPP		"bypass"
   #define MPD_HOOK_DEMAND_TAP	"demand"
+
   #ifndef USE_NG_TCPMSS
-  #define MPD_HOOK_MSSFIX_OUT	"mssfix-out"
+  #define MPD_HOOK_TCPMSS_IN	"tcpmss-in"
+  #define MPD_HOOK_TCPMSS_OUT	"tcpmss-out"
   #endif
 
   #define BPF_HOOK_PPP		"ppp"
   #define BPF_HOOK_IFACE	"iface"
   #define BPF_HOOK_MPD		"mpd"
-  #ifdef USE_NG_TCPMSS
-  #define BPF_HOOK_TCPMSS_IN	"tcpmss-in"
-  #define BPF_HOOK_TCPMSS_OUT	"tcpmss-out"
-  #else
-  #define BPF_HOOK_MPD_OUT	"mpd-out"
-  #endif
 
   #define BPF_MODE_OFF		0	/* no BPF node traffic gets through */
   #define BPF_MODE_ON		1	/* normal BPF node traffic flow */
@@ -59,19 +55,29 @@
 /*
  * VARIABLES
  */
+
+  #ifdef USE_NG_TCPMSS
+  extern u_char gTcpMSSNode;
+  #endif
   #ifdef USE_NG_NETFLOW
   extern const struct cmdtab NetflowSetCmds[];
+  
+  extern u_char gNetflowNode;
+  extern u_char gNetflowNodeShutdown;
+  extern u_char gNetflowNodeName[64];
+  extern u_int gNetflowIface;
+  extern struct sockaddr_storage gNetflowExport;
+  extern struct sockaddr_storage gNetflowSource;
+  extern uint32_t gNetflowInactive;
+  extern uint32_t gNetflowActive;
   #endif
-
+  
 /*
  * FUNCTIONS
  */
 
-  extern int	NgFuncInit(Bund b, const char *reqIface);
-  extern void	NgFuncShutdownInternal(Bund b, int iface, int ppp);
   extern void	NgFuncShutdownGlobal(Bund b);
   extern void	NgFuncSetConfig(void);
-  extern void	NgFuncConfigBPF(Bund b, int mode);
   extern int	NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp);
   extern int	NgFuncWriteFrame(const char *label, const char *hook, Mbuf bp);
   extern int	NgFuncGetStats(u_int16_t linkNum,
@@ -84,9 +90,15 @@
 			const char *path2, const char *hook2);
   extern int	NgFuncDisconnect(int csock, char *label, const char *path, const char *hook);
   extern int	NgFuncShutdownNode(int csock, const char *label, const char *path);
-  #ifdef USE_NG_TCPMSS
-  extern void	NgFuncConfigTCPMSS(Bund b, uint16_t maxMSS);
+
+  #ifdef USE_NG_NETFLOW
+  extern int	NgFuncInitGlobalNetflow(Bund b);
   #endif
+  
+  extern int	NgFuncCreateIface(Bund b,
+			const char *ifname, char *buf, int max);
+  extern int	NgFuncIfaceExists(Bund b,
+			const char *ifname, char *buf, int max);
 
 #endif
 

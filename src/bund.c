@@ -21,11 +21,20 @@
 #include "ngfunc.h"
 #include "log.h"
 #include "util.h"
+#include "input.h"
 
+#include <netgraph.h>
+#include <netgraph/ng_message.h>
 #ifdef __DragonFly__
+#include <netgraph/socket/ng_socket.h>
 #include <netgraph/iface/ng_iface.h>
+#include <netgraph/ppp/ng_ppp.h>
+#include <netgraph/vjc/ng_vjc.h>
 #else
+#include <netgraph/ng_socket.h>
 #include <netgraph/ng_iface.h>
+#include <netgraph/ng_ppp.h>
+#include <netgraph/ng_vjc.h>
 #endif
 
 /*
@@ -61,6 +70,14 @@
 /*
  * INTERNAL FUNCTIONS
  */
+
+  static int	BundNgInit(Bund b, const char *reqIface);
+  static void	BundNgShutdown(Bund b, int iface, int ppp);
+
+  static int	BundNgInitVJ(Bund b);
+
+  static void	BundNgDataEvent(int type, void *cookie);
+  static void	BundNgCtrlEvent(int type, void *cookie);
 
   static void	BundBmStart(void);
   static void	BundBmStop(void);
@@ -860,13 +877,15 @@ BundCreateCmd(int ac, char *av[], void *arg)
   if (strlen(av[0])>6) {
 #endif
     Log(LG_ERR, ("bundle name \"%s\" is too long", av[0]));
-    goto fail;
+    bund = old_bund;
+    return(0);
   }
 
   /* See if bundle name already taken */
   if ((bund = BundFind(av[0])) != NULL) {
     Log(LG_ERR, ("bundle \"%s\" already exists", av[0]));
-    goto fail;
+    bund = old_bund;
+    return(0);
   }
 
   /* Create a new bundle structure */
@@ -878,9 +897,11 @@ BundCreateCmd(int ac, char *av[], void *arg)
   bund->nat = nat;
 
   /* Setup netgraph stuff */
-  if (NgFuncInit(bund, reqIface) < 0) {
+  if (BundNgInit(bund, reqIface) < 0) {
     Log(LG_ERR, ("[%s] netgraph initialization failed", bund->name));
-    goto fail2;
+    Freee(MB_BUND, bund);
+    bund = old_bund;
+    return(0);
   }
 
   /* Create each link and add it to the bundle */
@@ -892,7 +913,9 @@ BundCreateCmd(int ac, char *av[], void *arg)
     if (strlen(av[k])>6) {
 #endif
 	Log(LG_ERR, ("link name \"%s\" is too long", av[k]));
-	goto fail;
+	BundShutdown(bund);
+	bund = old_bund;
+	return(0);
     }
     if ((new_link = LinkNew(av[k], bund, bund->n_links)) == NULL)
       Log(LG_ERR, ("[%s] addition of link \"%s\" failed", av[0], av[k]));
@@ -905,11 +928,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   /* We need at least one link in the bundle */
   if (bund->n_links == 0) {
     Log(LG_ERR, ("bundle \"%s\" creation failed: no links", av[0]));
-    Freee(MB_LINK, bund->links);
     BundShutdown(bund);
-fail2:
-    Freee(MB_BUND, bund);
-fail:
     bund = old_bund;
     return(0);
   }
@@ -918,6 +937,8 @@ fail:
   for (k = 0; k < gNumBundles && gBundles[k] != NULL; k++);
   if (k == gNumBundles)			/* add a new bundle pointer */
     LengthenArray(&gBundles, sizeof(*gBundles), &gNumBundles, MB_BUND);
+
+  bund->id = k;
   gBundles[k] = bund;
 
   /* Init interface stuff */
@@ -968,7 +989,19 @@ fail:
 void
 BundShutdown(Bund b)
 {
-  NgFuncShutdownInternal(b, 1, 1);
+  Link	l;
+  int	k;
+
+  for (k = 0; k < b->n_links; k++) {
+    l = b->links[k];
+    if (l)
+	LinkShutdown(l);
+  }
+  Freee(MB_LINK, b->links);
+
+  BundNgShutdown(b, 1, 1);
+  gBundles[b->id] = NULL;
+  Freee(MB_BUND, b);
 }
 
 /*
@@ -1335,6 +1368,351 @@ BundBmTimeout(void *arg)
   /* Restart timer */
   TimerStart(&bund->bm.bmTimer);
 }
+
+/*
+ * BundNgInit()
+ *
+ * Setup the initial PPP netgraph framework. Initializes these fields
+ * in the supplied bundle structure:
+ *
+ *	iface.ifname	- Interface name
+ *	csock		- Control socket for socket netgraph node
+ *	dsock		- Data socket for socket netgraph node
+ *
+ * Returns -1 if error.
+ */
+
+static int
+BundNgInit(Bund b, const char *reqIface)
+{
+  union {
+      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+      struct ng_mesg	reply;
+  }			u;
+  struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
+  struct ngm_mkpeer	mp;
+  struct ngm_name	nm;
+  int			newIface = 0;
+  int			newPpp = 0;
+
+  /* Create a netgraph socket node */
+  if (NgMkSockNode(NULL, &b->csock, &b->dsock) < 0) {
+    Log(LG_ERR, ("[%s] can't create %s node: %s",
+      b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
+    return(-1);
+  }
+  (void) fcntl(b->csock, F_SETFD, 1);
+  (void) fcntl(b->dsock, F_SETFD, 1);
+
+#if NG_NODESIZ>=32
+  /* Give it a name */
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, b->name);
+  if (NgSendMsg(b->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    Log(LG_ERR, ("[%s] can't name %s node: %s",
+      b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
+    goto fail;
+  }
+#endif
+
+  /* Create new iface node if necessary, else find the one specified */
+  if (reqIface != NULL) {
+    switch (NgFuncIfaceExists(b,
+	reqIface, b->iface.ifname, sizeof(b->iface.ifname))) {
+    case -1:			/* not a netgraph interface */
+      Log(LG_ERR, ("[%s] interface \"%s\" is not a netgraph interface",
+	b->name, reqIface));
+      goto fail;
+      break;
+    case 0:			/* interface does not exist */
+      if (NgFuncCreateIface(b,
+	  reqIface, b->iface.ifname, sizeof(b->iface.ifname)) < 0) {
+	Log(LG_ERR, ("[%s] can't create interface \"%s\"", b->name, reqIface));
+	goto fail;
+      }
+      break;
+    case 1:			/* interface exists */
+      break;
+    default:
+      assert(0);
+    }
+  } else {
+    if (NgFuncCreateIface(b,
+	NULL, b->iface.ifname, sizeof(b->iface.ifname)) < 0) {
+      Log(LG_ERR, ("[%s] can't create netgraph interface", b->name));
+      goto fail;
+    }
+    newIface = 1;
+  }
+ 
+  /* Create new PPP node */
+  snprintf(mp.type, sizeof(mp.type), "%s", NG_PPP_NODE_TYPE);
+  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
+  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_PPP_HOOK_BYPASS);
+  if (NgSendMsg(b->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+      b->name, mp.type, ".", mp.ourhook, strerror(errno)));
+    goto fail;
+  }
+  newPpp = 1;
+
+  /* Give it a name */
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, b->name);
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
+      b->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
+    goto fail;
+  }
+
+  /* Get PPP node ID */
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
+    Log(LG_ERR, ("[%s] ppp nodeinfo: %s", b->name, strerror(errno)));
+    goto fail;
+  }
+  if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
+    Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
+      b->name, MPD_HOOK_PPP, strerror(errno)));
+    goto fail;
+  }
+  b->nodeID = ni->id;
+
+  /* Listen for happenings on our node */
+  EventRegister(&b->dataEvent, EVENT_READ,
+    b->dsock, EVENT_RECURRING, BundNgDataEvent, b);
+  EventRegister(&b->ctrlEvent, EVENT_READ,
+    b->csock, EVENT_RECURRING, BundNgCtrlEvent, b);
+
+  /* OK */
+  return(0);
+
+fail:
+  BundNgShutdown(b, newIface, newPpp);
+  return(-1);
+}
+
+/*
+ * NgFuncShutdown()
+ */
+
+void
+BundNgShutdown(Bund b, int iface, int ppp)
+{
+  char	path[NG_PATHLEN + 1];
+
+  if (iface) {
+    snprintf(path, sizeof(path), "%s:", b->iface.ifname);
+    NgFuncShutdownNode(b->csock, b->name, path);
+  }
+  if (ppp) {
+    NgFuncShutdownNode(b->csock, b->name, MPD_HOOK_PPP);
+  }
+  close(b->csock);
+  b->csock = -1;
+  EventUnRegister(&b->ctrlEvent);
+  close(b->dsock);
+  b->dsock = -1;
+  EventUnRegister(&b->dataEvent);
+}
+
+
+/*
+ * BundNgDataEvent()
+ */
+
+static void
+BundNgDataEvent(int type, void *cookie)
+{
+  u_char		buf[8192];
+  struct sockaddr_ng	naddr;
+  int			nread, nsize = sizeof(naddr);
+  Mbuf 			nbp;
+
+  /* Set bundle */
+  bund = (Bund) cookie;
+  lnk = bund->links[0];
+
+  /* Read data */
+  if ((nread = recvfrom(bund->dsock, buf, sizeof(buf),
+      0, (struct sockaddr *)&naddr, &nsize)) < 0) {
+    if (errno == EAGAIN)
+      return;
+    Log(LG_BUND, ("[%s] socket read: %s", bund->name, strerror(errno)));
+    DoExit(EX_ERRDEAD);
+  }
+
+  /* A PPP frame from the bypass hook? */
+  if (strcmp(naddr.sg_data, MPD_HOOK_PPP) == 0) {
+    u_int16_t	linkNum, proto;
+
+    /* Extract link number and protocol */
+    memcpy(&linkNum, buf, 2);
+    linkNum = ntohs(linkNum);
+    memcpy(&proto, buf + 2, 2);
+    proto = ntohs(proto);
+
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd bypass frame link=%d proto=0x%04x",
+      bund->name, (int16_t)linkNum, proto);
+
+    /* Set link */
+    assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < bund->n_links);
+    lnk = (linkNum < bund->n_links) ? bund->links[linkNum] : NULL;
+
+    /* Input frame */
+    InputFrame(linkNum, proto,
+      mbufise(MB_FRAME_IN, buf + 4, nread - 4));
+    return;
+  }
+
+  /* A snooped, outgoing IP frame? */
+  if (strcmp(naddr.sg_data, MPD_HOOK_DEMAND_TAP) == 0) {
+
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd IP frame on demand/mssfix-in hook", bund->name);
+    IfaceListenInput(PROTO_IP,
+      mbufise(MB_FRAME_IN, buf, nread));
+    return;
+  }
+#ifndef USE_NG_TCPMSS
+  /* A snooped, outgoing TCP SYN frame? */
+  if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_OUT) == 0) {
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd IP frame on mssfix-out hook", bund->name);
+    nbp = mbufise(MB_FRAME_IN, buf, nread);
+    IfaceCorrectMSS(nbp, MAXMSS(bund->iface.mtu));
+    NgFuncWriteFrame(bund->name, MPD_HOOK_TCPMSS_IN, nbp);
+    return;
+  }
+  /* A snooped, incoming TCP SYN frame? */
+  if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_IN) == 0) {
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd IP frame on mssfix-in hook", bund->name);
+    nbp = mbufise(MB_FRAME_IN, buf, nread);
+    IfaceCorrectMSS(nbp, MAXMSS(bund->iface.mtu));
+    NgFuncWriteFrame(bund->name, MPD_HOOK_TCPMSS_OUT, nbp);
+    return;
+  }
+#endif
+
+  /* Packet requiring compression */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_COMPRESS) == 0) {
+
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
+
+    nbp = CcpDataOutput(mbufise(MB_COMP, buf, nread));
+    if (nbp)
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_COMPRESS, nbp);
+
+    return;
+  }
+
+  /* Packet requiring decompression */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECOMPRESS) == 0) {
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECOMPRESS);
+
+    nbp = CcpDataInput(mbufise(MB_COMP, buf, nread));
+    if (nbp)
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECOMPRESS, nbp);
+
+    return;
+  }
+
+  /* Packet requiring encryption */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_ENCRYPT) == 0) {
+
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_ENCRYPT);
+
+    nbp = EcpDataOutput(mbufise(MB_CRYPT, buf, nread));
+    if (nbp)
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_ENCRYPT, nbp);
+
+    return;
+  }
+
+  /* Packet requiring decryption */
+  if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECRYPT) == 0) {
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECRYPT);
+
+    nbp = EcpDataInput(mbufise(MB_CRYPT, buf, nread));
+    if (nbp) 
+	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECRYPT, nbp);
+
+    return;
+  }
+
+  /* Unknown hook! */
+  LogDumpBuf(LG_FRAME, buf, nread,
+    "[%s] rec'd data on unknown hook \"%s\"", bund->name, naddr.sg_data);
+  DoExit(EX_ERRDEAD);
+}
+
+/*
+ * BundNgCtrlEvent()
+ *
+ */
+
+static void
+BundNgCtrlEvent(int type, void *cookie)
+{
+  union {
+      u_char		buf[8192];
+      struct ng_mesg	msg;
+  }			u;
+  char			raddr[NG_PATHLEN + 1];
+  int			len;
+
+  /* Set bundle */
+  bund = (Bund) cookie;
+  lnk = bund->links[0];
+
+  /* Read message */
+  if ((len = NgRecvMsg(bund->csock, &u.msg, sizeof(u), raddr)) < 0) {
+    Log(LG_ERR, ("[%s] can't read unexpected message: %s",
+      bund->name, strerror(errno)));
+    return;
+  }
+
+  /* Examine message */
+  switch (u.msg.header.typecookie) {
+
+    case NGM_MPPC_COOKIE:
+#ifdef COMPRESSION_DEFLATE
+#ifdef USE_NG_DEFLATE
+    case NGM_DEFLATE_COOKIE:
+#endif
+#endif
+#ifdef COMPRESSION_PRED1
+#ifdef USE_NG_PRED1
+    case NGM_PRED1_COOKIE:
+#endif
+#endif
+      CcpRecvMsg(&u.msg, len);
+      return;
+
+    default:
+      break;
+  }
+
+  /* Unknown message */
+  Log(LG_ERR, ("[%s] rec'd unknown ctrl message, cookie=%d cmd=%d",
+    bund->name, u.msg.header.typecookie, u.msg.header.cmd));
+}
+
 
 /*
  * BundSetCommand()

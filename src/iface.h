@@ -15,6 +15,8 @@
 #include <sys/ioctl.h>
 #include <net/if_dl.h>
 #include <net/bpf.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
 #include <netgraph/ppp/ng_ppp.h>
@@ -38,6 +40,12 @@
   
   #define IFACE_MIN_MTU		296
   #define IFACE_MAX_MTU		65536
+
+  /*
+   * We are in a liberal position about MSS
+   * (RFC 879, section 7).
+   */
+  #define MAXMSS(mtu) (mtu - sizeof(struct ip) - sizeof(struct tcphdr))
 
 /* Configuration options */
 
@@ -132,8 +140,9 @@
   extern int	IfaceStat(int ac, char *av[], void *arg);
 
   extern void	IfaceListenInput(int proto, Mbuf pkt);
-  #ifndef USE_NG_TCPMSS
   extern void	IfaceListenOutput(int proto, Mbuf pkt);
+  #ifndef USE_NG_TCPMSS
+  extern void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
   #endif
   extern void	IfaceSetMTU(int mtu);
 
