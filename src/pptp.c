@@ -474,6 +474,8 @@ PptpStat(PhysInfo p)
 static void
 PptpInitCtrl(void)
 {
+    char	buf[64];
+
 #if 0
   if (gLocalIp.s_addr == 0)
     GetAnyIpAddress(&gLocalIp, NULL);
@@ -483,6 +485,9 @@ PptpInitCtrl(void)
     return;
   }
   gInitialized = TRUE;
+
+  Log(LG_PHYS, ("PPTP: waiting for connection on %s",
+    u_addrtoa(&gLocalIp, buf, sizeof(buf))));
 }
 
 /*
@@ -848,7 +853,6 @@ PptpListenUpdate(void)
   int	allow_incoming = 0;
   int	allow_multiple = 1;
   int	k;
-  char	buf[64];
 
   /* Examine all PPTP links */
   for (k = 0; k < gNumPhyses; k++) {
@@ -872,9 +876,6 @@ PptpListenUpdate(void)
 
   /* Set up listening for incoming connections */
   PptpCtrlListen(allow_incoming, gLocalPort, allow_multiple);
-
-    Log(LG_PHYS, ("PPTP: waiting for connection on %s %u",
-        u_addrtoa(&gLocalIp, buf, sizeof(buf)), gLocalPort));
 	
 }
 
