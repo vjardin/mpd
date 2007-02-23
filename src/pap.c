@@ -116,7 +116,7 @@ PapInput(AuthData auth, const u_char *pkt, u_short len)
 {
   Auth			const a = &lnk->lcp.auth;
   PapInfo		const pap = &a->pap;
-  PapParams		const pp = &a->params.pap;
+  PapParams		const pp = &auth->params.pap;
 
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] PAP: rec'd %s #%d",

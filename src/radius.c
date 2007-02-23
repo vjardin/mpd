@@ -92,6 +92,8 @@ RadiusInit(void)
     memset(conf, 0, sizeof(*conf));
     Disable(&conf->options, RADIUS_CONF_MESSAGE_AUTHENTIC);
     Enable(&conf->options, RADIUS_CONF_PEER_AS_CALLING);
+    conf->radius_retries = 3;
+    conf->radius_timeout = 5;
 }
 
 int
@@ -827,7 +829,7 @@ RadiusPutAuth(AuthData auth)
 	if (cp->value_len != 49) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv1) unrecognised key length %d/%d",
 	    auth->info.lnkname, __func__, cp->value_len, 49));
-	return RAD_NACK;
+	  return (RAD_NACK);
 	}
 
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE,
@@ -865,7 +867,7 @@ RadiusPutAuth(AuthData auth)
 	if (cp->value_len != sizeof(*mschapv2val)) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d", auth->info.lnkname,
 	    __func__, cp->value_len, sizeof(*mschapv2val)));
-	  return RAD_NACK;
+	  return (RAD_NACK);
 	}
       
 	mschapv2val = (struct mschapv2value *)cp->value;
@@ -921,7 +923,7 @@ RadiusPutAuth(AuthData auth)
     return (RAD_NACK);
   }
   
-  return RAD_ACK;
+  return (RAD_ACK);
 
 }
 
@@ -1027,7 +1029,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   size_t	len;
   const void	*data;
   u_int32_t	vendor;
-  char		*route, *acl1, *acl2;
+  char		*route, *acl, *acl1, *acl2;
   u_char	*tmpval;
   short		got_mppe_keys = FALSE;
   struct in_addr	ip;
@@ -1395,47 +1397,67 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  case RAD_VENDOR_MPD:
 
 	    if (res == RAD_MPD_RULE) {
-	      acl2 = rad_cvt_string(data, len);
+	      acl1 = acl = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_RULE: %s",
-		auth->info.lnkname, __func__, acl2));
+		auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_rule);
 	    } else if (res == RAD_MPD_PIPE) {
-	      acl2 = rad_cvt_string(data, len);
+	      acl1 = acl = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_PIPE: %s",
-	        auth->info.lnkname, __func__, acl2));
+	        auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_pipe);
 	    } else if (res == RAD_MPD_QUEUE) {
-	      acl2 = rad_cvt_string(data, len);
+	      acl1 = acl = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_QUEUE: %s",
-	        auth->info.lnkname, __func__, acl2));
+	        auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_queue);
 	    } else if (res == RAD_MPD_TABLE) {
-	      acl2 = rad_cvt_string(data, len);
-	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_TABLS: %s",
-	        auth->info.lnkname, __func__, acl2));
+	      acl1 = acl = rad_cvt_string(data, len);
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_TABLE: %s",
+	        auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_table);
 	    } else if (res == RAD_MPD_TABLE_STATIC) {
-	      acl2 = rad_cvt_string(data, len);
-	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_TABLS_STATIC: %s",
-	        auth->info.lnkname, __func__, acl2));
+	      acl1 = acl = rad_cvt_string(data, len);
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_TABLE_STATIC: %s",
+	        auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_table);
+	    } else if (res == RAD_MPD_FILTER) {
+	      acl = rad_cvt_string(data, len);
+	      acl1 = acl;
+	      acl2 = strsep(&acl1, "#");
+	      i = atol(acl2);
+	      if (i <= 0 || i > ACL_FILTERS) {
+	        Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong filter number: %i",
+		  auth->info.lnkname, __func__, i));
+	        free(acl1);
+	        break;
+	      }
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_FILTER: %s",
+	        auth->info.lnkname, __func__, acl));
+	      acls = &(auth->params.acl_filters[i - 1]);
+	    } else if (res == RAD_MPD_LIMIT) {
+	      acl1 = acl = rad_cvt_string(data, len);
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_LIMIT: %s",
+	        auth->info.lnkname, __func__, acl2));
+	      acls = &(auth->params.acl_limit);
 	    } else {
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ",
 		auth->info.lnkname, __func__, res));
 	      break;
 	    }
 
+	    acl2 = acl1;
 	    acl1 = strsep(&acl2, "=");
 	    i = atol(acl1);
 	    if (i <= 0) {
 	      Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl number: %i",
 		auth->info.lnkname, __func__, i));
-	      free(acl1);
+	      free(acl);
 	      break;
 	    }
 	    if ((acl2 == NULL) && (acl2[0] == 0)) {
 	      Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl", auth->info.lnkname, __func__));
-	      free(acl1);
+	      free(acl);
 	      break;
 	    }
 	    acls1 = Malloc(MB_AUTH, sizeof(struct acl));
@@ -1457,14 +1479,14 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		(res != RAD_MPD_TABLE_STATIC)) {
 	      Log(LG_RADIUS, ("[%s] RADIUS: %s: duplicate acl",
 		auth->info.lnkname, __func__));
-	      free(acl1);
+	      free(acl);
 	      break;
 	    } else {
 	      acls1->next = *acls;
 	    }
 	    *acls = acls1;
 
-	    free(acl1);
+	    free(acl);
 	    break;
 
 	  default:

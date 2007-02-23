@@ -119,6 +119,7 @@ void	authparamsInit(struct authparams *ap) {
 
 void	authparamsDestroy(struct authparams *ap) {
     struct acl		*acls, *acls1;
+    int i;
   
     if (ap->eapmsg) {
 	Freee(MB_AUTH, ap->eapmsg);
@@ -152,6 +153,22 @@ void	authparamsDestroy(struct authparams *ap) {
 	acls = acls1;
     };
 
+    for (i = 0; i < ACL_FILTERS; i++) {
+	acls = ap->acl_filters[i];
+	while (acls != NULL) {
+	    acls1 = acls->next;
+	    Freee(MB_AUTH, acls);
+	    acls = acls1;
+	};
+    };
+
+    acls = ap->acl_limit;
+    while (acls != NULL) {
+	acls1 = acls->next;
+	Freee(MB_AUTH, acls);
+	acls = acls1;
+    };
+
     if (ap->msdomain) {
 	Freee(MB_AUTH, ap->msdomain);
     }
@@ -162,6 +179,7 @@ void	authparamsDestroy(struct authparams *ap) {
 void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     struct acl	*acls;
     struct acl	**pacl;
+    int		i;
 
     memcpy(dst,src,sizeof(struct authparams));
   
@@ -202,6 +220,26 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     };
     acls = src->acl_table;
     pacl = &dst->acl_table;
+    while (acls != NULL) {
+	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
+	memcpy(*pacl, acls, sizeof(struct acl));
+	acls = acls->next;
+	pacl = &((*pacl)->next);
+    };
+
+    for (i = 0; i < ACL_FILTERS; i++) {
+	acls = src->acl_filters[i];
+	pacl = &dst->acl_filters[i];
+	while (acls != NULL) {
+	    *pacl = Malloc(MB_AUTH, sizeof(struct acl));
+	    memcpy(*pacl, acls, sizeof(struct acl));
+	    acls = acls->next;
+	    pacl = &((*pacl)->next);
+	};
+    };
+
+    acls = src->acl_limit;
+    pacl = &dst->acl_limit;
     while (acls != NULL) {
 	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
 	memcpy(*pacl, acls, sizeof(struct acl));
@@ -513,8 +551,9 @@ GetLinkID(Link lnk) {
     
     port =- 1;    
     for (i = 0; i < gNumLinks; i++) {
-      if (gLinks[i] && gLinks[i] != lnk) {
+      if (gLinks[i] == lnk) {
 	port = i;
+	break;
       }
     }
     return port;

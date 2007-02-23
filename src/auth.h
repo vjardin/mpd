@@ -76,15 +76,18 @@
     AUTH_CONF_UTMP_WTMP,
   };  
 
-  /* max. length of acl rule, */
+  /* max. length of acl rule */
   #define ACL_LEN	256
 
-  struct acl {		/* List of ACLs received from auth */
-    unsigned short number;		/* ACL number given by auth server */
+  struct acl {			/* List of ACLs received from auth */
+    unsigned short number;	/* ACL number given by auth server */
     unsigned short real_number;	/* ACL number allocated my mpd */
-    char rule[ACL_LEN]; /* Text of ACL */
+    char rule[ACL_LEN]; 	/* Text of ACL */
     struct acl *next;
   };
+
+  /* max. number of acl_filters */
+  #define ACL_FILTERS	16
 
   struct authparams {
     char		authname[AUTH_MAX_AUTHNAME];
@@ -103,10 +106,13 @@
     char		*state;		/* copy of the state attribute, needed for accounting */
     int			state_len;
 
-    struct acl		*acl_rule;
-    struct acl		*acl_pipe;
-    struct acl		*acl_queue;
-    struct acl		*acl_table;
+    struct acl		*acl_rule;	/* ipfw rules */
+    struct acl		*acl_pipe;	/* ipfw pipes */
+    struct acl		*acl_queue;	/* ipfw queues */
+    struct acl		*acl_table;	/* ipfw tables */
+
+    struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
+    struct acl		*acl_limit;	/* traffic limits based on mpd's filters */
 
     unsigned long	mtu;			/* MTU */
     unsigned long	session_timeout;	/* Session-Timeout */

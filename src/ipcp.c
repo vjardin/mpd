@@ -463,8 +463,6 @@ static void
 IpcpLayerDown(Fsm fp)
 {
   IpcpState		const ipcp = &bund->ipcp;
-  struct ngm_vjc_config	vjc;
-  char			path[NG_PATHLEN + 1];
 
   /* Turn off IP packets */
 #if NGM_PPP_COOKIE < 940897794
@@ -481,15 +479,6 @@ IpcpLayerDown(Fsm fp)
   if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP)
 	IpcpNgShutdownVJ(bund);
-
-  /* Turn off VJ compression node */
-  memset(&vjc, 0, sizeof(vjc));
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
-  if (NgSendMsg(bund->csock, path,
-      NGM_VJC_COOKIE, NGM_VJC_SET_CONFIG, &vjc, sizeof(vjc)) < 0) {
-    Log(LG_ERR, ("[%s] can't config %s node: %s",
-      bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
-  }
 
   BundNcpsLeave(NCP_IPCP);
   
