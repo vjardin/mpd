@@ -1422,8 +1422,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	        auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_table);
 	    } else if (res == RAD_MPD_FILTER) {
-	      acl = rad_cvt_string(data, len);
-	      acl1 = acl;
+	      acl1 = acl = rad_cvt_string(data, len);
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_FILTER: %s",
+	        auth->info.lnkname, __func__, acl));
 	      acl2 = strsep(&acl1, "#");
 	      i = atol(acl2);
 	      if (i <= 0 || i > ACL_FILTERS) {
@@ -1432,13 +1433,11 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	        free(acl1);
 	        break;
 	      }
-	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_FILTER: %s",
-	        auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_filters[i - 1]);
 	    } else if (res == RAD_MPD_LIMIT) {
 	      acl1 = acl = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_LIMIT: %s",
-	        auth->info.lnkname, __func__, acl2));
+	        auth->info.lnkname, __func__, acl));
 	      acls = &(auth->params.acl_limit);
 	    } else {
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ",
