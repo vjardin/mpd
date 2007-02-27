@@ -1430,7 +1430,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      if (i <= 0 || i > ACL_FILTERS) {
 	        Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong filter number: %i",
 		  auth->info.lnkname, __func__, i));
-	        free(acl1);
+	        free(acl);
 	        break;
 	      }
 	      acls = &(auth->params.acl_filters[i - 1]);
@@ -1438,24 +1438,41 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      acl1 = acl = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MPD_LIMIT: %s",
 	        auth->info.lnkname, __func__, acl));
-	      acls = &(auth->params.acl_limit);
+	      acl2 = strsep(&acl1, "#");
+	      if (strcasecmp(acl2, "in") == 0) {
+	        i = 0;
+	      } else if (strcasecmp(acl2, "out") == 0) {
+	        i = 1;
+	      } else {
+	        Log(LG_ERR, ("[%s] RADIUS: %s: wrong limit direction: '%s'",
+		  auth->info.lnkname, __func__, acl2));
+	        free(acl);
+	        break;
+	      }
+	      acls = &(auth->params.acl_limits[i]);
 	    } else {
-	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d ",
+	      Log(LG_RADIUS2, ("[%s] RADIUS: %s: Dropping MPD vendor specific attribute: %d",
 		auth->info.lnkname, __func__, res));
 	      break;
 	    }
 
+	    if (acl1 == NULL) {
+	      Log(LG_ERR, ("[%s] RADIUS: %s: incorrect acl!",
+		auth->info.lnkname, __func__));
+	      break;
+	    }
+	    
 	    acl2 = acl1;
 	    acl1 = strsep(&acl2, "=");
 	    i = atol(acl1);
 	    if (i <= 0) {
-	      Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl number: %i",
+	      Log(LG_ERR, ("[%s] RADIUS: %s: wrong acl number: %i",
 		auth->info.lnkname, __func__, i));
 	      free(acl);
 	      break;
 	    }
 	    if ((acl2 == NULL) && (acl2[0] == 0)) {
-	      Log(LG_RADIUS, ("[%s] RADIUS: %s: wrong acl", auth->info.lnkname, __func__));
+	      Log(LG_ERR, ("[%s] RADIUS: %s: wrong acl", auth->info.lnkname, __func__));
 	      free(acl);
 	      break;
 	    }
@@ -1476,7 +1493,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	    } else if (((*acls)->number == acls1->number) &&
 		(res != RAD_MPD_TABLE) &&
 		(res != RAD_MPD_TABLE_STATIC)) {
-	      Log(LG_RADIUS, ("[%s] RADIUS: %s: duplicate acl",
+	      Log(LG_ERR, ("[%s] RADIUS: %s: duplicate acl",
 		auth->info.lnkname, __func__));
 	      free(acl);
 	      break;

@@ -162,11 +162,13 @@ void	authparamsDestroy(struct authparams *ap) {
 	};
     };
 
-    acls = ap->acl_limit;
-    while (acls != NULL) {
-	acls1 = acls->next;
-	Freee(MB_AUTH, acls);
-	acls = acls1;
+    for (i = 0; i < ACL_DIRS; i++) {
+	acls = ap->acl_limits[i];
+	while (acls != NULL) {
+	    acls1 = acls->next;
+	    Freee(MB_AUTH, acls);
+	    acls = acls1;
+	};
     };
 
     if (ap->msdomain) {
@@ -238,13 +240,15 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	};
     };
 
-    acls = src->acl_limit;
-    pacl = &dst->acl_limit;
-    while (acls != NULL) {
-	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
-	memcpy(*pacl, acls, sizeof(struct acl));
-	acls = acls->next;
-	pacl = &((*pacl)->next);
+    for (i = 0; i < ACL_DIRS; i++) {
+	acls = src->acl_limits[i];
+	pacl = &dst->acl_limits[i];
+	while (acls != NULL) {
+	    *pacl = Malloc(MB_AUTH, sizeof(struct acl));
+	    memcpy(*pacl, acls, sizeof(struct acl));
+	    acls = acls->next;
+	    pacl = &((*pacl)->next);
+	};
     };
 
     if (src->msdomain) {

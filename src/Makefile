@@ -62,6 +62,8 @@ LDADD+=		-lnetgraph
 DPADD+=		${LIBNETGRAPH}
 LDADD+=		-L/usr/lib -lradius
 DPADD+=		${LIBRADIUS}
+LDADD+=		-lpcap
+DPADD+=		${LIBPCAP}
 
 LDADD+=		-L${PREFIX}/lib -lpdel -lssl -lexpat
 

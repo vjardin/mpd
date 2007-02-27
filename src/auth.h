@@ -88,6 +88,8 @@
 
   /* max. number of acl_filters */
   #define ACL_FILTERS	16
+  /* max. number of acl_filters */
+  #define ACL_DIRS	2
 
   struct authparams {
     char		authname[AUTH_MAX_AUTHNAME];
@@ -112,7 +114,7 @@
     struct acl		*acl_table;	/* ipfw tables */
 
     struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
-    struct acl		*acl_limit;	/* traffic limits based on mpd's filters */
+    struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
 
     unsigned long	mtu;			/* MTU */
     unsigned long	session_timeout;	/* Session-Timeout */
