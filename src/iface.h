@@ -53,6 +53,10 @@
     IFACE_CONF_ONDEMAND,
     IFACE_CONF_PROXY,
     IFACE_CONF_TCPMSSFIX,
+    IFACE_CONF_TEE,
+    IFACE_CONF_NAT,
+    IFACE_CONF_NETFLOW_IN,
+    IFACE_CONF_NETFLOW_OUT,
   };
 
   /* Dial-on-demand packet cache */
@@ -94,6 +98,12 @@
     u_char		up:1;			/* interface is up */
     u_char		ip_up:1;		/* IP interface is up */
     u_char		ipv6_up:1;		/* IPv6 interface is up */
+    u_char		nat_up:1;		/* NAT is up */
+    u_char		tee_up:1;		/* TEE is up */
+    u_char		nfin_up:1;		/* NFIN is up */
+    u_char		nfout_up:1;		/* NFOUT is up */
+    u_char		mss_up:1;		/* MSS is up */
+    
     u_char		dod:1;			/* Interface flagged -link0 */
     struct dodcache	dodCache;		/* Dial-on-demand cache */
     struct ng_bpf_hookstat

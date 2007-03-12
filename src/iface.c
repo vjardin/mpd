@@ -85,13 +85,14 @@
   static void	IfaceNgIpv6Shutdown(Bund b);
 
 #ifdef USE_NG_NETFLOW
-  static int	IfaceInitNetflow(Bund b, char *path, char *hook);
-  static int	IfaceSetupNetflow(Bund b);
-  static void	IfaceShutdownNetflow(Bund b);
+  static int	IfaceInitNetflow(Bund b, char *path, char *hook, char out);
+  static int	IfaceSetupNetflow(Bund b, char out);
+  static void	IfaceShutdownNetflow(Bund b, char out);
 #endif
 
 #ifdef USE_NG_NAT
   static int	IfaceInitNAT(Bund b, char *path, char *hook);
+  static int	IfaceSetupNAT(Bund b);
   static void	IfaceShutdownNAT(Bund b);
 #endif
 
@@ -153,6 +154,10 @@
     { 0,	IFACE_CONF_ONDEMAND,		"on-demand"	},
     { 0,	IFACE_CONF_PROXY,		"proxy-arp"	},
     { 0,	IFACE_CONF_TCPMSSFIX,           "tcpmssfix"	},
+    { 0,	IFACE_CONF_TEE,			"tee"		},
+    { 0,	IFACE_CONF_NAT,			"nat"		},
+    { 0,	IFACE_CONF_NETFLOW_IN,		"netflow-in"	},
+    { 0,	IFACE_CONF_NETFLOW_OUT,		"netflow-out"	},
     { 0,	0,				NULL		},
   };
 
@@ -748,9 +753,6 @@ IfaceIpIfaceUp(int ready)
   u_char		*ether;
   int			k;
   char			buf[64];
-#ifdef USE_NG_NAT
-  char                  path[NG_PATHLEN + 1];
-#endif
 
   /* For good measure */
   BundUpdateParams();
@@ -815,13 +817,8 @@ IfaceIpIfaceUp(int ready)
 
 #ifdef USE_NG_NAT
   /* Set NAT IP */
-  if (bund->nat) {
-    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, bund->name);
-    if (NgSendMsg(bund->csock, path,
-    	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &iface->self_addr.addr.u.ip4, sizeof(iface->self_addr.addr.u.ip4)) < 0) {
-	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
-    	    bund->name, strerror(errno)));
-    }
+  if (iface->nat_up) {
+    IfaceSetupNAT(bund);
   }
 #endif
 
@@ -1425,6 +1422,25 @@ IfaceStat(int ac, char *av[], void *arg)
 	Printf("\t%s\r\n", u_rangetoa(&bund->params.routes[k].dest,buf,sizeof(buf)));
     }
   }
+  if (bund->params.acl_limits[0] || bund->params.acl_limits[1]) {
+    struct acl	*a;
+    Printf("Traffic filters:\r\n");
+    for (k = 0; k < ACL_FILTERS; k++) {
+	a = bund->params.acl_filters[k];
+	while (a) {
+	    Printf("\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
+	    a = a->next;
+	}
+    }
+    Printf("Traffic limits:\r\n");
+    for (k = 0; k < 2; k++) {
+	a = bund->params.acl_limits[k];
+	while (a) {
+	    Printf("\t%s#%d\t: '%s'\r\n", (k?"out":"in"), a->number, a->rule);
+	    a = a->next;
+	}
+    }
+  }
   return(0);
 }
 
@@ -1542,23 +1558,32 @@ IfaceNgIpInit(Bund b, int ready)
 
 #ifdef USE_NG_NAT
 	/* Add a nat node if configured */
-	if (b->nat) {
+	if (Enabled(&b->iface.options, IFACE_CONF_NAT)) {
 	    if (IfaceInitNAT(b, path, hook))
 		goto fail;
+	    b->iface.nat_up = 1;
 	}
 #endif
 
 	/* Add a tee node if configured */
-	if (b->tee) {
+	if (Enabled(&b->iface.options, IFACE_CONF_TEE)) {
 	    if (IfaceInitTee(b, path, hook))
 		goto fail;
+	    b->iface.tee_up = 1;
 	}
   
 #ifdef USE_NG_NETFLOW
 	/* Connect a netflow node if configured */
-	if (b->netflow) {
-	    if (IfaceInitNetflow(b, path, hook))
+	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)) {
+	    if (IfaceInitNetflow(b, path, hook, 0))
 		goto fail;
+	    b->iface.nfin_up = 1;
+	}
+
+	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)) {
+	    if (IfaceInitNetflow(b, path, hook, 1))
+		goto fail;
+	    b->iface.nfout_up = 1;
 	}
 #endif	/* USE_NG_NETFLOW */
 
@@ -1567,6 +1592,7 @@ IfaceNgIpInit(Bund b, int ready)
     if (Enabled(&b->iface.options, IFACE_CONF_TCPMSSFIX)) {
 	if (IfaceInitMSS(b, path, hook))
     	    goto fail;
+	b->iface.mss_up = 1;
     }
 
     if (IfaceInitLimits(b, path, hook))
@@ -1585,11 +1611,14 @@ IfaceNgIpInit(Bund b, int ready)
 
     if (ready) {
 #ifdef USE_NG_NETFLOW
-	if (b->netflow)
-	    IfaceSetupNetflow(b);
+	if (b->iface.nfin_up)
+	    IfaceSetupNetflow(b, 0);
+
+	if (b->iface.nfout_up)
+	    IfaceSetupNetflow(b, 1);
 #endif /* USE_NG_NETFLOW */
 
-	if (Enabled(&b->iface.options, IFACE_CONF_TCPMSSFIX))
+	if (b->iface.mss_up)
 	    IfaceSetupMSS(b, MAXMSS(b->iface.mtu));
     }
     
@@ -1610,17 +1639,25 @@ static void
 IfaceNgIpShutdown(Bund b)
 {
 #ifdef USE_NG_NAT
-    if (b->nat)
+    if (b->iface.nat_up)
 	IfaceShutdownNAT(b);
+    b->iface.nfin_up = 0;
 #endif
-    if (b->tee)
+    if (b->iface.tee_up)
 	IfaceShutdownTee(b);
+    b->iface.tee_up = 0;
 #ifdef USE_NG_NETFLOW
-    if (b->netflow)
-	IfaceShutdownNetflow(b);
+    if (b->iface.nfin_up)
+	IfaceShutdownNetflow(b, 0);
+    b->iface.nfin_up = 0;
+    if (b->iface.nfout_up)
+	IfaceShutdownNetflow(b, 1);
+    b->iface.nfout_up = 0;
 #endif
-    if (Enabled(&b->iface.options, IFACE_CONF_TCPMSSFIX))
+    if (b->iface.mss_up)
 	IfaceShutdownMSS(b);
+    b->iface.mss_up = 0;
+
     IfaceShutdownLimits(b);
     NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_INET);
 }
@@ -1700,6 +1737,19 @@ IfaceInitNAT(Bund b, char *path, char *hook)
     return(0);
 }
 
+static int
+IfaceSetupNAT(Bund b)
+{
+    char	path[NG_PATHLEN+1];
+
+    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, bund->name);
+    if (NgSendMsg(bund->csock, path,
+    	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &b->iface.self_addr.addr.u.ip4, sizeof(b->iface.self_addr.addr.u.ip4)) < 0) {
+	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
+    	    b->name, strerror(errno)));
+    }
+}
+
 static void
 IfaceShutdownNAT(Bund b)
 {
@@ -1750,7 +1800,7 @@ IfaceShutdownTee(Bund b)
 
 #ifdef USE_NG_NETFLOW
 static int
-IfaceInitNetflow(Bund b, char *path, char *hook)
+IfaceInitNetflow(Bund b, char *path, char *hook, char out)
 {
     struct ngm_connect	cn;
 
@@ -1763,7 +1813,7 @@ IfaceInitNetflow(Bund b, char *path, char *hook)
     /* Connect ng_netflow(4) node to the ng_bpf(4)/ng_tee(4) node. */
     strcpy(cn.ourhook, hook);
     snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
-    if (b->netflow == NETFLOW_OUT) {
+    if (out) {
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
 	    gNetflowIface + b->id);
     } else {
@@ -1778,7 +1828,7 @@ IfaceInitNetflow(Bund b, char *path, char *hook)
     }
     strlcat(path, ".", NG_PATHLEN);
     strlcat(path, hook, NG_PATHLEN);
-    if (b->netflow == NETFLOW_OUT) {
+    if (out) {
 	snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_DATA,
 	    gNetflowIface + b->id);
     } else {
@@ -1789,7 +1839,7 @@ IfaceInitNetflow(Bund b, char *path, char *hook)
 }
 
 static int
-IfaceSetupNetflow(Bund b)
+IfaceSetupNetflow(Bund b, char out)
 {
     char path[NG_PATHLEN + 1];
     struct ng_netflow_setdlt	 nf_setdlt;
@@ -1805,7 +1855,7 @@ IfaceSetupNetflow(Bund b)
 	path, strerror(errno)));
       goto fail;
     }
-    if (b->netflow == NETFLOW_IN) {
+    if (!out) {
 	nf_setidx.iface = gNetflowIface + b->id;
 	nf_setidx.index = if_nametoindex(b->iface.ifname);
 	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
@@ -1822,7 +1872,7 @@ fail:
 }
 
 static void
-IfaceShutdownNetflow(Bund b)
+IfaceShutdownNetflow(Bund b, char out)
 {
     char	path[NG_PATHLEN+1];
     char	hook[NG_HOOKLEN+1];

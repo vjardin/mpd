@@ -671,6 +671,7 @@ AuthStat(int ac, char *av[], void *arg)
   Printf("\tACL Pipes       : %s\r\n", a->params.acl_pipe ? "yes" : "no");
   Printf("\tACL Queues      : %s\r\n", a->params.acl_queue ? "yes" : "no");
   Printf("\tACL Tables      : %s\r\n", a->params.acl_table ? "yes" : "no");
+  Printf("\tTraffic Limits  : %s\r\n", (a->params.acl_limits[0] || a->params.acl_limits[1]) ? "yes" : "no");
   Printf("\tMS-Domain       : %s\r\n", a->params.msdomain);  
   Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(a->params.msoft.policy));
   Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->params.msoft.types));

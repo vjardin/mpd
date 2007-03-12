@@ -829,7 +829,8 @@ BundCreateCmd(int ac, char *av[], void *arg)
   Link	new_link;
   char	*reqIface = NULL;
   u_char tee = 0;
-  u_char netflow = 0;
+  u_char netflow_in = 0;
+  u_char netflow_out = 0;
   u_char nat = 0;
   int	k;
 
@@ -850,12 +851,12 @@ BundCreateCmd(int ac, char *av[], void *arg)
 	break;
       case 'n':
 #ifdef USE_NG_NETFLOW
-	netflow = NETFLOW_IN;
+	netflow_in = 1;
 #endif
 	break;
       case 'N':
 #ifdef USE_NG_NETFLOW
-	netflow = NETFLOW_OUT;
+	netflow_out = 1;
 #endif
 	break;
       case 'a':
@@ -892,9 +893,6 @@ BundCreateCmd(int ac, char *av[], void *arg)
   bund = Malloc(MB_BUND, sizeof(*bund));
   snprintf(bund->name, sizeof(bund->name), "%s", av[0]);
   bund->csock = bund->dsock = -1;
-  bund->tee = tee;
-  bund->netflow = netflow;
-  bund->nat = nat;
 
   /* Setup netgraph stuff */
   if (BundNgInit(bund, reqIface) < 0) {
@@ -943,6 +941,15 @@ BundCreateCmd(int ac, char *av[], void *arg)
 
   /* Init interface stuff */
   IfaceInit();
+
+  if (tee)
+    Enable(&bund->iface.options, IFACE_CONF_TEE);
+  if (nat)
+    Enable(&bund->iface.options, IFACE_CONF_NAT);
+  if (netflow_in)
+    Enable(&bund->iface.options, IFACE_CONF_NETFLOW_IN);
+  if (netflow_out)
+    Enable(&bund->iface.options, IFACE_CONF_NETFLOW_OUT);
 
   /* Get message channel */
   bund->msgs = MsgRegister(BundMsg, 0);
