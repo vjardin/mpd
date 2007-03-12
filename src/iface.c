@@ -2125,6 +2125,12 @@ IfaceSetupLimits(Bund b)
     }				u;
     struct ng_bpf_hookprog	*const hp = &u.hprog;
     
+    union {
+	u_char			buf[NG_BPF_HOOKPROG_SIZE(ACL_MAX_PROGLEN)];
+	struct ng_bpf_hookprog	hprog;
+    }				u1;
+    struct ng_bpf_hookprog	*const hp1 = &u1.hprog;
+    
     struct ngm_connect  cn;
     
     char		path[NG_PATHLEN + 1];
@@ -2138,7 +2144,7 @@ IfaceSetupLimits(Bund b)
     int			ac;
     char		*av[ACL_MAX_PARAMS];
     int			num, dir;
-    int			i;
+    int			i, p, np;
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 
@@ -2158,6 +2164,8 @@ IfaceSetupLimits(Bund b)
 	    l = b->params.acl_limits[dir];
 	
 	    while (l) {
+		Log(LG_IFACE2, ("[%s] IFACE: limit %s#%d: '%s'",
+        	    b->name, (dir?"out":"in"), l->number, l->rule));
 		strncpy(str, l->rule, sizeof(str));
     		ac = ParseLine(str, av, ACL_MAX_PARAMS, 0);
 	        if (ac >= 2) {
@@ -2172,7 +2180,7 @@ IfaceSetupLimits(Bund b)
 		        strcpy(cn.peerhook, inhookn[1]);
 			if (NgSendMsg(b->csock, path,
 		    	        NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-			    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+			    Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
 		    		b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 			}
 		    } else {
@@ -2189,11 +2197,11 @@ IfaceSetupLimits(Bund b)
 		    
 			flt = atoi(av[0] + 3);
 		        if (flt <= 0 || flt > ACL_FILTERS || b->params.acl_filters[flt - 1] == NULL) {
-		    	    Log(LG_ERR, ("[%s] incorrect filter: '%s'",
+		    	    Log(LG_ERR, ("[%s] IFACE: incorrect filter: '%s'",
     				b->name, av[0]));
 			} else {
 			    struct bpf_program pr;
-		    	    char	buf[16384];
+		    	    char	buf[16384], sbuf[256];
 		    	    int		bufbraces;
 		    	    struct acl	*f;
 			    
@@ -2202,7 +2210,8 @@ IfaceSetupLimits(Bund b)
 			    f = b->params.acl_filters[flt - 1];
 			    while (f) {
 				char	*b1, *b2;
-				b2 = f->rule;
+				strlcpy(sbuf, f->rule, sizeof(sbuf));
+				b2 = sbuf;
 				b1 = strsep(&b2, " ");
 				if (b2 != NULL) {
 				    if (strcasecmp(b1, "match") == 0) {
@@ -2222,7 +2231,7 @@ IfaceSetupLimits(Bund b)
 					    bufbraces++;
 					}
 				    } else {
-					Log(LG_ERR, ("[%s] filter action '%s' is unknown",
+					Log(LG_ERR, ("[%s] IFACE: filter action '%s' is unknown",
         				    b->name, b1));
 				    }
 				};
@@ -2230,14 +2239,14 @@ IfaceSetupLimits(Bund b)
 			    }
 			    for (i = 0; i < bufbraces; i++)
 				strncat(buf, ") ", sizeof(buf));
-			    Log(LG_ERR, ("[%s] filter %d: '%s'",
-        			b->name, dir, buf));
+			    Log(LG_IFACE2, ("[%s] IFACE: flt%d: '%s'",
+        			b->name, flt, buf));
 				
 			    if (pcap_compile_nopcap((u_int)-1, DLT_RAW, &pr, buf, 1, 0xffffff00)) {
-				Log(LG_ERR, ("[%s] filter '%s' compilation error",
+				Log(LG_ERR, ("[%s] IFACE: filter '%s' compilation error",
     				    b->name, av[0]));
 			    } else if (pr.bf_len > ACL_MAX_PROGLEN) {
-				Log(LG_ERR, ("[%s] filter '%s' is too long",
+				Log(LG_ERR, ("[%s] IFACE: filter '%s' is too long",
         			    b->name, av[0]));
 				pcap_freecode(&pr);
 			    } else {
@@ -2248,21 +2257,24 @@ IfaceSetupLimits(Bund b)
 			    }
 			}
 		    } else {
-			Log(LG_ERR, ("[%s] incorrect filter: '%s'",
+			Log(LG_ERR, ("[%s] IFACE: incorrect filter: '%s'",
     			    b->name, av[0]));
 			hp->bpf_prog_len = NOMATCH_PROG_LEN;
 			memcpy(&hp->bpf_prog, &gNoMatchProg,
     			    NOMATCH_PROG_LEN * sizeof(*gNoMatchProg));
 		    }
 		
-		    if (strcasecmp(av[1], "pass") == 0) {
+		    p = 1;
+		    np = p + 1;
+		    if (strcasecmp(av[p], "pass") == 0) {
 			strcpy(hp->ifMatch, outhook);
 			strcpy(inhookn[0], "");
-		    } else if (strcasecmp(av[1], "deny") == 0) {
+		    } else if (strcasecmp(av[p], "deny") == 0) {
 			strcpy(hp->ifMatch, "deny");
 			strcpy(inhookn[0], "");
-		    } else if (strcasecmp(av[1], "shape") == 0) {
-			struct ngm_mkpeer   mp;
+		    } else if ((strcasecmp(av[p], "shape") == 0) ||
+			       (strcasecmp(av[p], "rate-limit") == 0)) {
+			struct ngm_mkpeer mp;
 			struct ng_car_bulkconf car;
 
 		        sprintf(hp->ifMatch, "%d-%d-m", dir, num);
@@ -2272,49 +2284,91 @@ IfaceSetupLimits(Bund b)
 			/* Create a car node for traffic shaping. */
 			snprintf(mp.type, sizeof(mp.type), "%s", NG_CAR_NODE_TYPE);
 			snprintf(mp.ourhook, sizeof(mp.ourhook), "%d-%d-m", dir, num);
-			snprintf(mp.peerhook, sizeof(mp.peerhook), NG_CAR_HOOK_LOWER);
+			strcpy(mp.peerhook, ((dir == 0)?NG_CAR_HOOK_LOWER:NG_CAR_HOOK_UPPER));
 			if (NgSendMsg(b->csock, path,
 				NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-		    	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-		    		NG_CAR_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
+		    	    Log(LG_ERR, ("[%s] IFACE: can't create %s node at \"%s\"->\"%s\": %s", 
+		    		b->name, NG_CAR_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
 			}
 
 		        /* Connect car to bpf. */
 			snprintf(cn.ourhook, sizeof(cn.ourhook), "%d-%d-mi", dir, num);
 			snprintf(cn.path, sizeof(cn.path), "%s", tmppath);
-		        strcpy(cn.peerhook, NG_CAR_HOOK_UPPER);
+		        strcpy(cn.peerhook, ((dir == 0)?NG_CAR_HOOK_UPPER:NG_CAR_HOOK_LOWER));
 			if (NgSendMsg(b->csock, path,
 		    	        NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-			    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+			    Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
 		    		b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 			}
 			
 			bzero(&car, sizeof(car));
-			car.upstream.cir = 64000;
-			car.upstream.cbs = 16000;
-			car.upstream.ebs = 16000;
+			if ((ac > p + 1) && (av[p + 1][0] >= '0') && (av[p + 1][0] <= '9')) {
+			    car.upstream.cir = atol(av[p + 1]);
+			    np++;
+			    if ((ac > p + 2) && (av[p + 2][0] >= '0') && (av[p + 2][0] <= '9')) {
+				car.upstream.cbs = atol(av[p + 2]);
+				np++;
+				if ((ac > p + 3) && (av[p + 3][0] >= '0') && (av[p + 3][0] <= '9')) {
+				    car.upstream.ebs = atol(av[p + 3]);
+				    np++;
+				} else {
+				    car.upstream.ebs = car.upstream.cbs * 2;
+				}
+			    } else {
+				car.upstream.cbs = car.upstream.cir / 8;
+				car.upstream.ebs = car.upstream.cbs * 2;
+			    }
+			} else {
+			    car.upstream.cir = 8000;
+			    car.upstream.cbs = car.upstream.cir / 8;
+			    car.upstream.ebs = car.upstream.cbs * 2;
+			}
 			car.upstream.green_action = NG_CAR_ACTION_FORWARD;
-			car.upstream.yellow_action = NG_CAR_ACTION_DROP;
+			car.upstream.yellow_action = NG_CAR_ACTION_FORWARD;
 			car.upstream.red_action = NG_CAR_ACTION_DROP;
-			car.upstream.mode = 0;
 			
-			car.downstream.cir = 64000;
-			car.downstream.cbs = 16000;
-			car.downstream.ebs = 16000;
-			car.downstream.green_action = NG_CAR_ACTION_FORWARD;
-			car.downstream.yellow_action = NG_CAR_ACTION_DROP;
-			car.downstream.red_action = NG_CAR_ACTION_DROP;
-			car.downstream.mode = 0;
+			if (strcasecmp(av[p], "shape") == 0) {
+			    car.upstream.mode = NG_CAR_SHAPE;
+			} else {
+			    car.upstream.mode = NG_CAR_RED;
+			}
+			
+			car.downstream = car.upstream;
 						
 			if (NgSendMsg(b->csock, tmppath,
 		    	        NGM_CAR_COOKIE, NGM_CAR_SET_CONF, &car, sizeof(car)) < 0) {
-			    Log(LG_ERR, ("[%s] can't set %s configuration: %s",
+			    Log(LG_ERR, ("[%s] IFACE: can't set %s configuration: %s",
 		    		b->name, NG_CAR_NODE_TYPE, strerror(errno)));
 			}
-
-		        sprintf(inhookn[0], "%d-%d-mi", dir, num);
+			
+			p = np;
+			if (ac > p) {
+			    if (strcasecmp(av[p], "pass") == 0) {
+				memset(&u1, 0, sizeof(u1));
+				strcpy(hp1->ifMatch, outhook);
+			        strcpy(hp1->ifNotMatch, outhook);
+			        hp1->bpf_prog_len = MATCH_PROG_LEN;
+			        memcpy(&hp1->bpf_prog, &gMatchProg,
+    				    MATCH_PROG_LEN * sizeof(*gMatchProg));
+		    		sprintf(hp1->thisHook, "%d-%d-mi", dir, num);
+			        if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE, NGM_BPF_SET_PROGRAM,
+					hp1, NG_BPF_HOOKPROG_SIZE(hp1->bpf_prog_len)) < 0) {
+				    Log(LG_ERR, ("[%s] IFACE: can't set %s node program: %s",
+	    				b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+				}
+			    			    
+				strcpy(inhookn[0], "");
+			    } else {
+				Log(LG_ERR, ("[%s] IFACE: unknown action: '%s'",
+    				    b->name, av[p]));
+				strcpy(inhookn[0], "");
+			    }
+			} else {
+		    	    sprintf(inhookn[0], "%d-%d-mi", dir, num);
+			}
+			
 		    } else {
-			Log(LG_ERR, ("[%s] unknown action: '%s'",
+			Log(LG_ERR, ("[%s] IFACE: unknown action: '%s'",
     			    b->name, av[1]));
 			strcpy(inhookn[0], "");
 		    }
@@ -2324,7 +2378,7 @@ IfaceSetupLimits(Bund b)
 			    strcpy(hp->thisHook, inhook[i]);
 			    if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE, NGM_BPF_SET_PROGRAM,
 				    hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-				Log(LG_ERR, ("[%s] can't set %s node program: %s",
+				Log(LG_ERR, ("[%s] IFACE: can't set %s node program: %s",
 	    			    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
 			    }
 			}
@@ -2333,7 +2387,7 @@ IfaceSetupLimits(Bund b)
 
 		    num++;
 		} else {
-		    Log(LG_ERR, ("[%s] incorrect limit: '%s'",
+		    Log(LG_ERR, ("[%s] IFACE: incorrect limit: '%s'",
     			b->name, l->rule));
 		}
 		l = l->next;
@@ -2350,7 +2404,7 @@ IfaceSetupLimits(Bund b)
 		    strcpy(hp->ifNotMatch, outhook);
 		    if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE, NGM_BPF_SET_PROGRAM, 
 			    hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-			Log(LG_ERR, ("[%s] can't set %s node %s %s program2: %s",
+			Log(LG_ERR, ("[%s] IFACE: can't set %s node %s %s program (2): %s",
 	    		    b->name, NG_BPF_NODE_TYPE, path, hp->thisHook, strerror(errno)));
 		    }
 		}
