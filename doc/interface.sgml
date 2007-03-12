@@ -64,16 +64,10 @@ The default value is 1500.
 set iface idle <em>seconds</em>
 </tt></tag>
 
-Sets the idle timeout value for the bundle. If no qualifying
+Sets the idle timeout value for the bundle. If no incoming or
 outgoing packets are transmitted for <tt><em>seconds</em></tt>
 seconds, the connection is brought down. An idle timeout of
 zero disables this feature.
-
-Mpd attempts to be intelligent about what a qualifying packet is.
-Idle time should only apply to packets that are generated locally
-and represent real local activity of some sort.
-For example, NTP traffic, ICMP echo replies, and TCP reset packets
-do not count as outgoing demand.
 
 When the idle timeout occurs, if the dial-on-demand option is
 enabled, mpd goes back into dial-on-demand mode. Otherwise, the
