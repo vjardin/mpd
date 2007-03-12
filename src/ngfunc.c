@@ -82,8 +82,6 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void	NgFuncErrx(const char *fmt, ...);
-  static void	NgFuncErr(const char *fmt, ...);
 #ifdef USE_NG_NETFLOW
   static int	NetflowSetCommand(int ac, char *av[], void *arg);
 #endif
@@ -612,7 +610,7 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
  * NgFuncErrx()
  */
 
-static void
+void
 NgFuncErrx(const char *fmt, ...)
 {
   char		buf[1024];
@@ -621,14 +619,14 @@ NgFuncErrx(const char *fmt, ...)
   va_start(args, fmt);
   vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
-  Log(LG_ERR, ("[%s] netgraph: %s", bund ? bund->name : "", buf));
+  Log(LG_ERR, ("netgraph: %s", buf));
 }
 
 /*
  * NgFuncErr()
  */
 
-static void
+void
 NgFuncErr(const char *fmt, ...)
 {
   char		buf[100];
@@ -637,8 +635,7 @@ NgFuncErr(const char *fmt, ...)
   va_start(args, fmt);
   vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
-  Log(LG_ERR, ("[%s] netgraph: %s: %s", bund ? bund->name : "",
-    buf, strerror(errno)));
+  Log(LG_ERR, ("netgraph: %s: %s", buf, strerror(errno)));
 }
 
 #ifdef USE_NG_NETFLOW

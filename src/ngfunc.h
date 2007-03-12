@@ -91,6 +91,9 @@
   extern int	NgFuncDisconnect(int csock, char *label, const char *path, const char *hook);
   extern int	NgFuncShutdownNode(int csock, const char *label, const char *path);
 
+  extern void	NgFuncErrx(const char *fmt, ...);
+  extern void	NgFuncErr(const char *fmt, ...);
+
   #ifdef USE_NG_NETFLOW
   extern int	NgFuncInitGlobalNetflow(Bund b);
   #endif

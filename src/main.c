@@ -19,6 +19,8 @@
 #include "ngfunc.h"
 #include "util.h"
 
+#include <netgraph.h>
+
 /*
  * DEFINITIONS
  */
@@ -138,6 +140,9 @@ main(int ac, char *av[])
 
   /* enable libpdel typed_mem */
   typed_mem_enable();
+
+  /* Set up libnetgraph logging */
+  NgSetErrLog(NgFuncErr, NgFuncErrx);
 
   /* init console-stuff */
   ConsoleInit(&gConsole);
