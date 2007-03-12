@@ -246,7 +246,6 @@ IfaceOpen(void)
      cause us to open the lower layer(s) */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
     BundNcpsJoin(NCP_NONE);
-//    NgFuncConfigBPF(bund, BPF_MODE_DEMAND);
     SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
     return;
   }
@@ -270,11 +269,6 @@ IfaceClose(void)
   if (!iface->open)
     return;
   iface->open = FALSE;
-
-  /* Take down system interface */
-//  if (iface->ip_up) {
-//    NgFuncConfigBPF(bund, BPF_MODE_OFF);
-//  }
 
   /* Close lower layer(s) */
   BundClose();
@@ -308,12 +302,6 @@ IfaceUp(int ready)
     SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
   } else {
     SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
-  }
-
-  /* Open ourselves if necessary (we in effect slave off IPCP) */
-  if (!iface->open) {
-    Log(LG_IFACE2, ("[%s] IFACE: Opening", bund->name));
-    iface->open = TRUE;		/* Would call IfaceOpen(); effect is same */
   }
 
   if (ready) {
@@ -471,8 +459,6 @@ IfaceDown(void)
 
   /* If we're not open, it doesn't matter to us anyway */
   TimerStop(&iface->idleTimer);
-  if (!iface->open)
-    return;
 
   /* Bring down system interface */
   ExecCmd(LG_IFACE2, "%s %s down", 
@@ -1405,24 +1391,26 @@ IfaceStat(int ac, char *av[], void *arg)
     }
   }
   Printf("Interface status:\r\n");
-  Printf("\tStatus          : %s\r\n", iface->open ? "OPEN" : "CLOSED");
-  Printf("\tMTU             : %d bytes\r\n", iface->mtu);
-  if (!u_rangeempty(&iface->self_addr)) {
+  Printf("\tAdmin status    : %s\r\n", iface->open ? "OPEN" : "CLOSED");
+  Printf("\tStatus          : %s\r\n", iface->up ? "UP" : "DOWN");
+  if (iface->up)
+    Printf("\tMTU             : %d bytes\r\n", iface->mtu);
+  if (iface->ip_up && !u_rangeempty(&iface->self_addr)) {
     Printf("\tIP Addresses    : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
     Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));
   }
-  if (!u_addrempty(&iface->self_ipv6_addr)) {
+  if (iface->ipv6_up && !u_addrempty(&iface->self_ipv6_addr)) {
     Printf("\tIPv6 Addresses  : %s%%%s -> ", 
 	u_addrtoa(&iface->self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
     Printf("%s%%%s\r\n", u_addrtoa(&iface->peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
   }
-  if (bund->params.n_routes) {
+  if (iface->up && bund->params.n_routes) {
     Printf("Dynamic routes via peer:\r\n");
     for (k = 0; k < bund->params.n_routes; k++) {
 	Printf("\t%s\r\n", u_rangetoa(&bund->params.routes[k].dest,buf,sizeof(buf)));
     }
   }
-  if (bund->params.acl_limits[0] || bund->params.acl_limits[1]) {
+  if (iface->up && (bund->params.acl_limits[0] || bund->params.acl_limits[1])) {
     struct acl	*a;
     Printf("Traffic filters:\r\n");
     for (k = 0; k < ACL_FILTERS; k++) {
