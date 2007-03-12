@@ -106,8 +106,8 @@
     
     u_char		dod:1;			/* Interface flagged -link0 */
     struct dodcache	dodCache;		/* Dial-on-demand cache */
-    struct ng_bpf_hookstat
-			idleStats;		/* Stats for idle timeout */
+
+    struct linkstats	idleStats;		/* Statistics for idle timeout */
   };
   typedef struct ifacestate	*IfaceState;
 

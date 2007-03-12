@@ -559,6 +559,7 @@ LinkResetStats(void)
 {
   NgFuncGetStats(lnk->bundleIndex, TRUE, NULL);
   memset(&lnk->stats, 0, sizeof(struct linkstats));
+  memset(&lnk->oldStats, 0, sizeof(lnk->oldStats));
 }
 
 /*

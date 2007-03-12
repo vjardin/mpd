@@ -333,8 +333,6 @@ IfaceUp(int ready)
   }
     
   if (idle_timeout > 0) {
-    char	path[NG_PATHLEN + 1];
-
     Log(LG_IFACE2, ("[%s] IFACE: idle-timeout: %d seconds", 
       bund->name, idle_timeout));
     
@@ -344,14 +342,8 @@ IfaceUp(int ready)
     iface->traffic[1] = TRUE;
     iface->traffic[0] = FALSE;
 
-    /* Reset bpf node statistics */
+    /* Reset statistics */
     memset(&iface->idleStats, 0, sizeof(iface->idleStats));
-    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
-	NG_PPP_HOOK_INET);
-    if (NgSendMsg(bund->csock, path, NGM_BPF_COOKIE,
-	NGM_BPF_CLR_STATS, BPF_HOOK_IFACE, sizeof(BPF_HOOK_IFACE)) < 0)
-      Log(LG_ERR, ("[%s] can't clear %s stats: %s",
-	bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
   }
 
   /* Allocate ACLs */
@@ -1035,29 +1027,14 @@ static void
 IfaceIdleTimeout(void *arg)
 {
   IfaceState			const iface = &bund->iface;
-  char				path[NG_PATHLEN + 1];
-  struct ng_bpf_hookstat	oldStats;
-  union {
-      u_char			buf[sizeof(struct ng_mesg) + sizeof(oldStats)];
-      struct ng_mesg		reply;
-  }				u;
   int				k;
 
   /* Get updated bpf node traffic statistics */
-  oldStats = iface->idleStats;
-  snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
-      NG_PPP_HOOK_INET);
-  if (NgFuncSendQuery(path, NGM_BPF_COOKIE, NGM_BPF_GET_STATS, BPF_HOOK_IFACE,
-      sizeof(BPF_HOOK_IFACE), &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] can't get %s stats: %s",
-      bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
-    return;
-  }
-  memcpy(&iface->idleStats, u.reply.data, sizeof(iface->idleStats));
+  BundUpdateStats();
 
   /* Mark current traffic period if there was traffic */
-  if (iface->idleStats.recvFrames + iface->idleStats.xmitFrames > 
-	oldStats.recvFrames + oldStats.xmitFrames) {
+  if (iface->idleStats.recvFrames + iface->idleStats.xmitFrames < 
+	bund->stats.recvFrames + bund->stats.xmitFrames) {
     iface->traffic[0] = TRUE;
   } else {		/* no demand traffic for a whole idle timeout period? */
     for (k = 0; k < IFACE_IDLE_SPLIT && !iface->traffic[k]; k++);
@@ -1066,6 +1043,8 @@ IfaceIdleTimeout(void *arg)
       return;
     }
   }
+
+  iface->idleStats = bund->stats;
 
   /* Shift traffic history */
   memmove(iface->traffic + 1,
