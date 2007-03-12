@@ -417,7 +417,7 @@ FatalSignal(sig)
 
   CloseIfaces();
   TimerInit(&gDeathTimer, "DeathTimer",
-    TERMINATE_DEATH_WAIT * (upLinkCount/100+1), (void (*)(void *)) DoExit, (void *) &gBackground);
+    TERMINATE_DEATH_WAIT * (upLinkCount/100+1), (void (*)(void *)) DoExit, (void *) EX_TERMINATE);
   TimerStart(&gDeathTimer);
 }
 
@@ -429,9 +429,9 @@ static void
 OpenSignal(int sig)
 {
   /* Open bundle */
-  if (bund && lnk && lnk->phys && lnk->phys->type) {
+  if (lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
-      bund->name, sys_signame[sig]));
+      lnk->name, sys_signame[sig]));
     RecordLinkUpDownReason(NULL, 1, STR_MANUALLY, NULL);
     BundOpenLink(lnk);
   } else
@@ -448,9 +448,9 @@ CloseSignal(int sig)
 {
 
   /* Close bundle */
-  if (bund && lnk && lnk->phys && lnk->phys->type) {
+  if (lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, closing",
-      bund->name, sys_signame[sig]));
+      lnk->name, sys_signame[sig]));
     RecordLinkUpDownReason(NULL, 0, STR_MANUALLY, NULL);
     LinkClose(lnk);
   } else
