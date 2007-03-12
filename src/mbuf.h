@@ -31,6 +31,7 @@
 
   /* Macros */
   #define MBDATA(bp)	((bp) ? ((bp)->base + (bp)->offset) : NULL)
+  #define MBDATAU(bp)	((bp)->base + (bp)->offset)
   #define MBLEN(bp)	((bp) ? (bp)->cnt : 0)
 
   #define PFREE(bp)	do {			\

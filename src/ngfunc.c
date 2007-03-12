@@ -524,10 +524,16 @@ NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp)
 
   /* Prepend ppp node bypass header */
   hdr = mballoc(bp->type, 4);
+  if (hdr == NULL) {
+    Log(LG_ERR, ("[%s] NgFuncWritePppFrame: mballoc() error", bund->name));
+    PFREE(bp);
+    return (-1);
+  }
+
   temp = htons(linkNum);
-  memcpy(MBDATA(hdr), &temp, 2);
+  memcpy(MBDATAU(hdr), &temp, 2);
   temp = htons(proto);
-  memcpy(MBDATA(hdr) + 2, &temp, 2);
+  memcpy(MBDATAU(hdr) + 2, &temp, 2);
   hdr->next = bp;
   bp = hdr;
 

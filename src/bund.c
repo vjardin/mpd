@@ -74,8 +74,6 @@
   static int	BundNgInit(Bund b, const char *reqIface);
   static void	BundNgShutdown(Bund b, int iface, int ppp);
 
-  static int	BundNgInitVJ(Bund b);
-
   static void	BundNgDataEvent(int type, void *cookie);
   static void	BundNgCtrlEvent(int type, void *cookie);
 

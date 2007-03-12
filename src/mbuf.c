@@ -24,9 +24,10 @@ Malloc(const char *type, int size)
 {
   Mbuf	bp;
 
-  bp = mballoc(type, size);
-  memset(MBDATA(bp), 0, size);
-  return(MBDATA(bp));
+  if ((bp = mballoc(type, size)) == NULL)
+    return (NULL);
+  memset(MBDATAU(bp), 0, size);
+  return(MBDATAU(bp));
 }
 
 /*
@@ -147,7 +148,7 @@ mbread(Mbuf bp, u_char *buf, int remain, int *nreadp)
       nread = bp->cnt;
     else
       nread = remain;
-    memcpy(buf, MBDATA(bp), nread);
+    memcpy(buf, MBDATAU(bp), nread);
     buf += nread;
     remain -= nread;
     bp->offset += nread;
@@ -178,7 +179,7 @@ mbcopy(Mbuf bp, u_char *buf, int remain)
       nread = bp->cnt;
     else
       nread = remain;
-    memcpy(buf, MBDATA(bp), nread);
+    memcpy(buf, MBDATAU(bp), nread);
     buf += nread;
     remain -= nread;
   }
@@ -199,7 +200,7 @@ mbwrite(Mbuf bp, const u_char *buf, int len)
 
   for (wp = bp; wp && len > 0; wp = wp->next) {
     chunk = (len > wp->cnt) ? wp->cnt : len;
-    memcpy(MBDATA(wp), buf, chunk);
+    memcpy(MBDATAU(wp), buf, chunk);
     buf += chunk;
     len -= chunk;
   }
@@ -311,8 +312,10 @@ mbsplit(Mbuf bp, int cnt)
 
   if (extra > 0)
   {
-    mextra = mballoc(bp->type, extra);
-    memcpy(MBDATA(mextra), MBDATA(bp) + tail, extra);
+    if ((mextra = mballoc(bp->type, extra)) == NULL)
+	return (NULL);
+
+    memcpy(MBDATAU(mextra), MBDATAU(bp) + tail, extra);
     bp->cnt = tail;
     mextra->next = bp->next;
     bp->next = mextra;
