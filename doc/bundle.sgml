@@ -14,8 +14,7 @@
 
 <descrip>
 
-<tag><tt>new </tt>[<tt> -n </tt>][<tt> -N </tt>][<tt> -t </tt>][<tt> -a </tt>]
-		  [<tt> -i <em>iface</em> </tt>]
+<tag><tt>new </tt>[<tt> -i <em>iface</em> </tt>]
 		  <tt> <em>bundle</em> <em>link1</em> </tt>
 		  [<tt> <em>link2</em> </tt> ... ]
 </tag>
@@ -30,20 +29,6 @@ lower numbered <tt>ng*</tt> interfaces as well).  If no
 Specifying an interface explicitly is advised, as otherwise a
 new interface will be created on your system every time mpd is
 invoked.
-
-If <tt>-t</tt> option is specified, a ng_tee(4) node will be inserted
-into the bundle graph, right after the interface node. The tee node
-can be useful for debugging or traffic accounting.
-
-If <tt>-a</tt> option is specified, a ng_nat(4) node will be inserted
-into the bundle graph, just before bpf node. The ng_nat(4) node
-performs network address translation (NAT) of packets passing through it.
-ng_nat(4) node type exists since FreeBSD 6.0.
-
-If <tt>-n</tt> option is specified, the bundle will participate in
-NetFlow generation. See <ref id="netflow" name="the NetFlow chapter">
-for more information. The <tt>-N</tt> option is like <tt>-n</tt>, but 
-generates NetFlow data for outgoing packets instead of incoming.
 
 The links that constitute the bundle are created and named
 <tt><em>link1</em></tt>, <tt><em>link2</em></tt>, etc.  For each

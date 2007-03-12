@@ -10,17 +10,34 @@
     <itemize>
 	<item> New features:
 	<itemize>
-	  <item> Implemented link repeater functionality (aka LAC/PAC).
+	  <item> Implemented link repeater functionality (aka LAC/PAC). New "phys" and "repeater" layers added.
+	  </item>
+	  <item> Implemented traffic filtering with ng_bpf.
+	  </item>
+	  <item> Implemented traffic shaping/rate-limiting with ng_car.
+	  </item>
+	  <item> Added workaround for Windows 2000 PPPoE MRU negotiation bug.
 	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
 	<itemize>
-	  <item> 'set link type ...' command removed. Use 'set phys type ...' instead.
+	  <item> 'set link type ...' command is deprecated now. Use 'set phys type ...' instead.
+	  </item>
+	  <item> -a, -n, -N, and -t bundle options are deprecated now. Use 'set iface enable ...' instead.
+	  </item>
+	  <item> ng_tee, ng_nat, ng_netflow and other netgraph nodes between ng_ppp anf ng_iface now
+		 created when NCP (IPCP/IPV6CP) goes up instead of startup time.
 	  </item>
 	  <item> Auth subsystem refactored to avoid incorrect cross-level dependencies.
 	  </item>
-	  <item> Physival device level refactored to remove link and bundle level dependencies.
+	  <item> Physival device level refactored to remove link and bundle levels dependencies.
+	  </item>
+	</itemize>
+	</item>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fixed thread-safety related crash in accounting.
 	  </item>
 	</itemize>
 	</item>

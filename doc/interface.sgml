@@ -162,6 +162,24 @@ The code is based on tcpmssd wich was written by Ruslan Ermilov
 
 This option is disabled by default.
 
+<tag><tt>tee</tt></tag>
+If enabled, a ng_tee(4) node will be inserted
+into the bundle graph, right after the interface node. The tee node
+can be useful for debugging or traffic accounting.
+
+<tag><tt>nat</tt></tag>
+If enabled, a ng_nat(4) node will be inserted
+into the bundle graph. The ng_nat(4) node
+performs network address translation (NAT) of packets passing through it.
+ng_nat(4) node type exists since FreeBSD 6.0.
+
+<tag><tt>netflow-in</tt></tag><P>
+<tag><tt>netflow-out</tt></tag>
+If enabled, the bundle will participate in
+NetFlow generation. See <ref id="netflow" name="the NetFlow chapter">
+for more information. The netflow-out option is like netflow-in, but 
+generates NetFlow data for outgoing packets instead of incoming.
+
 </descrip>
 
 
