@@ -19,6 +19,9 @@
  */
 
   /* Compile time configuring. */
+#if (__FreeBSD_version >= 500000)
+  #define      USE_NG_CAR
+#endif
 #if (__FreeBSD_version >= 600000)
   #define      USE_NG_TCPMSS
   #define      USE_NG_NETFLOW

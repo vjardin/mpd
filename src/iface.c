@@ -51,7 +51,9 @@
 #ifdef USE_NG_NETFLOW
 #include <netgraph/netflow/ng_netflow.h>
 #endif
+#ifdef USE_NG_CAR
 #include <netgraph/ng_car.h>
+#endif
 
 #include <pcap.h>
 
@@ -2142,16 +2144,9 @@ IfaceSetupLimits(Bund b)
     }				u;
     struct ng_bpf_hookprog	*const hp = &u.hprog;
     
-    union {
-	u_char			buf[NG_BPF_HOOKPROG_SIZE(ACL_MAX_PROGLEN)];
-	struct ng_bpf_hookprog	hprog;
-    }				u1;
-    struct ng_bpf_hookprog	*const hp1 = &u1.hprog;
-    
     struct ngm_connect  cn;
     
     char		path[NG_PATHLEN + 1];
-    char		tmppath[NG_PATHLEN + 1];
     char		inhook[2][NG_HOOKLEN+1];
     char		inhookn[2][NG_HOOKLEN+1];
     char		outhook[NG_HOOKLEN+1];
@@ -2289,10 +2284,18 @@ IfaceSetupLimits(Bund b)
 		    } else if (strcasecmp(av[p], "deny") == 0) {
 			strcpy(hp->ifMatch, "deny");
 			strcpy(inhookn[0], "");
+#ifdef USE_NG_CAR
 		    } else if ((strcasecmp(av[p], "shape") == 0) ||
 			       (strcasecmp(av[p], "rate-limit") == 0)) {
 			struct ngm_mkpeer mp;
 			struct ng_car_bulkconf car;
+			char		tmppath[NG_PATHLEN + 1];
+
+			union {
+			    u_char	buf[NG_BPF_HOOKPROG_SIZE(ACL_MAX_PROGLEN)];
+			    struct ng_bpf_hookprog	hprog;
+			} u1;
+			struct ng_bpf_hookprog	*const hp1 = &u1.hprog;
 
 		        sprintf(hp->ifMatch, "%d-%d-m", dir, num);
 
@@ -2383,7 +2386,7 @@ IfaceSetupLimits(Bund b)
 			} else {
 		    	    sprintf(inhookn[0], "%d-%d-mi", dir, num);
 			}
-			
+#endif /* USE_NG_CAR */
 		    } else {
 			Log(LG_ERR, ("[%s] IFACE: unknown action: '%s'",
     			    b->name, av[1]));
