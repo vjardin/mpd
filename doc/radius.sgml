@@ -153,7 +153,7 @@ ipfw add 10002 allow all from any to any via ng0
 
 When the link goes down, all created rules will be removed.
 
-<tag>internal</tag>
+<tag>internal (ng_bpf/ng_car)</tag>
 <p>
 
 You can write in your RADIUS configuration something like:
@@ -170,18 +170,37 @@ mpd-limit += "out#2=all rate-limit 1024000 150000 300000",
 mpd-limit += "out#3=all pass",
 </verb>
 
-mpd-filter is a packet filters declaration for using in mpd-limit. 
+As result, one ng_bpf node will be created to implement traffic filters 
+and several (two for this example) ng_car nodes for traffic shaping 
+and rate-limiting.
+
+mpd-filter is a packet filter declaration for using in mpd-limit.
 mpd-filter consists of two main parts: match/nomatch verdict and the condition.
 tcpdump (libpcap) expression syntax used for conditions.
 
+mpd-filter: <em>match</em>|<em>nomatch</em> <em>{condition}</em>
+
 mpd-limit is an action which should be done for packet. It consists of two
-main parts: filter and action. Filter can be or "all" (any packet) or "fltX"
-(packets matching to specified mpd-filter). Action can be: "pass" (stop 
-processing and pass packet), "deny" (drop packet), "rate-limit" (do Cisco-like 
-rate-limit), "shape" (do simple RED aware traffic shaping). 
-"rate-limit" and "shape" actions can have optional pass suffix.
+main parts: filter and action. 
+
+mpd-limit: <em>{filter}</em> <em>{action}</em>
+
+Filter can be or "all" (any packet) or "fltX"
+(packets matching to specified mpd-filter).
+
+filter: <em>any</em>|<em>fltX</em>
+
+Action can be: "pass" (stop processing and pass packet), 
+"deny" (stop processing and drop packet), 
+"rate-limit" (do Cisco-like rate-limit), 
+"shape" (do simple RED aware traffic shaping). 
+
+Actions "rate-limit" and "shape" can have optional "pass" suffix
+to stop processing after doing this action.
+
+action: <em>pass</em> | <em>deny</em> | 
+<em>rate-limit</em> <em>{rate(bits/s)}</em> [<em>{normal burst(bytes)}</em> [<em>{extended burst(bytes)}</em>]] [<em>pass</em>] |
+<em>shape</em> <em>{rate(bits/s)}</em> [<em>{burst(bytes)}</em>] [<em>pass</em>]
 
 </descrip>
 </p>
-
-
