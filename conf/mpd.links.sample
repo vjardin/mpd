@@ -11,7 +11,7 @@
 # is, things like device name and bandwidth. Other generic link
 # options like LCP parameters belong in "mpd.conf".
 #
-# The first command for each link should be "set link type ..."
+# The first command for each link should be "set phys type ..."
 #
 # $Id$
 #
@@ -23,7 +23,7 @@
 #
 
 usr:
-	set link type modem
+	set phys type modem
 	set modem device /dev/cuaa1
 	set modem var $DialPrefix "DT"
 
@@ -32,7 +32,7 @@ usr:
 # Set the country code variable $CountryCode.
 #
 ltmdm:
-	set link type modem
+	set phys type modem
 	set modem device /dev/cual0
 	set modem var $DialPrefix "DT"
 	set modem var $SpeakerOff "no"
@@ -76,7 +76,7 @@ ltmdm:
 #
 
 bitsurfr:
-	set link type modem
+	set phys type modem
 	set modem device /dev/cuaa2
 	set link latency 1000
 	set link bandwidth 92160
@@ -97,7 +97,7 @@ bitsurfr:
 #
 
 sync:
-	set link type ng
+	set phys type ng
 	set ng node sr0:
 	set ng hook rawdata
 
@@ -106,7 +106,7 @@ sync:
 #
 
 pptp:
-        set link type pptp
+        set phys type pptp
         set pptp self 1.2.3.4
         set pptp enable incoming
         set pptp disable originate
@@ -117,7 +117,7 @@ pptp:
 #
 
 vpn:
-        set link type pptp
+        set phys type pptp
         set pptp self 1.2.3.4
         set pptp peer 2.3.4.5
         set pptp enable originate incoming outcall
@@ -129,18 +129,8 @@ vpn:
 #
 
 PPPoE:
-        set link type pppoe
+        set phys type pppoe
         set pppoe iface fxp1
         set pppoe service "whatever"
 	set pppoe disable incoming
 	set pppoe enable originate
-
-#
-# Country specific configuration examples
-#
-
-# Austria ADSL
-adslat:
-	set link type pptp
-	set pptp peer 10.0.0.138
-	set pptp enable originate outcall

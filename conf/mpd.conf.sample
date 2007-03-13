@@ -23,6 +23,10 @@ startup:
 	set console user foo bar
 	set console user foo1 bar1
 	set console open
+	# configure the web server
+	set web port 5006
+	set web user foo bar
+	set web open
 
 #
 # Default configuration is "myisp"
@@ -96,11 +100,9 @@ dialin:
 #
 # Example of a multi-link dialup setup, using links "usr1" and "usr2"
 # Similar to the first example, but uses two links together, and
-# does not do dial-on-demand (you have to use SIGUSR1 and SIGUSR2).
+# does not do dial-on-demand.
 #
 # You must have entries for "usr1" and "usr2" in the mpd.links file.
-#
-# This also forces using the "ng0" netgraph interface.
 #
 
 multi:
@@ -108,16 +110,22 @@ multi:
 	set iface route default
 	set iface disable on-demand
 	set iface idle 900
-	set auth authname MyLogin
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	set ipcp yes vjcomp
+# Configure usr1
+	link usr1
 	set link disable chap pap
 	set link accept chap pap
 	set link yes acfcomp protocomp
-	set link usr1
+	set auth authname MyLogin
 	set modem script DialPeer
 	set modem var $Telephone "1-415-555-1212"
-	set link usr2
+# Configure usr2
+	link usr2
+	set link disable chap pap
+	set link accept chap pap
+	set link yes acfcomp protocomp
+	set auth authname MyLogin
 	set modem script DialPeer
 	set modem var $Telephone "1-415-555-1212"
 
@@ -207,6 +215,7 @@ pptp:
 	set iface enable proxy-arp
 	set iface idle 1800
 	set iface enable tcpmssfix
+# Multilink adds some overhead, but gives full 1500 MTU.
 	set bundle enable multilink
 # use RADIUS servers 
 #	load radius
@@ -290,19 +299,17 @@ vpn:
 
 PPPoE:
 	new PPPoE PPPoE
-	set iface addrs 1.1.1.1 2.2.2.2
 	set iface route default
 	set iface disable on-demand
 	set iface idle 0
+	set ipcp yes vjcomp
+	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	set bundle disable multilink
 	set auth authname MyLogin
 	set link no acfcomp protocomp
 	set link disable pap chap
 	set link accept chap
-	set link mtu 1492
 	set link keep-alive 10 60
-	set ipcp yes vjcomp
-	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	open
 
 radius:
@@ -357,26 +364,3 @@ advanced-auth:
 	set auth acct-update 300
 # we get our MPPE types and policy from the authentication backend
 	set auth enable mppc-pol
-
-#
-# Country specific configuration examples
-#
-
-# Austria ADSL
-adslat:
-	new adslat adslat
-	set iface disable on-demand
-	set iface idle 0
-	set iface session 0
-	set iface route default
-	set bundle disable multilink
-	set auth authname "<change_this>"
-	set auth password "<change_this>"
-	set link yes acfcomp protocomp
-	set link no pap chap
-	set link accept chap
-	set link mtu 1460
-	set link keep-alive 10 75
-	set ipcp yes vjcomp
-	set ipcp ranges 0/0 10.0.0.138/0
-	open
