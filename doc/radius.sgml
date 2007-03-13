@@ -71,13 +71,6 @@ Can be disabled for trusted peers. Default is enabled.
 All authentication methods are supported (PAP, CHAP, MS-CHAPv1,
 MS-CHAPv2). Password changing is currently not supported.
 
-There are some minor problems:
-
-<itemize>
-<item>If user enters <tt>quit</tt> on the console, Account-stop will not be sent.</item>
-<item>If CCP fails but is required, Account-start and Account-stop are sent, but they shouldn't be.</item>
-</itemize>
-
 Mpd automatically uses attributes like MTU, Idle-Timeout, IP-Address, etc. if they are 
 transmitted by the RADIUS server.
 
@@ -106,7 +99,11 @@ The following attributes are set when doing accounting requests:
 <p>
 
 Mpd can use the Access Control Lists (ACLs) taken from the RADIUS server.
-This ACLs may include ipfw rules, dummynet pipes and dummynet queues.
+This ACLs may include ipfw rules, pipes, queues and tables and also mpd
+internal traffic filtering/shaping/limiting features. That two sets are 
+redundant. ipfw proposed as standard and universal solution, while internal
+filter expected to work faster with big number of active links.
+
 To use this feature you should add to your RADIUS server such dictionary:
 <verb>#----------------------------------------------------------
 # dictionary.mpd                                                                                   
@@ -118,16 +115,22 @@ ATTRIBUTE       mpd-pipe        2       string          mpd
 ATTRIBUTE       mpd-queue       3       string          mpd 
 ATTRIBUTE       mpd-table       4       string          mpd 
 ATTRIBUTE       mpd-table-static       5       string          mpd 
+ATTRIBUTE       mpd-filter      6       string          mpd 
+ATTRIBUTE       mpd-limit       7       string          mpd 
 #----------------------------------------------------------
 </verb>
-After this you can write in your RADIUS configuration something like:
+
+<tag>ipfw</tag>
+<p>
+
+You can write in your RADIUS configuration something like:
 <verb>
 mpd-table += "1=10.0.0.1",
 mpd-table += "1=10.0.0.15",
 mpd-pipe += "1=bw 10Kbyte/s",
 mpd-pipe += "5=bw 20Kbyte/s",
-mpd-rule += "1=pipe %p1 all from any to table(%t) in",
-mpd-rule += "2=pipe %p5 all from table(%t) to any out",
+mpd-rule += "1=pipe %p1 all from any to table(%t1) in",
+mpd-rule += "2=pipe %p5 all from table(%t1) to any out",
 mpd-rule += "100=allow all from any to any",
 </verb>
 
@@ -149,6 +152,34 @@ ipfw add 10002 allow all from any to any via ng0
 </verb>
 
 When the link goes down, all created rules will be removed.
+
+<tag>internal</tag>
+<p>
+
+You can write in your RADIUS configuration something like:
+<verb>
+mpd-filter += "1#1=nomatch src net 10.0.0.0/24",
+mpd-filter += "1#2=match src net 10.0.0.0/10",
+mpd-filter += "2#1=match dst net 10.0.0.0/16",
+mpd-filter += "2#2=match dst net 11.0.0.0/8",
+mpd-limit += "in#1=flt1 pass",
+mpd-limit += "in#2=flt2 shape 64000 4000 pass",
+mpd-limit += "in#3=all deny",
+mpd-limit += "out#1=flt2 pass",
+mpd-limit += "out#2=all rate-limit 1024000 150000 300000",
+mpd-limit += "out#3=all pass",
+</verb>
+
+mpd-filter is a packet filters declaration for using in mpd-limit. 
+mpd-filter consists of two main parts: match/nomatch verdict and the condition.
+tcpdump (libpcap) expression syntax used for conditions.
+
+mpd-limit is an action which should be done for packet. It consists of two
+main parts: filter and action. Filter can be or "all" (any packet) or "fltX"
+(packets matching to specified mpd-filter). Action can be: "pass" (stop 
+processing and pass packet), "deny" (drop packet), "rate-limit" (do Cisco-like 
+rate-limit), "shape" (do simple RED aware traffic shaping). 
+"rate-limit" and "shape" actions can have optional pass suffix.
 
 </descrip>
 </p>
