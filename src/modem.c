@@ -299,6 +299,7 @@ fail:
     ChatStart(m->chat, m->fd, scriptfp, m->idleScript, ModemChatIdleResult);
   } else {
     m->originated = TRUE;
+    p->state = PHYS_STATE_CONNECTING;
     ChatStart(m->chat, m->fd, scriptfp, m->connScript, ModemChatConnectResult);
   }
 }
@@ -476,6 +477,7 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
       if (p->link)
         RecordLinkUpDownReason(p->link, 1, STR_INCOMING_CALL, msg ? "%s" : NULL, msg);
       m->answering = TRUE;
+      p->state = PHYS_STATE_READY;
       PhysIncoming(p);
     } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
       Log(LG_PHYS, ("[%s] opening link in %s mode", p->name, "ringback"));
@@ -947,7 +949,8 @@ ModemStat(PhysInfo p)
 	Printf("\tOpened       : %s\r\n", (m->opened?"YES":"NO"));
 	Printf("\tIncoming     : %s\r\n", (m->originated?"NO":"YES"));
 
-        if (ModemGetNgStats(p, &stats) >= 0) {
+	if (p->state == PHYS_STATE_UP && 
+    		ModemGetNgStats(p, &stats) >= 0) {
     	    Printf("Async stats:\r\n");
     	    Printf("\t       syncOctets: %8u\r\n", stats.syncOctets);
     	    Printf("\t       syncFrames: %8u\r\n", stats.syncFrames);
