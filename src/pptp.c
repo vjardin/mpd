@@ -248,10 +248,11 @@ PptpOpen(PhysInfo p)
 	  break;
 	}
 
-	(*pptp->cinfo.answer)(pptp->cinfo.cookie,
-	  PPTP_OCR_RESL_OK, 0, 0, 64000 /*XXX*/ );
 	p->state = PHYS_STATE_UP;
 	PhysUp(p);
+
+	(*pptp->cinfo.answer)(pptp->cinfo.cookie,
+	  PPTP_OCR_RESL_OK, 0, 0, 64000 /*XXX*/ );
 	return;
       }
       return; 	/* wait for peer's incoming pptp call to complete */
