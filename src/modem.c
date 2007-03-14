@@ -67,6 +67,7 @@
   /* Modem device state */
   struct modeminfo {
     int			fd;			/* Device file desc, or -1 */
+    int			csock;			/* netgraph control socket */
     int			speed;			/* Port speed */
     u_int		watch;			/* Signals to watch */
     char		device[20];		/* Serial device name */
@@ -275,6 +276,7 @@ ModemStart(void *arg)
 fail:
     m->opened = FALSE;
     m->lastClosed = time(NULL);
+    p->state = PHYS_STATE_DOWN;
     PhysDown(p, STR_ERROR, STR_DEV_NOT_READY);
     return;
   }
@@ -313,6 +315,7 @@ ModemClose(PhysInfo p)
   if (!m->opened)
     return;
   ModemDoClose(p, FALSE);
+  p->state = PHYS_STATE_DOWN;
   PhysDown(p, 0, NULL);
 }
 
@@ -336,9 +339,14 @@ ModemDoClose(PhysInfo p, int opened)
   (void) write(m->fd, &ch, 1);	/* USR kludge to prevent dial lockup */
   if (*m->ttynode != '\0') {
     snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
-    NgFuncShutdownNode(bund->csock, p->name, path);
+    NgFuncShutdownNode(m->csock, p->name, path);
     *m->ttynode = '\0';
   }
+  if (m->csock > 0) {
+    close(m->csock);
+    m->csock = -1;
+  }
+
   ExclusiveCloseDevice(m->fd, m->device);
   m->lastClosed = time(NULL);
   m->answering = FALSE;
@@ -357,16 +365,15 @@ ModemSetAccm(PhysInfo p, u_int32_t accm)
   ModemInfo		const m = (ModemInfo) p->info;
   char        		path[NG_PATHLEN+1];
 
-#if 0
   /* Update async config */
   m->acfg.accm = accm;
-  if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
+  snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
+  if (NgSendMsg(m->csock, path, NGM_ASYNC_COOKIE,
       NGM_ASYNC_CMD_SET_CONFIG, &m->acfg, sizeof(m->acfg)) < 0) {
     Log(LG_PHYS, ("[%s] can't update config for %s: %s",
       p->name, path, strerror(errno)));
       return (-1);
   }
-#endif
   return (0);
 }
 
@@ -384,16 +391,13 @@ ModemChatConnectResult(void *arg, int result, const char *msg)
   const char	*cspeed;
   int		bw;
 
-  /* Retrieve context */
-  lnk = p->link;
-  bund = lnk->bund;
-
   /* Was the connect script successful? */
   Log(LG_PHYS, ("[%s] chat script %s",
     p->name, result ? "succeeded" : "failed"));
   if (!result) {
 failed:
     ModemDoClose(p, FALSE);
+    p->state = PHYS_STATE_DOWN;
     PhysDown(p, STR_ERROR, "%s", msg);
     return;
   }
@@ -423,6 +427,7 @@ failed:
   TimerStart(&m->reportTimer);
 
   /* Done */
+  p->state = PHYS_STATE_UP;
   PhysUp(p);
 }
 
@@ -441,10 +446,6 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
   PhysInfo		const p = (PhysInfo) arg;
   ModemInfo		const m = (ModemInfo) p->info;
   const char	*idleResult;
-
-  /* Retrieve context */
-  lnk = p->link;
-  bund = lnk->bund;
 
   /* If script failed, then do nothing */
   if (!result) {
@@ -506,6 +507,12 @@ ModemInstallNodes(PhysInfo p)
   int			hotchar = PPP_FLAG;
   int			ldisc = NETGRAPHDISC;
 
+    /* Get a temporary netgraph socket node */
+    if (NgMkSockNode(NULL, &m->csock, NULL) == -1) {
+    	Log(LG_ERR, ("MODEM: NgMkSockNode: %s", strerror(errno)));
+    	return(-1);
+    }
+
   /* Install ng_tty line discipline */
   if (ioctl(m->fd, TIOCSETD, &ldisc) < 0) {
 
@@ -513,13 +520,14 @@ ModemInstallNodes(PhysInfo p)
        The 'mkpeer' below will fail, because you can only create a ng_tty
        node via TIOCSETD; however, this will force a load of the node type. */
     if (errno == ENODEV) {
-      (void)NgSendAsciiMsg(bund->csock, ".",
+      (void)NgSendAsciiMsg(m->csock, ".",
 	"mkpeer { type=\"%s\" ourhook=\"dummy\" peerhook=\"%s\" }",
 	NG_TTY_NODE_TYPE, NG_TTY_HOOK);
     }
     if (ioctl(m->fd, TIOCSETD, &ldisc) < 0) {
       Log(LG_ERR, ("[%s] ioctl(TIOCSETD, %d): %s",
 	p->name, ldisc, strerror(errno))); 
+      close(m->csock);
       return(-1);
     }
   }
@@ -533,9 +541,10 @@ ModemInstallNodes(PhysInfo p)
 
   /* Set the ``hot char'' on the TTY node */
   snprintf(path, sizeof(path), "%s:", ngtty.name);
-  if (NgSendMsg(bund->csock, path, NGM_TTY_COOKIE,
+  if (NgSendMsg(m->csock, path, NGM_TTY_COOKIE,
       NGM_TTY_SET_HOTCHAR, &hotchar, sizeof(hotchar)) < 0) {
     Log(LG_ERR, ("[%s] can't set hotchar", p->name));
+    close(m->csock);
     return(-1);
   }
 
@@ -543,9 +552,10 @@ ModemInstallNodes(PhysInfo p)
   snprintf(ngm.type, sizeof(ngm.type), "%s", NG_ASYNC_NODE_TYPE);
   snprintf(ngm.ourhook, sizeof(ngm.ourhook), "%s", NG_TTY_HOOK);
   snprintf(ngm.peerhook, sizeof(ngm.peerhook), "%s", NG_ASYNC_HOOK_ASYNC);
-  if (NgSendMsg(bund->csock, path, NGM_GENERIC_COOKIE,
+  if (NgSendMsg(m->csock, path, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &ngm, sizeof(ngm)) < 0) {
     Log(LG_ERR, ("[%s] can't connect %s node", p->name, NG_ASYNC_NODE_TYPE));
+    close(m->csock);
     return(-1);
   }
 
@@ -556,27 +566,30 @@ ModemInstallNodes(PhysInfo p)
   m->acfg.accm = ~0;
   m->acfg.amru = MODEM_MRU;
   m->acfg.smru = MODEM_MTU;
-  if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
+  if (NgSendMsg(m->csock, path, NGM_ASYNC_COOKIE,
       NGM_ASYNC_CMD_SET_CONFIG, &m->acfg, sizeof(m->acfg)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s", p->name, path));
+    close(m->csock);
     return(-1);
   }
 
     /* Attach async node to PPP node */
     if (!PhysGetUpperHook(p, cn.path, cn.peerhook)) {
         Log(LG_PHYS, ("[%s] MODEM: can't get upper hook", p->name));
+	close(m->csock);
 	return (-1);
     }
     snprintf(cn.ourhook, sizeof(cn.ourhook), NG_ASYNC_HOOK_SYNC);
-    if (NgSendMsg(bund->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, 
+    if (NgSendMsg(m->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, 
         &cn, sizeof(cn)) < 0) {
     	    Log(LG_ERR, ("[%s] MODEM: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
 	        p->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	    close(m->csock);
 	    return (-1);
     }
 
-  /* OK */
-  return(0);
+    /* OK */
+    return(0);
 }
 
 /*
@@ -593,10 +606,6 @@ ModemChatSetBaudrate(void *arg, int baud)
   PhysInfo		const p = (PhysInfo) arg;
   ModemInfo		const m = (ModemInfo) p->info;
   struct termios	attr;
-
-  /* Retrieve context */
-  lnk = p->link;
-  bund = lnk->bund;
 
   /* Change baud rate */
   if (tcgetattr(m->fd, &attr) < 0) {
@@ -628,10 +637,6 @@ ModemChatLog(void *arg, int level, const char *fmt, ...)
   char		buf[128];
   va_list	args;
   int		logLevel;
-
-  /* Retrieve context */
-  lnk = p->link;
-  bund = lnk->bund;
 
   /* Convert level */
   switch (level) {
@@ -711,18 +716,21 @@ ModemCheck(void *arg)
   if (ioctl(m->fd, TIOCMGET, &state) < 0) {
     Log(LG_ERR, ("[%s] can't ioctl(%s) %s: %s",
       p->name, "TIOCMGET", m->device, strerror(errno)));
+    p->state = PHYS_STATE_DOWN;
     PhysDown(p, STR_ERROR, "ioctl(%s): %s", "TIOCMGET", strerror(errno));
     ModemDoClose(p, FALSE);
     return;
   }
   if ((m->watch & TIOCM_CAR) && !(state & TIOCM_CAR)) {
     Log(LG_PHYS, ("[%s] carrier detect (CD) signal lost", p->name));
+    p->state = PHYS_STATE_DOWN;
     PhysDown(p, STR_DROPPED, "%s", STR_LOST_CD);
     ModemDoClose(p, FALSE);
     return;
   }
   if ((m->watch & TIOCM_DSR) && !(state & TIOCM_DSR)) {
     Log(LG_PHYS, ("[%s] data-set ready (DSR) signal lost", p->name));
+    p->state = PHYS_STATE_DOWN;
     PhysDown(p, STR_DROPPED, "%s", STR_LOST_DSR);
     ModemDoClose(p, FALSE);
     return;
@@ -752,7 +760,7 @@ ModemErrorCheck(void *arg)
     Log(LG_PHYS, ("[%s] NEW FRAME ERRS: FCS %u RUNT %u OVFL %u",
       p->name, stats.asyncBadCheckSums,
       stats.asyncRunts, stats.asyncOverflows));
-    (void) NgSendMsg(bund->csock, path,
+    (void) NgSendMsg(m->csock, path,
       NGM_ASYNC_COOKIE, NGM_ASYNC_CMD_CLR_STATS, NULL, 0);
   }
 
@@ -932,16 +940,24 @@ ModemStat(PhysInfo p)
   Printf("\tPins to watch: %s%s\r\n",
     (m->watch & TIOCM_CAR) ? "CD " : "",
     (m->watch & TIOCM_DSR) ? "DSR" : "");
-  if (ModemGetNgStats(p, &stats) >= 0) {
-    Printf("Async stats:\n");
-    Printf("\t       syncOctets: %8u\r\n", stats.syncOctets);
-    Printf("\t       syncFrames: %8u\r\n", stats.syncFrames);
-    Printf("\t    syncOverflows: %8u\r\n", stats.syncOverflows);
-    Printf("\t      asyncOctets: %8u\r\n", stats.asyncOctets);
-    Printf("\t      asyncFrames: %8u\r\n", stats.asyncFrames);
-    Printf("\t       asyncRunts: %8u\r\n", stats.asyncRunts);
-    Printf("\t   asyncOverflows: %8u\r\n", stats.asyncOverflows);
-    Printf("\tasyncBadCheckSums: %8u\r\n", stats.asyncBadCheckSums);
-  }
+
+    Printf("Modem status:\r\n");
+    Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
+    if (p->state != PHYS_STATE_DOWN) {
+	Printf("\tOpened       : %s\r\n", (m->opened?"YES":"NO"));
+	Printf("\tIncoming     : %s\r\n", (m->originated?"NO":"YES"));
+
+        if (ModemGetNgStats(p, &stats) >= 0) {
+    	    Printf("Async stats:\r\n");
+    	    Printf("\t       syncOctets: %8u\r\n", stats.syncOctets);
+    	    Printf("\t       syncFrames: %8u\r\n", stats.syncFrames);
+    	    Printf("\t    syncOverflows: %8u\r\n", stats.syncOverflows);
+	    Printf("\t      asyncOctets: %8u\r\n", stats.asyncOctets);
+    	    Printf("\t      asyncFrames: %8u\r\n", stats.asyncFrames);
+    	    Printf("\t       asyncRunts: %8u\r\n", stats.asyncRunts);
+    	    Printf("\t   asyncOverflows: %8u\r\n", stats.asyncOverflows);
+    	    Printf("\tasyncBadCheckSums: %8u\r\n", stats.asyncBadCheckSums);
+      }
+    }
 }
 
