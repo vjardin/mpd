@@ -227,7 +227,7 @@ ModemOpen(PhysInfo p)
     } else
       ModemDoClose(p, TRUE);		/* Stop idle script then dial back */
   } else
-    ModemStart(m);			/* Open device and try to dial */
+    ModemStart(p);			/* Open device and try to dial */
 }
 
 /*
@@ -252,7 +252,7 @@ ModemStart(void *arg)
   /* Avoid brief hang from kernel enforcing minimum DTR hold time */
   if (now - m->lastClosed < MODEM_MIN_CLOSE_TIME) {
     TimerInit(&m->startTimer, "ModemStart",
-      (MODEM_MIN_CLOSE_TIME - (now - m->lastClosed)) * SECONDS, ModemStart, m);
+      (MODEM_MIN_CLOSE_TIME - (now - m->lastClosed)) * SECONDS, ModemStart, p);
     TimerStart(&m->startTimer);
     return;
   }
@@ -344,7 +344,7 @@ ModemDoClose(PhysInfo p, int opened)
   m->answering = FALSE;
   m->fd = -1;
   m->opened = opened;
-  ModemStart(m);
+  ModemStart(p);
 }
 
 /*
@@ -357,6 +357,7 @@ ModemSetAccm(PhysInfo p, u_int32_t accm)
   ModemInfo		const m = (ModemInfo) p->info;
   char        		path[NG_PATHLEN+1];
 
+#if 0
   /* Update async config */
   m->acfg.accm = accm;
   if (NgSendMsg(bund->csock, path, NGM_ASYNC_COOKIE,
@@ -365,6 +366,7 @@ ModemSetAccm(PhysInfo p, u_int32_t accm)
       p->name, path, strerror(errno)));
       return (-1);
   }
+#endif
   return (0);
 }
 
@@ -413,11 +415,11 @@ failed:
 
   /* Start pin check and report timers */
   TimerInit(&m->checkTimer, "ModemCheck",
-    MODEM_CHECK_INTERVAL * SECONDS, ModemCheck, NULL);
+    MODEM_CHECK_INTERVAL * SECONDS, ModemCheck, p);
   TimerStart(&m->checkTimer);
   TimerStop(&m->reportTimer);
   TimerInit(&m->reportTimer, "ModemReport",
-    MODEM_ERR_REPORT_INTERVAL * SECONDS, ModemErrorCheck, NULL);
+    MODEM_ERR_REPORT_INTERVAL * SECONDS, ModemErrorCheck, p);
   TimerStart(&m->reportTimer);
 
   /* Done */
@@ -837,7 +839,7 @@ ModemSetCommand(int ac, char *av[], void *arg)
       if (m->fd >= 0 && !*m->idleScript)
 	ModemDoClose(p, FALSE);
       else if (m->fd < 0 && *m->idleScript)
-	ModemStart(m);
+	ModemStart(p);
       break;
     case SET_SCRIPT_VAR:
       if (ac != 2)
