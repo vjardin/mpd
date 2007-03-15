@@ -85,7 +85,7 @@
     { "SDP", TY_SDP, 0, 0, FALSE },
     { "NUMMODE", TY_NUMMODE, 0, 0, FALSE },
     { "MULTILINK", TY_MULTILINK, 0, 0, FALSE },
-    { "CALLBACK", TY_CALLBACK, 0, 0, FALSE },
+    { "CALLBACK", TY_CALLBACK, 1, 255, TRUE },
     { "CONNECTTIME", TY_CONNECTTIME, 0, 0, FALSE },
     { "COMPFRAME", TY_COMPFRAME, 0, 0, FALSE },
     { "NDS", TY_NDS, 0, 0, FALSE },
@@ -216,6 +216,10 @@ LcpConfigure(Fsm fp)
   lcp->peer_magic = 0;
   lcp->want_magic = Enabled(&lnk->conf.options,
 	LINK_CONF_MAGICNUM) ? GenerateMagic() : 0;
+  if (lnk->originate == LINK_ORIGINATE_LOCAL)
+    lcp->want_callback = Enabled(&lnk->conf.options, LINK_CONF_CALLBACK);
+  else
+    lcp->want_callback = FALSE;
 
   /* Authentication stuff */
   lcp->peer_auth = 0;
