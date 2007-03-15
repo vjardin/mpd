@@ -18,6 +18,8 @@
 	  </item>
 	  <item> Added workaround for Windows 2000 PPPoE MRU negotiation bug.
 	  </item>
+	  <item> Implemented minimal client side of auth-driven callback (w/o number specification).
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
@@ -38,6 +40,8 @@
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fixed thread-safety related crash in accounting.
+	  </item>
+	  <item> Fixed assertion in PPTP on control connection fail while answering.
 	  </item>
 	</itemize>
 	</item>
