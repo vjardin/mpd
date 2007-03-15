@@ -31,7 +31,7 @@
 	  </item>
 	  <item> Auth subsystem refactored to avoid incorrect cross-level dependencies.
 	  </item>
-	  <item> Physival device level refactored to remove link and bundle levels dependencies.
+	  <item> Physical device level refactored to remove link and bundle levels dependencies.
 	  </item>
 	</itemize>
 	</item>
