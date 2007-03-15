@@ -789,7 +789,7 @@ WriteMbuf(Mbuf *mp, int fd, const char *label)
     Mbuf	const bp = *mp;
     int		nw;
 
-    if ((nw = write(fd, MBDATA(bp), MBLEN(bp))) < 0)
+    if ((nw = write(fd, MBDATAU(bp), MBLEN(bp))) < 0)
     {
       if (errno == EAGAIN)
 	return(0);

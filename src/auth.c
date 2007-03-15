@@ -421,7 +421,7 @@ AuthInput(int proto, Mbuf bp)
     return;
   }
 
-  pkt = MBDATA(bp);
+  pkt = MBDATAU(bp);
 
   auth->id = fsmh.id;
   auth->code = fsmh.code;
@@ -480,7 +480,7 @@ AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
     memcpy(MBDATAU(bp) + sizeof(lh), &eap_type, 1);
 
   if (add_len)
-    *(MBDATA(bp) + sizeof(lh)) = (u_char)len;
+    *(MBDATAU(bp) + sizeof(lh)) = (u_char)len;
 
   if (proto == PROTO_EAP) {
     memcpy(MBDATAU(bp) + sizeof(lh) + add_len + 1, ptr, len);

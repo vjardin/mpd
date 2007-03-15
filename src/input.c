@@ -265,7 +265,7 @@ InputMPLinkCheck(int proto, Mbuf pkt)
 	case CODE_ECHOREQ:
 	  Log(LG_ECHO, ("[%s] rec'd %s #%d, replying...",
 	    bund->name, FsmCodeName(hdr.code), hdr.id));
-	  MBDATA(pkt)[0] = CODE_ECHOREP;
+	  MBDATAU(pkt)[0] = CODE_ECHOREP;
 	  NgFuncWritePppFrame(NG_PPP_BUNDLE_LINKNUM, PROTO_LCP, pkt);
 	  break;
 

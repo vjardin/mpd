@@ -569,7 +569,10 @@ NgFuncWriteFrame(const char *label, const char *hookname, Mbuf bp)
 
   /* Write frame */
   bp = mbunify(bp);
-  rtn = sendto(bund->dsock, MBDATA(bp), MBLEN(bp),
+  if (bp == NULL)  
+    return (-1);
+
+  rtn = sendto(bund->dsock, MBDATAU(bp), MBLEN(bp),
     0, (struct sockaddr *)ng, ng->sg_len);
 
   /* ENOBUFS can be expected on some links, e.g., ng_pptpgre(4) */
@@ -578,7 +581,7 @@ NgFuncWriteFrame(const char *label, const char *hookname, Mbuf bp)
       label, MBLEN(bp), hookname, strerror(errno)));
   }
   PFREE(bp);
-  return rtn;
+  return (rtn);
 }
 
 /*

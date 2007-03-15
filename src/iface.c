@@ -1467,10 +1467,13 @@ IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
   uint16_t	*mss;
   u_char	*opt;
 
-  iphdr = (struct ip *)MBDATA(pkt);
+  if (pkt == NULL)
+    return;
+
+  iphdr = (struct ip *)MBDATAU(pkt);
   hlen = iphdr->ip_hl << 2;
   pktlen = plength(pkt) - hlen;
-  tc = (struct tcphdr *)(MBDATA(pkt) + hlen);
+  tc = (struct tcphdr *)(MBDATAU(pkt) + hlen);
   hlen = tc->th_off << 2;
 
   /* Invalid header length or header without options. */
