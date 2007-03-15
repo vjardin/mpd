@@ -1149,7 +1149,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case TY_CALLBACK:			/* Callback */
-	Log(LG_LCP, (" %s", oi->name));
+	Log(LG_LCP, (" %s %d", oi->name, opt->data[0]));
 	switch (mode) {
 	  case MODE_REQ:	/* we only support peer calling us back */
 	    FsmRej(fp, opt);
