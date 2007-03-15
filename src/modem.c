@@ -455,7 +455,7 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
   }
 
   /* See what script wants us to do now by checking variable $IdleResult */
-  if ((idleResult = ModemGetVar(p, CHAT_VAR_IDLE_RESULT)) == NULL) {
+  if ((idleResult = ChatGetVar(m->chat, CHAT_VAR_IDLE_RESULT)) == NULL) {
     Log(LG_ERR, ("[%s] idle script succeeded, but %s not defined",
       p->name, CHAT_VAR_IDLE_RESULT));
     ModemDoClose(p, FALSE);
@@ -933,6 +933,7 @@ ModemStat(PhysInfo p)
 {
   ModemInfo		const m = (ModemInfo) p->info;
   struct ng_async_stat	stats;
+  const char		*cspeed;
 
   Printf("Modem info:\r\n");
   Printf("\tDevice       : %s\r\n", m->device);
@@ -948,6 +949,12 @@ ModemStat(PhysInfo p)
     if (p->state != PHYS_STATE_DOWN) {
 	Printf("\tOpened       : %s\r\n", (m->opened?"YES":"NO"));
 	Printf("\tIncoming     : %s\r\n", (m->originated?"NO":"YES"));
+
+	/* Set modem's reported connection speed (if any) as the link bandwidth */
+	if ((cspeed = ChatGetVar(m->chat, CHAT_VAR_CONNECT_SPEED)) != NULL) {
+	    Printf("\tConnect speed: %s baud\r\n", cspeed);
+	    Freee(MB_CHAT, cspeed);
+	}
 
 	if (p->state == PHYS_STATE_UP && 
     		ModemGetNgStats(p, &stats) >= 0) {
