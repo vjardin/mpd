@@ -265,10 +265,8 @@ Default <tt><bf>disable</bf></tt>.
 
 <tag><tt>callback</tt></tag>
 
-Enables PPP callback. If the remote peer wants to, we will hangup
-immediately after connecting and wait to be called back.
-
-This option is currently unimplemented.
+Enables PPP callback request. If the remote peer can/wants to, it will 
+hangup immediately after connecting and call us back.
 
 Default <tt><bf>disable</bf></tt>.
 
