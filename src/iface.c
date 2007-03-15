@@ -1716,7 +1716,9 @@ IfaceSetupNAT(Bund b)
     	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &b->iface.self_addr.addr.u.ip4, sizeof(b->iface.self_addr.addr.u.ip4)) < 0) {
 	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
     	    b->name, strerror(errno)));
+	return (-1);
     }
+    return (0);
 }
 
 static void
@@ -2156,7 +2158,7 @@ IfaceSetupLimits(Bund b)
     int			ac;
     char		*av[ACL_MAX_PARAMS];
     int			num, dir;
-    int			i, p, np;
+    int			i, p;
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 
@@ -2277,7 +2279,6 @@ IfaceSetupLimits(Bund b)
 		    }
 		
 		    p = 1;
-		    np = p + 1;
 		    if (strcasecmp(av[p], "pass") == 0) {
 			strcpy(hp->ifMatch, outhook);
 			strcpy(inhookn[0], "");
@@ -2322,15 +2323,23 @@ IfaceSetupLimits(Bund b)
 			}
 			
 			bzero(&car, sizeof(car));
-			if ((ac > p + 1) && (av[p + 1][0] >= '0') && (av[p + 1][0] <= '9')) {
-			    car.upstream.cir = atol(av[p + 1]);
-			    np++;
-			    if ((ac > p + 2) && (av[p + 2][0] >= '0') && (av[p + 2][0] <= '9')) {
-				car.upstream.cbs = atol(av[p + 2]);
-				np++;
-				if ((ac > p + 3) && (av[p + 3][0] >= '0') && (av[p + 3][0] <= '9')) {
-				    car.upstream.ebs = atol(av[p + 3]);
-				    np++;
+			
+			if (strcasecmp(av[p], "shape") == 0) {
+			    car.upstream.mode = NG_CAR_SHAPE;
+			} else {
+			    car.upstream.mode = NG_CAR_RED;
+			}
+			p++;
+
+			if ((ac > p) && (av[p][0] >= '0') && (av[p][0] <= '9')) {
+			    car.upstream.cir = atol(av[p]);
+			    p++;
+			    if ((ac > p) && (av[p][0] >= '0') && (av[p][0] <= '9')) {
+				car.upstream.cbs = atol(av[p]);
+				p++;
+				if ((ac > p) && (av[p][0] >= '0') && (av[p][0] <= '9')) {
+				    car.upstream.ebs = atol(av[p]);
+				    p++;
 				} else {
 				    car.upstream.ebs = car.upstream.cbs * 2;
 				}
@@ -2347,12 +2356,6 @@ IfaceSetupLimits(Bund b)
 			car.upstream.yellow_action = NG_CAR_ACTION_FORWARD;
 			car.upstream.red_action = NG_CAR_ACTION_DROP;
 			
-			if (strcasecmp(av[p], "shape") == 0) {
-			    car.upstream.mode = NG_CAR_SHAPE;
-			} else {
-			    car.upstream.mode = NG_CAR_RED;
-			}
-			
 			car.downstream = car.upstream;
 						
 			if (NgSendMsg(b->csock, tmppath,
@@ -2361,7 +2364,6 @@ IfaceSetupLimits(Bund b)
 		    		b->name, NG_CAR_NODE_TYPE, strerror(errno)));
 			}
 			
-			p = np;
 			if (ac > p) {
 			    if (strcasecmp(av[p], "pass") == 0) {
 				memset(&u1, 0, sizeof(u1));
