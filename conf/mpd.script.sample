@@ -1230,6 +1230,7 @@ AdtranXRTCheckDirnos:
 ## Returns:
 ##
 ##  $answerReturn	"OK" or "FAIL"
+##  $ConnectionSpeed	Connection speed reported by modem (possibly empty)
 ##
 
 ModemAnswer:
