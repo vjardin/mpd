@@ -1243,12 +1243,13 @@ ModemAnswer:
 ModemAnswerGotRing:
 	log "Incoming call detected..."
 	print "ATA\r\n"
-	match "CONNECT" ModemAnswerConnect
+	regex "CONNECT *([0-9]*).*$" ModemAnswerConnect
 	wait $ConnectTimeout
 	log "Failed to connect incoming call."
 	set $answerReturn "FAIL"
 	return
 ModemAnswerConnect:
+	set $ConnectionSpeed $matchedString1
 	set $answerReturn "OK"
 	return
 
