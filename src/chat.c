@@ -478,7 +478,8 @@ die:
       int	numPop;
 
       ChatDumpReadBuf(c);
-      (*c->log)(c->arg, CHAT_LG_DEBUG, "matched set \"%s\"", match->set);
+      (*c->log)(c->arg, CHAT_LG_DEBUG, "matched set \"%s\", goto label \"%s\"", 
+    	    match->set, match->label);
       numPop = match->frameDepth;
       snprintf(label, sizeof(label), "%s", match->label);
       ChatCancel(c, match->set);
