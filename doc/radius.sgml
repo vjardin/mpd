@@ -102,7 +102,7 @@ Mpd can use the Access Control Lists (ACLs) taken from the RADIUS server.
 This ACLs may include ipfw rules, pipes, queues and tables and also mpd
 internal traffic filtering/shaping/limiting features. That two sets are 
 redundant. ipfw proposed as standard and universal solution, while internal
-filter expected to work faster with big number of active links.
+filter/shaper/limiter expected to work faster with big number of active links.
 
 To use this feature you should add to your RADIUS server such dictionary:
 <verb>#----------------------------------------------------------
