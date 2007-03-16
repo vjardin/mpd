@@ -43,6 +43,8 @@
 	  </item>
 	  <item> Fixed assertion in PPTP on control connection fail while answering.
 	  </item>
+	  <item> Fixed assertion in L2TP on control message sending failure.
+	  </item>
 	  <item> Fixed broken L2TP outcall mode.
 	  </item>
 	  <item> Updated chat scripts to detect incoming modem calls speed.
