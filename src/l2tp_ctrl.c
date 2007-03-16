@@ -641,8 +641,8 @@ ppp_l2tp_ctrl_initiate(struct ppp_l2tp_ctrl *ctrl)
 	Log(LOG_DEBUG, ("%s: invoked", __FUNCTION__));
 
 	/* Initiate connection, we're the initiator */
-	ppp_l2tp_ctrl_send(ctrl, 0, SCCRQ, ctrl->avps);
 	ctrl->state = CS_WAIT_CTL_REPLY;
+	ppp_l2tp_ctrl_send(ctrl, 0, SCCRQ, ctrl->avps);
 
 	/* Expect some sort of reply */
 	ppp_l2tp_ctrl_check_reply(ctrl);
@@ -1971,8 +1971,8 @@ ok:
 		return (-1);
 
 	/* Send response and update state */
-	ppp_l2tp_ctrl_send(ctrl, 0, SCCRP, ctrl->avps);
 	ctrl->state = CS_WAIT_CTL_CONNECT;
+	ppp_l2tp_ctrl_send(ctrl, 0, SCCRP, ctrl->avps);
 	return (0);
 }
 
@@ -1987,8 +1987,8 @@ ppp_l2tp_handle_SCCRP(struct ppp_l2tp_ctrl *ctrl,
 		return (-1);
 
 	/* Send response and update state */
-	ppp_l2tp_ctrl_send(ctrl, 0, SCCCN, ctrl->avps);
 	ctrl->state = CS_ESTABLISHED;
+	ppp_l2tp_ctrl_send(ctrl, 0, SCCCN, ctrl->avps);
 	if (*ctrl->cb->ctrl_connected != NULL)
 	    (*ctrl->cb->ctrl_connected)(ctrl);
 	return (0);
