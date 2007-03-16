@@ -75,6 +75,7 @@
     } conf;
     u_char		opened:1;	/* PPPoE opened by phys */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
+    u_char		outcall:1;	/* incall or outcall */
     char		callingnum[64];	/* current L2TP phone number */
     char		callednum[64];	/* current L2TP phone number */
     struct l2tp_server	*server;	/* server associated with link */
@@ -264,6 +265,7 @@ L2tpOpen(PhysInfo p)
 	int csock = -1;
 	int dsock = -1;
 	struct ghash_walk walk;
+	u_int32_t       cap;
 
 	pi->opened=1;
 	
@@ -271,6 +273,8 @@ L2tpOpen(PhysInfo p)
 		Log(LG_PHYS2, ("[%s] L2tpOpen() on incoming call", p->name));
 		if (p->state==PHYS_STATE_READY) {
 		    p->state = PHYS_STATE_UP;
+		    if (pi->outcall)
+			ppp_l2tp_connected(pi->sess, NULL);
 		    L2tpHookUpIncoming(p);
 		    PhysUp(p);
 		}
@@ -320,6 +324,14 @@ L2tpOpen(PhysInfo p)
 				    p->name, strerror(errno)));
 			  }
 			 }
+			 if (Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)) {
+			    u_int32_t	brr = htonl(L2TP_BEARER_ANALOG);
+			    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_TYPE,
+				    &brr, sizeof(brr)) == -1) {
+				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+				    p->name, strerror(errno)));
+			    }
+			 }
 			}
 			if ((sess = ppp_l2tp_initiate(tun->ctrl, 
 				Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0,
@@ -335,8 +347,10 @@ L2tpOpen(PhysInfo p)
 			ppp_l2tp_avp_list_destroy(&avps);
 			Log(LG_PHYS, ("[%s] L2TP: Call %p initiated", p->name, sess));
 			pi->sess = sess;
+			pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 			ppp_l2tp_sess_set_cookie(sess, p);
-			ppp_l2tp_connected(sess, NULL);
+			if (!pi->outcall)
+			    ppp_l2tp_connected(sess, NULL);
 		    } /* Else wait while it will be connected */
 		    return;
 	    }
@@ -367,6 +381,12 @@ L2tpOpen(PhysInfo p)
 	    MPD_VENDOR, strlen(MPD_VENDOR)) == -1) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 		    p->name, strerror(errno)));
+		goto fail;
+	}
+	cap = htonl(L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG);
+	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
+	    &cap, sizeof(cap)) == -1) {
+		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
 		goto fail;
 	}
 
@@ -498,6 +518,7 @@ L2tpClose(PhysInfo p)
 
     pi->opened = 0;
     pi->incoming = 0;
+    pi->outcall = 0;
     if (p->state == PHYS_STATE_DOWN)
     	return;
     PhysDown(p, 0, NULL);
@@ -716,6 +737,14 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			    p->name, strerror(errno)));
 		   }
 		  }
+		  if (Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)) {
+		    u_int32_t	brr = htonl(L2TP_BEARER_ANALOG);
+		    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_TYPE,
+			    &brr, sizeof(brr)) == -1) {
+			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+			    p->name, strerror(errno)));
+		    }
+		  }
 		}
 		if ((sess = ppp_l2tp_initiate(tun->ctrl,
 			    Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0, 
@@ -729,8 +758,10 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 		ppp_l2tp_avp_list_destroy(&avps);
 		Log(LG_PHYS, ("[%s] L2TP: call %p initiated", p->name, sess));
 		pi->sess = sess;
+		pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 		ppp_l2tp_sess_set_cookie(sess, p);
-		ppp_l2tp_connected(sess, NULL);
+		if (!pi->outcall)
+		    ppp_l2tp_connected(sess, NULL);
 	};
 }
 
@@ -835,8 +866,12 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		Log(LG_PHYS, ("[%s] L2TP: %s call %p via control connection %p accepted", 
 		    p->name, (out?"Outgoing":"Incoming"), sess, ctrl));
 
-		p->state = PHYS_STATE_CONNECTING;
+		if (out)
+		    p->state = PHYS_STATE_READY;
+		else
+		    p->state = PHYS_STATE_CONNECTING;
 		pi->incoming = 1;
+		pi->outcall = out;
 		pi->tun = tun;
 		pi->sess = sess;
 		if (ptrs->callingnum->number)
@@ -847,8 +882,6 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		PhysIncoming(p);
 
 		ppp_l2tp_sess_set_cookie(sess, p);
-		if (out)
-		    ppp_l2tp_connected(sess, NULL);
 		ppp_l2tp_avp_ptrs_destroy(&ptrs);
 		return;
 	}
@@ -942,7 +975,7 @@ L2tpHookUpIncoming(PhysInfo p)
 
 	/* Connect our ng_ppp(4) node link hook and ng_l2tp(4) node. */
 	if (!PhysGetUpperHook(p, cn.path, cn.peerhook)) {
-	    Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", p->name));
+	    Log(LG_PHYS, ("[%s] L2TP: can't get upper hook", p->name));
 	    goto fail;
 	}
 	snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
@@ -993,6 +1026,7 @@ L2tpServerEvent(int type, void *arg)
 	int csock = -1;
 	int dsock = -1;
 	int len;
+	u_int32_t	cap;
 
 	/* Allocate buffer */
 	if ((buf = Malloc(MB_PHYS, bufsize)) == NULL) {
@@ -1036,6 +1070,12 @@ L2tpServerEvent(int type, void *arg)
 	}
 	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
 	    MPD_VENDOR, strlen(MPD_VENDOR)) == -1) {
+		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
+		goto fail;
+	}
+	cap = htonl(L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG);
+	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
+	    &cap, sizeof(cap)) == -1) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
 		goto fail;
 	}

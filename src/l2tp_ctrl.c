@@ -1418,11 +1418,13 @@ ppp_l2tp_sess_setup(struct ppp_l2tp_sess *sess)
 	char path[64];
 
 	/* If link side is waiting for confirmation, schedule it */
-	pevent_unregister(&sess->notify_timer);
-	if (pevent_register(ctrl->ctx, &sess->notify_timer, 0,
-	    ctrl->mutex, ppp_l2tp_sess_notify, sess, PEVENT_TIME, 0) == -1) {
-		Log(LOG_ERR, ("error starting notify timer: %s", strerror(errno)));
-		goto fail;
+	if (sess->side == SIDE_LNS || sess->orig == ORIG_LOCAL) {
+		pevent_unregister(&sess->notify_timer);
+		if (pevent_register(ctrl->ctx, &sess->notify_timer, 0,
+		    ctrl->mutex, ppp_l2tp_sess_notify, sess, PEVENT_TIME, 0) == -1) {
+			Log(LOG_ERR, ("error starting notify timer: %s", strerror(errno)));
+			goto fail;
+		}
 	}
 
 	/* Attach a 'tee' node so l2tp node never sees hook disconnect */
