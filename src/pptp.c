@@ -242,7 +242,7 @@ PptpOpen(PhysInfo p)
       if (!pptp->incoming) {
 
 	/* Hook up nodes */
-	Log(LG_PHYS, ("[%s] attaching to peer's outgoing call", p->name));
+	Log(LG_PHYS, ("[%s] PPTP: attaching to peer's outgoing call", p->name));
 	if (PptpHookUp(p) < 0) {
 	  PptpDoClose(p);	/* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
@@ -593,13 +593,13 @@ PptpHookUp(PhysInfo p)
   u_addrtosockaddr(&u_peer_addr, 0, &peer_addr);
 
     if (!PhysGetUpperHook(p, path, hook)) {
-        Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", p->name));
+        Log(LG_PHYS, ("[%s] PPTP: can't get upper hook", p->name));
         return(-1);
     }
     
     /* Get a temporary netgraph socket node */
     if (NgMkSockNode(NULL, &csock, NULL) == -1) {
-	Log(LG_ERR, ("L2TP: NgMkSockNode: %s", strerror(errno)));
+	Log(LG_ERR, ("PPTP: NgMkSockNode: %s", strerror(errno)));
 	return(-1);
     }
 
@@ -610,7 +610,7 @@ PptpHookUp(PhysInfo p)
     "%s", NG_PPTPGRE_HOOK_UPPER);
   if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-    Log(LG_ERR, ("[%s] can't attach %s node: %s",
+    Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
       p->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
     close(csock);
     return(-1);
@@ -636,7 +636,7 @@ PptpHookUp(PhysInfo p)
   }
   if (NgSendMsg(csock, pptppath, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-    Log(LG_ERR, ("[%s] can't attach %s node: %s",
+    Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
       p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     close(csock);
     return(-1);
@@ -650,14 +650,14 @@ PptpHookUp(PhysInfo p)
     ((int *)(ksso->value))[0]=48*1024;
     if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
 	NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
-	    Log(LG_ERR, ("[%s] can't setsockopt %s node: %s",
+	    Log(LG_ERR, ("[%s] PPTP: can't setsockopt %s node: %s",
 		p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     }
 
   /* Bind ksocket socket to local IP address */
   if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_BIND, &self_addr, self_addr.ss_len) < 0) {
-    Log(LG_ERR, ("[%s] can't bind() %s node: %s",
+    Log(LG_ERR, ("[%s] PPTP: can't bind() %s node: %s",
       p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     close(csock);
     return(-1);
@@ -667,7 +667,7 @@ PptpHookUp(PhysInfo p)
   if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
       NGM_KSOCKET_CONNECT, &peer_addr, peer_addr.ss_len) < 0
       && errno != EINPROGRESS) {	/* happens in -current (weird) */
-    Log(LG_ERR, ("[%s] can't connect() %s node: %s",
+    Log(LG_ERR, ("[%s] PPTP: can't connect() %s node: %s",
       p->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
     close(csock);
     return(-1);
@@ -685,7 +685,7 @@ PptpHookUp(PhysInfo p)
 
   if (NgSendMsg(csock, pptppath, NGM_PPTPGRE_COOKIE,
       NGM_PPTPGRE_SET_CONFIG, &gc, sizeof(gc)) < 0) {
-    Log(LG_ERR, ("[%s] can't config %s node: %s",
+    Log(LG_ERR, ("[%s] PPTP: can't config %s node: %s",
       p->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
     close(csock);
     return(-1);
