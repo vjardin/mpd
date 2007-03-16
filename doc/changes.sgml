@@ -12,9 +12,9 @@
 	<itemize>
 	  <item> Implemented link repeater functionality (aka LAC/PAC). New "phys" and "repeater" layers added.
 	  </item>
-	  <item> Implemented traffic filtering with ng_bpf.
+	  <item> Implemented traffic filtering using ng_bpf.
 	  </item>
-	  <item> Implemented traffic shaping/rate-limiting with ng_car.
+	  <item> Implemented fast traffic shaping/rate-limiting using ng_car.
 	  </item>
 	  <item> Added workaround for Windows 2000 PPPoE MRU negotiation bug.
 	  </item>
@@ -42,6 +42,10 @@
 	  <item> Fixed thread-safety related crash in accounting.
 	  </item>
 	  <item> Fixed assertion in PPTP on control connection fail while answering.
+	  </item>
+	  <item> Fixed broken L2TP outcall mode.
+	  </item>
+	  <item> Updated chat scripts to detect incoming modem calls speed.
 	  </item>
 	</itemize>
 	</item>
