@@ -25,8 +25,20 @@
   has IP protocol number 47. Your firewall may need to be adjusted
   to allows this type of IP packet.
 
-  Currently, mpd will not allow you to create a bundle containing
-  more than one PPTP link.
+  Complete PPTP network topology looks like:
+<verb>
+client <- some link type -> PAC <- PPTP tunnel -> PNS
+</verb>
+
+  PAC is physical level repeater, which receives PPP connection of some 
+  type and forwards it to PNS using PPTP protocol. PNS is ppp endpoint, 
+  which receives ppp frames via PPTP tunnel and processes them.
+
+  In simple case, when physical conversion is not required, topology 
+  can be simplified to:
+<verb>
+client (PAC emulator) <- PPTP tunnel -> PNS
+</verb>
 
 <descrip>
 
@@ -100,14 +112,14 @@ If this option is disabled, mpd will not accept any incoming connections.
 In PPTP, each individual PPP connection between two IP hosts (there
 may be several, and these are not to be confused with the
 <em>single</em> TCP connection between any two IP hosts), is
-initiated as either an incoming or an outgoing call. This is to
-allow, for example, making an actual outgoing telephone call via
-a remote access server, as well as the more common use of forwarding
-of an incoming telephone call from an access server to a remote
-PPTP server.
+initiated as either an incoming or an outgoing call. 
+This is to allow, for example, making an outgoing telephone call (by PNS) 
+via a remote access server (PAC), as well as the more common use of forwarding
+of an incoming telephone call from an access server (PAC) to a remote
+L2TP server (PNS).
 
-When this option is enabled, mpd will initiate outgoing calls;
-otherwise mpd will initiate incoming calls. Although it seems that
+When this option is enabled, mpd will initiate outgoing calls (PNS);
+otherwise mpd will initiate incoming calls (PAC). Although it seems that
 incoming would be more correct, the default is outgoing, as this
 is consistent with the behavior of the Microsoft PPTP dial-up adapter
 client.

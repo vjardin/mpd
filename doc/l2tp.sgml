@@ -16,7 +16,22 @@
   One or more independent PPP connections (sessions) can be 
   carried inside this tunnel.
 
-  Windows client uses IPSec encryption for the additional tunnel 
+  Complete L2TP network topology looks like:
+<verb>
+client <- some link type -> LAC <- L2TP tunnel -> LNS
+</verb>
+
+  LAC is physical level repeater, which receives PPP connection of some 
+  type and forwards it to LNS using L2TP protocol. LNS is ppp endpoint, 
+  which receives ppp frames via L2TP tunnel and processes them.
+
+  In simple case, when physical conversion is not required, topology 
+  can be simplified to:
+<verb>
+client (LAC emulator) <- L2TP tunnel -> LNS
+</verb>
+
+  Windows L2TP client uses IPSec encryption for the additional tunnel 
   security. So, to let it connect you must configure IPSec on your 
   MPD router or disable IPSec on Windows by setting registry 
   DWORD value ProhibitIpSec at the key
@@ -85,15 +100,15 @@ If this option is disabled, mpd will not accept any incoming connections.
 
 <tag><tt>outcall</tt></tag>
 
-In L2TP, each individual PPP connection between two IP hosts (there
-may be several), is initiated as either an incoming or an outgoing call. 
-This is to allow, for example, making an actual outgoing telephone call via
-a remote access server, as well as the more common use of forwarding
-of an incoming telephone call from an access server to a remote
-L2TP server.
+Inside L2TP tunnel, each individual PPP connection (there may be several), 
+is initiated as either an incoming or an outgoing call. 
+This is to allow, for example, making an outgoing telephone call (by LNS) 
+via a remote access server (LAC), as well as the more common use of forwarding
+of an incoming telephone call from an access server (LAC) to a remote
+L2TP server (LNS).
 
-When this option is enabled, mpd will initiate outgoing calls;
-otherwise mpd will initiate incoming calls.
+When this option is enabled, mpd will initiate outgoing calls (LNS);
+otherwise mpd will initiate incoming calls (LAC).
 
 </descrip>
 
