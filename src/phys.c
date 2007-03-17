@@ -43,11 +43,6 @@
  * DEFINITIONS
  */
 
-  struct downmsg {
-    const char	*reason;
-    char	buf[256];
-  };
-
   /* Set menu options */
   enum {
     SET_DEVTYPE,
@@ -150,7 +145,7 @@ PhysOpenCmd(void)
 void
 PhysOpen(PhysInfo p)
 {
-  MsgSend(p->msgs, MSG_OPEN, NULL);
+  MsgSend(p->msgs, MSG_OPEN, p);
 }
 
 /*
@@ -170,7 +165,7 @@ PhysCloseCmd(void)
 void
 PhysClose(PhysInfo p)
 {
-  MsgSend(p->msgs, MSG_CLOSE, NULL);
+  MsgSend(p->msgs, MSG_CLOSE, p);
 }
 
 /*
@@ -180,7 +175,7 @@ PhysClose(PhysInfo p)
 void
 PhysUp(PhysInfo p)
 {
-  MsgSend(p->msgs, MSG_UP, NULL);
+  MsgSend(p->msgs, MSG_UP, p);
 }
 
 /*
@@ -190,17 +185,21 @@ PhysUp(PhysInfo p)
 void
 PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 {
-  struct downmsg	*dm = Malloc(MB_PHYS, sizeof(*dm));
-  va_list		args;
-
-  p->lastClose = time(NULL); /* dirty hack to avoid race condition */
-  dm->reason = reason;
-  if (details) {
-    va_start(args, details);
-    vsnprintf(dm->buf, sizeof(dm->buf), details, args);
-    va_end(args);
-  }
-  MsgSend(p->msgs, MSG_DOWN, dm);
+    p->lastClose = time(NULL); /* dirty hack to avoid race condition */
+    if (p->link) {
+	if (details) {
+	    va_list	args;
+	    char	buf[256];
+	    
+	    va_start(args, details);
+	    vsnprintf(buf, sizeof(buf), details, args);
+	    va_end(args);
+	    RecordLinkUpDownReason(p->link, 0, reason, buf);
+	} else {
+	    RecordLinkUpDownReason(p->link, 0, reason, NULL);
+	}
+    }
+    MsgSend(p->msgs, MSG_DOWN, p);
 }
 
 /*
@@ -424,7 +423,7 @@ PhysSetDeviceType(char *typename)
 static void
 PhysMsg(int type, void *arg)
 {
-  PhysInfo	const p = phys;
+  PhysInfo	const p = (PhysInfo)arg;
   time_t	const now = time(NULL);
 
   Log(LG_PHYS2, ("[%s] device: %s event",
@@ -435,60 +434,48 @@ PhysMsg(int type, void *arg)
   }
   switch (type) {
     case MSG_OPEN:
-      if (p->link)
-        p->link->downReasonValid=0;
-      p->want_open = TRUE;
-      if (now - p->lastClose < p->type->minReopenDelay) {
-	if (TimerRemain(&p->openTimer) < 0) {
-	  int	delay = p->type->minReopenDelay - (now - p->lastClose);
+        if (p->link)
+    	    p->link->downReasonValid=0;
+        p->want_open = TRUE;
+        if (now - p->lastClose < p->type->minReopenDelay) {
+	    if (TimerRemain(&p->openTimer) < 0) {
+		int	delay = p->type->minReopenDelay - (now - p->lastClose);
 
-	  if ((random() ^ gPid ^ time(NULL)) & 1)
-		delay++;
-	  Log(LG_PHYS, ("[%s] pausing %d seconds before open",
-	    p->name, delay));
-	  TimerStop(&p->openTimer);
-	  TimerInit(&p->openTimer, "PhysOpen",
-	    delay * SECONDS, PhysOpenTimeout, p);
-	  TimerStart(&p->openTimer);
-	}
-	break;
-      }
-      TimerStop(&p->openTimer);
-      (*p->type->open)(p);
-      break;
+		if ((random() ^ gPid ^ time(NULL)) & 1)
+		    delay++;
+		Log(LG_PHYS, ("[%s] pausing %d seconds before open",
+		    p->name, delay));
+		TimerStop(&p->openTimer);
+		TimerInit(&p->openTimer, "PhysOpen",
+		    delay * SECONDS, PhysOpenTimeout, p);
+		TimerStart(&p->openTimer);
+	    }
+	    break;
+        }
+        TimerStop(&p->openTimer);
+        (*p->type->open)(p);
+        break;
     case MSG_CLOSE:
-      p->want_open = FALSE;
-      TimerStop(&p->openTimer);
-      (*p->type->close)(p);
-      break;
+        p->want_open = FALSE;
+        TimerStop(&p->openTimer);
+        (*p->type->close)(p);
+        break;
     case MSG_DOWN:
-      {
-	struct downmsg	*const dm = (struct downmsg *) arg;
-
 	p->lastClose = now;
 	if (p->link) {
     	    p->link->upReasonValid=0;
-	    if (*dm->buf) {
-		SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_COPY, dm->buf);
-		RecordLinkUpDownReason(p->link, 0, dm->reason, dm->buf);
-	    } else {
-		SetStatus(ADLG_WAN_CONNECT_FAILURE, STR_CON_FAILED0);
-		RecordLinkUpDownReason(p->link, 0, dm->reason, NULL);
-	    }
 	    LinkDown(p->link);
 	} else if (p->rep) {
 	    RepDown(p);
 	}
-	Freee(MB_PHYS, dm);
-      }
-      break;
+        break;
     case MSG_UP:
 	if (p->link) {
     	    LinkUp(p->link);
 	} else if (p->rep) {
 	    RepUp(p);
 	}
-      break;
+        break;
   }
 }
 

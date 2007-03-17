@@ -152,7 +152,7 @@
 void
 BundOpen(void)
 {
-  MsgSend(bund->msgs, MSG_OPEN, NULL);
+  MsgSend(bund->msgs, MSG_OPEN, bund);
 }
 
 /*
@@ -162,7 +162,7 @@ BundOpen(void)
 void
 BundClose(void)
 {
-  MsgSend(bund->msgs, MSG_CLOSE, NULL);
+  MsgSend(bund->msgs, MSG_CLOSE, bund);
 }
 
 /*
@@ -379,7 +379,7 @@ BundReOpenLinks(void *arg)
     Bund b = (Bund)arg;
     
   Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening in %d seconds", bund->name, BUND_REOPEN_PAUSE));
-  BundCloseLinks();
+  BundCloseLinks(b);
   TimerStop(&b->reOpenTimer);
   TimerInit(&b->reOpenTimer, "BundOpen",
     BUND_REOPEN_PAUSE * SECONDS, (void (*)(void *)) BundOpenLinks, b);
@@ -411,17 +411,19 @@ BundLinkGaveUp(void)
 static void
 BundMsg(int type, void *arg)
 {
+    Bund	b = (Bund)arg;
+
   Log(LG_BUND, ("[%s] bundle: %s event in state %s",
-    bund->name, MsgName(type), bund->open ? "OPENED" : "CLOSED"));
-  TimerStop(&bund->reOpenTimer);
+    b->name, MsgName(type), b->open ? "OPENED" : "CLOSED"));
+  TimerStop(&b->reOpenTimer);
   switch (type) {
     case MSG_OPEN:
-      bund->open = TRUE;
+      b->open = TRUE;
       break;
 
     case MSG_CLOSE:
-      bund->open = FALSE;
-      BundCloseLinks();
+      b->open = FALSE;
+      BundCloseLinks(b);
       break;
 
     default:
@@ -470,15 +472,15 @@ BundOpenLink(Link l)
  */
 
 void
-BundCloseLinks(void)
+BundCloseLinks(Bund b)
 {
   int	k;
 
-  TimerStop(&bund->reOpenTimer);
-  for (k = 0; k < bund->n_links; k++)
-    if (OPEN_STATE(bund->links[k]->lcp.fsm.state))
-      BundCloseLink(bund->links[k]);
-  bund->bm.links_open = 0;
+  TimerStop(&b->reOpenTimer);
+  for (k = 0; k < b->n_links; k++)
+    if (OPEN_STATE(b->links[k]->lcp.fsm.state))
+      BundCloseLink(b->links[k]);
+  b->bm.links_open = 0;
 }
 
 /*
@@ -539,7 +541,7 @@ BundNcpsFinish(int proto)
     if (!bund->ncpstarted) {
 	Log(LG_BUND, ("[%s] No NCPs left. Closing links...", bund->name));
 	RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, NULL);
-	BundCloseLinks(); /* We have nothing to live for */
+	BundCloseLinks(bund); /* We have nothing to live for */
     }
 }
 

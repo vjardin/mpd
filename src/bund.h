@@ -198,7 +198,7 @@
   extern void	BundNcpsFinish(int proto);
   extern void	BundLinkGaveUp(void);
   extern void	BundOpenLinks(Bund b);
-  extern void	BundCloseLinks(void);
+  extern void	BundCloseLinks(Bund b);
   extern void	BundOpenLink(Link);
 
   extern void	BundNcpsOpen(void);

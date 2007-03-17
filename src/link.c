@@ -140,7 +140,7 @@ LinkCloseCmd(void)
 void
 LinkOpen(Link l)
 {
-  MsgSend(l->msgs, MSG_OPEN, NULL);
+  MsgSend(l->msgs, MSG_OPEN, l);
 }
 
 /*
@@ -150,7 +150,7 @@ LinkOpen(Link l)
 void
 LinkClose(Link l)
 {
-  MsgSend(l->msgs, MSG_CLOSE, NULL);
+  MsgSend(l->msgs, MSG_CLOSE, l);
 }
 
 /*
@@ -160,7 +160,7 @@ LinkClose(Link l)
 void
 LinkUp(Link l)
 {
-  MsgSend(l->msgs, MSG_UP, NULL);
+  MsgSend(l->msgs, MSG_UP, l);
 }
 
 /*
@@ -170,7 +170,7 @@ LinkUp(Link l)
 void
 LinkDown(Link l)
 {
-  MsgSend(l->msgs, MSG_DOWN, NULL);
+  MsgSend(l->msgs, MSG_DOWN, l);
 }
 
 /*
@@ -182,39 +182,41 @@ LinkDown(Link l)
 static void
 LinkMsg(int type, void *arg)
 {
-  Log(LG_LINK, ("[%s] link: %s event", lnk->name, MsgName(type)));
+    Link	l = (Link)arg;
+
+  Log(LG_LINK, ("[%s] link: %s event", l->name, MsgName(type)));
   switch (type) {
     case MSG_OPEN:
-      lnk->last_open = time(NULL);
-      lnk->num_redial = 0;
+      l->last_open = time(NULL);
+      l->num_redial = 0;
       LcpOpen();
       break;
     case MSG_CLOSE:
       LcpClose();
       break;
     case MSG_UP:
-      lnk->originate = PhysGetOriginate(lnk->phys);
+      l->originate = PhysGetOriginate(l->phys);
       Log(LG_LINK, ("[%s] link: origination is %s",
-	lnk->name, LINK_ORIGINATION(lnk->originate)));
+	l->name, LINK_ORIGINATION(l->originate)));
       LcpUp();
       break;
     case MSG_DOWN:
-      if (OPEN_STATE(lnk->lcp.fsm.state)) {
-	if ((lnk->conf.max_redial != 0) && (lnk->num_redial >= lnk->conf.max_redial)) {
-	  if (lnk->conf.max_redial >= 0)
+      if (OPEN_STATE(l->lcp.fsm.state)) {
+	if ((l->conf.max_redial != 0) && (l->num_redial >= l->conf.max_redial)) {
+	  if (l->conf.max_redial >= 0)
 	    Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
-		lnk->name, lnk->num_redial));
+		l->name, l->num_redial));
 	  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
 	  LcpClose();
           LcpDown();
 	  BundLinkGaveUp();	/* now doing nothing */
 	} else {
-	  lnk->num_redial++;
+	  l->num_redial++;
 	  Log(LG_LINK, ("[%s] link: reconnection attempt %d",
-	    lnk->name, lnk->num_redial));
-	  RecordLinkUpDownReason(lnk, 1, STR_REDIAL, NULL);
+	    l->name, l->num_redial));
+	  RecordLinkUpDownReason(l, 1, STR_REDIAL, NULL);
     	  LcpDown();
-	  PhysOpen(lnk->phys);		/* Try again */
+	  PhysOpen(l->phys);		/* Try again */
 	}
       } else {
         LcpDown();
