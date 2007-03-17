@@ -43,7 +43,6 @@
 
   /* #define DEBUG_BOD */
 
-  #define BUND_MSG_TIMEOUT	3
   #define BUND_REOPEN_DELAY	3	/* wait this long before closing */
   #define BUND_REOPEN_PAUSE	3	/* wait this long before re-opening */
 
@@ -79,7 +78,6 @@
 
   static void	BundBmStart(void);
   static void	BundBmStop(void);
-  static void	BundMsgTimeout(void *arg);
   static void	BundBmTimeout(void *arg);
 
   static Bund	BundFind(char *name);
@@ -291,7 +289,7 @@ BundJoin(void)
     
     /* starting bundle statistics timer */
     TimerInit(&bund->statsUpdateTimer, "BundUpdateStats", 
-	BUND_STATS_UPDATE_INTERVAL, BundUpdateStatsTimer, NULL);
+	BUND_STATS_UPDATE_INTERVAL, BundUpdateStatsTimer, bund);
     TimerStart(&bund->statsUpdateTimer);
     
   }
@@ -300,7 +298,7 @@ BundJoin(void)
 
   /* starting link statistics timer */
   TimerInit(&lnk->statsUpdateTimer, "LinkUpdateStats", 
-    LINK_STATS_UPDATE_INTERVAL, LinkUpdateStatsTimer, NULL);
+    LINK_STATS_UPDATE_INTERVAL, LinkUpdateStatsTimer, lnk);
   TimerStart(&lnk->statsUpdateTimer);
 
   /* Done */
@@ -351,10 +349,13 @@ BundLeave(void)
     /* try to open again later */
     if (bund->open && !Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
 	/* wait BUND_REOPEN_DELAY to see if it comes back up */
-      Log(LG_BUND, ("[%s] Last link has gone and no noretry option, will reopen in %d seconds", bund->name, BUND_REOPEN_DELAY));
+      int delay = BUND_REOPEN_DELAY;
+      delay += ((random() ^ gPid ^ time(NULL)) & 1);
+      Log(LG_BUND, ("[%s] Last link has gone and no noretry option, will reopen in %d seconds", 
+        bund->name, delay));
       TimerStop(&bund->reOpenTimer);
       TimerInit(&bund->reOpenTimer, "BundReOpen",
-	BUND_REOPEN_DELAY * SECONDS, BundReOpenLinks, NULL);
+	delay * SECONDS, BundReOpenLinks, bund);
       TimerStart(&bund->reOpenTimer);
     } else if (bund->open) {
 	bund->open = FALSE;
@@ -375,12 +376,14 @@ BundLeave(void)
 static void
 BundReOpenLinks(void *arg)
 {
+    Bund b = (Bund)arg;
+    
   Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening in %d seconds", bund->name, BUND_REOPEN_PAUSE));
   BundCloseLinks();
-  TimerStop(&bund->reOpenTimer);
-  TimerInit(&bund->reOpenTimer, "BundOpen",
-    BUND_REOPEN_PAUSE * SECONDS, (void (*)(void *)) BundOpenLinks, NULL);
-  TimerStart(&bund->reOpenTimer);
+  TimerStop(&b->reOpenTimer);
+  TimerInit(&b->reOpenTimer, "BundOpen",
+    BUND_REOPEN_PAUSE * SECONDS, (void (*)(void *)) BundOpenLinks, b);
+  TimerStart(&b->reOpenTimer);
   RecordLinkUpDownReason(NULL, 1, STR_REDIAL, NULL);
 }
 
@@ -434,17 +437,17 @@ BundMsg(int type, void *arg)
  */
 
 void
-BundOpenLinks(void)
+BundOpenLinks(Bund b)
 {
-  TimerStop(&bund->reOpenTimer);
-  if (Enabled(&bund->conf.options, BUND_CONF_BWMANAGE)) {
-    if (!bund->bm.links_open || bund->bm.n_open == 0)
-      BundOpenLink(bund->links[0]);
+  TimerStop(&b->reOpenTimer);
+  if (Enabled(&b->conf.options, BUND_CONF_BWMANAGE)) {
+    if (!b->bm.links_open || b->bm.n_open == 0)
+      BundOpenLink(b->links[0]);
   } else {
     int	k;
 
-    for (k = 0; k < bund->n_links; k++)
-      BundOpenLink(bund->links[k]);
+    for (k = 0; k < b->n_links; k++)
+      BundOpenLink(b->links[k]);
   }
 }
 
@@ -475,10 +478,6 @@ BundCloseLinks(void)
   for (k = 0; k < bund->n_links; k++)
     if (OPEN_STATE(bund->links[k]->lcp.fsm.state))
       BundCloseLink(bund->links[k]);
-  TimerStop(&bund->msgTimer);
-  TimerInit(&bund->msgTimer, "BundMsg",
-    BUND_MSG_TIMEOUT * SECONDS, BundMsgTimeout, NULL);
-  TimerStart(&bund->msgTimer);
   bund->bm.links_open = 0;
 }
 
@@ -1080,7 +1079,7 @@ BundStat(int ac, char *av[], void *arg)
   }
 
   /* Show stats */
-  BundUpdateStats();
+  BundUpdateStats(bund);
   Printf("Traffic stats:\r\n");
 
   Printf("\tOctets input   : %llu\r\n", bund->stats.recvOctets);
@@ -1104,26 +1103,26 @@ BundStat(int ac, char *av[], void *arg)
  */
 
 void
-BundUpdateStats(void)
+BundUpdateStats(Bund b)
 {
   struct ng_ppp_link_stat	stats;
 
-  if (NgFuncGetStats(NG_PPP_BUNDLE_LINKNUM, FALSE, &stats) != -1) {
-    bund->stats.xmitFrames += abs(stats.xmitFrames - bund->oldStats.xmitFrames);
-    bund->stats.xmitOctets += abs(stats.xmitOctets - bund->oldStats.xmitOctets);
-    bund->stats.recvFrames += abs(stats.recvFrames - bund->oldStats.recvFrames);
-    bund->stats.recvOctets += abs(stats.recvOctets - bund->oldStats.recvOctets);
-    bund->stats.badProtos  += abs(stats.badProtos - bund->oldStats.badProtos);
+  if (NgFuncGetStats(b, NG_PPP_BUNDLE_LINKNUM, FALSE, &stats) != -1) {
+    b->stats.xmitFrames += abs(stats.xmitFrames - b->oldStats.xmitFrames);
+    b->stats.xmitOctets += abs(stats.xmitOctets - b->oldStats.xmitOctets);
+    b->stats.recvFrames += abs(stats.recvFrames - b->oldStats.recvFrames);
+    b->stats.recvOctets += abs(stats.recvOctets - b->oldStats.recvOctets);
+    b->stats.badProtos  += abs(stats.badProtos - b->oldStats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-    bund->stats.runts	  += abs(stats.runts - bund->oldStats.runts);
+    b->stats.runts	  += abs(stats.runts - b->oldStats.runts);
 #endif
-    bund->stats.dupFragments += abs(stats.dupFragments - bund->oldStats.dupFragments);
+    b->stats.dupFragments += abs(stats.dupFragments - b->oldStats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-    bund->stats.dropFragments += abs(stats.dropFragments - bund->oldStats.dropFragments);
+    b->stats.dropFragments += abs(stats.dropFragments - b->oldStats.dropFragments);
 #endif
   }
 
-  bund->oldStats = stats;
+  b->oldStats = stats;
 }
 
 /* 
@@ -1133,9 +1132,10 @@ BundUpdateStats(void)
 void
 BundUpdateStatsTimer(void *cookie)
 {
-  TimerStop(&bund->statsUpdateTimer);
-  BundUpdateStats();
-  TimerStart(&bund->statsUpdateTimer);
+  Bund b = (Bund)cookie;
+  TimerStop(&b->statsUpdateTimer);
+  BundUpdateStats(b);
+  TimerStart(&b->statsUpdateTimer);
 }
 
 /*
@@ -1145,7 +1145,7 @@ BundUpdateStatsTimer(void *cookie)
 void
 BundResetStats(void)
 {
-  NgFuncGetStats(NG_PPP_BUNDLE_LINKNUM, TRUE, NULL);
+  NgFuncGetStats(bund, NG_PPP_BUNDLE_LINKNUM, TRUE, NULL);
   memset(&bund->stats, 0, sizeof(struct linkstats));
   memset(&bund->oldStats, 0, sizeof(bund->oldStats));
 }
@@ -1188,16 +1188,6 @@ BundFind(char *name)
 }
 
 /*
- * BundMsgTimeout()
- */
-
-static void
-BundMsgTimeout(void *arg)
-{
-  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
-}
-
-/*
  * BundBmStart()
  *
  * Start bandwidth management timer
@@ -1221,7 +1211,7 @@ BundBmStart(void)
   if (Enabled(&bund->conf.options, BUND_CONF_BWMANAGE)) {
     TimerInit(&bund->bm.bmTimer, "BundBm",
       bund->conf.bm_S * SECONDS / LINK_BM_N,
-      BundBmTimeout, NULL);
+      BundBmTimeout, bund);
     TimerStart(&bund->bm.bmTimer);
   }
 }
@@ -1245,6 +1235,8 @@ BundBmStop(void)
 static void
 BundBmTimeout(void *arg)
 {
+    Bund b = (Bund)arg;
+
   const time_t	now = time(NULL);
   u_int		availTotal;
   u_int		inUtilTotal = 0, outUtilTotal = 0;
@@ -1254,8 +1246,8 @@ BundBmTimeout(void *arg)
   int		j, k;
 
   /* Shift and update stats */
-  for (k = 0; k < bund->n_links; k++) {
-    Link	const l = bund->links[k];
+  for (k = 0; k < b->n_links; k++) {
+    Link	const l = b->links[k];
 
     /* Shift stats */
     memmove(&l->bm.wasUp[1], &l->bm.wasUp[0],
@@ -1273,7 +1265,7 @@ BundBmTimeout(void *arg)
 
       /* Get updated link traffic statistics */
       oldStats = l->bm.idleStats;
-      NgFuncGetStats(l->bundleIndex, FALSE, &l->bm.idleStats);
+      NgFuncGetStats(l->bund, l->bundleIndex, FALSE, &l->bm.idleStats);
       l->bm.traffic[0][0] = l->bm.idleStats.recvOctets - oldStats.recvOctets;
       l->bm.traffic[1][0] = l->bm.idleStats.xmitOctets - oldStats.xmitOctets;
     }
@@ -1286,11 +1278,11 @@ BundBmTimeout(void *arg)
     u_int	avail, inBits, outBits;
 
     /* Sum up over all links */
-    for (avail = inBits = outBits = k = 0; k < bund->n_links; k++) {
-      Link	const l = bund->links[k];
+    for (avail = inBits = outBits = k = 0; k < b->n_links; k++) {
+      Link	const l = b->links[k];
 
       if (l->bm.wasUp[j]) {
-	avail += (l->bandwidth * bund->conf.bm_S) / LINK_BM_N;
+	avail += (l->bandwidth * b->conf.bm_S) / LINK_BM_N;
 	inBits += l->bm.traffic[0][j] * 8;
 	outBits += l->bm.traffic[1][j] * 8;
       }
@@ -1318,8 +1310,8 @@ BundBmTimeout(void *arg)
 
     snprintf(ins, sizeof(ins), ">>Link status:             ");
     for (j = 0; j < LINK_BM_N; j++) {
-      for (k = 0; k < bund->n_links; k++) {
-	Link	const l = bund->links[k];
+      for (k = 0; k < b->n_links; k++) {
+	Link	const l = b->links[k];
 
 	snprintf(ins + strlen(ins), sizeof(ins) - strlen(ins),
 	  l->bm.wasUp[LINK_BM_N - 1 - j] ? "Up" : "Dn");
@@ -1342,37 +1334,37 @@ BundBmTimeout(void *arg)
 #endif
 
   /* See if it's time to bring up another link */
-  if (now - bund->bm.last_open >= bund->conf.bm_Mc
-      && (inUtilTotal >= bund->conf.bm_Hi || outUtilTotal >= bund->conf.bm_Hi)
-      && bund->bm.n_open < bund->n_links) {
+  if (now - b->bm.last_open >= b->conf.bm_Mc
+      && (inUtilTotal >= b->conf.bm_Hi || outUtilTotal >= b->conf.bm_Hi)
+      && b->bm.n_open < b->n_links) {
     k = 0;
-    while (k < bund->n_links && OPEN_STATE(bund->links[k]->lcp.fsm.state))
+    while (k < b->n_links && OPEN_STATE(b->links[k]->lcp.fsm.state))
 	k++;
-    assert(k < bund->n_links);
+    assert(k < b->n_links);
     Log(LG_BUND, ("[%s] opening link %s due to increased demand",
-      bund->name, bund->links[k]->name));
-    bund->bm.last_open = now;
+      b->name, b->links[k]->name));
+    b->bm.last_open = now;
     RecordLinkUpDownReason(lnk, 1, STR_PORT_NEEDED, NULL);
-    BundOpenLink(bund->links[k]);
+    BundOpenLink(b->links[k]);
   }
 
   /* See if it's time to bring down a link */
-  if (now - bund->bm.last_close >= bund->conf.bm_Md
-      && (inUtilTotal < bund->conf.bm_Lo && outUtilTotal < bund->conf.bm_Lo)
-      && bund->bm.n_up > 1) {
-    k = bund->n_links - 1;
-    while (k >= 0 && !OPEN_STATE(bund->links[k]->lcp.fsm.state))
+  if (now - b->bm.last_close >= b->conf.bm_Md
+      && (inUtilTotal < b->conf.bm_Lo && outUtilTotal < b->conf.bm_Lo)
+      && b->bm.n_up > 1) {
+    k = b->n_links - 1;
+    while (k >= 0 && !OPEN_STATE(b->links[k]->lcp.fsm.state))
 	k--;
     assert(k >= 0);
     Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
-      bund->name, bund->links[k]->name));
-    bund->bm.last_close = now;
+      b->name, b->links[k]->name));
+    b->bm.last_close = now;
     RecordLinkUpDownReason(lnk, 0, STR_PORT_UNNEEDED, NULL);
-    BundCloseLink(bund->links[k]);
+    BundCloseLink(b->links[k]);
   }
 
   /* Restart timer */
-  TimerStart(&bund->bm.bmTimer);
+  TimerStart(&b->bm.bmTimer);
 }
 
 /*

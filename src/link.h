@@ -152,7 +152,7 @@
   extern Link	LinkCopy(void);
   extern int	LinkNuke(Link link);
   extern int	LinkStat(int ac, char *av[], void *arg);
-  extern void	LinkUpdateStats(void);
+  extern void	LinkUpdateStats(Link l);
   extern void	LinkUpdateStatsTimer(void *cookie);
   extern void	LinkResetStats(void);
   extern int	LinkCommand(int ac, char *av[], void *arg);

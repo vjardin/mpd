@@ -321,7 +321,7 @@ IfaceUp(int ready)
     Log(LG_IFACE2, ("[%s] IFACE: session-timeout: %d seconds", 
       bund->name, session_timeout));
     TimerInit(&iface->sessionTimer, "IfaceSession",
-      session_timeout * SECONDS, IfaceSessionTimeout, NULL);
+      session_timeout * SECONDS, IfaceSessionTimeout, bund);
     TimerStart(&iface->sessionTimer);
   }
 
@@ -339,7 +339,7 @@ IfaceUp(int ready)
       bund->name, idle_timeout));
     
     TimerInit(&iface->idleTimer, "IfaceIdle",
-      idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, NULL);
+      idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, bund);
     TimerStart(&iface->idleTimer);
     iface->traffic[1] = TRUE;
     iface->traffic[0] = FALSE;
@@ -575,7 +575,7 @@ IfaceListenInput(int proto, Mbuf pkt)
   } else if (iface->open && isDemand) {
     Log(LG_IFACE, ("[%s] outgoing packet is demand", bund->name));
     RecordLinkUpDownReason(NULL, 1, STR_DEMAND, NULL);
-    BundOpenLinks();
+    BundOpenLinks(bund);
     IfaceCachePkt(proto, pkt);
   } else {
     PFREE(pkt);
@@ -1028,15 +1028,17 @@ IfaceIpv6IfaceDown(void)
 static void
 IfaceIdleTimeout(void *arg)
 {
-  IfaceState			const iface = &bund->iface;
+    Bund b = (Bund)arg;
+
+  IfaceState			const iface = &b->iface;
   int				k;
 
   /* Get updated bpf node traffic statistics */
-  BundUpdateStats();
+  BundUpdateStats(b);
 
   /* Mark current traffic period if there was traffic */
   if (iface->idleStats.recvFrames + iface->idleStats.xmitFrames < 
-	bund->stats.recvFrames + bund->stats.xmitFrames) {
+	b->stats.recvFrames + b->stats.xmitFrames) {
     iface->traffic[0] = TRUE;
   } else {		/* no demand traffic for a whole idle timeout period? */
     for (k = 0; k < IFACE_IDLE_SPLIT && !iface->traffic[k]; k++);
@@ -1046,7 +1048,7 @@ IfaceIdleTimeout(void *arg)
     }
   }
 
-  iface->idleStats = bund->stats;
+  iface->idleStats = b->stats;
 
   /* Shift traffic history */
   memmove(iface->traffic + 1,
@@ -1092,7 +1094,9 @@ IfaceIdleTimerExpired(void *arg)
 static void
 IfaceSessionTimeout(void *arg)
 {
-  Log(LG_BUND, ("[%s] session timeout ", bund->name));
+    Bund b = (Bund)arg;
+
+  Log(LG_BUND, ("[%s] session timeout ", b->name));
 
   RecordLinkUpDownReason(NULL, 0, STR_SESSION_TIMEOUT, NULL);
 

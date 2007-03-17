@@ -80,7 +80,7 @@
   extern void	NgFuncSetConfig(void);
   extern int	NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp);
   extern int	NgFuncWriteFrame(const char *label, const char *hook, Mbuf bp);
-  extern int	NgFuncGetStats(u_int16_t linkNum,
+  extern int	NgFuncGetStats(Bund b, u_int16_t linkNum,
 			int clear, struct ng_ppp_link_stat *s);
   extern int	NgFuncSendQuery(const char *path, int cookie, int cmd,
 			const void *args, size_t arglen, struct ng_mesg *rbuf,

@@ -591,7 +591,7 @@ NgFuncWriteFrame(const char *label, const char *hookname, Mbuf bp)
  */
 
 int
-NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
+NgFuncGetStats(Bund b, u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
 {
   union {
       u_char			buf[sizeof(struct ng_mesg)
@@ -603,11 +603,11 @@ NgFuncGetStats(u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
 
   /* Get stats */
   cmd = clear ? NGM_PPP_GETCLR_LINK_STATS : NGM_PPP_GET_LINK_STATS;
-  snprintf(path, sizeof(path), "mpd%d-%s:", gPid, bund->name);
+  snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
   if (NgFuncSendQuery(path, NGM_PPP_COOKIE, cmd,
        &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
-      bund->name, linkNum, strerror(errno)));
+      b->name, linkNum, strerror(errno)));
     return -1;
   }
   if (statp != NULL)

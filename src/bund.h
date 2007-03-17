@@ -158,7 +158,6 @@
 
     /* Link management stuff */
     struct pppTimer	bmTimer;		/* Bandwidth mgmt timer */
-    struct pppTimer	msgTimer;		/* Status message timer */
     struct pppTimer	reOpenTimer;		/* Re-open timer */
 
     /* Boolean variables */
@@ -187,7 +186,7 @@
   extern int	BundCommand(int ac, char *av[], void *arg);
   extern int	BundCreateCmd(int ac, char *av[], void *arg);
   extern void	BundShutdown(Bund b);
-  extern void   BundUpdateStats(void);
+  extern void   BundUpdateStats(Bund b);
   extern void	BundUpdateStatsTimer(void *cookie);
   extern void	BundResetStats(void);
 
@@ -198,7 +197,7 @@
   extern void	BundNcpsStart(int proto);
   extern void	BundNcpsFinish(int proto);
   extern void	BundLinkGaveUp(void);
-  extern void	BundOpenLinks(void);
+  extern void	BundOpenLinks(Bund b);
   extern void	BundCloseLinks(void);
   extern void	BundOpenLink(Link);
 

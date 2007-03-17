@@ -36,7 +36,7 @@
   static void		AuthAsync(void *arg);
   static void		AuthAsyncFinish(void *arg, int was_canceled);
   static int		AuthPreChecks(AuthData auth, int complain);
-  static void		AuthAccountTimeout(void *a);
+  static void		AuthAccountTimeout(void *arg);
   static void		AuthAccount(void *arg);
   static void		AuthAccountFinish(void *arg, int was_canceled);
   static void		AuthInternal(AuthData auth);
@@ -315,7 +315,7 @@ AuthStart(void)
 
   /* Start global auth timer */
   TimerInit(&a->timer, "AuthTimer",
-    lnk->lcp.auth.conf.timeout * SECONDS, AuthTimeout, NULL);
+    lnk->lcp.auth.conf.timeout * SECONDS, AuthTimeout, lnk);
   TimerStart(&a->timer);
 
   /* Start my auth to him */
@@ -699,7 +699,7 @@ AuthAccountStart(int type)
   AuthData	auth;
   u_long	updateInterval = 0;
       
-  LinkUpdateStats();
+  LinkUpdateStats(lnk);
   if (type == AUTH_ACCT_STOP) {
     Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
       lnk->name, a->params.authname,
@@ -727,7 +727,7 @@ AuthAccountStart(int type)
 
     if (updateInterval > 0) {
       TimerInit(&a->acct_timer, "AuthAccountTimer",
-	updateInterval * SECONDS, AuthAccountTimeout, NULL);
+	updateInterval * SECONDS, AuthAccountTimeout, lnk);
       TimerStart(&a->acct_timer);
     }
   }
@@ -753,10 +753,11 @@ AuthAccountStart(int type)
 static void
 AuthAccountTimeout(void *arg)
 {
-  Auth	const a = &lnk->lcp.auth;
+    Link	l = (Link)arg;
+  Auth	const a = &l->lcp.auth;
   
   Log(LG_AUTH, ("[%s] AUTH: Sending Accounting Update",
-    lnk->name));
+    l->name));
 
   TimerStop(&a->acct_timer);
   AuthAccountStart(AUTH_ACCT_UPDATE);
@@ -1246,9 +1247,11 @@ AuthPreChecks(AuthData auth, int complain)
  */
 
 static void
-AuthTimeout(void *ptr)
+AuthTimeout(void *arg)
 {
-  Log(LG_AUTH, ("%s: authorization timer expired", Pref(&lnk->lcp.fsm)));
+    Link l = (Link)arg;
+
+  Log(LG_AUTH, ("%s: authorization timer expired", Pref(&l->lcp.fsm)));
   AuthStop();
   LcpAuthResult(FALSE);
 }

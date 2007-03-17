@@ -461,7 +461,7 @@ LinkStat(int ac, char *av[], void *arg)
   Printf("\tSession-Id     : %s\r\n", lnk->session_id);
   Printf("Link level options\r\n");
   OptStat(&lnk->conf.options, gConfList);
-  LinkUpdateStats();
+  LinkUpdateStats(lnk);
   Printf("Up/Down stats:\r\n");
   if (lnk->downReason && (!lnk->downReasonValid))
     Printf("\tDown Reason    : %s\r\n", lnk->downReason);
@@ -492,26 +492,26 @@ LinkStat(int ac, char *av[], void *arg)
  */
 
 void
-LinkUpdateStats(void)
+LinkUpdateStats(Link l)
 {
   struct ng_ppp_link_stat	stats;
 
-  if (NgFuncGetStats(lnk->bundleIndex, FALSE, &stats) != -1) {
-    lnk->stats.xmitFrames += abs(stats.xmitFrames - lnk->oldStats.xmitFrames);
-    lnk->stats.xmitOctets += abs(stats.xmitOctets - lnk->oldStats.xmitOctets);
-    lnk->stats.recvFrames += abs(stats.recvFrames - lnk->oldStats.recvFrames);
-    lnk->stats.recvOctets += abs(stats.recvOctets - lnk->oldStats.recvOctets);
-    lnk->stats.badProtos  += abs(stats.badProtos - lnk->oldStats.badProtos);
+  if (NgFuncGetStats(l->bund, l->bundleIndex, FALSE, &stats) != -1) {
+    l->stats.xmitFrames += abs(stats.xmitFrames - l->oldStats.xmitFrames);
+    l->stats.xmitOctets += abs(stats.xmitOctets - l->oldStats.xmitOctets);
+    l->stats.recvFrames += abs(stats.recvFrames - l->oldStats.recvFrames);
+    l->stats.recvOctets += abs(stats.recvOctets - l->oldStats.recvOctets);
+    l->stats.badProtos  += abs(stats.badProtos - l->oldStats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-    lnk->stats.runts	  += abs(stats.runts - lnk->oldStats.runts);
+    l->stats.runts	  += abs(stats.runts - l->oldStats.runts);
 #endif
-    lnk->stats.dupFragments += abs(stats.dupFragments - lnk->oldStats.dupFragments);
+    l->stats.dupFragments += abs(stats.dupFragments - l->oldStats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-    lnk->stats.dropFragments += abs(stats.dropFragments - lnk->oldStats.dropFragments);
+    l->stats.dropFragments += abs(stats.dropFragments - l->oldStats.dropFragments);
 #endif
   }
 
-  lnk->oldStats = stats;
+  l->oldStats = stats;
 }
 
 /* 
@@ -521,9 +521,11 @@ LinkUpdateStats(void)
 void
 LinkUpdateStatsTimer(void *cookie)
 {
-  TimerStop(&lnk->statsUpdateTimer);
-  LinkUpdateStats();
-  TimerStart(&lnk->statsUpdateTimer);
+    Link l = (Link)cookie;
+
+  TimerStop(&l->statsUpdateTimer);
+  LinkUpdateStats(l);
+  TimerStart(&l->statsUpdateTimer);
 }
 
 /*
@@ -533,7 +535,7 @@ LinkUpdateStatsTimer(void *cookie)
 void
 LinkResetStats(void)
 {
-  NgFuncGetStats(lnk->bundleIndex, TRUE, NULL);
+  NgFuncGetStats(lnk->bund, lnk->bundleIndex, TRUE, NULL);
   memset(&lnk->stats, 0, sizeof(struct linkstats));
   memset(&lnk->oldStats, 0, sizeof(lnk->oldStats));
 }
