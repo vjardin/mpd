@@ -137,24 +137,22 @@
  * FUNCTIONS
  */
 
-  extern void	IfaceInit(void);
+  extern void	IfaceInit(Bund b);
   extern void	IfaceOpen(void);
   extern void	IfaceClose(void);
-  extern void	IfaceIpIfaceUp(int ready);
-  extern void	IfaceIpIfaceDown(void);
-  extern void	IfaceIpv6IfaceUp(int ready);
-  extern void	IfaceIpv6IfaceDown(void);
-  extern void	IfaceUp(int ready);
-  extern void	IfaceDown(void);
-  extern void	IfaceSetParams(int mtu, int speed);
+  extern void	IfaceIpIfaceUp(Bund b, int ready);
+  extern void	IfaceIpIfaceDown(Bund b);
+  extern void	IfaceIpv6IfaceUp(Bund b, int ready);
+  extern void	IfaceIpv6IfaceDown(Bund b);
+  extern void	IfaceUp(Bund b, int ready);
+  extern void	IfaceDown(Bund b);
   extern int	IfaceStat(int ac, char *av[], void *arg);
 
-  extern void	IfaceListenInput(int proto, Mbuf pkt);
-  extern void	IfaceListenOutput(int proto, Mbuf pkt);
+  extern void	IfaceListenInput(Bund b, int proto, Mbuf pkt);
   #ifndef USE_NG_TCPMSS
   extern void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
   #endif
-  extern void	IfaceSetMTU(int mtu);
+  extern void	IfaceSetMTU(Bund b, int mtu);
 
 #endif
 

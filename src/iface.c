@@ -112,10 +112,9 @@
   static int	IfaceSetCommand(int ac, char *av[], void *arg);
   static void	IfaceSessionTimeout(void *arg);
   static void	IfaceIdleTimeout(void *arg);
-  static void	IfaceIdleTimerExpired(void *arg);
 
-  static void	IfaceCacheSend(void);
-  static void	IfaceCachePkt(int proto, Mbuf pkt);
+  static void	IfaceCacheSend(Bund b);
+  static void	IfaceCachePkt(Bund b, int proto, Mbuf pkt);
   static int	IfaceIsDemand(int proto, Mbuf pkt);
 
   static int	IfaceAllocACL (struct acl_pool ***ap, int start, char * ifname, int number);
@@ -211,9 +210,9 @@
  */
 
 void
-IfaceInit(void)
+IfaceInit(Bund b)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
 
   /* Default configuration */
   iface->mtu = NG_IFACE_MTU_DEFAULT;
@@ -222,7 +221,7 @@ IfaceInit(void)
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
   Log(LG_BUND|LG_IFACE, ("[%s] using interface %s",
-    bund->name, bund->iface.ifname));
+    b->name, b->iface.ifname));
 }
 
 /*
@@ -287,9 +286,9 @@ IfaceClose(void)
  */
 
 void
-IfaceUp(int ready)
+IfaceUp(Bund b, int ready)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
   int		session_timeout = 0, idle_timeout = 0;
   struct acl	*acls, *acl;
   char			*buf;
@@ -298,42 +297,42 @@ IfaceUp(int ready)
   int		prev_number;
   int		prev_real_number;
 
-  Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
+  Log(LG_IFACE, ("[%s] IFACE: Up event", b->name));
 
   if (ready) {
 
   /* Start Session timer */
   TimerStop(&iface->sessionTimer);
 
-  if (bund->params.session_timeout > 0) {
-    session_timeout = bund->params.session_timeout;
+  if (b->params.session_timeout > 0) {
+    session_timeout = b->params.session_timeout;
   } else if (iface->session_timeout > 0) {
     session_timeout = iface->session_timeout;
   }
 
   if (session_timeout > 0) {
     Log(LG_IFACE2, ("[%s] IFACE: session-timeout: %d seconds", 
-      bund->name, session_timeout));
+      b->name, session_timeout));
     TimerInit(&iface->sessionTimer, "IfaceSession",
-      session_timeout * SECONDS, IfaceSessionTimeout, bund);
+      session_timeout * SECONDS, IfaceSessionTimeout, b);
     TimerStart(&iface->sessionTimer);
   }
 
   /* Start idle timer */
   TimerStop(&iface->idleTimer);
 
-  if (bund->params.idle_timeout > 0) {
-    idle_timeout = bund->params.idle_timeout;
+  if (b->params.idle_timeout > 0) {
+    idle_timeout = b->params.idle_timeout;
   } else if (iface->idle_timeout > 0) {
     idle_timeout = iface->idle_timeout;
   }
     
   if (idle_timeout > 0) {
     Log(LG_IFACE2, ("[%s] IFACE: idle-timeout: %d seconds", 
-      bund->name, idle_timeout));
+      b->name, idle_timeout));
     
     TimerInit(&iface->idleTimer, "IfaceIdle",
-      idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, bund);
+      idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, b);
     TimerStart(&iface->idleTimer);
     iface->traffic[1] = TRUE;
     iface->traffic[0] = FALSE;
@@ -343,7 +342,7 @@ IfaceUp(int ready)
   }
 
   /* Allocate ACLs */
-  acls = bund->params.acl_pipe;
+  acls = b->params.acl_pipe;
   poollast = &pipe_pool;
   poollaststart = pipe_pool_start;
   while (acls != NULL) {
@@ -351,7 +350,7 @@ IfaceUp(int ready)
     poollaststart = acls->real_number;
     acls = acls->next;
   };
-  acls = bund->params.acl_queue;
+  acls = b->params.acl_queue;
   poollast = &queue_pool;
   poollaststart = queue_pool_start;
   while (acls != NULL) {
@@ -361,7 +360,7 @@ IfaceUp(int ready)
   };
   prev_number = -1;
   prev_real_number = -1;
-  acls = bund->params.acl_table;
+  acls = b->params.acl_table;
   poollast = &table_pool;
   poollaststart = table_pool_start;
   while (acls != NULL) {
@@ -377,7 +376,7 @@ IfaceUp(int ready)
     }
     acls = acls->next;
   };
-  acls = bund->params.acl_rule;
+  acls = b->params.acl_rule;
   poollast = &rule_pool;
   poollaststart = rule_pool_start;
   while (acls != NULL) {
@@ -387,21 +386,21 @@ IfaceUp(int ready)
   };
 
   /* Set ACLs */
-  acls = bund->params.acl_pipe;
+  acls = b->params.acl_pipe;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
     ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
     Freee(MB_IFACE, buf);
     acls = acls->next;
   }
-  acls = bund->params.acl_queue;
+  acls = b->params.acl_queue;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule,iface->ifname);
     ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
     Freee(MB_IFACE, buf);
     acls = acls->next;
   }
-  acls = bund->params.acl_table;
+  acls = b->params.acl_table;
   while (acls != NULL) {
     acl = Malloc(MB_IFACE, sizeof(struct acl));
     memcpy(acl, acls, sizeof(struct acl));
@@ -410,7 +409,7 @@ IfaceUp(int ready)
     ExecCmd(LG_IFACE2, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
     acls = acls->next;
   };
-  acls = bund->params.acl_rule;
+  acls = b->params.acl_rule;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
     ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
@@ -425,7 +424,7 @@ IfaceUp(int ready)
     PATH_IFCONFIG, iface->ifname, ready ? "-" : "");
 
   /* Send any cached packets */
-  IfaceCacheSend();
+  IfaceCacheSend(b);
 
 }
 
@@ -436,14 +435,14 @@ IfaceUp(int ready)
  */
 
 void
-IfaceDown(void)
+IfaceDown(Bund b)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
   struct acl_pool	**rp, *rp1;
   char		cb[32768];
   struct acl    *acl, *aclnext;
 
-  Log(LG_IFACE, ("[%s] IFACE: Down event", bund->name));
+  Log(LG_IFACE, ("[%s] IFACE: Down event", b->name));
 
   /* If we're not open, it doesn't matter to us anyway */
   TimerStop(&iface->idleTimer);
@@ -527,7 +526,6 @@ IfaceDown(void)
     ExecCmd(LG_IFACE2, "%s pipe delete%s",
       PATH_IPFW, cb);
 
-//  NgFuncConfigBPF(bund, BPF_MODE_OFF);
 }
 
 /*
@@ -537,9 +535,9 @@ IfaceDown(void)
  */
 
 void
-IfaceListenInput(int proto, Mbuf pkt)
+IfaceListenInput(Bund b, int proto, Mbuf pkt)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
   int		const isDemand = IfaceIsDemand(proto, pkt);
   Fsm		fsm;
 
@@ -549,54 +547,32 @@ IfaceListenInput(int proto, Mbuf pkt)
 
   /* Get FSM for protocol (for now, we know it's IP) */
   assert(proto == PROTO_IP);
-  fsm = &bund->ipcp.fsm;
+  fsm = &b->ipcp.fsm;
 
   if (OPEN_STATE(fsm->state)) {
-    if (bund->bm.n_up > 0) {
+    if (b->bm.n_up > 0) {
 #ifndef USE_NG_TCPMSS
       if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
 	if (proto == PROTO_IP)
 	  IfaceCorrectMSS(pkt, MAXMSS(iface->mtu));
       } else
 	Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
-	  bund->name, MBLEN(pkt)));
+	  b->name, MBLEN(pkt)));
 #endif
-      NgFuncWriteFrame(bund->name, MPD_HOOK_DEMAND_TAP, pkt);
+      NgFuncWriteFrame(b->name, MPD_HOOK_DEMAND_TAP, pkt);
     } else {
-      IfaceCachePkt(proto, pkt);
+      IfaceCachePkt(b, proto, pkt);
     }
   /* Maybe do dial-on-demand here */
   } else if (iface->open && isDemand) {
-    Log(LG_IFACE, ("[%s] outgoing packet is demand", bund->name));
+    Log(LG_IFACE, ("[%s] outgoing packet is demand", b->name));
     RecordLinkUpDownReason(NULL, 1, STR_DEMAND, NULL);
-    BundOpenLinks(bund);
-    IfaceCachePkt(proto, pkt);
+    BundOpenLinks(b);
+    IfaceCachePkt(b, proto, pkt);
   } else {
     PFREE(pkt);
   }
 }
-
-#ifndef USE_NG_TCPMSS
-/*
- * IfaceListenOutput()
- *
- * Now used only for TCP MSS hacking.
- */
-
-void
-IfaceListenOutput(int proto, Mbuf pkt)
-{
-  IfaceState	const iface = &bund->iface;
-
-  if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
-    if (proto == PROTO_IP)
-      IfaceCorrectMSS(pkt, MAXMSS(iface->mtu));
-  } else
-    Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
-       bund->name, MBLEN(pkt)));
-  NgFuncWriteFrame(bund->name, MPD_HOOK_TCPMSS_OUT, pkt);
-}
-#endif
 
 /*
  * IfaceAllocACL ()
@@ -719,9 +695,9 @@ IFaceParseACL (char * src, char * ifname)
  */
 
 void
-IfaceIpIfaceUp(int ready)
+IfaceIpIfaceUp(Bund b, int ready)
 {
-  IfaceState		const iface = &bund->iface;
+  IfaceState		const iface = &b->iface;
   struct sockaddr_dl	hwa;
   char			hisaddr[20],selfaddr[20];
   u_char		*ether;
@@ -729,12 +705,12 @@ IfaceIpIfaceUp(int ready)
   char			buf[64];
 
   /* For good measure */
-  BundUpdateParams(bund);
+  BundUpdateParams(b);
 
   if (ready) {
-    in_addrtou_range(&bund->ipcp.want_addr, 32, &iface->self_addr);
-    in_addrtou_addr(&bund->ipcp.peer_addr, &iface->peer_addr);
-    IfaceNgIpInit(bund, ready);
+    in_addrtou_range(&b->ipcp.want_addr, 32, &iface->self_addr);
+    in_addrtou_addr(&b->ipcp.peer_addr, &iface->peer_addr);
+    IfaceNgIpInit(b, ready);
   }
 
   /* Set addresses and bring interface up */
@@ -748,11 +724,11 @@ IfaceIpIfaceUp(int ready)
     if (u_addrempty(&iface->peer_addr)) {
       Log(LG_IFACE,
 	("[%s] can't proxy arp for %s",
-	bund->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
+	b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
     } else if (GetEther(&iface->peer_addr, &hwa) < 0) {
       Log(LG_IFACE,
 	("[%s] no interface to proxy arp on for %s",
-	bund->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
+	b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
     } else {
       ether = (u_char *) LLADDR(&hwa);
       if (ExecCmd(LG_IFACE2,
@@ -779,8 +755,8 @@ IfaceIpIfaceUp(int ready)
     }
   }
   /* Add dynamic routes */
-  for (k = 0; k < bund->params.n_routes; k++) {
-    IfaceRoute	const r = &bund->params.routes[k];
+  for (k = 0; k < b->params.n_routes; k++) {
+    IfaceRoute	const r = &b->params.routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET) {
 	r->ok = (ExecCmd(LG_IFACE2, "%s add %s %s",
@@ -792,7 +768,7 @@ IfaceIpIfaceUp(int ready)
 #ifdef USE_NG_NAT
   /* Set NAT IP */
   if (iface->nat_up) {
-    IfaceSetupNAT(bund);
+    IfaceSetupNAT(b);
   }
 #endif
 
@@ -801,19 +777,19 @@ IfaceIpIfaceUp(int ready)
     char	selfbuf[40],peerbuf[40];
     char	ns1buf[21], ns2buf[21];
 
-    if(bund->ipcp.want_dns[0].s_addr != 0)
-      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(bund->ipcp.want_dns[0]));
+    if(b->ipcp.want_dns[0].s_addr != 0)
+      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(b->ipcp.want_dns[0]));
     else
       ns1buf[0] = '\0';
-    if(bund->ipcp.want_dns[1].s_addr != 0)
-      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(bund->ipcp.want_dns[1]));
+    if(b->ipcp.want_dns[1].s_addr != 0)
+      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(b->ipcp.want_dns[1]));
     else
       ns2buf[0] = '\0';
 
     ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
       iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
       u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
-      *bund->params.authname ? bund->params.authname : "-", 
+      *b->params.authname ? b->params.authname : "-", 
       ns1buf, ns2buf);
   }
 
@@ -826,9 +802,9 @@ IfaceIpIfaceUp(int ready)
  */
 
 void
-IfaceIpIfaceDown(void)
+IfaceIpIfaceDown(Bund b)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
   int		k;
   char          buf[64];
 
@@ -836,12 +812,12 @@ IfaceIpIfaceDown(void)
   if (*iface->down_script) {
     ExecCmd(LG_IFACE2, "%s %s inet %s",
       iface->down_script, iface->ifname, 
-      *bund->params.authname ? bund->params.authname : "-");
+      *b->params.authname ? b->params.authname : "-");
   }
 
   /* Delete dynamic routes */
-  for (k = 0; k < bund->params.n_routes; k++) {
-    IfaceRoute	const r = &bund->params.routes[k];
+  for (k = 0; k < b->params.n_routes; k++) {
+    IfaceRoute	const r = &b->params.routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET) {
 	if (!r->ok)
@@ -877,7 +853,7 @@ IfaceIpIfaceDown(void)
   ExecCmd(LG_IFACE2, "%s %s %s delete -link0", 
     PATH_IFCONFIG, iface->ifname, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
     
-  IfaceNgIpShutdown(bund);
+  IfaceNgIpShutdown(b);
 }
 
 /*
@@ -889,14 +865,14 @@ IfaceIpIfaceDown(void)
  */
 
 void
-IfaceIpv6IfaceUp(int ready)
+IfaceIpv6IfaceUp(Bund b, int ready)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
   int		k;
   char		buf[64];
 
   /* For good measure */
-  BundUpdateParams(bund);
+  BundUpdateParams(b);
 
   if (ready) {
 
@@ -905,22 +881,22 @@ IfaceIpv6IfaceUp(int ready)
     iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
     iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
     iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.myintid)[0];
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.myintid)[1];
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.myintid)[2];
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.myintid)[3];
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.myintid)[0];
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.myintid)[1];
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.myintid)[2];
+    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.myintid)[3];
 
     iface->peer_ipv6_addr.family = AF_INET6;
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)bund->ipv6cp.hisintid)[0];
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)bund->ipv6cp.hisintid)[1];
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)bund->ipv6cp.hisintid)[2];
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)bund->ipv6cp.hisintid)[3];
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.hisintid)[0];
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.hisintid)[1];
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
+    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
 
-    IfaceNgIpv6Init(bund, ready);
+    IfaceNgIpv6Init(b, ready);
 
     /* Set addresses and bring interface up */
     ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s",
@@ -938,8 +914,8 @@ IfaceIpv6IfaceUp(int ready)
     }
   }
   /* Add dynamic routes */
-  for (k = 0; k < bund->params.n_routes; k++) {
-    IfaceRoute	const r = &bund->params.routes[k];
+  for (k = 0; k < b->params.n_routes; k++) {
+    IfaceRoute	const r = &b->params.routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET6) {
 	r->ok = (ExecCmd(LG_IFACE2, "%s add -inet6 %s -interface %s",
@@ -955,7 +931,7 @@ IfaceIpv6IfaceUp(int ready)
       iface->up_script, iface->ifname, 
       u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
       u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
-      *bund->params.authname ? bund->params.authname : "-");
+      *b->params.authname ? b->params.authname : "-");
   }
 
 }
@@ -967,9 +943,9 @@ IfaceIpv6IfaceUp(int ready)
  */
 
 void
-IfaceIpv6IfaceDown(void)
+IfaceIpv6IfaceDown(Bund b)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
   int 		k;
   char		buf[64];
 
@@ -977,12 +953,12 @@ IfaceIpv6IfaceDown(void)
   if (*iface->down_script) {
     ExecCmd(LG_IFACE2, "%s %s inet6 %s",
       iface->down_script, iface->ifname, 
-      *bund->params.authname ? bund->params.authname : "-");
+      *b->params.authname ? b->params.authname : "-");
   }
 
   /* Delete dynamic routes */
-  for (k = 0; k < bund->params.n_routes; k++) {
-    IfaceRoute	const r = &bund->params.routes[k];
+  for (k = 0; k < b->params.n_routes; k++) {
+    IfaceRoute	const r = &b->params.routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET6) {
 	if (!r->ok)
@@ -1012,7 +988,7 @@ IfaceIpv6IfaceDown(void)
         u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
   }
 
-  IfaceNgIpv6Shutdown(bund);
+  IfaceNgIpv6Shutdown(b);
 }
 
 /*
@@ -1037,7 +1013,10 @@ IfaceIdleTimeout(void *arg)
   } else {		/* no demand traffic for a whole idle timeout period? */
     for (k = 0; k < IFACE_IDLE_SPLIT && !iface->traffic[k]; k++);
     if (k == IFACE_IDLE_SPLIT) {
-      IfaceIdleTimerExpired(NULL);
+      Log(LG_BUND, ("[%s] idle timeout",
+	b->name));
+      RecordLinkUpDownReason(NULL, 0, STR_IDLE_TIMEOUT, NULL);
+      BundClose();
       return;
     }
   }
@@ -1051,34 +1030,6 @@ IfaceIdleTimeout(void *arg)
 
   /* Restart timer */
   TimerStart(&iface->idleTimer);
-}
-
-/*
- * IfaceIdleTimerExpired()
- *
- * The idle timeout expired with no demand traffic. Shutdown the
- * link gracefully. Give custom code a chance to do any last minute
- * things before shutting down though. At this point, the shutdown
- * is going to happen, even if there is subsequent demand.
- */
-
-static void
-IfaceIdleTimerExpired(void *arg)
-{
-  IfaceState	const iface = &bund->iface;
-
-  /* We already did the final short delay, really shut down now */
-  if (arg != NULL) {
-    RecordLinkUpDownReason(NULL, 0, STR_IDLE_TIMEOUT, NULL);
-    BundClose();
-    return;
-  }
-
-  /* Idle timeout first detected */
-  Log(LG_BUND, ("[%s] idle timeout after %d seconds",
-    bund->name, iface->idleTimer.load * IFACE_IDLE_SPLIT / SECONDS));
-
-  IfaceIdleTimerExpired((void *)1);
 }
 
 /*
@@ -1106,9 +1057,9 @@ IfaceSessionTimeout(void *arg)
  */
 
 static void
-IfaceCachePkt(int proto, Mbuf pkt)
+IfaceCachePkt(Bund b, int proto, Mbuf pkt)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
 
   /* Only cache network layer data */
   if (!PROT_NETWORK_DATA(proto)) {
@@ -1131,19 +1082,19 @@ IfaceCachePkt(int proto, Mbuf pkt)
  */
 
 static void
-IfaceCacheSend(void)
+IfaceCacheSend(Bund b)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
 
   if (iface->dodCache.pkt) {
     if (iface->dodCache.ts + MAX_DOD_CACHE_DELAY < time(NULL))
       PFREE(iface->dodCache.pkt);
     else {
       assert(iface->dodCache.proto == PROTO_IP);
-      if (NgFuncWriteFrame(bund->name,
+      if (NgFuncWriteFrame(b->name,
 	  MPD_HOOK_DEMAND_TAP, iface->dodCache.pkt) < 0) {
 	Log(LG_ERR, ("[%s] can't write cached pkt: %s",
-	  bund->name, strerror(errno)));
+	  b->name, strerror(errno)));
       }
     }
     iface->dodCache.pkt = NULL;
@@ -1418,22 +1369,22 @@ IfaceStat(int ac, char *av[], void *arg)
  */
 
 void
-IfaceSetMTU(int mtu)
+IfaceSetMTU(Bund b, int mtu)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
   struct ifreq	ifr;
   int		s;
 
   /* Get socket */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("[%s] IFACE: Can't get socket to set MTU!", bund->name);
+    Perror("[%s] IFACE: Can't get socket to set MTU!", b->name);
     return;
   }
 
-  if ((bund->params.mtu > 0) && (mtu > bund->params.mtu)) {
-    mtu = bund->params.mtu;
+  if ((b->params.mtu > 0) && (mtu > b->params.mtu)) {
+    mtu = b->params.mtu;
     Log(LG_IFACE2, ("[%s] IFACE: forcing MTU of auth backend: %d bytes",
-      bund->name, mtu));
+      b->name, mtu));
   }
 
   /* Limit MTU to configured maximum */
@@ -1443,12 +1394,12 @@ IfaceSetMTU(int mtu)
 
   /* Set MTU on interface */
   memset(&ifr, 0, sizeof(ifr));
-  strncpy(ifr.ifr_name, bund->iface.ifname, sizeof(ifr.ifr_name));
+  strncpy(ifr.ifr_name, b->iface.ifname, sizeof(ifr.ifr_name));
   ifr.ifr_mtu = mtu;
   Log(LG_IFACE2, ("[%s] IFACE: setting %s MTU to %d bytes",
-    bund->name, bund->iface.ifname, mtu));
+    b->name, b->iface.ifname, mtu));
   if (ioctl(s, SIOCSIFMTU, (char *)&ifr) < 0)
-    Perror("[%s] IFACE: ioctl(%s, %s)", bund->name, bund->iface.ifname, "SIOCSIFMTU");
+    Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCSIFMTU");
   close(s);
 
   /* Save MTU */
@@ -1712,8 +1663,8 @@ IfaceSetupNAT(Bund b)
 {
     char	path[NG_PATHLEN+1];
 
-    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, bund->name);
-    if (NgSendMsg(bund->csock, path,
+    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
+    if (NgSendMsg(b->csock, path,
     	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &b->iface.self_addr.addr.u.ip4, sizeof(b->iface.self_addr.addr.u.ip4)) < 0) {
 	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
     	    b->name, strerror(errno)));

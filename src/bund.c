@@ -76,17 +76,17 @@
   static void	BundNgDataEvent(int type, void *cookie);
   static void	BundNgCtrlEvent(int type, void *cookie);
 
-  static void	BundBmStart(void);
-  static void	BundBmStop(void);
+  static void	BundBmStart(Bund b);
+  static void	BundBmStop(Bund b);
   static void	BundBmTimeout(void *arg);
 
   static Bund	BundFind(char *name);
-  static void	BundReasses(int add);
+  static void	BundReasses(Bund b, int add);
   static int	BundSetCommand(int ac, char *av[], void *arg);
-  static void	BundShowLinks(Bund sb);
+  static void	BundShowLinks(Bund b);
 
-  static void	BundNcpsUp(void);
-  static void	BundNcpsDown(void);
+  static void	BundNcpsUp(Bund b);
+  static void	BundNcpsDown(Bund b);
 
   static void	BundReOpenLinks(void *arg);
   static void	BundCloseLink(Link l);
@@ -183,123 +183,124 @@ BundClose(void)
  */
 
 int
-BundJoin(void)
+BundJoin(Link l)
 {
-  BundBm	const bm = &bund->bm;
-  LcpState	const lcp = &lnk->lcp;
+    Bund	b = l->bund;
+  BundBm	const bm = &l->bund->bm;
+  LcpState	const lcp = &l->lcp;
 
-  if (!bund->open) bund->open = TRUE; /* Open bundle on incoming */
+  if (!b->open) b->open = TRUE; /* Open bundle on incoming */
 
   /* Other links in this bundle yet? If so, enforce bundling */
   if (bm->n_up > 0) {
 
     /* First of all, we have to be doing multi-link */
-    if (!bund->multilink || !lcp->peer_multilink) {
+    if (!b->multilink || !lcp->peer_multilink) {
       Log(LG_LCP,
-	("[%s] multi-link is not active on this bundle", lnk->name));
+	("[%s] multi-link is not active on this bundle", l->name));
       return(0);
     }
 
     /* Discriminator and authname must match */
-    if (!MpDiscrimEqual(&lnk->peer_discrim, &bund->peer_discrim)) {
+    if (!MpDiscrimEqual(&l->peer_discrim, &b->peer_discrim)) {
       Log(LG_LCP,
-	("[%s] multi-link peer discriminator mismatch", lnk->name));
+	("[%s] multi-link peer discriminator mismatch", l->name));
       return(0);
     }
-    if (strcmp(lnk->lcp.auth.params.authname, bund->params.authname)) {
+    if (strcmp(l->lcp.auth.params.authname, b->params.authname)) {
       Log(LG_LCP,
-	("[%s] multi-link peer authorization name mismatch", lnk->name));
+	("[%s] multi-link peer authorization name mismatch", l->name));
       return(0);
     }
   } else {
 
     /* Cancel re-open timer; we've come up somehow (eg, LCP renegotiation) */
-    TimerStop(&bund->reOpenTimer);
+    TimerStop(&b->reOpenTimer);
 
     /* Copy auth params from the first link */
-    authparamsCopy(&lnk->lcp.auth.params,&bund->params);
+    authparamsCopy(&l->lcp.auth.params,&b->params);
 
     /* Initialize multi-link stuff */
-    if ((bund->multilink = lcp->peer_multilink)) {
-      bund->peer_discrim = lnk->peer_discrim;
+    if ((b->multilink = lcp->peer_multilink)) {
+      b->peer_discrim = l->peer_discrim;
       MpInit();
     }
 
     /* Start bandwidth management */
-    BundBmStart();
+    BundBmStart(b);
   }
 
   /* Reasses MTU, bandwidth, etc. */
-  BundReasses(1);
+  BundReasses(b, 1);
 
   /* Configure this link */
-  bund->pppConfig.links[lnk->bundleIndex].enableLink = 1;
-  bund->pppConfig.links[lnk->bundleIndex].mru = lcp->peer_mru;
-  bund->pppConfig.links[lnk->bundleIndex].enableACFComp = lcp->peer_acfcomp;
-  bund->pppConfig.links[lnk->bundleIndex].enableProtoComp = lcp->peer_protocomp;
-  bund->pppConfig.links[lnk->bundleIndex].bandwidth = (lnk->bandwidth / 8 + 5) / 10;
-  bund->pppConfig.links[lnk->bundleIndex].latency = (lnk->latency + 500) / 1000;
+  b->pppConfig.links[l->bundleIndex].enableLink = 1;
+  b->pppConfig.links[l->bundleIndex].mru = lcp->peer_mru;
+  b->pppConfig.links[l->bundleIndex].enableACFComp = lcp->peer_acfcomp;
+  b->pppConfig.links[l->bundleIndex].enableProtoComp = lcp->peer_protocomp;
+  b->pppConfig.links[l->bundleIndex].bandwidth = (l->bandwidth / 8 + 5) / 10;
+  b->pppConfig.links[l->bundleIndex].latency = (l->latency + 500) / 1000;
 
   /* What to do when the first link comes up */
   if (bm->n_up == 1) {
 
     /* Configure the bundle */
 #if NGM_PPP_COOKIE < 940897794
-    bund->pppConfig.enableMultilink = lcp->peer_multilink;
-    bund->pppConfig.mrru = lcp->peer_mrru;
-    bund->pppConfig.xmitShortSeq = lcp->peer_shortseq;
-    bund->pppConfig.recvShortSeq = lcp->want_shortseq;
-    bund->pppConfig.enableRoundRobin =
-      Enabled(&bund->conf.options, BUND_CONF_ROUNDROBIN);
+    b->pppConfig.enableMultilink = lcp->peer_multilink;
+    b->pppConfig.mrru = lcp->peer_mrru;
+    b->pppConfig.xmitShortSeq = lcp->peer_shortseq;
+    b->pppConfig.recvShortSeq = lcp->want_shortseq;
+    b->pppConfig.enableRoundRobin =
+      Enabled(&b->conf.options, BUND_CONF_ROUNDROBIN);
 #else
-    bund->pppConfig.bund.enableMultilink = lcp->peer_multilink;
-    bund->pppConfig.bund.mrru = lcp->peer_mrru;
-    bund->pppConfig.bund.xmitShortSeq = lcp->peer_shortseq;
-    bund->pppConfig.bund.recvShortSeq = lcp->want_shortseq;
-    bund->pppConfig.bund.enableRoundRobin =
-      Enabled(&bund->conf.options, BUND_CONF_ROUNDROBIN);
+    b->pppConfig.bund.enableMultilink = lcp->peer_multilink;
+    b->pppConfig.bund.mrru = lcp->peer_mrru;
+    b->pppConfig.bund.xmitShortSeq = lcp->peer_shortseq;
+    b->pppConfig.bund.recvShortSeq = lcp->want_shortseq;
+    b->pppConfig.bund.enableRoundRobin =
+      Enabled(&b->conf.options, BUND_CONF_ROUNDROBIN);
 #endif
 
     /* generate a uniq session id */
-    snprintf(bund->msession_id, LINK_MAX_NAME, "%d-%s",
-      (int)(time(NULL) % 10000000), bund->name);
+    snprintf(b->msession_id, LINK_MAX_NAME, "%d-%s",
+      (int)(time(NULL) % 10000000), b->name);
       
-    bund->originate = lnk->originate;
+    b->originate = l->originate;
   }
 
   /* Update PPP node configuration */
   NgFuncSetConfig();
 
   /* copy multysession-id to link */
-  strncpy(lnk->msession_id, bund->msession_id,
-    sizeof(lnk->msession_id));
+  strncpy(l->msession_id, b->msession_id,
+    sizeof(l->msession_id));
 
   /* generate a uniq session id */
-  snprintf(lnk->session_id, LINK_MAX_NAME, "%d-%s",
-    (int)(time(NULL) % 10000000), lnk->name);
+  snprintf(l->session_id, LINK_MAX_NAME, "%d-%s",
+    (int)(time(NULL) % 10000000), l->name);
 
   /* What to do when the first link comes up */
   if (bm->n_up == 1) {
 
-    BundNcpsOpen();
+    BundNcpsOpen(b);
 
-    BundNcpsUp();
+    BundNcpsUp(b);
 
-    BundResetStats(bund);
+    BundResetStats(b);
     
     /* starting bundle statistics timer */
-    TimerInit(&bund->statsUpdateTimer, "BundUpdateStats", 
-	BUND_STATS_UPDATE_INTERVAL, BundUpdateStatsTimer, bund);
-    TimerStart(&bund->statsUpdateTimer);
+    TimerInit(&b->statsUpdateTimer, "BundUpdateStats", 
+	BUND_STATS_UPDATE_INTERVAL, BundUpdateStatsTimer, b);
+    TimerStart(&b->statsUpdateTimer);
     
   }
 
   AuthAccountStart(AUTH_ACCT_START);
 
   /* starting link statistics timer */
-  TimerInit(&lnk->statsUpdateTimer, "LinkUpdateStats", 
-    LINK_STATS_UPDATE_INTERVAL, LinkUpdateStatsTimer, lnk);
-  TimerStart(&lnk->statsUpdateTimer);
+  TimerInit(&l->statsUpdateTimer, "LinkUpdateStats", 
+    LINK_STATS_UPDATE_INTERVAL, LinkUpdateStatsTimer, l);
+  TimerStart(&l->statsUpdateTimer);
 
   /* Done */
   return(bm->n_up);
@@ -312,53 +313,54 @@ BundJoin(void)
  */
 
 void
-BundLeave(void)
+BundLeave(Link l)
 {
-  BundBm	const bm = &bund->bm;
+    Bund	b = l->bund;
+  BundBm	const bm = &b->bm;
 
   /* Elvis has left the bundle */
   assert(bm->n_up > 0);
   
   /* stopping link statistics timer */
-  TimerStop(&lnk->statsUpdateTimer);
+  TimerStop(&l->statsUpdateTimer);
 
   AuthAccountStart(AUTH_ACCT_STOP);
   AuthCleanup();
 
-  BundReasses(0);
+  BundReasses(b, 0);
   
   /* Disable link */
-  bund->pppConfig.links[lnk->bundleIndex].enableLink = 0;
+  b->pppConfig.links[l->bundleIndex].enableLink = 0;
   NgFuncSetConfig();
 
   /* Special stuff when last link goes down... */
   if (bm->n_up == 0) {
   
     /* stopping bundle statistics timer */
-    TimerStop(&bund->statsUpdateTimer);
+    TimerStop(&b->statsUpdateTimer);
 
     /* Reset statistics and auth information */
-    BundBmStop();
+    BundBmStop(b);
 
-    BundNcpsClose();
-    BundNcpsDown();
+    BundNcpsClose(b);
+    BundNcpsDown(b);
 
-    authparamsDestroy(&bund->params);
-    memset(&bund->ccp.mppc, 0, sizeof(bund->ccp.mppc));
+    authparamsDestroy(&b->params);
+    memset(&b->ccp.mppc, 0, sizeof(b->ccp.mppc));
  
     /* try to open again later */
-    if (bund->open && !Enabled(&bund->conf.options, BUND_CONF_NORETRY)) {
+    if (b->open && !Enabled(&b->conf.options, BUND_CONF_NORETRY)) {
 	/* wait BUND_REOPEN_DELAY to see if it comes back up */
       int delay = BUND_REOPEN_DELAY;
       delay += ((random() ^ gPid ^ time(NULL)) & 1);
       Log(LG_BUND, ("[%s] Last link has gone and no noretry option, will reopen in %d seconds", 
-        bund->name, delay));
-      TimerStop(&bund->reOpenTimer);
-      TimerInit(&bund->reOpenTimer, "BundReOpen",
-	delay * SECONDS, BundReOpenLinks, bund);
-      TimerStart(&bund->reOpenTimer);
-    } else if (bund->open) {
-	bund->open = FALSE;
+        b->name, delay));
+      TimerStop(&b->reOpenTimer);
+      TimerInit(&b->reOpenTimer, "BundReOpen",
+	delay * SECONDS, BundReOpenLinks, b);
+      TimerStart(&b->reOpenTimer);
+    } else if (b->open) {
+	b->open = FALSE;
     }
   }
 }
@@ -484,15 +486,15 @@ BundCloseLink(Link l)
  */
 
 void
-BundNcpsOpen(void)
+BundNcpsOpen(Bund b)
 {
-  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPCP))
     IpcpOpen();
-  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
     Ipv6cpOpen();
-  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+  if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
     CcpOpen();
-  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
+  if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
     EcpOpen();
 }
 
@@ -501,15 +503,15 @@ BundNcpsOpen(void)
  */
 
 static void
-BundNcpsUp(void)
+BundNcpsUp(Bund b)
 {
-  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPCP))
     IpcpUp();
-  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
     Ipv6cpUp();
-  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+  if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
     CcpUp();
-  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
+  if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
     EcpUp();
 }
 
@@ -538,43 +540,43 @@ BundNcpsJoin(int proto)
 	case NCP_IPCP:
 	    if (!iface->ip_up) {
 		iface->ip_up=1;
-		IfaceIpIfaceUp(1);
+		IfaceIpIfaceUp(bund, 1);
 	    } else if (iface->dod) {
 		iface->dod = 0;
 		iface->up = 0;
-		IfaceDown();
+		IfaceDown(bund);
 		if (iface->ip_up) {
 		    iface->ip_up=0;
-		    IfaceIpIfaceDown();
+		    IfaceIpIfaceDown(bund);
 		}
 		if (iface->ipv6_up) {
 		    iface->ipv6_up=0;
-		    IfaceIpv6IfaceDown();
+		    IfaceIpv6IfaceDown(bund);
 		}
 		
 		iface->ip_up=1;
-		IfaceIpIfaceUp(1);
+		IfaceIpIfaceUp(bund, 1);
 	    }
 	    break;
 	case NCP_IPV6CP:
 	    if (!iface->ipv6_up) {
 		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(1);
+		IfaceIpv6IfaceUp(bund, 1);
 	    } else if (iface->dod) {
 		iface->dod = 0;
 		iface->up = 0;
-		IfaceDown();
+		IfaceDown(bund);
 		if (iface->ip_up) {
 		    iface->ip_up=0;
-		    IfaceIpIfaceDown();
+		    IfaceIpIfaceDown(bund);
 		}
 		if (iface->ipv6_up) {
 		    iface->ipv6_up=0;
-		    IfaceIpv6IfaceDown();
+		    IfaceIpv6IfaceDown(bund);
 		}
 		
 		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(1);
+		IfaceIpv6IfaceUp(bund, 1);
 	    }
 	    break;
 	case NCP_NONE: /* Manual call by 'open iface' */
@@ -582,14 +584,14 @@ BundNcpsJoin(int proto)
 		if (!(iface->up || iface->ip_up || iface->ipv6_up)) {
 		    iface->dod=1;
 		    iface->up=1;
-		    IfaceUp(0);
+		    IfaceUp(bund, 0);
 		    if (Enabled(&bund->conf.options, BUND_CONF_IPCP)) {
 			iface->ip_up=1;
-			IfaceIpIfaceUp(0);
+			IfaceIpIfaceUp(bund, 0);
 		    }
 		    if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP)) {
 			iface->ipv6_up=1;
-			IfaceIpv6IfaceUp(0);
+			IfaceIpv6IfaceUp(bund, 0);
 		    }
 		}
 	    }
@@ -598,7 +600,7 @@ BundNcpsJoin(int proto)
     
     if ((proto==NCP_IPCP || proto==NCP_IPV6CP) && (!iface->up)) {
 	iface->up=1;
-	IfaceUp(1);
+	IfaceUp(bund, 1);
     }
 }
 
@@ -610,31 +612,31 @@ BundNcpsLeave(int proto)
 	case NCP_IPCP:
 	    if (iface->ip_up && !iface->dod) {
 		iface->ip_up=0;
-		IfaceIpIfaceDown();
+		IfaceIpIfaceDown(bund);
 	    }
 	    break;
 	case NCP_IPV6CP:
 	    if (iface->ipv6_up && !iface->dod) {
 		iface->ipv6_up=0;
-		IfaceIpv6IfaceDown();
+		IfaceIpv6IfaceDown(bund);
 	    }
 	    break;
     }
     
     if ((iface->up) && (!iface->ip_up) && (!iface->ipv6_up)) {
 	iface->up=0;
-	IfaceDown();
+	IfaceDown(bund);
         if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
 	    iface->dod=1;
 	    iface->up=1;
-	    IfaceUp(0);
+	    IfaceUp(bund, 0);
 	    if (Enabled(&bund->conf.options, BUND_CONF_IPCP)) {
 		iface->ip_up=1;
-		IfaceIpIfaceUp(0);
+		IfaceIpIfaceUp(bund, 0);
 	    }
 	    if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP)) {
 		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(0);
+		IfaceIpv6IfaceUp(bund, 0);
 	    }
 	}
     }
@@ -645,15 +647,15 @@ BundNcpsLeave(int proto)
  */
 
 static void
-BundNcpsDown(void)
+BundNcpsDown(Bund b)
 {
-  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPCP))
     IpcpDown();
-  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
     Ipv6cpDown();
-  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+  if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
     CcpDown();
-  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
+  if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
     EcpDown();
 }
 
@@ -662,15 +664,15 @@ BundNcpsDown(void)
  */
 
 void
-BundNcpsClose(void)
+BundNcpsClose(Bund b)
 {
-  if (Enabled(&bund->conf.options, BUND_CONF_IPCP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPCP))
     IpcpClose();
-  if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP))
+  if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
     Ipv6cpClose();
-  if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+  if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
     CcpClose();
-  if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
+  if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
     EcpClose();
 }
 
@@ -682,9 +684,9 @@ BundNcpsClose(void)
  */
 
 static void
-BundReasses(int add)
+BundReasses(Bund b, int add)
 {
-  BundBm	const bm = &bund->bm;
+  BundBm	const bm = &b->bm;
 
   /* Add or subtract link */
   if (add)
@@ -693,10 +695,10 @@ BundReasses(int add)
     bm->n_up--;
 
   /* Update system interface parameters */
-  BundUpdateParams(bund);
+  BundUpdateParams(b);
 
   Log(LG_BUND, ("[%s] Bundle up: %d link%s, total bandwidth %d bps",
-    bund->name, bm->n_up, bm->n_up == 1 ? "" : "s", bm->total_bw));
+    b->name, bm->n_up, bm->n_up == 1 ? "" : "s", bm->total_bw));
 
 }
 
@@ -748,7 +750,7 @@ BundUpdateParams(Bund b)
   }
 
   /* Update interface MTU */
-  IfaceSetMTU(mtu);
+  IfaceSetMTU(b, mtu);
 }
 
 /*
@@ -924,7 +926,7 @@ BundCreateCmd(int ac, char *av[], void *arg)
   gBundles[k] = bund;
 
   /* Init interface stuff */
-  IfaceInit();
+  IfaceInit(bund);
 
   if (tee)
     Enable(&bund->iface.options, IFACE_CONF_TEE);
@@ -1181,25 +1183,25 @@ BundFind(char *name)
  */
 
 static void
-BundBmStart(void)
+BundBmStart(Bund b)
 {
   int	k;
 
   /* Reset bandwidth management stats */
-  for (k = 0; k < bund->n_links; k++) {
-    memset(&bund->links[k]->bm.traffic, 0, sizeof(bund->links[k]->bm.traffic));
-    memset(&bund->links[k]->bm.wasUp, 0, sizeof(bund->links[k]->bm.wasUp));
-    memset(&bund->links[k]->bm.idleStats,
-      0, sizeof(bund->links[k]->bm.idleStats));
+  for (k = 0; k < b->n_links; k++) {
+    memset(&b->links[k]->bm.traffic, 0, sizeof(b->links[k]->bm.traffic));
+    memset(&b->links[k]->bm.wasUp, 0, sizeof(b->links[k]->bm.wasUp));
+    memset(&b->links[k]->bm.idleStats,
+      0, sizeof(b->links[k]->bm.idleStats));
   }
 
   /* Start bandwidth management timer */
-  TimerStop(&bund->bm.bmTimer);
-  if (Enabled(&bund->conf.options, BUND_CONF_BWMANAGE)) {
-    TimerInit(&bund->bm.bmTimer, "BundBm",
-      bund->conf.bm_S * SECONDS / LINK_BM_N,
-      BundBmTimeout, bund);
-    TimerStart(&bund->bm.bmTimer);
+  TimerStop(&b->bm.bmTimer);
+  if (Enabled(&b->conf.options, BUND_CONF_BWMANAGE)) {
+    TimerInit(&b->bm.bmTimer, "BundBm",
+      b->conf.bm_S * SECONDS / LINK_BM_N,
+      BundBmTimeout, b);
+    TimerStart(&b->bm.bmTimer);
   }
 }
 
@@ -1208,9 +1210,9 @@ BundBmStart(void)
  */
 
 static void
-BundBmStop(void)
+BundBmStop(Bund b)
 {
-  TimerStop(&bund->bm.bmTimer);
+  TimerStop(&b->bm.bmTimer);
 }
 
 /*
@@ -1559,7 +1561,7 @@ BundNgDataEvent(int type, void *cookie)
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd IP frame on demand/mssfix-in hook", bund->name);
-    IfaceListenInput(PROTO_IP,
+    IfaceListenInput(bund, PROTO_IP,
       mbufise(MB_FRAME_IN, buf, nread));
     return;
   }

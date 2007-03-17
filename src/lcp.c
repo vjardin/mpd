@@ -437,7 +437,7 @@ LcpNewPhase(int new)
   switch (old) {
     case PHASE_NETWORK:
       if (lnk->joined_bund)
-	BundLeave();
+	BundLeave(lnk);
       break;
 
     default:
@@ -465,7 +465,7 @@ LcpNewPhase(int new)
 	FsmSendIdent(&lcp->fsm, lnk->conf.ident);
 
       /* Join my bundle */
-      switch (BundJoin()) {
+      switch (BundJoin(lnk)) {
 	case 0:
 	  Log(LG_LINK|LG_BUND,
 	    ("[%s] link did not validate in bundle \"%s\"",

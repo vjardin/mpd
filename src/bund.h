@@ -190,18 +190,18 @@
   extern void	BundUpdateStatsTimer(void *cookie);
   extern void	BundResetStats(Bund b);
 
-  extern int	BundJoin(void);
-  extern void	BundLeave(void);
+  extern int	BundJoin(Link l);
+  extern void	BundLeave(Link l);
   extern void	BundNcpsJoin(int proto);
   extern void	BundNcpsLeave(int proto);
   extern void	BundNcpsStart(int proto);
   extern void	BundNcpsFinish(int proto);
   extern void	BundOpenLinks(Bund b);
   extern void	BundCloseLinks(Bund b);
-  extern void	BundOpenLink(Link);
+  extern void	BundOpenLink(Link l);
 
-  extern void	BundNcpsOpen(void);
-  extern void	BundNcpsClose(void);
+  extern void	BundNcpsOpen(Bund b);
+  extern void	BundNcpsClose(Bund b);
 
 #endif
 
