@@ -1199,10 +1199,18 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
 {
   int			s, p2p = 0;
   struct in_addr	ipa = { 0 };
+  static struct in_addr	nipa = { 0 };
+  static int		have_nipa = 0;
   struct ifreq		*ifr, *ifend;
   struct ifreq		ifreq;
   struct ifconf		ifc;
   struct ifreq		ifs[MAX_INTERFACES];
+
+    /* cache value to reduce number of syscalls */
+    if (ifname == NULL && have_nipa) {
+	in_addrtou_addr(&nipa, ipaddr);
+	return(0);
+    }
 
   /* Get interface list */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -1251,6 +1259,10 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
   /* Found? */
   if (ipa.s_addr == 0)
     return(-1);
+  if (ifname == NULL) {
+    nipa = ipa;
+    have_nipa = 1;
+  }
   in_addrtou_addr(&ipa, ipaddr);
   return(0);
 }
@@ -1271,6 +1283,16 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   struct ifreq		ifreq;
   struct ifconf		ifc;
   struct ifreq		ifs[MAX_INTERFACES];
+  
+  static struct sockaddr_dl nhwaddr;
+  static int		have_nhwaddr = 0;
+
+    /* cache value to reduce number of syscalls */
+    if (addr == NULL && have_nhwaddr) {
+        memcpy(hwaddr, &nhwaddr,
+	    sizeof(*hwaddr));
+	return(0);
+    }
 
   /* Get interface list */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -1331,6 +1353,11 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   for (ifp = ifr, ifr = ifc.ifc_req; ifr < ifend; ) {
     if (strcmp(ifp->ifr_name, ifr->ifr_name) == 0
 	&& ifr->ifr_addr.sa_family == AF_LINK) {
+      if (addr == NULL) {
+        memcpy(&nhwaddr, (struct sockaddr_dl *)(void *)&ifr->ifr_addr,
+	    sizeof(*hwaddr));
+	have_nhwaddr = 1;
+      }
       memcpy(hwaddr, (struct sockaddr_dl *)(void *)&ifr->ifr_addr,
 	sizeof(*hwaddr));
       return(0);

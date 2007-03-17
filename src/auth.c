@@ -559,8 +559,8 @@ GetLinkID(Link lnk) {
     int port, i;
     
     port =- 1;    
-    for (i = 0; i < gNumLinks; i++) {
-      if (gLinks[i] == lnk) {
+    for (i = 0; i < gNumPhyses; i++) {
+      if (gPhyses[i]->link == lnk) {
 	port = i;
 	break;
       }

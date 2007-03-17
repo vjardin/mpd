@@ -77,11 +77,9 @@
   PhysInfo		phys;
   PhysInfo		*gPhyses;
   Rep			*gReps;
-  Link			*gLinks;
   Bund			*gBundles;
   int			gNumPhyses;
   int			gNumReps;
-  int			gNumLinks;
   int			gNumBundles;
   ConsoleSession	gConsoleSession;
   struct console	gConsole;
@@ -401,8 +399,8 @@ FatalSignal(sig)
     }
   }
   upLinkCount = 0;
-  for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && (gLinks[k]->phys->state!=PHYS_STATE_DOWN))
+  for (k = 0; k < gNumPhyses; k++) {
+    if (gPhyses[k] && (gPhyses[k]->state!=PHYS_STATE_DOWN))
 	upLinkCount++;
   }
 

@@ -235,25 +235,8 @@ LinkMsg(int type, void *arg)
 Link
 LinkNew(char *name, Bund b, int bI)
 {
-  int		k;
-
-  /* Check if name is already used */
-  for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && !strcmp(gLinks[k]->name, name)) {
-      Log(LG_ERR, ("link \"%s\" already defined in bundle \"%s\"",
-	name, gLinks[k]->bund->name));
-      return(NULL);
-    }
-  }
-
-  /* Find a free link pointer */
-  for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++);
-  if (k == gNumLinks)			/* add a new link pointer */
-    LengthenArray(&gLinks, sizeof(*gLinks), &gNumLinks, MB_LINK);
-
   /* Create and initialize new link */
   lnk = Malloc(MB_LINK, sizeof(*lnk));
-  gLinks[k] = lnk;
   snprintf(lnk->name, sizeof(lnk->name), "%s", name);
   lnk->bund = b;
   lnk->bundleIndex = bI;
@@ -317,14 +300,6 @@ LinkNew(char *name, Bund b, int bI)
 void
 LinkShutdown(Link l)
 {
-    int	k;
-    
-    for (k = 0; k < gNumLinks; k++) {
-	if (gLinks[k] == l) {
-	    gLinks[k] = NULL;
-	    break;
-	}
-    }
     MsgUnRegister(&l->msgs);
     if (l->phys)
       PhysShutdown(l->phys);
@@ -365,20 +340,21 @@ LinkCommand(int ac, char *av[], void *arg)
   if (ac != 1)
     return(-1);
 
-  k = gNumLinks;
-  if ((sscanf(av[0], "[%x]", &k) != 1) || (k < 0) || (k >= gNumLinks)) {
+  k = gNumPhyses;
+  if ((sscanf(av[0], "[%x]", &k) != 1) || (k < 0) || (k >= gNumPhyses)) {
      /* Find link */
     for (k = 0;
-	k < gNumLinks && (!gLinks[k] || strcmp(gLinks[k]->name, av[0]));
+	k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL || 
+	    strcmp(gPhyses[k]->link->name, av[0]));
 	k++);
   };
-  if (k == gNumLinks) {
+  if (k == gNumPhyses || gPhyses[k] == NULL || gPhyses[k]->link == NULL) {
     Printf("Link \"%s\" is not defined\r\n", av[0]);
     return(0);
   }
 
     /* Change default link and bundle */
-    lnk = gLinks[k];
+    lnk = gPhyses[k]->link;
     bund = lnk->bund;
     phys = lnk->phys;
     rep = NULL;
