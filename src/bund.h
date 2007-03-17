@@ -182,13 +182,13 @@
   extern void	BundOpen(void);
   extern void	BundClose(void);
   extern int	BundStat(int ac, char *av[], void *arg);
-  extern void	BundUpdateParams(void);
+  extern void	BundUpdateParams(Bund b);
   extern int	BundCommand(int ac, char *av[], void *arg);
   extern int	BundCreateCmd(int ac, char *av[], void *arg);
   extern void	BundShutdown(Bund b);
   extern void   BundUpdateStats(Bund b);
   extern void	BundUpdateStatsTimer(void *cookie);
-  extern void	BundResetStats(void);
+  extern void	BundResetStats(Bund b);
 
   extern int	BundJoin(void);
   extern void	BundLeave(void);
@@ -196,7 +196,6 @@
   extern void	BundNcpsLeave(int proto);
   extern void	BundNcpsStart(int proto);
   extern void	BundNcpsFinish(int proto);
-  extern void	BundLinkGaveUp(void);
   extern void	BundOpenLinks(Bund b);
   extern void	BundCloseLinks(Bund b);
   extern void	BundOpenLink(Link);

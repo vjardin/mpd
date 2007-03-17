@@ -143,8 +143,5 @@
   extern void		ContextSave(Context c);
   extern void		ContextRestore(Context c);
 
-  /* Custom stuff */
-  extern void		SetStatus(int code, const char *fmt, ...);
-
 #endif
 

@@ -647,7 +647,7 @@ CcpLayerUp(Fsm fp)
   NgFuncSetConfig();
 
   /* Update interface MTU */
-  BundUpdateParams();
+  BundUpdateParams(bund);
 }
 
 /*
@@ -671,7 +671,7 @@ CcpLayerDown(Fsm fp)
   NgFuncSetConfig();
 
   /* Update interface MTU */
-  BundUpdateParams();
+  BundUpdateParams(bund);
   
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
     /* Disconnect hook. */

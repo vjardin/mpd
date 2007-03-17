@@ -301,8 +301,6 @@ LcpNewState(Fsm fp, int old, int new)
     case ST_STARTING:
       switch (new) {
 	case ST_INITIAL:
-	  if (old == ST_STARTING)
-	    SetStatus(ADLG_WAN_MESSAGE, STR_LINK_DISCON);
 	  /* fall through */
 	case ST_STARTING:
 	  break;
@@ -449,15 +447,12 @@ LcpNewPhase(int new)
   /* Do whatever for entering new phase */
   switch (new) {
     case PHASE_ESTABLISH:
-      if (old != PHASE_TERMINATE)
-	SetStatus(ADLG_WAN_CONNECTING, STR_LINK_ESTAB);
       memset(&lnk->bm.traffic, 0, sizeof(lnk->bm.traffic));
       memset(&lnk->bm.idleStats, 0, sizeof(lnk->bm.idleStats));
       break;
 
     case PHASE_AUTHENTICATE:
       PhysSetAccm(lnk->phys, lcp->peer_accmap|lcp->want_accmap);
-      SetStatus(ADLG_WAN_CONNECTING, STR_LINK_AUTH);
       AuthStart();
       break;
 
@@ -475,18 +470,15 @@ LcpNewPhase(int new)
 	  Log(LG_LINK|LG_BUND,
 	    ("[%s] link did not validate in bundle \"%s\"",
 	    lnk->name, bund->name));
-	  SetStatus(ADLG_WAN_NEGOTIATION_FAILURE, STR_MULTI_FAIL);
 	  RecordLinkUpDownReason(lnk,
 	    0, STR_PROTO_ERR, "%s", STR_MULTI_FAIL);
 	  LinkClose(lnk);
 	  lnk->joined_bund = 0;
 	  break;
 	case 1:
-	  SetStatus(ADLG_WAN_CONNECTING, STR_LINK_NEGOT);
 	  lnk->joined_bund = 1;
 	  break;
 	default:
-	  SetStatus(ADLG_WAN_CONNECTED, STR_LINK_CONN_ESTAB);
 	  lnk->joined_bund = 1;
 	  break;
       }
@@ -498,11 +490,9 @@ LcpNewPhase(int new)
       break;
 
     case PHASE_TERMINATE:
-      SetStatus(ADLG_WAN_MESSAGE, STR_LINK_HANGUP);
       break;
 
     case PHASE_DEAD:
-      SetStatus(ADLG_WAN_MESSAGE, STR_LINK_DISCON);
       break;
 
     default:
@@ -523,7 +513,6 @@ LcpAuthResult(int success)
     if (lnk->lcp.phase != PHASE_NETWORK)
       LcpNewPhase(PHASE_NETWORK);
   } else {
-    SetStatus(ADLG_WAN_AUTHORIZATION_FAILURE, STR_PPP_AUTH_FAILURE);
     RecordLinkUpDownReason(lnk, 0, STR_LOGIN_FAIL,
       "%s", STR_PPP_AUTH_FAILURE2);
     FsmFailure(&lnk->lcp.fsm, FAIL_NEGOT_FAILURE);
@@ -730,7 +719,6 @@ LcpFailure(Fsm fp, enum fsmfail reason)
   char	buf[100];
 
   snprintf(buf, sizeof(buf), STR_LCP_FAILED, FsmFailureStr(reason));
-  SetStatus(ADLG_WAN_NEGOTIATION_FAILURE, STR_COPY, buf);
   RecordLinkUpDownReason(lnk, 0, reason == FAIL_ECHO_TIMEOUT ?
     STR_ECHO_TIMEOUT : STR_PROTO_ERR, "%s", buf);
 }

@@ -206,10 +206,8 @@ LinkMsg(int type, void *arg)
 	  if (l->conf.max_redial >= 0)
 	    Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
 		l->name, l->num_redial));
-	  SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
 	  LcpClose();
           LcpDown();
-	  BundLinkGaveUp();	/* now doing nothing */
 	} else {
 	  l->num_redial++;
 	  Log(LG_LINK, ("[%s] link: reconnection attempt %d",

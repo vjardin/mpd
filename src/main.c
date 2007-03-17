@@ -278,7 +278,7 @@ CloseIfaces(void)
 void
 DoExit(int code)
 {
-  int	j, k;
+  int	k;
 
   gShutdownInProgress=1;
   /* Weak attempt to record what happened */
@@ -288,17 +288,6 @@ DoExit(int code)
   /* Shutdown stuff */
   if (code != EX_TERMINATE)	/* kludge to avoid double shutdown */
     CloseIfaces();
-
-  /* Final link status reports */
-  for (k = 0; k < gNumBundles; k++) {
-    if ((bund = gBundles[k]) != NULL) {
-      for (j = 0; j < bund->n_links; j++) {
-	if ((lnk = bund->links[j]) != NULL) {
-	  SetStatus(ADLG_WAN_DISABLED, STR_PPP_DISABLED);
-	}
-      }
-    }
-  }
 
   /* Blow away all netgraph nodes */
   for (k = 0; k < gNumBundles; k++) {

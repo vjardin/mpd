@@ -536,7 +536,7 @@ EcpLayerUp(Fsm fp)
   NgFuncSetConfig();
 
   /* Update interface MTU */
-  BundUpdateParams();
+  BundUpdateParams(bund);
 }
 
 /*
@@ -562,7 +562,7 @@ EcpLayerDown(Fsm fp)
   NgFuncSetConfig();
 
   /* Update interface MTU */
-  BundUpdateParams();
+  BundUpdateParams(bund);
 
   if (ecp->xmit != NULL && ecp->xmit->Encrypt != NULL) {
     /* Disconnect hook. */

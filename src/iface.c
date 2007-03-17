@@ -248,7 +248,6 @@ IfaceOpen(void)
      cause us to open the lower layer(s) */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
     BundNcpsJoin(NCP_NONE);
-    SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
     return;
   }
 
@@ -300,11 +299,6 @@ IfaceUp(int ready)
   int		prev_real_number;
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", bund->name));
-  if (ready) {
-    SetStatus(ADLG_WAN_CONNECTED, STR_CONN_ESTAB);
-  } else {
-    SetStatus(ADLG_WAN_WAIT_FOR_DEMAND, STR_READY_TO_DIAL);
-  }
 
   if (ready) {
 
@@ -735,7 +729,7 @@ IfaceIpIfaceUp(int ready)
   char			buf[64];
 
   /* For good measure */
-  BundUpdateParams();
+  BundUpdateParams(bund);
 
   if (ready) {
     in_addrtou_range(&bund->ipcp.want_addr, 32, &iface->self_addr);
@@ -902,7 +896,7 @@ IfaceIpv6IfaceUp(int ready)
   char		buf[64];
 
   /* For good measure */
-  BundUpdateParams();
+  BundUpdateParams(bund);
 
   if (ready) {
 

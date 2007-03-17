@@ -531,11 +531,7 @@ IpcpOpen(void)
 static void
 IpcpFailure(Fsm fp, enum fsmfail reason)
 {
-  char	buf[100];
-
-  snprintf(buf, sizeof(buf), STR_IPCP_FAILED, FsmFailureStr(reason));
-  SetStatus(ADLG_WAN_NEGOTIATION_FAILURE, STR_COPY, buf);
-  RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, "%s", buf);
+  RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, STR_IPCP_FAILED, FsmFailureStr(reason));
 }
 
 /*

@@ -285,7 +285,7 @@ BundJoin(void)
 
     BundNcpsUp();
 
-    BundResetStats();
+    BundResetStats(bund);
     
     /* starting bundle statistics timer */
     TimerInit(&bund->statsUpdateTimer, "BundUpdateStats", 
@@ -385,21 +385,6 @@ BundReOpenLinks(void *arg)
     BUND_REOPEN_PAUSE * SECONDS, (void (*)(void *)) BundOpenLinks, b);
   TimerStart(&b->reOpenTimer);
   RecordLinkUpDownReason(NULL, 1, STR_REDIAL, NULL);
-}
-
-/*
- * BundLinkGaveUp()
- *
- * This is called when one of our links we've told to open has
- * been unable to do so and is now giving up (due to a maximum
- * consecutive redial limitation, or whatever). This may result
- * in us closing the whole bundle.
- */
-
-void
-BundLinkGaveUp(void)
-{
-
 }
 
 /*
@@ -708,7 +693,7 @@ BundReasses(int add)
     bm->n_up--;
 
   /* Update system interface parameters */
-  BundUpdateParams();
+  BundUpdateParams(bund);
 
   Log(LG_BUND, ("[%s] Bundle up: %d link%s, total bandwidth %d bps",
     bund->name, bm->n_up, bm->n_up == 1 ? "" : "s", bm->total_bw));
@@ -722,15 +707,15 @@ BundReasses(int add)
  */
 
 void
-BundUpdateParams(void)
+BundUpdateParams(Bund b)
 {
-  BundBm	const bm = &bund->bm;
+  BundBm	const bm = &b->bm;
   int		k, mtu, the_link = 0;
 
   /* Recalculate how much bandwidth we have */
-  for (bm->total_bw = k = 0; k < bund->n_links; k++) {
-    if (bund->links[k]->lcp.phase == PHASE_NETWORK) {
-      bm->total_bw += bund->links[k]->bandwidth;
+  for (bm->total_bw = k = 0; k < b->n_links; k++) {
+    if (b->links[k]->lcp.phase == PHASE_NETWORK) {
+      bm->total_bw += b->links[k]->bandwidth;
       the_link = k;
     }
   }
@@ -743,22 +728,22 @@ BundUpdateParams(void)
       mtu = NG_IFACE_MTU_DEFAULT;	/* Reset to default settings */
       break;
     case 1:
-      if (!bund->multilink) {		/* If no multilink, use peer MRU */
-	mtu = MIN(bund->links[the_link]->lcp.peer_mru,
-		  bund->links[the_link]->phys->type->mtu);
+      if (!b->multilink) {		/* If no multilink, use peer MRU */
+	mtu = MIN(b->links[the_link]->lcp.peer_mru,
+		  b->links[the_link]->phys->type->mtu);
 	break;
       }
       /* FALLTHROUGH */
     default:			/* We fragment everything, use bundle MRRU */
-      mtu = bund->mp.peer_mrru;
+      mtu = b->mp.peer_mrru;
       break;
   }
 
   /* Subtract to make room for various frame-bloating protocols */
   if (bm->n_up > 0) {
-    if (Enabled(&bund->conf.options, BUND_CONF_COMPRESSION))
+    if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
       mtu = CcpSubtractBloat(mtu);
-    if (Enabled(&bund->conf.options, BUND_CONF_ENCRYPTION))
+    if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
       mtu = EcpSubtractBloat(mtu);
   }
 
@@ -1145,11 +1130,11 @@ BundUpdateStatsTimer(void *cookie)
  */
 
 void
-BundResetStats(void)
+BundResetStats(Bund b)
 {
-  NgFuncGetStats(bund, NG_PPP_BUNDLE_LINKNUM, TRUE, NULL);
-  memset(&bund->stats, 0, sizeof(struct linkstats));
-  memset(&bund->oldStats, 0, sizeof(bund->oldStats));
+  NgFuncGetStats(b, NG_PPP_BUNDLE_LINKNUM, TRUE, NULL);
+  memset(&b->stats, 0, sizeof(struct linkstats));
+  memset(&b->oldStats, 0, sizeof(b->oldStats));
 }
 
 /*
