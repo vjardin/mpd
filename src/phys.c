@@ -448,7 +448,7 @@ PhysMsg(int type, void *arg)
 	    p->name, delay));
 	  TimerStop(&p->openTimer);
 	  TimerInit(&p->openTimer, "PhysOpen",
-	    delay * SECONDS, PhysOpenTimeout, NULL);
+	    delay * SECONDS, PhysOpenTimeout, p);
 	  TimerStart(&p->openTimer);
 	}
 	break;
@@ -499,7 +499,7 @@ PhysMsg(int type, void *arg)
 static void
 PhysOpenTimeout(void *arg)
 {
-  PhysInfo	const p = phys;
+  PhysInfo	const p = (PhysInfo)arg;
 
   TimerStop(&p->openTimer);
   assert(p->want_open);
