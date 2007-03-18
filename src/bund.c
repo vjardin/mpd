@@ -269,7 +269,7 @@ BundJoin(Link l)
   }
 
   /* Update PPP node configuration */
-  NgFuncSetConfig();
+  NgFuncSetConfig(b);
 
   /* copy multysession-id to link */
   strncpy(l->msession_id, b->msession_id,
@@ -331,7 +331,7 @@ BundLeave(Link l)
   
   /* Disable link */
   b->pppConfig.links[l->bundleIndex].enableLink = 0;
-  NgFuncSetConfig();
+  NgFuncSetConfig(b);
 
   /* Special stuff when last link goes down... */
   if (bm->n_up == 0) {
@@ -1333,7 +1333,7 @@ BundBmTimeout(void *arg)
     Log(LG_BUND, ("[%s] opening link %s due to increased demand",
       b->name, b->links[k]->name));
     b->bm.last_open = now;
-    RecordLinkUpDownReason(lnk, 1, STR_PORT_NEEDED, NULL);
+    RecordLinkUpDownReason(b->links[k], 1, STR_PORT_NEEDED, NULL);
     BundOpenLink(b->links[k]);
   }
 
@@ -1348,7 +1348,7 @@ BundBmTimeout(void *arg)
     Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
       b->name, b->links[k]->name));
     b->bm.last_close = now;
-    RecordLinkUpDownReason(lnk, 0, STR_PORT_UNNEEDED, NULL);
+    RecordLinkUpDownReason(b->links[k], 0, STR_PORT_UNNEEDED, NULL);
     BundCloseLink(b->links[k]);
   }
 
@@ -1512,17 +1512,18 @@ BundNgShutdown(Bund b, int iface, int ppp)
 static void
 BundNgDataEvent(int type, void *cookie)
 {
+    Bund	b = (Bund)cookie;
   u_char		buf[8192];
   struct sockaddr_ng	naddr;
   int			nread, nsize = sizeof(naddr);
   Mbuf 			nbp;
 
   /* Set bundle */
-  bund = (Bund) cookie;
-  lnk = bund->links[0];
+  bund = b;
+  lnk = b->links[0];
 
   /* Read data */
-  if ((nread = recvfrom(bund->dsock, buf, sizeof(buf),
+  if ((nread = recvfrom(b->dsock, buf, sizeof(buf),
       0, (struct sockaddr *)&naddr, &nsize)) < 0) {
     if (errno == EAGAIN)
       return;
@@ -1550,7 +1551,7 @@ BundNgDataEvent(int type, void *cookie)
     lnk = (linkNum < bund->n_links) ? bund->links[linkNum] : NULL;
 
     /* Input frame */
-    InputFrame(linkNum, proto,
+    InputFrame(b, linkNum, proto,
       mbufise(MB_FRAME_IN, buf + 4, nread - 4));
     return;
   }
@@ -1573,7 +1574,7 @@ BundNgDataEvent(int type, void *cookie)
       "[%s] rec'd IP frame on mssfix-out hook", bund->name);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
     IfaceCorrectMSS(nbp, MAXMSS(bund->iface.mtu));
-    NgFuncWriteFrame(bund->name, MPD_HOOK_TCPMSS_IN, nbp);
+    NgFuncWriteFrame(bund, MPD_HOOK_TCPMSS_IN, nbp);
     return;
   }
   /* A snooped, incoming TCP SYN frame? */
@@ -1583,7 +1584,7 @@ BundNgDataEvent(int type, void *cookie)
       "[%s] rec'd IP frame on mssfix-in hook", bund->name);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
     IfaceCorrectMSS(nbp, MAXMSS(bund->iface.mtu));
-    NgFuncWriteFrame(bund->name, MPD_HOOK_TCPMSS_OUT, nbp);
+    NgFuncWriteFrame(bund, MPD_HOOK_TCPMSS_OUT, nbp);
     return;
   }
 #endif
@@ -1597,7 +1598,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = CcpDataOutput(mbufise(MB_COMP, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_COMPRESS, nbp);
+	NgFuncWriteFrame(bund, NG_PPP_HOOK_COMPRESS, nbp);
 
     return;
   }
@@ -1610,7 +1611,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = CcpDataInput(mbufise(MB_COMP, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECOMPRESS, nbp);
+	NgFuncWriteFrame(bund, NG_PPP_HOOK_DECOMPRESS, nbp);
 
     return;
   }
@@ -1624,7 +1625,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = EcpDataOutput(mbufise(MB_CRYPT, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_ENCRYPT, nbp);
+	NgFuncWriteFrame(bund, NG_PPP_HOOK_ENCRYPT, nbp);
 
     return;
   }
@@ -1637,7 +1638,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = EcpDataInput(mbufise(MB_CRYPT, buf, nread));
     if (nbp) 
-	NgFuncWriteFrame(bund->name, NG_PPP_HOOK_DECRYPT, nbp);
+	NgFuncWriteFrame(bund, NG_PPP_HOOK_DECRYPT, nbp);
 
     return;
   }

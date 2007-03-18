@@ -67,9 +67,9 @@
   extern int		TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block);
   extern int		GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, int len);
 
-  extern int		OpenSerialDevice(const char *path, int baudrate);
-  extern int		ExclusiveOpenDevice(const char *path);
-  extern void		ExclusiveCloseDevice(int fd, const char *path);
+  extern int		OpenSerialDevice(const char *label, const char *path, int baudrate);
+  extern int		ExclusiveOpenDevice(const char *label, const char *path);
+  extern void		ExclusiveCloseDevice(const char *label, int fd, const char *path);
 
   extern int		WriteMbuf(Mbuf *mp, int fd, const char *label);
   extern int		PIDCheck(const char *lockfile, int killem);
@@ -77,8 +77,8 @@
   extern void		LengthenArray(void *arrayp, int esize,
 				int *alenp, const char *type);
 
-  extern int		ExecCmd(int log, const char *fmt, ...)
-				__printflike(2, 3);
+  extern int		ExecCmd(int log, const char *label, const char *fmt, ...)
+				__printflike(3, 4);
   extern void		ShowMesg(int log, const char *buf, int len);
   extern char		*Bin2Hex(const unsigned char *bin, int len);
   extern u_char		*Hex2Bin(char *hexstr);

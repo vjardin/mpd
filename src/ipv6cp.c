@@ -284,7 +284,7 @@ Ipv6cpLayerUp(Fsm fp)
 #else
   bund->pppConfig.bund.enableIPv6 = 1;
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 }
 
 /*
@@ -302,7 +302,7 @@ Ipv6cpLayerDown(Fsm fp)
 #else
   bund->pppConfig.bund.enableIPv6 = 0;
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 
   BundNcpsLeave(NCP_IPV6CP);
 
@@ -441,9 +441,9 @@ Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
  */
 
 void
-Ipv6cpInput(Mbuf bp, int linkNum)
+Ipv6cpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&bund->ipv6cp.fsm, bp, linkNum);
+  FsmInput(&b->ipv6cp.fsm, bp, b);
 }
 
 /*

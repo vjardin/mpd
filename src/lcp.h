@@ -123,7 +123,7 @@
  */
 
   extern void	LcpInit(void);
-  extern void	LcpInput(Mbuf bp, int linkNum);
+  extern void	LcpInput(Link l, Mbuf bp);
   extern void	LcpUp(void);
   extern void	LcpOpen(void);
   extern void	LcpClose(void);

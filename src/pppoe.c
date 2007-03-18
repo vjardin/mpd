@@ -581,7 +581,7 @@ CreatePppoeNode(PhysInfo p, const char *path, const char *hook, struct PppoeIf *
 	snprintf(iface, sizeof(iface), "%s", path);
 	if (iface[strlen(iface) - 1] == ':')
 		iface[strlen(iface) - 1] = '\0';
-	if (ExecCmd(LG_PHYS2, "%s %s up", PATH_IFCONFIG, iface) != 0) {
+	if (ExecCmd(LG_PHYS2, p->name, "%s %s up", PATH_IFCONFIG, iface) != 0) {
 		Log(LG_ERR, ("[%s] can't bring up interface %s",
 		    p->name, iface));
 		return (0);

@@ -181,7 +181,7 @@
   extern void		FsmClose(Fsm f);
   extern void		FsmUp(Fsm f);
   extern void		FsmDown(Fsm f);
-  extern void		FsmInput(Fsm f, Mbuf bp, int linkNum);
+  extern void		FsmInput(Fsm f, Mbuf bp, void *arg);
   extern void		FsmOutput(Fsm, u_int, u_int, u_char *, int);
   extern void		FsmOutputMbuf(Fsm, u_int, u_int, Mbuf);
   extern void		FsmOutputMbuf2(u_short proto, int linklayer,

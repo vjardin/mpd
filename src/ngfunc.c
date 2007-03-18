@@ -407,12 +407,12 @@ NgFuncShutdownNode(int csock, const char *label, const char *path)
  */
 
 void
-NgFuncSetConfig(void)
+NgFuncSetConfig(Bund b)
 {
-  if (NgSendMsg(bund->csock, MPD_HOOK_PPP, NGM_PPP_COOKIE,
-      NGM_PPP_SET_CONFIG, &bund->pppConfig, sizeof(bund->pppConfig)) < 0) {
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP, NGM_PPP_COOKIE,
+      NGM_PPP_SET_CONFIG, &b->pppConfig, sizeof(b->pppConfig)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s: %s",
-      bund->name, MPD_HOOK_PPP, strerror(errno)));
+      b->name, MPD_HOOK_PPP, strerror(errno)));
     DoExit(EX_ERRDEAD);
   }
 }
@@ -473,7 +473,7 @@ done:
  */
 
 int
-NgFuncConnect(const char *path, const char *hook,
+NgFuncConnect(int csock, char *label, const char *path, const char *hook,
 	const char *path2, const char *hook2)
 {
   struct ngm_connect	cn;
@@ -481,10 +481,10 @@ NgFuncConnect(const char *path, const char *hook,
   snprintf(cn.path, sizeof(cn.path), "%s", path2);
   snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", hook);
   snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", hook2);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-      bund->name, path, hook, path2, hook2, strerror(errno)));
+      label, path, hook, path2, hook2, strerror(errno)));
     return(-1);
   }
   return(0);
@@ -517,7 +517,7 @@ NgFuncDisconnect(int csock, char *label, const char *path, const char *hook)
  */
 
 int
-NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp)
+NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
 {
   Mbuf		hdr;
   u_int16_t	temp;
@@ -525,7 +525,7 @@ NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp)
   /* Prepend ppp node bypass header */
   hdr = mballoc(bp->type, 4);
   if (hdr == NULL) {
-    Log(LG_ERR, ("[%s] NgFuncWritePppFrame: mballoc() error", bund->name));
+    Log(LG_ERR, ("[%s] NgFuncWritePppFrame: mballoc() error", b->name));
     PFREE(bp);
     return (-1);
   }
@@ -540,12 +540,10 @@ NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp)
   /* Debugging */
   LogDumpBp(LG_FRAME, bp,
     "[%s] xmit bypass frame link=%d proto=0x%04x",
-    bund->name, (int16_t)linkNum, proto);
+    b->name, (int16_t)linkNum, proto);
 
   /* Write frame */
-  return NgFuncWriteFrame(
-    linkNum == NG_PPP_BUNDLE_LINKNUM ? bund->name : bund->links[linkNum]->name,
-    MPD_HOOK_PPP, bp);
+  return NgFuncWriteFrame(b, MPD_HOOK_PPP, bp);
 }
 
 /*
@@ -555,7 +553,7 @@ NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp)
  */
 
 int
-NgFuncWriteFrame(const char *label, const char *hookname, Mbuf bp)
+NgFuncWriteFrame(Bund b, const char *hookname, Mbuf bp)
 {
   u_char		buf[sizeof(struct sockaddr_ng) + NG_HOOKLEN];
   struct sockaddr_ng	*ng = (struct sockaddr_ng *)buf;
@@ -572,13 +570,13 @@ NgFuncWriteFrame(const char *label, const char *hookname, Mbuf bp)
   if (bp == NULL)  
     return (-1);
 
-  rtn = sendto(bund->dsock, MBDATAU(bp), MBLEN(bp),
+  rtn = sendto(b->dsock, MBDATAU(bp), MBLEN(bp),
     0, (struct sockaddr *)ng, ng->sg_len);
 
   /* ENOBUFS can be expected on some links, e.g., ng_pptpgre(4) */
   if (rtn < 0 && errno != ENOBUFS) {
     Log(LG_ERR, ("[%s] error writing len %d frame to %s: %s",
-      label, MBLEN(bp), hookname, strerror(errno)));
+      b->name, MBLEN(bp), hookname, strerror(errno)));
   }
   PFREE(bp);
   return (rtn);

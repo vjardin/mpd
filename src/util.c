@@ -74,7 +74,7 @@ LengthenArray(void *array, int esize, int *alenp, const char *type)
  */
 
 int
-ExecCmd(int log, const char *fmt, ...)
+ExecCmd(int log, const char *label, const char *fmt, ...)
 {
   int		rtn;
   char		cmd[BIG_LINE_SIZE];
@@ -85,7 +85,7 @@ ExecCmd(int log, const char *fmt, ...)
 
 /* Log command on the console */
 
-  Log(log, ("[%s] exec: %s", bund->name, cmd));
+  Log(log, ("[%s] exec: %s", label, cmd));
 
 /* Hide any stdout output of command */
 
@@ -94,7 +94,7 @@ ExecCmd(int log, const char *fmt, ...)
 /* Do command */
 
   if ((rtn = system(cmd)))
-    Log(log, ("[%s] exec: command returned %d", bund->name, rtn));
+    Log(log, ("[%s] exec: command returned %d", label, rtn));
 
 /* Return command's return value */
 
@@ -546,14 +546,14 @@ ReadLine(FILE *fp, int *lineNum, char *result, int resultsize)
  */
 
 int
-OpenSerialDevice(const char *path, int baudrate)
+OpenSerialDevice(const char *label, const char *path, int baudrate)
 {
   struct termios	attr;
   int			fd;
 
 /* Open & lock serial port */
 
-  if ((fd = ExclusiveOpenDevice(path)) < 0)
+  if ((fd = ExclusiveOpenDevice(label, path)) < 0)
     return(-1);
 
 /* Set non-blocking I/O */
@@ -561,7 +561,7 @@ OpenSerialDevice(const char *path, int baudrate)
   if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
   {
     Log(LG_ERR, ("[%s] can't set \"%s\" to non-blocking: %s",
-      lnk->name, path, strerror(errno)));
+      label, path, strerror(errno)));
     goto failed;
   }
 
@@ -570,7 +570,7 @@ OpenSerialDevice(const char *path, int baudrate)
   if (tcgetattr(fd, &attr) < 0)
   {
     Log(LG_ERR, ("[%s] can't tcgetattr \"%s\": %s",
-      lnk->name, path, strerror(errno)));
+      label, path, strerror(errno)));
     goto failed;
   }
 
@@ -588,9 +588,9 @@ OpenSerialDevice(const char *path, int baudrate)
   if (tcsetattr(fd, TCSANOW, &attr) < 0)
   {
     Log(LG_ERR, ("[%s] can't tcsetattr \"%s\": %s",
-      lnk->name, path, strerror(errno)));
+      label, path, strerror(errno)));
 failed:
-    ExclusiveCloseDevice(fd, path);
+    ExclusiveCloseDevice(label, fd, path);
     return(-1);
   }
 
@@ -604,7 +604,7 @@ failed:
  */
 
 int
-ExclusiveOpenDevice(const char *pathname)
+ExclusiveOpenDevice(const char *label, const char *pathname)
 {
   int		fd, locked = FALSE;
   const char	*ttyname = NULL;
@@ -617,7 +617,7 @@ ExclusiveOpenDevice(const char *pathname)
     ttyname = pathname + 5;
     if (UuLock(ttyname) < 0)
     {
-      Log(LG_ERR, ("[%s] can't lock device %s", lnk->name, ttyname));
+      Log(LG_ERR, ("[%s] can't lock device %s", label, ttyname));
       return(-1);
     }
     locked = TRUE;
@@ -631,7 +631,7 @@ ExclusiveOpenDevice(const char *pathname)
     if (errno != EINTR)
     {
       Log(LG_ERR, ("[%s] can't open %s: %s",
-	lnk->name, pathname, strerror(errno)));
+	label, pathname, strerror(errno)));
       if (locked)
 	UuUnlock(ttyname);
       return(-1);
@@ -642,7 +642,7 @@ ExclusiveOpenDevice(const char *pathname)
   if (fd < 0)
   {
     Log(LG_ERR, ("[%s] can't open %s after %d secs",
-      lnk->name, pathname, MAX_OPEN_DELAY));
+      label, pathname, MAX_OPEN_DELAY));
     if (locked)
       UuUnlock(ttyname);
     return(-1);
@@ -659,7 +659,7 @@ ExclusiveOpenDevice(const char *pathname)
  */
 
 void
-ExclusiveCloseDevice(int fd, const char *pathname)
+ExclusiveCloseDevice(const char *label, int fd, const char *pathname)
 {
   int		rtn = -1;
   const char	*ttyname;
@@ -672,7 +672,7 @@ ExclusiveCloseDevice(int fd, const char *pathname)
     if (errno != EINTR)
     {
       Log(LG_ERR, ("[%s] can't close %s: %s",
-	lnk->name, pathname, strerror(errno)));
+	label, pathname, strerror(errno)));
       break;
     }
 
@@ -681,7 +681,7 @@ ExclusiveCloseDevice(int fd, const char *pathname)
   if ((rtn < 0) && (errno == EINTR))
   {
     Log(LG_ERR, ("[%s] can't close %s after %d secs",
-      lnk->name, pathname, MAX_OPEN_DELAY));
+      label, pathname, MAX_OPEN_DELAY));
     DoExit(EX_ERRDEAD);
   }
 
@@ -692,7 +692,7 @@ ExclusiveCloseDevice(int fd, const char *pathname)
     ttyname = pathname + 5;
     if (UuUnlock(ttyname) < 0)
       Log(LG_ERR, ("[%s] can't unlock %s: %s",
-	lnk->name, ttyname, strerror(errno)));
+	label, ttyname, strerror(errno)));
   }
 }
 
@@ -1036,18 +1036,16 @@ TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
     return(-1);
   }
   
-  if (bund) {
     if (Enabled(&gGlobalConf.options, GLOBAL_CONF_TCPWRAPPER)) {
       request_init(&req, RQ_DAEMON, "mpd", RQ_FILE, new_sock, NULL);
       fromhost(&req);
       if (!hosts_access(&req)) {
-	Log(LG_ERR, ("[%s] refused connection (tcp-wrapper) from %s", 
-	  bund->name, eval_client(&req)));
+	Log(LG_ERR, ("refused connection (tcp-wrapper) from %s", 
+	  eval_client(&req)));
 	close(new_sock);
 	return(-1);
       }
     }
-  }
   
   if (!block) 
   {

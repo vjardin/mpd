@@ -218,7 +218,7 @@ FsmOutputMbuf2(u_short proto, int linklayer, u_int code, u_int id, Mbuf payload)
   bp->next = payload;
 
   /* Send it out */
-  NgFuncWritePppFrame(linklayer ?
+  NgFuncWritePppFrame(bund, linklayer ?
     lnk->bundleIndex : NG_PPP_BUNDLE_LINKNUM, proto, bp);
 }
 
@@ -1374,7 +1374,7 @@ FsmEchoTimeout(void *arg)
  */
 
 void
-FsmInput(Fsm fp, Mbuf bp, int linkNum)
+FsmInput(Fsm fp, Mbuf bp, void *arg)
 {
   int			log, recd_len, length;
   struct fsmheader	hdr;
@@ -1418,9 +1418,9 @@ FsmInput(Fsm fp, Mbuf bp, int linkNum)
     log = fp->log2;
   else
     log = fp->log;
-  Log(log, ("%s: rec'd %s #%d link %d (%s)",
+  Log(log, ("%s: rec'd %s #%d (%s)",
     Pref(fp), FsmCodeName(hdr.code), (int) hdr.id,
-    (int16_t)linkNum, FsmStateName(fp->state)));
+    FsmStateName(fp->state)));
 
   /* Do whatever */
   (*FsmCodes[hdr.code].action)(fp, &hdr, bp);

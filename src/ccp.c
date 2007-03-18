@@ -474,9 +474,9 @@ CcpRecvResetAck(Fsm fp, int id, Mbuf bp)
  */
 
 void
-CcpInput(Mbuf bp, int linkNum)
+CcpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&bund->ccp.fsm, bp, linkNum);
+  FsmInput(&b->ccp.fsm, bp, b);
 }
 
 /*
@@ -644,7 +644,7 @@ CcpLayerUp(Fsm fp)
   bund->pppConfig.bund.enableCompression = (ccp->xmit != NULL)?ccp->xmit->mode:0;
   bund->pppConfig.bund.enableDecompression = (ccp->recv != NULL)?ccp->recv->mode:0;
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 
   /* Update interface MTU */
   BundUpdateParams(bund);
@@ -668,7 +668,7 @@ CcpLayerDown(Fsm fp)
   bund->pppConfig.bund.enableCompression = 0;
   bund->pppConfig.bund.enableDecompression = 0;
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 
   /* Update interface MTU */
   BundUpdateParams(bund);

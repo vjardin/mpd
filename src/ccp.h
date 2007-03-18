@@ -110,7 +110,7 @@
   extern void	CcpDown(void);
   extern void	CcpOpen(void);
   extern void	CcpClose(void);
-  extern void	CcpInput(Mbuf bp, int linkNum);
+  extern void	CcpInput(Bund b, Mbuf bp);
   extern Mbuf	CcpDataInput(Mbuf bp);
   extern Mbuf	CcpDataOutput(Mbuf bp);
   extern int	CcpSubtractBloat(int size);

@@ -360,24 +360,24 @@ AuthStart(void)
  */
 
 void
-AuthInput(int proto, Mbuf bp)
+AuthInput(Link l, int proto, Mbuf bp)
 {
   AuthData		auth;
-  Auth			const a = &lnk->lcp.auth;
+  Auth			const a = &l->lcp.auth;
   int			len;
   struct fsmheader	fsmh;
   u_char		*pkt;
 
   /* Sanity check */
-  if (lnk->lcp.phase != PHASE_AUTHENTICATE && lnk->lcp.phase != PHASE_NETWORK) {
-    Log(LG_AUTH, ("[%s] AUTH: rec'd stray packet", lnk->name));
+  if (l->lcp.phase != PHASE_AUTHENTICATE && l->lcp.phase != PHASE_NETWORK) {
+    Log(LG_AUTH, ("[%s] AUTH: rec'd stray packet", l->name));
     PFREE(bp);
     return;
   }
   
   if (a->thread) {
     Log(LG_ERR, ("[%s] AUTH: Thread already running, dropping this packet", 
-      lnk->name));
+      l->name));
     PFREE(bp);
     return;
   }
@@ -388,7 +388,7 @@ AuthInput(int proto, Mbuf bp)
   /* Sanity check length */
   if (len < sizeof(fsmh)) {
     Log(LG_AUTH, ("[%s] AUTH: rec'd runt packet: %d bytes",
-      lnk->name, len));
+      l->name, len));
     PFREE(bp);
     return;
   }
@@ -494,7 +494,7 @@ AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
 
   /* Send it out */
 
-  NgFuncWritePppFrame(lnk->bundleIndex, proto, bp);
+  NgFuncWritePppFrame(bund, lnk->bundleIndex, proto, bp);
 }
 
 /*

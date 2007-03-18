@@ -77,16 +77,16 @@
  */
 
   extern void	NgFuncShutdownGlobal(Bund b);
-  extern void	NgFuncSetConfig(void);
-  extern int	NgFuncWritePppFrame(int linkNum, int proto, Mbuf bp);
-  extern int	NgFuncWriteFrame(const char *label, const char *hook, Mbuf bp);
+  extern void	NgFuncSetConfig(Bund b);
+  extern int	NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp);
+  extern int	NgFuncWriteFrame(Bund b, const char *hook, Mbuf bp);
   extern int	NgFuncGetStats(Bund b, u_int16_t linkNum,
 			int clear, struct ng_ppp_link_stat *s);
   extern int	NgFuncSendQuery(const char *path, int cookie, int cmd,
 			const void *args, size_t arglen, struct ng_mesg *rbuf,
 			size_t replen, char *raddr);
 
-  extern int	NgFuncConnect(const char *path, const char *hook,
+  extern int	NgFuncConnect(int csock, char *label, const char *path, const char *hook,
 			const char *path2, const char *hook2);
   extern int	NgFuncDisconnect(int csock, char *label, const char *path, const char *hook);
   extern int	NgFuncShutdownNode(int csock, const char *label, const char *path);

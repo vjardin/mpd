@@ -448,9 +448,9 @@ EcpRecvResetAck(Fsm fp, int id, Mbuf bp)
  */
 
 void
-EcpInput(Mbuf bp, int linkNum)
+EcpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&bund->ecp.fsm, bp, linkNum);
+  FsmInput(&b->ecp.fsm, bp, b);
 }
 
 /*
@@ -533,7 +533,7 @@ EcpLayerUp(Fsm fp)
   bund->pppConfig.bund.enableEncryption = (ecp->xmit != NULL);
   bund->pppConfig.bund.enableDecryption = (ecp->recv != NULL);
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 
   /* Update interface MTU */
   BundUpdateParams(bund);
@@ -559,7 +559,7 @@ EcpLayerDown(Fsm fp)
   bund->pppConfig.bund.enableEncryption = 0;
   bund->pppConfig.bund.enableDecryption = 0;
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 
   /* Update interface MTU */
   BundUpdateParams(bund);

@@ -259,7 +259,7 @@ ModemStart(void *arg)
   }
 
   /* Open and configure serial port */
-  if ((m->fd = OpenSerialDevice(m->device, m->speed)) < 0)
+  if ((m->fd = OpenSerialDevice(p->name, m->device, m->speed)) < 0)
     goto fail;
 
   /* If connecting, but no connect script, then skip chat altogether */
@@ -271,7 +271,7 @@ ModemStart(void *arg)
   /* Open chat script file */
   if ((scriptfp = OpenConfFile(SCRIPT_FILE, NULL)) == NULL) {
     Log(LG_ERR, ("[%s] MODEM: can't open chat script file", p->name));
-    ExclusiveCloseDevice(m->fd, m->device);
+    ExclusiveCloseDevice(p->name, m->fd, m->device);
     m->fd = -1;
 fail:
     m->opened = FALSE;
@@ -348,7 +348,7 @@ ModemDoClose(PhysInfo p, int opened)
     m->csock = -1;
   }
 
-  ExclusiveCloseDevice(m->fd, m->device);
+  ExclusiveCloseDevice(p->name, m->fd, m->device);
   m->lastClosed = time(NULL);
   m->answering = FALSE;
   m->fd = -1;

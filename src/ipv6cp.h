@@ -52,7 +52,7 @@
   extern void	Ipv6cpDown(void);
   extern void	Ipv6cpOpen(void);
   extern void	Ipv6cpClose(void);
-  extern void	Ipv6cpInput(Mbuf bp, int linkNum);
+  extern void	Ipv6cpInput(Bund b, Mbuf bp);
   extern void	Ipv6cpDefAddress(void);
   extern int	Ipv6cpStat(int ac, char *av[], void *arg);
 

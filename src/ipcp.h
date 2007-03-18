@@ -89,7 +89,7 @@
   extern void	IpcpDown(void);
   extern void	IpcpOpen(void);
   extern void	IpcpClose(void);
-  extern void	IpcpInput(Mbuf bp, int linkNum);
+  extern void	IpcpInput(Bund b, Mbuf bp);
   extern void	IpcpDefAddress(void);
   extern int	IpcpStat(int ac, char *av[], void *arg);
 

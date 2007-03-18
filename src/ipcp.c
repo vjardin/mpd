@@ -450,7 +450,7 @@ IpcpLayerUp(Fsm fp)
   bund->pppConfig.bund.enableVJCompression = vjc.enableComp;
   bund->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 }
 
 /*
@@ -474,7 +474,7 @@ IpcpLayerDown(Fsm fp)
   bund->pppConfig.bund.enableVJCompression = 0;
   bund->pppConfig.bund.enableVJDecompression = 0;
 #endif
-  NgFuncSetConfig();
+  NgFuncSetConfig(bund);
 
   if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP)
@@ -737,9 +737,9 @@ doDnsNbns:
  */
 
 void
-IpcpInput(Mbuf bp, int linkNum)
+IpcpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&bund->ipcp.fsm, bp, linkNum);
+  FsmInput(&b->ipcp.fsm, bp, b);
 }
 
 static int

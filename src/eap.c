@@ -526,7 +526,7 @@ EapRadiusSendMsg(void *ptr)
   }
 
   memcpy(MBDATAU(bp), a->params.eapmsg, a->params.eapmsg_len);
-  NgFuncWritePppFrame(lnk->bundleIndex, PROTO_EAP, bp);
+  NgFuncWritePppFrame(bund, lnk->bundleIndex, PROTO_EAP, bp);
 }
 
 /*

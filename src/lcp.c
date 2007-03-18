@@ -1180,9 +1180,9 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
  */
 
 void
-LcpInput(Mbuf bp, int linkNum)
+LcpInput(Link l, Mbuf bp)
 {
-  FsmInput(&lnk->lcp.fsm, bp, linkNum);
+  FsmInput(&l->lcp.fsm, bp, l);
 }
 
 static const struct fsmoption *

@@ -389,14 +389,14 @@ IfaceUp(Bund b, int ready)
   acls = b->params.acl_pipe;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE2, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
+    ExecCmd(LG_IFACE2, b->name, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
     Freee(MB_IFACE, buf);
     acls = acls->next;
   }
   acls = b->params.acl_queue;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule,iface->ifname);
-    ExecCmd(LG_IFACE2, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
+    ExecCmd(LG_IFACE2, b->name, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
     Freee(MB_IFACE, buf);
     acls = acls->next;
   }
@@ -406,13 +406,13 @@ IfaceUp(Bund b, int ready)
     memcpy(acl, acls, sizeof(struct acl));
     acl->next = iface->tables;
     iface->tables = acl;
-    ExecCmd(LG_IFACE2, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
+    ExecCmd(LG_IFACE2, b->name, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
     acls = acls->next;
   };
   acls = b->params.acl_rule;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
-    ExecCmd(LG_IFACE2, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
+    ExecCmd(LG_IFACE2, b->name, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
     Freee(MB_IFACE, buf);
     acls = acls->next;
   };
@@ -420,7 +420,7 @@ IfaceUp(Bund b, int ready)
   };
 
   /* Bring up system interface */
-  ExecCmd(LG_IFACE2, "%s %s up %slink0", 
+  ExecCmd(LG_IFACE2, b->name, "%s %s up %slink0", 
     PATH_IFCONFIG, iface->ifname, ready ? "-" : "");
 
   /* Send any cached packets */
@@ -448,7 +448,7 @@ IfaceDown(Bund b)
   TimerStop(&iface->idleTimer);
 
   /* Bring down system interface */
-  ExecCmd(LG_IFACE2, "%s %s down", 
+  ExecCmd(LG_IFACE2, b->name, "%s %s down", 
     PATH_IFCONFIG, iface->ifname);
 
   TimerStop(&iface->idleTimer);
@@ -468,7 +468,7 @@ IfaceDown(Bund b)
     };
   };
   if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, "%s delete%s",
+    ExecCmd(LG_IFACE2, b->name, "%s delete%s",
       PATH_IPFW, cb);
 
   /* Remove table ACLs */
@@ -484,7 +484,7 @@ IfaceDown(Bund b)
   };
   acl = iface->tables;
   while (acl != NULL) {
-    ExecCmd(LG_IFACE2, "%s table %d delete %s",
+    ExecCmd(LG_IFACE2, b->name, "%s table %d delete %s",
 	PATH_IPFW, acl->real_number, acl->rule);
     aclnext = acl->next;
     Freee(MB_IFACE, acl);
@@ -506,7 +506,7 @@ IfaceDown(Bund b)
     };
   };
   if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, "%s queue delete%s",
+    ExecCmd(LG_IFACE2, b->name, "%s queue delete%s",
       PATH_IPFW, cb);
 
   /* Remove pipe ACLs */
@@ -523,7 +523,7 @@ IfaceDown(Bund b)
     };
   };
   if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, "%s pipe delete%s",
+    ExecCmd(LG_IFACE2, b->name, "%s pipe delete%s",
       PATH_IPFW, cb);
 
 }
@@ -559,7 +559,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
 	Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
 	  b->name, MBLEN(pkt)));
 #endif
-      NgFuncWriteFrame(b->name, MPD_HOOK_DEMAND_TAP, pkt);
+      NgFuncWriteFrame(b, MPD_HOOK_DEMAND_TAP, pkt);
     } else {
       IfaceCachePkt(b, proto, pkt);
     }
@@ -714,7 +714,7 @@ IfaceIpIfaceUp(Bund b, int ready)
   }
 
   /* Set addresses and bring interface up */
-  ExecCmd(LG_IFACE2, "%s %s %s %s",
+  ExecCmd(LG_IFACE2, b->name, "%s %s %s %s",
     PATH_IFCONFIG, iface->ifname, u_rangetoa(&iface->self_addr,selfaddr,sizeof(selfaddr)), 
     u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)));
 
@@ -731,7 +731,7 @@ IfaceIpIfaceUp(Bund b, int ready)
 	b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
     } else {
       ether = (u_char *) LLADDR(&hwa);
-      if (ExecCmd(LG_IFACE2,
+      if (ExecCmd(LG_IFACE2, b->name, 
 	  "%s -S %s %x:%x:%x:%x:%x:%x pub",
 	  PATH_ARP, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)),
 	  ether[0], ether[1], ether[2],
@@ -741,7 +741,7 @@ IfaceIpIfaceUp(Bund b, int ready)
   }
 
   /* Add loopback route */
-  ExecCmd(LG_IFACE2, "%s add %s/32 -iface lo0",
+  ExecCmd(LG_IFACE2, b->name, "%s add %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,selfaddr,sizeof(selfaddr)));
   
   /* Add static routes */
@@ -749,7 +749,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     IfaceRoute	const r = &iface->routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET) {
-	r->ok = (ExecCmd(LG_IFACE2, "%s add %s %s",
+	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
 		u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
     }
@@ -759,7 +759,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     IfaceRoute	const r = &b->params.routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET) {
-	r->ok = (ExecCmd(LG_IFACE2, "%s add %s %s",
+	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
 		u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
     }
@@ -786,7 +786,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     else
       ns2buf[0] = '\0';
 
-    ExecCmd(LG_IFACE2, "%s %s inet %s %s %s %s %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s %s %s %s",
       iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
       u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
       *b->params.authname ? b->params.authname : "-", 
@@ -810,7 +810,7 @@ IfaceIpIfaceDown(Bund b)
 
   /* Call "down" script */
   if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, "%s %s inet %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s",
       iface->down_script, iface->ifname, 
       *b->params.authname ? b->params.authname : "-");
   }
@@ -822,7 +822,7 @@ IfaceIpIfaceDown(Bund b)
     if (u_rangefamily(&r->dest)==AF_INET) {
 	if (!r->ok)
 	    continue;
-	ExecCmd(LG_IFACE2, "%s delete %s",
+	ExecCmd(LG_IFACE2, b->name, "%s delete %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
 	r->ok = 0;
     }
@@ -834,7 +834,7 @@ IfaceIpIfaceDown(Bund b)
     if (u_rangefamily(&r->dest)==AF_INET) {
 	if (!r->ok)
 	    continue;
-	ExecCmd(LG_IFACE2, "%s delete %s",
+	ExecCmd(LG_IFACE2, b->name, "%s delete %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
 	r->ok = 0;
     }
@@ -842,15 +842,15 @@ IfaceIpIfaceDown(Bund b)
 
   /* Delete any proxy arp entry */
   if (!u_addrempty(&iface->proxy_addr))
-    ExecCmd(LG_IFACE2, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
+    ExecCmd(LG_IFACE2, b->name, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
   u_addrclear(&iface->proxy_addr);
 
   /* Delete loopback route */
-  ExecCmd(LG_IFACE2, "%s delete %s/32 -iface lo0",
+  ExecCmd(LG_IFACE2, b->name, "%s delete %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
 
   /* Bring down system interface */
-  ExecCmd(LG_IFACE2, "%s %s %s delete -link0", 
+  ExecCmd(LG_IFACE2, b->name, "%s %s %s delete -link0", 
     PATH_IFCONFIG, iface->ifname, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
     
   IfaceNgIpShutdown(b);
@@ -899,7 +899,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     IfaceNgIpv6Init(b, ready);
 
     /* Set addresses and bring interface up */
-    ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s",
 	PATH_IFCONFIG, iface->ifname, 
 	u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
   }
@@ -909,7 +909,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     IfaceRoute	const r = &iface->routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET6) {
-	r->ok = (ExecCmd(LG_IFACE2, "%s add -inet6 %s -interface %s",
+	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
     }
   }
@@ -918,7 +918,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     IfaceRoute	const r = &b->params.routes[k];
 
     if (u_rangefamily(&r->dest)==AF_INET6) {
-	r->ok = (ExecCmd(LG_IFACE2, "%s add -inet6 %s -interface %s",
+	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
     }
   }
@@ -927,7 +927,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
   if (*iface->up_script) {
     char	selfbuf[64],peerbuf[64];
 
-    ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s %s%%%s %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s %s",
       iface->up_script, iface->ifname, 
       u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
       u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
@@ -951,7 +951,7 @@ IfaceIpv6IfaceDown(Bund b)
 
   /* Call "down" script */
   if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, "%s %s inet6 %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s",
       iface->down_script, iface->ifname, 
       *b->params.authname ? b->params.authname : "-");
   }
@@ -963,7 +963,7 @@ IfaceIpv6IfaceDown(Bund b)
     if (u_rangefamily(&r->dest)==AF_INET6) {
 	if (!r->ok)
 	    continue;
-	ExecCmd(LG_IFACE2, "%s delete -inet6 %s -interface %s",
+	ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
 	r->ok = 0;
     }
@@ -975,7 +975,7 @@ IfaceIpv6IfaceDown(Bund b)
     if (u_rangefamily(&r->dest)==AF_INET6) {
 	if (!r->ok)
 	    continue;
-	ExecCmd(LG_IFACE2, "%s delete -inet6 %s -interface %s",
+	ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
 	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
 	r->ok = 0;
     }
@@ -983,7 +983,7 @@ IfaceIpv6IfaceDown(Bund b)
 
   if (!u_addrempty(&iface->self_ipv6_addr)) {
     /* Bring down system interface */
-    ExecCmd(LG_IFACE2, "%s %s inet6 %s%%%s delete",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s delete",
 	PATH_IFCONFIG, iface->ifname,
         u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
   }
@@ -1091,7 +1091,7 @@ IfaceCacheSend(Bund b)
       PFREE(iface->dodCache.pkt);
     else {
       assert(iface->dodCache.proto == PROTO_IP);
-      if (NgFuncWriteFrame(b->name,
+      if (NgFuncWriteFrame(b,
 	  MPD_HOOK_DEMAND_TAP, iface->dodCache.pkt) < 0) {
 	Log(LG_ERR, ("[%s] can't write cached pkt: %s",
 	  b->name, strerror(errno)));
