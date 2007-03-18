@@ -30,7 +30,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	WebSetCommand(int ac, char *av[], void *arg);
+  static int	WebSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   static int	WebServletRun(struct http_servlet *servlet,
                          struct http_request *req, struct http_response *resp);
@@ -174,7 +174,7 @@ WebClose(Web w)
  */
 
 int
-WebStat(int ac, char *av[], void *arg)
+WebStat(Context ctx, int ac, char *av[], void *arg)
 {
   Web		w = &gWeb;
   WebUser	u;
@@ -375,13 +375,11 @@ WebRunCmd(FILE *f, const char *querry)
   char			*argv[MAX_CONSOLE_ARGS];
   char			*av[MAX_CONSOLE_ARGS];
   int			k;
-  struct context	context_orig;
   
   memset(cs, 0, sizeof(*cs));
 
   cs->cookie = f;
   cs->console = c;
-  ContextSave(&cs->context);
   cs->close = NULL;
   cs->write = WebConsoleSessionWrite;
   cs->writev = WebConsoleSessionWriteV;
@@ -410,24 +408,19 @@ WebRunCmd(FILE *f, const char *querry)
     
 	fprintf(f, "<PRE>\n");
 
-	ContextSave(&context_orig);
-	ContextRestore(&cs->context);
-	
 	pthread_cleanup_push(WebRunCmdCleanup, NULL);
 	gConsoleSession = cs;
 
 	strcpy(buf1, "phys");
         av[0] = buf1;
         av[1] = argv[0];
-        DoCommand(2, av, NULL, 0);
+        DoCommand(&cs->context, 2, av, NULL, 0);
   
         for (k = 1; k < argc; k++) {
     	    av[k-1] = argv[k];
         }
-        DoCommand(argc-1, av, NULL, 0);
+        DoCommand(&cs->context, argc-1, av, NULL, 0);
 
-	ContextSave(&cs->context);
-	ContextRestore(&context_orig);
 	gConsoleSession = NULL;;
 	pthread_cleanup_pop(0);
 
@@ -564,7 +557,7 @@ WebUserHashEqual(struct ghash *g, const void *item1, const void *item2)
  */
 
 static int
-WebSetCommand(int ac, char *av[], void *arg) 
+WebSetCommand(Context ctx, int ac, char *av[], void *arg) 
 {
   Web	 		w = &gWeb;
   WebUser		u;

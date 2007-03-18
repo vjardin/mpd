@@ -144,18 +144,18 @@
   extern void	LinkDown(Link l);
   extern void	LinkOpen(Link l);
   extern void	LinkClose(Link l);
-  extern void	LinkOpenCmd(void);
-  extern void	LinkCloseCmd(void);
+  extern void	LinkOpenCmd(Context ctx);
+  extern void	LinkCloseCmd(Context ctx);
 
   extern Link	LinkNew(char *name, Bund b, int bI);
   extern void	LinkShutdown(Link l);
-  extern Link	LinkCopy(void);
   extern int	LinkNuke(Link link);
-  extern int	LinkStat(int ac, char *av[], void *arg);
+  extern int	LinkStat(Context ctx, int ac, char *av[], void *arg);
   extern void	LinkUpdateStats(Link l);
   extern void	LinkUpdateStatsTimer(void *cookie);
-  extern void	LinkResetStats(void);
-  extern int	LinkCommand(int ac, char *av[], void *arg);
+  extern void	LinkResetStats(Link l);
+  extern Link	LinkFind(char *name);
+  extern int	LinkCommand(Context ctx, int ac, char *av[], void *arg);
   extern void	RecordLinkUpDownReason(Link l, int up, const char *fmt,
 			  const char *arg, ...);
 

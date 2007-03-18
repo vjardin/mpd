@@ -179,12 +179,14 @@
  * FUNCTIONS
  */
 
-  extern void	BundOpen(void);
-  extern void	BundClose(void);
-  extern int	BundStat(int ac, char *av[], void *arg);
+  extern void	BundOpen(Bund b);
+  extern void	BundClose(Bund b);
+  extern void	BundOpenCmd(Context ctx);
+  extern void	BundCloseCmd(Context ctx);
+  extern int	BundStat(Context ctx, int ac, char *av[], void *arg);
   extern void	BundUpdateParams(Bund b);
-  extern int	BundCommand(int ac, char *av[], void *arg);
-  extern int	BundCreateCmd(int ac, char *av[], void *arg);
+  extern int	BundCommand(Context ctx, int ac, char *av[], void *arg);
+  extern int	BundCreateCmd(Context ctx, int ac, char *av[], void *arg);
   extern void	BundShutdown(Bund b);
   extern void   BundUpdateStats(Bund b);
   extern void	BundUpdateStatsTimer(void *cookie);

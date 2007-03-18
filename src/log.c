@@ -206,7 +206,7 @@ LogClose(void)
  */
 
 int
-LogCommand(int ac, char *av[], void *arg)
+LogCommand(Context ctx, int ac, char *av[], void *arg)
 {
   int	k, bits, add;
 

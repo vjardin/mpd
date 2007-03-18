@@ -38,7 +38,7 @@
 void
 InputFrame(Bund b, int linkNum, int proto, Mbuf bp)
 {
-  Link		theLink, linkSave;
+  Link		l;
   Mbuf		protoRej;
   const char	*label;
   u_int16_t	nprot;
@@ -48,8 +48,8 @@ InputFrame(Bund b, int linkNum, int proto, Mbuf bp)
   if (linkNum == NG_PPP_BUNDLE_LINKNUM) {
 
     /* Set link and label */
+    l = b->links[0];
     label = b->name;
-    lnk = b->links[0];		/* just pick one */
 
     /* Only limited link-layer stuff allowed over the MP bundle */
     if (PROT_LINK_LAYER(proto)) {
@@ -67,24 +67,22 @@ InputFrame(Bund b, int linkNum, int proto, Mbuf bp)
     }
 
     /* Set link and label */
-    lnk = b->links[linkNum];
+    l = b->links[linkNum];
     label = b->name;
 
     /* Check protocol vs. link state */
-    if (!InputLinkCheck(lnk, proto)) {
+    if (!InputLinkCheck(l, proto)) {
       PFREE(bp);
       return;
     }
   }
 
   /* Dispatch frame to the appropriate protocol engine */
-  if (InputDispatch(b, lnk, proto, bp) >= 0)
+  if (InputDispatch(b, l, proto, bp) >= 0)
     return;
 
   /* Unknown protocol, so find a link to send protocol reject on */
-  if (linkNum != NG_PPP_BUNDLE_LINKNUM)
-    theLink = lnk;
-  else {
+  if (linkNum == NG_PPP_BUNDLE_LINKNUM) {
     for (k = 0;
       k < b->n_links && b->links[k]->lcp.phase != PHASE_NETWORK;
       k++);
@@ -92,17 +90,14 @@ InputFrame(Bund b, int linkNum, int proto, Mbuf bp)
       PFREE(bp);
       return;
     }
-    theLink = b->links[k];
+    l = b->links[k];
   }
 
   /* Send a protocol reject on the chosen link */
-  linkSave = lnk;
-  lnk = theLink;
   nprot = htons((u_int16_t) proto);
   protoRej = mbwrite(mballoc(MB_FRAME_OUT, 2), (u_char *) &nprot, 2);
   protoRej->next = bp;
-  FsmOutputMbuf(&lnk->lcp.fsm, CODE_PROTOREJ, lnk->lcp.fsm.rejid++, protoRej);
-  lnk = linkSave;
+  FsmOutputMbuf(&l->lcp.fsm, CODE_PROTOREJ, l->lcp.fsm.rejid++, protoRej);
 }
 
 /*

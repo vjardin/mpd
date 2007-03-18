@@ -117,10 +117,10 @@
   extern struct pevent_ctx	*gPeventCtx;
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
 
-  extern Bund		bund;			/* Current bundle */
-  extern Link		lnk;			/* Current link */
-  extern Rep		rep;			/* Current repeater */
-  extern PhysInfo	phys;			/* Current phys */
+//  extern Bund		bund;			/* Current bundle */
+//  extern Link		lnk;			/* Current link */
+//  extern Rep		rep;			/* Current repeater */
+//  extern PhysInfo	phys;			/* Current phys */
 
   extern const char	*gVersion;		/* Program version string */
   extern const char	*gConfigFile;		/* Main config file */
@@ -139,9 +139,6 @@
   extern void		SendSignal(int sig);
   extern void		DoExit(int code);
   extern void		DoAssert(const char *file, int line, const char *x);
-
-  extern void		ContextSave(Context c);
-  extern void		ContextRestore(Context c);
 
 #endif
 

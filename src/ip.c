@@ -16,7 +16,7 @@
  */
 
 int
-IpShowRoutes(int ac, char *av[], void *arg)
+IpShowRoutes(Context ctx, int ac, char *av[], void *arg)
 {
   FILE	*fp;
   char	buf[1024];

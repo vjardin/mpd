@@ -333,7 +333,7 @@ mbsplit(Mbuf bp, int cnt)
  */
 
 int
-MemStat(int ac, char *av[], void *arg)
+MemStat(Context ctx, int ac, char *av[], void *arg)
 {
   typed_mem_dump(stdout);
   return(0);

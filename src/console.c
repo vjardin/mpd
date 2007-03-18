@@ -56,7 +56,7 @@
   static int		ConsoleUserHashEqual(struct ghash *g, const void *item1, 
 		  		const void *item2);
   static u_int32_t	ConsoleUserHash(struct ghash *g, const void *item);
-  static int	ConsoleSetCommand(int ac, char *av[], void *arg);
+  static int	ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg);
 
 
 /*
@@ -160,7 +160,7 @@ ConsoleClose(Console c)
  */
 
 int
-ConsoleStat(int ac, char *av[], void *arg)
+ConsoleStat(Context ctx, int ac, char *av[], void *arg)
 {
   Console		c = &gConsole;
   ConsoleUser		u;
@@ -222,7 +222,6 @@ ConsoleConnect(int type, void *cookie)
     goto fail;
 
   cs->console = c;
-  ContextSave(&cs->context);
   cs->close = ConsoleSessionClose;
   cs->write = ConsoleSessionWrite;
   cs->writev = ConsoleSessionWriteV;
@@ -278,12 +277,9 @@ ConsoleSessionReadEvent(int type, void *cookie)
   char			compl[MAX_CONSOLE_LINE], line[MAX_CONSOLE_LINE];
   char			*av[MAX_CONSOLE_ARGS], *av2[MAX_CONSOLE_ARGS];
   char			*av_copy[MAX_CONSOLE_ARGS];
-  struct context	context_orig;
   char                  addrstr[INET6_ADDRSTRLEN];
 
   gConsoleSession = cs;
-  ContextSave(&context_orig);
-  ContextRestore(&cs->context);
   while(1) {
     if ((n = read(cs->fd, &c, 1)) <= 0) {
       if (n < 0) {
@@ -474,15 +470,14 @@ success:
       if (c != '?') {
         Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
 	    cs->context.phys->name, cs->user.username, cs->cmd));
-        exitflag = DoCommand(ac, av, NULL, 0);
+        exitflag = DoCommand(&cs->context, ac, av, NULL, 0);
       } else {
-        HelpCommand(ac, av, NULL);
+        HelpCommand(&cs->context, ac, av, NULL);
 	exitflag = 0;
       }
       FreeArgs(ac, av_copy);
       if (exitflag)
 	goto abort;
-      ContextSave(&cs->context);
       cs->prompt(cs);
       if (c != '?') {
 	memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
@@ -517,7 +512,6 @@ abort:
   cs->close(cs);
 out:
   gConsoleSession = NULL;
-  ContextRestore(&context_orig);
   return;
 }
 
@@ -648,7 +642,7 @@ ConsoleUserHashEqual(struct ghash *g, const void *item1, const void *item2)
  */
 
 static int
-ConsoleSetCommand(int ac, char *av[], void *arg) 
+ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg) 
 {
   Console	 	c = &gConsole;
   ConsoleSession	cs = gConsoleSession;

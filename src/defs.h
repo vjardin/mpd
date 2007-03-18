@@ -97,5 +97,8 @@
   struct rep;
   typedef struct rep *Rep;
 
+  struct context;
+  typedef struct context *Context;
+
 #endif
 

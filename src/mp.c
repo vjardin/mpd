@@ -39,9 +39,9 @@ MpInit(Bund b, Link l)
  */
 
 int
-MpStat(int ac, char *av[], void *arg)
+MpStat(Context ctx, int ac, char *av[], void *arg)
 {
-  MpState	mp = &bund->mp;
+  MpState	mp = &ctx->bund->mp;
 
   Printf("Multilink self:\r\n");
   Printf("\tMRRU     : %d\r\n"

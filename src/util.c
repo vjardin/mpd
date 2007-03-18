@@ -250,7 +250,7 @@ Escape(char *line)
 
 int
 ReadFile(const char *filename, const char *target,
-	int (*func)(int ac, char *av[], const char *file, int line))
+	int (*func)(Context ctx, int ac, char *av[], const char *file, int line), Context ctx)
 {
   FILE	*fp;
   int	ac;
@@ -281,7 +281,7 @@ ReadFile(const char *filename, const char *target,
       break;
     }
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 0);
-    (*func)(ac, av, filename, lineNum);
+    (*func)(ctx, ac, av, filename, lineNum);
   }
 
 /* Done */

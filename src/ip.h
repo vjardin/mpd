@@ -40,7 +40,7 @@
  * FUNCTIONS
  */
 
-  extern int	IpShowRoutes(int ac, char *av[], void *arg);
+  extern int	IpShowRoutes(Context ctx, int ac, char *av[], void *arg);
   extern int	IpAddrInRange(struct u_range *range, struct u_addr *addr);
 
   extern int	ParseAddr(const char *s, struct u_addr *addr, u_char allow);

@@ -64,7 +64,7 @@
   static void		CcpRecvResetAck(Fsm fp, int id, Mbuf bp);
 
   static int		CcpCheckEncryption(Bund b);
-  static int		CcpSetCommand(int ac, char *av[], void *arg);
+  static int		CcpSetCommand(Context ctx, int ac, char *av[], void *arg);
   static CompType	CcpFindComp(int type, int *indexp);
   static const char	*CcpTypeName(int type);
 
@@ -357,9 +357,9 @@ CcpDown(Bund b)
  */
 
 void
-CcpOpen(void)
+CcpOpen(Bund b)
 {
-  FsmOpen(&bund->ccp.fsm);
+  FsmOpen(&b->ccp.fsm);
 }
 
 /*
@@ -367,9 +367,29 @@ CcpOpen(void)
  */
 
 void
-CcpClose(void)
+CcpClose(Bund b)
 {
-  FsmClose(&bund->ccp.fsm);
+  FsmClose(&b->ccp.fsm);
+}
+
+/*
+ * CcpOpenCmd()
+ */
+
+void
+CcpOpenCmd(Context ctx)
+{
+  FsmOpen(&ctx->bund->ccp.fsm);
+}
+
+/*
+ * CcpCloseCmd()
+ */
+
+void
+CcpCloseCmd(Context ctx)
+{
+  FsmClose(&ctx->bund->ccp.fsm);
 }
 
 /*
@@ -383,7 +403,7 @@ static void
 CcpFailure(Fsm fp, enum fsmfail reason)
 {
     Bund 	b = (Bund)fp->arg;
-  CcpClose();
+  CcpClose(b);
   CcpCheckEncryption(b);
 }
 
@@ -392,9 +412,9 @@ CcpFailure(Fsm fp, enum fsmfail reason)
  */
 
 int
-CcpStat(int ac, char *av[], void *arg)
+CcpStat(Context ctx, int ac, char *av[], void *arg)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &ctx->bund->ccp;
 
   Printf("%s [%s]\r\n", Pref(&ccp->fsm), FsmStateName(ccp->fsm.state));
   Printf("Enabled protocols:\r\n");
@@ -402,16 +422,16 @@ CcpStat(int ac, char *av[], void *arg)
 
   Printf("Outgoing compression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
-    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(bund, COMP_DIR_XMIT) : "");
+    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(ctx->bund, COMP_DIR_XMIT) : "");
   if (ccp->xmit && ccp->xmit->Stat)
-    ccp->xmit->Stat(bund, COMP_DIR_XMIT);
+    ccp->xmit->Stat(ctx->bund, COMP_DIR_XMIT);
   Printf("\tResets\t: %d\r\n", ccp->xmit_resets);
 
   Printf("Incoming decompression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
-    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(bund, COMP_DIR_RECV) : "");
+    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(ctx->bund, COMP_DIR_RECV) : "");
   if (ccp->recv && ccp->recv->Stat)
-    ccp->recv->Stat(bund, COMP_DIR_RECV);
+    ccp->recv->Stat(ctx->bund, COMP_DIR_RECV);
   Printf("\tResets\t: %d\r\n", ccp->recv_resets);
 
   return(0);
@@ -853,9 +873,9 @@ fail:
  */
 
 static int
-CcpSetCommand(int ac, char *av[], void *arg)
+CcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &ctx->bund->ccp;
 
   if (ac == 0)
     return(-1);

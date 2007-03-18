@@ -14,8 +14,8 @@
  * DEFINITIONS
  */
 
-  #define CMD_UNIMPL	((int (*)(int ac, char *av[], void *arg)) 0)
-  #define CMD_SUBMENU	((int (*)(int ac, char *av[], void *arg)) 1)
+  #define CMD_UNIMPL	((int (*)(Context ctx, int ac, char *av[], void *arg)) 0)
+  #define CMD_SUBMENU	((int (*)(Context ctx, int ac, char *av[], void *arg)) 1)
 
   /* Configuration options */
   enum {
@@ -34,8 +34,8 @@
   {
     const char	*name;
     const char	*desc;
-    int		(*func)(int ac, char *av[], void *arg);
-    int		(*admit)(CmdTab cmd);
+    int		(*func)(Context ctx, int ac, char *av[], void *arg);
+    int		(*admit)(Context ctx, CmdTab cmd);
     void	*arg;
   };
 
@@ -44,14 +44,14 @@
  */
 
   extern int	DoConsole(void);
-  extern int	DoCommand(int ac, char *av[], const char *file, int line);
-  extern int	HelpCommand(int ac, char *av[], void *arg);
+  extern int	DoCommand(Context ctx, int ac, char *av[], const char *file, int line);
+  extern int	HelpCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	FindCommand(CmdTab cmds, char* str, CmdTab *cp);
-  extern int	AdmitBund(CmdTab cmd);
-  extern int	AdmitLink(CmdTab cmd);
-  extern int	AdmitRep(CmdTab cmd);
-  extern int	AdmitPhys(CmdTab cmd);
-  extern int	AdmitDev(CmdTab cmd);
+  extern int	AdmitBund(Context ctx, CmdTab cmd);
+  extern int	AdmitLink(Context ctx, CmdTab cmd);
+  extern int	AdmitRep(Context ctx, CmdTab cmd);
+  extern int	AdmitPhys(Context ctx, CmdTab cmd);
+  extern int	AdmitDev(Context ctx, CmdTab cmd);
 
 #endif
 

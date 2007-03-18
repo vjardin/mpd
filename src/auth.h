@@ -243,7 +243,7 @@
 			  u_char eap_type);
   extern void		AuthFinish(Link l, int which, int ok);
   extern void		AuthCleanup(Link l);
-  extern int		AuthStat(int ac, char *av[], void *arg);
+  extern int		AuthStat(Context ctx, int ac, char *av[], void *arg);
   extern void		AuthAccountStart(Link l, int type);
   extern AuthData	AuthDataNew(Link l);
   extern void		AuthDataDestroy(AuthData auth);

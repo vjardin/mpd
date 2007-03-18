@@ -72,14 +72,16 @@
   extern void	EcpInit(Bund b);
   extern void	EcpUp(Bund b);
   extern void	EcpDown(Bund b);
-  extern void	EcpOpen(void);
-  extern void	EcpClose(void);
+  extern void	EcpOpen(Bund b);
+  extern void	EcpClose(Bund b);
+  extern void	EcpOpenCmd(Context ctx);
+  extern void	EcpCloseCmd(Context ctx);
   extern int	EcpSubtractBloat(Bund b, int size);
   extern void	EcpInput(Bund b, Mbuf bp);
   extern Mbuf	EcpDataInput(Bund b, Mbuf bp);
   extern Mbuf	EcpDataOutput(Bund b, Mbuf bp);
   extern void	EcpSendResetReq(Fsm fp);
-  extern int	EcpStat(int ac, char *av[], void *arg);
+  extern int	EcpStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif
 

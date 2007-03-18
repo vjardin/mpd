@@ -86,7 +86,7 @@ enum {
   static int	UdpCalledNum(PhysInfo p, void *buf, int buf_len);
 
   static void	UdpDoClose(PhysInfo p);
-  static int	UdpSetCommand(int ac, char *av[], void *arg);
+  static int	UdpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
 /*
  * GLOBAL VARIABLES
@@ -640,9 +640,9 @@ UdpNodeUpdate(PhysInfo p)
  */
 
 static int
-UdpSetCommand(int ac, char *av[], void *arg)
+UdpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-	UdpInfo		const pi = (UdpInfo) phys->info;
+	UdpInfo		const pi = (UdpInfo) ctx->phys->info;
 	struct sockaddr_storage	*sin;
 	
   switch ((intptr_t)arg) {
@@ -658,7 +658,7 @@ UdpSetCommand(int ac, char *av[], void *arg)
       break;
     case SET_ENABLE:
 	EnableCommand(ac, av, &pi->conf.options, gConfList);
-    	UdpNodeUpdate(phys);
+    	UdpNodeUpdate(ctx->phys);
     	break;
     case SET_DISABLE:
 	DisableCommand(ac, av, &pi->conf.options, gConfList);

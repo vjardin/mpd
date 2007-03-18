@@ -90,7 +90,7 @@
 
 /* Etc */
 
-  extern int	MemStat(int ac, char *av[], void *arg);
+  extern int	MemStat(Context ctx, int ac, char *av[], void *arg);
   extern void	DumpBp(Mbuf bp);
 
 /*

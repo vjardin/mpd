@@ -41,7 +41,7 @@
  */
 
   static Rep	RepFind(char *name);
-  static int	RepSetCommand(int ac, char *av[], void *arg);
+  static int	RepSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	RepShowLinks(Rep sb);
 
 /*
@@ -115,7 +115,7 @@ RepIncoming(PhysInfo p)
     r->initiator = n;
 
     Log(LG_REP, ("[%s] REP: INCOMING event from %s (%d)",
-	rep->name, p->name, n));
+	r->name, p->name, n));
 
     if (r->csock <= 0) {
 	/* Create a new netgraph node to control TCP ksocket node. */
@@ -168,7 +168,7 @@ RepUp(PhysInfo p)
     int n = (r->physes[0] == p)?0:1;
     
     Log(LG_REP, ("[%s] REP: UP event from %s (%d)",
-	rep->name, p->name, n));
+	r->name, p->name, n));
 
     r->p_up |= (1 << n);
     
@@ -198,7 +198,7 @@ RepDown(PhysInfo p)
     int n = (r->physes[0] == p)?0:1;
 
     Log(LG_REP, ("[%s] REP: DOWN event from %s (%d)",
-	rep->name, p->name, n));
+	r->name, p->name, n));
 
     r->p_up &= ~(1 << n);
     
@@ -244,9 +244,9 @@ RepGetHook(PhysInfo p, char *path, char *hook)
  */
 
 int
-RepCommand(int ac, char *av[], void *arg)
+RepCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  Rep	sb;
+  Rep	r;
   int	k;
 
   switch (ac) {
@@ -255,18 +255,20 @@ RepCommand(int ac, char *av[], void *arg)
       Printf("Defined repeaters:\r\n");
 
       for (k = 0; k < gNumReps; k++)
-	if ((sb = gReps[k]) != NULL) {
-	  Printf("\t%-15s", sb->name);
-	  RepShowLinks(sb);
+	if ((r = gReps[k]) != NULL) {
+	  Printf("\t%-15s", r->name);
+	  RepShowLinks(r);
 	}
       break;
 
     case 1:
 
       /* Change bundle, and link also if needed */
-      if ((sb = RepFind(av[0])) != NULL) {
-	rep = sb;
-	phys = rep->physes[0];
+      if ((r = RepFind(av[0])) != NULL) {
+	ctx->rep = r;
+	ctx->phys = r->physes[0];
+	ctx->bund = NULL;
+	ctx->lnk = NULL;
       } else
 	Printf("Repeater \"%s\" not defined.\r\n", av[0]);
       break;
@@ -284,28 +286,12 @@ RepCommand(int ac, char *av[], void *arg)
  */
 
 int
-RepCreateCmd(int ac, char *av[], void *arg)
+RepCreateCmd(Context ctx, int ac, char *av[], void *arg)
 {
-  PhysInfo	new_link;
-  int		k;
-  Rep		old_rep = rep;
-/*
-  if (ac > 0 && av[0][0] == '-') {
-    optreset = 1; 
-    optind = 0;
-    while ((k = getopt(ac, av, "nNati:")) != -1) {
-      switch (k) {
-      case 'i':
-	reqIface = optarg;
-	break;
-      default:
-	return (-1);
-      }
-    }
-    ac -= optind;
-    av += optind;
-  }
-*/
+    Rep		r;
+    PhysInfo	new_link;
+    int		k;
+
   /* Args */
   if (ac != 3)
     return(-1);
@@ -320,15 +306,15 @@ RepCreateCmd(int ac, char *av[], void *arg)
   }
 
   /* See if repeater name already taken */
-  if ((rep = RepFind(av[0])) != NULL) {
+  if ((r = RepFind(av[0])) != NULL) {
     Log(LG_ERR, ("repeater \"%s\" already exists", av[0]));
     return (-1);
   }
 
   /* Create a new repeater structure */
-  rep = Malloc(MB_REP, sizeof(*rep));
-  snprintf(rep->name, sizeof(rep->name), "%s", av[0]);
-  rep->csock = -1;
+  r = Malloc(MB_REP, sizeof(*r));
+  snprintf(r->name, sizeof(r->name), "%s", av[0]);
+  r->csock = -1;
 
   /* Create each link and add it to the repeater */
   for (k = 1; k < ac; k++) {
@@ -338,17 +324,15 @@ RepCreateCmd(int ac, char *av[], void *arg)
     if (strlen(av[k])>6) {
 #endif
 	Log(LG_ERR, ("phys name \"%s\" is too long", av[k]));
-        RepShutdown(rep);
-	rep = old_rep;
+        RepShutdown(r);
 	return (-1);
     }
-    if ((new_link = PhysInit(av[k], NULL, rep)) == NULL) {
+    if ((new_link = PhysInit(av[k], NULL, r)) == NULL) {
       Log(LG_ERR, ("[%s] creation of phys \"%s\" failed", av[0], av[k]));
-      RepShutdown(rep);
-      rep = old_rep;
+      RepShutdown(r);
       return (-1);
     } else {
-      rep->physes[k - 1] = new_link;
+      r->physes[k - 1] = new_link;
     }
   }
 
@@ -356,7 +340,12 @@ RepCreateCmd(int ac, char *av[], void *arg)
   for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
   if (k == gNumReps)			/* add a new repeater pointer */
     LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
-  gReps[k] = rep;
+  gReps[k] = r;
+  
+  ctx->rep = r;
+  ctx->phys = r->physes[0];
+  ctx->lnk = NULL;
+  ctx->bund = NULL;
 
   /* Done */
   return(0);
@@ -403,17 +392,17 @@ RepShutdown(Rep r)
  */
 
 int
-RepStat(int ac, char *av[], void *arg)
+RepStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Rep	sb;
+  Rep	r;
 
   /* Find repeater they're talking about */
   switch (ac) {
     case 0:
-      sb = rep;
+      r = ctx->rep;
       break;
     case 1:
-      if ((sb = RepFind(av[0])) == NULL) {
+      if ((r = RepFind(av[0])) == NULL) {
 	Printf("Repeater \"%s\" not defined.\r\n", av[0]);
 	return(0);
       }
@@ -423,9 +412,9 @@ RepStat(int ac, char *av[], void *arg)
   }
 
   /* Show stuff about the repeater */
-  Printf("Repeater %s:\r\n", sb->name);
+  Printf("Repeater %s:\r\n", r->name);
   Printf("\tPhyses          : ");
-  RepShowLinks(sb);
+  RepShowLinks(r);
 
   return(0);
 }
@@ -473,33 +462,35 @@ RepFind(char *name)
  */
 
 static int
-RepSetCommand(int ac, char *av[], void *arg)
+RepSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
+    Rep		r = ctx->rep;
+
   if (ac == 0)
     return(-1);
   switch ((intptr_t)arg) {
     case SET_ACCEPT:
-      AcceptCommand(ac, av, &rep->options, gConfList);
+      AcceptCommand(ac, av, &r->options, gConfList);
       break;
 
     case SET_DENY:
-      DenyCommand(ac, av, &rep->options, gConfList);
+      DenyCommand(ac, av, &r->options, gConfList);
       break;
 
     case SET_ENABLE:
-      EnableCommand(ac, av, &rep->options, gConfList);
+      EnableCommand(ac, av, &r->options, gConfList);
       break;
 
     case SET_DISABLE:
-      DisableCommand(ac, av, &rep->options, gConfList);
+      DisableCommand(ac, av, &r->options, gConfList);
       break;
 
     case SET_YES:
-      YesCommand(ac, av, &rep->options, gConfList);
+      YesCommand(ac, av, &r->options, gConfList);
       break;
 
     case SET_NO:
-      NoCommand(ac, av, &rep->options, gConfList);
+      NoCommand(ac, av, &r->options, gConfList);
       break;
 
     default:

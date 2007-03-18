@@ -43,7 +43,7 @@
   static void		AuthSystem(AuthData auth);
   static void		AuthOpie(AuthData auth);
   static const char	*AuthCode(int proto, u_char code);
-  static int		AuthSetCommand(int ac, char *av[], void *arg);
+  static int		AuthSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   /* Set menu options */
   enum {
@@ -649,9 +649,9 @@ AuthStop(Link l)
  */
  
 int
-AuthStat(int ac, char *av[], void *arg)
+AuthStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Auth		const a = &lnk->lcp.auth;
+  Auth		const a = &ctx->lnk->lcp.auth;
   AuthConf	const conf = &a->conf;
 
   Printf("Configuration:\r\n");
@@ -814,37 +814,35 @@ AuthAccount(void *arg)
 static void
 AuthAccountFinish(void *arg, int was_canceled)
 {
-  AuthData	auth = (AuthData)arg;
-  char		*av[1];
+    AuthData		auth = (AuthData)arg;
+    Link		l;
 
-  if (was_canceled)
-    Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
-      auth->info.lnkname));
+    if (was_canceled)
+	Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
+    	    auth->info.lnkname));
     
-  /* Cleanup */
-  RadiusClose(auth);
+    /* Cleanup */
+    RadiusClose(auth);
   
-  if (was_canceled) {
-    AuthDataDestroy(auth);
-    return;
-  }  
+    if (was_canceled) {
+	AuthDataDestroy(auth);
+	return;
+    }  
 
-  av[0] = auth->info.lnkname;
-  /* Re-Activate lnk and bund */
-  if (LinkCommand(1, av, NULL) == -1) {
-    AuthDataDestroy(auth);
-    return;
-  }    
+    if ((l = LinkFind(auth->info.lnkname)) == NULL) {
+	AuthDataDestroy(auth);
+	return;
+    }    
 
-  Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
-    auth->info.lnkname));
+    Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
+	auth->info.lnkname));
 
-  if (auth->acct_type != AUTH_ACCT_STOP) {
-    /* Copy back modified data. */
-    authparamsCopy(&auth->params,&lnk->lcp.auth.params);
-  }
+    if (auth->acct_type != AUTH_ACCT_STOP) {
+	/* Copy back modified data. */
+	authparamsCopy(&auth->params,&l->lcp.auth.params);
+    }
 
-  AuthDataDestroy(auth);
+     AuthDataDestroy(auth);
 }
 
 /*
@@ -1005,36 +1003,34 @@ AuthAsync(void *arg)
 static void
 AuthAsyncFinish(void *arg, int was_canceled)
 {
-  AuthData	auth = (AuthData)arg;
-  char		*av[1];
+    AuthData	auth = (AuthData)arg;
+    Link	l;
 
-  if (was_canceled)
-    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->info.lnkname));
+    if (was_canceled)
+	Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->info.lnkname));
 
-  /* cleanup */
-  RadiusClose(auth);
+    /* cleanup */
+    RadiusClose(auth);
   
-  if (was_canceled) {
-    AuthDataDestroy(auth);
-    return;
-  }  
+    if (was_canceled) {
+	AuthDataDestroy(auth);
+	return;
+    }  
   
-  av[0] = auth->info.lnkname;
-  /* Re-Activate lnk and bund */
-  if (LinkCommand(1, av, NULL) == -1) {
-    AuthDataDestroy(auth);
-    return;
-  }    
+    if ((l = LinkFind(auth->info.lnkname)) == NULL) {
+	AuthDataDestroy(auth);
+	return;
+    }    
 
-  Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", lnk->name));
+    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", l->name));
 
-  /* copy back modified data */
-  authparamsCopy(&auth->params,&lnk->lcp.auth.params);
+    /* copy back modified data */
+    authparamsCopy(&auth->params,&l->lcp.auth.params);
   
-  if (auth->mschapv2resp != NULL)
-    strcpy(auth->ack_mesg, auth->mschapv2resp);
+    if (auth->mschapv2resp != NULL)
+	strcpy(auth->ack_mesg, auth->mschapv2resp);
   
-  auth->finish(lnk, auth);
+    auth->finish(l, auth);
 }
 
 /*
@@ -1467,9 +1463,9 @@ AuthCode(int proto, u_char code)
  */
 
 static int
-AuthSetCommand(int ac, char *av[], void *arg)
+AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  AuthConf	const autc = &lnk->lcp.auth.conf;
+  AuthConf	const autc = &ctx->lnk->lcp.auth.conf;
   int		val;
 
   if (ac == 0)

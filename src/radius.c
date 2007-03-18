@@ -25,7 +25,7 @@
 
 /* Global variables */
 
-  static int	RadiusSetCommand(int ac, char *av[], void *arg);
+  static int	RadiusSetCommand(Context ctx, int ac, char *av[], void *arg);
   static int	RadiusAddServer(AuthData auth, short request_type);
   static int	RadiusOpen(AuthData auth, short request_type);
   static int	RadiusStart(AuthData auth, short request_type);  
@@ -383,9 +383,9 @@ RadiusClose(AuthData auth)
 }
 
 int
-RadStat(int ac, char *av[], void *arg)
+RadStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Auth		const a = &lnk->lcp.auth;
+  Auth		const a = &ctx->lnk->lcp.auth;
   RadConf	const conf = &a->conf.radius;
   int		i;
   char		*buf;
@@ -476,9 +476,9 @@ RadiusAddServer(AuthData auth, short request_type)
   
 /* Set menu options */
 static int
-RadiusSetCommand(int ac, char *av[], void *arg) 
+RadiusSetCommand(Context ctx, int ac, char *av[], void *arg) 
 {
-  RadConf	const conf = &lnk->lcp.auth.conf.radius;
+  RadConf	const conf = &ctx->lnk->lcp.auth.conf.radius;
   RadServe_Conf	server;
   RadServe_Conf	t_server;
   int		val, count;
@@ -501,7 +501,7 @@ RadiusSetCommand(int ac, char *av[], void *arg)
 	}
 	if (count > RADIUS_MAX_SERVERS) {
 	  Log(LG_RADIUS, ("[%s] %s: cannot configure more than %d servers",
-	    lnk->name, __func__, RADIUS_MAX_SERVERS));
+	    ctx->lnk->name, __func__, RADIUS_MAX_SERVERS));
 	  return (-1);
 	}
 

@@ -29,8 +29,6 @@
     u_int	load;			/* Initial load value */
     void	(*func)(void *arg);	/* Called when timer expires */
     void	*arg;			/* Arg passed to timeout function */
-    Bund	bund;			/* Bundle this timer belongs to */
-    Link	lnk;			/* Link this timer belongs to */
     u_char	init;			/* Indicates struct is initialized */
   };
 

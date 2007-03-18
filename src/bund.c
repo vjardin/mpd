@@ -82,7 +82,7 @@
 
   static Bund	BundFind(char *name);
   static void	BundReasses(Bund b, int add);
-  static int	BundSetCommand(int ac, char *av[], void *arg);
+  static int	BundSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	BundShowLinks(Bund b);
 
   static void	BundNcpsUp(Bund b);
@@ -150,9 +150,9 @@
  */
 
 void
-BundOpen(void)
+BundOpen(Bund b)
 {
-  MsgSend(bund->msgs, MSG_OPEN, bund);
+  MsgSend(b->msgs, MSG_OPEN, b);
 }
 
 /*
@@ -160,9 +160,29 @@ BundOpen(void)
  */
 
 void
-BundClose(void)
+BundClose(Bund b)
 {
-  MsgSend(bund->msgs, MSG_CLOSE, bund);
+  MsgSend(b->msgs, MSG_CLOSE, b);
+}
+
+/*
+ * BundOpenCmd()
+ */
+
+void
+BundOpenCmd(Context ctx)
+{
+  MsgSend(ctx->bund->msgs, MSG_OPEN, ctx->bund);
+}
+
+/*
+ * BundCloseCmd()
+ */
+
+void
+BundCloseCmd(Context ctx)
+{
+  MsgSend(ctx->bund->msgs, MSG_CLOSE, ctx->bund);
 }
 
 /*
@@ -489,13 +509,13 @@ void
 BundNcpsOpen(Bund b)
 {
   if (Enabled(&b->conf.options, BUND_CONF_IPCP))
-    IpcpOpen();
+    IpcpOpen(b);
   if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
-    Ipv6cpOpen();
+    Ipv6cpOpen(b);
   if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
-    CcpOpen();
+    CcpOpen(b);
   if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
-    EcpOpen();
+    EcpOpen(b);
 }
 
 /*
@@ -667,13 +687,13 @@ void
 BundNcpsClose(Bund b)
 {
   if (Enabled(&b->conf.options, BUND_CONF_IPCP))
-    IpcpClose();
+    IpcpClose(b);
   if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
-    Ipv6cpClose();
+    Ipv6cpClose(b);
   if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
-    CcpClose();
+    CcpClose(b);
   if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
-    EcpClose();
+    EcpClose(b);
 }
 
 /*
@@ -760,7 +780,7 @@ BundUpdateParams(Bund b)
  */
 
 int
-BundCommand(int ac, char *av[], void *arg)
+BundCommand(Context ctx, int ac, char *av[], void *arg)
 {
   Bund	sb;
   int	k;
@@ -785,12 +805,12 @@ BundCommand(int ac, char *av[], void *arg)
 
       /* Change bundle, and link also if needed */
       if ((sb = BundFind(av[0])) != NULL) {
-	bund = sb;
-	if (lnk == NULL || lnk->bund != bund) {
-	    lnk = bund->links[0];
+	ctx->bund = sb;
+	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
+	    ctx->lnk = ctx->bund->links[0];
 	}
-	phys = lnk->phys;
-	rep = NULL;
+	ctx->phys = ctx->lnk->phys;
+	ctx->rep = NULL;
       } else
 	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
       break;
@@ -809,9 +829,9 @@ BundCommand(int ac, char *av[], void *arg)
  */
 
 int
-BundCreateCmd(int ac, char *av[], void *arg)
+BundCreateCmd(Context ctx, int ac, char *av[], void *arg)
 {
-  Bund	old_bund = bund;
+  Bund	b;
   Link	new_link;
   char	*reqIface = NULL;
   u_char tee = 0;
@@ -864,32 +884,29 @@ BundCreateCmd(int ac, char *av[], void *arg)
   if (strlen(av[0])>6) {
 #endif
     Log(LG_ERR, ("bundle name \"%s\" is too long", av[0]));
-    bund = old_bund;
     return(0);
   }
 
   /* See if bundle name already taken */
-  if ((bund = BundFind(av[0])) != NULL) {
+  if ((b = BundFind(av[0])) != NULL) {
     Log(LG_ERR, ("bundle \"%s\" already exists", av[0]));
-    bund = old_bund;
     return(0);
   }
 
   /* Create a new bundle structure */
-  bund = Malloc(MB_BUND, sizeof(*bund));
-  snprintf(bund->name, sizeof(bund->name), "%s", av[0]);
-  bund->csock = bund->dsock = -1;
+  b = Malloc(MB_BUND, sizeof(*b));
+  snprintf(b->name, sizeof(b->name), "%s", av[0]);
+  b->csock = b->dsock = -1;
 
   /* Setup netgraph stuff */
-  if (BundNgInit(bund, reqIface) < 0) {
-    Log(LG_ERR, ("[%s] netgraph initialization failed", bund->name));
-    Freee(MB_BUND, bund);
-    bund = old_bund;
+  if (BundNgInit(b, reqIface) < 0) {
+    Log(LG_ERR, ("[%s] netgraph initialization failed", b->name));
+    Freee(MB_BUND, b);
     return(0);
   }
 
   /* Create each link and add it to the bundle */
-  bund->links = Malloc(MB_LINK, (ac - 1) * sizeof(*bund->links));
+  b->links = Malloc(MB_LINK, (ac - 1) * sizeof(*b->links));
   for (k = 1; k < ac; k++) {
 #if NG_NODESIZ>=32
     if (strlen(av[k])>16) {
@@ -897,23 +914,21 @@ BundCreateCmd(int ac, char *av[], void *arg)
     if (strlen(av[k])>6) {
 #endif
 	Log(LG_ERR, ("link name \"%s\" is too long", av[k]));
-	BundShutdown(bund);
-	bund = old_bund;
+	BundShutdown(b);
 	return(0);
     }
-    if ((new_link = LinkNew(av[k], bund, bund->n_links)) == NULL)
+    if ((new_link = LinkNew(av[k], b, b->n_links)) == NULL)
       Log(LG_ERR, ("[%s] addition of link \"%s\" failed", av[0], av[k]));
     else {
-      bund->links[bund->n_links] = new_link;
-      bund->n_links++;
+      b->links[b->n_links] = new_link;
+      b->n_links++;
     }
   }
 
   /* We need at least one link in the bundle */
-  if (bund->n_links == 0) {
+  if (b->n_links == 0) {
     Log(LG_ERR, ("bundle \"%s\" creation failed: no links", av[0]));
-    BundShutdown(bund);
-    bund = old_bund;
+    BundShutdown(b);
     return(0);
   }
 
@@ -922,52 +937,57 @@ BundCreateCmd(int ac, char *av[], void *arg)
   if (k == gNumBundles)			/* add a new bundle pointer */
     LengthenArray(&gBundles, sizeof(*gBundles), &gNumBundles, MB_BUND);
 
-  bund->id = k;
-  gBundles[k] = bund;
+  b->id = k;
+  gBundles[k] = b;
 
   /* Init interface stuff */
-  IfaceInit(bund);
+  IfaceInit(b);
 
   if (tee)
-    Enable(&bund->iface.options, IFACE_CONF_TEE);
+    Enable(&b->iface.options, IFACE_CONF_TEE);
   if (nat)
-    Enable(&bund->iface.options, IFACE_CONF_NAT);
+    Enable(&b->iface.options, IFACE_CONF_NAT);
   if (netflow_in)
-    Enable(&bund->iface.options, IFACE_CONF_NETFLOW_IN);
+    Enable(&b->iface.options, IFACE_CONF_NETFLOW_IN);
   if (netflow_out)
-    Enable(&bund->iface.options, IFACE_CONF_NETFLOW_OUT);
+    Enable(&b->iface.options, IFACE_CONF_NETFLOW_OUT);
 
   /* Get message channel */
-  bund->msgs = MsgRegister(BundMsg, 0);
+  b->msgs = MsgRegister(BundMsg, 0);
 
   /* Initialize bundle configuration */
-  bund->conf.mrru = MP_DEFAULT_MRRU;
-  bund->conf.retry_timeout = BUND_DEFAULT_RETRY;
-  bund->conf.bm_S = BUND_BM_DFL_S;
-  bund->conf.bm_Hi = BUND_BM_DFL_Hi;
-  bund->conf.bm_Lo = BUND_BM_DFL_Lo;
-  bund->conf.bm_Mc = BUND_BM_DFL_Mc;
-  bund->conf.bm_Md = BUND_BM_DFL_Md;
+  b->conf.mrru = MP_DEFAULT_MRRU;
+  b->conf.retry_timeout = BUND_DEFAULT_RETRY;
+  b->conf.bm_S = BUND_BM_DFL_S;
+  b->conf.bm_Hi = BUND_BM_DFL_Hi;
+  b->conf.bm_Lo = BUND_BM_DFL_Lo;
+  b->conf.bm_Mc = BUND_BM_DFL_Mc;
+  b->conf.bm_Md = BUND_BM_DFL_Md;
 
-  Enable(&bund->conf.options, BUND_CONF_MULTILINK);
-  Enable(&bund->conf.options, BUND_CONF_SHORTSEQ);
-  Accept(&bund->conf.options, BUND_CONF_SHORTSEQ);
+  Enable(&b->conf.options, BUND_CONF_MULTILINK);
+  Enable(&b->conf.options, BUND_CONF_SHORTSEQ);
+  Accept(&b->conf.options, BUND_CONF_SHORTSEQ);
 
-  Enable(&bund->conf.options, BUND_CONF_IPCP);
-  Disable(&bund->conf.options, BUND_CONF_IPV6CP);
+  Enable(&b->conf.options, BUND_CONF_IPCP);
+  Disable(&b->conf.options, BUND_CONF_IPV6CP);
 
-  Disable(&bund->conf.options, BUND_CONF_BWMANAGE);
-  Disable(&bund->conf.options, BUND_CONF_COMPRESSION);
-  Disable(&bund->conf.options, BUND_CONF_ENCRYPTION);
-  Disable(&bund->conf.options, BUND_CONF_CRYPT_REQD);
+  Disable(&b->conf.options, BUND_CONF_BWMANAGE);
+  Disable(&b->conf.options, BUND_CONF_COMPRESSION);
+  Disable(&b->conf.options, BUND_CONF_ENCRYPTION);
+  Disable(&b->conf.options, BUND_CONF_CRYPT_REQD);
   
-  Enable(&bund->conf.options, BUND_CONF_NORETRY);
+  Enable(&b->conf.options, BUND_CONF_NORETRY);
 
   /* Init NCP's */
-  IpcpInit(bund);
-  Ipv6cpInit(bund);
-  CcpInit(bund);
-  EcpInit(bund);
+  IpcpInit(b);
+  Ipv6cpInit(b);
+  CcpInit(b);
+  EcpInit(b);
+  
+  ctx->bund = b;
+  ctx->lnk = b->links[0];
+  ctx->phys = b->links[0]->phys;
+  ctx->rep = NULL;
   
   /* Done */
   return(0);
@@ -1004,7 +1024,7 @@ BundShutdown(Bund b)
  */
 
 int
-BundStat(int ac, char *av[], void *arg)
+BundStat(Context ctx, int ac, char *av[], void *arg)
 {
   Bund	sb;
   int	k, bw, tbw, nup;
@@ -1012,7 +1032,7 @@ BundStat(int ac, char *av[], void *arg)
   /* Find bundle they're talking about */
   switch (ac) {
     case 0:
-      sb = bund;
+      sb = ctx->bund;
       break;
     case 1:
       if ((sb = BundFind(av[0])) == NULL) {
@@ -1068,20 +1088,20 @@ BundStat(int ac, char *av[], void *arg)
   }
 
   /* Show stats */
-  BundUpdateStats(bund);
+  BundUpdateStats(ctx->bund);
   Printf("Traffic stats:\r\n");
 
-  Printf("\tOctets input   : %llu\r\n", bund->stats.recvOctets);
-  Printf("\tFrames input   : %llu\r\n", bund->stats.recvFrames);
-  Printf("\tOctets output  : %llu\r\n", bund->stats.xmitOctets);
-  Printf("\tFrames output  : %llu\r\n", bund->stats.xmitFrames);
-  Printf("\tBad protocols  : %llu\r\n", bund->stats.badProtos);
+  Printf("\tOctets input   : %llu\r\n", ctx->bund->stats.recvOctets);
+  Printf("\tFrames input   : %llu\r\n", ctx->bund->stats.recvFrames);
+  Printf("\tOctets output  : %llu\r\n", ctx->bund->stats.xmitOctets);
+  Printf("\tFrames output  : %llu\r\n", ctx->bund->stats.xmitFrames);
+  Printf("\tBad protocols  : %llu\r\n", ctx->bund->stats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-  Printf("\tRunts          : %llu\r\n", bund->stats.runts);
+  Printf("\tRunts          : %llu\r\n", ctx->bund->stats.runts);
 #endif
-  Printf("\tDup fragments  : %llu\r\n", bund->stats.dupFragments);
+  Printf("\tDup fragments  : %llu\r\n", ctx->bund->stats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-  Printf("\tDrop fragments : %llu\r\n", bund->stats.dropFragments);
+  Printf("\tDrop fragments : %llu\r\n", ctx->bund->stats.dropFragments);
 #endif
 
   return(0);
@@ -1518,10 +1538,6 @@ BundNgDataEvent(int type, void *cookie)
   int			nread, nsize = sizeof(naddr);
   Mbuf 			nbp;
 
-  /* Set bundle */
-  bund = b;
-  lnk = b->links[0];
-
   /* Read data */
   if ((nread = recvfrom(b->dsock, buf, sizeof(buf),
       0, (struct sockaddr *)&naddr, &nsize)) < 0) {
@@ -1548,7 +1564,6 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Set link */
     assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < b->n_links);
-    lnk = (linkNum < b->n_links) ? b->links[linkNum] : NULL;
 
     /* Input frame */
     InputFrame(b, linkNum, proto,
@@ -1657,6 +1672,7 @@ BundNgDataEvent(int type, void *cookie)
 static void
 BundNgCtrlEvent(int type, void *cookie)
 {
+    Bund	b = (Bund)cookie;
   union {
       u_char		buf[8192];
       struct ng_mesg	msg;
@@ -1664,14 +1680,10 @@ BundNgCtrlEvent(int type, void *cookie)
   char			raddr[NG_PATHLEN + 1];
   int			len;
 
-  /* Set bundle */
-  bund = (Bund) cookie;
-  lnk = bund->links[0];
-
   /* Read message */
-  if ((len = NgRecvMsg(bund->csock, &u.msg, sizeof(u), raddr)) < 0) {
+  if ((len = NgRecvMsg(b->csock, &u.msg, sizeof(u), raddr)) < 0) {
     Log(LG_ERR, ("[%s] can't read unexpected message: %s",
-      bund->name, strerror(errno)));
+      b->name, strerror(errno)));
     return;
   }
 
@@ -1689,7 +1701,7 @@ BundNgCtrlEvent(int type, void *cookie)
     case NGM_PRED1_COOKIE:
 #endif
 #endif
-      CcpRecvMsg(bund, &u.msg, len);
+      CcpRecvMsg(b, &u.msg, len);
       return;
 
     default:
@@ -1698,7 +1710,7 @@ BundNgCtrlEvent(int type, void *cookie)
 
   /* Unknown message */
   Log(LG_ERR, ("[%s] rec'd unknown ctrl message, cookie=%d cmd=%d",
-    bund->name, u.msg.header.typecookie, u.msg.header.cmd));
+    b->name, u.msg.header.typecookie, u.msg.header.cmd));
 }
 
 
@@ -1707,61 +1719,63 @@ BundNgCtrlEvent(int type, void *cookie)
  */
 
 static int
-BundSetCommand(int ac, char *av[], void *arg)
+BundSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
+    Bund	b = ctx->bund;
+
   if (ac == 0)
     return(-1);
   switch ((intptr_t)arg) {
     case SET_PERIOD:
-      bund->conf.bm_S = atoi(*av);
+      b->conf.bm_S = atoi(*av);
       break;
     case SET_LOW_WATER:
-      bund->conf.bm_Lo = atoi(*av);
+      b->conf.bm_Lo = atoi(*av);
       break;
     case SET_HIGH_WATER:
-      bund->conf.bm_Hi = atoi(*av);
+      b->conf.bm_Hi = atoi(*av);
       break;
     case SET_MIN_CONNECT:
-      bund->conf.bm_Mc = atoi(*av);
+      b->conf.bm_Mc = atoi(*av);
       break;
     case SET_MIN_DISCONNECT:
-      bund->conf.bm_Md = atoi(*av);
+      b->conf.bm_Md = atoi(*av);
       break;
 
     case SET_RETRY:
-      bund->conf.retry_timeout = atoi(*av);
-      if (bund->conf.retry_timeout < 1 || bund->conf.retry_timeout > 10)
-	bund->conf.retry_timeout = BUND_DEFAULT_RETRY;
+      b->conf.retry_timeout = atoi(*av);
+      if (b->conf.retry_timeout < 1 || b->conf.retry_timeout > 10)
+	b->conf.retry_timeout = BUND_DEFAULT_RETRY;
       break;
 
     case SET_ACCEPT:
-      AcceptCommand(ac, av, &bund->conf.options, gConfList);
+      AcceptCommand(ac, av, &b->conf.options, gConfList);
       break;
 
     case SET_DENY:
-      DenyCommand(ac, av, &bund->conf.options, gConfList);
+      DenyCommand(ac, av, &b->conf.options, gConfList);
       break;
 
     case SET_ENABLE:
-      EnableCommand(ac, av, &bund->conf.options, gConfList);
+      EnableCommand(ac, av, &b->conf.options, gConfList);
       break;
 
     case SET_DISABLE:
-      DisableCommand(ac, av, &bund->conf.options, gConfList);
-      if (!Enabled(&bund->conf.options, BUND_CONF_MULTILINK)
-	  && bund->n_links > 1) {
+      DisableCommand(ac, av, &b->conf.options, gConfList);
+      if (!Enabled(&b->conf.options, BUND_CONF_MULTILINK)
+	  && b->n_links > 1) {
 	Log(LG_ERR, ("[%s] multilink option required for %d links",
-	  bund->name, bund->n_links));
-	Enable(&bund->conf.options, BUND_CONF_MULTILINK);
+	  b->name, b->n_links));
+	Enable(&b->conf.options, BUND_CONF_MULTILINK);
       }
       break;
 
     case SET_YES:
-      YesCommand(ac, av, &bund->conf.options, gConfList);
+      YesCommand(ac, av, &b->conf.options, gConfList);
       break;
 
     case SET_NO:
-      NoCommand(ac, av, &bund->conf.options, gConfList);
+      NoCommand(ac, av, &b->conf.options, gConfList);
       break;
 
     default:

@@ -51,8 +51,6 @@
 	PhysInfo	phys;
   };
 
-  typedef struct context *Context;
-
   struct console_user {
     char	*username;
     char	*password;
@@ -101,7 +99,7 @@
   extern int	ConsoleInit(Console c);
   extern int	ConsoleOpen(Console c);
   extern int	ConsoleClose(Console c);
-  extern int	ConsoleStat(int ac, char *av[], void *arg);
+  extern int	ConsoleStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif
 

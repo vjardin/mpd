@@ -128,7 +128,7 @@
   extern void	LcpOpen(Link l);
   extern void	LcpClose(Link l);
   extern void	LcpDown(Link l);
-  extern int	LcpStat(int ac, char *av[], void *arg);
+  extern int	LcpStat(Context ctx, int ac, char *av[], void *arg);
   extern void	LcpAuthResult(Link l, int success);
 
 #endif

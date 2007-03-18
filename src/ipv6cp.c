@@ -65,7 +65,7 @@
   static void	Ipv6cpLayerDown(Fsm fp);
   static void	Ipv6cpFailure(Fsm fp, enum fsmfail reason);
 
-  static int	Ipv6cpSetCommand(int ac, char *av[], void *arg);
+  static int	Ipv6cpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   void 		CreateInterfaceID(u_char *intid, int random);
 /*
@@ -133,9 +133,9 @@
  */
 
 int
-Ipv6cpStat(int ac, char *av[], void *arg)
+Ipv6cpStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Ipv6cpState		const ipv6cp = &bund->ipv6cp;
+  Ipv6cpState		const ipv6cp = &ctx->bund->ipv6cp;
   Fsm			fp = &ipv6cp->fsm;
 
   Printf("%s [%s]\r\n", Pref(fp), FsmStateName(fp->state));
@@ -323,16 +323,6 @@ Ipv6cpUp(Bund b)
 }
 
 /*
- * Ipv6cpClose()
- */
-
-void
-Ipv6cpClose(void)
-{
-  FsmClose(&bund->ipv6cp.fsm);
-}
-
-/*
  * Ipv6cpDown()
  */
 
@@ -347,9 +337,39 @@ Ipv6cpDown(Bund b)
  */
 
 void
-Ipv6cpOpen(void)
+Ipv6cpOpen(Bund b)
 {
-  FsmOpen(&bund->ipv6cp.fsm);
+  FsmOpen(&b->ipv6cp.fsm);
+}
+
+/*
+ * Ipv6cpClose()
+ */
+
+void
+Ipv6cpClose(Bund b)
+{
+  FsmClose(&b->ipv6cp.fsm);
+}
+
+/*
+ * Ipv6cpOpenCmd()
+ */
+
+void
+Ipv6cpOpenCmd(Context ctx)
+{
+  FsmOpen(&ctx->bund->ipv6cp.fsm);
+}
+
+/*
+ * Ipv6cpCloseCmd()
+ */
+
+void
+Ipv6cpCloseCmd(Context ctx)
+{
+  FsmClose(&ctx->bund->ipv6cp.fsm);
 }
 
 /*
@@ -456,9 +476,9 @@ Ipv6cpInput(Bund b, Mbuf bp)
  */
 
 static int
-Ipv6cpSetCommand(int ac, char *av[], void *arg)
+Ipv6cpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  Ipv6cpState		const ipv6cp = &bund->ipv6cp;
+  Ipv6cpState		const ipv6cp = &ctx->bund->ipv6cp;
 
   if (ac == 0)
     return(-1);

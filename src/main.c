@@ -71,10 +71,6 @@
  * GLOBAL VARIABLES
  */
 
-  Link			lnk;
-  Bund			bund;
-  Rep			rep;
-  PhysInfo		phys;
   PhysInfo		*gPhyses;
   Rep			*gReps;
   Bund			*gBundles;
@@ -133,6 +129,7 @@ main(int ac, char *av[])
 {
   int	ret;
   char	*args[MAX_ARGS];
+  struct context	ctx;
 
   gPid=getpid();
 
@@ -221,12 +218,22 @@ main(int ac, char *av[])
   signal(SIGPIPE, SIG_IGN);
 
   GIANT_MUTEX_LOCK();
-  ReadFile(gConfigFile, STARTUP_CONF, DoCommand);
+  /* Read startup configuration section */
+  ctx.lnk = NULL;
+  ctx.bund = NULL;
+  ctx.phys = NULL;
+  ctx.rep = NULL;
+  ReadFile(gConfigFile, STARTUP_CONF, DoCommand, &ctx);
+
   /* Read configuration as specified on the command line, or default */
+  ctx.lnk = NULL;
+  ctx.bund = NULL;
+  ctx.phys = NULL;
+  ctx.rep = NULL;
   if (!gPeerSystem)
-    ReadFile(gConfigFile, DEFAULT_CONF, DoCommand);
+    ReadFile(gConfigFile, DEFAULT_CONF, DoCommand, &ctx);
   else {
-    if (ReadFile(gConfigFile, gPeerSystem, DoCommand) < 0) {
+    if (ReadFile(gConfigFile, gPeerSystem, DoCommand, &ctx) < 0) {
       Log(LG_ERR, ("can't read configuration for \"%s\"", gPeerSystem));
       DoExit(EX_CONFIG);
     }
@@ -258,13 +265,14 @@ Greetings(void)
 static void
 CloseIfaces(void)
 {
-  int	k;
+    Bund	b;
+    int		k;
 
   /* Shut down all interfaces we grabbed */
   for (k = 0; k < gNumBundles; k++) {
-    if ((bund = gBundles[k]) != NULL) {
-      BundNcpsClose(bund);
-      IfaceClose();
+    if ((b = gBundles[k]) != NULL) {
+      BundNcpsClose(b);
+      IfaceClose(b);
     }
   }
 }
@@ -278,6 +286,8 @@ CloseIfaces(void)
 void
 DoExit(int code)
 {
+    Bund	b;
+    Rep		r;
   int	k;
 
   gShutdownInProgress=1;
@@ -293,22 +303,22 @@ DoExit(int code)
   for (k = 0; k < gNumBundles; k++) {
     int global = 0;
 
-    if ((bund = gBundles[k]) != NULL) {
+    if ((b = gBundles[k]) != NULL) {
       if (global == 0) {
 	/*
 	 * XXX: We can't move NgFuncShutdownGlobal() out of cycle,
 	 * because we need active netgraph socket to perform shutdown.
 	 */
-        NgFuncShutdownGlobal(bund);
+        NgFuncShutdownGlobal(b);
 	global = 1;
       }
-      BundShutdown(bund);
+      BundShutdown(b);
     }
   }
 
   for (k = 0; k < gNumReps; k++) {
-    if ((rep = gReps[k]) != NULL) {
-      RepShutdown(rep);
+    if ((r = gReps[k]) != NULL) {
+      RepShutdown(r);
     }
   }
 
@@ -372,6 +382,7 @@ SignalHandler(int type, void *arg)
 static void
 FatalSignal(sig)
 {
+    Bund 	b;
   static struct pppTimer	gDeathTimer;
   int				k;
   int				upLinkCount;
@@ -380,7 +391,7 @@ FatalSignal(sig)
   Log(LG_ERR, ("caught fatal signal %s", sys_signame[sig]));
   gShutdownInProgress=1;
   for (k = 0; k < gNumBundles; k++) {
-    if ((bund = gBundles[k])) {
+    if ((b = gBundles[k])) {
       if (sig != SIGTERM && sig != SIGINT)
         RecordLinkUpDownReason(NULL, 0, STR_FATAL_SHUTDOWN, NULL);
       else
@@ -415,6 +426,7 @@ FatalSignal(sig)
 static void
 OpenSignal(int sig)
 {
+#if 0
   /* Open bundle */
   if (lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
@@ -423,7 +435,7 @@ OpenSignal(int sig)
     BundOpenLink(lnk);
   } else
     Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
-
+#endif
 }
 
 /*
@@ -433,7 +445,7 @@ OpenSignal(int sig)
 static void
 CloseSignal(int sig)
 {
-
+#if 0
   /* Close bundle */
   if (lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, closing",
@@ -442,7 +454,7 @@ CloseSignal(int sig)
     LinkClose(lnk);
   } else
     Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
-
+#endif
 }
 
 
@@ -460,7 +472,7 @@ EventWarnx(const char *fmt, ...)
 
   va_start(args, fmt);
   vsnprintf(buf, sizeof(buf), fmt, args);
-  Log(LG_ALWAYS, ("[%s] EVENT: %s", lnk->name, buf));
+  Log(LG_ALWAYS, ("EVENT: %s", buf));
 #if 0
 {
   EventSetLog(1, warnx);
@@ -597,21 +609,3 @@ Usage(int ex)
   }
   exit(ex);
 }
-
-void
-ContextSave(Context c)
-{
-    c->bund = bund;
-    c->lnk = lnk;
-    c->rep = rep;
-    c->phys = phys;
-};
-
-void
-ContextRestore(Context c)
-{
-    bund = c->bund;
-    lnk = c->lnk;
-    rep = c->rep;
-    phys = c->phys;
-};

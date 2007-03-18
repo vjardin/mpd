@@ -115,7 +115,7 @@ static int	PppoeCalledNum(PhysInfo p, void *buf, int buf_len);
 static void	PppoeCtrlReadEvent(int type, void *arg);
 static void	PppoeConnectTimeout(void *arg);
 static void	PppoeStat(PhysInfo p);
-static int	PppoeSetCommand(int ac, char *av[], void *arg);
+static int	PppoeSetCommand(Context ctx, int ac, char *av[], void *arg);
 static int	PppoeOriginated(PhysInfo p);
 static void	PppoeNodeUpdate(PhysInfo p);
 static void	PppoeListenUpdate(void *arg);
@@ -1111,9 +1111,9 @@ PppoeListenUpdate(void *arg)
  */
  
 static int
-PppoeSetCommand(int ac, char *av[], void *arg)
+PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-	const PppoeInfo pi = (PppoeInfo) phys->info;
+	const PppoeInfo pi = (PppoeInfo) ctx->phys->info;
 	const char *hookname = ETHER_DEFAULT_HOOK;
 	const char *colon;
 
@@ -1141,7 +1141,7 @@ PppoeSetCommand(int ac, char *av[], void *arg)
 		break;
 	case SET_ENABLE:
           EnableCommand(ac, av, &pi->options, gConfList);
-    	  PppoeNodeUpdate(phys);
+    	  PppoeNodeUpdate(ctx->phys);
           break;
         case SET_DISABLE:
           DisableCommand(ac, av, &pi->options, gConfList);

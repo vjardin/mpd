@@ -35,8 +35,8 @@
 
   struct layer {
     const char	*name;
-    void	(*opener)(void);
-    void	(*closer)(void);
+    void	(*opener)(Context ctx);
+    void	(*closer)(Context ctx);
     const char	*desc;
   };
   typedef struct layer	*Layer;
@@ -59,23 +59,23 @@
  */
 
   /* Commands */
-  static int	ShowVersion(int ac, char *av[], void *arg);
-  static int	ShowLayers(int ac, char *av[], void *arg);
-  static int	ShowTypes(int ac, char *av[], void *arg);
-  static int	ShowSummary(int ac, char *av[], void *arg);
-  static int	ShowEvents(int ac, char *av[], void *arg);
-  static int	ShowGlobals(int ac, char *av[], void *arg);
-  static int	OpenCommand(int ac, char *av[], void *arg);
-  static int	CloseCommand(int ac, char *av[], void *arg);
-  static int	LoadCommand(int ac, char *av[], void *arg);
-  static int	ExitCommand(int ac, char *av[], void *arg);
-  static int	QuitCommand(int ac, char *av[], void *arg);
-  static int	NullCommand(int ac, char *av[], void *arg);
-  static int	GlobalSetCommand(int ac, char *av[], void *arg);
-  static int	SetDebugCommand(int ac, char *av[], void *arg);
+  static int	ShowVersion(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowLayers(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowTypes(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowSummary(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowEvents(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowGlobals(Context ctx, int ac, char *av[], void *arg);
+  static int	OpenCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	CloseCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	LoadCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	ExitCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	QuitCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	NullCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	GlobalSetCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	SetDebugCommand(Context ctx, int ac, char *av[], void *arg);
 
   /* Other stuff */
-  static int	DoCommandTab(CmdTab cmdlist, int ac, char *av[]);
+  static int	DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[]);
   static Layer	GetLayer(const char *name);
 
 /*
@@ -245,33 +245,33 @@
 
   struct layer	gLayers[] = {
     { "iface",
-      IfaceOpen,
-      IfaceClose,
+      IfaceOpenCmd,
+      IfaceCloseCmd,
       "System interface"
     },
     { "ipcp",
-      IpcpOpen,
-      IpcpClose,
+      IpcpOpenCmd,
+      IpcpCloseCmd,
       "IPCP: IP control protocol"
     },
     { "ipv6cp",
-      Ipv6cpOpen,
-      Ipv6cpClose,
+      Ipv6cpOpenCmd,
+      Ipv6cpCloseCmd,
       "IPV6CP: IPv6 control protocol"
     },
     { "ccp",
-      CcpOpen,
-      CcpClose,
+      CcpOpenCmd,
+      CcpCloseCmd,
       "CCP: compression ctrl prot."
     },
     { "ecp",
-      EcpOpen,
-      EcpClose,
+      EcpOpenCmd,
+      EcpCloseCmd,
       "ECP: encryption ctrl prot."
     },
     { "bund",
-      BundOpen,
-      BundClose,
+      BundOpenCmd,
+      BundCloseCmd,
       "Multilink bundle"
     },
     { "link",
@@ -295,21 +295,21 @@
  */
 
 int
-DoCommand(int ac, char *av[], const char *file, int line)
+DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
 {
   int	rtn;
   char	filebuf[100];
   
   exitflag = FALSE;
-  rtn = DoCommandTab(gCommands, ac, av);
+  rtn = DoCommandTab(ctx, gCommands, ac, av);
 
   /* Bad usage? */
   if (rtn < 0) {
     if (file) {
 	snprintf(filebuf,sizeof(filebuf),"%s:%d: ", file, line);
-	HelpCommand(ac, av, filebuf);
+	HelpCommand(ctx, ac, av, filebuf);
     } else {
-	HelpCommand(ac, av, NULL);
+	HelpCommand(ctx, ac, av, NULL);
     }
   }
   
@@ -323,7 +323,7 @@ DoCommand(int ac, char *av[], const char *file, int line)
  */
 
 static int
-DoCommandTab(CmdTab cmdlist, int ac, char *av[])
+DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
 {
   CmdTab	cmd;
   int		rtn = 0;
@@ -337,16 +337,16 @@ DoCommandTab(CmdTab cmdlist, int ac, char *av[])
     return(-1);
 
   /* Check command admissibility */
-  if (cmd->admit && !(cmd->admit)(cmd))
+  if (cmd->admit && !(cmd->admit)(ctx, cmd))
     return(0);
 
   /* Find command and either execute or recurse into a submenu */
   if (cmd->func == CMD_SUBMENU)
-    rtn = DoCommandTab((CmdTab) cmd->arg, ac - 1, av + 1);
+    rtn = DoCommandTab(ctx, (CmdTab) cmd->arg, ac - 1, av + 1);
   else if (cmd->func == CMD_UNIMPL)
     Log(LG_ERR, ("command '%s' is not implemented", av[0]));
   else
-    rtn = (cmd->func)(ac - 1, av + 1, cmd->arg);
+    rtn = (cmd->func)(ctx, ac - 1, av + 1, cmd->arg);
 
   return(rtn);
 }
@@ -385,7 +385,7 @@ FindCommand(CmdTab cmds, char *str, CmdTab *cmdp)
  */
 
 static int
-GlobalSetCommand(int ac, char *av[], void *arg) 
+GlobalSetCommand(Context ctx, int ac, char *av[], void *arg) 
 {
     int val;
 
@@ -461,7 +461,7 @@ GlobalSetCommand(int ac, char *av[], void *arg)
  */
 
 int
-HelpCommand(int ac, char *av[], void *arg)
+HelpCommand(Context ctx, int ac, char *av[], void *arg)
 {
   int		depth;
   CmdTab	menu, cmd;
@@ -530,7 +530,7 @@ HelpCommand(int ac, char *av[], void *arg)
  */
 
 static int
-SetDebugCommand(int ac, char *av[], void *arg)
+SetDebugCommand(Context ctx, int ac, char *av[], void *arg)
 {
   switch (ac) {
     case 1:
@@ -547,7 +547,7 @@ SetDebugCommand(int ac, char *av[], void *arg)
  */
 
 static int
-ShowVersion(int ac, char *av[], void *arg)
+ShowVersion(Context ctx, int ac, char *av[], void *arg)
 {
   Printf("MPD version: %s\r\n", gVersion);
   return(0);
@@ -558,7 +558,7 @@ ShowVersion(int ac, char *av[], void *arg)
  */
 
 static int
-ShowEvents(int ac, char *av[], void *arg)
+ShowEvents(Context ctx, int ac, char *av[], void *arg)
 {
   EventDump("mpd events");
   return(0);
@@ -569,7 +569,7 @@ ShowEvents(int ac, char *av[], void *arg)
  */
 
 static int
-ShowGlobals(int ac, char *av[], void *arg)
+ShowGlobals(Context ctx, int ac, char *av[], void *arg)
 {
   Printf("Global settings:\r\n");
   OptStat(&gGlobalConf.options, gGlobalConfList);
@@ -582,7 +582,7 @@ ShowGlobals(int ac, char *av[], void *arg)
  */
 
 static int
-ExitCommand(int ac, char *av[], void *arg)
+ExitCommand(Context ctx, int ac, char *av[], void *arg)
 {
   exitflag = TRUE;
   return(0);
@@ -593,7 +593,7 @@ ExitCommand(int ac, char *av[], void *arg)
  */
 
 static int
-QuitCommand(int ac, char *av[], void *arg)
+QuitCommand(Context ctx, int ac, char *av[], void *arg)
 {
   SendSignal(SIGTERM);
   exitflag = TRUE;
@@ -605,7 +605,7 @@ QuitCommand(int ac, char *av[], void *arg)
  */
 
 static int
-NullCommand(int ac, char *av[], void *arg)
+NullCommand(Context ctx, int ac, char *av[], void *arg)
 {
   return(0);
 }
@@ -615,7 +615,7 @@ NullCommand(int ac, char *av[], void *arg)
  */
 
 static int
-LoadCommand(int ac, char *av[], void *arg)
+LoadCommand(Context ctx, int ac, char *av[], void *arg)
 {
   static int depth=0;
   
@@ -628,7 +628,7 @@ LoadCommand(int ac, char *av[], void *arg)
       return(-2);
     }
     depth++;
-    ReadFile(gConfigFile, *av, DoCommand);
+    ReadFile(gConfigFile, *av, DoCommand, ctx);
     depth--;
   }
   return(0);
@@ -639,7 +639,7 @@ LoadCommand(int ac, char *av[], void *arg)
  */
 
 static int
-OpenCommand(int ac, char *av[], void *arg)
+OpenCommand(Context ctx, int ac, char *av[], void *arg)
 {
   Layer		layer;
   const char	*name;
@@ -655,7 +655,7 @@ OpenCommand(int ac, char *av[], void *arg)
       return(-1);
   }
   if ((layer = GetLayer(name)) != NULL)
-    (*layer->opener)();
+    (*layer->opener)(ctx);
   return(0);
 }
 
@@ -664,7 +664,7 @@ OpenCommand(int ac, char *av[], void *arg)
  */
 
 static int
-CloseCommand(int ac, char *av[], void *arg)
+CloseCommand(Context ctx, int ac, char *av[], void *arg)
 {
   Layer		layer;
   const char	*name;
@@ -680,7 +680,7 @@ CloseCommand(int ac, char *av[], void *arg)
       return(-1);
   }
   if ((layer = GetLayer(name)) != NULL)
-    (*layer->closer)();
+    (*layer->closer)(ctx);
   return(0);
 }
 
@@ -716,7 +716,7 @@ GetLayer(const char *name)
  */
 
 static int
-ShowLayers(int ac, char *av[], void *arg)
+ShowLayers(Context ctx, int ac, char *av[], void *arg)
 {
   int	k;
 
@@ -732,7 +732,7 @@ ShowLayers(int ac, char *av[], void *arg)
  */
 
 static int
-ShowTypes(int ac, char *av[], void *arg)
+ShowTypes(Context ctx, int ac, char *av[], void *arg)
 {
   PhysType	pt;
   int		k;
@@ -749,7 +749,7 @@ ShowTypes(int ac, char *av[], void *arg)
  */
 
 static int
-ShowSummary(int ac, char *av[], void *arg)
+ShowSummary(Context ctx, int ac, char *av[], void *arg)
 {
   int		b,l;
   Bund		B;
@@ -816,9 +816,9 @@ ShowSummary(int ac, char *av[], void *arg)
  */
 
 int
-AdmitBund(CmdTab cmd)
+AdmitBund(Context ctx, CmdTab cmd)
 {
-  if (!bund) {
+  if (!ctx->bund) {
     Log(LG_ERR, ("no bundle selected"));
     return(FALSE);
   }
@@ -830,9 +830,9 @@ AdmitBund(CmdTab cmd)
  */
 
 int
-AdmitLink(CmdTab cmd)
+AdmitLink(Context ctx, CmdTab cmd)
 {
-  if (!lnk) {
+  if (!ctx->lnk) {
     Log(LG_ERR, ("no link selected"));
     return(FALSE);
   }
@@ -844,9 +844,9 @@ AdmitLink(CmdTab cmd)
  */
 
 int
-AdmitRep(CmdTab cmd)
+AdmitRep(Context ctx, CmdTab cmd)
 {
-  if (!rep) {
+  if (!ctx->rep) {
     Log(LG_ERR, ("no repeater selected"));
     return(FALSE);
   }
@@ -858,9 +858,9 @@ AdmitRep(CmdTab cmd)
  */
 
 int
-AdmitPhys(CmdTab cmd)
+AdmitPhys(Context ctx, CmdTab cmd)
 {
-  if (!phys) {
+  if (!ctx->phys) {
     Log(LG_ERR, ("no phys selected"));
     return(FALSE);
   }
@@ -872,19 +872,19 @@ AdmitPhys(CmdTab cmd)
  */
 
 int
-AdmitDev(CmdTab cmd)
+AdmitDev(Context ctx, CmdTab cmd)
 {
-  if (!phys) {
+  if (!ctx->phys) {
     Log(LG_ERR, ("no phys selected"));
     return(FALSE);
   }
-  if (phys->type == NULL) {
-    Log(LG_ERR, ("type of phys \"%s\" is unspecified", phys->name));
+  if (ctx->phys->type == NULL) {
+    Log(LG_ERR, ("type of phys \"%s\" is unspecified", ctx->phys->name));
     return(FALSE);
   }
-  if (strncmp(cmd->name, phys->type->name, strlen(phys->type->name))) {
+  if (strncmp(cmd->name, ctx->phys->type->name, strlen(ctx->phys->type->name))) {
     Log(LG_ERR, ("[%s] phys type is %s, '%s' command isn't allowed here!",
-      phys->name, phys->type->name, cmd->name));
+      ctx->phys->name, ctx->phys->type->name, cmd->name));
     return(FALSE);
   }
   return(TRUE);

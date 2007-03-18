@@ -527,9 +527,9 @@ LcpAuthResult(Link l, int success)
  */
 
 int
-LcpStat(int ac, char *av[], void *arg)
+LcpStat(Context ctx, int ac, char *av[], void *arg)
 {
-  LcpState	const lcp = &lnk->lcp;
+  LcpState	const lcp = &ctx->lnk->lcp;
 
   Printf("%s [%s]\r\n", lcp->fsm.type->name, FsmStateName(lcp->fsm.state));
 
@@ -614,7 +614,7 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
   }
 
   /* Multi-link stuff */
-  if (Enabled(&bund->conf.options, BUND_CONF_MULTILINK)
+  if (Enabled(&l->bund->conf.options, BUND_CONF_MULTILINK)
       && !LCP_PEER_REJECTED(lcp, TY_MRRU)) {
     cp = FsmConfValue(cp, TY_MRRU, -2, &lcp->want_mrru);
     if (lcp->want_shortseq && !LCP_PEER_REJECTED(lcp, TY_SHORTSEQNUM))
@@ -687,6 +687,7 @@ void LcpDown(Link l)
 static int
 LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp)
 {
+    Link	l = (Link)fp->arg;
   int	fatal = FALSE;
   Fsm	rej = NULL;
 
@@ -694,17 +695,17 @@ LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp)
   switch (proto) {
     case PROTO_CCP:
     case PROTO_COMPD:
-      rej = &bund->ccp.fsm;
+      rej = &l->bund->ccp.fsm;
       break;
     case PROTO_ECP:
     case PROTO_CRYPT:
-      rej = &bund->ecp.fsm;
+      rej = &l->bund->ecp.fsm;
       break;
     case PROTO_IPCP:
-      rej = &bund->ipcp.fsm;
+      rej = &l->bund->ipcp.fsm;
       break;
     case PROTO_IPV6CP:
-      rej = &bund->ipv6cp.fsm;
+      rej = &l->bund->ipv6cp.fsm;
       break;
     default:
       break;
@@ -963,12 +964,12 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  Log(LG_LCP, (" %s %d", oi->name, mrru));
 	  switch (mode) {
 	    case MODE_REQ:
-	      if (!Enabled(&bund->conf.options, BUND_CONF_MULTILINK)) {
+	      if (!Enabled(&l->bund->conf.options, BUND_CONF_MULTILINK)) {
 		FsmRej(fp, opt);
 		break;
 	      }
-	      if (bund->bm.n_up > 0 && mrru != bund->mp.peer_mrru) {
-		mrru = htons(bund->mp.peer_mrru);
+	      if (l->bund->bm.n_up > 0 && mrru != l->bund->mp.peer_mrru) {
+		mrru = htons(l->bund->mp.peer_mrru);
 		memcpy(opt->data, &mrru, 2);
 		FsmNak(fp, opt);
 		break;
@@ -994,7 +995,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		int	k;
 
 		/* Make sure we don't violate any rules by changing MRRU now */
-		if (bund->bm.n_up > 0)			/* too late */
+		if (l->bund->bm.n_up > 0)			/* too late */
 		  break;
 		if (mrru > lcp->want_mrru)		/* too big */
 		  break;
@@ -1002,9 +1003,9 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		  mrru = MP_MIN_MRRU;
 
 		/* Update our bundle, and any links currently in negotiation */
-		bund->mp.self_mrru = mrru;
-		for (k = 0; k < bund->n_links; k++)
-		  bund->links[k]->lcp.want_mrru = mrru;
+		l->bund->mp.self_mrru = mrru;
+		for (k = 0; k < l->bund->n_links; k++)
+		  l->bund->links[k]->lcp.want_mrru = mrru;
 	      }
 	      break;
 	    case MODE_REJ:
@@ -1019,8 +1020,8 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	Log(LG_LCP, (" %s", oi->name));
 	switch (mode) {
 	  case MODE_REQ:
-	    if (!Enabled(&bund->conf.options, BUND_CONF_MULTILINK)
-		|| !Acceptable(&bund->conf.options, BUND_CONF_SHORTSEQ)) {
+	    if (!Enabled(&l->bund->conf.options, BUND_CONF_MULTILINK)
+		|| !Acceptable(&l->bund->conf.options, BUND_CONF_SHORTSEQ)) {
 	      FsmRej(fp, opt);
 	      break;
 	    }
@@ -1034,14 +1035,14 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      int	k;
 
 	      /* Can't change MP configuration after one link already up */
-	      if (bund->bm.n_up > 0 && bund->mp.self_short_seq)
+	      if (l->bund->bm.n_up > 0 && l->bund->mp.self_short_seq)
 		break;
 
 	      /* Update our bundle, and any links currently in negotiation */
 	      lcp->want_shortseq = FALSE;
-	      bund->mp.self_short_seq = FALSE;
-	      for (k = 0; k < bund->n_links; k++)
-		LCP_PEER_REJ(&bund->links[k]->lcp, opt->type);
+	      l->bund->mp.self_short_seq = FALSE;
+	      for (k = 0; k < l->bund->n_links; k++)
+		LCP_PEER_REJ(&l->bund->links[k]->lcp, opt->type);
 	    }
 	    break;
 	}

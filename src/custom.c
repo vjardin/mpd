@@ -17,7 +17,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	CustomDoWhatever(int ac, char *av[], void *arg);
+  static int	CustomDoWhatever(Context ctx, int ac, char *av[], void *arg);
 
 /*
  * GLOBAL VARIABLES
@@ -36,7 +36,7 @@
  */
 
 static int
-CustomDoWhatever(int ac, char *av[], void *arg)
+CustomDoWhatever(Context ctx, int ac, char *av[], void *arg)
 {
   /* XXX do whatever */
   return(0);

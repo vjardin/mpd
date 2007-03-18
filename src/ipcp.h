@@ -87,11 +87,13 @@
   extern void	IpcpInit(Bund b);
   extern void	IpcpUp(Bund b);
   extern void	IpcpDown(Bund b);
-  extern void	IpcpOpen(void);
-  extern void	IpcpClose(void);
+  extern void	IpcpOpen(Bund b);
+  extern void	IpcpClose(Bund b);
+  extern void	IpcpOpenCmd(Context ctx);
+  extern void	IpcpCloseCmd(Context ctx);
   extern void	IpcpInput(Bund b, Mbuf bp);
   extern void	IpcpDefAddress(void);
-  extern int	IpcpStat(int ac, char *av[], void *arg);
+  extern int	IpcpStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif
 

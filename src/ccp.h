@@ -108,15 +108,17 @@
   extern void	CcpInit(Bund b);
   extern void	CcpUp(Bund b);
   extern void	CcpDown(Bund b);
-  extern void	CcpOpen(void);
-  extern void	CcpClose(void);
+  extern void	CcpOpen(Bund b);
+  extern void	CcpClose(Bund b);
+  extern void	CcpOpenCmd(Context ctx);
+  extern void	CcpCloseCmd(Context ctx);
   extern void	CcpInput(Bund b, Mbuf bp);
   extern Mbuf	CcpDataInput(Bund b, Mbuf bp);
   extern Mbuf	CcpDataOutput(Bund b, Mbuf bp);
   extern int	CcpSubtractBloat(Bund b, int size);
   extern void	CcpSendResetReq(Bund b);
   extern void	CcpRecvMsg(Bund b, struct ng_mesg *msg, int len);
-  extern int	CcpStat(int ac, char *av[], void *arg);
+  extern int	CcpStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif
 

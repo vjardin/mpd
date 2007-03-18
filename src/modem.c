@@ -45,7 +45,7 @@
   #define MODEM_MIN_CLOSE_TIME		3
   #define MODEM_CONNECT_TIMEOUT		30
   #define MODEM_CHECK_INTERVAL		1
-  #define MODEM_DEFAULT_SPEED		"115200"
+  #define MODEM_DEFAULT_SPEED		115200
   #define MODEM_MAX_SCRIPT_NAME		32
   #define MODEM_MAX_QUEUE		8192
   #define MODEM_ERR_REPORT_INTERVAL	60
@@ -123,7 +123,7 @@
   static void		ModemChatIdleResult(void *arg, int rslt,
 				const char *msg);
 
-  static int		ModemSetCommand(int ac, char *av[], void *arg);
+  static int		ModemSetCommand(Context ctx, int ac, char *av[], void *arg);
   static int		ModemInstallNodes(PhysInfo p);
   static int		ModemGetNgStats(PhysInfo p, struct ng_async_stat *sp);
 
@@ -186,7 +186,6 @@ static int
 ModemInit(PhysInfo p)
 {
   char		defSpeed[32];
-  char		*s;
   ModemInfo	m;
 
   m = (ModemInfo) (p->info = Malloc(MB_PHYS, sizeof(*m)));
@@ -202,11 +201,11 @@ ModemInit(PhysInfo p)
     p->link->bandwidth = MODEM_DEFAULT_BANDWIDTH;
   }
 
-  /* Set default speed */
-  strlcpy(defSpeed, MODEM_DEFAULT_SPEED, sizeof(defSpeed));
-  s = defSpeed;
-  ModemSetCommand(1, &s, (void *) SET_SPEED);
-  return(0);
+    /* Set default speed */
+    m->speed = MODEM_DEFAULT_SPEED;
+    snprintf(defSpeed, sizeof(defSpeed), "%d", m->speed);
+    ChatPresetVar(m->chat, CHAT_VAR_BAUDRATE, defSpeed);
+    return(0);
 }
 
 /*
@@ -803,9 +802,9 @@ ModemGetNgStats(PhysInfo p, struct ng_async_stat *sp)
  */
 
 static int
-ModemSetCommand(int ac, char *av[], void *arg)
+ModemSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  PhysInfo	const p = phys;
+  PhysInfo	const p = ctx->phys;
   ModemInfo	const m = (ModemInfo) p->info;
 
   switch ((intptr_t)arg) {

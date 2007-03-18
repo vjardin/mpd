@@ -89,7 +89,7 @@ static void	TcpDoClose(PhysInfo p);
 static void	TcpAcceptEvent(int type, void *cookie);
 static void	TcpConnectEvent(int type, void *cookie);
 
-static int	TcpSetCommand(int ac, char *av[], void *arg);
+static int	TcpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
 /*
  * GLOBAL VARIABLES
@@ -824,9 +824,9 @@ TcpNodeUpdate(PhysInfo p)
  */
 
 static int
-TcpSetCommand(int ac, char *av[], void *arg)
+TcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-	TcpInfo	const pi = (TcpInfo) phys->info;
+	TcpInfo	const pi = (TcpInfo) ctx->phys->info;
 	struct sockaddr_storage *sin;   
 
 	switch ((intptr_t)arg) {
@@ -842,7 +842,7 @@ TcpSetCommand(int ac, char *av[], void *arg)
 		break;
 	case SET_ENABLE:
 		EnableCommand(ac, av, &pi->conf.options, gConfList);
-    	    	TcpNodeUpdate(phys);
+    	    	TcpNodeUpdate(ctx->phys);
         	break;
         case SET_DISABLE:
     		DisableCommand(ac, av, &pi->conf.options, gConfList);

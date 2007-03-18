@@ -74,7 +74,7 @@
   static void		EcpRecvResetReq(Fsm fp, int id, Mbuf bp);
   static void		EcpRecvResetAck(Fsm fp, int id, Mbuf bp);
 
-  static int		EcpSetCommand(int ac, char *av[], void *arg);
+  static int		EcpSetCommand(Context ctx, int ac, char *av[], void *arg);
   static EncType	EcpFindType(int type, int *indexp);
   static const char	*EcpTypeName(int type);
 
@@ -340,9 +340,9 @@ EcpDown(Bund b)
  */
 
 void
-EcpOpen(void)
+EcpOpen(Bund b)
 {
-  FsmOpen(&bund->ecp.fsm);
+  FsmOpen(&b->ecp.fsm);
 }
 
 /*
@@ -350,9 +350,29 @@ EcpOpen(void)
  */
 
 void
-EcpClose(void)
+EcpClose(Bund b)
 {
-  FsmClose(&bund->ecp.fsm);
+  FsmClose(&b->ecp.fsm);
+}
+
+/*
+ * EcpOpenCmd()
+ */
+
+void
+EcpOpenCmd(Context ctx)
+{
+  FsmOpen(&ctx->bund->ecp.fsm);
+}
+
+/*
+ * EcpCloseCmd()
+ */
+
+void
+EcpCloseCmd(Context ctx)
+{
+  FsmClose(&ctx->bund->ecp.fsm);
 }
 
 /*
@@ -365,7 +385,7 @@ static void
 EcpFailure(Fsm fp, enum fsmfail reason)
 {
     Bund 	b = (Bund)fp->arg;
-  EcpClose();
+  EcpClose(b);
   if (Enabled(&b->conf.options, BUND_CONF_CRYPT_REQD)) {
     FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
     FsmFailure(&b->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
@@ -377,9 +397,9 @@ EcpFailure(Fsm fp, enum fsmfail reason)
  */
 
 int
-EcpStat(int ac, char *av[], void *arg)
+EcpStat(Context ctx, int ac, char *av[], void *arg)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &ctx->bund->ecp;
 
   Printf("%s [%s]\r\n", Pref(&ecp->fsm), FsmStateName(ecp->fsm.state));
   Printf("Enabled protocols:\r\n");
@@ -387,12 +407,12 @@ EcpStat(int ac, char *av[], void *arg)
   Printf("Outgoing encryption:\r\n");
   Printf("\tProto\t: %s\r\n", ecp->xmit ? ecp->xmit->name : "none");
   if (ecp->xmit && ecp->xmit->Stat)
-    ecp->xmit->Stat(bund, ECP_DIR_XMIT);
+    ecp->xmit->Stat(ctx->bund, ECP_DIR_XMIT);
   Printf("\tResets\t: %d\r\n", ecp->xmit_resets);
   Printf("Incoming decryption:\r\n");
   Printf("\tProto\t: %s\r\n", ecp->recv ? ecp->recv->name : "none");
   if (ecp->recv && ecp->recv->Stat)
-    ecp->recv->Stat(bund, ECP_DIR_RECV);
+    ecp->recv->Stat(ctx->bund, ECP_DIR_RECV);
   Printf("\tResets\t: %d\r\n", ecp->recv_resets);
   return(0);
 }
@@ -703,9 +723,9 @@ EcpSubtractBloat(Bund b, int size)
  */
 
 static int
-EcpSetCommand(int ac, char *av[], void *arg)
+EcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &ctx->bund->ecp;
 
   if (ac == 0)
     return(-1);

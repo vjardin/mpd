@@ -126,7 +126,7 @@
 				  const char *calledNum,
 				  const char *subAddress);
 
-  static int	PptpSetCommand(int ac, char *av[], void *arg);
+  static int	PptpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
 /*
  * GLOBAL VARIABLES
@@ -885,9 +885,9 @@ PptpListenUpdate(void)
  */
 
 static int
-PptpSetCommand(int ac, char *av[], void *arg)
+PptpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-	PptpInfo	const pi = (PptpInfo) phys->info;
+	PptpInfo	const pi = (PptpInfo) ctx->phys->info;
 	struct u_range	rng;
 	int		port;
 

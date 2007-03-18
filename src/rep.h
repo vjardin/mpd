@@ -41,9 +41,9 @@
 
   extern void	RepOpen(void);
   extern void	RepClose(void);
-  extern int	RepStat(int ac, char *av[], void *arg);
-  extern int	RepCommand(int ac, char *av[], void *arg);
-  extern int	RepCreateCmd(int ac, char *av[], void *arg);
+  extern int	RepStat(Context ctx, int ac, char *av[], void *arg);
+  extern int	RepCommand(Context ctx, int ac, char *av[], void *arg);
+  extern int	RepCreateCmd(Context ctx, int ac, char *av[], void *arg);
   extern void	RepShutdown(Rep r);
 
   extern void	RepIncoming(PhysInfo p);

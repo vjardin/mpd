@@ -43,10 +43,6 @@ TimerStart(PppTimer timer)
   if (timer->event != NULL)
     EventUnRegister(&timer->event);
 
-  /* Save "context" for this timer */
-  timer->lnk = lnk;
-  timer->bund = bund;
-
   /* Register timeout event */
   EventRegister(&timer->event, EVENT_TIMEOUT,
     timer->load, 0, TimerExpires, timer);
@@ -65,10 +61,6 @@ TimerStartRecurring(PppTimer timer)
   if (timer->event != NULL)
     EventUnRegister(&timer->event);
 
-  /* Save "context" for this timer */
-  timer->lnk = lnk;
-  timer->bund = bund;
-
   /* Register timeout event */
   EventRegister(&timer->event, EVENT_TIMEOUT,
     timer->load, EVENT_RECURRING, TimerExpires, timer);
@@ -83,8 +75,6 @@ TimerExpires(int type, void *cookie)
 {
   PppTimer	const timer = (PppTimer) cookie;
 
-  lnk = timer->lnk;
-  bund = timer->bund;
   (*timer->func)(timer->arg);
 }
 

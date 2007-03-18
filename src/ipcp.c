@@ -88,7 +88,7 @@
   static int	IpcpNgInitVJ(Bund b);
   static void	IpcpNgShutdownVJ(Bund b);
 
-  static int	IpcpSetCommand(int ac, char *av[], void *arg);
+  static int	IpcpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
 /*
  * GLOBAL VARIABLES
@@ -171,10 +171,10 @@
  */
 
 int
-IpcpStat(int ac, char *av[], void *arg)
+IpcpStat(Context ctx, int ac, char *av[], void *arg)
 {
   char			path[NG_PATHLEN + 1];
-  IpcpState		const ipcp = &bund->ipcp;
+  IpcpState		const ipcp = &ctx->bund->ipcp;
   Fsm			fp = &ipcp->fsm;
   union {
       u_char		buf[sizeof(struct ng_mesg) + sizeof(struct slcompress)];
@@ -221,7 +221,7 @@ IpcpStat(int ac, char *av[], void *arg)
   Printf("  %15s\r\n", inet_ntoa(ipcp->want_nbns[1]));
 
   /* Get VJC state */
-  snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name, NG_PPP_HOOK_VJC_IP);
+  snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, ctx->bund->name, NG_PPP_HOOK_VJC_IP);
   if (NgFuncSendQuery(path, NGM_VJC_COOKIE, NGM_VJC_GET_STATE,
       NULL, 0, &u.reply, sizeof(u), NULL) < 0)
     return(0);
@@ -499,16 +499,6 @@ IpcpUp(Bund b)
 }
 
 /*
- * IpcpClose()
- */
-
-void
-IpcpClose(void)
-{
-  FsmClose(&bund->ipcp.fsm);
-}
-
-/*
  * IpcpDown()
  */
 
@@ -523,9 +513,39 @@ IpcpDown(Bund b)
  */
 
 void
-IpcpOpen(void)
+IpcpOpen(Bund b)
 {
-  FsmOpen(&bund->ipcp.fsm);
+  FsmOpen(&b->ipcp.fsm);
+}
+
+/*
+ * IpcpClose()
+ */
+
+void
+IpcpClose(Bund b)
+{
+  FsmClose(&b->ipcp.fsm);
+}
+
+/*
+ * IpcpOpenCmd()
+ */
+
+void
+IpcpOpenCmd(Context ctx)
+{
+  FsmOpen(&ctx->bund->ipcp.fsm);
+}
+
+/*
+ * IpcpCloseCmd()
+ */
+
+void
+IpcpCloseCmd(Context ctx)
+{
+  FsmClose(&ctx->bund->ipcp.fsm);
 }
 
 /*
@@ -826,9 +846,9 @@ IpcpNgShutdownVJ(Bund b)
  */
 
 static int
-IpcpSetCommand(int ac, char *av[], void *arg)
+IpcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  IpcpState		const ipcp = &bund->ipcp;
+  IpcpState		const ipcp = &ctx->bund->ipcp;
   struct in_addr	*ips;
 
   if (ac == 0)
@@ -858,12 +878,12 @@ IpcpSetCommand(int ac, char *av[], void *arg)
       ips = ipcp->conf.peer_nbns;
 getPrimSec:
       if (!inet_aton(av[0], &ips[0])) {
-	Log(LG_ERR, ("[%s] %s: invalid IP address", bund->name, av[0]));
+	Log(LG_ERR, ("[%s] %s: invalid IP address", ctx->bund->name, av[0]));
 	return(0);
       }
       ips[1].s_addr = 0;
       if (ac > 1 && !inet_aton(av[1], &ips[1])) {
-	Log(LG_ERR, ("[%s] %s: invalid IP address", bund->name, av[1]));
+	Log(LG_ERR, ("[%s] %s: invalid IP address", ctx->bund->name, av[1]));
 	return(0);
       }
       break;

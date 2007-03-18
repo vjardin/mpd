@@ -348,7 +348,7 @@ Pred1Decompress(Bund b, Mbuf mbcomp)
   else
   {
     p->recv_stats.FramesUncomp++;
-    SyncTable(cp, uncomp, len);
+    SyncTable(b, cp, uncomp, len);
     cp += len;
   }
 
@@ -395,7 +395,7 @@ Pred1RecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
 #ifndef USE_NG_PRED1
   Pred1Info     p = &b->ccp.pred1;
-  Pred1Init(COMP_DIR_XMIT);
+  Pred1Init(b, COMP_DIR_XMIT);
   p->xmit_stats.Errors++;
 #else
   char	path[NG_PATHLEN + 1];

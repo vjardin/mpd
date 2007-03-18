@@ -79,11 +79,10 @@
  * FUNCTIONS
  */
 
-  extern void		PhysOpenCmd(void);
+  extern void		PhysOpenCmd(Context ctx);
   extern void		PhysOpen(PhysInfo p);
-  extern void		PhysCloseCmd(void);
+  extern void		PhysCloseCmd(Context ctx);
   extern void		PhysClose(PhysInfo p);
-  extern void		PhysUpdate(void);
   extern void		PhysUp(PhysInfo p);
   extern void		PhysDown(PhysInfo p, const char *reason, const char *details, ...);
   extern void		PhysIncoming(PhysInfo p);
@@ -98,11 +97,10 @@
 
   extern PhysInfo	PhysInit(char *name, Link l, Rep r);
   extern void		PhysShutdown(PhysInfo p);
-  extern void		PhysSetDeviceType(char *typename);
+  extern void		PhysSetDeviceType(PhysInfo p, char *typename);
   extern int		PhysGetOriginate(PhysInfo p);
-  extern int		PhysCommand(int ac, char *av[], void *arg);
-  extern int		PhysStat(int ac, char *av[], void *arg);
-  extern int		PhysCommand(int ac, char *av[], void *arg);
+  extern int		PhysCommand(Context ctx, int ac, char *av[], void *arg);
+  extern int		PhysStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif
 

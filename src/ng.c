@@ -52,7 +52,7 @@
   static void	NgOpen(PhysInfo p);
   static void	NgClose(PhysInfo p);
   static void	NgStat(PhysInfo p);
-  static int	NgSetCommand(int ac, char *av[], void *arg);
+  static int	NgSetCommand(Context ctx, int ac, char *av[], void *arg);
   static int	NgPeerAddr(PhysInfo p, void *buf, int buf_len);
 
 /*
@@ -194,9 +194,9 @@ NgStat(PhysInfo p)
  */
 
 static int
-NgSetCommand(int ac, char *av[], void *arg)
+NgSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  NgInfo	const ng = (NgInfo) phys->info;
+  NgInfo	const ng = (NgInfo) ctx->phys->info;
 
   switch ((intptr_t)arg) {
     case SET_NODE:

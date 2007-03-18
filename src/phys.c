@@ -60,7 +60,7 @@
 
   static void	PhysOpenTimeout(void *arg);
   static void	PhysMsg(int type, void *arg);
-  static int	PhysSetCommand(int ac, char *av[], void *arg);
+  static int	PhysSetCommand(Context ctx, int ac, char *av[], void *arg);
   static PhysInfo	PhysFind(char *name);
 
 /*
@@ -98,6 +98,7 @@ PhysInfo
 PhysInit(char *name, Link l, Rep r)
 {
   PhysInfo	p;
+  struct context	ctx;
   int		k;
 
   /* See if bundle name already taken */
@@ -107,7 +108,6 @@ PhysInit(char *name, Link l, Rep r)
   }
 
   p = Malloc(MB_PHYS, sizeof(*p));
-  phys = p;
   
   strlcpy(p->name, name, sizeof(p->name));
   p->state = PHYS_STATE_DOWN;
@@ -122,8 +122,13 @@ PhysInit(char *name, Link l, Rep r)
 
   gPhyses[k] = p;
 
+    ctx.lnk = l;
+    ctx.phys = p;
+    ctx.rep = NULL;
+    ctx.bund = NULL;
+
   /* Read special configuration for link, if any */
-  (void) ReadFile(LINKS_FILE, name, DoCommand);
+  (void) ReadFile(LINKS_FILE, name, DoCommand, &ctx);
 
   return(p);
 }
@@ -133,9 +138,9 @@ PhysInit(char *name, Link l, Rep r)
  */
 
 void
-PhysOpenCmd(void)
+PhysOpenCmd(Context ctx)
 {
-    PhysOpen(phys);
+    PhysOpen(ctx->phys);
 }
 
 /*
@@ -153,9 +158,9 @@ PhysOpen(PhysInfo p)
  */
 
 void
-PhysCloseCmd(void)
+PhysCloseCmd(Context ctx)
 {
-    PhysClose(phys);
+    PhysClose(ctx->phys);
 }
 
 /*
@@ -228,19 +233,6 @@ PhysSetAccm(PhysInfo p, uint32_t accm)
 	return (*p->type->setaccm)(p, accm);
     else 
 	return (0);
-}
-
-/*
- * PhysUpdate()
- */
-
-void
-PhysUpdate(void)
-{
-  const PhysInfo	p = phys;
-
-  if (p->type->update != NULL)
-    (*p->type->update)(p);
 }
 
 /*
@@ -383,9 +375,8 @@ PhysShutdown(PhysInfo p)
  */
 
 void
-PhysSetDeviceType(char *typename)
+PhysSetDeviceType(PhysInfo p, char *typename)
 {
-  PhysInfo	const p = phys;
   PhysType	pt;
   int		k;
 
@@ -498,7 +489,7 @@ PhysOpenTimeout(void *arg)
  */
 
 int
-PhysCommand(int ac, char *av[], void *arg)
+PhysCommand(Context ctx, int ac, char *av[], void *arg)
 {
   int		k;
   PhysInfo	p;
@@ -529,14 +520,14 @@ PhysCommand(int ac, char *av[], void *arg)
 	}
 
 	/* Change default link and bundle */
-        phys = p;
-        lnk = phys->link;
-        if (phys->link) {
-    	    bund = lnk->bund;
+        ctx->phys = p;
+        ctx->lnk = p->link;
+        if (p->link) {
+    	    ctx->bund = ctx->lnk->bund;
 	} else {
-	    bund = NULL;
+	    ctx->bund = NULL;
 	}
-	rep = phys->rep;
+	ctx->rep = p->rep;
 	break;
 
     default:
@@ -568,9 +559,9 @@ PhysFind(char *name)
  */
 
 int
-PhysStat(int ac, char *av[], void *arg)
+PhysStat(Context ctx, int ac, char *av[], void *arg)
 {
-  PhysInfo	const p = phys;
+  PhysInfo	const p = ctx->phys;
 
   Printf("\tType  : %s\r\n", p->type->name);
   if (p->type->showstat)
@@ -583,14 +574,14 @@ PhysStat(int ac, char *av[], void *arg)
  */
 
 static int
-PhysSetCommand(int ac, char *av[], void *arg)
+PhysSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
   if (ac == 0)
     return(-1);
 
   switch ((intptr_t)arg) {
     case SET_DEVTYPE:
-      PhysSetDeviceType(*av);
+      PhysSetDeviceType(ctx->phys, *av);
       break;
 /*
     case SET_ACCEPT:

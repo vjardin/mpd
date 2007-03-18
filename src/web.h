@@ -58,7 +58,7 @@
   extern int	WebInit(Web c);
   extern int	WebOpen(Web c);
   extern int	WebClose(Web c);
-  extern int	WebStat(int ac, char *av[], void *arg);
+  extern int	WebStat(Context ctx, int ac, char *av[], void *arg);
 
 
 #endif

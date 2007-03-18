@@ -47,7 +47,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	LinkSetCommand(int ac, char *av[], void *arg);
+  static int	LinkSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	LinkMsg(int type, void *cookie);
 
 /*
@@ -116,10 +116,10 @@
  */
 
 void
-LinkOpenCmd(void)
+LinkOpenCmd(Context ctx)
 {
-  RecordLinkUpDownReason(lnk, 1, STR_MANUALLY, NULL);
-  LinkOpen(lnk);
+  RecordLinkUpDownReason(ctx->lnk, 1, STR_MANUALLY, NULL);
+  LinkOpen(ctx->lnk);
 }
 
 /*
@@ -127,10 +127,10 @@ LinkOpenCmd(void)
  */
 
 void
-LinkCloseCmd(void)
+LinkCloseCmd(Context ctx)
 {
-  RecordLinkUpDownReason(lnk, 0, STR_MANUALLY, NULL);
-  LinkClose(lnk);
+  RecordLinkUpDownReason(ctx->lnk, 0, STR_MANUALLY, NULL);
+  LinkClose(ctx->lnk);
 }
 
 /*
@@ -220,7 +220,7 @@ LinkMsg(int type, void *arg)
         LcpDown(l);
       }
       /* reset Link-stats */
-      LinkResetStats();  /* XXX: I don't think this is a right place */
+      LinkResetStats(l);  /* XXX: I don't think this is a right place */
       break;
   }
 }
@@ -235,6 +235,8 @@ LinkMsg(int type, void *arg)
 Link
 LinkNew(char *name, Bund b, int bI)
 {
+    Link lnk;
+
   /* Create and initialize new link */
   lnk = Malloc(MB_LINK, sizeof(*lnk));
   snprintf(lnk->name, sizeof(lnk->name), "%s", name);
@@ -307,25 +309,29 @@ LinkShutdown(Link l)
 }
 
 /*
- * LinkCopy()
+ * LinkFind()
  *
- * Makes a copy of the active Link.
+ * Find a link structure
  */
 
 Link
-LinkCopy(void)
+LinkFind(char *name)
 {
-  Link	nlnk;
-  
-  nlnk = Malloc(MB_LINK, sizeof(*nlnk));
-  memcpy(nlnk, lnk, sizeof(*lnk));
-  nlnk->downReason = NULL;
-  if (lnk->downReason != NULL) {
-    nlnk->downReason = Malloc(MB_LINK, strlen(lnk->downReason) + 1);
-    strcpy(nlnk->downReason, lnk->downReason);
-  }
+    int		k;
 
-  return nlnk;
+    k = gNumPhyses;
+    if ((sscanf(name, "[%x]", &k) != 1) || (k < 0) || (k >= gNumPhyses)) {
+        /* Find link */
+	for (k = 0;
+	    k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL || 
+		strcmp(gPhyses[k]->link->name, name));
+	    k++);
+    };
+    if (k == gNumPhyses || gPhyses[k] == NULL || gPhyses[k]->link == NULL) {
+	return (NULL);
+    }
+
+    return (gPhyses[k]->link);
 }
 
 /*
@@ -333,31 +339,23 @@ LinkCopy(void)
  */
 
 int
-LinkCommand(int ac, char *av[], void *arg)
+LinkCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  int	k;
+    Link	l;
 
-  if (ac != 1)
-    return(-1);
+    if (ac != 1)
+	return(-1);
 
-  k = gNumPhyses;
-  if ((sscanf(av[0], "[%x]", &k) != 1) || (k < 0) || (k >= gNumPhyses)) {
-     /* Find link */
-    for (k = 0;
-	k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL || 
-	    strcmp(gPhyses[k]->link->name, av[0]));
-	k++);
-  };
-  if (k == gNumPhyses || gPhyses[k] == NULL || gPhyses[k]->link == NULL) {
-    Printf("Link \"%s\" is not defined\r\n", av[0]);
-    return(0);
-  }
+    if ((l = LinkFind(av[0])) == NULL) {
+	Printf("Link \"%s\" is not defined\r\n", av[0]);
+	return(0);
+    }
 
     /* Change default link and bundle */
-    lnk = gPhyses[k]->link;
-    bund = lnk->bund;
-    phys = lnk->phys;
-    rep = NULL;
+    ctx->lnk = l;
+    ctx->bund = l->bund;
+    ctx->phys = l->phys;
+    ctx->rep = NULL;
   return(0);
 }
 
@@ -410,7 +408,7 @@ RecordLinkUpDownReason(Link l, int up, const char *key, const char *fmt, ...)
 {
   va_list	args;
   int		k;
-
+#if 0
   if (!bund)
     return;
 
@@ -427,6 +425,7 @@ RecordLinkUpDownReason(Link l, int up, const char *key, const char *fmt, ...)
     RecordLinkUpDownReason2(l, up, key, fmt, args);
     va_end(args);
   }
+#endif
 }
 
 /*
@@ -434,55 +433,57 @@ RecordLinkUpDownReason(Link l, int up, const char *key, const char *fmt, ...)
  */
 
 int
-LinkStat(int ac, char *av[], void *arg)
+LinkStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Printf("Link %s:\r\n", lnk->name);
+    Link 	l = ctx->lnk;
+
+  Printf("Link %s:\r\n", l->name);
 
   Printf("Configuration\r\n");
-  Printf("\tMRU            : %d bytes\r\n", lnk->conf.mru);
-  Printf("\tCtrl char map  : 0x%08x bytes\r\n", lnk->conf.accmap);
-  Printf("\tRetry timeout  : %d seconds\r\n", lnk->conf.retry_timeout);
+  Printf("\tMRU            : %d bytes\r\n", l->conf.mru);
+  Printf("\tCtrl char map  : 0x%08x bytes\r\n", l->conf.accmap);
+  Printf("\tRetry timeout  : %d seconds\r\n", l->conf.retry_timeout);
   Printf("\tMax redial     : ");
-  if (lnk->conf.max_redial < 0)
+  if (l->conf.max_redial < 0)
     Printf("no redial\r\n");
-  else if (lnk->conf.max_redial == 0) 
+  else if (l->conf.max_redial == 0) 
     Printf("unlimited\r\n");
   else
-    Printf("%d connect attempts\r\n", lnk->conf.max_redial);
-  Printf("\tBandwidth      : %d bits/sec\r\n", lnk->bandwidth);
-  Printf("\tLatency        : %d usec\r\n", lnk->latency);
+    Printf("%d connect attempts\r\n", l->conf.max_redial);
+  Printf("\tBandwidth      : %d bits/sec\r\n", l->bandwidth);
+  Printf("\tLatency        : %d usec\r\n", l->latency);
   Printf("\tKeep-alive     : ");
-  if (lnk->lcp.fsm.conf.echo_int == 0)
+  if (l->lcp.fsm.conf.echo_int == 0)
     Printf("disabled\r\n");
   else
     Printf("every %d secs, timeout %d\r\n",
-      lnk->lcp.fsm.conf.echo_int, lnk->lcp.fsm.conf.echo_max);
-  Printf("\tIdent string   : \"%s\"\r\n", lnk->conf.ident ? lnk->conf.ident : "");
-  Printf("\tSession-Id     : %s\r\n", lnk->session_id);
+      l->lcp.fsm.conf.echo_int, l->lcp.fsm.conf.echo_max);
+  Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
+  Printf("\tSession-Id     : %s\r\n", l->session_id);
   Printf("Link level options\r\n");
-  OptStat(&lnk->conf.options, gConfList);
-  LinkUpdateStats(lnk);
+  OptStat(&l->conf.options, gConfList);
+  LinkUpdateStats(l);
   Printf("Up/Down stats:\r\n");
-  if (lnk->downReason && (!lnk->downReasonValid))
-    Printf("\tDown Reason    : %s\r\n", lnk->downReason);
-  if (lnk->upReason)
-    Printf("\tUp Reason      : %s\r\n", lnk->upReason);
-  if (lnk->downReason && lnk->downReasonValid)
-    Printf("\tDown Reason    : %s\r\n", lnk->downReason);
+  if (l->downReason && (!l->downReasonValid))
+    Printf("\tDown Reason    : %s\r\n", l->downReason);
+  if (l->upReason)
+    Printf("\tUp Reason      : %s\r\n", l->upReason);
+  if (l->downReason && l->downReasonValid)
+    Printf("\tDown Reason    : %s\r\n", l->downReason);
   
   Printf("Traffic stats:\r\n");
 
-  Printf("\tOctets input   : %llu\r\n", lnk->stats.recvOctets);
-  Printf("\tFrames input   : %llu\r\n", lnk->stats.recvFrames);
-  Printf("\tOctets output  : %llu\r\n", lnk->stats.xmitOctets);
-  Printf("\tFrames output  : %llu\r\n", lnk->stats.xmitFrames);
-  Printf("\tBad protocols  : %llu\r\n", lnk->stats.badProtos);
+  Printf("\tOctets input   : %llu\r\n", l->stats.recvOctets);
+  Printf("\tFrames input   : %llu\r\n", l->stats.recvFrames);
+  Printf("\tOctets output  : %llu\r\n", l->stats.xmitOctets);
+  Printf("\tFrames output  : %llu\r\n", l->stats.xmitFrames);
+  Printf("\tBad protocols  : %llu\r\n", l->stats.badProtos);
 #if NGM_PPP_COOKIE >= 940897794
-  Printf("\tRunts          : %llu\r\n", lnk->stats.runts);
+  Printf("\tRunts          : %llu\r\n", l->stats.runts);
 #endif
-  Printf("\tDup fragments  : %llu\r\n", lnk->stats.dupFragments);
+  Printf("\tDup fragments  : %llu\r\n", l->stats.dupFragments);
 #if NGM_PPP_COOKIE >= 940897794
-  Printf("\tDrop fragments : %llu\r\n", lnk->stats.dropFragments);
+  Printf("\tDrop fragments : %llu\r\n", l->stats.dropFragments);
 #endif
   return(0);
 }
@@ -533,11 +534,11 @@ LinkUpdateStatsTimer(void *cookie)
  */
 
 void
-LinkResetStats(void)
+LinkResetStats(Link l)
 {
-  NgFuncGetStats(lnk->bund, lnk->bundleIndex, TRUE, NULL);
-  memset(&lnk->stats, 0, sizeof(struct linkstats));
-  memset(&lnk->oldStats, 0, sizeof(lnk->oldStats));
+  NgFuncGetStats(l->bund, l->bundleIndex, TRUE, NULL);
+  memset(&l->stats, 0, sizeof(struct linkstats));
+  memset(&l->oldStats, 0, sizeof(l->oldStats));
 }
 
 /*
@@ -545,8 +546,9 @@ LinkResetStats(void)
  */
 
 static int
-LinkSetCommand(int ac, char *av[], void *arg)
+LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
+    Link	l = ctx->lnk;
   int		val, nac = 0;
   const char	*name;
   char		*nav[ac];
@@ -568,7 +570,7 @@ LinkSetCommand(int ac, char *av[], void *arg)
       for ( ; i < ac; i++)
       {
 	if (strcasecmp(av[i], "chap") == 0) {
-	  LinkSetCommand(3, (char **)av2, arg);
+	  LinkSetCommand(ctx, 3, (char **)av2, arg);
 	} else {
 	  nav[nac++] = av[i];
 	} 
@@ -583,103 +585,103 @@ LinkSetCommand(int ac, char *av[], void *arg)
     case SET_BANDWIDTH:
       val = atoi(*av);
       if (val <= 0)
-	Log(LG_ERR, ("[%s] Bandwidth must be positive", lnk->name));
+	Log(LG_ERR, ("[%s] Bandwidth must be positive", l->name));
       else if (val > NG_PPP_MAX_BANDWIDTH * 10 * 8) {
-	lnk->bandwidth = NG_PPP_MAX_BANDWIDTH * 10 * 8;
-	Log(LG_ERR, ("[%s] Bandwidth truncated to %d bit/s", lnk->name, 
-	    lnk->bandwidth));
+	l->bandwidth = NG_PPP_MAX_BANDWIDTH * 10 * 8;
+	Log(LG_ERR, ("[%s] Bandwidth truncated to %d bit/s", l->name, 
+	    l->bandwidth));
       } else
-	lnk->bandwidth = val;
+	l->bandwidth = val;
       break;
 
     case SET_LATENCY:
       val = atoi(*av);
       if (val < 0)
-	Log(LG_ERR, ("[%s] Latency must be not negative", lnk->name));
+	Log(LG_ERR, ("[%s] Latency must be not negative", l->name));
       else if (val > NG_PPP_MAX_LATENCY * 1000) {
-	Log(LG_ERR, ("[%s] Latency truncated to %d usec", lnk->name, 
+	Log(LG_ERR, ("[%s] Latency truncated to %d usec", l->name, 
 	    NG_PPP_MAX_LATENCY * 1000));
-	lnk->latency = NG_PPP_MAX_LATENCY * 1000;
+	l->latency = NG_PPP_MAX_LATENCY * 1000;
       } else
-        lnk->latency = val;
+        l->latency = val;
       break;
 
     case SET_DEVTYPE:
-      PhysSetDeviceType(*av);
+      PhysSetDeviceType(ctx->phys, *av);
       break;
 
     case SET_MRU:
     case SET_MTU:
       val = atoi(*av);
       name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
-      if (!lnk->phys->type)
-	Log(LG_ERR, ("[%s] this link has no type set", lnk->name));
+      if (!l->phys->type)
+	Log(LG_ERR, ("[%s] this link has no type set", l->name));
       else if (val < LCP_MIN_MRU)
-	Log(LG_ERR, ("[%s] the min %s is %d", lnk->name, name, LCP_MIN_MRU));
-      else if (lnk->phys->type && (val > lnk->phys->type->mru))
+	Log(LG_ERR, ("[%s] the min %s is %d", l->name, name, LCP_MIN_MRU));
+      else if (l->phys->type && (val > l->phys->type->mru))
 	Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
-	  lnk->name, name, lnk->phys->type->name, lnk->phys->type->mru));
+	  l->name, name, l->phys->type->name, l->phys->type->mru));
       else if ((intptr_t)arg == SET_MTU)
-	lnk->conf.mtu = val;
+	l->conf.mtu = val;
       else
-	lnk->conf.mru = val;
+	l->conf.mru = val;
       break;
 
     case SET_FSM_RETRY:
-      lnk->conf.retry_timeout = atoi(*av);
-      if (lnk->conf.retry_timeout < 1 || lnk->conf.retry_timeout > 10)
-	lnk->conf.retry_timeout = LINK_DEFAULT_RETRY;
+      l->conf.retry_timeout = atoi(*av);
+      if (l->conf.retry_timeout < 1 || l->conf.retry_timeout > 10)
+	l->conf.retry_timeout = LINK_DEFAULT_RETRY;
       break;
 
     case SET_MAX_RETRY:
-      lnk->conf.max_redial = atoi(*av);
+      l->conf.max_redial = atoi(*av);
       break;
 
     case SET_ACCMAP:
       sscanf(*av, "%x", &val);
-      lnk->conf.accmap = val;
+      l->conf.accmap = val;
       break;
 
     case SET_KEEPALIVE:
       if (ac != 2)
 	return(-1);
-      lnk->lcp.fsm.conf.echo_int = atoi(av[0]);
-      lnk->lcp.fsm.conf.echo_max = atoi(av[1]);
+      l->lcp.fsm.conf.echo_int = atoi(av[0]);
+      l->lcp.fsm.conf.echo_max = atoi(av[1]);
       break;
 
     case SET_IDENT:
       if (ac != 1)
 	return(-1);
-      if (lnk->conf.ident != NULL) {
-	Freee(MB_FSM, lnk->conf.ident);
-	lnk->conf.ident = NULL;
+      if (l->conf.ident != NULL) {
+	Freee(MB_FSM, l->conf.ident);
+	l->conf.ident = NULL;
       }
       if (*av[0] != '\0')
-	strcpy(lnk->conf.ident = Malloc(MB_FSM, strlen(av[0]) + 1), av[0]);
+	strcpy(l->conf.ident = Malloc(MB_FSM, strlen(av[0]) + 1), av[0]);
       break;
 
     case SET_ACCEPT:
-      AcceptCommand(ac, av, &lnk->conf.options, gConfList);
+      AcceptCommand(ac, av, &l->conf.options, gConfList);
       break;
 
     case SET_DENY:
-      DenyCommand(ac, av, &lnk->conf.options, gConfList);
+      DenyCommand(ac, av, &l->conf.options, gConfList);
       break;
 
     case SET_ENABLE:
-      EnableCommand(ac, av, &lnk->conf.options, gConfList);
+      EnableCommand(ac, av, &l->conf.options, gConfList);
       break;
 
     case SET_DISABLE:
-      DisableCommand(ac, av, &lnk->conf.options, gConfList);
+      DisableCommand(ac, av, &l->conf.options, gConfList);
       break;
 
     case SET_YES:
-      YesCommand(ac, av, &lnk->conf.options, gConfList);
+      YesCommand(ac, av, &l->conf.options, gConfList);
       break;
 
     case SET_NO:
-      NoCommand(ac, av, &lnk->conf.options, gConfList);
+      NoCommand(ac, av, &l->conf.options, gConfList);
       break;
 
     default:

@@ -109,7 +109,7 @@
   static void	IfaceSetupLimits(Bund b);
   static void	IfaceShutdownLimits(Bund b);
 
-  static int	IfaceSetCommand(int ac, char *av[], void *arg);
+  static int	IfaceSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	IfaceSessionTimeout(void *arg);
   static void	IfaceIdleTimeout(void *arg);
 
@@ -231,11 +231,11 @@ IfaceInit(Bund b)
  */
 
 void
-IfaceOpen(void)
+IfaceOpen(Bund b)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
 
-  Log(LG_IFACE, ("[%s] IFACE: Open event", bund->name));
+  Log(LG_IFACE, ("[%s] IFACE: Open event", b->name));
 
   /* If interface is already open do nothing */
   if (iface->open)
@@ -246,7 +246,7 @@ IfaceOpen(void)
      listening for outgoing packets. The next outgoing packet will
      cause us to open the lower layer(s) */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
-    BundNcpsJoin(bund, NCP_NONE);
+    BundNcpsJoin(b, NCP_NONE);
     return;
   }
 
@@ -259,11 +259,11 @@ IfaceOpen(void)
  */
 
 void
-IfaceClose(void)
+IfaceClose(Bund b)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &b->iface;
 
-  Log(LG_IFACE, ("[%s] IFACE: Close event", bund->name));
+  Log(LG_IFACE, ("[%s] IFACE: Close event", b->name));
 
   /* If interface is already closed do nothing */
   if (!iface->open)
@@ -271,7 +271,31 @@ IfaceClose(void)
   iface->open = FALSE;
 
   /* Close lower layer(s) */
-  BundClose();
+  BundClose(b);
+}
+
+/*
+ * IfaceOpenCmd()
+ *
+ * Open the interface layer
+ */
+
+void
+IfaceOpenCmd(Context ctx)
+{
+    IfaceOpen(ctx->bund);
+}
+
+/*
+ * IfaceCloseCmd()
+ *
+ * Close the interface layer
+ */
+
+void
+IfaceCloseCmd(Context ctx)
+{
+    IfaceClose(ctx->bund);
 }
 
 /*
@@ -1016,7 +1040,7 @@ IfaceIdleTimeout(void *arg)
       Log(LG_BUND, ("[%s] idle timeout",
 	b->name));
       RecordLinkUpDownReason(NULL, 0, STR_IDLE_TIMEOUT, NULL);
-      BundClose();
+      BundClose(b);
       return;
     }
   }
@@ -1045,7 +1069,7 @@ IfaceSessionTimeout(void *arg)
 
   RecordLinkUpDownReason(NULL, 0, STR_SESSION_TIMEOUT, NULL);
 
-  BundClose();
+  BundClose(b);
 
 }
 
@@ -1172,9 +1196,9 @@ IfaceIsDemand(int proto, Mbuf pkt)
  */
 
 static int
-IfaceSetCommand(int ac, char *av[], void *arg)
+IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &ctx->bund->iface;
 
   if (ac == 0)
     return(-1);
@@ -1296,9 +1320,9 @@ IfaceSetCommand(int ac, char *av[], void *arg)
  */
 
 int
-IfaceStat(int ac, char *av[], void *arg)
+IfaceStat(Context ctx, int ac, char *av[], void *arg)
 {
-  IfaceState	const iface = &bund->iface;
+  IfaceState	const iface = &ctx->bund->iface;
   int		k;
   char          buf[64];
 
@@ -1334,17 +1358,17 @@ IfaceStat(int ac, char *av[], void *arg)
 	u_addrtoa(&iface->self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
     Printf("%s%%%s\r\n", u_addrtoa(&iface->peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
   }
-  if (iface->up && bund->params.n_routes) {
+  if (iface->up && ctx->bund->params.n_routes) {
     Printf("Dynamic routes via peer:\r\n");
-    for (k = 0; k < bund->params.n_routes; k++) {
-	Printf("\t%s\r\n", u_rangetoa(&bund->params.routes[k].dest,buf,sizeof(buf)));
+    for (k = 0; k < ctx->bund->params.n_routes; k++) {
+	Printf("\t%s\r\n", u_rangetoa(&ctx->bund->params.routes[k].dest,buf,sizeof(buf)));
     }
   }
-  if (iface->up && (bund->params.acl_limits[0] || bund->params.acl_limits[1])) {
+  if (iface->up && (ctx->bund->params.acl_limits[0] || ctx->bund->params.acl_limits[1])) {
     struct acl	*a;
     Printf("Traffic filters:\r\n");
     for (k = 0; k < ACL_FILTERS; k++) {
-	a = bund->params.acl_filters[k];
+	a = ctx->bund->params.acl_filters[k];
 	while (a) {
 	    Printf("\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
 	    a = a->next;
@@ -1352,7 +1376,7 @@ IfaceStat(int ac, char *av[], void *arg)
     }
     Printf("Traffic limits:\r\n");
     for (k = 0; k < 2; k++) {
-	a = bund->params.acl_limits[k];
+	a = ctx->bund->params.acl_limits[k];
 	while (a) {
 	    Printf("\t%s#%d\t: '%s'\r\n", (k?"out":"in"), a->number, a->rule);
 	    a = a->next;
@@ -1943,14 +1967,14 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
 
   snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-in", b->name);
   snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-out", b->name);
-  if (NgSendMsg(bund->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
+  if (NgSendMsg(b->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
       &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
     Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
       NG_TCPMSS_NODE_TYPE, strerror(errno)));
   }
   snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-out", b->name);
   snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-in", b->name);
-  if (NgSendMsg(bund->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
+  if (NgSendMsg(b->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
       &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
     Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
       NG_TCPMSS_NODE_TYPE, strerror(errno)));

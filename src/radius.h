@@ -133,6 +133,6 @@
   extern void	RadiusAccount(struct authdata *auth);
   extern void	RadiusClose(struct authdata *auth);
   extern void	RadiusEapProxy(void *arg);
-  extern int	RadStat(int ac, char *av[], void *arg);
+  extern int	RadStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif

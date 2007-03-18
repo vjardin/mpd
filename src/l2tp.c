@@ -122,7 +122,7 @@
 
   static void	L2tpNodeUpdate(PhysInfo p);
   static void	L2tpListenUpdate(void *arg);
-  static int	L2tpSetCommand(int ac, char *av[], void *arg);
+  static int	L2tpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   /* L2TP control callbacks */
   static ppp_l2tp_ctrl_connected_t	ppp_l2tp_ctrl_connected_cb;
@@ -1323,9 +1323,9 @@ L2tpListenUpdate(void *arg)
  */
 
 static int
-L2tpSetCommand(int ac, char *av[], void *arg)
+L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-	L2tpInfo	const l2tp = (L2tpInfo) phys->info;
+	L2tpInfo	const l2tp = (L2tpInfo) ctx->phys->info;
 	struct u_range	rng;
 	int		port;
 
@@ -1360,11 +1360,11 @@ L2tpSetCommand(int ac, char *av[], void *arg)
       break;
     case SET_ENABLE:
       EnableCommand(ac, av, &l2tp->conf.options, gConfList);
-      L2tpNodeUpdate(phys);
+      L2tpNodeUpdate(ctx->phys);
       break;
     case SET_DISABLE:
       DisableCommand(ac, av, &l2tp->conf.options, gConfList);
-      L2tpNodeUpdate(phys);
+      L2tpNodeUpdate(ctx->phys);
       break;
     default:
       assert(0);

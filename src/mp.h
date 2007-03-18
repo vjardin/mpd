@@ -61,7 +61,7 @@
  */
 
   extern void	MpInit(Bund b, Link l);
-  extern int	MpStat(int ac, char *av[], void *arg);
+  extern int	MpStat(Context ctx, int ac, char *av[], void *arg);
   extern void	MpSetDiscrim(void);
   extern int	MpDiscrimEqual(Discrim dis1, Discrim dis2);
   extern char *	MpDiscrimText(Discrim dis);
