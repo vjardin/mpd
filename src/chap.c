@@ -254,7 +254,6 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   char		password[AUTH_MAX_PASSWORD];
   u_char	hash_value[CHAP_MAX_VAL];
   int		hash_value_size;
-  const char	*failMesg;  
   
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] CHAP: rec'd %s #%d",
@@ -478,12 +477,16 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   return;
   
 badResponse:
-  auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
-  failMesg = AuthFailMsg(auth, auth->params.chap.recv_alg);
-  AuthOutput(l, auth->proto, auth->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
-    auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
-  AuthDataDestroy(auth);  
+  {
+    char	failMesg[64];
+
+    auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+    AuthFailMsg(auth, auth->params.chap.recv_alg, failMesg, sizeof(failMesg));
+    AuthOutput(l, auth->proto, auth->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
+	auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
+    AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
+    AuthDataDestroy(auth);
+  }
 }
 
 /*
@@ -498,7 +501,6 @@ ChapInputFinish(Link l, AuthData auth)
 {
   Auth		a = &l->lcp.auth;
   ChapInfo	chap = &a->chap;
-  const char	*failMesg;
   u_char	hash_value[CHAP_MAX_VAL];
   int		hash_value_size;
   char		ackMesg[128], *secret;
@@ -556,12 +558,16 @@ ChapInputFinish(Link l, AuthData auth)
   goto goodResponse;
 
 badResponse:
-  failMesg = AuthFailMsg(auth, auth->params.chap.recv_alg);
-  AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
-    auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
-  AuthDataDestroy(auth);  
-  return;  
+  {
+    char        failMesg[64];
+
+    AuthFailMsg(auth, auth->params.chap.recv_alg, failMesg, sizeof(failMesg));
+    AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
+	auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
+    AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
+    AuthDataDestroy(auth);  
+    return;  
+  }
 
 goodResponse:
   /* make a dummy verify to force an update of the opiekeys database */

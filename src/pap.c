@@ -234,16 +234,20 @@ void PapInputFinish(Link l, AuthData auth)
   goto goodRequest;
 
 badRequest:
-  if (auth->reply_message) {
-    Log(LG_AUTH, (" Reply message: %s", auth->reply_message));
-    Mesg = auth->reply_message;
-  } else {
-    Mesg = AuthFailMsg(auth, 0);
+  {
+    char        failMesg[64];
+
+    if (auth->reply_message) {
+	Log(LG_AUTH, (" Reply message: %s", auth->reply_message));
+	Mesg = auth->reply_message;
+    } else {
+	Mesg = AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
+    }
+    AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, Mesg, strlen(Mesg), 1, 0);
+    AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
+    AuthDataDestroy(auth);  
+    return;
   }
-  AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, Mesg, strlen(Mesg), 1, 0);
-  AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
-  AuthDataDestroy(auth);  
-  return;
   
 goodRequest:
   /* Login accepted */

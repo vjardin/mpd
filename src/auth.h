@@ -250,7 +250,7 @@
   extern int		AuthGetData(char *authname, char *password, size_t passlen, 
 			    struct u_range *range, u_char *range_valid);
   extern void		AuthAsyncStart(Link l, AuthData auth);
-  extern const char	*AuthFailMsg(AuthData auth, int alg);
+  extern const char	*AuthFailMsg(AuthData auth, int alg, char *buf, size_t len);
   extern const char	*AuthStatusText(int status);
   extern const char	*AuthMPPEPolicyname(int policy);
   extern const char	*AuthMPPETypesname(int types);

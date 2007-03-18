@@ -403,12 +403,12 @@ AuthInput(Link l, int proto, Mbuf bp)
 
   if (bp == NULL && proto != PROTO_EAP && proto != PROTO_CHAP)
   {
-    const char	*failMesg;
+    char	failMesg[64];
     u_char	code = 0;
 
     Log(LG_AUTH, (" Bad packet"));
     auth->why_fail = AUTH_FAIL_INVALID_PACKET;
-    failMesg = AuthFailMsg(auth, 0);
+    AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
     if (proto == PROTO_PAP)
       code = PAP_NAK;
     else if (proto == PROTO_CHAP)
@@ -1257,10 +1257,9 @@ AuthTimeout(void *arg)
  */
 
 const char *
-AuthFailMsg(AuthData auth, int alg)
+AuthFailMsg(AuthData auth, int alg, char *buf, size_t len)
 {
-  static char	buf[64];
-  const char	*mesg, *mesg2;
+  const char	*mesg;
 
   if (auth->proto == PROTO_CHAP
       && (alg == CHAP_ALG_MSOFT || alg == CHAP_ALG_MSOFTv2)) {
@@ -1269,31 +1268,30 @@ AuthFailMsg(AuthData auth, int alg)
     switch (auth->why_fail) {
       case AUTH_FAIL_ACCT_DISABLED:
 	mscode = MSCHAP_ERROR_ACCT_DISABLED;
-	mesg2 = AUTH_MSG_ACCT_DISAB;
+	mesg = AUTH_MSG_ACCT_DISAB;
 	break;
       case AUTH_FAIL_NO_PERMISSION:
 	mscode = MSCHAP_ERROR_NO_DIALIN_PERMISSION;
-	mesg2 = AUTH_MSG_NOT_ALLOWED;
+	mesg = AUTH_MSG_NOT_ALLOWED;
 	break;
       case AUTH_FAIL_RESTRICTED_HOURS:
 	mscode = MSCHAP_ERROR_RESTRICTED_LOGON_HOURS;
-	mesg2 = AUTH_MSG_RESTR_HOURS;
+	mesg = AUTH_MSG_RESTR_HOURS;
 	break;
       case AUTH_FAIL_INVALID_PACKET:
       case AUTH_FAIL_INVALID_LOGIN:
       case AUTH_FAIL_NOT_EXPECTED:
       default:
 	mscode = MSCHAP_ERROR_AUTHENTICATION_FAILURE;
-	mesg2 = AUTH_MSG_INVALID;
+	mesg = AUTH_MSG_INVALID;
 	break;
     }
 
     if (auth->mschap_error != NULL) {
-      snprintf(buf, sizeof(buf), auth->mschap_error);
+      snprintf(buf, len, auth->mschap_error);
     } else {
-      snprintf(buf, sizeof(buf), "E=%d R=0 M=%s", mscode, mesg2);
+      snprintf(buf, len, "E=%d R=0 M=%s", mscode, mesg);
     }
-    mesg = buf;
     
   } else {
     switch (auth->why_fail) {
@@ -1317,8 +1315,9 @@ AuthFailMsg(AuthData auth, int alg)
 	mesg = AUTH_MSG_INVALID;
 	break;
     }
+    strlcpy(buf, mesg, len);
   }
-  return(mesg);
+  return(buf);
 }
 
 /* 
