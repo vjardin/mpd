@@ -406,7 +406,7 @@ BundReOpenLinks(void *arg)
   TimerInit(&b->reOpenTimer, "BundOpen",
     BUND_REOPEN_PAUSE * SECONDS, (void (*)(void *)) BundOpenLinks, b);
   TimerStart(&b->reOpenTimer);
-  RecordLinkUpDownReason(NULL, 1, STR_REDIAL, NULL);
+  RecordLinkUpDownReason(b, NULL, 1, STR_REDIAL, NULL);
 }
 
 /*
@@ -547,7 +547,7 @@ BundNcpsFinish(Bund b, int proto)
     b->ncpstarted &= (~((1<<proto)>>1));
     if (!b->ncpstarted) {
 	Log(LG_BUND, ("[%s] No NCPs left. Closing links...", b->name));
-	RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, NULL);
+	RecordLinkUpDownReason(b, NULL, 0, STR_PROTO_ERR, NULL);
 	BundCloseLinks(b); /* We have nothing to live for */
     }
 }
@@ -1354,7 +1354,7 @@ BundBmTimeout(void *arg)
     Log(LG_BUND, ("[%s] opening link %s due to increased demand",
       b->name, b->links[k]->name));
     b->bm.last_open = now;
-    RecordLinkUpDownReason(b->links[k], 1, STR_PORT_NEEDED, NULL);
+    RecordLinkUpDownReason(NULL, b->links[k], 1, STR_PORT_NEEDED, NULL);
     BundOpenLink(b->links[k]);
   }
 
@@ -1369,7 +1369,7 @@ BundBmTimeout(void *arg)
     Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
       b->name, b->links[k]->name));
     b->bm.last_close = now;
-    RecordLinkUpDownReason(b->links[k], 0, STR_PORT_UNNEEDED, NULL);
+    RecordLinkUpDownReason(NULL, b->links[k], 0, STR_PORT_UNNEEDED, NULL);
     BundCloseLink(b->links[k]);
   }
 

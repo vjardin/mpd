@@ -590,7 +590,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
   /* Maybe do dial-on-demand here */
   } else if (iface->open && isDemand) {
     Log(LG_IFACE, ("[%s] outgoing packet is demand", b->name));
-    RecordLinkUpDownReason(NULL, 1, STR_DEMAND, NULL);
+    RecordLinkUpDownReason(b, NULL, 1, STR_DEMAND, NULL);
     BundOpenLinks(b);
     IfaceCachePkt(b, proto, pkt);
   } else {
@@ -1039,7 +1039,7 @@ IfaceIdleTimeout(void *arg)
     if (k == IFACE_IDLE_SPLIT) {
       Log(LG_BUND, ("[%s] idle timeout",
 	b->name));
-      RecordLinkUpDownReason(NULL, 0, STR_IDLE_TIMEOUT, NULL);
+      RecordLinkUpDownReason(b, NULL, 0, STR_IDLE_TIMEOUT, NULL);
       BundClose(b);
       return;
     }
@@ -1067,7 +1067,7 @@ IfaceSessionTimeout(void *arg)
 
   Log(LG_BUND, ("[%s] session timeout ", b->name));
 
-  RecordLinkUpDownReason(NULL, 0, STR_SESSION_TIMEOUT, NULL);
+  RecordLinkUpDownReason(b, NULL, 0, STR_SESSION_TIMEOUT, NULL);
 
   BundClose(b);
 

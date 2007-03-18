@@ -473,7 +473,7 @@ LcpNewPhase(Link l, int new)
 	  Log(LG_LINK|LG_BUND,
 	    ("[%s] link did not validate in bundle \"%s\"",
 	    l->name, l->bund->name));
-	  RecordLinkUpDownReason(l,
+	  RecordLinkUpDownReason(NULL, l,
 	    0, STR_PROTO_ERR, "%s", STR_MULTI_FAIL);
 	  LinkClose(l);
 	  l->joined_bund = 0;
@@ -516,7 +516,7 @@ LcpAuthResult(Link l, int success)
     if (l->lcp.phase != PHASE_NETWORK)
       LcpNewPhase(l, PHASE_NETWORK);
   } else {
-    RecordLinkUpDownReason(l, 0, STR_LOGIN_FAIL,
+    RecordLinkUpDownReason(NULL, l, 0, STR_LOGIN_FAIL,
       "%s", STR_PPP_AUTH_FAILURE2);
     FsmFailure(&l->lcp.fsm, FAIL_NEGOT_FAILURE);
   }
@@ -728,7 +728,7 @@ LcpFailure(Fsm fp, enum fsmfail reason)
   char	buf[100];
 
   snprintf(buf, sizeof(buf), STR_LCP_FAILED, FsmFailureStr(reason));
-  RecordLinkUpDownReason(l, 0, reason == FAIL_ECHO_TIMEOUT ?
+  RecordLinkUpDownReason(NULL, l, 0, reason == FAIL_ECHO_TIMEOUT ?
     STR_ECHO_TIMEOUT : STR_PROTO_ERR, "%s", buf);
 }
 

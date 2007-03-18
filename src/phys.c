@@ -199,9 +199,9 @@ PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 	    va_start(args, details);
 	    vsnprintf(buf, sizeof(buf), details, args);
 	    va_end(args);
-	    RecordLinkUpDownReason(p->link, 0, reason, buf);
+	    RecordLinkUpDownReason(NULL, p->link, 0, reason, buf);
 	} else {
-	    RecordLinkUpDownReason(p->link, 0, reason, NULL);
+	    RecordLinkUpDownReason(NULL, p->link, 0, reason, NULL);
 	}
     }
     MsgSend(p->msgs, MSG_DOWN, p);
@@ -215,7 +215,7 @@ void
 PhysIncoming(PhysInfo p)
 {
     if (p->link) {
-	RecordLinkUpDownReason(p->link, 1, STR_INCOMING_CALL, NULL);
+	RecordLinkUpDownReason(NULL, p->link, 1, STR_INCOMING_CALL, NULL);
 	BundOpenLink(p->link);
     } else if (p->rep) {
         RepIncoming(p);

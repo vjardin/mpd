@@ -118,7 +118,7 @@
 void
 LinkOpenCmd(Context ctx)
 {
-  RecordLinkUpDownReason(ctx->lnk, 1, STR_MANUALLY, NULL);
+  RecordLinkUpDownReason(NULL, ctx->lnk, 1, STR_MANUALLY, NULL);
   LinkOpen(ctx->lnk);
 }
 
@@ -129,7 +129,7 @@ LinkOpenCmd(Context ctx)
 void
 LinkCloseCmd(Context ctx)
 {
-  RecordLinkUpDownReason(ctx->lnk, 0, STR_MANUALLY, NULL);
+  RecordLinkUpDownReason(NULL, ctx->lnk, 0, STR_MANUALLY, NULL);
   LinkClose(ctx->lnk);
 }
 
@@ -212,7 +212,7 @@ LinkMsg(int type, void *arg)
 	  l->num_redial++;
 	  Log(LG_LINK, ("[%s] link: reconnection attempt %d",
 	    l->name, l->num_redial));
-	  RecordLinkUpDownReason(l, 1, STR_REDIAL, NULL);
+	  RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
     	  LcpDown(l);
 	  PhysOpen(l->phys);		/* Try again */
 	}
@@ -404,28 +404,26 @@ RecordLinkUpDownReason2(Link l, int up, const char *key, const char *fmt, va_lis
 }
 
 void
-RecordLinkUpDownReason(Link l, int up, const char *key, const char *fmt, ...)
+RecordLinkUpDownReason(Bund b, Link l, int up, const char *key, const char *fmt, ...)
 {
   va_list	args;
   int		k;
-#if 0
-  if (!bund)
-    return;
 
-  if (l == NULL) {
-    for (k = 0; k < bund->n_links; k++) {
-      if (bund && bund->links[k]) {
-	va_start(args, fmt);
-	RecordLinkUpDownReason2(bund->links[k], up, key, fmt, args);
-	va_end(args);
-      }
-    }
-  } else {
+  if (l != NULL) {
     va_start(args, fmt);
     RecordLinkUpDownReason2(l, up, key, fmt, args);
     va_end(args);
+
+  } else if (b != NULL) {
+    for (k = 0; k < b->n_links; k++) {
+      if (b->links[k]) {
+	va_start(args, fmt);
+	RecordLinkUpDownReason2(b->links[k], up, key, fmt, args);
+	va_end(args);
+      }
+    }
   }
-#endif
+
 }
 
 /*

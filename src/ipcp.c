@@ -555,7 +555,8 @@ IpcpCloseCmd(Context ctx)
 static void
 IpcpFailure(Fsm fp, enum fsmfail reason)
 {
-  RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, STR_IPCP_FAILED, FsmFailureStr(reason));
+    Bund 	b = (Bund)fp->arg;
+    RecordLinkUpDownReason(b, NULL, 0, STR_PROTO_ERR, STR_IPCP_FAILED, FsmFailureStr(reason));
 }
 
 /*

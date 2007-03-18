@@ -379,7 +379,8 @@ Ipv6cpCloseCmd(Context ctx)
 static void
 Ipv6cpFailure(Fsm fp, enum fsmfail reason)
 {
-  RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, STR_IPV6CP_FAILED, FsmFailureStr(reason));
+    Bund 	b = (Bund)fp->arg;
+    RecordLinkUpDownReason(b, NULL, 0, STR_PROTO_ERR, STR_IPV6CP_FAILED, FsmFailureStr(reason));
 }
 
 /*

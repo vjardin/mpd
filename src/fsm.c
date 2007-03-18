@@ -807,7 +807,7 @@ static void
 FsmRecvTermReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
   if (fp->type->link_layer) {
-    RecordLinkUpDownReason((Link)(fp->arg), 0, STR_PEER_DISC, NULL);
+    RecordLinkUpDownReason(NULL, (Link)(fp->arg), 0, STR_PEER_DISC, NULL);
   }
   switch (fp->state) {
     case ST_INITIAL:

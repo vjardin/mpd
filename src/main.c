@@ -393,9 +393,9 @@ FatalSignal(sig)
   for (k = 0; k < gNumBundles; k++) {
     if ((b = gBundles[k])) {
       if (sig != SIGTERM && sig != SIGINT)
-        RecordLinkUpDownReason(NULL, 0, STR_FATAL_SHUTDOWN, NULL);
+        RecordLinkUpDownReason(b, NULL, 0, STR_FATAL_SHUTDOWN, NULL);
       else
-        RecordLinkUpDownReason(NULL, 0, STR_ADMIN_SHUTDOWN, NULL);
+        RecordLinkUpDownReason(b, NULL, 0, STR_ADMIN_SHUTDOWN, NULL);
     }
   }
   upLinkCount = 0;
@@ -431,7 +431,7 @@ OpenSignal(int sig)
   if (lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
       lnk->name, sys_signame[sig]));
-    RecordLinkUpDownReason(NULL, 1, STR_MANUALLY, NULL);
+    RecordLinkUpDownReason(NULL, lnk, 1, STR_MANUALLY, NULL);
     BundOpenLink(lnk);
   } else
     Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
@@ -450,7 +450,7 @@ CloseSignal(int sig)
   if (lnk && lnk->phys && lnk->phys->type) {
     Log(LG_ALWAYS, ("[%s] rec'd signal %s, closing",
       lnk->name, sys_signame[sig]));
-    RecordLinkUpDownReason(NULL, 0, STR_MANUALLY, NULL);
+    RecordLinkUpDownReason(NULL, lnk, 0, STR_MANUALLY, NULL);
     LinkClose(lnk);
   } else
     Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));

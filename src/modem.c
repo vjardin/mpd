@@ -474,14 +474,14 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
     if (strcasecmp(idleResult, MODEM_IDLE_RESULT_ANSWER) == 0) {
       Log(LG_PHYS, ("[%s] MODEM: opening link in %s mode", p->name, "answer"));
       if (p->link)
-        RecordLinkUpDownReason(p->link, 1, STR_INCOMING_CALL, msg ? "%s" : NULL, msg);
+        RecordLinkUpDownReason(NULL, p->link, 1, STR_INCOMING_CALL, msg ? "%s" : NULL, msg);
       m->answering = TRUE;
       p->state = PHYS_STATE_READY;
       PhysIncoming(p);
     } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
       Log(LG_PHYS, ("[%s] MODEM: opening link in %s mode", p->name, "ringback"));
       if (p->link)
-        RecordLinkUpDownReason(p->link, 1, STR_RINGBACK, msg ? "%s" : NULL, msg);
+        RecordLinkUpDownReason(NULL, p->link, 1, STR_RINGBACK, msg ? "%s" : NULL, msg);
       m->answering = FALSE;
       PhysIncoming(p);
     } else {
