@@ -22,16 +22,16 @@
  */
 
 void
-MpInit(void)
+MpInit(Bund b, Link l)
 {
-  MpState	mp = &bund->mp;
+  MpState	mp = &b->mp;
 
   assert(MP_MIN_MRRU <= MP_MAX_MRRU);
   memset(mp, 0, sizeof(*mp));
-  mp->self_mrru = lnk->lcp.want_mrru;
-  mp->peer_mrru = lnk->lcp.peer_mrru;
-  mp->self_short_seq = lnk->lcp.want_shortseq;
-  mp->peer_short_seq = lnk->lcp.peer_shortseq;
+  mp->self_mrru = l->lcp.want_mrru;
+  mp->peer_mrru = l->lcp.peer_mrru;
+  mp->self_short_seq = l->lcp.want_shortseq;
+  mp->peer_short_seq = l->lcp.peer_shortseq;
 }
 
 /*

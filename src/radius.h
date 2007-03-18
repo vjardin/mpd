@@ -128,7 +128,7 @@
  * FUNCTIONS
  */
 
-  extern void	RadiusInit(void);
+  extern void	RadiusInit(Link l);
   extern int	RadiusAuthenticate(struct authdata *auth);
   extern void	RadiusAccount(struct authdata *auth);
   extern void	RadiusClose(struct authdata *auth);

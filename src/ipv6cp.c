@@ -245,7 +245,7 @@ Ipv6cpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 Ipv6cpLayerStart(Fsm fp)
 {
-    BundNcpsStart(NCP_IPV6CP);
+    BundNcpsStart((Bund)(fp->arg), NCP_IPV6CP);
 }
 
 /*
@@ -257,7 +257,7 @@ Ipv6cpLayerStart(Fsm fp)
 static void
 Ipv6cpLayerFinish(Fsm fp)
 {
-    BundNcpsFinish(NCP_IPV6CP);
+    BundNcpsFinish((Bund)(fp->arg), NCP_IPV6CP);
 }
 
 /*

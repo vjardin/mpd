@@ -364,7 +364,7 @@ IpcpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 IpcpLayerStart(Fsm fp)
 {
-  BundNcpsStart(NCP_IPCP);
+  BundNcpsStart((Bund)(fp->arg), NCP_IPCP);
 }
 
 /*
@@ -376,7 +376,7 @@ IpcpLayerStart(Fsm fp)
 static void
 IpcpLayerFinish(Fsm fp)
 {
-  BundNcpsFinish(NCP_IPCP);
+  BundNcpsFinish((Bund)(fp->arg), NCP_IPCP);
 }
 
 /*

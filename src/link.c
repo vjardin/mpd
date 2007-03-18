@@ -189,16 +189,16 @@ LinkMsg(int type, void *arg)
     case MSG_OPEN:
       l->last_open = time(NULL);
       l->num_redial = 0;
-      LcpOpen();
+      LcpOpen(l);
       break;
     case MSG_CLOSE:
-      LcpClose();
+      LcpClose(l);
       break;
     case MSG_UP:
       l->originate = PhysGetOriginate(l->phys);
       Log(LG_LINK, ("[%s] link: origination is %s",
 	l->name, LINK_ORIGINATION(l->originate)));
-      LcpUp();
+      LcpUp(l);
       break;
     case MSG_DOWN:
       if (OPEN_STATE(l->lcp.fsm.state)) {
@@ -206,18 +206,18 @@ LinkMsg(int type, void *arg)
 	  if (l->conf.max_redial >= 0)
 	    Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
 		l->name, l->num_redial));
-	  LcpClose();
-          LcpDown();
+	  LcpClose(l);
+          LcpDown(l);
 	} else {
 	  l->num_redial++;
 	  Log(LG_LINK, ("[%s] link: reconnection attempt %d",
 	    l->name, l->num_redial));
 	  RecordLinkUpDownReason(l, 1, STR_REDIAL, NULL);
-    	  LcpDown();
+    	  LcpDown(l);
 	  PhysOpen(l->phys);		/* Try again */
 	}
       } else {
-        LcpDown();
+        LcpDown(l);
       }
       /* reset Link-stats */
       LinkResetStats();  /* XXX: I don't think this is a right place */
@@ -282,8 +282,8 @@ LinkNew(char *name, Bund b, int bI)
   Disable(&lnk->conf.options, LINK_CONF_PASSIVE);
   Enable(&lnk->conf.options, LINK_CONF_CHECK_MAGIC);
 
-  LcpInit();
-  EapInit();
+  LcpInit(lnk);
+  EapInit(lnk);
 
   /* Initialize link layer stuff */
   lnk->phys = PhysInit(lnk->name, lnk, NULL);

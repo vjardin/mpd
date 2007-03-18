@@ -194,8 +194,8 @@
   extern void	BundLeave(Link l);
   extern void	BundNcpsJoin(int proto);
   extern void	BundNcpsLeave(int proto);
-  extern void	BundNcpsStart(int proto);
-  extern void	BundNcpsFinish(int proto);
+  extern void	BundNcpsStart(Bund b, int proto);
+  extern void	BundNcpsFinish(Bund b, int proto);
   extern void	BundOpenLinks(Bund b);
   extern void	BundCloseLinks(Bund b);
   extern void	BundOpenLink(Link l);

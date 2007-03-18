@@ -97,13 +97,13 @@
  * FUNCTIONS
  */
 
-  extern void	ChapStart(Link lnk, int which);
+  extern void	ChapStart(Link l, int which);
   extern void	ChapStop(ChapInfo chap);
-  extern void	ChapInput(struct authdata *auth, const u_char *pkt, u_short len);
-  extern void	ChapSendChallenge(Link lnk);
+  extern void	ChapInput(Link l, struct authdata *auth, const u_char *pkt, u_short len);
+  extern void	ChapSendChallenge(Link l);
   extern void	ChapChalTimeout(void *ptr);
   extern const	char *ChapCode(int code);
-  extern void	ChapInputFinish(struct authdata *auth);
+  extern void	ChapInputFinish(Link l, struct authdata *auth);
 
 #endif
 

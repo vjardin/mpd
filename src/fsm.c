@@ -506,7 +506,8 @@ void
 FsmInitRestartCounter(Fsm fp, int value)
 {
   const int	retry = fp->type->link_layer ?
-			lnk->conf.retry_timeout : bund->conf.retry_timeout;
+			((Link)(fp->arg))->conf.retry_timeout : 
+			((Bund)(fp->arg))->conf.retry_timeout;
 
   TimerStop(&fp->timer);
   TimerInit(&fp->timer,
@@ -810,7 +811,7 @@ static void
 FsmRecvTermReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
   if (fp->type->link_layer) {
-    RecordLinkUpDownReason(lnk,	0, STR_PEER_DISC, NULL);
+    RecordLinkUpDownReason((Link)(fp->arg), 0, STR_PEER_DISC, NULL);
   }
   switch (fp->state) {
     case ST_INITIAL:
@@ -1073,7 +1074,7 @@ FsmFailureStr(enum fsmfail reason)
 void
 FsmSendEchoReq(Fsm fp, Mbuf payload)
 {
-  u_int32_t	const self_magic = htonl(lnk->lcp.want_magic);
+  u_int32_t	const self_magic = htonl(((Link)(fp->arg))->lcp.want_magic);
   Mbuf		bp;
 
   if (fp->state != ST_OPENED)
@@ -1098,7 +1099,7 @@ FsmSendEchoReq(Fsm fp, Mbuf payload)
 void
 FsmSendIdent(Fsm fp, const char *ident)
 {
-  u_int32_t	self_magic = htonl(lnk->lcp.want_magic);
+  u_int32_t	self_magic = htonl(((Link)(fp->arg))->lcp.want_magic);
   const int	len = strlen(ident) + 1;	/* include NUL to be nice */
   Mbuf		bp;
 
@@ -1137,7 +1138,7 @@ FsmRecvEchoReq(Fsm fp, FsmHeader lhp, Mbuf bp)
   }
 
   /* Stick my magic number in there instead */
-  self_magic = htonl(lnk->lcp.want_magic);
+  self_magic = htonl(((Link)(fp->arg))->lcp.want_magic);
   mbp = mbwrite(mballoc(MB_FSM, sizeof(self_magic)),
     (u_char *) &self_magic, sizeof(self_magic));
   mbp->next = bp;
@@ -1311,7 +1312,7 @@ FsmCheckMagic(Fsm fp, Mbuf bp)
 
   /* What should magic number be? */
   if (PROT_LINK_LAYER(fp->type->proto))
-    peer_magic_ought = lnk->lcp.peer_magic;
+    peer_magic_ought = ((Link)(fp->arg))->lcp.peer_magic;
   else
     peer_magic_ought = 0;
 
@@ -1586,7 +1587,7 @@ Pref(Fsm fp)
   static char	buf[100];
 
   snprintf(buf, sizeof(buf), "[%s] %s",
-    fp->type->link_layer ? lnk->name : bund->name, fp->type->name);
+    fp->type->link_layer ? ((Link)(fp->arg))->name : ((Bund)(fp->arg))->name, fp->type->name);
   return(buf);
 }
 

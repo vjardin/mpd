@@ -85,9 +85,9 @@
  */
 
 void
-RadiusInit(void)
+RadiusInit(Link l)
 {
-    RadConf       const conf = &lnk->lcp.auth.conf.radius;
+    RadConf       const conf = &l->lcp.auth.conf.radius;
 
     memset(conf, 0, sizeof(*conf));
     Disable(&conf->options, RADIUS_CONF_MESSAGE_AUTHENTIC);

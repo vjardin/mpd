@@ -263,11 +263,11 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
  */
 
 void
-AuthInit(void)
+AuthInit(Link l)
 {
-  AuthConf	const ac = &lnk->lcp.auth.conf;
+  AuthConf	const ac = &l->lcp.auth.conf;
   
-  RadiusInit();
+  RadiusInit(l);
 
   Disable(&ac->options, AUTH_CONF_RADIUS_AUTH);
   Disable(&ac->options, AUTH_CONF_RADIUS_ACCT);
@@ -285,37 +285,37 @@ AuthInit(void)
  */
 
 void
-AuthStart(void)
+AuthStart(Link l)
 {
-  Auth	a = &lnk->lcp.auth;
+  Auth	a = &l->lcp.auth;
 
   /* What auth protocols were negotiated by LCP? */
-  a->self_to_peer = lnk->lcp.peer_auth;
-  a->peer_to_self = lnk->lcp.want_auth;
+  a->self_to_peer = l->lcp.peer_auth;
+  a->peer_to_self = l->lcp.want_auth;
 
     /* remember peer's IP address */
-    PhysGetPeerAddr(lnk->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
+    PhysGetPeerAddr(l->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
   
     /* remember calling number */
-    PhysGetCallingNum(lnk->phys, a->params.callingnum, sizeof(a->params.callingnum));
+    PhysGetCallingNum(l->phys, a->params.callingnum, sizeof(a->params.callingnum));
   
     /* remember called number */
-    PhysGetCalledNum(lnk->phys, a->params.callednum, sizeof(a->params.callednum));
+    PhysGetCalledNum(l->phys, a->params.callednum, sizeof(a->params.callednum));
   
   Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
-    Pref(&lnk->lcp.fsm),
+    Pref(&l->lcp.fsm),
     a->self_to_peer ? ProtoName(a->self_to_peer) : "nothing",
     a->peer_to_self ? ProtoName(a->peer_to_self) : "nothing"));
 
   /* Is there anything to do? */
   if (!a->self_to_peer && !a->peer_to_self) {
-    LcpAuthResult(TRUE);
+    LcpAuthResult(l, TRUE);
     return;
   }
 
   /* Start global auth timer */
   TimerInit(&a->timer, "AuthTimer",
-    lnk->lcp.auth.conf.timeout * SECONDS, AuthTimeout, lnk);
+    l->lcp.auth.conf.timeout * SECONDS, AuthTimeout, l);
   TimerStart(&a->timer);
 
   /* Start my auth to him */
@@ -323,13 +323,13 @@ AuthStart(void)
     case 0:
       break;
     case PROTO_PAP:
-      PapStart(lnk, AUTH_SELF_TO_PEER);
+      PapStart(l, AUTH_SELF_TO_PEER);
       break;
     case PROTO_CHAP:
-      ChapStart(lnk, AUTH_SELF_TO_PEER);
+      ChapStart(l, AUTH_SELF_TO_PEER);
       break;
     case PROTO_EAP:
-      EapStart(lnk, AUTH_SELF_TO_PEER);
+      EapStart(l, AUTH_SELF_TO_PEER);
       break;
     default:
       assert(0);
@@ -340,13 +340,13 @@ AuthStart(void)
     case 0:
       break;
     case PROTO_PAP:
-      PapStart(lnk, AUTH_PEER_TO_SELF);
+      PapStart(l, AUTH_PEER_TO_SELF);
       break;
     case PROTO_CHAP:
-      ChapStart(lnk, AUTH_PEER_TO_SELF);
+      ChapStart(l, AUTH_PEER_TO_SELF);
       break;
     case PROTO_EAP:
-      EapStart(lnk, AUTH_PEER_TO_SELF);
+      EapStart(l, AUTH_PEER_TO_SELF);
       break;
     default:
       assert(0);
@@ -393,7 +393,7 @@ AuthInput(Link l, int proto, Mbuf bp)
     return;
   }
 
-  auth = AuthDataNew();
+  auth = AuthDataNew(l);
   auth->proto = proto;
 
   bp = mbread(bp, (u_char *) &fsmh, sizeof(fsmh), NULL);
@@ -415,8 +415,8 @@ AuthInput(Link l, int proto, Mbuf bp)
       code = CHAP_FAILURE;
     else
       assert(0);
-    AuthOutput(proto, code, fsmh.id, failMesg, strlen(failMesg), 1, 0);
-    AuthFinish(AUTH_PEER_TO_SELF, FALSE);
+    AuthOutput(l, proto, code, fsmh.id, failMesg, strlen(failMesg), 1, 0);
+    AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);
     return;
   }
@@ -430,13 +430,13 @@ AuthInput(Link l, int proto, Mbuf bp)
   
   switch (proto) {
     case PROTO_PAP:
-      PapInput(auth, pkt, len);
+      PapInput(l, auth, pkt, len);
       break;
     case PROTO_CHAP:
-      ChapInput(auth, pkt, len);
+      ChapInput(l, auth, pkt, len);
       break;
     case PROTO_EAP:
-      EapInput(auth, pkt, len);
+      EapInput(l, auth, pkt, len);
       break;
     default:
       assert(0);
@@ -451,7 +451,7 @@ AuthInput(Link l, int proto, Mbuf bp)
  */
 
 void
-AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
+AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
 	int len, int add_len, u_char eap_type)
 {
   struct fsmheader	lh;
@@ -471,7 +471,7 @@ AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
   /* Build packet */
   bp = mballoc(MB_AUTH, plen);
   if (bp == NULL) {
-    Log(LG_ERR, ("[%s] %s: mballoc() error", lnk->name, ProtoName(proto)));
+    Log(LG_ERR, ("[%s] %s: mballoc() error", l->name, ProtoName(proto)));
     return;
   }
 
@@ -484,17 +484,17 @@ AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
 
   if (proto == PROTO_EAP) {
     memcpy(MBDATAU(bp) + sizeof(lh) + add_len + 1, ptr, len);
-    Log(LG_AUTH, ("[%s] %s: sending %s Type %s len:%d", lnk->name,
+    Log(LG_AUTH, ("[%s] %s: sending %s Type %s len:%d", l->name,
       ProtoName(proto), AuthCode(proto, code), EapType(eap_type), len));
   } else {
     memcpy(MBDATAU(bp) + sizeof(lh) + add_len, ptr, len);
-    Log(LG_AUTH, ("[%s] %s: sending %s len:%d", lnk->name,
+    Log(LG_AUTH, ("[%s] %s: sending %s len:%d", l->name,
       ProtoName(proto), AuthCode(proto, code), len));
   }
 
   /* Send it out */
 
-  NgFuncWritePppFrame(bund, lnk->bundleIndex, proto, bp);
+  NgFuncWritePppFrame(l->bund, l->bundleIndex, proto, bp);
 }
 
 /*
@@ -504,9 +504,9 @@ AuthOutput(int proto, u_int code, u_int id, const u_char *ptr,
  */
 
 void
-AuthFinish(int which, int ok)
+AuthFinish(Link l, int which, int ok)
 {
-  Auth		const a = &lnk->lcp.auth;
+  Auth		const a = &l->lcp.auth;
 
   switch (which) {
     case AUTH_SELF_TO_PEER:
@@ -523,15 +523,15 @@ AuthFinish(int which, int ok)
 
   /* Did auth fail (in either direction)? */
   if (!ok) {
-    AuthStop();
-    LcpAuthResult(FALSE);
+    AuthStop(l);
+    LcpAuthResult(l, FALSE);
     return;
   }
 
   /* Did auth succeed (in both directions)? */
   if (!a->peer_to_self && !a->self_to_peer) {
-    AuthStop();
-    LcpAuthResult(TRUE);
+    AuthStop(l);
+    LcpAuthResult(l, TRUE);
     return;
   }
 }
@@ -543,11 +543,11 @@ AuthFinish(int which, int ok)
  */
 
 void
-AuthCleanup(void)
+AuthCleanup(Link l)
 {
-  Auth			a = &lnk->lcp.auth;
+  Auth			a = &l->lcp.auth;
 
-  Log(LG_AUTH, ("[%s] AUTH: Cleanup", lnk->name));
+  Log(LG_AUTH, ("[%s] AUTH: Cleanup", l->name));
 
   TimerStop(&a->acct_timer);
   
@@ -555,12 +555,12 @@ AuthCleanup(void)
 }
 
 static int 
-GetLinkID(Link lnk) {
+GetLinkID(Link l) {
     int port, i;
     
     port =- 1;    
     for (i = 0; i < gNumPhyses; i++) {
-      if (gPhyses[i]->link == lnk) {
+      if (gPhyses[i]->link == l) {
 	port = i;
 	break;
       }
@@ -575,32 +575,32 @@ GetLinkID(Link lnk) {
  */
 
 AuthData
-AuthDataNew(void) 
+AuthDataNew(Link l) 
 {
   AuthData	auth;
-  Auth		a = &lnk->lcp.auth;  
+  Auth		a = &l->lcp.auth;  
 
   auth = Malloc(MB_AUTH, sizeof(*auth));
-  auth->conf = lnk->lcp.auth.conf;
+  auth->conf = l->lcp.auth.conf;
 
-  strlcpy(auth->info.lnkname, lnk->name, sizeof(auth->info.lnkname));
-  strlcpy(auth->info.msession_id, lnk->msession_id, sizeof(auth->info.msession_id));
-  strlcpy(auth->info.session_id, lnk->session_id, sizeof(auth->info.session_id));
+  strlcpy(auth->info.lnkname, l->name, sizeof(auth->info.lnkname));
+  strlcpy(auth->info.msession_id, l->msession_id, sizeof(auth->info.msession_id));
+  strlcpy(auth->info.session_id, l->session_id, sizeof(auth->info.session_id));
 
-  auth->info.n_links = bund->n_links;
-  auth->info.peer_addr = bund->ipcp.peer_addr;
+  auth->info.n_links = l->bund->n_links;
+  auth->info.peer_addr = l->bund->ipcp.peer_addr;
 
   /* Copy current link statistics */
-  memcpy(&auth->info.stats, &lnk->stats, sizeof(auth->info.stats));
+  memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));
 
-  if (lnk->downReasonValid) {
-    auth->info.downReason = Malloc(MB_LINK, strlen(lnk->downReason) + 1);
-    strcpy(auth->info.downReason, lnk->downReason);
+  if (l->downReasonValid) {
+    auth->info.downReason = Malloc(MB_LINK, strlen(l->downReason) + 1);
+    strcpy(auth->info.downReason, l->downReason);
   }
 
-  auth->info.last_open = lnk->last_open;
-  auth->info.phys_type = lnk->phys->type;
-  auth->info.linkID = GetLinkID(lnk);
+  auth->info.last_open = l->last_open;
+  auth->info.phys_type = l->phys->type;
+  auth->info.linkID = GetLinkID(l);
 
   authparamsCopy(&a->params,&auth->params);
 
@@ -631,9 +631,9 @@ AuthDataDestroy(AuthData auth)
  */
 
 void
-AuthStop(void)
+AuthStop(Link l)
 {
-  Auth	a = &lnk->lcp.auth;
+  Auth	a = &l->lcp.auth;
 
   TimerStop(&a->timer);
   PapStop(&a->pap);
@@ -693,22 +693,22 @@ AuthStat(int ac, char *av[], void *arg)
  */
  
 void
-AuthAccountStart(int type)
+AuthAccountStart(Link l, int type)
 {
-  Auth		const a = &lnk->lcp.auth;
+  Auth		const a = &l->lcp.auth;
   AuthData	auth;
   u_long	updateInterval = 0;
       
-  LinkUpdateStats(lnk);
+  LinkUpdateStats(l);
   if (type == AUTH_ACCT_STOP) {
     Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
-      lnk->name, a->params.authname,
-      (unsigned long) (time(NULL) - lnk->last_open),
-      lnk->stats.recvOctets, lnk->stats.xmitOctets));
+      l->name, a->params.authname,
+      (unsigned long) (time(NULL) - l->last_open),
+      l->stats.recvOctets, l->stats.xmitOctets));
   }
 
-  if (!Enabled(&lnk->lcp.auth.conf.options, AUTH_CONF_RADIUS_ACCT)
-      && !Enabled(&lnk->lcp.auth.conf.options, AUTH_CONF_UTMP_WTMP))
+  if (!Enabled(&l->lcp.auth.conf.options, AUTH_CONF_RADIUS_ACCT)
+      && !Enabled(&l->lcp.auth.conf.options, AUTH_CONF_UTMP_WTMP))
     return;
 
   if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
@@ -722,23 +722,23 @@ AuthAccountStart(int type)
     
     if (a->params.acct_update > 0)
       updateInterval = a->params.acct_update;
-    else if (lnk->lcp.auth.conf.acct_update > 0)
-      updateInterval = lnk->lcp.auth.conf.acct_update;
+    else if (l->lcp.auth.conf.acct_update > 0)
+      updateInterval = l->lcp.auth.conf.acct_update;
 
     if (updateInterval > 0) {
       TimerInit(&a->acct_timer, "AuthAccountTimer",
-	updateInterval * SECONDS, AuthAccountTimeout, lnk);
+	updateInterval * SECONDS, AuthAccountTimeout, l);
       TimerStart(&a->acct_timer);
     }
   }
   
-  auth = AuthDataNew();
+  auth = AuthDataNew(l);
   auth->acct_type = type;
 
   if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
     AuthAccountFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
-      lnk->name, errno));
+      l->name, errno));
     AuthDataDestroy(auth);
   }
 
@@ -760,7 +760,7 @@ AuthAccountTimeout(void *arg)
     l->name));
 
   TimerStop(&a->acct_timer);
-  AuthAccountStart(AUTH_ACCT_UPDATE);
+  AuthAccountStart(l, AUTH_ACCT_UPDATE);
   TimerStart(&a->acct_timer);
 }
 
@@ -912,25 +912,25 @@ AuthGetData(char *authname, char *password, size_t passlen,
  */
 
 void 
-AuthAsyncStart(AuthData auth)
+AuthAsyncStart(Link l, AuthData auth)
 {
-  Auth	const a = &lnk->lcp.auth;
+  Auth	const a = &l->lcp.auth;
   
   /* perform pre authentication checks (single-login, etc.) */
   if (AuthPreChecks(auth, 1) < 0) {
     Log(LG_AUTH, ("[%s] AUTH: AuthPreCheck failed for \"%s\"", 
-      lnk->name, auth->params.authname));
-    auth->finish(auth);
+      l->name, auth->params.authname));
+    auth->finish(l, auth);
     return;
   }
 
   if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
     AuthAsyncFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Auth-Thread %d", 
-      lnk->name, errno));
+      l->name, errno));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
-    auth->finish(auth);
+    auth->finish(l, auth);
   }
 }
 
@@ -1034,7 +1034,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
   if (auth->mschapv2resp != NULL)
     strcpy(auth->ack_mesg, auth->mschapv2resp);
   
-  auth->finish(auth);
+  auth->finish(lnk, auth);
 }
 
 /*
@@ -1252,8 +1252,8 @@ AuthTimeout(void *arg)
     Link l = (Link)arg;
 
   Log(LG_AUTH, ("%s: authorization timer expired", Pref(&l->lcp.fsm)));
-  AuthStop();
-  LcpAuthResult(FALSE);
+  AuthStop(l);
+  LcpAuthResult(l, FALSE);
 }
 
 /* 

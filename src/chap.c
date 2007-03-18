@@ -21,7 +21,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	ChapHash(int alg, u_char *hash_value, u_char id,
+  static int	ChapHash(Link l, int alg, u_char *hash_value, u_char id,
 		  const char *username, const char *secret,
 		  const u_char *challenge, int clen, int local);
   static int	ChapHashAgree(int alg, const u_char *self, int slen,
@@ -29,8 +29,8 @@
   static int	ChapParsePkt(const u_char *pkt, const int pkt_len,
 		  char *peer_name, u_char *chap_value,
 		  int *chap_value_size);
-  static char	*ChapGetSecret(Link lnk, int alg, char *password);
-  static void	ChapGenRandom(u_char *buf, int len);
+  static char	*ChapGetSecret(Link l, int alg, char *password);
+  static void	ChapGenRandom(Link l, u_char *buf, int len);
 
 /*
  * INTERNAL VARIABLES
@@ -43,21 +43,21 @@
  */
 
 void
-ChapStart(Link lnk, int which)
+ChapStart(Link l, int which)
 {
-  Auth 		a = &lnk->lcp.auth;
-  ChapInfo 	chap = &lnk->lcp.auth.chap;
-  ChapParams	cp = &lnk->lcp.auth.params.chap;
+  Auth 		a = &l->lcp.auth;
+  ChapInfo 	chap = &l->lcp.auth.chap;
+  ChapParams	cp = &l->lcp.auth.params.chap;
   
   chap->proto = PROTO_CHAP;
 
-  a->params.chap.recv_alg = lnk->lcp.want_chap_alg;
-  a->chap.xmit_alg = lnk->lcp.peer_chap_alg;
+  a->params.chap.recv_alg = l->lcp.want_chap_alg;
+  a->chap.xmit_alg = l->lcp.peer_chap_alg;
 
-  if (lnk->originate == LINK_ORIGINATE_LOCAL)
-    a->params.msoft.chap_alg = lnk->lcp.peer_chap_alg;
+  if (l->originate == LINK_ORIGINATE_LOCAL)
+    a->params.msoft.chap_alg = l->lcp.peer_chap_alg;
   else
-    a->params.msoft.chap_alg = lnk->lcp.want_chap_alg;
+    a->params.msoft.chap_alg = l->lcp.want_chap_alg;
   
   switch (which)
   {
@@ -74,11 +74,11 @@ ChapStart(Link lnk, int which)
       chap->retry = AUTH_RETRIES;
 
       TimerInit(&chap->chalTimer, "ChalTimer",
-	lnk->conf.retry_timeout * SECONDS, ChapChalTimeout, (void *) chap);
+	l->conf.retry_timeout * SECONDS, ChapChalTimeout, (void *) chap);
       TimerStart(&chap->chalTimer);
 
       /* Send first challenge */
-      ChapSendChallenge(lnk);
+      ChapSendChallenge(l);
       break;
 
     default:
@@ -106,9 +106,9 @@ ChapStop(ChapInfo chap)
  */
 
 void
-ChapSendChallenge(Link lnk)
+ChapSendChallenge(Link l)
 {
-  Auth          const a = &lnk->lcp.auth;
+  Auth          const a = &l->lcp.auth;
   ChapInfo	chap = &a->chap;
   ChapParams	cp = &a->params.chap;
   u_char	*pkt;
@@ -121,22 +121,22 @@ ChapSendChallenge(Link lnk)
   switch (cp->recv_alg) {
     case CHAP_ALG_MSOFT: {
 	cp->chal_len = CHAP_MSOFT_CHAL_LEN;
-	ChapGenRandom(cp->chal_data, cp->chal_len);
-	if (lnk->originate == LINK_ORIGINATE_REMOTE) {
+	ChapGenRandom(l, cp->chal_data, cp->chal_len);
+	if (l->originate == LINK_ORIGINATE_REMOTE) {
 	  memcpy(a->params.msoft.msChal, cp->chal_data, cp->chal_len);
 	}
       }
       break;
     case CHAP_ALG_MSOFTv2:
       cp->chal_len = CHAP_MSOFTv2_CHAL_LEN;
-      ChapGenRandom(cp->chal_data, cp->chal_len);
-      if (lnk->originate == LINK_ORIGINATE_REMOTE) {
+      ChapGenRandom(l, cp->chal_data, cp->chal_len);
+      if (l->originate == LINK_ORIGINATE_REMOTE) {
 	memcpy(a->params.msoft.msChal, cp->chal_data, cp->chal_len);
       }
       break;
     case CHAP_ALG_MD5:
       cp->chal_len = random() % 32 + 16;
-      ChapGenRandom(cp->chal_data, cp->chal_len);
+      ChapGenRandom(l, cp->chal_data, cp->chal_len);
       break;
     default:
       assert(0);
@@ -145,17 +145,17 @@ ChapSendChallenge(Link lnk)
 
 send_pkt:
   /* Build a challenge packet */
-  pkt = Malloc(MB_AUTH, 1 + cp->chal_len + strlen(lnk->lcp.auth.conf.authname) + 1);
+  pkt = Malloc(MB_AUTH, 1 + cp->chal_len + strlen(l->lcp.auth.conf.authname) + 1);
   pkt[0] = cp->chal_len;
   memcpy(pkt + 1, cp->chal_data, cp->chal_len);
   memcpy(pkt + 1 + cp->chal_len,
-    lnk->lcp.auth.conf.authname, strlen(lnk->lcp.auth.conf.authname));
+    l->lcp.auth.conf.authname, strlen(l->lcp.auth.conf.authname));
 
   /* Send it off */
-  AuthOutput(chap->proto,
+  AuthOutput(l, chap->proto,
     chap->proto == PROTO_CHAP ? CHAP_CHALLENGE : EAP_REQUEST,
     chap->next_id++, pkt,
-    1 + cp->chal_len + strlen(lnk->lcp.auth.conf.authname), 0,
+    1 + cp->chal_len + strlen(l->lcp.auth.conf.authname), 0,
     EAP_TYPE_MD5CHAL);
   Freee(MB_AUTH, pkt);
 }
@@ -165,23 +165,25 @@ send_pkt:
  */
 
 static void
-ChapSendResponse(ChapInfo chap)
+ChapSendResponse(Link l)
 {
+  ChapInfo	chap = &l->lcp.auth.chap;
+
   /* Stop response timer */
   TimerStop(&chap->respTimer);
 
   /* Send response (possibly again) */
   assert(chap->resp);
-  AuthOutput(chap->proto,
+  AuthOutput(l, chap->proto,
     chap->proto == PROTO_CHAP ? CHAP_RESPONSE : EAP_RESPONSE,
     chap->resp_id, chap->resp, chap->resp_len, 0, EAP_TYPE_MD5CHAL);
 
   /* Start re-send timer (only during authenticate phase where the
      authentication timer is still running) */
-  if (lnk->lcp.phase == PHASE_AUTHENTICATE) {
+  if (l->lcp.phase == PHASE_AUTHENTICATE) {
     TimerInit(&chap->respTimer, "RespTimer",
-      lnk->conf.retry_timeout * SECONDS,
-      (void (*)(void *)) ChapSendResponse, (void *) chap);
+      l->conf.retry_timeout * SECONDS,
+      (void (*)(void *)) ChapSendResponse, (void *) l);
     TimerStart(&chap->respTimer);
   }
 }
@@ -229,13 +231,13 @@ ChapParsePkt(const u_char *pkt, const int pkt_len,
 void
 ChapChalTimeout(void *ptr)
 {
-  Link		const lnk = (Link) ptr;
-  ChapInfo	const chap = &lnk->lcp.auth.chap;
+  Link		const l = (Link) ptr;
+  ChapInfo	const chap = &l->lcp.auth.chap;
 
   TimerStop(&chap->chalTimer);
   if (--chap->retry > 0) {
     TimerStart(&chap->chalTimer);
-    ChapSendChallenge(lnk);
+    ChapSendChallenge(l);
   }
 }
 
@@ -244,9 +246,9 @@ ChapChalTimeout(void *ptr)
  */
 
 void
-ChapInput(AuthData auth, const u_char *pkt, u_short len)
+ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 {
-  Auth		const a = &lnk->lcp.auth;
+  Auth		const a = &l->lcp.auth;
   ChapInfo	const chap = &a->chap;
   char		peer_name[CHAP_MAX_NAME + 1];
   char		password[AUTH_MAX_PASSWORD];
@@ -256,7 +258,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
   
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] CHAP: rec'd %s #%d",
-    lnk->name, ChapCode(auth->code), auth->id));
+    l->name, ChapCode(auth->code), auth->id));
     
   chap->proto = auth->proto;
   
@@ -270,7 +272,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 
 	/* Check packet */
 	if ((a->self_to_peer != PROTO_CHAP && a->self_to_peer != PROTO_EAP)
-	    || lnk->lcp.phase != PHASE_AUTHENTICATE)
+	    || l->lcp.phase != PHASE_AUTHENTICATE)
 	  Log(LG_AUTH, (" Not expected, but that's OK"));
 	if (ChapParsePkt(pkt, len, peer_name, value, &value_len) < 0)
 	  break;
@@ -307,7 +309,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	  /* ID bytes match; origination value must be opposite. Note this
 	     assumes that if we can tell the origination direction of a link,
 	     then so can the peer. */
-	  switch (lnk->originate) {
+	  switch (l->originate) {
 	    case LINK_ORIGINATE_LOCAL:
 	      idFail = (chalOrig != LINK_ORIGINATE_REMOTE);
 	      break;
@@ -324,7 +326,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	  if (idFail) {
 	    Log(LG_AUTH,
 	      (" SECURITY: origination value check failed (%s,%s). Ignoring.",
-		LINK_ORIGINATION(lnk->originate),
+		LINK_ORIGINATION(l->originate),
 		LINK_ORIGINATION(chalOrig)));
 	    break;
 	  }
@@ -358,10 +360,10 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 		break;
 	}
 
-	secret = ChapGetSecret(lnk, chap->xmit_alg, password);
+	secret = ChapGetSecret(l, chap->xmit_alg, password);
 
 	/* Get hash value */
-	if ((hash_value_size = ChapHash(chap->xmit_alg, hash_value, auth->id,
+	if ((hash_value_size = ChapHash(l, chap->xmit_alg, hash_value, auth->id,
 	    name, secret, value, value_len, 1)) < 0) {
 	  Log(LG_AUTH, (" Hash failure"));
 	  break;
@@ -370,11 +372,11 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	/* Need to remember MS-CHAP stuff for use with MPPE encryption */
 	switch (chap->xmit_alg) {
 	case CHAP_ALG_MSOFT:
-  	  if (lnk->originate == LINK_ORIGINATE_LOCAL)
+  	  if (l->originate == LINK_ORIGINATE_LOCAL)
 		memcpy(a->params.msoft.msChal, value, CHAP_MSOFT_CHAL_LEN);
 	  break;
 	case CHAP_ALG_MSOFTv2:
-  	  if (lnk->originate == LINK_ORIGINATE_LOCAL) {
+  	  if (l->originate == LINK_ORIGINATE_LOCAL) {
 		memcpy(a->params.msoft.msChal, value, CHAP_MSOFTv2_CHAL_LEN);
 		memcpy(a->params.msoft.ntResp,
 	    	    hash_value + offsetof(struct mschapv2value, ntHash),
@@ -394,7 +396,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	chap->resp_id = auth->id;
 
 	/* Send response to peer */
-	ChapSendResponse(chap);
+	ChapSendResponse(l);
 	AuthDataDestroy(auth);
       }
       break;
@@ -406,17 +408,17 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 
 	/* Check response */
 	if ((a->peer_to_self != PROTO_CHAP && a->peer_to_self != PROTO_EAP)
-	    || lnk->lcp.phase != PHASE_AUTHENTICATE)
+	    || l->lcp.phase != PHASE_AUTHENTICATE)
 	  Log(LG_AUTH, (" Not expected, but that's OK"));
 	if (ChapParsePkt(pkt, len,
 	    peer_name, auth->params.chap.value, &auth->params.chap.value_len) < 0) {
 	  auth->why_fail = AUTH_FAIL_INVALID_PACKET;
-	  ChapInputFinish(auth);
+	  ChapInputFinish(l, auth);
 	  return;
 	}
 
 	/* Strip MS domain if any */
-	if (!Enabled(&lnk->conf.options, LINK_CONF_MSDOMAIN))
+	if (!Enabled(&l->conf.options, LINK_CONF_MSDOMAIN))
 	  if (auth->params.chap.recv_alg == CHAP_ALG_MSOFT
 	      || auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2) {
 	    char	*s;
@@ -428,7 +430,7 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 	strlcpy(auth->params.authname, peer_name, sizeof(auth->params.authname));
 	
 	auth->finish = ChapInputFinish;
-	AuthAsyncStart(auth);
+	AuthAsyncStart(l, auth);
 
       }
       break;
@@ -445,31 +447,31 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 
       /* Appropriate? */
       if (a->self_to_peer != PROTO_CHAP
-	  || lnk->lcp.phase != PHASE_AUTHENTICATE) {
+	  || l->lcp.phase != PHASE_AUTHENTICATE) {
 	Log(LG_AUTH, (" Not expected, but that's OK"));
 	break;
       }
 
       /* Log message */
       ShowMesg(LG_AUTH, (char *) pkt, len);
-      AuthFinish(AUTH_SELF_TO_PEER, auth->code == CHAP_SUCCESS);
+      AuthFinish(l, AUTH_SELF_TO_PEER, auth->code == CHAP_SUCCESS);
       AuthDataDestroy(auth);
       break;
       
     case CHAP_MS_V1_CHANGE_PW:
       Log(LG_AUTH, ("[%s] CHAP: Sorry changing passwords using MS-CHAPv1 is not yet implemented",
-	lnk->name));
+	l->name));
       goto badResponse;
       break;
 
     case CHAP_MS_V2_CHANGE_PW:
       Log(LG_AUTH, ("[%s] CHAP: Sorry changing passwords using MS-CHAPv2 is not yet implemented",
-	lnk->name));
+	l->name));
       goto badResponse;
       break;
 
     default:
-      Log(LG_AUTH, ("[%s] CHAP: unknown code %d", lnk->name, auth->code));
+      Log(LG_AUTH, ("[%s] CHAP: unknown code %d", l->name, auth->code));
       break;
   }
   
@@ -478,9 +480,9 @@ ChapInput(AuthData auth, const u_char *pkt, u_short len)
 badResponse:
   auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
   failMesg = AuthFailMsg(auth, auth->params.chap.recv_alg);
-  AuthOutput(auth->proto, auth->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
+  AuthOutput(l, auth->proto, auth->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
     auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(AUTH_PEER_TO_SELF, FALSE);
+  AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
   AuthDataDestroy(auth);  
 }
 
@@ -492,9 +494,9 @@ badResponse:
  */
  
 void 
-ChapInputFinish(AuthData auth)
+ChapInputFinish(Link l, AuthData auth)
 {
-  Auth		a = &lnk->lcp.auth;
+  Auth		a = &l->lcp.auth;
   ChapInfo	chap = &a->chap;
   const char	*failMesg;
   u_char	hash_value[CHAP_MAX_VAL];
@@ -502,7 +504,7 @@ ChapInputFinish(AuthData auth)
   char		ackMesg[128], *secret;
    
   Log(LG_AUTH, ("[%s] CHAP: ChapInputFinish: status %s", 
-    lnk->name, AuthStatusText(auth->status)));
+    l->name, AuthStatusText(auth->status)));
 
   if (auth->status == AUTH_STATUS_FAIL)
     goto badResponse;
@@ -513,10 +515,10 @@ ChapInputFinish(AuthData auth)
   if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2)
     memcpy(hash_value, auth->params.chap.value, 16);
     
-  secret = ChapGetSecret(lnk, auth->params.chap.recv_alg, auth->params.password);
+  secret = ChapGetSecret(l, auth->params.chap.recv_alg, auth->params.password);
 
   /* Get expected hash value */
-  if ((hash_value_size = ChapHash(auth->params.chap.recv_alg, hash_value, auth->id,
+  if ((hash_value_size = ChapHash(l, auth->params.chap.recv_alg, hash_value, auth->id,
     auth->params.authname, secret, auth->params.chap.chal_data, auth->params.chap.chal_len,
     0)) < 0) {
     Log(LG_AUTH, (" Hash failure"));
@@ -555,9 +557,9 @@ ChapInputFinish(AuthData auth)
 
 badResponse:
   failMesg = AuthFailMsg(auth, auth->params.chap.recv_alg);
-  AuthOutput(chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
+  AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
     auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(AUTH_PEER_TO_SELF, FALSE);
+  AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
   AuthDataDestroy(auth);  
   return;  
 
@@ -567,16 +569,16 @@ goodResponse:
     opieverify(&auth->opie.data, auth->params.password);
 
   /* Need to remember MS-CHAP stuff for use with MPPE encryption */
-  if (lnk->originate == LINK_ORIGINATE_REMOTE
+  if (l->originate == LINK_ORIGINATE_REMOTE
     && auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2 
     && !memcmp(a->params.msoft.ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN))
     memcpy(a->params.msoft.ntResp,
       auth->params.chap.value + offsetof(struct mschapv2value, ntHash),
       CHAP_MSOFTv2_RESP_LEN);
   
-  AuthOutput(chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
+  AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
     auth->id, auth->ack_mesg, strlen(auth->ack_mesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(AUTH_PEER_TO_SELF, TRUE);
+  AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);
   AuthDataDestroy(auth);
 }
 
@@ -589,9 +591,9 @@ goodResponse:
  */
 
 static char *
-ChapGetSecret(Link lnk, int alg, char *password)
+ChapGetSecret(Link l, int alg, char *password)
 {
-  Auth		a = &lnk->lcp.auth;
+  Auth		a = &l->lcp.auth;
   char		*pw;
   
   if (alg == CHAP_ALG_MD5)
@@ -617,14 +619,14 @@ ChapGetSecret(Link lnk, int alg, char *password)
  */
 
 static void
-ChapGenRandom(u_char *buf, int len)
+ChapGenRandom(Link l, u_char *buf, int len)
 {
   int	k;
 
   /* Prefix with our unique ID plus origination value */
   for (k = 0; k < sizeof(gIdBytes) && k < len; k++)
     buf[k] = gIdBytes[k];
-  buf[0] |= (lnk->originate & 0x03) << 6;
+  buf[0] |= (l->originate & 0x03) << 6;
 
   /* Fill the rest with semi-random bytes */
   for (; k < len; k++)
@@ -636,7 +638,7 @@ ChapGenRandom(u_char *buf, int len)
  */
 
 static int
-ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
+ChapHash(Link l, int alg, u_char *hash_value, u_char id, const char *username,
 	const char *secret, const u_char *challenge, int clen, int local)
 {
   int	hash_size;
@@ -674,7 +676,7 @@ ChapHash(int alg, u_char *hash_value, u_char id, const char *username,
 	if ((s = strrchr(username, '\\')) != NULL)
 	  username = s + 1;
 	if (local) {			/* generate reverse 'peer challenge' */
-	  ChapGenRandom(val->peerChal, sizeof(val->peerChal));
+	  ChapGenRandom(l, val->peerChal, sizeof(val->peerChal));
 	  memset(val->reserved, 0, sizeof(val->reserved));
 	}
 	GenerateNTResponse(challenge,

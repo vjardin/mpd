@@ -100,10 +100,10 @@
  * FUNCTIONS
  */
 
-  extern void	EapInit(void);
-  extern void	EapStart(Link lnk, int which);
+  extern void	EapInit(Link l);
+  extern void	EapStart(Link l, int which);
   extern void	EapStop(EapInfo eap);
-  extern void	EapInput(struct authdata *auth, const u_char *pkt, u_short len);
+  extern void	EapInput(Link l, struct authdata *auth, const u_char *pkt, u_short len);
   extern const	char *EapCode(u_char code);
   extern const	char *EapType(u_char type);
   extern int	EapStat(int ac, char *av[], void *arg);

@@ -122,14 +122,14 @@
  * FUNCTIONS
  */
 
-  extern void	LcpInit(void);
+  extern void	LcpInit(Link l);
   extern void	LcpInput(Link l, Mbuf bp);
-  extern void	LcpUp(void);
-  extern void	LcpOpen(void);
-  extern void	LcpClose(void);
-  extern void	LcpDown(void);
+  extern void	LcpUp(Link l);
+  extern void	LcpOpen(Link l);
+  extern void	LcpClose(Link l);
+  extern void	LcpDown(Link l);
   extern int	LcpStat(int ac, char *av[], void *arg);
-  extern void	LcpAuthResult(int success);
+  extern void	LcpAuthResult(Link l, int success);
 
 #endif
 

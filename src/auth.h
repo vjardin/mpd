@@ -197,7 +197,7 @@
     char		*reply_message;	/* Text wich may displayed to the user */
     char		*mschap_error;	/* MSCHAP Error Message */
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */
-    void		(*finish)(struct authdata *auth); /* Finish handler */
+    void		(*finish)(Link l, struct authdata *auth); /* Finish handler */
     int			acct_type;	/* Accounting type, Start, Stop, Update */
     u_char		eap_radius;
     struct {
@@ -234,22 +234,22 @@
  * FUNCTIONS
  */
 
-  extern void		AuthInit(void);
-  extern void		AuthStart(void);
-  extern void		AuthStop(void);
+  extern void		AuthInit(Link l);
+  extern void		AuthStart(Link l);
+  extern void		AuthStop(Link l);
   extern void		AuthInput(Link l, int proto, Mbuf bp);
-  extern void		AuthOutput(int proto, u_int code, u_int id,
+  extern void		AuthOutput(Link l, int proto, u_int code, u_int id,
 			  const u_char *ptr, int len, int add_len, 
 			  u_char eap_type);
-  extern void		AuthFinish(int which, int ok);
-  extern void		AuthCleanup(void);
+  extern void		AuthFinish(Link l, int which, int ok);
+  extern void		AuthCleanup(Link l);
   extern int		AuthStat(int ac, char *av[], void *arg);
-  extern void		AuthAccountStart(int type);
-  extern AuthData	AuthDataNew(void);
+  extern void		AuthAccountStart(Link l, int type);
+  extern AuthData	AuthDataNew(Link l);
   extern void		AuthDataDestroy(AuthData auth);
   extern int		AuthGetData(char *authname, char *password, size_t passlen, 
 			    struct u_range *range, u_char *range_valid);
-  extern void		AuthAsyncStart(AuthData auth);
+  extern void		AuthAsyncStart(Link l, AuthData auth);
   extern const char	*AuthFailMsg(AuthData auth, int alg);
   extern const char	*AuthStatusText(int status);
   extern const char	*AuthMPPEPolicyname(int policy);

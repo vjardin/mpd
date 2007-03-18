@@ -223,7 +223,7 @@ BundJoin(Link l)
     /* Initialize multi-link stuff */
     if ((b->multilink = lcp->peer_multilink)) {
       b->peer_discrim = l->peer_discrim;
-      MpInit();
+      MpInit(b, l);
     }
 
     /* Start bandwidth management */
@@ -295,7 +295,7 @@ BundJoin(Link l)
     
   }
 
-  AuthAccountStart(AUTH_ACCT_START);
+  AuthAccountStart(l, AUTH_ACCT_START);
 
   /* starting link statistics timer */
   TimerInit(&l->statsUpdateTimer, "LinkUpdateStats", 
@@ -324,8 +324,8 @@ BundLeave(Link l)
   /* stopping link statistics timer */
   TimerStop(&l->statsUpdateTimer);
 
-  AuthAccountStart(AUTH_ACCT_STOP);
-  AuthCleanup();
+  AuthAccountStart(l, AUTH_ACCT_STOP);
+  AuthCleanup(l);
 
   BundReasses(b, 0);
   
@@ -380,7 +380,7 @@ BundReOpenLinks(void *arg)
 {
     Bund b = (Bund)arg;
     
-  Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening in %d seconds", bund->name, BUND_REOPEN_PAUSE));
+  Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening in %d seconds", b->name, BUND_REOPEN_PAUSE));
   BundCloseLinks(b);
   TimerStop(&b->reOpenTimer);
   TimerInit(&b->reOpenTimer, "BundOpen",
@@ -516,19 +516,19 @@ BundNcpsUp(Bund b)
 }
 
 void
-BundNcpsStart(int proto)
+BundNcpsStart(Bund b, int proto)
 {
-    bund->ncpstarted |= ((1<<proto)>>1);
+    b->ncpstarted |= ((1<<proto)>>1);
 }
 
 void
-BundNcpsFinish(int proto)
+BundNcpsFinish(Bund b, int proto)
 {
-    bund->ncpstarted &= (~((1<<proto)>>1));
-    if (!bund->ncpstarted) {
-	Log(LG_BUND, ("[%s] No NCPs left. Closing links...", bund->name));
+    b->ncpstarted &= (~((1<<proto)>>1));
+    if (!b->ncpstarted) {
+	Log(LG_BUND, ("[%s] No NCPs left. Closing links...", b->name));
 	RecordLinkUpDownReason(NULL, 0, STR_PROTO_ERR, NULL);
-	BundCloseLinks(bund); /* We have nothing to live for */
+	BundCloseLinks(b); /* We have nothing to live for */
     }
 }
 
