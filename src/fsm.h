@@ -125,6 +125,7 @@
 
   struct fsm {
     FsmType		type;		/* FSM constant stuff */
+    void		*arg;		/* Context (Link or Bund) */
     int			log;		/* Current log level */
     int			log2;		/* Current log2 level */
     struct fsmconf	conf;		/* FSM parameters */
@@ -176,12 +177,12 @@
  * FUNCTIONS
  */
 
-  extern void		FsmInit(Fsm f, FsmType t);
+  extern void		FsmInit(Fsm f, FsmType t, void *arg);
   extern void		FsmOpen(Fsm f);
   extern void		FsmClose(Fsm f);
   extern void		FsmUp(Fsm f);
   extern void		FsmDown(Fsm f);
-  extern void		FsmInput(Fsm f, Mbuf bp, void *arg);
+  extern void		FsmInput(Fsm f, Mbuf bp);
   extern void		FsmOutput(Fsm, u_int, u_int, u_char *, int);
   extern void		FsmOutputMbuf(Fsm, u_int, u_int, Mbuf);
   extern void		FsmOutputMbuf2(u_short proto, int linklayer,

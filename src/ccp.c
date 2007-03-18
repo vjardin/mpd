@@ -195,7 +195,7 @@ CcpInit(void)
 
   /* Init CCP state for this bundle */
   memset(ccp, 0, sizeof(*ccp));
-  FsmInit(&ccp->fsm, &gCcpFsmType);
+  FsmInit(&ccp->fsm, &gCcpFsmType, bund);
   ccp->fsm.conf.maxfailure = CCP_MAXFAILURE;
 
   /* Construct options list if we haven't done so already */
@@ -476,7 +476,7 @@ CcpRecvResetAck(Fsm fp, int id, Mbuf bp)
 void
 CcpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&b->ccp.fsm, bp, b);
+  FsmInput(&b->ccp.fsm, bp);
 }
 
 /*

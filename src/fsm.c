@@ -134,10 +134,11 @@
  */
 
 void
-FsmInit(Fsm fp, FsmType type)
+FsmInit(Fsm fp, FsmType type, void *arg)
 {
   memset(fp, 0, sizeof(*fp));
   fp->type = type;
+  fp->arg = arg;
   fp->log = LG_FSM | type->log;
   fp->log2 = LG_FSM | type->log2;
   fp->conf.maxconfig = FSM_MAXCONFIG;
@@ -1374,7 +1375,7 @@ FsmEchoTimeout(void *arg)
  */
 
 void
-FsmInput(Fsm fp, Mbuf bp, void *arg)
+FsmInput(Fsm fp, Mbuf bp)
 {
   int			log, recd_len, length;
   struct fsmheader	hdr;

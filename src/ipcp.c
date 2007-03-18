@@ -249,7 +249,7 @@ IpcpInit(void)
 
   /* Init state machine */
   memset(ipcp, 0, sizeof(*ipcp));
-  FsmInit(&ipcp->fsm, &gIpcpFsmType);
+  FsmInit(&ipcp->fsm, &gIpcpFsmType, bund);
 
   /* Come up with a default IP address for my side of the link */
   u_rangeclear(&ipcp->conf.self_allow);
@@ -739,7 +739,7 @@ doDnsNbns:
 void
 IpcpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&b->ipcp.fsm, bp, b);
+  FsmInput(&b->ipcp.fsm, bp);
 }
 
 static int

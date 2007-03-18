@@ -175,7 +175,7 @@ EcpInit(void)
 /* Init ECP state for this bundle */
 
   memset(ecp, 0, sizeof(*ecp));
-  FsmInit(&ecp->fsm, &gEcpFsmType);
+  FsmInit(&ecp->fsm, &gEcpFsmType, bund);
   ecp->fsm.conf.maxfailure = ECP_MAXFAILURE;
 
 /* Construct options list if we haven't done so already */
@@ -450,7 +450,7 @@ EcpRecvResetAck(Fsm fp, int id, Mbuf bp)
 void
 EcpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&b->ecp.fsm, bp, b);
+  FsmInput(&b->ecp.fsm, bp);
 }
 
 /*

@@ -178,7 +178,7 @@ LcpInit(void)
   LcpState	const lcp = &lnk->lcp;
 
   memset(lcp, 0, sizeof(*lcp));
-  FsmInit(&lcp->fsm, &gLcpFsmType);
+  FsmInit(&lcp->fsm, &gLcpFsmType, lnk);
   lcp->fsm.conf.echo_int = LCP_ECHO_INTERVAL;
   lcp->fsm.conf.echo_max = LCP_ECHO_TIMEOUT;
   lcp->phase = PHASE_DEAD;
@@ -1182,7 +1182,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 void
 LcpInput(Link l, Mbuf bp)
 {
-  FsmInput(&l->lcp.fsm, bp, l);
+  FsmInput(&l->lcp.fsm, bp);
 }
 
 static const struct fsmoption *

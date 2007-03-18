@@ -191,7 +191,7 @@ Ipv6cpInit(void)
 
   /* Init state machine */
   memset(ipv6cp, 0, sizeof(*ipv6cp));
-  FsmInit(&ipv6cp->fsm, &gIpv6cpFsmType);
+  FsmInit(&ipv6cp->fsm, &gIpv6cpFsmType, bund);
 
   CreateInterfaceID(ipv6cp->myintid,0);
 
@@ -443,7 +443,7 @@ Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 void
 Ipv6cpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&b->ipv6cp.fsm, bp, b);
+  FsmInput(&b->ipv6cp.fsm, bp);
 }
 
 /*
