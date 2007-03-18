@@ -66,7 +66,7 @@
   static int		CcpCheckEncryption(Bund b);
   static int		CcpSetCommand(Context ctx, int ac, char *av[], void *arg);
   static CompType	CcpFindComp(int type, int *indexp);
-  static const char	*CcpTypeName(int type);
+  static const char	*CcpTypeName(int type, char *buf, size_t len);
 
 /*
  * GLOBAL VARIABLES
@@ -328,8 +328,8 @@ CcpRecvMsg(Bund b, struct ng_mesg *msg, int len)
   }
 
   /* Unknown! */
-  Log(LG_ERR, ("%s: rec'd unknown netgraph message: cookie=%d, cmd=%d",
-    Pref(fp), msg->header.typecookie, msg->header.cmd));
+  Log(LG_ERR, ("[%s] %s: rec'd unknown netgraph message: cookie=%d, cmd=%d",
+    Pref(fp), Fsm(fp), msg->header.typecookie, msg->header.cmd));
 }
 
 /*
@@ -415,21 +415,22 @@ int
 CcpStat(Context ctx, int ac, char *av[], void *arg)
 {
   CcpState	const ccp = &ctx->bund->ccp;
+  char		buf[64];
 
-  Printf("%s [%s]\r\n", Pref(&ccp->fsm), FsmStateName(ccp->fsm.state));
+  Printf("[%s] %s [%s]\r\n", Pref(&ccp->fsm), Fsm(&ccp->fsm), FsmStateName(ccp->fsm.state));
   Printf("Enabled protocols:\r\n");
   OptStat(&ccp->options, gConfList);
 
   Printf("Outgoing compression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
-    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(ctx->bund, COMP_DIR_XMIT) : "");
+    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(ctx->bund, COMP_DIR_XMIT, buf, sizeof(buf)) : "");
   if (ccp->xmit && ccp->xmit->Stat)
     ccp->xmit->Stat(ctx->bund, COMP_DIR_XMIT);
   Printf("\tResets\t: %d\r\n", ccp->xmit_resets);
 
   Printf("Incoming decompression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
-    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(ctx->bund, COMP_DIR_RECV) : "");
+    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(ctx->bund, COMP_DIR_RECV, buf, sizeof(buf)) : "");
   if (ccp->recv && ccp->recv->Stat)
     ccp->recv->Stat(ctx->bund, COMP_DIR_RECV);
   Printf("\tResets\t: %d\r\n", ccp->recv_resets);
@@ -453,8 +454,8 @@ CcpSendResetReq(Bund b)
   ccp->recv_resets++;
   if (ct->SendResetReq)
     bp = (*ct->SendResetReq)(b);
-  Log(LG_CCP, ("%s: SendResetReq #%d link %d (%s)", 
-    Pref(fp), fp->reqid, 0, FsmStateName(fp->state)));
+  Log(LG_CCP, ("[%s] %s: SendResetReq #%d link %d (%s)", 
+    Pref(fp), Fsm(fp), fp->reqid, 0, FsmStateName(fp->state)));
   FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid++, bp);
 }
 
@@ -473,8 +474,8 @@ CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
   ccp->xmit_resets++;
   bp = (ct && ct->RecvResetReq) ? (*ct->RecvResetReq)(b, id, bp, &noAck) : NULL;
   if (!noAck) {
-    Log(LG_CCP, ("%s: SendResetAck #%d link %d (%s)",
-	Pref(fp), id, 0, FsmStateName(fp->state)));
+    Log(LG_CCP, ("[%s] %s: SendResetAck #%d link %d (%s)",
+	Pref(fp), Fsm(fp), id, 0, FsmStateName(fp->state)));
     FsmOutputMbuf(fp, CODE_RESETACK, id, bp);
   }
 }
@@ -516,18 +517,18 @@ CcpDataOutput(Bund b, Mbuf plain)
   CcpState	const ccp = &b->ccp;
   Mbuf		comp;
 
-  LogDumpBp(LG_CCP3, plain, "%s: xmit plain", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, plain, "[%s] %s: xmit plain", Pref(&ccp->fsm), Fsm(&ccp->fsm));
 
 /* Compress packet */
 
   if ((!ccp->xmit) || (!ccp->xmit->Compress))
   {
-    Log(LG_ERR, ("%s: no encryption for xmit", Pref(&ccp->fsm)));
+    Log(LG_ERR, ("[%s] %s: no encryption for xmit", Pref(&ccp->fsm), Fsm(&ccp->fsm)));
     PFREE(plain);
     return(NULL);
   }
   comp = (*ccp->xmit->Compress)(b, plain);
-  LogDumpBp(LG_CCP3, comp, "%s: xmit comp", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, comp, "[%s] %s: xmit comp", Pref(&ccp->fsm), Fsm(&ccp->fsm));
 
   return(comp);
 }
@@ -545,13 +546,13 @@ CcpDataInput(Bund b, Mbuf comp)
   CcpState	const ccp = &b->ccp;
   Mbuf		plain;
 
-  LogDumpBp(LG_CCP3, comp, "%s: recv comp", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, comp, "[%s] %s: recv comp", Pref(&ccp->fsm), Fsm(&ccp->fsm));
 
 /* Decompress packet */
 
   if ((!ccp->recv) || (!ccp->recv->Decompress))
   {
-    Log(LG_ERR, ("%s: no compression for recv", Pref(&ccp->fsm)));
+    Log(LG_ERR, ("[%s] %s: no compression for recv", Pref(&ccp->fsm), Fsm(&ccp->fsm)));
     PFREE(comp);
     return(NULL);
   }
@@ -562,10 +563,10 @@ CcpDataInput(Bund b, Mbuf comp)
 
   if (plain == NULL)
   {
-    Log(LG_CCP, ("%s: decompression failed", Pref(&ccp->fsm)));
+    Log(LG_CCP, ("[%s] %s: decompression failed", Pref(&ccp->fsm), Fsm(&ccp->fsm)));
     return(NULL);
   }
-  LogDumpBp(LG_CCP3, plain, "%s: recv plain", Pref(&ccp->fsm));
+  LogDumpBp(LG_CCP3, plain, "[%s] %s: recv plain", Pref(&ccp->fsm), Fsm(&ccp->fsm));
 
   return(plain);
 }
@@ -605,11 +606,12 @@ CcpLayerUp(Fsm fp)
     Bund 	b = (Bund)fp->arg;
   CcpState	const ccp = &b->ccp;
   struct ngm_connect    cn;
+  char		buf[64];
 
   /* If nothing was negotiated in either direction, close CCP */
   if ((!ccp->recv || !(*ccp->recv->Negotiated)(b, COMP_DIR_RECV))
       && (!ccp->xmit || !(*ccp->xmit->Negotiated)(b, COMP_DIR_XMIT))) {
-    Log(LG_CCP, ("%s: No compression negotiated", Pref(fp)));
+    Log(LG_CCP, ("[%s] %s: No compression negotiated", Pref(fp), Fsm(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);
     return;
   }
@@ -622,13 +624,13 @@ CcpLayerUp(Fsm fp)
   /* Initialize each direction */
   if (ccp->xmit != NULL && ccp->xmit->Init != NULL
       && (*ccp->xmit->Init)(b, COMP_DIR_XMIT) < 0) {
-    Log(LG_CCP, ("%s: %scompression init failed", Pref(fp), ""));
+    Log(LG_CCP, ("[%s] %s: %scompression init failed", Pref(fp), Fsm(fp), ""));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);		/* XXX */
     return;
   }
   if (ccp->recv != NULL && ccp->recv->Init != NULL
       && (*ccp->recv->Init)(b, COMP_DIR_RECV) < 0) {
-    Log(LG_CCP, ("%s: %scompression init failed", Pref(fp), "de"));
+    Log(LG_CCP, ("[%s] %s: %scompression init failed", Pref(fp), Fsm(fp), "de"));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);		/* XXX */
     return;
   }
@@ -659,9 +661,9 @@ CcpLayerUp(Fsm fp)
 
   /* Report what we're doing */
   Log(LG_CCP, ("  Compress using: %s (%s)", !ccp->xmit ? "none" : ccp->xmit->name,
-    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(b, COMP_DIR_XMIT) : ""));
+    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(b, COMP_DIR_XMIT, buf, sizeof(buf)) : ""));
   Log(LG_CCP, ("Decompress using: %s (%s)", !ccp->recv ? "none" : ccp->recv->name,
-    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(b, COMP_DIR_RECV) : ""));
+    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(b, COMP_DIR_RECV, buf, sizeof(buf)) : ""));
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
@@ -748,8 +750,9 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     FsmOption	const opt = &list[k];
     int		index;
     CompType	ct;
+    char	buf[32];
 
-    Log(LG_CCP, (" %s", CcpTypeName(opt->type)));
+    Log(LG_CCP, (" %s", CcpTypeName(opt->type, buf, sizeof(buf))));
     if ((ct = CcpFindComp(opt->type, &index)) == NULL) {
       if (mode == MODE_REQ) {
 	Log(LG_CCP, ("   Not supported"));
@@ -860,8 +863,8 @@ CcpCheckEncryption(Bund b)
   return(0);
 
 fail:
-  Log(LG_ERR, ("%s: encryption required, but MPPE was not"
-    " negotiated in both directions", Pref(&ccp->fsm)));
+  Log(LG_ERR, ("[%s] %s: encryption required, but MPPE was not"
+    " negotiated in both directions", Pref(&ccp->fsm), Fsm(&ccp->fsm)));
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
   FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
   FsmFailure(&b->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
@@ -934,14 +937,15 @@ CcpFindComp(int type, int *indexp)
  */
 
 static const char *
-CcpTypeName(int type)
+CcpTypeName(int type, char *buf, size_t len)
 {
   const struct ccpname	*p;
-  static char		buf[20];
 
   for (p = gCcpTypeNames; p->name; p++) {
-    if (p->type == type)
-      return(p->name);
+    if (p->type == type) {
+	strlcpy(buf, p->name, len);
+        return (buf);
+    }
   }
   snprintf(buf, sizeof(buf), "UNKNOWN[%d]", type);
   return(buf);

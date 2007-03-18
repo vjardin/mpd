@@ -2406,8 +2406,6 @@ ppp_l2tp_ctrl_dump(struct ppp_l2tp_ctrl *ctrl,
 static const char *
 ppp_l2tp_ctrl_state_str(enum l2tp_ctrl_state state)
 {
-	static char buf[32];
-
 	switch (state) {
 	case CS_IDLE:
 		return ("idle");
@@ -2420,16 +2418,13 @@ ppp_l2tp_ctrl_state_str(enum l2tp_ctrl_state state)
 	case CS_DYING:
 		return ("dying");
 	default:
-		snprintf(buf, sizeof(buf), "?%u?", state);
-		return (buf);
+		return ("UNKNOWN");
 	}
 }
 
 static const char *
 ppp_l2tp_sess_state_str(enum l2tp_ctrl_state state)
 {
-	static char buf[32];
-
 	switch (state) {
 	case SS_WAIT_REPLY:
 		return ("wait-cs-reply");
@@ -2442,8 +2437,7 @@ ppp_l2tp_sess_state_str(enum l2tp_ctrl_state state)
 	case SS_DYING:
 		return ("dying");
 	default:
-		snprintf(buf, sizeof(buf), "?%u?", state);
-		return (buf);
+		return ("UNKNOWN");
 	}
 }
 

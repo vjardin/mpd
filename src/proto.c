@@ -153,6 +153,9 @@
 
 /*
  * ProtoName()
+ * XXX For unknown protocols this function return pointer 
+ * on the static variable. It is not good, but I think 
+ * it should not create troubles as it is used only for logging.
  */
 
 const char *
@@ -175,6 +178,7 @@ ProtoName(int proto)
     return(pn->name);
 
   /* Return hex value */
+  buf[19] = 0;
   sprintf(buf, "0x%04x", proto);
   return(buf);
 }

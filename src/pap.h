@@ -48,7 +48,7 @@
   extern void	PapStop(PapInfo pap);
   extern void	PapInput(Link l, struct authdata *auth, const u_char *pkt, u_short len);
   extern void	PapInputFinish(Link l, struct authdata *auth);
-  extern const	char *PapCode(int code);
+  extern const	char *PapCode(int code, char *buf, size_t len);
 
 #endif
 

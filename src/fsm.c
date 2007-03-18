@@ -165,8 +165,8 @@ FsmNewState(Fsm fp, int new)
   int	old;
 
   /* Log it */
-  Log(fp->log2, ("%s: state change %s --> %s",
-    Pref(fp), FsmStateName(fp->state), FsmStateName(new)));
+  Log(fp->log2, ("[%s] %s: state change %s --> %s",
+    Pref(fp), Fsm(fp), FsmStateName(fp->state), FsmStateName(new)));
 
   /* Change state and call protocol's own handler, if any */
   old = fp->state;
@@ -245,7 +245,7 @@ FsmOutput(Fsm fp, u_int code, u_int id, u_char *ptr, int len)
 void
 FsmOpen(Fsm fp)
 {
-  Log(fp->log2, ("%s: Open event", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: Open event", Pref(fp), Fsm(fp)));
   switch (fp->state) {
     case ST_INITIAL:
       FsmNewState(fp, ST_STARTING);
@@ -296,7 +296,7 @@ FsmOpen(Fsm fp)
 void
 FsmUp(Fsm fp)
 {
-  Log(fp->log2, ("%s: Up event", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: Up event", Pref(fp), Fsm(fp)));
   switch (fp->state) {
     case ST_INITIAL:
       FsmNewState(fp, ST_CLOSED);
@@ -311,8 +311,8 @@ FsmUp(Fsm fp)
       FsmSendConfigReq(fp);
       break;
     default:
-      Log(fp->log2, ("%s: Oops, UP at %s",
-	Pref(fp), FsmStateName(fp->state)));
+      Log(fp->log2, ("[%s] %s: Oops, UP at %s",
+	Pref(fp), Fsm(fp), FsmStateName(fp->state)));
       break;
   }
 }
@@ -320,7 +320,7 @@ FsmUp(Fsm fp)
 void
 FsmDown(Fsm fp)
 {
-  Log(fp->log2, ("%s: Down event", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: Down event", Pref(fp), Fsm(fp)));
   switch (fp->state) {
     case ST_CLOSING:
       FsmLayerFinish(fp);		/* Missing in RFC 1661 */
@@ -352,7 +352,7 @@ FsmDown(Fsm fp)
 void
 FsmClose(Fsm fp)
 {
-  Log(fp->log2, ("%s: Close event", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: Close event", Pref(fp), Fsm(fp)));
   switch (fp->state) {
     case ST_STARTING:
       FsmNewState(fp, ST_INITIAL);
@@ -395,7 +395,7 @@ FsmSendConfigReq(Fsm fp)
   u_char	*cp;
 
   /* Build and display config request */
-  Log(fp->log, ("%s: SendConfigReq #%d", Pref(fp), fp->reqid));
+  Log(fp->log, ("[%s] %s: SendConfigReq #%d", Pref(fp), Fsm(fp), fp->reqid));
   cp = (*fp->type->BuildConfigReq)(fp, reqBuf);
   FsmDecodeBuffer(fp, reqBuf, cp - reqBuf, MODE_NOP);
 
@@ -411,7 +411,7 @@ FsmSendConfigReq(Fsm fp)
 static void
 FsmSendTerminateReq(Fsm fp)
 {
-  Log(fp->log, ("%s: SendTerminateReq #%d", Pref(fp), fp->reqid));
+  Log(fp->log, ("[%s] %s: SendTerminateReq #%d", Pref(fp), Fsm(fp), fp->reqid));
   FsmOutput(fp, CODE_TERMREQ, fp->reqid++, NULL, 0);
   if (fp->type->SendTerminateReq)
     (*fp->type->SendTerminateReq)(fp);
@@ -422,7 +422,7 @@ FsmSendTerminateReq(Fsm fp)
 static void
 FsmSendTerminateAck(Fsm fp)
 {
-  Log(fp->log, ("%s: SendTerminateAck #%d", Pref(fp), fp->reqid));
+  Log(fp->log, ("[%s] %s: SendTerminateAck #%d", Pref(fp), Fsm(fp), fp->reqid));
   FsmOutput(fp, CODE_TERMACK, fp->reqid++, NULL, 0);
   if (fp->type->SendTerminateAck)
     (*fp->type->SendTerminateAck)(fp);
@@ -431,7 +431,7 @@ FsmSendTerminateAck(Fsm fp)
 static void
 FsmSendConfigAck(Fsm fp, FsmHeader lhp, u_char *option, int count)
 {
-  Log(fp->log, ("%s: SendConfigAck #%d", Pref(fp), lhp->id));
+  Log(fp->log, ("[%s] %s: SendConfigAck #%d", Pref(fp), Fsm(fp), lhp->id));
   FsmDecodeBuffer(fp, option, count, MODE_NOP);
   FsmOutput(fp, CODE_CONFIGACK, lhp->id, option, count);
 }
@@ -439,7 +439,7 @@ FsmSendConfigAck(Fsm fp, FsmHeader lhp, u_char *option, int count)
 static void
 FsmSendConfigRej(Fsm fp, FsmHeader lhp, u_char *option, int count)
 {
-  Log(fp->log, ("%s: SendConfigRej #%d", Pref(fp), lhp->id));
+  Log(fp->log, ("[%s] %s: SendConfigRej #%d", Pref(fp), Fsm(fp), lhp->id));
   FsmDecodeBuffer(fp, option, count, MODE_NOP);
   FsmOutput(fp, CODE_CONFIGREJ, lhp->id, option, count);
   fp->failure--;
@@ -448,7 +448,7 @@ FsmSendConfigRej(Fsm fp, FsmHeader lhp, u_char *option, int count)
 static void
 FsmSendConfigNak(Fsm fp, FsmHeader lhp, u_char *option, int count)
 {
-  Log(fp->log, ("%s: SendConfigNak #%d", Pref(fp), lhp->id));
+  Log(fp->log, ("[%s] %s: SendConfigNak #%d", Pref(fp), Fsm(fp), lhp->id));
   FsmDecodeBuffer(fp, option, count, MODE_NOP);
   FsmOutput(fp, CODE_CONFIGNAK, lhp->id, option, count);
   fp->failure--;
@@ -538,7 +538,7 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
   switch (fp->state) {
     case ST_INITIAL:
     case ST_STARTING:
-      Log(fp->log2, ("%s: Oops, RCR in %s", Pref(fp), FsmStateName(fp->state)));
+      Log(fp->log2, ("[%s] %s: Oops, RCR in %s", Pref(fp), Fsm(fp), FsmStateName(fp->state)));
       PFREE(bp);
       return;
     case ST_CLOSED:
@@ -580,7 +580,7 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
     FsmSendConfigAck(fp, lhp, gAckBuf, gAckSize);
   else {
     if (fp->failure <= 0) {
-      Log(fp->log, ("%s: not converging", Pref(fp)));
+      Log(fp->log, ("[%s] %s: not converging", Pref(fp), Fsm(fp)));
       FsmFailure(fp, FAIL_NEGOT_FAILURE);
       PFREE(bp);
       return;
@@ -692,7 +692,7 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
   switch (fp->state) {
     case ST_INITIAL:
     case ST_STARTING:
-      Log(fp->log, ("%s: Oops, RCN in %s", Pref(fp), FsmStateName(fp->state)));
+      Log(fp->log, ("[%s] %s: Oops, RCN in %s", Pref(fp), Fsm(fp), FsmStateName(fp->state)));
       PFREE(bp);
       return;
     case ST_CLOSED:
@@ -712,7 +712,7 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   /* Not converging? */
   if (fp->config <= 0) {
-    Log(fp->log, ("%s: not converging", Pref(fp)));
+    Log(fp->log, ("[%s] %s: not converging", Pref(fp), Fsm(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);
     PFREE(bp);
     return;
@@ -755,7 +755,7 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
   switch (fp->state) {
     case ST_INITIAL:
     case ST_STARTING:
-      Log(fp->log, ("%s: Oops, RCJ in %s", Pref(fp), FsmStateName(fp->state)));
+      Log(fp->log, ("[%s] %s: Oops, RCJ in %s", Pref(fp), Fsm(fp), FsmStateName(fp->state)));
       PFREE(bp);
       return;
     case ST_CLOSED:
@@ -775,7 +775,7 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   /* Not converging? */
   if (fp->config <= 0) {
-    Log(fp->log, ("%s: not converging", Pref(fp)));
+    Log(fp->log, ("[%s] %s: not converging", Pref(fp), Fsm(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);
     PFREE(bp);
     return;
@@ -812,7 +812,7 @@ FsmRecvTermReq(Fsm fp, FsmHeader lhp, Mbuf bp)
   switch (fp->state) {
     case ST_INITIAL:
     case ST_STARTING:
-      Log(fp->log, ("%s: Oops, RTR in %s", Pref(fp), FsmStateName(fp->state)));
+      Log(fp->log, ("[%s] %s: Oops, RTR in %s", Pref(fp), Fsm(fp), FsmStateName(fp->state)));
       break;
     case ST_CLOSED:
     case ST_STOPPED:
@@ -879,7 +879,7 @@ FsmRecvCodeRej(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   /* Get code and log it */
   bp = mbread(bp, &code, sizeof(code), NULL);
-  Log(fp->log, ("%s: code %s was rejected", Pref(fp), FsmCodeName(code)));
+  Log(fp->log, ("[%s] %s: code %s was rejected", Pref(fp), Fsm(fp), FsmCodeName(code)));
 
   /* Determine fatalness */
   if (fp->type->RecvCodeRej)
@@ -932,7 +932,7 @@ FsmRecvProtoRej(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   bp = mbread(bp, (u_char *) &proto, sizeof(proto), NULL);
   proto = ntohs(proto);
-  Log(fp->log, ("%s: protocol %s was rejected", Pref(fp), ProtoName(proto)));
+  Log(fp->log, ("[%s] %s: protocol %s was rejected", Pref(fp), Fsm(fp), ProtoName(proto)));
   if (fp->state == ST_OPENED && fp->type->RecvProtoRej)
     fatal = (*fp->type->RecvProtoRej)(fp, proto, bp);
   if (fatal)
@@ -967,7 +967,7 @@ FsmRecvRxjPlus(Fsm fp)				/* RXJ+ */
 void
 FsmFailure(Fsm fp, enum fsmfail reason)
 {
-  Log(fp->log, ("%s: %s", Pref(fp), FsmFailureStr(reason)));
+  Log(fp->log, ("[%s] %s: %s", Pref(fp), Fsm(fp), FsmFailureStr(reason)));
 
   /* Let layer do any special handling of error code */
   if (fp->type->Failure)
@@ -1082,7 +1082,7 @@ FsmSendEchoReq(Fsm fp, Mbuf payload)
   bp->next = payload;
 
   /* Send it */
-  Log(LG_ECHO, ("%s: SendEchoReq #%d", Pref(fp), fp->echoid));
+  Log(LG_ECHO, ("[%s] %s: SendEchoReq #%d", Pref(fp), Fsm(fp), fp->echoid));
   FsmOutputMbuf(fp, CODE_ECHOREQ, fp->echoid++, bp);
 }
 
@@ -1109,7 +1109,7 @@ FsmSendIdent(Fsm fp, const char *ident)
   bp->next = mbwrite(mballoc(MB_FSM, len), (u_char *) ident, len);
 
   /* Send it */
-  Log(LG_FSM, ("%s: SendIdent #%d", Pref(fp), fp->echoid));
+  Log(LG_FSM, ("[%s] %s: SendIdent #%d", Pref(fp), Fsm(fp), fp->echoid));
   ShowMesg(LG_FSM, ident, len);
   FsmOutputMbuf(fp, CODE_IDENT, fp->echoid++, bp);
 }
@@ -1141,7 +1141,7 @@ FsmRecvEchoReq(Fsm fp, FsmHeader lhp, Mbuf bp)
   bp = mbp;
 
   /* Send it back, preserving everything else */
-  Log(LG_ECHO, ("%s: SendEchoRep #%d", Pref(fp), lhp->id));
+  Log(LG_ECHO, ("[%s] %s: SendEchoRep #%d", Pref(fp), Fsm(fp), lhp->id));
   FsmOutputMbuf(fp, CODE_ECHOREP, lhp->id, bp);
 }
 
@@ -1251,7 +1251,7 @@ FsmRecvResetAck(Fsm fp, FsmHeader lhp, Mbuf bp)
 static void
 FsmLayerUp(Fsm fp)
 {
-  Log(fp->log2, ("%s: LayerUp", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: LayerUp", Pref(fp), Fsm(fp)));
   if (fp->type->LayerUp)
     (*fp->type->LayerUp)(fp);
 }
@@ -1263,7 +1263,7 @@ FsmLayerUp(Fsm fp)
 static void
 FsmLayerDown(Fsm fp)
 {
-  Log(fp->log2, ("%s: LayerDown", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: LayerDown", Pref(fp), Fsm(fp)));
   if (fp->type->LayerDown)
     (*fp->type->LayerDown)(fp);
 }
@@ -1275,7 +1275,7 @@ FsmLayerDown(Fsm fp)
 static void
 FsmLayerStart(Fsm fp)
 {
-  Log(fp->log2, ("%s: LayerStart", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: LayerStart", Pref(fp), Fsm(fp)));
   if (fp->type->LayerStart)
     (*fp->type->LayerStart)(fp);
 }
@@ -1287,7 +1287,7 @@ FsmLayerStart(Fsm fp)
 static void
 FsmLayerFinish(Fsm fp)
 {
-  Log(fp->log2, ("%s: LayerFinish", Pref(fp)));
+  Log(fp->log2, ("[%s] %s: LayerFinish", Pref(fp), Fsm(fp)));
   if (fp->type->LayerFinish)
     (*fp->type->LayerFinish)(fp);
 }
@@ -1315,8 +1315,8 @@ FsmCheckMagic(Fsm fp, Mbuf bp)
   /* Verify */
   if (fp->conf.check_magic && peer_magic != 0
      && peer_magic != peer_magic_ought) {
-    Log(fp->log, ("%s: magic number is wrong: 0x%08x != 0x%08x",
-      Pref(fp), peer_magic, peer_magic_ought));
+    Log(fp->log, ("[%s] %s: magic number is wrong: 0x%08x != 0x%08x",
+      Pref(fp), Fsm(fp), peer_magic, peer_magic_ought));
     FsmFailure(fp, FAIL_RECD_BADMAGIC);
   }
   return(bp);
@@ -1357,8 +1357,8 @@ FsmEchoTimeout(void *arg)
       /* Peer failed to reply to previous echo request */
     default:
       Log(LG_ECHO|fp->log,
-	("%s: no reply to %d echo request(s)",
-	Pref(fp), fp->quietCount - 1));
+	("[%s] %s: no reply to %d echo request(s)",
+	Pref(fp), Fsm(fp), fp->quietCount - 1));
 
       /* Has peer failed to reply for maximum allowable interval? */
       if (fp->quietCount * fp->conf.echo_int >= fp->conf.echo_max) {
@@ -1389,7 +1389,7 @@ FsmInput(Fsm fp, Mbuf bp)
 
   /* Check for runt frames; discard them */
   if ((recd_len = plength(bp)) < sizeof(hdr)) {
-    Log(fp->log, ("%s: runt packet: %d bytes", Pref(fp), recd_len));
+    Log(fp->log, ("[%s] %s: runt packet: %d bytes", Pref(fp), Fsm(fp), recd_len));
     PFREE(bp);
     return;
   }
@@ -1400,8 +1400,8 @@ FsmInput(Fsm fp, Mbuf bp)
 
   /* Make sure length is sensible; discard otherwise */
   if (length < sizeof(hdr) || length > recd_len) {
-    Log(fp->log, ("%s: bad length: says %d, rec'd %d",
-      Pref(fp), length, recd_len));
+    Log(fp->log, ("[%s] %s: bad length: says %d, rec'd %d",
+      Pref(fp), Fsm(fp), length, recd_len));
     PFREE(bp);
     return;
   }
@@ -1412,7 +1412,7 @@ FsmInput(Fsm fp, Mbuf bp)
 
   /* Check for a valid code byte -- if not, send code-reject */
   if (!((1 << hdr.code) & fp->type->known_codes)) {	/* RUC */
-    Log(fp->log, ("%s: unknown code %d", Pref(fp), hdr.code));
+    Log(fp->log, ("[%s] %s: unknown code %d", Pref(fp), Fsm(fp), hdr.code));
     bp = mbunify(bp);
     FsmOutput(fp, CODE_CODEREJ, fp->rejid++, MBDATA(bp), MBLEN(bp));
     PFREE(bp);
@@ -1426,8 +1426,8 @@ FsmInput(Fsm fp, Mbuf bp)
     log = fp->log2;
   else
     log = fp->log;
-  Log(log, ("%s: rec'd %s #%d (%s)",
-    Pref(fp), FsmCodeName(hdr.code), (int) hdr.id,
+  Log(log, ("[%s] %s: rec'd %s #%d (%s)",
+    Pref(fp), Fsm(fp), FsmCodeName(hdr.code), (int) hdr.id,
     FsmStateName(fp->state)));
 
   /* Do whatever */
@@ -1498,7 +1498,7 @@ FsmExtractOptions(Fsm fp, u_char *data, int dlen, FsmOption opts, int max)
   }
   if (dlen != 0)
     LogDumpBuf(LG_ERR, data, dlen,
-      "%s: %d extra garbage bytes in config packet", Pref(fp), dlen);
+      "[%s] %s: %d extra garbage bytes in config packet", Pref(fp), Fsm(fp), dlen);
   return(num);
 }
 
@@ -1539,7 +1539,7 @@ void
 FsmAck(Fsm fp, const struct fsmoption *opt)
 {
   if (gAckSize + opt->len > sizeof(gAckBuf)) {
-    Log(LG_ERR, ("%s: %s buffer full", Pref(fp), "ack"));
+    Log(LG_ERR, ("[%s] %s: %s buffer full", Pref(fp), Fsm(fp), "ack"));
     return;
   }
   memcpy(&gAckBuf[gAckSize], opt, 2);
@@ -1555,7 +1555,7 @@ void
 FsmNak(Fsm fp, const struct fsmoption *opt)
 {
   if (gNakSize + opt->len > sizeof(gNakBuf)) {
-    Log(LG_ERR, ("%s: %s buffer full", Pref(fp), "nak"));
+    Log(LG_ERR, ("[%s] %s: %s buffer full", Pref(fp), Fsm(fp), "nak"));
     return;
   }
   memcpy(&gNakBuf[gNakSize], opt, 2);
@@ -1571,7 +1571,7 @@ void
 FsmRej(Fsm fp, const struct fsmoption *opt)
 {
   if (gRejSize + opt->len > sizeof(gRejBuf)) {
-    Log(LG_ERR, ("%s: %s buffer full", Pref(fp), "rej"));
+    Log(LG_ERR, ("[%s] %s: %s buffer full", Pref(fp), Fsm(fp), "rej"));
     return;
   }
   memcpy(&gRejBuf[gRejSize], opt, 2);
@@ -1580,39 +1580,15 @@ FsmRej(Fsm fp, const struct fsmoption *opt)
 }
 
 /*
- * Pref()
- *
- * Cook up a little prefix for printing stuff to the log.
- * This is statically allocated so must be printed or
- * whatever immediately.
- */
-
-char *
-Pref(Fsm fp)
-{
-  static char	buf[100];
-
-  snprintf(buf, sizeof(buf), "[%s] %s",
-    fp->type->link_layer ? ((Link)(fp->arg))->name : ((Bund)(fp->arg))->name, fp->type->name);
-  return(buf);
-}
-
-/*
  * FsmCodeName()
- *
- * This is statically allocated so must be printed or
- * whatever immediately.
  */
 
 const char *
 FsmCodeName(int code)
 {
-  static char	buf[20];
-
   if (code >= 0 && code < NUM_FSM_CODES)
-    return(FsmCodes[code].name);
-  snprintf(buf, sizeof(buf), "%d", code);
-  return(buf);
+    return (FsmCodes[code].name);
+  return ("UNKNOWN");
 }
 
 /*

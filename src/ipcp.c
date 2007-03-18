@@ -183,7 +183,7 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
   struct slcompress	*const sls = (struct slcompress *)(void *)u.reply.data;
   char			buf[64];
 
-  Printf("%s [%s]\r\n", Pref(fp), FsmStateName(fp->state));
+  Printf("[%s] %s [%s]\r\n", Pref(fp), Fsm(fp), FsmStateName(fp->state));
   Printf("Allowed IP address ranges:\r\n");
   Printf("\tSelf: %s\r\n",
     u_rangetoa(&ipcp->conf.self_allow,buf,sizeof(buf)));

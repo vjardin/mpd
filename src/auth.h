@@ -253,7 +253,7 @@
   extern const char	*AuthFailMsg(AuthData auth, int alg, char *buf, size_t len);
   extern const char	*AuthStatusText(int status);
   extern const char	*AuthMPPEPolicyname(int policy);
-  extern const char	*AuthMPPETypesname(int types);
+  extern const char	*AuthMPPETypesname(int types, char *buf, size_t len);
 
   extern void		authparamsInit(struct authparams *ap);
   extern void		authparamsCopy(struct authparams *src, struct authparams *dst);

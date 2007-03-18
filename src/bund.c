@@ -1028,6 +1028,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
 {
   Bund	sb;
   int	k, bw, tbw, nup;
+  char	buf[64];
 
   /* Find bundle they're talking about */
   switch (ac) {
@@ -1061,7 +1062,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tTotal bandwidth: %u bits/sec\r\n", tbw);
   Printf("\tAvail bandwidth: %u bits/sec\r\n", bw);
   Printf("\tPeer authname  : \"%s\"\r\n", sb->params.authname);
-  Printf("\tPeer discrim.  : %s\r\n", MpDiscrimText(&sb->peer_discrim));
+  Printf("\tPeer discrim.  : %s\r\n", MpDiscrimText(&sb->peer_discrim, buf, sizeof(buf)));
 
   /* Show configuration */
   Printf("Configuration:\r\n");
@@ -1083,7 +1084,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
       sb->multilink ? "Active" : "Inactive\r\n");
     if (sb->multilink) {
       Printf("\tPeer auth name : \"%s\"\r\n", sb->params.authname);
-      Printf("\tPeer discrimin.: %s\r\n", MpDiscrimText(&sb->peer_discrim));
+      Printf("\tPeer discrimin.: %s\r\n", MpDiscrimText(&sb->peer_discrim, buf, sizeof(buf)));
     }
   }
 

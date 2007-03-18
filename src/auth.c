@@ -42,7 +42,7 @@
   static void		AuthInternal(AuthData auth);
   static void		AuthSystem(AuthData auth);
   static void		AuthOpie(AuthData auth);
-  static const char	*AuthCode(int proto, u_char code);
+  static const char	*AuthCode(int proto, u_char code, char *buf, size_t len);
   static int		AuthSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   /* Set menu options */
@@ -302,8 +302,8 @@ AuthStart(Link l)
     /* remember called number */
     PhysGetCalledNum(l->phys, a->params.callednum, sizeof(a->params.callednum));
   
-  Log(LG_AUTH, ("%s: auth: peer wants %s, I want %s",
-    Pref(&l->lcp.fsm),
+  Log(LG_AUTH, ("[%s] %s: auth: peer wants %s, I want %s",
+    Pref(&l->lcp.fsm), Fsm(&l->lcp.fsm),
     a->self_to_peer ? ProtoName(a->self_to_peer) : "nothing",
     a->peer_to_self ? ProtoName(a->peer_to_self) : "nothing"));
 
@@ -457,6 +457,7 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
   struct fsmheader	lh;
   Mbuf			bp;
   int			plen;
+  char			buf[32];
 
   add_len = !!add_len;
   /* Setup header */
@@ -485,11 +486,11 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
   if (proto == PROTO_EAP) {
     memcpy(MBDATAU(bp) + sizeof(lh) + add_len + 1, ptr, len);
     Log(LG_AUTH, ("[%s] %s: sending %s Type %s len:%d", l->name,
-      ProtoName(proto), AuthCode(proto, code), EapType(eap_type), len));
+      ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), EapType(eap_type), len));
   } else {
     memcpy(MBDATAU(bp) + sizeof(lh) + add_len, ptr, len);
     Log(LG_AUTH, ("[%s] %s: sending %s len:%d", l->name,
-      ProtoName(proto), AuthCode(proto, code), len));
+      ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), len));
   }
 
   /* Send it out */
@@ -653,6 +654,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
 {
   Auth		const a = &ctx->lnk->lcp.auth;
   AuthConf	const conf = &a->conf;
+  char		buf[64];
 
   Printf("Configuration:\r\n");
   Printf("\tMy authname     : %s\r\n", conf->authname);
@@ -679,7 +681,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tTraffic Limits  : %s\r\n", (a->params.acl_limits[0] || a->params.acl_limits[1]) ? "yes" : "no");
   Printf("\tMS-Domain       : %s\r\n", a->params.msdomain);  
   Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(a->params.msoft.policy));
-  Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->params.msoft.types));
+  Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->params.msoft.types, buf, sizeof(buf)));
   Printf("\tMPPE Keys       : %s\r\n", a->params.msoft.has_keys ? "yes" : "no");
 
   return (0);
@@ -1247,7 +1249,7 @@ AuthTimeout(void *arg)
 {
     Link l = (Link)arg;
 
-  Log(LG_AUTH, ("%s: authorization timer expired", Pref(&l->lcp.fsm)));
+  Log(LG_AUTH, ("[%s] %s: authorization timer expired", Pref(&l->lcp.fsm), Fsm(&l->lcp.fsm)));
   AuthStop(l);
   LcpAuthResult(l, FALSE);
 }
@@ -1327,8 +1329,6 @@ AuthFailMsg(AuthData auth, int alg, char *buf, size_t len)
 const char *
 AuthStatusText(int status)
 {  
-  static char	buf[12];
-  
   switch (status) {
     case AUTH_STATUS_UNDEF:
       return "undefined";
@@ -1340,8 +1340,7 @@ AuthStatusText(int status)
       return "failed";
 
     default:
-      snprintf(buf, sizeof(buf), "status %d", status);
-      return(buf);
+      return "INCORRECT STATUS";
   }
 }
 
@@ -1370,28 +1369,25 @@ AuthMPPEPolicyname(int policy)
  */
 
 const char *
-AuthMPPETypesname(int types) 
+AuthMPPETypesname(int types, char *buf, size_t len) 
 {
-  static char res[30];
-
-  memset(res, 0, sizeof res);
   if (types == 0) {
-    sprintf(res, "no encryption required");
-    return res;
+    sprintf(buf, "no encryption required");
+    return (buf);
   }
 
-  if (types & MPPE_TYPE_40BIT) sprintf (res, "40 ");
-  if (types & MPPE_TYPE_56BIT) sprintf (&res[strlen(res)], "56 ");
-  if (types & MPPE_TYPE_128BIT) sprintf (&res[strlen(res)], "128 ");
+  buf[0]=0;
+  if (types & MPPE_TYPE_40BIT) sprintf (buf, "40 ");
+  if (types & MPPE_TYPE_56BIT) sprintf (&buf[strlen(buf)], "56 ");
+  if (types & MPPE_TYPE_128BIT) sprintf (&buf[strlen(buf)], "128 ");
 
-  if (strlen(res) == 0) {
-    sprintf (res, "unknown types");
+  if (strlen(buf) == 0) {
+    sprintf (buf, "unknown types");
   } else {
-    sprintf (&res[strlen(res)], "bit");
+    sprintf (&buf[strlen(buf)], "bit");
   }
 
-  return res;
-
+  return (buf);
 }
 
 /*
@@ -1436,22 +1432,20 @@ AuthGetExternalPassword(char * extcmd, char *authname, char *password, size_t pa
  */
 
 static const char *
-AuthCode(int proto, u_char code)
+AuthCode(int proto, u_char code, char *buf, size_t len)
 {
-  static char	buf[12];
-
   switch (proto) {
     case PROTO_EAP:
-      return EapCode(code);
+      return EapCode(code, buf, len);
 
     case PROTO_CHAP:
-      return ChapCode(code);
+      return ChapCode(code, buf, len);
 
     case PROTO_PAP:
-      return PapCode(code);
+      return PapCode(code, buf, len);
 
     default:
-      snprintf(buf, sizeof(buf), "code %d", code);
+      snprintf(buf, len, "code %d", code);
       return(buf);
   }
 }

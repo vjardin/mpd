@@ -28,7 +28,7 @@
 
   static int	DeflateInit(Bund b, int direction);
   static void   DeflateConfigure(Bund b);
-  static char   *DeflateDescribe(Bund b, int xmit);
+  static char   *DeflateDescribe(Bund b, int xmit, char *buf, size_t len);
   static void	DeflateCleanup(Bund b, int direction);
 
   static u_char	*DeflateBuildConfigReq(Bund b, u_char *cp, int *ok);
@@ -143,24 +143,23 @@ DeflateConfigure(Bund b)
  */
 
 static char *
-DeflateDescribe(Bund b, int dir)
+DeflateDescribe(Bund b, int dir, char *buf, size_t len)
 {
     CcpState	const ccp = &b->ccp;
     DeflateInfo	const deflate = &ccp->deflate;
-    static char str[64];
 
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    snprintf(str,sizeof(str),"win %d",deflate->xmit_windowBits);
+	    snprintf(buf, len, "win %d", deflate->xmit_windowBits);
 	    break;
 	case COMP_DIR_RECV:
-	    snprintf(str,sizeof(str),"win %d",deflate->recv_windowBits);
+	    snprintf(buf, len, "win %d", deflate->recv_windowBits);
 	    break;
 	default:
     	    assert(0);
     	    return(NULL);
     }
-    return (str);
+    return (buf);
 };
 
 /*

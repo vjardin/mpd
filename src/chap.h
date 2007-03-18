@@ -102,7 +102,7 @@
   extern void	ChapInput(Link l, struct authdata *auth, const u_char *pkt, u_short len);
   extern void	ChapSendChallenge(Link l);
   extern void	ChapChalTimeout(void *ptr);
-  extern const	char *ChapCode(int code);
+  extern const	char *ChapCode(int code, char *buf, size_t len);
   extern void	ChapInputFinish(Link l, struct authdata *auth);
 
 #endif

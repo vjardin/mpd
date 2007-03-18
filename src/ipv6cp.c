@@ -138,7 +138,7 @@ Ipv6cpStat(Context ctx, int ac, char *av[], void *arg)
   Ipv6cpState		const ipv6cp = &ctx->bund->ipv6cp;
   Fsm			fp = &ipv6cp->fsm;
 
-  Printf("%s [%s]\r\n", Pref(fp), FsmStateName(fp->state));
+  Printf("[%s] %s [%s]\r\n", Pref(fp), Fsm(fp), FsmStateName(fp->state));
   Printf("Interface identificators:\r\n");
   Printf("\tSelf: %04x:%04x:%04x:%04x\r\n", ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]));
   Printf("\tPeer: %04x:%04x:%04x:%04x\r\n", ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3]));

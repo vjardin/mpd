@@ -199,7 +199,9 @@
   extern FsmOptInfo	FsmFindOptInfo(FsmOptInfo list, u_char type);
   extern const char	*FsmStateName(int state);
   extern const char	*FsmCodeName(int code);
-  extern char		*Pref(Fsm fp);
+
+#define Pref(fp)	 ( (fp)->type->link_layer ? ((Link)((fp)->arg))->name : ((Bund)((fp)->arg))->name )
+#define Fsm(fp)		 ( (fp)->type->name )
 
 #endif	/* _FSM_H_ */
 

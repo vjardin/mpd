@@ -283,15 +283,16 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   ChapInfo	const chap = &a->chap;
   int		data_len = len - 1, i, acc_type;
   u_char	*data = NULL, type = 0;
+  char		buf[32];
   
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
     type = pkt[0];
     Log(LG_AUTH, ("[%s] EAP: rec'd %s Type %s #%d len:%d",
-      l->name, EapCode(auth->code), EapType(type), auth->id, len));
+      l->name, EapCode(auth->code, buf, sizeof(buf)), EapType(type), auth->id, len));
   } else {
     Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len:%d",
-      l->name, EapCode(auth->code), auth->id, len));
+      l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, len));
   }
   
   if (Enabled(&eap->conf.options, EAP_CONF_RADIUS))
@@ -511,14 +512,15 @@ EapRadiusSendMsg(void *ptr)
   Link		l = (Link)ptr;
   Auth		const a = &l->lcp.auth;
   FsmHeader	const f = (FsmHeader)a->params.eapmsg;
+  char		buf[32];
 
   if (a->params.eapmsg_len > 4) {
     Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  Type %s #%d len:%d ",
-      l->name, EapCode(f->code), EapType(a->params.eapmsg[4]),
+      l->name, EapCode(f->code, buf, sizeof(buf)), EapType(a->params.eapmsg[4]),
       f->id, htons(f->length)));
   } else {
     Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  #%d len:%d ",
-      l->name, EapCode(f->code), f->id, htons(f->length)));
+      l->name, EapCode(f->code, buf, sizeof(buf)), f->id, htons(f->length)));
   } 
 
   bp = mballoc(MB_AUTH, a->params.eapmsg_len);
@@ -590,23 +592,25 @@ EapStat(Context ctx, int ac, char *av[], void *arg)
  */
 
 const char *
-EapCode(u_char code)
+EapCode(u_char code, char *buf, size_t len)
 {
-  static char	buf[12];
-
   switch (code) {
     case EAP_REQUEST:
-      return("REQUEST");
+	strlcpy(buf, "REQUEST", len);
+	break;
     case EAP_RESPONSE:
-      return("RESPONSE");
+	strlcpy(buf, "RESPONSE", len);
+	break;
     case EAP_SUCCESS:
-      return("SUCCESS");
+	strlcpy(buf, "SUCCESS", len);
+	break;
     case EAP_FAILURE:
-      return("FAILURE");
+	strlcpy(buf, "FAILURE", len);
+	break;
     default:
-      snprintf(buf, sizeof(buf), "code %d", code);
-      return(buf);
+	snprintf(buf, len, "code%d", code);
   }
+  return(buf);
 }
 
 /*
@@ -616,8 +620,6 @@ EapCode(u_char code)
 const char *
 EapType(u_char type)
 {
-  static char	buf[12];
-
   switch (type) {
     case EAP_TYPE_IDENT:
       return("Identity");
@@ -638,8 +640,7 @@ EapType(u_char type)
     case EAP_TYPE_EAP_TTLS:
       return("TTLS");
     default:
-      snprintf(buf, sizeof(buf), "type %d", type);
-      return(buf);
+      return("UNKNOWN");
   }
 }
 

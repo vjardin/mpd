@@ -401,8 +401,8 @@ LcpNewPhase(Link l, int new)
   int		old;
 
   /* Logit */
-  Log(LG_LCP2, ("%s: phase shift %s --> %s",
-    Pref(&lcp->fsm), PhaseNames[lcp->phase], PhaseNames[new]));
+  Log(LG_LCP2, ("[%s] %s: phase shift %s --> %s",
+    Pref(&lcp->fsm), Fsm(&lcp->fsm), PhaseNames[lcp->phase], PhaseNames[new]));
 
   /* Sanity check transition (The picture on RFC 1661 p. 6 is incomplete) */
   switch ((old = lcp->phase)) {
@@ -510,8 +510,8 @@ LcpNewPhase(Link l, int new)
 void
 LcpAuthResult(Link l, int success)
 {
-  Log(LG_AUTH|LG_LCP, ("%s: authorization %s",
-    Pref(&l->lcp.fsm), success ? "successful" : "failed"));
+  Log(LG_AUTH|LG_LCP, ("[%s] %s: authorization %s",
+    Pref(&l->lcp.fsm), Fsm(&l->lcp.fsm), success ? "successful" : "failed"));
   if (success) {
     if (l->lcp.phase != PHASE_NETWORK)
       LcpNewPhase(l, PHASE_NETWORK);
@@ -1051,6 +1051,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
       case TY_ENDPOINTDISC:		/* multi-link endpoint discriminator */
 	{
 	  struct discrim	dis;
+	  char			buf[64];
 
 	  if (opt->len < 3 || opt->len > sizeof(dis.bytes)) {
 	    Log(LG_LCP, (" %s bad len=%d", oi->name, opt->len));
@@ -1060,7 +1061,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  }
 	  memcpy(&dis.class, opt->data, opt->len - 2);
 	  dis.len = opt->len - 3;
-	  Log(LG_LCP, (" %s %s", oi->name, MpDiscrimText(&dis)));
+	  Log(LG_LCP, (" %s %s", oi->name, MpDiscrimText(&dis, buf, sizeof(buf))));
 	  switch (mode) {
 	    case MODE_REQ:
 	      l->peer_discrim = dis;

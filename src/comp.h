@@ -40,7 +40,7 @@
     /*
      * This returns a string describing the configuration (optional).
      */
-    char	*(*Describe)(Bund b, int dir);
+    char	*(*Describe)(Bund b, int dir, char *buf, size_t len);
     /*
      * Given that "size" is our MTU, return the maximum length frame
      * we can compress without the result being longer than "size".

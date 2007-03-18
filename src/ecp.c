@@ -257,18 +257,18 @@ EcpDataOutput(Bund b, Mbuf plain)
   EcpState	const ecp = &b->ecp;
   Mbuf		cypher;
 
-  LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ecp->fsm));
+  LogDumpBp(LG_ECP2, plain, "[%s] %s: xmit plain", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 
 /* Encrypt packet */
 
   if ((!ecp->xmit) || (!ecp->xmit->Encrypt))
   {
-    Log(LG_ERR, ("%s: no encryption for xmit", Pref(&ecp->fsm)));
+    Log(LG_ERR, ("[%s] %s: no encryption for xmit", Pref(&ecp->fsm), Fsm(&ecp->fsm)));
     PFREE(plain);
     return(NULL);
   }
   cypher = (*ecp->xmit->Encrypt)(b, plain);
-  LogDumpBp(LG_ECP2, cypher, "%s: xmit cypher", Pref(&ecp->fsm));
+  LogDumpBp(LG_ECP2, cypher, "[%s] %s: xmit cypher", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 
 /* Return result, with new protocol number */
 
@@ -288,13 +288,13 @@ EcpDataInput(Bund b, Mbuf cypher)
   EcpState	const ecp = &b->ecp;
   Mbuf		plain;
 
-  LogDumpBp(LG_ECP2, cypher, "%s: recv cypher", Pref(&ecp->fsm));
+  LogDumpBp(LG_ECP2, cypher, "[%s] %s: recv cypher", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 
 /* Decrypt packet */
 
   if ((!ecp->recv) || (!ecp->recv->Decrypt))
   {
-    Log(LG_ERR, ("%s: no encryption for recv", Pref(&ecp->fsm)));
+    Log(LG_ERR, ("[%s] %s: no encryption for recv", Pref(&ecp->fsm), Fsm(&ecp->fsm)));
     PFREE(cypher);
     return(NULL);
   }
@@ -305,11 +305,11 @@ EcpDataInput(Bund b, Mbuf cypher)
 
   if (plain == NULL)
   {
-    Log(LG_ECP, ("%s: decryption failed", Pref(&ecp->fsm)));
+    Log(LG_ECP, ("[%s] %s: decryption failed", Pref(&ecp->fsm), Fsm(&ecp->fsm)));
     return(NULL);
   }
 
-  LogDumpBp(LG_ECP2, plain, "%s: recv plain", Pref(&ecp->fsm));
+  LogDumpBp(LG_ECP2, plain, "[%s] %s: recv plain", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 /* Done */
 
   return(plain);
@@ -401,7 +401,7 @@ EcpStat(Context ctx, int ac, char *av[], void *arg)
 {
   EcpState	const ecp = &ctx->bund->ecp;
 
-  Printf("%s [%s]\r\n", Pref(&ecp->fsm), FsmStateName(ecp->fsm.state));
+  Printf("[%s] %s [%s]\r\n", Pref(&ecp->fsm), Fsm(&ecp->fsm), FsmStateName(ecp->fsm.state));
   Printf("Enabled protocols:\r\n");
   OptStat(&ecp->options, gConfList);
   Printf("Outgoing encryption:\r\n");
@@ -433,7 +433,7 @@ EcpSendResetReq(Fsm fp)
   ecp->recv_resets++;
   if (et->SendResetReq)
     bp = (*et->SendResetReq)(b);
-  Log(LG_ECP, ("%s: SendResetReq", Pref(fp)));
+  Log(LG_ECP, ("[%s] %s: SendResetReq", Pref(fp), Fsm(fp)));
   FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid++, bp);
 }
 
@@ -450,7 +450,7 @@ EcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 
   ecp->xmit_resets++;
   bp = (et && et->RecvResetReq) ? (*et->RecvResetReq)(b, id, bp) : NULL;
-  Log(fp->log, ("%s: SendResetAck", Pref(fp)));
+  Log(fp->log, ("[%s] %s: SendResetAck", Pref(fp), Fsm(fp)));
   FsmOutputMbuf(fp, CODE_RESETACK, id, bp);
 }
 
@@ -794,13 +794,9 @@ static const char *
 EcpTypeName(int type)
 {
   const struct ecpname	*p;
-  static char		buf[20];
 
   for (p = gEcpTypeNames; p->name; p++)
     if (p->type == type)
       return(p->name);
-  snprintf(buf, sizeof(buf), "UNKNOWN[%d]", type);
-  return(buf);
+  return("UNKNOWN");
 }
-
-

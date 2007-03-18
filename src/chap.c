@@ -254,10 +254,11 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   char		password[AUTH_MAX_PASSWORD];
   u_char	hash_value[CHAP_MAX_VAL];
   int		hash_value_size;
+  char		buf[32];
   
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] CHAP: rec'd %s #%d",
-    l->name, ChapCode(auth->code), auth->id));
+    l->name, ChapCode(auth->code, buf, sizeof(buf)), auth->id));
     
   chap->proto = auth->proto;
   
@@ -744,21 +745,23 @@ ChapHashAgree(int alg, const u_char *self, int slen,
  */
 
 const char *
-ChapCode(int code)
+ChapCode(int code, char *buf, size_t len)
 {
-  static char	buf[12];
-
   switch (code) {
     case CHAP_CHALLENGE:
-      return("CHALLENGE");
+	strlcpy(buf, "CHALLENGE", len);
+	break;
     case CHAP_RESPONSE:
-      return("RESPONSE");
+	strlcpy(buf, "RESPONSE", len);
+	break;
     case CHAP_SUCCESS:
-      return("SUCCESS");
+	strlcpy(buf, "SUCCESS", len);
+	break;
     case CHAP_FAILURE:
-      return("FAILURE");
+	strlcpy(buf, "FAILURE", len);
+	break;
     default:
-      snprintf(buf, sizeof(buf), "code%d", code);
-      return(buf);
+	snprintf(buf, len, "code%d", code);
   }
+  return(buf);
 }

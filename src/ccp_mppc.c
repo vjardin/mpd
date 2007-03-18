@@ -39,13 +39,13 @@
  */
 
   static int	MppcInit(Bund b, int dir);
-  static char	*MppcDescribe(Bund b, int xmit);
+  static char	*MppcDescribe(Bund b, int xmit, char *buf, size_t len);
   static int	MppcSubtractBloat(Bund b, int size);
   static void	MppcCleanup(Bund b, int dir);
   static u_char	*MppcBuildConfigReq(Bund b, u_char *cp, int *ok);
   static void	MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
   static Mbuf	MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck);
-  static char	*MppcDescribeBits(u_int32_t bits);
+  static char	*MppcDescribeBits(u_int32_t bits, char *buf, size_t len);
   static int	MppcNegotiated(Bund b, int xmit);
 
   /* Encryption stuff */
@@ -169,15 +169,15 @@ MppcInit(Bund b, int dir)
  */
 
 static char *
-MppcDescribe(Bund b, int dir)
+MppcDescribe(Bund b, int dir, char *buf, size_t len)
 {
   MppcInfo	const mppc = &b->ccp.mppc;
 
   switch (dir) {
     case COMP_DIR_XMIT:
-      return(MppcDescribeBits(mppc->xmit_bits));
+      return(MppcDescribeBits(mppc->xmit_bits, buf, len));
     case COMP_DIR_RECV:
-      return(MppcDescribeBits(mppc->recv_bits));
+      return(MppcDescribeBits(mppc->recv_bits, buf, len));
     default:
       assert(0);
       return(NULL);
@@ -321,6 +321,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
   MppcInfo	const mppc = &ccp->mppc;
   u_int32_t	orig_bits;
   u_int32_t	bits;
+  char		buf[32];
 
   /* Get bits */
   memcpy(&orig_bits, opt->data, 4);
@@ -336,7 +337,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
   }
 
   /* Display it */
-  Log(LG_CCP, ("   0x%08x:%s", bits, MppcDescribeBits(bits)));
+  Log(LG_CCP, ("   0x%08x:%s", bits, MppcDescribeBits(bits, buf, sizeof(buf))));
 
   /* Deal with it */
   switch (mode) {
@@ -446,31 +447,29 @@ MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
  */
 
 static char *
-MppcDescribeBits(u_int32_t bits)
+MppcDescribeBits(u_int32_t bits, char *buf, size_t len)
 {
-  static char	buf[100];
-
   *buf = 0;
   if (bits & MPPC_BIT)
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "MPPC, ");
+    snprintf(buf + strlen(buf), len - strlen(buf), "MPPC, ");
   if (bits & MPPE_BITS) {
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "MPPE(");
+    snprintf(buf + strlen(buf), len - strlen(buf), "MPPE(");
     if (bits & MPPE_40) {
-      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "40");
+      snprintf(buf + strlen(buf), len - strlen(buf), "40");
       if (bits & (MPPE_56|MPPE_128))
-        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", ");
+        snprintf(buf + strlen(buf), len - strlen(buf), ", ");
     }
     if (bits & MPPE_56) {
-      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "56");
+      snprintf(buf + strlen(buf), len - strlen(buf), "56");
       if ((bits & MPPE_128))
-        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), ", ");
+        snprintf(buf + strlen(buf), len - strlen(buf), ", ");
     }
     if (bits & MPPE_128)
-      snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "128");
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " bits), ");
+      snprintf(buf + strlen(buf), len - strlen(buf), "128");
+    snprintf(buf + strlen(buf), len - strlen(buf), " bits), ");
   }
   if (bits & MPPE_STATELESS)
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "stateless");
+    snprintf(buf + strlen(buf), len - strlen(buf), "stateless");
   return(buf);
 }
 

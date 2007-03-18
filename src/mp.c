@@ -136,16 +136,15 @@ MpDiscrimName(int class)
  */
 
 char *
-MpDiscrimText(Discrim dis)
+MpDiscrimText(Discrim dis, char *buf, size_t len)
 {
   int		k;
-  static char	line[100];
 
-  snprintf(line, sizeof(line), "[%s]", MpDiscrimName(dis->class));
+  snprintf(buf, len, "[%s]", MpDiscrimName(dis->class));
   for (k = 0; k < dis->len && k < sizeof(dis->bytes); k++)
-    snprintf(line + strlen(line),
-      sizeof(line) - strlen(line), " %02x", dis->bytes[k]);
-  return(line);
+    snprintf(buf + strlen(buf),
+      len - strlen(buf), " %02x", dis->bytes[k]);
+  return(buf);
 }
 
 

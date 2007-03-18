@@ -64,7 +64,7 @@
   extern int	MpStat(Context ctx, int ac, char *av[], void *arg);
   extern void	MpSetDiscrim(void);
   extern int	MpDiscrimEqual(Discrim dis1, Discrim dis2);
-  extern char *	MpDiscrimText(Discrim dis);
+  extern char *	MpDiscrimText(Discrim dis, char *buf, size_t len);
 
 #endif
 

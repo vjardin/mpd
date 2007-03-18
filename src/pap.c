@@ -117,21 +117,23 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   Auth			const a = &l->lcp.auth;
   PapInfo		const pap = &a->pap;
   PapParams		const pp = &auth->params.pap;
+  char			buf[32];
 
   /* Deal with packet */
   Log(LG_AUTH, ("[%s] PAP: rec'd %s #%d",
-    l->name, PapCode(auth->code), auth->id));
+    l->name, PapCode(auth->code, buf, sizeof(buf)), auth->id));
   switch (auth->code) {
     case PAP_REQUEST:
       {
 	char		*name_ptr, name[256];
 	char		*pass_ptr, pass[256];
 	int		name_len, pass_len;
+	char		buf[32];
 
 	/* Is this appropriate? */
 	if (a->peer_to_self != PROTO_PAP) {
 	  Log(LG_AUTH, ("[%s] PAP: %s not expected",
-	    l->name, PapCode(auth->code)));
+	    l->name, PapCode(auth->code, buf, sizeof(buf))));
 	  auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
 	  PapInputFinish(l, auth);
 	  break;
@@ -172,11 +174,12 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
       {
 	char	*msg;
 	int	msg_len;
+	char	buf[32];
 
 	/* Is this appropriate? */
 	if (a->self_to_peer != PROTO_PAP) {
 	  Log(LG_AUTH, ("[%s] PAP: %s not expected",
-	    l->name, PapCode(auth->code)));
+	    l->name, PapCode(auth->code, buf, sizeof(buf))));
 	  break;
 	}
 
@@ -287,20 +290,21 @@ PapTimeout(void *ptr)
  */
 
 const char *
-PapCode(int code)
+PapCode(int code, char *buf, size_t len)
 {
-  static char	buf[12];
-
   switch (code) {
     case PAP_REQUEST:
-      return("REQUEST");
+      strlcpy(buf, "REQUEST", len);
+      break;
     case PAP_ACK:
-      return("ACK");
+      strlcpy(buf, "ACK", len);
+      break;
     case PAP_NAK:
-      return("NAK");
+      strlcpy(buf, "NAK", len);
+      break;
     default:
-      snprintf(buf, sizeof(buf), "code%d", code);
-      return(buf);
+      snprintf(buf, len, "code%d", code);
   }
+  return(buf);
 }
 
