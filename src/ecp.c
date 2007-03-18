@@ -213,7 +213,7 @@ EcpConfigure(Fsm fp)
     EncType	const et = gEncTypes[k];
 
     if (et->Configure)
-      (*et->Configure)();
+      (*et->Configure)(b);
   }
   ecp->xmit = NULL;
   ecp->recv = NULL;
@@ -237,7 +237,7 @@ EcpUnConfigure(Fsm fp)
     EncType	const et = gEncTypes[k];
 
     if (et->UnConfigure)
-      (*et->UnConfigure)();
+      (*et->UnConfigure)(b);
   }
   ecp->xmit = NULL;
   ecp->recv = NULL;
@@ -267,7 +267,7 @@ EcpDataOutput(Bund b, Mbuf plain)
     PFREE(plain);
     return(NULL);
   }
-  cypher = (*ecp->xmit->Encrypt)(plain);
+  cypher = (*ecp->xmit->Encrypt)(b, plain);
   LogDumpBp(LG_ECP2, cypher, "%s: xmit cypher", Pref(&ecp->fsm));
 
 /* Return result, with new protocol number */
@@ -299,7 +299,7 @@ EcpDataInput(Bund b, Mbuf cypher)
     return(NULL);
   }
 
-  plain = (*ecp->recv->Decrypt)(cypher);
+  plain = (*ecp->recv->Decrypt)(b, cypher);
 
 /* Decrypted ok? */
 
@@ -387,12 +387,12 @@ EcpStat(int ac, char *av[], void *arg)
   Printf("Outgoing encryption:\r\n");
   Printf("\tProto\t: %s\r\n", ecp->xmit ? ecp->xmit->name : "none");
   if (ecp->xmit && ecp->xmit->Stat)
-    ecp->xmit->Stat(ECP_DIR_XMIT);
+    ecp->xmit->Stat(bund, ECP_DIR_XMIT);
   Printf("\tResets\t: %d\r\n", ecp->xmit_resets);
   Printf("Incoming decryption:\r\n");
   Printf("\tProto\t: %s\r\n", ecp->recv ? ecp->recv->name : "none");
   if (ecp->recv && ecp->recv->Stat)
-    ecp->recv->Stat(ECP_DIR_RECV);
+    ecp->recv->Stat(bund, ECP_DIR_RECV);
   Printf("\tResets\t: %d\r\n", ecp->recv_resets);
   return(0);
 }
@@ -412,7 +412,7 @@ EcpSendResetReq(Fsm fp)
   assert(et);
   ecp->recv_resets++;
   if (et->SendResetReq)
-    bp = (*et->SendResetReq)();
+    bp = (*et->SendResetReq)(b);
   Log(LG_ECP, ("%s: SendResetReq", Pref(fp)));
   FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid++, bp);
 }
@@ -429,7 +429,7 @@ EcpRecvResetReq(Fsm fp, int id, Mbuf bp)
   EncType	const et = ecp->xmit;
 
   ecp->xmit_resets++;
-  bp = (et && et->RecvResetReq) ? (*et->RecvResetReq)(id, bp) : NULL;
+  bp = (et && et->RecvResetReq) ? (*et->RecvResetReq)(b, id, bp) : NULL;
   Log(fp->log, ("%s: SendResetAck", Pref(fp)));
   FsmOutputMbuf(fp, CODE_RESETACK, id, bp);
 }
@@ -446,7 +446,7 @@ EcpRecvResetAck(Fsm fp, int id, Mbuf bp)
   EncType	const et = ecp->recv;
 
   if (et && et->RecvResetAck)
-    (*et->RecvResetAck)(id, bp);
+    (*et->RecvResetAck)(b, id, bp);
 }
 
 /*
@@ -478,7 +478,7 @@ EcpBuildConfigReq(Fsm fp, u_char *cp)
 
     if (Enabled(&ecp->options, type) && !ECP_PEER_REJECTED(ecp, type))
     {
-      cp = (*et->BuildConfigReq)(cp);
+      cp = (*et->BuildConfigReq)(b, cp);
       if (!ecp->xmit)
 	ecp->xmit = et;
     }
@@ -501,9 +501,9 @@ EcpLayerUp(Fsm fp)
 
   /* Initialize */
   if (ecp->xmit && ecp->xmit->Init)
-    (*ecp->xmit->Init)(ECP_DIR_XMIT);
+    (*ecp->xmit->Init)(b, ECP_DIR_XMIT);
   if (ecp->recv && ecp->recv->Init)
-    (*ecp->recv->Init)(ECP_DIR_RECV);
+    (*ecp->recv->Init)(b, ECP_DIR_RECV);
 
   if (ecp->recv && ecp->recv->Decrypt) 
   {
@@ -592,9 +592,9 @@ EcpLayerDown(Fsm fp)
   }
 
   if (ecp->xmit && ecp->xmit->Cleanup)
-    (ecp->xmit->Cleanup)(ECP_DIR_XMIT);
+    (ecp->xmit->Cleanup)(b, ECP_DIR_XMIT);
   if (ecp->recv && ecp->recv->Cleanup)
-    (ecp->recv->Cleanup)(ECP_DIR_RECV);
+    (ecp->recv->Cleanup)(b, ECP_DIR_RECV);
     
   ecp->xmit_resets = 0;
   ecp->recv_resets = 0;
@@ -688,7 +688,7 @@ EcpSubtractBloat(Bund b, int size)
 
   /* Check transmit encryption */
   if (OPEN_STATE(ecp->fsm.state) && ecp->xmit && ecp->xmit->SubtractBloat)
-    size = (*ecp->xmit->SubtractBloat)(size);
+    size = (*ecp->xmit->SubtractBloat)(b, size);
 
   /* Account for ECP's protocol number overhead */
   if (OPEN_STATE(ecp->fsm.state))

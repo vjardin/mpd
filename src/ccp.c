@@ -245,7 +245,7 @@ CcpConfigure(Fsm fp)
     CompType	const ct = gCompTypes[k];
 
     if (ct->Configure)
-      (*ct->Configure)();
+      (*ct->Configure)(b);
   }
 }
 
@@ -270,7 +270,7 @@ CcpUnConfigure(Fsm fp)
     CompType	const ct = gCompTypes[k];
 
     if (ct->UnConfigure)
-      (*ct->UnConfigure)();
+      (*ct->UnConfigure)(b);
   }
 }
 
@@ -402,16 +402,16 @@ CcpStat(int ac, char *av[], void *arg)
 
   Printf("Outgoing compression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
-    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : "");
+    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(bund, COMP_DIR_XMIT) : "");
   if (ccp->xmit && ccp->xmit->Stat)
-    ccp->xmit->Stat(COMP_DIR_XMIT);
+    ccp->xmit->Stat(bund, COMP_DIR_XMIT);
   Printf("\tResets\t: %d\r\n", ccp->xmit_resets);
 
   Printf("Incoming decompression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
-    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : "");
+    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(bund, COMP_DIR_RECV) : "");
   if (ccp->recv && ccp->recv->Stat)
-    ccp->recv->Stat(COMP_DIR_RECV);
+    ccp->recv->Stat(bund, COMP_DIR_RECV);
   Printf("\tResets\t: %d\r\n", ccp->recv_resets);
 
   return(0);
@@ -432,7 +432,7 @@ CcpSendResetReq(Bund b)
   assert(ct);
   ccp->recv_resets++;
   if (ct->SendResetReq)
-    bp = (*ct->SendResetReq)();
+    bp = (*ct->SendResetReq)(b);
   Log(LG_CCP, ("%s: SendResetReq #%d link %d (%s)", 
     Pref(fp), fp->reqid, 0, FsmStateName(fp->state)));
   FsmOutputMbuf(fp, CODE_RESETREQ, fp->reqid++, bp);
@@ -451,7 +451,7 @@ CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
   int		noAck = 0;
 
   ccp->xmit_resets++;
-  bp = (ct && ct->RecvResetReq) ? (*ct->RecvResetReq)(id, bp, &noAck) : NULL;
+  bp = (ct && ct->RecvResetReq) ? (*ct->RecvResetReq)(b, id, bp, &noAck) : NULL;
   if (!noAck) {
     Log(LG_CCP, ("%s: SendResetAck #%d link %d (%s)",
 	Pref(fp), id, 0, FsmStateName(fp->state)));
@@ -471,7 +471,7 @@ CcpRecvResetAck(Fsm fp, int id, Mbuf bp)
   CompType	const ct = ccp->recv;
 
   if (ct && ct->RecvResetAck)
-    (*ct->RecvResetAck)(id, bp);
+    (*ct->RecvResetAck)(b, id, bp);
 }
 
 /*
@@ -506,7 +506,7 @@ CcpDataOutput(Bund b, Mbuf plain)
     PFREE(plain);
     return(NULL);
   }
-  comp = (*ccp->xmit->Compress)(plain);
+  comp = (*ccp->xmit->Compress)(b, plain);
   LogDumpBp(LG_CCP3, comp, "%s: xmit comp", Pref(&ccp->fsm));
 
   return(comp);
@@ -536,7 +536,7 @@ CcpDataInput(Bund b, Mbuf comp)
     return(NULL);
   }
 
-  plain = (*ccp->recv->Decompress)(comp);
+  plain = (*ccp->recv->Decompress)(b, comp);
 
 /* Encrypted ok? */
 
@@ -567,7 +567,7 @@ CcpBuildConfigReq(Fsm fp, u_char *cp)
     CompType	const ct = gCompTypes[type];
 
     if (Enabled(&ccp->options, type) && !CCP_PEER_REJECTED(ccp, type)) {
-      cp = (*ct->BuildConfigReq)(cp, &ok);
+      cp = (*ct->BuildConfigReq)(b, cp, &ok);
       if (ok && (!ccp->xmit))
 	ccp->xmit = ct;
     }
@@ -587,8 +587,8 @@ CcpLayerUp(Fsm fp)
   struct ngm_connect    cn;
 
   /* If nothing was negotiated in either direction, close CCP */
-  if ((!ccp->recv || !(*ccp->recv->Negotiated)(COMP_DIR_RECV))
-      && (!ccp->xmit || !(*ccp->xmit->Negotiated)(COMP_DIR_XMIT))) {
+  if ((!ccp->recv || !(*ccp->recv->Negotiated)(b, COMP_DIR_RECV))
+      && (!ccp->xmit || !(*ccp->xmit->Negotiated)(b, COMP_DIR_XMIT))) {
     Log(LG_CCP, ("%s: No compression negotiated", Pref(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);
     return;
@@ -601,13 +601,13 @@ CcpLayerUp(Fsm fp)
 
   /* Initialize each direction */
   if (ccp->xmit != NULL && ccp->xmit->Init != NULL
-      && (*ccp->xmit->Init)(COMP_DIR_XMIT) < 0) {
+      && (*ccp->xmit->Init)(b, COMP_DIR_XMIT) < 0) {
     Log(LG_CCP, ("%s: %scompression init failed", Pref(fp), ""));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);		/* XXX */
     return;
   }
   if (ccp->recv != NULL && ccp->recv->Init != NULL
-      && (*ccp->recv->Init)(COMP_DIR_RECV) < 0) {
+      && (*ccp->recv->Init)(b, COMP_DIR_RECV) < 0) {
     Log(LG_CCP, ("%s: %scompression init failed", Pref(fp), "de"));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);		/* XXX */
     return;
@@ -639,9 +639,9 @@ CcpLayerUp(Fsm fp)
 
   /* Report what we're doing */
   Log(LG_CCP, ("  Compress using: %s (%s)", !ccp->xmit ? "none" : ccp->xmit->name,
-    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(COMP_DIR_XMIT) : ""));
+    (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(b, COMP_DIR_XMIT) : ""));
   Log(LG_CCP, ("Decompress using: %s (%s)", !ccp->recv ? "none" : ccp->recv->name,
-    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(COMP_DIR_RECV) : ""));
+    (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(b, COMP_DIR_RECV) : ""));
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
@@ -699,9 +699,9 @@ CcpLayerDown(Fsm fp)
     }
   }
   if (ccp->recv && ccp->recv->Cleanup)
-    (*ccp->recv->Cleanup)(COMP_DIR_RECV);
+    (*ccp->recv->Cleanup)(b, COMP_DIR_RECV);
   if (ccp->xmit && ccp->xmit->Cleanup)
-    (*ccp->xmit->Cleanup)(COMP_DIR_XMIT);
+    (*ccp->xmit->Cleanup)(b, COMP_DIR_XMIT);
 
   ccp->xmit_resets = 0;
   ccp->recv_resets = 0;
@@ -785,7 +785,7 @@ CcpSubtractBloat(Bund b, int size)
 
   /* Account for transmit compression overhead */
   if (OPEN_STATE(ccp->fsm.state) && ccp->xmit && ccp->xmit->SubtractBloat)
-    size = (*ccp->xmit->SubtractBloat)(size);
+    size = (*ccp->xmit->SubtractBloat)(b, size);
 
   /* Account for CCP's protocol number overhead */
   if (OPEN_STATE(ccp->fsm.state))

@@ -22,19 +22,19 @@
   {
     const char	*name;
     u_char	type;
-    int		(*Init)(int dir);
-    void	(*Configure)(void);
-    void	(*UnConfigure)(void);
-    int		(*SubtractBloat)(int size);
-    void	(*Cleanup)(int dir);
-    u_char	*(*BuildConfigReq)(u_char *cp);
+    int		(*Init)(Bund b, int dir);
+    void	(*Configure)(Bund b);
+    void	(*UnConfigure)(Bund b);
+    int		(*SubtractBloat)(Bund b, int size);
+    void	(*Cleanup)(Bund b, int dir);
+    u_char	*(*BuildConfigReq)(Bund b, u_char *cp);
     void	(*DecodeConfig)(Fsm fp, FsmOption opt, int mode);
-    Mbuf	(*SendResetReq)(void);
-    Mbuf	(*RecvResetReq)(int id, Mbuf bp);
-    void	(*RecvResetAck)(int id, Mbuf bp);
-    int         (*Stat)(int dir);
-    Mbuf	(*Encrypt)(Mbuf plain);
-    Mbuf	(*Decrypt)(Mbuf cypher);
+    Mbuf	(*SendResetReq)(Bund b);
+    Mbuf	(*RecvResetReq)(Bund b, int id, Mbuf bp);
+    void	(*RecvResetAck)(Bund b, int id, Mbuf bp);
+    int         (*Stat)(Bund b, int dir);
+    Mbuf	(*Encrypt)(Bund b, Mbuf plain);
+    Mbuf	(*Decrypt)(Bund b, Mbuf cypher);
   };
   typedef const struct enctype	*EncType;
 

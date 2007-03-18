@@ -38,21 +38,21 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	MppcInit(int dir);
-  static char	*MppcDescribe(int xmit);
-  static int	MppcSubtractBloat(int size);
-  static void	MppcCleanup(int dir);
-  static u_char	*MppcBuildConfigReq(u_char *cp, int *ok);
+  static int	MppcInit(Bund b, int dir);
+  static char	*MppcDescribe(Bund b, int xmit);
+  static int	MppcSubtractBloat(Bund b, int size);
+  static void	MppcCleanup(Bund b, int dir);
+  static u_char	*MppcBuildConfigReq(Bund b, u_char *cp, int *ok);
   static void	MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
-  static Mbuf	MppcRecvResetReq(int id, Mbuf bp, int *noAck);
+  static Mbuf	MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck);
   static char	*MppcDescribeBits(u_int32_t bits);
-  static int	MppcNegotiated(int xmit);
+  static int	MppcNegotiated(Bund b, int xmit);
 
   /* Encryption stuff */
-  static void	MppeInitKey(MppcInfo mppc, int dir);
-  static void	MppeInitKeyv2(MppcInfo mppc, int dir);
-  static short	MppcEnabledMppeType(short type);
-  static short	MppcAcceptableMppeType(short type);
+  static void	MppeInitKey(Bund b, MppcInfo mppc, int dir);
+  static void	MppeInitKeyv2(Bund b, MppcInfo mppc, int dir);
+  static short	MppcEnabledMppeType(Bund b, short type);
+  static short	MppcAcceptableMppeType(Bund b, short type);
 
 #ifdef DEBUG_KEYS
   static void	KeyDebug(const u_char *data, int len, const char *fmt, ...);
@@ -91,9 +91,9 @@
  */
 
 static int
-MppcInit(int dir)
+MppcInit(Bund b, int dir)
 {
-  MppcInfo		const mppc = &bund->ccp.mppc;
+  MppcInfo		const mppc = &b->ccp.mppc;
   struct ng_mppc_config	conf;
   struct ngm_mkpeer	mp;
   char			path[NG_PATHLEN + 1];
@@ -102,7 +102,7 @@ MppcInit(int dir)
   int			cmd;
 
   /* Which type of MS-CHAP did we do? */
-  mschap = bund->params.msoft.chap_alg;
+  mschap = b->params.msoft.chap_alg;
 
   /* Initialize configuration structure */
   memset(&conf, 0, sizeof(conf));
@@ -115,9 +115,9 @@ MppcInit(int dir)
       conf.bits = mppc->xmit_bits;
       if (conf.bits & MPPE_BITS) {
         if (mschap == CHAP_ALG_MSOFT)
-	    MppeInitKey(mppc, dir);
+	    MppeInitKey(b, mppc, dir);
         else
-    	    MppeInitKeyv2(mppc, dir);
+    	    MppeInitKeyv2(b, mppc, dir);
         memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
       }
       break;
@@ -128,9 +128,9 @@ MppcInit(int dir)
       conf.bits = mppc->recv_bits;
       if (conf.bits & MPPE_BITS) {
         if (mschap == CHAP_ALG_MSOFT)
-	    MppeInitKey(mppc, dir);
+	    MppeInitKey(b, mppc, dir);
         else
-	    MppeInitKeyv2(mppc, dir);
+	    MppeInitKeyv2(b, mppc, dir);
         memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
       }
       break;
@@ -143,20 +143,20 @@ MppcInit(int dir)
   snprintf(mp.type, sizeof(mp.type), "%s", NG_MPPC_NODE_TYPE);
   snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", mppchook);
-  if (NgSendMsg(bund->csock, MPD_HOOK_PPP,
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     Log(LG_ERR, ("[%s] can't create %s node: %s",
-      bund->name, mp.type, strerror(errno)));
+      b->name, mp.type, strerror(errno)));
     return(-1);
   }
 
   /* Configure MPPC node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_MPPC_COOKIE, cmd, &conf, sizeof(conf)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
-      bund->name, NG_MPPC_NODE_TYPE, path, strerror(errno)));
-    NgFuncDisconnect(bund->csock, bund->name, MPD_HOOK_PPP, ppphook);
+      b->name, NG_MPPC_NODE_TYPE, path, strerror(errno)));
+    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, ppphook);
     return(-1);
   }
 
@@ -169,9 +169,9 @@ MppcInit(int dir)
  */
 
 static char *
-MppcDescribe(int dir)
+MppcDescribe(Bund b, int dir)
 {
-  MppcInfo	const mppc = &bund->ccp.mppc;
+  MppcInfo	const mppc = &b->ccp.mppc;
 
   switch (dir) {
     case COMP_DIR_XMIT:
@@ -189,14 +189,14 @@ MppcDescribe(int dir)
  */
 
 static int
-MppcSubtractBloat(int size)
+MppcSubtractBloat(Bund b, int size)
 {
 
   /* Account for MPPC header */
   size -= 2;
 
   /* Account for possible expansion with MPPC compression */
-  if ((bund->ccp.mppc.xmit_bits & MPPC_BIT) != 0) {
+  if ((b->ccp.mppc.xmit_bits & MPPC_BIT) != 0) {
     int	l, h, size0 = size;
 
     while (1) {
@@ -222,9 +222,9 @@ MppcSubtractBloat(int size)
  */
 
 static int
-MppcNegotiated(int dir)
+MppcNegotiated(Bund b, int dir)
 {
-  MppcInfo	const mppc = &bund->ccp.mppc;
+  MppcInfo	const mppc = &b->ccp.mppc;
 
   switch (dir) {
     case COMP_DIR_XMIT:
@@ -242,7 +242,7 @@ MppcNegotiated(int dir)
  */
 
 static void
-MppcCleanup(int dir)
+MppcCleanup(Bund b, int dir)
 {
   const char	*ppphook;
   char		path[NG_PATHLEN + 1];
@@ -260,7 +260,7 @@ MppcCleanup(int dir)
       return;
   }
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  (void)NgFuncShutdownNode(bund->csock, bund->name, path);
+  (void)NgFuncShutdownNode(b->csock, b->name, path);
 }
 
 /*
@@ -268,9 +268,9 @@ MppcCleanup(int dir)
  */
 
 static u_char *
-MppcBuildConfigReq(u_char *cp, int *ok)
+MppcBuildConfigReq(Bund b, u_char *cp, int *ok)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   MppcInfo	const mppc = &ccp->mppc;
   u_int32_t	bits = 0;
 
@@ -280,15 +280,15 @@ MppcBuildConfigReq(u_char *cp, int *ok)
     bits |= MPPC_BIT;
 
   /* Encryption */
-  if (MppcEnabledMppeType(40)
+  if (MppcEnabledMppeType(b, 40)
       && !CCP_PEER_REJECTED(ccp, gMppe40)) 
     bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-  if (MppcEnabledMppeType(56)
+  if (MppcEnabledMppeType(b, 56)
       && !CCP_PEER_REJECTED(ccp, gMppe56)) 
     bits |= MPPE_56;
 #endif
-  if (MppcEnabledMppeType(128)
+  if (MppcEnabledMppeType(b, 128)
       && !CCP_PEER_REJECTED(ccp, gMppe128)) 
     bits |= MPPE_128;
 
@@ -316,7 +316,8 @@ MppcBuildConfigReq(u_char *cp, int *ok)
 static void
 MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   MppcInfo	const mppc = &ccp->mppc;
   u_int32_t	orig_bits;
   u_int32_t	bits;
@@ -352,13 +353,13 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 	bits &= ~MPPC_BIT;
 
       /* Check encryption */
-      if ((bits & MPPE_40) && !MppcAcceptableMppeType(40))
+      if ((bits & MPPE_40) && !MppcAcceptableMppeType(b, 40))
 	bits &= ~MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-      if ((bits & MPPE_56) && !MppcAcceptableMppeType(56))
+      if ((bits & MPPE_56) && !MppcAcceptableMppeType(b, 56))
 #endif
 	bits &= ~MPPE_56;
-      if ((bits & MPPE_128) && !MppcAcceptableMppeType(128))
+      if ((bits & MPPE_128) && !MppcAcceptableMppeType(b, 128))
 	bits &= ~MPPE_128;
 
       /* Choose the strongest encryption available */
@@ -374,11 +375,11 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 	 if the remote side doesn't request encryption, try to prompt it.
 	 This is broken wrt. normal PPP negotiation: typical Microsoft. */
       if ((bits & MPPE_BITS) == 0) {
-	if (MppcAcceptableMppeType(40)) bits |= MPPE_40;
+	if (MppcAcceptableMppeType(b, 40)) bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-	if (MppcAcceptableMppeType(56)) bits |= MPPE_56;
+	if (MppcAcceptableMppeType(b, 56)) bits |= MPPE_56;
 #endif
-	if (MppcAcceptableMppeType(128)) bits |= MPPE_128;
+	if (MppcAcceptableMppeType(b, 128)) bits |= MPPE_128;
       }
 
       /* Stateless mode */
@@ -422,16 +423,16 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
  */
 
 static Mbuf
-MppcRecvResetReq(int id, Mbuf bp, int *noAck)
+MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
   char	path[NG_PATHLEN + 1];
 
   /* Forward ResetReq to the MPPC compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_MPPC_COOKIE, NGM_MPPC_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset-req to %s node: %s",
-      bund->name, NG_MPPC_NODE_TYPE, strerror(errno)));
+      b->name, NG_MPPC_NODE_TYPE, strerror(errno)));
   }
 
   /* No ResetAck required for MPPC */
@@ -474,15 +475,15 @@ MppcDescribeBits(u_int32_t bits)
 }
 
 static short
-MppcEnabledMppeType(short type)
+MppcEnabledMppeType(Bund b, short type)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   short		ret;
  
   switch (type) {
   case 40:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (bund->params.msoft.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
+      ret = (b->params.msoft.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
     } else {
       ret = Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
     }
@@ -491,7 +492,7 @@ MppcEnabledMppeType(short type)
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (bund->params.msoft.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
+      ret = (b->params.msoft.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
     } else {
       ret = Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
     }
@@ -502,7 +503,7 @@ MppcEnabledMppeType(short type)
   case 128:
   default:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (bund->params.msoft.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
+      ret = (b->params.msoft.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
     } else {
       ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
     }
@@ -512,15 +513,15 @@ MppcEnabledMppeType(short type)
 }
 
 static short
-MppcAcceptableMppeType(short type)
+MppcAcceptableMppeType(Bund b, short type)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   short		ret;
   
   switch (type) {
   case 40:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = bund->params.msoft.types & MPPE_TYPE_40BIT;
+      ret = b->params.msoft.types & MPPE_TYPE_40BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe40);
     }
@@ -529,7 +530,7 @@ MppcAcceptableMppeType(short type)
 #ifndef MPPE_56_UNSUPPORTED
   case 56:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = bund->params.msoft.types & MPPE_TYPE_56BIT;
+      ret = b->params.msoft.types & MPPE_TYPE_56BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe56);
     }
@@ -540,7 +541,7 @@ MppcAcceptableMppeType(short type)
   case 128:
   default:
     if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = bund->params.msoft.types & MPPE_TYPE_128BIT;
+      ret = b->params.msoft.types & MPPE_TYPE_128BIT;
     } else {
       ret = Acceptable(&ccp->options, gMppe128);
     }
@@ -556,9 +557,9 @@ MppcAcceptableMppeType(short type)
  */
 
 static void
-MppeInitKey(MppcInfo mppc, int dir)
+MppeInitKey(Bund b, MppcInfo mppc, int dir)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   u_int32_t	const bits = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_bits : mppc->recv_bits;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
@@ -567,28 +568,28 @@ MppeInitKey(MppcInfo mppc, int dir)
   u_char	*chal;
 
   /* The secret comes from the originating caller's credentials */
-  chal = bund->params.msoft.msChal;
+  chal = b->params.msoft.msChal;
 
   /* Compute basis for the session key (ie, "start key" or key0) */
   if (bits & MPPE_128) {
-    if (!bund->params.msoft.has_nt_hash) {
+    if (!b->params.msoft.has_nt_hash) {
       Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv1 and MPPE 128", 
-        bund->name));
+        b->name));
       goto fail;
     }
-    memcpy(hash, bund->params.msoft.nt_hash_hash, sizeof(hash));
+    memcpy(hash, b->params.msoft.nt_hash_hash, sizeof(hash));
     KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
     KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
     MsoftGetStartKey(chal, hash);
     KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    if (!bund->params.msoft.has_lm_hash) {
+    if (!b->params.msoft.has_lm_hash) {
       Log(LG_ERR, ("[%s] The LM-Hash is not set, but needed for MS-CHAPv1 and MPPE 40, 56", 
-        bund->name));
+        b->name));
       goto fail;
     }
 
-    memcpy(hash, bund->params.msoft.lm_hash, 8);
+    memcpy(hash, b->params.msoft.lm_hash, 8);
     KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
   }
   memcpy(key0, hash, MPPE_KEY_LEN);
@@ -597,7 +598,7 @@ MppeInitKey(MppcInfo mppc, int dir)
 
 fail:
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
-  FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
+  FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
 }
 
 /*
@@ -605,39 +606,39 @@ fail:
  */
 
 static void
-MppeInitKeyv2(MppcInfo mppc, int dir)
+MppeInitKeyv2(Bund b, MppcInfo mppc, int dir)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_key0 : mppc->recv_key0;
   u_char	hash[16];
   u_char	*resp;
 
-  if (bund->params.msoft.has_keys)
+  if (b->params.msoft.has_keys)
   { 
-    memcpy(mppc->xmit_key0, bund->params.msoft.xmit_key, MPPE_KEY_LEN);
-    memcpy(mppc->recv_key0, bund->params.msoft.recv_key, MPPE_KEY_LEN);
+    memcpy(mppc->xmit_key0, b->params.msoft.xmit_key, MPPE_KEY_LEN);
+    memcpy(mppc->recv_key0, b->params.msoft.recv_key, MPPE_KEY_LEN);
     return;
   }
 
   /* The secret comes from the originating caller's credentials */
-  resp = bund->params.msoft.ntResp;
+  resp = b->params.msoft.ntResp;
 
-  if (!bund->params.msoft.has_nt_hash) {
+  if (!b->params.msoft.has_nt_hash) {
     Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv2 and MPPE", 
-      bund->name));
+      b->name));
     goto fail;
   }
 
   /* Compute basis for the session key (ie, "start key" or key0) */
-  memcpy(hash, bund->params.msoft.nt_hash_hash, sizeof(hash));
+  memcpy(hash, b->params.msoft.nt_hash_hash, sizeof(hash));
   KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
   KEYDEBUG((resp, CHAP_MSOFTv2_CHAL_LEN, "Response"));
   MsoftGetMasterKey(resp, hash);
   KEYDEBUG((hash, sizeof(hash), "GetMasterKey"));
   MsoftGetAsymetricStartKey(hash,
     (dir == COMP_DIR_RECV) ^
-      (bund->originate == LINK_ORIGINATE_LOCAL));
+      (b->originate == LINK_ORIGINATE_LOCAL));
   KEYDEBUG((hash, sizeof(hash), "GetAsymmetricKey"));
   memcpy(key0, hash, MPPE_KEY_LEN);
   KEYDEBUG((key0, MPPE_KEY_LEN, "InitialKey"));
@@ -645,7 +646,7 @@ MppeInitKeyv2(MppcInfo mppc, int dir)
 
 fail:
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
-  FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
+  FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
 }
 
 #ifdef DEBUG_KEYS

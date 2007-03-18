@@ -22,15 +22,15 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	DeseBisInit(int dir);
-  static void	DeseBisConfigure(void);
-  static int	DeseBisSubtractBloat(int size);
-  static Mbuf	DeseBisEncrypt(Mbuf plain);
-  static Mbuf	DeseBisDecrypt(Mbuf cypher);
-  static void	DeseBisCleanup(int dir);
-  static int    DeseBisStat(int dir);
+  static int	DeseBisInit(Bund b, int dir);
+  static void	DeseBisConfigure(Bund b);
+  static int	DeseBisSubtractBloat(Bund b, int size);
+  static Mbuf	DeseBisEncrypt(Bund b, Mbuf plain);
+  static Mbuf	DeseBisDecrypt(Bund b, Mbuf cypher);
+  static void	DeseBisCleanup(Bund b, int dir);
+  static int    DeseBisStat(Bund b, int dir);
 
-  static u_char	*DeseBisBuildConfigReq(u_char *cp);
+  static u_char	*DeseBisBuildConfigReq(Bund b, u_char *cp);
   static void	DeseBisDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
 
 /*
@@ -61,9 +61,9 @@
  */
 
 static int
-DeseBisInit(int dir)
+DeseBisInit(Bund b, int dir)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DeseBisInfo	const des = &ecp->desebis;
 
   switch (dir) {
@@ -85,9 +85,9 @@ DeseBisInit(int dir)
  */
 
 static void
-DeseBisConfigure(void)
+DeseBisConfigure(Bund b)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DeseBisInfo	const des = &ecp->desebis;
   des_cblock	key;
 
@@ -103,7 +103,7 @@ DeseBisConfigure(void)
  */
 
 static int
-DeseBisSubtractBloat(int size)
+DeseBisSubtractBloat(Bund b, int size)
 {
   size -= DES_OVERHEAD;	/* reserve space for header */
   size &= ~0x7;
@@ -112,9 +112,9 @@ DeseBisSubtractBloat(int size)
 }
 
 static int
-DeseBisStat(int dir) 
+DeseBisStat(Bund b, int dir) 
 {
-    EcpState	const ecp = &bund->ecp;
+    EcpState	const ecp = &b->ecp;
     DeseBisInfo	const des = &ecp->desebis;
     
     switch (dir) {
@@ -155,9 +155,9 @@ DeseBisStat(int dir)
  */
 
 Mbuf
-DeseBisEncrypt(Mbuf plain)
+DeseBisEncrypt(Bund b, Mbuf plain)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DeseBisInfo	const des = &ecp->desebis;
   const int	plen = plength(plain);
   int		padlen = roundup2(plen + 1, 8) - plen;
@@ -220,9 +220,9 @@ DeseBisEncrypt(Mbuf plain)
  */
 
 Mbuf
-DeseBisDecrypt(Mbuf cypher)
+DeseBisDecrypt(Bund b, Mbuf cypher)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DeseBisInfo	des = &ecp->desebis;
   int		clen = plength(cypher) - DES_OVERHEAD;
   u_int16_t	seq;
@@ -237,7 +237,7 @@ DeseBisDecrypt(Mbuf cypher)
   if (clen < 8 || (clen & 0x7))
   {
     Log(LG_ECP, ("[%s] DESE-bis: rec'd bogus DES cypher: len=%d",
-      bund->name, clen + DES_OVERHEAD));
+      b->name, clen + DES_OVERHEAD));
     des->recv_stats.Errors++;
     return(NULL);
   }
@@ -253,7 +253,7 @@ DeseBisDecrypt(Mbuf cypher)
   /* Recover from dropped packet */
 
     Log(LG_ECP, ("[%s] DESE-bis: rec'd wrong seq=%u, expected %u",
-      bund->name, seq, des->recv_seq));
+      b->name, seq, des->recv_seq));
     tail = mbsplit(cypher, clen - 8);
     PFREE(cypher);
     tail = mbread(tail, (u_char *) &des->recv_ivec, 8, NULL);
@@ -297,9 +297,9 @@ DeseBisDecrypt(Mbuf cypher)
  */
 
 static void
-DeseBisCleanup(int dir)
+DeseBisCleanup(Bund b, int dir)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DeseBisInfo	const des = &ecp->desebis;
   
   if (dir == ECP_DIR_RECV)
@@ -317,9 +317,9 @@ DeseBisCleanup(int dir)
  */
 
 static u_char *
-DeseBisBuildConfigReq(u_char *cp)
+DeseBisBuildConfigReq(Bund b, u_char *cp)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DeseBisInfo	const des = &ecp->desebis;
 
   ((u_int32_t *) des->xmit_ivec)[0] = random();
@@ -334,7 +334,8 @@ DeseBisBuildConfigReq(u_char *cp)
 static void
 DeseBisDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 {
-  DeseBisInfo	const des = &bund->ecp.desebis;
+    Bund 	b = (Bund)fp->arg;
+  DeseBisInfo	const des = &b->ecp.desebis;
 
   if (opt->len != 10)
   {

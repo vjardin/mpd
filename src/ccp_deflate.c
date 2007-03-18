@@ -26,19 +26,19 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	DeflateInit(int direction);
-  static void   DeflateConfigure(void);
-  static char   *DeflateDescribe(int xmit);
-  static void	DeflateCleanup(int direction);
+  static int	DeflateInit(Bund b, int direction);
+  static void   DeflateConfigure(Bund b);
+  static char   *DeflateDescribe(Bund b, int xmit);
+  static void	DeflateCleanup(Bund b, int direction);
 
-  static u_char	*DeflateBuildConfigReq(u_char *cp, int *ok);
+  static u_char	*DeflateBuildConfigReq(Bund b, u_char *cp, int *ok);
   static void   DeflateDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
-  static Mbuf	DeflateRecvResetReq(int id, Mbuf bp, int *noAck);
-  static Mbuf	DeflateSendResetReq(void);
-  static void	DeflateRecvResetAck(int id, Mbuf bp);
-  static int    DeflateNegotiated(int xmit);
-  static int    DeflateSubtractBloat(int size);
-  static int	DeflateStat(int dir);
+  static Mbuf	DeflateRecvResetReq(Bund b, int id, Mbuf bp, int *noAck);
+  static Mbuf	DeflateSendResetReq(Bund b);
+  static void	DeflateRecvResetAck(Bund b, int id, Mbuf bp);
+  static int    DeflateNegotiated(Bund b, int xmit);
+  static int    DeflateSubtractBloat(Bund b, int size);
+  static int	DeflateStat(Bund b, int dir);
 
 /*
  * GLOBAL VARIABLES
@@ -71,9 +71,9 @@
  */
 
 static int
-DeflateInit(int dir)
+DeflateInit(Bund b, int dir)
 {
-  DeflateInfo		const deflate = &bund->ccp.deflate;
+  DeflateInfo		const deflate = &b->ccp.deflate;
   struct ng_deflate_config	conf;
   struct ngm_mkpeer	mp;
   char			path[NG_PATHLEN + 1];
@@ -104,20 +104,20 @@ DeflateInit(int dir)
   snprintf(mp.type, sizeof(mp.type), "%s", NG_DEFLATE_NODE_TYPE);
   snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", deflatehook);
-  if (NgSendMsg(bund->csock, MPD_HOOK_PPP,
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     Log(LG_ERR, ("[%s] can't create %s node: %s",
-      bund->name, mp.type, strerror(errno)));
+      b->name, mp.type, strerror(errno)));
     return(-1);
   }
 
   /* Configure DEFLATE node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_DEFLATE_COOKIE, cmd, &conf, sizeof(conf)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
-      bund->name, NG_DEFLATE_NODE_TYPE, path, strerror(errno)));
-    NgFuncDisconnect(bund->csock, bund->name, MPD_HOOK_PPP, ppphook);
+      b->name, NG_DEFLATE_NODE_TYPE, path, strerror(errno)));
+    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, ppphook);
     return(-1);
   }
 
@@ -129,9 +129,9 @@ DeflateInit(int dir)
  */
 
 static void
-DeflateConfigure(void)
+DeflateConfigure(Bund b)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   DeflateInfo	const deflate = &ccp->deflate;
   
   deflate->xmit_windowBits=15;
@@ -143,9 +143,9 @@ DeflateConfigure(void)
  */
 
 static char *
-DeflateDescribe(int dir)
+DeflateDescribe(Bund b, int dir)
 {
-    CcpState	const ccp = &bund->ccp;
+    CcpState	const ccp = &b->ccp;
     DeflateInfo	const deflate = &ccp->deflate;
     static char str[64];
 
@@ -168,7 +168,7 @@ DeflateDescribe(int dir)
  */
 
 void
-DeflateCleanup(int dir)
+DeflateCleanup(Bund b, int dir)
 {
   const char	*ppphook;
   char		path[NG_PATHLEN + 1];
@@ -186,7 +186,7 @@ DeflateCleanup(int dir)
       return;
   }
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  (void)NgFuncShutdownNode(bund->csock, bund->name, path);
+  (void)NgFuncShutdownNode(b->csock, b->name, path);
 }
 
 /*
@@ -194,16 +194,16 @@ DeflateCleanup(int dir)
  */
 
 static Mbuf
-DeflateRecvResetReq(int id, Mbuf bp, int *noAck)
+DeflateRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
   char	path[NG_PATHLEN + 1];
 
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_DEFLATE_COOKIE, NGM_DEFLATE_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset-req to %s node: %s",
-      bund->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
+      b->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
   }
   return(NULL);
 }
@@ -213,7 +213,7 @@ DeflateRecvResetReq(int id, Mbuf bp, int *noAck)
  */
 
 static Mbuf
-DeflateSendResetReq(void)
+DeflateSendResetReq(Bund b)
 {
   return(NULL);
 }
@@ -223,16 +223,16 @@ DeflateSendResetReq(void)
  */
 
 static void
-DeflateRecvResetAck(int id, Mbuf bp)
+DeflateRecvResetAck(Bund b, int id, Mbuf bp)
 {
   char	path[NG_PATHLEN + 1];
 
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_DECOMPRESS);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_DEFLATE_COOKIE, NGM_DEFLATE_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset-ack to %s node: %s",
-      bund->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
+      b->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
   }
 }
 
@@ -241,9 +241,9 @@ DeflateRecvResetAck(int id, Mbuf bp)
  */
 
 static u_char *
-DeflateBuildConfigReq(u_char *cp, int *ok)
+DeflateBuildConfigReq(Bund b, u_char *cp, int *ok)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   DeflateInfo	const deflate = &ccp->deflate;
   u_int16_t	opt;
   
@@ -263,7 +263,8 @@ DeflateBuildConfigReq(u_char *cp, int *ok)
 static void
 DeflateDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   DeflateInfo	const deflate = &ccp->deflate;
   u_int16_t     o;
   u_char	window, method, chk;
@@ -314,7 +315,7 @@ DeflateDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
  */
 
 static int
-DeflateNegotiated(int dir)
+DeflateNegotiated(Bund b, int dir)
 {
   return 1;
 }
@@ -324,13 +325,13 @@ DeflateNegotiated(int dir)
  */
 
 static int
-DeflateSubtractBloat(int size)
+DeflateSubtractBloat(Bund b, int size)
 {
   return(size + CCP_OVERHEAD);  /* Compression compensate header size */
 }
 
 static int
-DeflateStat(int dir) 
+DeflateStat(Bund b, int dir) 
 {
     char			path[NG_PATHLEN + 1];
     struct ng_deflate_stats	stats;
@@ -341,11 +342,11 @@ DeflateStat(int dir)
 
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, b->name,
 		NG_PPP_HOOK_COMPRESS);
 	    break;
 	case COMP_DIR_RECV:
-	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, b->name,
 		NG_PPP_HOOK_DECOMPRESS);
 	    break;
 	default:
@@ -354,7 +355,7 @@ DeflateStat(int dir)
     if (NgFuncSendQuery(path, NGM_DEFLATE_COOKIE, NGM_DEFLATE_GET_STATS, NULL, 0, 
 	&u.reply, sizeof(u), NULL) < 0) {
 	    Log(LG_ERR, ("[%s] can't get %s stats: %s",
-		bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
+		b->name, NG_BPF_NODE_TYPE, strerror(errno)));
 	    return(0);
     }
     memcpy(&stats, u.reply.data, sizeof(stats));

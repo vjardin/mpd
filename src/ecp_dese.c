@@ -22,15 +22,15 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	DesInit(int dir);
-  static void	DesConfigure(void);
-  static int	DesSubtractBloat(int size);
-  static Mbuf	DesEncrypt(Mbuf plain);
-  static Mbuf	DesDecrypt(Mbuf cypher);
-  static void	DesCleanup(int dir);
-  static int	DesStat(int dir);
+  static int	DesInit(Bund b, int dir);
+  static void	DesConfigure(Bund b);
+  static int	DesSubtractBloat(Bund b, int size);
+  static Mbuf	DesEncrypt(Bund b, Mbuf plain);
+  static Mbuf	DesDecrypt(Bund b, Mbuf cypher);
+  static void	DesCleanup(Bund b, int dir);
+  static int	DesStat(Bund b, int dir);
 
-  static u_char	*DesBuildConfigReq(u_char *cp);
+  static u_char	*DesBuildConfigReq(Bund b, u_char *cp);
   static void	DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
 
 /*
@@ -61,9 +61,9 @@
  */
 
 static int
-DesInit(int dir)
+DesInit(Bund b, int dir)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DesInfo	const des = &ecp->des;
 
   switch (dir) {
@@ -85,9 +85,9 @@ DesInit(int dir)
  */
 
 static void
-DesConfigure(void)
+DesConfigure(Bund b)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DesInfo	const des = &ecp->des;
   des_cblock	key;
 
@@ -103,7 +103,7 @@ DesConfigure(void)
  */
 
 static int
-DesSubtractBloat(int size)
+DesSubtractBloat(Bund b, int size)
 {
   size -= DES_OVERHEAD;	/* reserve space for header */
   size &= ~0x7;
@@ -111,9 +111,9 @@ DesSubtractBloat(int size)
 }
 
 static int
-DesStat(int dir) 
+DesStat(Bund b, int dir) 
 {
-    EcpState	const ecp = &bund->ecp;
+    EcpState	const ecp = &b->ecp;
     DesInfo	const des = &ecp->des;
     
     switch (dir) {
@@ -154,9 +154,9 @@ DesStat(int dir)
  */
 
 Mbuf
-DesEncrypt(Mbuf plain)
+DesEncrypt(Bund b, Mbuf plain)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DesInfo	const des = &ecp->des;
   const int	plen = plength(plain);
   int		padlen = roundup2(plen, 8) - plen;
@@ -207,9 +207,9 @@ DesEncrypt(Mbuf plain)
  */
 
 Mbuf
-DesDecrypt(Mbuf cypher)
+DesDecrypt(Bund b, Mbuf cypher)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DesInfo	des = &ecp->des;
   const int	clen = plength(cypher) - DES_OVERHEAD;
   u_int16_t	seq;
@@ -224,7 +224,7 @@ DesDecrypt(Mbuf cypher)
   if (clen < 8 || (clen & 0x7))
   {
     Log(LG_ECP, ("[%s] DESE: rec'd bogus DES cypher: len=%d",
-      bund->name, clen + DES_OVERHEAD));
+      b->name, clen + DES_OVERHEAD));
     des->recv_stats.Errors++;
     return(NULL);
   }
@@ -240,7 +240,7 @@ DesDecrypt(Mbuf cypher)
   /* Recover from dropped packet */
 
     Log(LG_ECP, ("[%s] DESE: rec'd wrong seq=%u, expected %u",
-      bund->name, seq, des->recv_seq));
+      b->name, seq, des->recv_seq));
     tail = mbsplit(cypher, clen - 8);
     PFREE(cypher);
     tail = mbread(tail, (u_char *) &des->recv_ivec, 8, NULL);
@@ -277,9 +277,9 @@ DesDecrypt(Mbuf cypher)
  */
 
 static void
-DesCleanup(int dir)
+DesCleanup(Bund b, int dir)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DesInfo	const des = &ecp->des;
   
   if (dir == ECP_DIR_RECV)
@@ -297,9 +297,9 @@ DesCleanup(int dir)
  */
 
 static u_char *
-DesBuildConfigReq(u_char *cp)
+DesBuildConfigReq(Bund b, u_char *cp)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   DesInfo	const des = &ecp->des;
 
   ((u_int32_t *) des->xmit_ivec)[0] = random();
@@ -314,7 +314,8 @@ DesBuildConfigReq(u_char *cp)
 static void
 DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 {
-  DesInfo	const des = &bund->ecp.des;
+    Bund 	b = (Bund)fp->arg;
+  DesInfo	const des = &b->ecp.des;
 
   if (opt->len != 10)
   {

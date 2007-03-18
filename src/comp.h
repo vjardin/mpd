@@ -28,33 +28,33 @@
      * This function should initialize internal state according
      * to the direction parameter (recv or xmit or both).
      */
-    int		(*Init)(int dir);
+    int		(*Init)(Bund b, int dir);
     /*
      * Reset any type-specific configuration options to their defaults.
      */
-    void	(*Configure)(void);
+    void	(*Configure)(Bund b);
     /*
      * Do the opposite of Configure
      */
-    void	(*UnConfigure)(void);
+    void	(*UnConfigure)(Bund b);
     /*
      * This returns a string describing the configuration (optional).
      */
-    char	*(*Describe)(int dir);
+    char	*(*Describe)(Bund b, int dir);
     /*
      * Given that "size" is our MTU, return the maximum length frame
      * we can compress without the result being longer than "size".
      */
-    int		(*SubtractBloat)(int size);
+    int		(*SubtractBloat)(Bund b, int size);
     /*
      * Do the opposite of Init: ie., free memory, etc.
      */
-    void	(*Cleanup)(int dir);
+    void	(*Cleanup)(Bund b, int dir);
     /*
      * This should add the type-specific stuff for a config-request
      * to the building config-request packet
      */
-    u_char	*(*BuildConfigReq)(u_char *cp, int *ok);
+    u_char	*(*BuildConfigReq)(Bund b, u_char *cp, int *ok);
     /*
      * This should decode type-specific config request stuff.
      */
@@ -63,32 +63,32 @@
      * This should return an mbuf containing type-specific reset-request
      * contents if any, or else NULL.
      */
-    Mbuf	(*SendResetReq)(void);
+    Mbuf	(*SendResetReq)(Bund b);
     /*
      * Receive type-specific reset-request contents (possibly NULL).
      * Should return contents of reset-ack (NULL for empty). If no
      * reset-ack is desired, set *noAck to non-zero.
      */
-    Mbuf	(*RecvResetReq)(int id, Mbuf bp, int *noAck);
+    Mbuf	(*RecvResetReq)(Bund b, int id, Mbuf bp, int *noAck);
     /*
      * Receive type-specific reset-ack contents (possibly NULL).
      */
-    void	(*RecvResetAck)(int id, Mbuf bp);
+    void	(*RecvResetAck)(Bund b, int id, Mbuf bp);
     /*
      * Return true if compression was successfully negotiated in
      * the indicated direction.
      */
-    int		(*Negotiated)(int dir);
+    int		(*Negotiated)(Bund b, int dir);
     /*
      * Prints current compressor status
      */
-    int		(*Stat)(int dir);
+    int		(*Stat)(Bund b, int dir);
     /*
      * For compression methods which is not implemented in kernel
      * here is support for user level functions.
      */
-    Mbuf	(*Compress)(Mbuf plain);
-    Mbuf	(*Decompress)(Mbuf comp);
+    Mbuf	(*Compress)(Bund b, Mbuf plain);
+    Mbuf	(*Decompress)(Bund b, Mbuf comp);
   };
   typedef const struct comptype	*CompType;
 

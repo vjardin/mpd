@@ -30,12 +30,10 @@ PHYSTYPE_L2TP=		yes
 
 # Define supported compression types
 # Notes:
-#  These are either incomplete or untested. Volunteers are
-#  welcome. The STAC and MPPC compressions require proprietary
+#  The MPPC compressions require proprietary
 #  code from Stac Electronics (now known as Hi/Fn).
 
 COMPRESSION_PRED1=	yes
-#COMPRESSION_STAC=	yes
 COMPRESSION_DEFLATE=	yes
 
 # Define supported encryption types
@@ -138,10 +136,6 @@ COPTS+=		-DPHYSTYPE_L2TP
 .if defined ( COMPRESSION_PRED1 )
 SRCS+=		ccp_pred1.c
 COPTS+=		-DCOMPRESSION_PRED1
-.endif
-.if defined ( COMPRESSION_STAC )
-SRCS+=		ccp_stac.c lzsc.c
-COPTS+=		-DCOMPRESSION_STAC
 .endif
 .if defined ( COMPRESSION_DEFLATE )
 SRCS+=		ccp_deflate.c

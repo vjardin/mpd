@@ -53,26 +53,26 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	Pred1Init(int direction);
-  static void	Pred1Cleanup(int direction);
+  static int	Pred1Init(Bund b, int direction);
+  static void	Pred1Cleanup(Bund b, int direction);
 #ifndef USE_NG_PRED1
-  static Mbuf	Pred1Compress(Mbuf plain);
-  static Mbuf	Pred1Decompress(Mbuf comp);
+  static Mbuf	Pred1Compress(Bund b, Mbuf plain);
+  static Mbuf	Pred1Decompress(Bund b, Mbuf comp);
 #endif
 
-  static u_char	*Pred1BuildConfigReq(u_char *cp, int *ok);
+  static u_char	*Pred1BuildConfigReq(Bund b, u_char *cp, int *ok);
   static void   Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode);
-  static Mbuf	Pred1RecvResetReq(int id, Mbuf bp, int *noAck);
-  static Mbuf	Pred1SendResetReq(void);
-  static void	Pred1RecvResetAck(int id, Mbuf bp);
-  static int    Pred1Negotiated(int xmit);
-  static int    Pred1SubtractBloat(int size);
-  static int    Pred1Stat(int dir);
+  static Mbuf	Pred1RecvResetReq(Bund b, int id, Mbuf bp, int *noAck);
+  static Mbuf	Pred1SendResetReq(Bund b);
+  static void	Pred1RecvResetAck(Bund b, int id, Mbuf bp);
+  static int    Pred1Negotiated(Bund b, int xmit);
+  static int    Pred1SubtractBloat(Bund b, int size);
+  static int    Pred1Stat(Bund b, int dir);
 
 #ifndef USE_NG_PRED1
-  static int	Compress(u_char *source, u_char *dest, int len);
-  static int	Decompress(u_char *source, u_char *dest, int slen, int dlen);
-  static void	SyncTable(u_char *source, u_char *dest, int len);
+  static int	Compress(Bund b, u_char *source, u_char *dest, int len);
+  static int	Decompress(Bund b, u_char *source, u_char *dest, int slen, int dlen);
+  static void	SyncTable(Bund b, u_char *source, u_char *dest, int len);
 #endif
 
 /*
@@ -111,10 +111,10 @@
  */
 
 static int
-Pred1Init(int directions)
+Pred1Init(Bund b, int directions)
 {
 #ifndef USE_NG_PRED1
-  Pred1Info	p = &bund->ccp.pred1;
+  Pred1Info	p = &b->ccp.pred1;
 
   if (directions == COMP_DIR_RECV)
   {
@@ -156,20 +156,20 @@ Pred1Init(int directions)
   snprintf(mp.type, sizeof(mp.type), "%s", NG_PRED1_NODE_TYPE);
   snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", pred1hook);
-  if (NgSendMsg(bund->csock, MPD_HOOK_PPP,
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     Log(LG_ERR, ("[%s] can't create %s node: %s",
-      bund->name, mp.type, strerror(errno)));
+      b->name, mp.type, strerror(errno)));
     return(-1);
   }
 
   /* Configure PRED1 node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_PRED1_COOKIE, NGM_PRED1_CONFIG, &conf, sizeof(conf)) < 0) {
     Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
-      bund->name, NG_PRED1_NODE_TYPE, path, strerror(errno)));
-    NgFuncDisconnect(bund->csock, bund->name, MPD_HOOK_PPP, ppphook);
+      b->name, NG_PRED1_NODE_TYPE, path, strerror(errno)));
+    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, ppphook);
     return(-1);
   }
 #endif
@@ -181,10 +181,10 @@ Pred1Init(int directions)
  */
 
 void
-Pred1Cleanup(int dir)
+Pred1Cleanup(Bund b, int dir)
 {
 #ifndef USE_NG_PRED1
-  Pred1Info	p = &bund->ccp.pred1;
+  Pred1Info	p = &b->ccp.pred1;
 
   if (dir == COMP_DIR_RECV)
   {
@@ -217,7 +217,7 @@ Pred1Cleanup(int dir)
       return;
   }
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  (void)NgFuncShutdownNode(bund->csock, bund->name, path);
+  (void)NgFuncShutdownNode(b->csock, b->name, path);
 #endif
 }
 
@@ -230,14 +230,14 @@ Pred1Cleanup(int dir)
  */
 
 Mbuf
-Pred1Compress(Mbuf plain)
+Pred1Compress(Bund b, Mbuf plain)
 {
   u_char	*wp, *uncomp, *comp;
   u_int16_t	fcs;
   int		len;
   Mbuf		res;
   int		orglen;
-  Pred1Info	p = &bund->ccp.pred1;
+  Pred1Info	p = &b->ccp.pred1;
   
   plain = mbunify(plain);
   orglen = plength(plain);
@@ -262,7 +262,7 @@ Pred1Compress(Mbuf plain)
 
 /* Compress data */
 
-  len = Compress(uncomp, wp, orglen);
+  len = Compress(b, uncomp, wp, orglen);
 
 /* What happened? */
 
@@ -287,7 +287,7 @@ Pred1Compress(Mbuf plain)
   res->cnt = (wp - comp);
   
   PFREE(plain);
-  Log(LG_CCP2, ("[%s] Pred1: orig (%d) --> comp (%d)", bund->name, orglen, res->cnt));
+  Log(LG_CCP2, ("[%s] Pred1: orig (%d) --> comp (%d)", b->name, orglen, res->cnt));
 
   p->xmit_stats.OutOctets += res->cnt;
 
@@ -302,7 +302,7 @@ Pred1Compress(Mbuf plain)
  */
 
 Mbuf
-Pred1Decompress(Mbuf mbcomp)
+Pred1Decompress(Bund b, Mbuf mbcomp)
 {
   u_char	*uncomp, *comp;
   u_char	*cp;
@@ -310,7 +310,7 @@ Pred1Decompress(Mbuf mbcomp)
   u_int16_t	fcs;
   int           orglen;
   Mbuf		mbuncomp;
-  Pred1Info	p = &bund->ccp.pred1;
+  Pred1Info	p = &b->ccp.pred1;
 
   mbcomp = mbunify(mbcomp);
   orglen = plength(mbcomp);
@@ -333,14 +333,14 @@ Pred1Decompress(Mbuf mbcomp)
   if (cf)
   {
     p->recv_stats.FramesComp++;
-    len1 = Decompress(cp, uncomp, orglen - 4, PRED1_DECOMP_BUF_SIZE);
+    len1 = Decompress(b, cp, uncomp, orglen - 4, PRED1_DECOMP_BUF_SIZE);
     if (len != len1)	/* Error is detected. Send reset request */
     {
-      Log(LG_CCP2, ("[%s] Length error (%d) --> len (%d)", bund->name, len, len1));
+      Log(LG_CCP2, ("[%s] Length error (%d) --> len (%d)", b->name, len, len1));
       p->recv_stats.Errors++;
       PFREE(mbcomp);
       PFREE(mbuncomp);
-      CcpSendResetReq(bund);
+      CcpSendResetReq(b);
       return NULL;
     }
     cp += orglen - 4;
@@ -368,15 +368,15 @@ Pred1Decompress(Mbuf mbcomp)
 
   if (fcs != PPP_GOODFCS)
   {
-    Log(LG_CCP2, ("[%s] Pred1: Bad CRC-16", bund->name));
+    Log(LG_CCP2, ("[%s] Pred1: Bad CRC-16", b->name));
     p->recv_stats.Errors++;
     PFREE(mbcomp);
     PFREE(mbuncomp);
-    CcpSendResetReq(bund);
+    CcpSendResetReq(b);
     return NULL;
   }
 
-  Log(LG_CCP2, ("[%s] Pred1: orig (%d) <-- comp (%d)", bund->name, mbuncomp->cnt, orglen));
+  Log(LG_CCP2, ("[%s] Pred1: orig (%d) <-- comp (%d)", b->name, mbuncomp->cnt, orglen));
   PFREE(mbcomp);
   
   p->recv_stats.FramesPlain++;
@@ -391,20 +391,20 @@ Pred1Decompress(Mbuf mbcomp)
  */
 
 static Mbuf
-Pred1RecvResetReq(int id, Mbuf bp, int *noAck)
+Pred1RecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
 #ifndef USE_NG_PRED1
-  Pred1Info     p = &bund->ccp.pred1;
+  Pred1Info     p = &b->ccp.pred1;
   Pred1Init(COMP_DIR_XMIT);
   p->xmit_stats.Errors++;
 #else
   char	path[NG_PATHLEN + 1];
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset to %s node: %s",
-      bund->name, NG_PRED1_NODE_TYPE, strerror(errno)));
+      b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
   }
 #endif
 return(NULL);
@@ -415,10 +415,10 @@ return(NULL);
  */
 
 static Mbuf
-Pred1SendResetReq(void)
+Pred1SendResetReq(Bund b)
 {
 #ifndef USE_NG_PRED1
-    Pred1Init(COMP_DIR_RECV);
+    Pred1Init(b, COMP_DIR_RECV);
 #endif
     return(NULL);
 }
@@ -428,18 +428,18 @@ Pred1SendResetReq(void)
  */
 
 static void
-Pred1RecvResetAck(int id, Mbuf bp)
+Pred1RecvResetAck(Bund b, int id, Mbuf bp)
 {
 #ifndef USE_NG_PRED1
-  Pred1Init(COMP_DIR_RECV);
+  Pred1Init(b, COMP_DIR_RECV);
 #else
   char	path[NG_PATHLEN + 1];
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_DECOMPRESS);
-  if (NgSendMsg(bund->csock, path,
+  if (NgSendMsg(b->csock, path,
       NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset to %s node: %s",
-      bund->name, NG_PRED1_NODE_TYPE, strerror(errno)));
+      b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
   }
 #endif
 }
@@ -449,7 +449,7 @@ Pred1RecvResetAck(int id, Mbuf bp)
  */
 
 static u_char *
-Pred1BuildConfigReq(u_char *cp, int *ok)
+Pred1BuildConfigReq(Bund b, u_char *cp, int *ok)
 {
   cp = FsmConfValue(cp, CCP_TY_PRED1, 0, NULL);
   *ok = 1;
@@ -479,7 +479,7 @@ Pred1DecodeConfigReq(Fsm fp, FsmOption opt, int mode)
  */
 
 static int
-Pred1Negotiated(int dir)
+Pred1Negotiated(Bund b, int dir)
 {
   return 1;
 }
@@ -489,16 +489,16 @@ Pred1Negotiated(int dir)
  */
 
 static int
-Pred1SubtractBloat(int size)
+Pred1SubtractBloat(Bund b, int size)
 {
   return(size - 4);
 }
 
 static int
-Pred1Stat(int dir) 
+Pred1Stat(Bund b, int dir) 
 {
 #ifndef USE_NG_PRED1
-    Pred1Info	p = &bund->ccp.pred1;
+    Pred1Info	p = &b->ccp.pred1;
     
     switch (dir) {
 	case COMP_DIR_XMIT:
@@ -543,11 +543,11 @@ Pred1Stat(int dir)
 
     switch (dir) {
 	case COMP_DIR_XMIT:
-	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, b->name,
 		NG_PPP_HOOK_COMPRESS);
 	    break;
 	case COMP_DIR_RECV:
-	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, bund->name,
+	    snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, b->name,
 		NG_PPP_HOOK_DECOMPRESS);
 	    break;
 	default:
@@ -556,7 +556,7 @@ Pred1Stat(int dir)
     if (NgFuncSendQuery(path, NGM_PRED1_COOKIE, NGM_PRED1_GET_STATS, NULL, 0, 
 	&u.reply, sizeof(u), NULL) < 0) {
 	    Log(LG_ERR, ("[%s] can't get %s stats: %s",
-		bund->name, NG_BPF_NODE_TYPE, strerror(errno)));
+		b->name, NG_BPF_NODE_TYPE, strerror(errno)));
 	    return(0);
     }
     memcpy(&stats, u.reply.data, sizeof(stats));
@@ -602,9 +602,9 @@ Pred1Stat(int dir)
  */
 
 static int
-Compress(u_char *source, u_char *dest, int len)
+Compress(Bund b, u_char *source, u_char *dest, int len)
 {
-  Pred1Info	p = &bund->ccp.pred1;
+  Pred1Info	p = &b->ccp.pred1;
   int		i, bitmask;
   u_char	flags;
   u_char	*flagdest, *orgdest;
@@ -636,9 +636,9 @@ Compress(u_char *source, u_char *dest, int len)
  */
 
 static int
-Decompress(u_char *source, u_char *dest, int slen, int dlen)
+Decompress(Bund b, u_char *source, u_char *dest, int slen, int dlen)
 {
-  Pred1Info	p = &bund->ccp.pred1;
+  Pred1Info	p = &b->ccp.pred1;
   int		i, bitmask;
   u_char	flags, *orgdest;
 
@@ -673,9 +673,9 @@ Decompress(u_char *source, u_char *dest, int slen, int dlen)
  */
 
 static void
-SyncTable(u_char *source, u_char *dest, int len)
+SyncTable(Bund b, u_char *source, u_char *dest, int len)
 {
-  Pred1Info	p = &bund->ccp.pred1;
+  Pred1Info	p = &b->ccp.pred1;
 
   while (len--)
   {
