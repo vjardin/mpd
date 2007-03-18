@@ -117,19 +117,9 @@
   extern struct pevent_ctx	*gPeventCtx;
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
 
-//  extern Bund		bund;			/* Current bundle */
-//  extern Link		lnk;			/* Current link */
-//  extern Rep		rep;			/* Current repeater */
-//  extern PhysInfo	phys;			/* Current phys */
-
   extern const char	*gVersion;		/* Program version string */
   extern const char	*gConfigFile;		/* Main config file */
   extern const char	*gConfDirectory;	/* Where the files are */
-  extern char		*gLogFileId;		/* Log file identifier */
-
-  extern int		gOpenSig;		/* Rec'd open signal */
-  extern int		gCloseSig;		/* Rec'd close signal */
-  extern int		gDeathSig;		/* Rec'd terminate signal */
 
 /*
  * FUNCTIONS
