@@ -196,31 +196,27 @@ FsmNewState(Fsm fp, int new)
 void
 FsmOutputMbuf(Fsm fp, u_int code, u_int id, Mbuf payload)
 {
-  FsmOutputMbuf2(fp->type->proto, fp->type->link_layer, code, id, payload);
-}
+    Bund		b;
+    Mbuf		bp;
+    struct fsmheader	hdr;
 
-/*
- * FsmOutputMbuf2()
- */
+    if (fp->type->link_layer)
+	b = ((Link)fp->arg)->bund;
+    else
+	b = (Bund)fp->arg;
 
-void
-FsmOutputMbuf2(u_short proto, int linklayer, u_int code, u_int id, Mbuf payload)
-{
-  Mbuf			bp;
-  struct fsmheader	hdr;
+    /* Build header */
+    hdr.id = id;
+    hdr.code = code;
+    hdr.length = htons(sizeof(hdr) + plength(payload));
 
-  /* Build header */
-  hdr.id = id;
-  hdr.code = code;
-  hdr.length = htons(sizeof(hdr) + plength(payload));
+    /* Prepend to payload */
+    bp = mbwrite(mballoc(MB_FSM, sizeof(hdr)), (u_char *) &hdr, sizeof(hdr));
+    bp->next = payload;
 
-  /* Prepend to payload */
-  bp = mbwrite(mballoc(MB_FSM, sizeof(hdr)), (u_char *) &hdr, sizeof(hdr));
-  bp->next = payload;
-
-  /* Send it out */
-  NgFuncWritePppFrame(bund, linklayer ?
-    lnk->bundleIndex : NG_PPP_BUNDLE_LINKNUM, proto, bp);
+    /* Send it out */
+    NgFuncWritePppFrame(b, fp->type->link_layer ?
+	((Link)fp->arg)->bundleIndex : NG_PPP_BUNDLE_LINKNUM, fp->type->proto, bp);
 }
 
 /*
@@ -1333,13 +1329,23 @@ FsmCheckMagic(Fsm fp, Mbuf bp)
 static void
 FsmEchoTimeout(void *arg)
 {
-  Fsm				const fp = (Fsm) arg;
-  struct ng_ppp_link_stat	oldStats;
+    Fsm			const fp = (Fsm) arg;
+    Bund		b;
+    Link		l;
+    struct ng_ppp_link_stat	oldStats;
+
+    if (fp->type->link_layer) {
+	l = (Link)fp->arg;
+	b = l->bund;
+    } else {
+	b = (Bund)fp->arg;
+	l = NULL;
+    }
 
   /* See if there was any traffic since last time */
   oldStats = fp->idleStats;
-  NgFuncGetStats(bund, fp->type->link_layer ?
-    lnk->bundleIndex : NG_PPP_BUNDLE_LINKNUM, FALSE, &fp->idleStats);
+  NgFuncGetStats(b, fp->type->link_layer ?
+    l->bundleIndex : NG_PPP_BUNDLE_LINKNUM, FALSE, &fp->idleStats);
   if (fp->idleStats.recvFrames > oldStats.recvFrames)
     fp->quietCount = 0;
   else

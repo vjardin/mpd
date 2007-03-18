@@ -185,8 +185,6 @@
   extern void		FsmInput(Fsm f, Mbuf bp);
   extern void		FsmOutput(Fsm, u_int, u_int, u_char *, int);
   extern void		FsmOutputMbuf(Fsm, u_int, u_int, Mbuf);
-  extern void		FsmOutputMbuf2(u_short proto, int linklayer,
-				u_int code, u_int id, Mbuf payload);
   extern void		FsmSendEchoReq(Fsm fp, Mbuf payload);
   extern void		FsmSendIdent(Fsm fp, const char *ident);
   extern u_char		*FsmConfValue(u_char *cp, int ty,
