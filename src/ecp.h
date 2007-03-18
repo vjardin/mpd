@@ -69,15 +69,15 @@
  * FUNCTIONS
  */
 
-  extern void	EcpInit(void);
-  extern void	EcpUp(void);
-  extern void	EcpDown(void);
+  extern void	EcpInit(Bund b);
+  extern void	EcpUp(Bund b);
+  extern void	EcpDown(Bund b);
   extern void	EcpOpen(void);
   extern void	EcpClose(void);
-  extern int	EcpSubtractBloat(int size);
+  extern int	EcpSubtractBloat(Bund b, int size);
   extern void	EcpInput(Bund b, Mbuf bp);
-  extern Mbuf	EcpDataInput(Mbuf bp);
-  extern Mbuf	EcpDataOutput(Mbuf bp);
+  extern Mbuf	EcpDataInput(Bund b, Mbuf bp);
+  extern Mbuf	EcpDataOutput(Bund b, Mbuf bp);
   extern void	EcpSendResetReq(Fsm fp);
   extern int	EcpStat(int ac, char *av[], void *arg);
 

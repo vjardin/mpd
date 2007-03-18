@@ -183,7 +183,7 @@ NgFuncInitGlobalNetflow(Bund b)
 	nf_settime.inactive_timeout = gNetflowInactive;
 	nf_settime.active_timeout = gNetflowActive;
 
-	if (NgSendMsg(bund->csock, path, NGM_NETFLOW_COOKIE,
+	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE,
 	    NGM_NETFLOW_SETTIMEOUTS, &nf_settime, sizeof(nf_settime)) < 0) {
 	  Log(LG_ERR, ("[%s] can't set timeouts on netflow %s node: %s",
 	    b->name, NG_NETFLOW_NODE_TYPE, strerror(errno)));
@@ -195,7 +195,7 @@ NgFuncInitGlobalNetflow(Bund b)
       snprintf(path, sizeof(path), "%s:%s", gNetflowNodeName,
 	    NG_NETFLOW_HOOK_EXPORT);
       if (gNetflowSource.ss_len != 0) {
-	if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
+	if (NgSendMsg(b->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
 	  Log(LG_ERR, ("[%s] can't bind export %s node: %s",
 	    b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -203,7 +203,7 @@ NgFuncInitGlobalNetflow(Bund b)
 	}
       }
       if (gNetflowExport.ss_len != 0) {
-	if (NgSendMsg(bund->csock, path, NGM_KSOCKET_COOKIE,
+	if (NgSendMsg(b->csock, path, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_CONNECT, &gNetflowExport, sizeof(gNetflowExport)) < 0) {
 	  Log(LG_ERR, ("[%s] can't connect export %s node: %s",
 	    b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));

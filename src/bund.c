@@ -506,13 +506,13 @@ static void
 BundNcpsUp(Bund b)
 {
   if (Enabled(&b->conf.options, BUND_CONF_IPCP))
-    IpcpUp();
+    IpcpUp(b);
   if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
-    Ipv6cpUp();
+    Ipv6cpUp(b);
   if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
-    CcpUp();
+    CcpUp(b);
   if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
-    EcpUp();
+    EcpUp(b);
 }
 
 void
@@ -533,50 +533,50 @@ BundNcpsFinish(Bund b, int proto)
 }
 
 void
-BundNcpsJoin(int proto)
+BundNcpsJoin(Bund b, int proto)
 {
-    IfaceState	iface = &bund->iface;
+    IfaceState	iface = &b->iface;
     switch(proto) {
 	case NCP_IPCP:
 	    if (!iface->ip_up) {
 		iface->ip_up=1;
-		IfaceIpIfaceUp(bund, 1);
+		IfaceIpIfaceUp(b, 1);
 	    } else if (iface->dod) {
 		iface->dod = 0;
 		iface->up = 0;
-		IfaceDown(bund);
+		IfaceDown(b);
 		if (iface->ip_up) {
 		    iface->ip_up=0;
-		    IfaceIpIfaceDown(bund);
+		    IfaceIpIfaceDown(b);
 		}
 		if (iface->ipv6_up) {
 		    iface->ipv6_up=0;
-		    IfaceIpv6IfaceDown(bund);
+		    IfaceIpv6IfaceDown(b);
 		}
 		
 		iface->ip_up=1;
-		IfaceIpIfaceUp(bund, 1);
+		IfaceIpIfaceUp(b, 1);
 	    }
 	    break;
 	case NCP_IPV6CP:
 	    if (!iface->ipv6_up) {
 		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(bund, 1);
+		IfaceIpv6IfaceUp(b, 1);
 	    } else if (iface->dod) {
 		iface->dod = 0;
 		iface->up = 0;
-		IfaceDown(bund);
+		IfaceDown(b);
 		if (iface->ip_up) {
 		    iface->ip_up=0;
-		    IfaceIpIfaceDown(bund);
+		    IfaceIpIfaceDown(b);
 		}
 		if (iface->ipv6_up) {
 		    iface->ipv6_up=0;
-		    IfaceIpv6IfaceDown(bund);
+		    IfaceIpv6IfaceDown(b);
 		}
 		
 		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(bund, 1);
+		IfaceIpv6IfaceUp(b, 1);
 	    }
 	    break;
 	case NCP_NONE: /* Manual call by 'open iface' */
@@ -584,14 +584,14 @@ BundNcpsJoin(int proto)
 		if (!(iface->up || iface->ip_up || iface->ipv6_up)) {
 		    iface->dod=1;
 		    iface->up=1;
-		    IfaceUp(bund, 0);
-		    if (Enabled(&bund->conf.options, BUND_CONF_IPCP)) {
+		    IfaceUp(b, 0);
+		    if (Enabled(&b->conf.options, BUND_CONF_IPCP)) {
 			iface->ip_up=1;
-			IfaceIpIfaceUp(bund, 0);
+			IfaceIpIfaceUp(b, 0);
 		    }
-		    if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP)) {
+		    if (Enabled(&b->conf.options, BUND_CONF_IPV6CP)) {
 			iface->ipv6_up=1;
-			IfaceIpv6IfaceUp(bund, 0);
+			IfaceIpv6IfaceUp(b, 0);
 		    }
 		}
 	    }
@@ -600,43 +600,43 @@ BundNcpsJoin(int proto)
     
     if ((proto==NCP_IPCP || proto==NCP_IPV6CP) && (!iface->up)) {
 	iface->up=1;
-	IfaceUp(bund, 1);
+	IfaceUp(b, 1);
     }
 }
 
 void
-BundNcpsLeave(int proto)
+BundNcpsLeave(Bund b, int proto)
 {
-    IfaceState	iface = &bund->iface;
+    IfaceState	iface = &b->iface;
     switch(proto) {
 	case NCP_IPCP:
 	    if (iface->ip_up && !iface->dod) {
 		iface->ip_up=0;
-		IfaceIpIfaceDown(bund);
+		IfaceIpIfaceDown(b);
 	    }
 	    break;
 	case NCP_IPV6CP:
 	    if (iface->ipv6_up && !iface->dod) {
 		iface->ipv6_up=0;
-		IfaceIpv6IfaceDown(bund);
+		IfaceIpv6IfaceDown(b);
 	    }
 	    break;
     }
     
     if ((iface->up) && (!iface->ip_up) && (!iface->ipv6_up)) {
 	iface->up=0;
-	IfaceDown(bund);
+	IfaceDown(b);
         if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
 	    iface->dod=1;
 	    iface->up=1;
-	    IfaceUp(bund, 0);
-	    if (Enabled(&bund->conf.options, BUND_CONF_IPCP)) {
+	    IfaceUp(b, 0);
+	    if (Enabled(&b->conf.options, BUND_CONF_IPCP)) {
 		iface->ip_up=1;
-		IfaceIpIfaceUp(bund, 0);
+		IfaceIpIfaceUp(b, 0);
 	    }
-	    if (Enabled(&bund->conf.options, BUND_CONF_IPV6CP)) {
+	    if (Enabled(&b->conf.options, BUND_CONF_IPV6CP)) {
 		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(bund, 0);
+		IfaceIpv6IfaceUp(b, 0);
 	    }
 	}
     }
@@ -650,13 +650,13 @@ static void
 BundNcpsDown(Bund b)
 {
   if (Enabled(&b->conf.options, BUND_CONF_IPCP))
-    IpcpDown();
+    IpcpDown(b);
   if (Enabled(&b->conf.options, BUND_CONF_IPV6CP))
-    Ipv6cpDown();
+    Ipv6cpDown(b);
   if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
-    CcpDown();
+    CcpDown(b);
   if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
-    EcpDown();
+    EcpDown(b);
 }
 
 /*
@@ -744,9 +744,9 @@ BundUpdateParams(Bund b)
   /* Subtract to make room for various frame-bloating protocols */
   if (bm->n_up > 0) {
     if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
-      mtu = CcpSubtractBloat(mtu);
+      mtu = CcpSubtractBloat(b, mtu);
     if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
-      mtu = EcpSubtractBloat(mtu);
+      mtu = EcpSubtractBloat(b, mtu);
   }
 
   /* Update interface MTU */
@@ -964,10 +964,10 @@ BundCreateCmd(int ac, char *av[], void *arg)
   Enable(&bund->conf.options, BUND_CONF_NORETRY);
 
   /* Init NCP's */
-  IpcpInit();
-  Ipv6cpInit();
-  CcpInit();
-  EcpInit();
+  IpcpInit(bund);
+  Ipv6cpInit(bund);
+  CcpInit(bund);
+  EcpInit(bund);
   
   /* Done */
   return(0);
@@ -1527,7 +1527,7 @@ BundNgDataEvent(int type, void *cookie)
       0, (struct sockaddr *)&naddr, &nsize)) < 0) {
     if (errno == EAGAIN)
       return;
-    Log(LG_BUND, ("[%s] socket read: %s", bund->name, strerror(errno)));
+    Log(LG_BUND, ("[%s] socket read: %s", b->name, strerror(errno)));
     DoExit(EX_ERRDEAD);
   }
 
@@ -1544,11 +1544,11 @@ BundNgDataEvent(int type, void *cookie)
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd bypass frame link=%d proto=0x%04x",
-      bund->name, (int16_t)linkNum, proto);
+      b->name, (int16_t)linkNum, proto);
 
     /* Set link */
-    assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < bund->n_links);
-    lnk = (linkNum < bund->n_links) ? bund->links[linkNum] : NULL;
+    assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < b->n_links);
+    lnk = (linkNum < b->n_links) ? b->links[linkNum] : NULL;
 
     /* Input frame */
     InputFrame(b, linkNum, proto,
@@ -1561,8 +1561,8 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on demand/mssfix-in hook", bund->name);
-    IfaceListenInput(bund, PROTO_IP,
+      "[%s] rec'd IP frame on demand/mssfix-in hook", b->name);
+    IfaceListenInput(b, PROTO_IP,
       mbufise(MB_FRAME_IN, buf, nread));
     return;
   }
@@ -1571,20 +1571,20 @@ BundNgDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_OUT) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on mssfix-out hook", bund->name);
+      "[%s] rec'd IP frame on mssfix-out hook", b->name);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
-    IfaceCorrectMSS(nbp, MAXMSS(bund->iface.mtu));
-    NgFuncWriteFrame(bund, MPD_HOOK_TCPMSS_IN, nbp);
+    IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
+    NgFuncWriteFrame(b, MPD_HOOK_TCPMSS_IN, nbp);
     return;
   }
   /* A snooped, incoming TCP SYN frame? */
   if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_IN) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on mssfix-in hook", bund->name);
+      "[%s] rec'd IP frame on mssfix-in hook", b->name);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
-    IfaceCorrectMSS(nbp, MAXMSS(bund->iface.mtu));
-    NgFuncWriteFrame(bund, MPD_HOOK_TCPMSS_OUT, nbp);
+    IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
+    NgFuncWriteFrame(b, MPD_HOOK_TCPMSS_OUT, nbp);
     return;
   }
 #endif
@@ -1594,11 +1594,11 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_COMPRESS);
+      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_COMPRESS);
 
-    nbp = CcpDataOutput(mbufise(MB_COMP, buf, nread));
+    nbp = CcpDataOutput(b, mbufise(MB_COMP, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(bund, NG_PPP_HOOK_COMPRESS, nbp);
+	NgFuncWriteFrame(b, NG_PPP_HOOK_COMPRESS, nbp);
 
     return;
   }
@@ -1607,11 +1607,11 @@ BundNgDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECOMPRESS) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECOMPRESS);
+      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_DECOMPRESS);
 
-    nbp = CcpDataInput(mbufise(MB_COMP, buf, nread));
+    nbp = CcpDataInput(b, mbufise(MB_COMP, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(bund, NG_PPP_HOOK_DECOMPRESS, nbp);
+	NgFuncWriteFrame(b, NG_PPP_HOOK_DECOMPRESS, nbp);
 
     return;
   }
@@ -1621,11 +1621,11 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_ENCRYPT);
+      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_ENCRYPT);
 
-    nbp = EcpDataOutput(mbufise(MB_CRYPT, buf, nread));
+    nbp = EcpDataOutput(b, mbufise(MB_CRYPT, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(bund, NG_PPP_HOOK_ENCRYPT, nbp);
+	NgFuncWriteFrame(b, NG_PPP_HOOK_ENCRYPT, nbp);
 
     return;
   }
@@ -1634,18 +1634,18 @@ BundNgDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECRYPT) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", bund->name, NG_PPP_HOOK_DECRYPT);
+      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_DECRYPT);
 
-    nbp = EcpDataInput(mbufise(MB_CRYPT, buf, nread));
+    nbp = EcpDataInput(b, mbufise(MB_CRYPT, buf, nread));
     if (nbp) 
-	NgFuncWriteFrame(bund, NG_PPP_HOOK_DECRYPT, nbp);
+	NgFuncWriteFrame(b, NG_PPP_HOOK_DECRYPT, nbp);
 
     return;
   }
 
   /* Unknown hook! */
   LogDumpBuf(LG_FRAME, buf, nread,
-    "[%s] rec'd data on unknown hook \"%s\"", bund->name, naddr.sg_data);
+    "[%s] rec'd data on unknown hook \"%s\"", b->name, naddr.sg_data);
   DoExit(EX_ERRDEAD);
 }
 
@@ -1689,7 +1689,7 @@ BundNgCtrlEvent(int type, void *cookie)
     case NGM_PRED1_COOKIE:
 #endif
 #endif
-      CcpRecvMsg(&u.msg, len);
+      CcpRecvMsg(bund, &u.msg, len);
       return;
 
     default:

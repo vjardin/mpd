@@ -168,14 +168,14 @@
  */
 
 void
-EcpInit(void)
+EcpInit(Bund b)
 {
-  EcpState	ecp = &bund->ecp;
+  EcpState	ecp = &b->ecp;
 
 /* Init ECP state for this bundle */
 
   memset(ecp, 0, sizeof(*ecp));
-  FsmInit(&ecp->fsm, &gEcpFsmType, bund);
+  FsmInit(&ecp->fsm, &gEcpFsmType, b);
   ecp->fsm.conf.maxfailure = ECP_MAXFAILURE;
 
 /* Construct options list if we haven't done so already */
@@ -204,7 +204,8 @@ EcpInit(void)
 static void
 EcpConfigure(Fsm fp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   int		k;
 
   for (k = 0; k < ECP_NUM_PROTOS; k++)
@@ -227,7 +228,8 @@ EcpConfigure(Fsm fp)
 static void
 EcpUnConfigure(Fsm fp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   int		k;
 
   for (k = 0; k < ECP_NUM_PROTOS; k++)
@@ -250,9 +252,9 @@ EcpUnConfigure(Fsm fp)
  */
 
 Mbuf
-EcpDataOutput(Mbuf plain)
+EcpDataOutput(Bund b, Mbuf plain)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   Mbuf		cypher;
 
   LogDumpBp(LG_ECP2, plain, "%s: xmit plain", Pref(&ecp->fsm));
@@ -281,9 +283,9 @@ EcpDataOutput(Mbuf plain)
  */
 
 Mbuf
-EcpDataInput(Mbuf cypher)
+EcpDataInput(Bund b, Mbuf cypher)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
   Mbuf		plain;
 
   LogDumpBp(LG_ECP2, cypher, "%s: recv cypher", Pref(&ecp->fsm));
@@ -318,9 +320,9 @@ EcpDataInput(Mbuf cypher)
  */
 
 void
-EcpUp(void)
+EcpUp(Bund b)
 {
-  FsmUp(&bund->ecp.fsm);
+  FsmUp(&b->ecp.fsm);
 }
 
 /*
@@ -328,9 +330,9 @@ EcpUp(void)
  */
 
 void
-EcpDown(void)
+EcpDown(Bund b)
 {
-  FsmDown(&bund->ecp.fsm);
+  FsmDown(&b->ecp.fsm);
 }
 
 /*
@@ -360,12 +362,13 @@ EcpClose(void)
  */
 
 static void
-EcpFailure(Fsm f, enum fsmfail reason)
+EcpFailure(Fsm fp, enum fsmfail reason)
 {
+    Bund 	b = (Bund)fp->arg;
   EcpClose();
-  if (Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD)) {
-    FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
-    FsmFailure(&bund->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
+  if (Enabled(&b->conf.options, BUND_CONF_CRYPT_REQD)) {
+    FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
+    FsmFailure(&b->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
   }
 }
 
@@ -401,7 +404,8 @@ EcpStat(int ac, char *av[], void *arg)
 void
 EcpSendResetReq(Fsm fp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   EncType	const et = ecp->recv;
   Mbuf		bp = NULL;
 
@@ -420,7 +424,8 @@ EcpSendResetReq(Fsm fp)
 void
 EcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   EncType	const et = ecp->xmit;
 
   ecp->xmit_resets++;
@@ -436,7 +441,8 @@ EcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 static void
 EcpRecvResetAck(Fsm fp, int id, Mbuf bp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   EncType	const et = ecp->recv;
 
   if (et && et->RecvResetAck)
@@ -460,7 +466,8 @@ EcpInput(Bund b, Mbuf bp)
 static u_char *
 EcpBuildConfigReq(Fsm fp, u_char *cp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   int		type;
 
 /* Put in all options that peer hasn't rejected */
@@ -488,7 +495,8 @@ EcpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 EcpLayerUp(Fsm fp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   struct ngm_connect    cn;
 
   /* Initialize */
@@ -503,10 +511,10 @@ EcpLayerUp(Fsm fp)
     snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECRYPT);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECRYPT);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        bund->name, ".", cn.ourhook, cn.path, cn.peerhook,  strerror(errno)));
+        b->name, ".", cn.ourhook, cn.path, cn.peerhook,  strerror(errno)));
     }
   }
   if (ecp->xmit && ecp->xmit->Encrypt)
@@ -515,10 +523,10 @@ EcpLayerUp(Fsm fp)
     snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_ENCRYPT);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_ENCRYPT);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        bund->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+        b->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
@@ -527,16 +535,16 @@ EcpLayerUp(Fsm fp)
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableEncryption = (ecp->xmit != NULL);
-  bund->pppConfig.enableDecryption = (ecp->recv != NULL);
+  b->pppConfig.enableEncryption = (ecp->xmit != NULL);
+  b->pppConfig.enableDecryption = (ecp->recv != NULL);
 #else
-  bund->pppConfig.bund.enableEncryption = (ecp->xmit != NULL);
-  bund->pppConfig.bund.enableDecryption = (ecp->recv != NULL);
+  b->pppConfig.bund.enableEncryption = (ecp->xmit != NULL);
+  b->pppConfig.bund.enableDecryption = (ecp->recv != NULL);
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 
   /* Update interface MTU */
-  BundUpdateParams(bund);
+  BundUpdateParams(b);
 }
 
 /*
@@ -548,26 +556,27 @@ EcpLayerUp(Fsm fp)
 static void
 EcpLayerDown(Fsm fp)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   struct ngm_rmhook rm;
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableEncryption = 0;
-  bund->pppConfig.enableDecryption = 0;
+  b->pppConfig.enableEncryption = 0;
+  b->pppConfig.enableDecryption = 0;
 #else
-  bund->pppConfig.bund.enableEncryption = 0;
-  bund->pppConfig.bund.enableDecryption = 0;
+  b->pppConfig.bund.enableEncryption = 0;
+  b->pppConfig.bund.enableDecryption = 0;
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 
   /* Update interface MTU */
-  BundUpdateParams(bund);
+  BundUpdateParams(b);
 
   if (ecp->xmit != NULL && ecp->xmit->Encrypt != NULL) {
     /* Disconnect hook. */
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_ENCRYPT);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_ENCRYPT, strerror(errno)));
     }
@@ -576,7 +585,7 @@ EcpLayerDown(Fsm fp)
   if (ecp->recv != NULL && ecp->recv->Decrypt != NULL) {
     /* Disconnect hook. */
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECRYPT);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECRYPT, strerror(errno)));
     }
@@ -598,7 +607,8 @@ EcpLayerDown(Fsm fp)
 static void
 EcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 {
-  EcpState	const ecp = &bund->ecp;
+    Bund 	b = (Bund)fp->arg;
+  EcpState	const ecp = &b->ecp;
   u_int		ackSizeSave, rejSizeSave;
   int		k, rej;
 
@@ -672,9 +682,9 @@ EcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
  */
 
 int
-EcpSubtractBloat(int size)
+EcpSubtractBloat(Bund b, int size)
 {
-  EcpState	const ecp = &bund->ecp;
+  EcpState	const ecp = &b->ecp;
 
   /* Check transmit encryption */
   if (OPEN_STATE(ecp->fsm.state) && ecp->xmit && ecp->xmit->SubtractBloat)

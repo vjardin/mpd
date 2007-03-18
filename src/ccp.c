@@ -63,7 +63,7 @@
   static void		CcpRecvResetReq(Fsm fp, int id, Mbuf bp);
   static void		CcpRecvResetAck(Fsm fp, int id, Mbuf bp);
 
-  static int		CcpCheckEncryption(void);
+  static int		CcpCheckEncryption(Bund b);
   static int		CcpSetCommand(int ac, char *av[], void *arg);
   static CompType	CcpFindComp(int type, int *indexp);
   static const char	*CcpTypeName(int type);
@@ -189,13 +189,13 @@
  */
 
 void
-CcpInit(void)
+CcpInit(Bund b)
 {
-  CcpState	ccp = &bund->ccp;
+  CcpState	ccp = &b->ccp;
 
   /* Init CCP state for this bundle */
   memset(ccp, 0, sizeof(*ccp));
-  FsmInit(&ccp->fsm, &gCcpFsmType, bund);
+  FsmInit(&ccp->fsm, &gCcpFsmType, b);
   ccp->fsm.conf.maxfailure = CCP_MAXFAILURE;
 
   /* Construct options list if we haven't done so already */
@@ -231,7 +231,8 @@ CcpInit(void)
 static void
 CcpConfigure(Fsm fp)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   int		k;
 
   /* Reset state */
@@ -255,7 +256,8 @@ CcpConfigure(Fsm fp)
 static void
 CcpUnConfigure(Fsm fp)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   int		k;
 
   /* Reset state */
@@ -277,16 +279,16 @@ CcpUnConfigure(Fsm fp)
  */
 
 void
-CcpRecvMsg(struct ng_mesg *msg, int len)
+CcpRecvMsg(Bund b, struct ng_mesg *msg, int len)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   Fsm		const fp = &ccp->fsm;
 
   switch (msg->header.typecookie) {
     case NGM_MPPC_COOKIE:
       switch (msg->header.cmd) {
 	case NGM_MPPC_RESETREQ: {
-	    CcpSendResetReq();
+	    CcpSendResetReq(b);
 	    return;
 	  }
 	default:
@@ -298,7 +300,7 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
     case NGM_DEFLATE_COOKIE:
       switch (msg->header.cmd) {
 	case NGM_DEFLATE_RESETREQ: {
-	    CcpSendResetReq();
+	    CcpSendResetReq(b);
 	    return;
 	  }
 	default:
@@ -312,7 +314,7 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
     case NGM_PRED1_COOKIE:
       switch (msg->header.cmd) {
 	case NGM_PRED1_RESETREQ: {
-	    CcpSendResetReq();
+	    CcpSendResetReq(b);
 	    return;
 	  }
 	default:
@@ -335,9 +337,9 @@ CcpRecvMsg(struct ng_mesg *msg, int len)
  */
 
 void
-CcpUp(void)
+CcpUp(Bund b)
 {
-  FsmUp(&bund->ccp.fsm);
+  FsmUp(&b->ccp.fsm);
 }
 
 /*
@@ -345,9 +347,9 @@ CcpUp(void)
  */
 
 void
-CcpDown(void)
+CcpDown(Bund b)
 {
-  FsmDown(&bund->ccp.fsm);
+  FsmDown(&b->ccp.fsm);
 }
 
 /*
@@ -378,10 +380,11 @@ CcpClose(void)
  */
 
 static void
-CcpFailure(Fsm f, enum fsmfail reason)
+CcpFailure(Fsm fp, enum fsmfail reason)
 {
+    Bund 	b = (Bund)fp->arg;
   CcpClose();
-  CcpCheckEncryption();
+  CcpCheckEncryption(b);
 }
 
 /*
@@ -419,9 +422,9 @@ CcpStat(int ac, char *av[], void *arg)
  */
 
 void
-CcpSendResetReq(void)
+CcpSendResetReq(Bund b)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   CompType	const ct = ccp->recv;
   Fsm		const fp = &ccp->fsm;
   Mbuf		bp = NULL;
@@ -442,7 +445,8 @@ CcpSendResetReq(void)
 static void
 CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   CompType	const ct = ccp->xmit;
   int		noAck = 0;
 
@@ -462,7 +466,8 @@ CcpRecvResetReq(Fsm fp, int id, Mbuf bp)
 static void
 CcpRecvResetAck(Fsm fp, int id, Mbuf bp)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   CompType	const ct = ccp->recv;
 
   if (ct && ct->RecvResetAck)
@@ -486,9 +491,9 @@ CcpInput(Bund b, Mbuf bp)
  */
 
 Mbuf
-CcpDataOutput(Mbuf plain)
+CcpDataOutput(Bund b, Mbuf plain)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   Mbuf		comp;
 
   LogDumpBp(LG_CCP3, plain, "%s: xmit plain", Pref(&ccp->fsm));
@@ -515,9 +520,9 @@ CcpDataOutput(Mbuf plain)
  */
 
 Mbuf
-CcpDataInput(Mbuf comp)
+CcpDataInput(Bund b, Mbuf comp)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
   Mbuf		plain;
 
   LogDumpBp(LG_CCP3, comp, "%s: recv comp", Pref(&ccp->fsm));
@@ -552,7 +557,8 @@ CcpDataInput(Mbuf comp)
 static u_char *
 CcpBuildConfigReq(Fsm fp, u_char *cp)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   int		type;
   int		ok;
 
@@ -576,7 +582,8 @@ CcpBuildConfigReq(Fsm fp, u_char *cp)
 static void
 CcpLayerUp(Fsm fp)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   struct ngm_connect    cn;
 
   /* If nothing was negotiated in either direction, close CCP */
@@ -588,7 +595,7 @@ CcpLayerUp(Fsm fp)
   }
 
   /* Check for required encryption */
-  if (CcpCheckEncryption() < 0) {
+  if (CcpCheckEncryption(b) < 0) {
     return;
   }
 
@@ -611,10 +618,10 @@ CcpLayerUp(Fsm fp)
     snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        bund->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+        b->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
@@ -623,10 +630,10 @@ CcpLayerUp(Fsm fp)
     snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        bund->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+        b->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
@@ -638,16 +645,16 @@ CcpLayerUp(Fsm fp)
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableCompression = (ccp->xmit != NULL);
-  bund->pppConfig.enableDecompression = (ccp->recv != NULL);
+  b->pppConfig.enableCompression = (ccp->xmit != NULL);
+  b->pppConfig.enableDecompression = (ccp->recv != NULL);
 #else
-  bund->pppConfig.bund.enableCompression = (ccp->xmit != NULL)?ccp->xmit->mode:0;
-  bund->pppConfig.bund.enableDecompression = (ccp->recv != NULL)?ccp->recv->mode:0;
+  b->pppConfig.bund.enableCompression = (ccp->xmit != NULL)?ccp->xmit->mode:0;
+  b->pppConfig.bund.enableDecompression = (ccp->recv != NULL)?ccp->recv->mode:0;
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 
   /* Update interface MTU */
-  BundUpdateParams(bund);
+  BundUpdateParams(b);
 }
 
 /*
@@ -657,26 +664,27 @@ CcpLayerUp(Fsm fp)
 static void
 CcpLayerDown(Fsm fp)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   struct ngm_rmhook rm;
 
   /* Update PPP node config */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableCompression = 0;
-  bund->pppConfig.enableDecompression = 0;
+  b->pppConfig.enableCompression = 0;
+  b->pppConfig.enableDecompression = 0;
 #else
-  bund->pppConfig.bund.enableCompression = 0;
-  bund->pppConfig.bund.enableDecompression = 0;
+  b->pppConfig.bund.enableCompression = 0;
+  b->pppConfig.bund.enableDecompression = 0;
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 
   /* Update interface MTU */
-  BundUpdateParams(bund);
+  BundUpdateParams(b);
   
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
     /* Disconnect hook. */
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_COMPRESS, strerror(errno)));
     }
@@ -685,7 +693,7 @@ CcpLayerDown(Fsm fp)
   if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
     /* Disconnect hook. */
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    if (NgSendMsg(bund->csock, ".",
+    if (NgSendMsg(b->csock, ".",
 	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
     }
@@ -706,7 +714,8 @@ CcpLayerDown(Fsm fp)
 static void
 CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 {
-  CcpState	const ccp = &bund->ccp;
+    Bund 	b = (Bund)fp->arg;
+  CcpState	const ccp = &b->ccp;
   u_int		ackSizeSave, rejSizeSave;
   int		k, rej;
 
@@ -770,9 +779,9 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
  */
 
 int
-CcpSubtractBloat(int size)
+CcpSubtractBloat(Bund b, int size)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
 
   /* Account for transmit compression overhead */
   if (OPEN_STATE(ccp->fsm.state) && ccp->xmit && ccp->xmit->SubtractBloat)
@@ -794,9 +803,9 @@ CcpSubtractBloat(int size)
  */
 
 static int
-CcpCheckEncryption(void)
+CcpCheckEncryption(Bund b)
 {
-  CcpState	const ccp = &bund->ccp;
+  CcpState	const ccp = &b->ccp;
 
   /* Already checked? */
   if (ccp->crypt_check)
@@ -805,10 +814,10 @@ CcpCheckEncryption(void)
 
   /* Is encryption required? */
   if (Enabled(&ccp->options, gMppePolicy)) {
-    if (bund->params.msoft.policy != MPPE_POLICY_REQUIRED) 
+    if (b->params.msoft.policy != MPPE_POLICY_REQUIRED) 
       return(0);
   } else {
-    if (!Enabled(&bund->conf.options, BUND_CONF_CRYPT_REQD))
+    if (!Enabled(&b->conf.options, BUND_CONF_CRYPT_REQD))
       return(0);
   }
 
@@ -834,8 +843,8 @@ fail:
   Log(LG_ERR, ("%s: encryption required, but MPPE was not"
     " negotiated in both directions", Pref(&ccp->fsm)));
   FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
-  FsmFailure(&bund->ipcp.fsm, FAIL_CANT_ENCRYPT);
-  FsmFailure(&bund->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
+  FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
+  FsmFailure(&b->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
   return(-1);
 }
 

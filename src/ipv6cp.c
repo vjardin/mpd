@@ -185,13 +185,13 @@ CreateInterfaceID(u_char *intid, int r)
  */
 
 void
-Ipv6cpInit(void)
+Ipv6cpInit(Bund b)
 {
-  Ipv6cpState	ipv6cp = &bund->ipv6cp;
+  Ipv6cpState	ipv6cp = &b->ipv6cp;
 
   /* Init state machine */
   memset(ipv6cp, 0, sizeof(*ipv6cp));
-  FsmInit(&ipv6cp->fsm, &gIpv6cpFsmType, bund);
+  FsmInit(&ipv6cp->fsm, &gIpv6cpFsmType, b);
 
   CreateInterfaceID(ipv6cp->myintid,0);
 
@@ -204,7 +204,8 @@ Ipv6cpInit(void)
 static void
 Ipv6cpConfigure(Fsm fp)
 {
-  Ipv6cpState	const ipv6cp = &bund->ipv6cp;
+    Bund 	b = (Bund)fp->arg;
+  Ipv6cpState	const ipv6cp = &b->ipv6cp;
 
   /* FSM stuff */
   ipv6cp->peer_reject = 0;
@@ -227,7 +228,8 @@ Ipv6cpUnConfigure(Fsm fp)
 static u_char *
 Ipv6cpBuildConfigReq(Fsm fp, u_char *cp)
 {
-  Ipv6cpState	const ipv6cp = &bund->ipv6cp;
+    Bund 	b = (Bund)fp->arg;
+  Ipv6cpState	const ipv6cp = &b->ipv6cp;
 
   cp = FsmConfValue(cp, TY_INTIDENT, 8, ipv6cp->myintid);
 
@@ -269,22 +271,23 @@ Ipv6cpLayerFinish(Fsm fp)
 static void
 Ipv6cpLayerUp(Fsm fp)
 {
-  Ipv6cpState		const ipv6cp = &bund->ipv6cp;
+    Bund 	b = (Bund)fp->arg;
+  Ipv6cpState		const ipv6cp = &b->ipv6cp;
 
   /* Report */
   Log(fp->log, ("  %04x:%04x:%04x:%04x -> %04x:%04x:%04x:%04x", 
     ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]),
     ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3])));
 
-  BundNcpsJoin(NCP_IPV6CP);
+  BundNcpsJoin(b, NCP_IPV6CP);
 
   /* Enable IP packets in the PPP node */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableIPv6 = 1;
+  b->pppConfig.enableIPv6 = 1;
 #else
-  bund->pppConfig.bund.enableIPv6 = 1;
+  b->pppConfig.bund.enableIPv6 = 1;
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 }
 
 /*
@@ -296,15 +299,16 @@ Ipv6cpLayerUp(Fsm fp)
 static void
 Ipv6cpLayerDown(Fsm fp)
 {
+    Bund 	b = (Bund)fp->arg;
   /* Turn off IP packets */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableIPv6 = 0;
+  b->pppConfig.enableIPv6 = 0;
 #else
-  bund->pppConfig.bund.enableIPv6 = 0;
+  b->pppConfig.bund.enableIPv6 = 0;
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 
-  BundNcpsLeave(NCP_IPV6CP);
+  BundNcpsLeave(b, NCP_IPV6CP);
 
 }
 
@@ -313,9 +317,9 @@ Ipv6cpLayerDown(Fsm fp)
  */
 
 void
-Ipv6cpUp(void)
+Ipv6cpUp(Bund b)
 {
-  FsmUp(&bund->ipv6cp.fsm);
+  FsmUp(&b->ipv6cp.fsm);
 }
 
 /*
@@ -333,9 +337,9 @@ Ipv6cpClose(void)
  */
 
 void
-Ipv6cpDown(void)
+Ipv6cpDown(Bund b)
 {
-  FsmDown(&bund->ipv6cp.fsm);
+  FsmDown(&b->ipv6cp.fsm);
 }
 
 /*
@@ -365,7 +369,8 @@ Ipv6cpFailure(Fsm fp, enum fsmfail reason)
 static void
 Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 {
-  Ipv6cpState		const ipv6cp = &bund->ipv6cp;
+    Bund 	b = (Bund)fp->arg;
+  Ipv6cpState		const ipv6cp = &b->ipv6cp;
   int			k;
 
   /* Decode each config option */

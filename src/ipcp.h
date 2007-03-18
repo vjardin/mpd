@@ -84,9 +84,9 @@
  * FUNCTIONS
  */
 
-  extern void	IpcpInit(void);
-  extern void	IpcpUp(void);
-  extern void	IpcpDown(void);
+  extern void	IpcpInit(Bund b);
+  extern void	IpcpUp(Bund b);
+  extern void	IpcpDown(Bund b);
   extern void	IpcpOpen(void);
   extern void	IpcpClose(void);
   extern void	IpcpInput(Bund b, Mbuf bp);

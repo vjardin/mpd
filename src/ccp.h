@@ -105,17 +105,17 @@
  * FUNCTIONS
  */
 
-  extern void	CcpInit(void);
-  extern void	CcpUp(void);
-  extern void	CcpDown(void);
+  extern void	CcpInit(Bund b);
+  extern void	CcpUp(Bund b);
+  extern void	CcpDown(Bund b);
   extern void	CcpOpen(void);
   extern void	CcpClose(void);
   extern void	CcpInput(Bund b, Mbuf bp);
-  extern Mbuf	CcpDataInput(Mbuf bp);
-  extern Mbuf	CcpDataOutput(Mbuf bp);
-  extern int	CcpSubtractBloat(int size);
-  extern void	CcpSendResetReq(void);
-  extern void	CcpRecvMsg(struct ng_mesg *msg, int len);
+  extern Mbuf	CcpDataInput(Bund b, Mbuf bp);
+  extern Mbuf	CcpDataOutput(Bund b, Mbuf bp);
+  extern int	CcpSubtractBloat(Bund b, int size);
+  extern void	CcpSendResetReq(Bund b);
+  extern void	CcpRecvMsg(Bund b, struct ng_mesg *msg, int len);
   extern int	CcpStat(int ac, char *av[], void *arg);
 
 #endif

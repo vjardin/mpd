@@ -340,7 +340,7 @@ Pred1Decompress(Mbuf mbcomp)
       p->recv_stats.Errors++;
       PFREE(mbcomp);
       PFREE(mbuncomp);
-      CcpSendResetReq();
+      CcpSendResetReq(bund);
       return NULL;
     }
     cp += orglen - 4;
@@ -372,7 +372,7 @@ Pred1Decompress(Mbuf mbcomp)
     p->recv_stats.Errors++;
     PFREE(mbcomp);
     PFREE(mbuncomp);
-    CcpSendResetReq();
+    CcpSendResetReq(bund);
     return NULL;
   }
 

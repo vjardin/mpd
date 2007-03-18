@@ -243,13 +243,13 @@ IpcpStat(int ac, char *av[], void *arg)
  */
 
 void
-IpcpInit(void)
+IpcpInit(Bund b)
 {
-  IpcpState		const ipcp = &bund->ipcp;
+  IpcpState		const ipcp = &b->ipcp;
 
   /* Init state machine */
   memset(ipcp, 0, sizeof(*ipcp));
-  FsmInit(&ipcp->fsm, &gIpcpFsmType, bund);
+  FsmInit(&ipcp->fsm, &gIpcpFsmType, b);
 
   /* Come up with a default IP address for my side of the link */
   u_rangeclear(&ipcp->conf.self_allow);
@@ -267,15 +267,16 @@ IpcpInit(void)
 static void
 IpcpConfigure(Fsm fp)
 {
-  IpcpState	const ipcp = &bund->ipcp;
+    Bund 	b = (Bund)fp->arg;
+  IpcpState	const ipcp = &b->ipcp;
 
   /* FSM stuff */
   ipcp->peer_reject = 0;
 
   /* Get allowed IP addresses from config and/or from current bundle */
   ipcp->self_allow = ipcp->conf.self_allow;
-  if ((bund->params.range_valid) && (!u_rangeempty(&bund->params.range)))
-    ipcp->peer_allow = bund->params.range;
+  if ((b->params.range_valid) && (!u_rangeempty(&b->params.range)))
+    ipcp->peer_allow = b->params.range;
   else
     ipcp->peer_allow = ipcp->conf.peer_allow;
 
@@ -318,7 +319,8 @@ IpcpUnConfigure(Fsm fp)
 static u_char *
 IpcpBuildConfigReq(Fsm fp, u_char *cp)
 {
-  IpcpState	const ipcp = &bund->ipcp;
+    Bund 	b = (Bund)fp->arg;
+  IpcpState	const ipcp = &b->ipcp;
 
   /* Put in my desired IP address */
   if (!IPCP_REJECTED(ipcp, TY_IPADDR) || ipcp->want_addr.s_addr == 0)
@@ -388,7 +390,8 @@ IpcpLayerFinish(Fsm fp)
 static void
 IpcpLayerUp(Fsm fp)
 {
-  IpcpState		const ipcp = &bund->ipcp;
+    Bund 	b = (Bund)fp->arg;
+  IpcpState		const ipcp = &b->ipcp;
   char			ipbuf[20];
   char			path[NG_PATHLEN + 1];
   struct ngm_vjc_config	vjc;
@@ -422,7 +425,7 @@ IpcpLayerUp(Fsm fp)
   if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP) {
   
-	IpcpNgInitVJ(bund);
+	IpcpNgInitVJ(b);
 
 	/* Configure VJ compression node */
 	memset(&vjc, 0, sizeof(vjc));
@@ -431,26 +434,26 @@ IpcpLayerUp(Fsm fp)
 	vjc.maxChannel = ipcp->peer_comp.maxchan;
 	vjc.compressCID = ipcp->peer_comp.compcid;
         snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
-	if (NgSendMsg(bund->csock, path,
+	if (NgSendMsg(b->csock, path,
     		NGM_VJC_COOKIE, NGM_VJC_SET_CONFIG, &vjc, sizeof(vjc)) < 0) {
 	    Log(LG_ERR, ("[%s] can't config %s node: %s",
-    		bund->name, NG_VJC_NODE_TYPE, strerror(errno)));
+    		b->name, NG_VJC_NODE_TYPE, strerror(errno)));
 	}
   }
 
-  BundNcpsJoin(NCP_IPCP);
+  BundNcpsJoin(b, NCP_IPCP);
 
   /* Enable IP packets in the PPP node */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableIP = 1;
-  bund->pppConfig.enableVJCompression = vjc.enableComp;
-  bund->pppConfig.enableVJDecompression = vjc.enableDecomp;
+  b->pppConfig.enableIP = 1;
+  b->pppConfig.enableVJCompression = vjc.enableComp;
+  b->pppConfig.enableVJDecompression = vjc.enableDecomp;
 #else
-  bund->pppConfig.bund.enableIP = 1;
-  bund->pppConfig.bund.enableVJCompression = vjc.enableComp;
-  bund->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
+  b->pppConfig.bund.enableIP = 1;
+  b->pppConfig.bund.enableVJCompression = vjc.enableComp;
+  b->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 }
 
 /*
@@ -462,25 +465,26 @@ IpcpLayerUp(Fsm fp)
 static void
 IpcpLayerDown(Fsm fp)
 {
-  IpcpState		const ipcp = &bund->ipcp;
+    Bund 	b = (Bund)fp->arg;
+  IpcpState		const ipcp = &b->ipcp;
 
   /* Turn off IP packets */
 #if NGM_PPP_COOKIE < 940897794
-  bund->pppConfig.enableIP = 0;
-  bund->pppConfig.enableVJCompression = 0;
-  bund->pppConfig.enableVJDecompression = 0;
+  b->pppConfig.enableIP = 0;
+  b->pppConfig.enableVJCompression = 0;
+  b->pppConfig.enableVJDecompression = 0;
 #else
-  bund->pppConfig.bund.enableIP = 0;
-  bund->pppConfig.bund.enableVJCompression = 0;
-  bund->pppConfig.bund.enableVJDecompression = 0;
+  b->pppConfig.bund.enableIP = 0;
+  b->pppConfig.bund.enableVJCompression = 0;
+  b->pppConfig.bund.enableVJDecompression = 0;
 #endif
-  NgFuncSetConfig(bund);
+  NgFuncSetConfig(b);
 
   if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP)
-	IpcpNgShutdownVJ(bund);
+	IpcpNgShutdownVJ(b);
 
-  BundNcpsLeave(NCP_IPCP);
+  BundNcpsLeave(b, NCP_IPCP);
   
 }
 
@@ -489,9 +493,9 @@ IpcpLayerDown(Fsm fp)
  */
 
 void
-IpcpUp(void)
+IpcpUp(Bund b)
 {
-  FsmUp(&bund->ipcp.fsm);
+  FsmUp(&b->ipcp.fsm);
 }
 
 /*
@@ -509,9 +513,9 @@ IpcpClose(void)
  */
 
 void
-IpcpDown(void)
+IpcpDown(Bund b)
 {
-  FsmDown(&bund->ipcp.fsm);
+  FsmDown(&b->ipcp.fsm);
 }
 
 /*
@@ -541,7 +545,8 @@ IpcpFailure(Fsm fp, enum fsmfail reason)
 static void
 IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 {
-  IpcpState		const ipcp = &bund->ipcp;
+    Bund 	b = (Bund)fp->arg;
+  IpcpState		const ipcp = &b->ipcp;
   struct in_addr	*wantip, *peerip;
   int			k;
 

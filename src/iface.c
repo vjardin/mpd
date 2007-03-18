@@ -246,7 +246,7 @@ IfaceOpen(void)
      listening for outgoing packets. The next outgoing packet will
      cause us to open the lower layer(s) */
   if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
-    BundNcpsJoin(NCP_NONE);
+    BundNcpsJoin(bund, NCP_NONE);
     return;
   }
 

@@ -47,9 +47,9 @@
  * FUNCTIONS
  */
 
-  extern void	Ipv6cpInit(void);
-  extern void	Ipv6cpUp(void);
-  extern void	Ipv6cpDown(void);
+  extern void	Ipv6cpInit(Bund b);
+  extern void	Ipv6cpUp(Bund b);
+  extern void	Ipv6cpDown(Bund b);
   extern void	Ipv6cpOpen(void);
   extern void	Ipv6cpClose(void);
   extern void	Ipv6cpInput(Bund b, Mbuf bp);
