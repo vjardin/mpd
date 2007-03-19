@@ -185,12 +185,12 @@ ConsoleStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tPort          : %d\r\n", c->port);
 
   Printf("Configured users:\r\n");
+  RWLOCK_RDLOCK(c->lock);
   ghash_walk_init(c->users, &walk);
   while ((u = ghash_walk_next(c->users, &walk)) !=  NULL)
     Printf("\tUsername: %s\r\n", u->username);
 
   Printf("Active sessions:\r\n");
-  RWLOCK_RDLOCK(c->lock);
   ghash_walk_init(c->sessions, &walk);
   while ((s = ghash_walk_next(c->sessions, &walk)) !=  NULL) {
     Printf("\tUsername: %s\tFrom: %s\r\n",
@@ -510,7 +510,9 @@ notfound:
       } else if (cs->state == STATE_PASSWORD) {
 	ConsoleUser u;
 
+	RWLOCK_RDLOCK(cs->console->lock);
 	u = ghash_get(cs->console->users, &cs->user);
+	RWLOCK_UNLOCK(cs->console->lock);
 
 	if (!u) 
 	  goto failed;
@@ -749,7 +751,9 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
       u = Malloc(MB_CONS, sizeof(*u));
       u->username = typed_mem_strdup(MB_CONS, av[0]);
       u->password = typed_mem_strdup(MB_CONS, av[1]);
+      RWLOCK_WRLOCK(c->lock);
       ghash_put(c->users, u);
+      RWLOCK_UNLOCK(c->lock);
       break;
 
     case SET_PORT:
