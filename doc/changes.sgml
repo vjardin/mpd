@@ -20,6 +20,8 @@
 	  </item>
 	  <item> Implemented minimal client side of auth-driven callback (w/o number specification).
 	  </item>
+	  <item> Restored control console on stdin.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
