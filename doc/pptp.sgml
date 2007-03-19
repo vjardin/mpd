@@ -116,7 +116,7 @@ initiated as either an incoming or an outgoing call.
 This is to allow, for example, making an outgoing telephone call (by PNS) 
 via a remote access server (PAC), as well as the more common use of forwarding
 of an incoming telephone call from an access server (PAC) to a remote
-L2TP server (PNS).
+PPTP server (PNS).
 
 When this option is enabled, mpd will initiate outgoing calls (PNS);
 otherwise mpd will initiate incoming calls (PAC). Although it seems that
