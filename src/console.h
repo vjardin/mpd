@@ -38,7 +38,7 @@
     struct u_addr 	addr;
     in_port_t		port;
     struct ghash	*users;		/* allowed users */
-    struct ghash	*sessions;	/* active sessions */
+    SLIST_HEAD(, console_session) sessions;	/* active sessions */
     EventRef		event;		/* connect-event */
     pthread_rwlock_t	lock;
   };
@@ -85,6 +85,7 @@
     int			telnet;
     int			escaped;
     char		history[MAX_CONSOLE_LINE];	/* last command */
+    SLIST_ENTRY(console_session)	next;
   };
 
 /*

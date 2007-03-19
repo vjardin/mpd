@@ -109,7 +109,7 @@ ConsoleInit(Console c)
   ParseAddr(DEFAULT_CONSOLE_IP, &c->addr, ALLOW_IPV4|ALLOW_IPV6);
   c->port = DEFAULT_CONSOLE_PORT;
 
-  c->sessions = ghash_create(c, 0, 0, MB_CONS, NULL, NULL, NULL, NULL);
+  SLIST_INIT(&c->sessions);
   c->users = ghash_create(c, 0, 0, MB_CONS, ConsoleUserHash, ConsoleUserHashEqual, NULL, NULL);
   
   if ((ret = pthread_rwlock_init (&c->lock, NULL)) != 0) {
@@ -191,8 +191,7 @@ ConsoleStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tUsername: %s\r\n", u->username);
 
   Printf("Active sessions:\r\n");
-  ghash_walk_init(c->sessions, &walk);
-  while ((s = ghash_walk_next(c->sessions, &walk)) !=  NULL) {
+  SLIST_FOREACH(s, &c->sessions, next) {
     Printf("\tUsername: %s\tFrom: %s\r\n",
 	s->user.username, u_addrtoa(&s->peer_addr,addrstr,sizeof(addrstr)));
   }
@@ -241,7 +240,7 @@ ConsoleConnect(int type, void *cookie)
   cs->state = STATE_USERNAME;
   cs->context.cs = cs;
   RWLOCK_WRLOCK(c->lock);
-  ghash_put(c->sessions, cs);
+  SLIST_INSERT_HEAD(&c->sessions, cs, next);
   RWLOCK_UNLOCK(c->lock);
   Log(LG_CONSOLE, ("CONSOLE: Allocated new console session %p from %s", 
     cs, u_addrtoa(&cs->peer_addr,addrstr,sizeof(addrstr))));
@@ -298,7 +297,7 @@ StdConsoleConnect(Console c)
     cs->context.cs = cs;
     cs->user.username = (char *)"root";
     RWLOCK_WRLOCK(c->lock);
-    ghash_put(c->sessions, cs);
+    SLIST_INSERT_HEAD(&c->sessions, cs, next);
     RWLOCK_UNLOCK(c->lock);
 
     return (&cs->context);
@@ -314,7 +313,7 @@ ConsoleSessionClose(ConsoleSession cs)
 {
   RWLOCK_WRLOCK(cs->console->lock);
   EventUnRegister(&cs->readEvent);
-  ghash_remove(cs->console->sessions, cs);
+  SLIST_REMOVE(&cs->console->sessions, cs, console_session, next);
   RWLOCK_UNLOCK(cs->console->lock);
   close(cs->fd);
   if (cs->user.username)

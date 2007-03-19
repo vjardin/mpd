@@ -291,7 +291,6 @@ void
 vLogPrintf(const char *fmt, va_list args)
 {
     char		buf[MAX_CONSOLE_BUF_LEN];
-    struct ghash_walk	walk;
     ConsoleSession	s;
 
 #if (__FreeBSD_version >= 500000)
@@ -309,13 +308,14 @@ vLogPrintf(const char *fmt, va_list args)
     vsnprintf(buf, sizeof(buf), fmt, args);
 #endif
 
-    RWLOCK_RDLOCK(gConsole.lock);
-    ghash_walk_init(gConsole.sessions, &walk);
-    while ((s = ghash_walk_next(gConsole.sessions, &walk)) !=  NULL) {
-	if (s->active || Enabled(&s->options, CONSOLE_LOGGING))
-	    s->write(s, "%s\r\n", buf);
+    if (!SLIST_EMPTY(&gConsole.sessions)) {
+	RWLOCK_RDLOCK(gConsole.lock);
+	SLIST_FOREACH(s, &gConsole.sessions, next) {
+	    if (s->active || Enabled(&s->options, CONSOLE_LOGGING))
+		s->write(s, "%s\r\n", buf);
+	}
+	RWLOCK_UNLOCK(gConsole.lock);
     }
-    RWLOCK_UNLOCK(gConsole.lock);
 }
 
 /*
