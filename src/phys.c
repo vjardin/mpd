@@ -566,7 +566,7 @@ PhysStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("\tType  : %s\r\n", p->type->name);
   if (p->type->showstat)
-    (*p->type->showstat)(p);
+    (*p->type->showstat)(ctx);
   return 0;
 }
 

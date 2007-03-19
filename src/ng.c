@@ -51,7 +51,7 @@
   static int	NgInit(PhysInfo p);
   static void	NgOpen(PhysInfo p);
   static void	NgClose(PhysInfo p);
-  static void	NgStat(PhysInfo p);
+  static void	NgStat(Context ctx);
   static int	NgSetCommand(Context ctx, int ac, char *av[], void *arg);
   static int	NgPeerAddr(PhysInfo p, void *buf, int buf_len);
 
@@ -180,9 +180,9 @@ fail:
  */
 
 void
-NgStat(PhysInfo p)
+NgStat(Context ctx)
 {
-  NgInfo	const ng = (NgInfo) p->info;
+  NgInfo	const ng = (NgInfo) ctx->phys->info;
 
   Printf("Netgraph node configuration:\r\n");
   Printf("\tNode : %s\r\n", ng->path);

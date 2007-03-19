@@ -10,6 +10,7 @@
 #include "ppp.h"
 #include "console.h"
 #include "util.h"
+#include <termios.h>
 
 /*
  * DEFINITIONS
@@ -47,10 +48,12 @@
 
   static void	ConsoleConnect(int type, void *cookie);
   static void	ConsoleSessionClose(ConsoleSession cs);
+  static void	StdConsoleSessionClose(ConsoleSession cs);
   static void	ConsoleSessionReadEvent(int type, void *cookie);
-  static void	ConsoleSessionWriteEvent(int type, void *cookie);
   static void	ConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...);
   static void	ConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl);
+  static void	StdConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...);
+  static void	StdConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl);
   static void	ConsoleSessionShowPrompt(ConsoleSession cs);
 
   static int		ConsoleUserHashEqual(struct ghash *g, const void *item1, 
@@ -99,6 +102,8 @@
 int
 ConsoleInit(Console c)
 {
+    int ret;
+
   /* setup console-defaults */
   memset(&gConsole, 0, sizeof(gConsole));
   ParseAddr(DEFAULT_CONSOLE_IP, &c->addr, ALLOW_IPV4|ALLOW_IPV6);
@@ -106,8 +111,13 @@ ConsoleInit(Console c)
 
   c->sessions = ghash_create(c, 0, 0, MB_CONS, NULL, NULL, NULL, NULL);
   c->users = ghash_create(c, 0, 0, MB_CONS, ConsoleUserHash, ConsoleUserHashEqual, NULL, NULL);
+  
+  if ((ret = pthread_rwlock_init (&c->lock, NULL)) != 0) {
+    Log(LG_ERR, ("Could not create rwlock %d", ret));
+    return (-1);
+  }
 
-  return 0;
+  return (0);
 }
 
 /*
@@ -165,7 +175,7 @@ ConsoleStat(Context ctx, int ac, char *av[], void *arg)
   Console		c = &gConsole;
   ConsoleUser		u;
   ConsoleSession	s;
-  ConsoleSession	cs = gConsoleSession;
+  ConsoleSession	cs = ctx->cs;
   struct ghash_walk	walk;
   char       		addrstr[INET6_ADDRSTRLEN];
 
@@ -180,15 +190,17 @@ ConsoleStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tUsername: %s\r\n", u->username);
 
   Printf("Active sessions:\r\n");
+  RWLOCK_RDLOCK(c->lock);
   ghash_walk_init(c->sessions, &walk);
   while ((s = ghash_walk_next(c->sessions, &walk)) !=  NULL) {
     Printf("\tUsername: %s\tFrom: %s\r\n",
 	s->user.username, u_addrtoa(&s->peer_addr,addrstr,sizeof(addrstr)));
   }
+  RWLOCK_UNLOCK(c->lock);
 
   if (cs) {
     Printf("This session options:\r\n");
-    OptStat(&cs->options, gConfList);
+    OptStat(ctx, &cs->options, gConfList);
   }
   return 0;
 }
@@ -227,7 +239,10 @@ ConsoleConnect(int type, void *cookie)
   cs->writev = ConsoleSessionWriteV;
   cs->prompt = ConsoleSessionShowPrompt;
   cs->state = STATE_USERNAME;
+  cs->context.cs = cs;
+  RWLOCK_WRLOCK(c->lock);
   ghash_put(c->sessions, cs);
+  RWLOCK_UNLOCK(c->lock);
   Log(LG_CONSOLE, ("CONSOLE: Allocated new console session %p from %s", 
     cs, u_addrtoa(&cs->peer_addr,addrstr,sizeof(addrstr))));
   cs->write(cs, "Multi-link PPP daemon for FreeBSD\r\n\r\n");
@@ -244,6 +259,51 @@ cleanup:
 
 }
 
+/*
+ * StdConsoleConnect()
+ */
+
+Context
+StdConsoleConnect(Console c)
+{
+    ConsoleSession	cs;
+    struct termios settings;
+  
+    cs = Malloc(MB_CONS, sizeof(*cs));
+    memset(cs, 0, sizeof(*cs));
+  
+    cs->fd = 0;
+    tcgetattr(0, &settings);
+    settings.c_lflag &= (~ICANON);
+    settings.c_lflag &= (~ECHO); // don't echo the character
+    settings.c_cc[VTIME] = 1; // timeout (tenths of a second)
+    settings.c_cc[VMIN] = 0; // minimum number of characters
+    tcsetattr(0, TCSANOW, &settings);
+
+    if (fcntl(cs->fd, F_SETFL, O_NONBLOCK) < 0) {
+      Perror("%s: fcntl", __FUNCTION__);
+      return(NULL);
+    }
+
+    EventRegister(&cs->readEvent, EVENT_READ, cs->fd, 
+	EVENT_RECURRING, ConsoleSessionReadEvent, cs);
+
+    Enable(&cs->options, CONSOLE_LOGGING);
+    cs->console = c;
+    cs->close = StdConsoleSessionClose;
+    cs->write = StdConsoleSessionWrite;
+    cs->writev = StdConsoleSessionWriteV;
+    cs->prompt = ConsoleSessionShowPrompt;
+    cs->state = STATE_AUTHENTIC;
+    cs->context.cs = cs;
+    cs->user.username = (char *)"root";
+    RWLOCK_WRLOCK(c->lock);
+    ghash_put(c->sessions, cs);
+    RWLOCK_UNLOCK(c->lock);
+
+    return (&cs->context);
+}
+
 
 /*
  * ConsoleSessionClose()
@@ -252,13 +312,25 @@ cleanup:
 static void
 ConsoleSessionClose(ConsoleSession cs)
 {
+  RWLOCK_WRLOCK(cs->console->lock);
   EventUnRegister(&cs->readEvent);
-  EventUnRegister(&cs->writeEvent);
   ghash_remove(cs->console->sessions, cs);
+  RWLOCK_UNLOCK(cs->console->lock);
   close(cs->fd);
   if (cs->user.username)
     FREE(MB_CONS, cs->user.username);
   Freee(MB_CONS, cs);
+  return;
+}
+
+/*
+ * StdConsoleSessionClose()
+ */
+
+static void
+StdConsoleSessionClose(ConsoleSession cs)
+{
+  EventUnRegister(&cs->readEvent);
   return;
 }
 
@@ -279,7 +351,6 @@ ConsoleSessionReadEvent(int type, void *cookie)
   char			*av_copy[MAX_CONSOLE_ARGS];
   char                  addrstr[INET6_ADDRSTRLEN];
 
-  gConsoleSession = cs;
   while(1) {
     if ((n = read(cs->fd, &c, 1)) <= 0) {
       if (n < 0) {
@@ -287,6 +358,8 @@ ConsoleSessionReadEvent(int type, void *cookie)
 	  goto out;
 	Log(LG_ERR, ("CONSOLE: Error while reading: %s", strerror(errno)));
       } else {
+        if (cs->fd == 0)
+	  goto out;
 	Log(LG_ERR, ("CONSOLE: Connection closed by peer"));
       }
       goto abort;
@@ -320,7 +393,6 @@ ConsoleSessionReadEvent(int type, void *cookie)
 
     switch(c) {
     case 0:
-    case '\n':
       break;
     case 27:	/* escape */
       cs->escaped = TRUE;
@@ -420,6 +492,7 @@ notfound:
       }
       break;
     case '\r':
+    case '\n':
     case '?':
     { 
       if (c == '?')
@@ -469,8 +542,11 @@ success:
       memcpy(av_copy, av, sizeof(av));
       if (c != '?') {
         Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
-	    cs->context.phys->name, cs->user.username, cs->cmd));
+	    cs->context.phys ? cs->context.phys->name : "", 
+	    cs->user.username, cs->cmd));
+	cs->active = 1;
         exitflag = DoCommand(&cs->context, ac, av, NULL, 0);
+	cs->active = 0;
       } else {
         HelpCommand(&cs->context, ac, av, NULL);
 	exitflag = 0;
@@ -511,38 +587,7 @@ success:
 abort:
   cs->close(cs);
 out:
-  gConsoleSession = NULL;
   return;
-}
-
-
-/*
- * ConsoleWriteEvent()
- */
-
-static void
-ConsoleSessionWriteEvent(int type, void *cookie)
-{
-  ConsoleSession	cs = cookie;
-  int			written;
-  char			buf[MAX_CONSOLE_BUF_LEN];
-
-  if ((written = write(cs->fd, cs->writebuf, cs->writebuf_len)) <= 0) {
-//    if (written < 0 && errno != EAGAIN) {
-//      Log(LG_ERR, ("CONSOLE: Error writing to console %s", strerror(errno)));
-//    }
-    return;
-  }
-
-  if (written == cs->writebuf_len) {
-    cs->writebuf_len = 0;
-  } else {
-    cs->writebuf_len -= written;
-    memcpy(buf, &cs->writebuf[written], cs->writebuf_len);
-    memcpy(cs->writebuf, buf, cs->writebuf_len);
-    EventRegister(&cs->writeEvent, EVENT_WRITE, cs->fd, 
-	0, ConsoleSessionWriteEvent, cs);
-  }
 }
 
 /*
@@ -566,11 +611,36 @@ ConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...)
 static void 
 ConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl)
 {
-  cs->writebuf_len += vsnprintf(&cs->writebuf[cs->writebuf_len],
-	MAX_CONSOLE_BUF_LEN - cs->writebuf_len - 1,
-	fmt, vl);
+    char	buf[4096];
+    size_t	len;
+    
+    len = vsnprintf(buf, sizeof(buf), fmt, vl);
+    write(cs->fd, buf, len);
+}
 
-  ConsoleSessionWriteEvent(EVENT_WRITE, cs);
+/*
+ * StdConsoleSessionWrite()
+ */
+
+static void 
+StdConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...)
+{
+  va_list vl;
+
+  va_start(vl, fmt);
+  StdConsoleSessionWriteV(cs, fmt, vl);
+  va_end(vl);
+}
+
+/*
+ * StdConsoleSessionWriteV()
+ */
+
+static void 
+StdConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl)
+{
+    vprintf(fmt, vl);
+    fflush(stdout);
 }
 
 /*
@@ -588,7 +658,10 @@ ConsoleSessionShowPrompt(ConsoleSession cs)
     cs->write(cs, "Password: ");
     break;
   case STATE_AUTHENTIC:
-    cs->write(cs, "[%s] ", cs->context.phys->name);
+    if (cs->context.phys)
+	cs->write(cs, "[%s] ", cs->context.phys->name);
+    else
+	cs->write(cs, "[] ");
     break;
   }
 }
@@ -645,7 +718,7 @@ static int
 ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg) 
 {
   Console	 	c = &gConsole;
-  ConsoleSession	cs = gConsoleSession;
+  ConsoleSession	cs = ctx->cs;
   ConsoleUser		u;
   int			port;
 

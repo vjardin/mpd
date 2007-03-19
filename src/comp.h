@@ -82,7 +82,7 @@
     /*
      * Prints current compressor status
      */
-    int		(*Stat)(Bund b, int dir);
+    int		(*Stat)(Context ctx, int dir);
     /*
      * For compression methods which is not implemented in kernel
      * here is support for user level functions.

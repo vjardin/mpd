@@ -64,6 +64,13 @@
   #define GIANT_MUTEX_LOCK()	assert(pthread_mutex_lock(&gGiantMutex) == 0)
   #define GIANT_MUTEX_UNLOCK()	assert(pthread_mutex_unlock(&gGiantMutex) == 0)
 
+  #define MUTEX_LOCK(m)		assert(pthread_mutex_lock(&m) == 0)
+  #define MUTEX_UNLOCK(m)	assert(pthread_mutex_unlock(&m) == 0)
+
+  #define RWLOCK_RDLOCK(m)	assert(pthread_rwlock_rdlock(&m) == 0)
+  #define RWLOCK_WRLOCK(m)	assert(pthread_rwlock_wrlock(&m) == 0)
+  #define RWLOCK_UNLOCK(m)	assert(pthread_rwlock_unlock(&m) == 0)
+
   #define ADLG_WAN_AUTHORIZATION_FAILURE	0
   #define ADLG_WAN_CONNECTED			1
   #define ADLG_WAN_CONNECTING			2
@@ -106,7 +113,6 @@
   extern int		gNumReps;		/* Total number of repeaters */
   extern int		gNumBundles;		/* Total number of bundles */
   extern struct console	gConsole;
-  extern ConsoleSession	gConsoleSession;	/* currently active console-session */
   extern struct web	gWeb;
   extern int		gBackground;
   extern int		gShutdownInProgress;

@@ -560,7 +560,7 @@ ShowVersion(Context ctx, int ac, char *av[], void *arg)
 static int
 ShowEvents(Context ctx, int ac, char *av[], void *arg)
 {
-  EventDump("mpd events");
+  EventDump(ctx, "mpd events");
   return(0);
 }
 
@@ -572,7 +572,7 @@ static int
 ShowGlobals(Context ctx, int ac, char *av[], void *arg)
 {
   Printf("Global settings:\r\n");
-  OptStat(&gGlobalConf.options, gGlobalConfList);
+  OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
   return 0;
 }
 
@@ -819,7 +819,7 @@ int
 AdmitBund(Context ctx, CmdTab cmd)
 {
   if (!ctx->bund) {
-    Log(LG_ERR, ("no bundle selected"));
+    Log(LG_ERR, ("No bundle selected for '%s' command", cmd->name));
     return(FALSE);
   }
   return(TRUE);
@@ -833,7 +833,7 @@ int
 AdmitLink(Context ctx, CmdTab cmd)
 {
   if (!ctx->lnk) {
-    Log(LG_ERR, ("no link selected"));
+    Log(LG_ERR, ("No link selected for '%s' command", cmd->name));
     return(FALSE);
   }
   return(TRUE);
@@ -847,7 +847,7 @@ int
 AdmitRep(Context ctx, CmdTab cmd)
 {
   if (!ctx->rep) {
-    Log(LG_ERR, ("no repeater selected"));
+    Log(LG_ERR, ("No repeater selected for '%s' command", cmd->name));
     return(FALSE);
   }
   return(TRUE);
@@ -861,7 +861,7 @@ int
 AdmitPhys(Context ctx, CmdTab cmd)
 {
   if (!ctx->phys) {
-    Log(LG_ERR, ("no phys selected"));
+    Log(LG_ERR, ("No phys selected for '%s' command", cmd->name));
     return(FALSE);
   }
   return(TRUE);
@@ -875,15 +875,15 @@ int
 AdmitDev(Context ctx, CmdTab cmd)
 {
   if (!ctx->phys) {
-    Log(LG_ERR, ("no phys selected"));
+    Log(LG_ERR, ("No phys selected for '%s' command", cmd->name));
     return(FALSE);
   }
   if (ctx->phys->type == NULL) {
-    Log(LG_ERR, ("type of phys \"%s\" is unspecified", ctx->phys->name));
+    Log(LG_ERR, ("Type of phys \"%s\" is unspecified for '%s' command", ctx->phys->name, cmd->name));
     return(FALSE);
   }
   if (strncmp(cmd->name, ctx->phys->type->name, strlen(ctx->phys->type->name))) {
-    Log(LG_ERR, ("[%s] phys type is %s, '%s' command isn't allowed here!",
+    Log(LG_ERR, ("[%s] Phys type is %s, '%s' command isn't allowed here!",
       ctx->phys->name, ctx->phys->type->name, cmd->name));
     return(FALSE);
   }

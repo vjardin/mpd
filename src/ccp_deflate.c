@@ -38,7 +38,7 @@
   static void	DeflateRecvResetAck(Bund b, int id, Mbuf bp);
   static int    DeflateNegotiated(Bund b, int xmit);
   static int    DeflateSubtractBloat(Bund b, int size);
-  static int	DeflateStat(Bund b, int dir);
+  static int	DeflateStat(Context ctx, int dir);
 
 /*
  * GLOBAL VARIABLES
@@ -330,8 +330,9 @@ DeflateSubtractBloat(Bund b, int size)
 }
 
 static int
-DeflateStat(Bund b, int dir) 
+DeflateStat(Context ctx, int dir) 
 {
+    Bund			b = ctx->bund;
     char			path[NG_PATHLEN + 1];
     struct ng_deflate_stats	stats;
     union {

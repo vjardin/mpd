@@ -77,7 +77,6 @@
   int			gNumPhyses;
   int			gNumReps;
   int			gNumBundles;
-  ConsoleSession	gConsoleSession;
   struct console	gConsole;
   struct web		gWeb;
   int			gBackground = FALSE;
@@ -127,23 +126,24 @@
 int
 main(int ac, char *av[])
 {
-  int	ret;
-  char	*args[MAX_ARGS];
+  int			ret;
+  char			*args[MAX_ARGS];
   struct context	ctx;
+  Context		c;
 
   gPid=getpid();
 
   /* enable libpdel typed_mem */
   typed_mem_enable();
 
-  /* Set up libnetgraph logging */
-  NgSetErrLog(NgFuncErr, NgFuncErrx);
-
   /* init console-stuff */
   ConsoleInit(&gConsole);
 
   /* init web-stuff */
   WebInit(&gWeb);
+
+  /* Set up libnetgraph logging */
+  NgSetErrLog(NgFuncErr, NgFuncErrx);
 
   /* init global-config */
   memset(&gGlobalConf, 0, sizeof(gGlobalConf));
@@ -161,6 +161,14 @@ main(int ac, char *av[])
       err(1, "daemon");
     gPid=getpid();
     (void) chdir(gConfDirectory);
+    ctx.lnk = NULL;
+    ctx.bund = NULL;
+    ctx.phys = NULL;
+    ctx.rep = NULL;
+    ctx.cs = NULL;
+    c = &ctx;
+  } else {
+    c = StdConsoleConnect(&gConsole);
   }
 
   /* Open log file */
@@ -219,21 +227,13 @@ main(int ac, char *av[])
 
   GIANT_MUTEX_LOCK();
   /* Read startup configuration section */
-  ctx.lnk = NULL;
-  ctx.bund = NULL;
-  ctx.phys = NULL;
-  ctx.rep = NULL;
-  ReadFile(gConfigFile, STARTUP_CONF, DoCommand, &ctx);
+  ReadFile(gConfigFile, STARTUP_CONF, DoCommand, c);
 
   /* Read configuration as specified on the command line, or default */
-  ctx.lnk = NULL;
-  ctx.bund = NULL;
-  ctx.phys = NULL;
-  ctx.rep = NULL;
   if (!gPeerSystem)
-    ReadFile(gConfigFile, DEFAULT_CONF, DoCommand, &ctx);
+    ReadFile(gConfigFile, DEFAULT_CONF, DoCommand, c);
   else {
-    if (ReadFile(gConfigFile, gPeerSystem, DoCommand, &ctx) < 0) {
+    if (ReadFile(gConfigFile, gPeerSystem, DoCommand, c) < 0) {
       Log(LG_ERR, ("can't read configuration for \"%s\"", gPeerSystem));
       DoExit(EX_CONFIG);
     }
@@ -473,13 +473,6 @@ EventWarnx(const char *fmt, ...)
   va_start(args, fmt);
   vsnprintf(buf, sizeof(buf), fmt, args);
   Log(LG_ALWAYS, ("EVENT: %s", buf));
-#if 0
-{
-  EventSetLog(1, warnx);
-  EventDump("event list");
-  abort();
-}
-#endif
   va_end(args);
 }
 

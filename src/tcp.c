@@ -79,7 +79,7 @@ static int	TcpInit(PhysInfo p);
 static void	TcpOpen(PhysInfo p);
 static void	TcpClose(PhysInfo p);
 static void	TcpShutdown(PhysInfo p);
-static void	TcpStat(PhysInfo p);
+static void	TcpStat(Context ctx);
 static int	TcpOriginate(PhysInfo p);
 static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
 static int	TcpCallingNum(PhysInfo p, void *buf, int buf_len);
@@ -630,9 +630,9 @@ TcpCalledNum(PhysInfo p, void *buf, int buf_len)
  */
 
 void
-TcpStat(PhysInfo p)
+TcpStat(Context ctx)
 {
-	TcpInfo const pi = (TcpInfo) p->info;
+	TcpInfo const pi = (TcpInfo) ctx->phys->info;
 	char	buf[64];
 
 	Printf("TCP configuration:\r\n");
@@ -641,10 +641,10 @@ TcpStat(PhysInfo p)
 	Printf("\tPeer address : %s, port %u\r\n",
 	    u_addrtoa(&pi->conf.peer_addr, buf, sizeof(buf)), pi->conf.peer_port);
 	Printf("TCP options:\r\n");
-	OptStat(&pi->conf.options, gConfList);
+	OptStat(ctx, &pi->conf.options, gConfList);
 	Printf("TCP state:\r\n");
-	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-	if (p->state != PHYS_STATE_DOWN) {
+	Printf("\tState        : %s\r\n", gPhysStateNames[ctx->phys->state]);
+	if (ctx->phys->state != PHYS_STATE_DOWN) {
 	    Printf("\tIncoming     : %s\r\n", (pi->incoming?"YES":"NO"));
 	    Printf("\tCurrent peer : %s, port %u\r\n",
 		u_addrtoa(&pi->peer_addr, buf, sizeof(buf)), pi->peer_port);

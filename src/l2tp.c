@@ -109,7 +109,7 @@
   static void	L2tpOpen(PhysInfo p);
   static void	L2tpClose(PhysInfo p);
   static void	L2tpShutdown(PhysInfo p);
-  static void	L2tpStat(PhysInfo p);
+  static void	L2tpStat(Context ctx);
   static int	L2tpOriginated(PhysInfo p);
   static int	L2tpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCallingNum(PhysInfo p, void *buf, int buf_len);
@@ -657,9 +657,9 @@ L2tpCalledNum(PhysInfo p, void *buf, int buf_len)
  */
 
 void
-L2tpStat(PhysInfo p)
+L2tpStat(Context ctx)
 {
-  L2tpInfo	const l2tp = (L2tpInfo) p->info;
+  L2tpInfo	const l2tp = (L2tpInfo) ctx->phys->info;
   char		buf[32];
 
   Printf("L2TP configuration:\r\n");
@@ -674,10 +674,10 @@ L2tpStat(PhysInfo p)
   Printf("\tCalling number: %s\r\n", l2tp->conf.callingnum);
   Printf("\tCalled number: %s\r\n", l2tp->conf.callednum);
   Printf("L2TP options:\r\n");
-  OptStat(&l2tp->conf.options, gConfList);
+  OptStat(ctx, &l2tp->conf.options, gConfList);
   Printf("L2TP status:\r\n");
-  Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-  if (p->state != PHYS_STATE_DOWN) {
+  Printf("\tState        : %s\r\n", gPhysStateNames[ctx->phys->state]);
+  if (ctx->phys->state != PHYS_STATE_DOWN) {
     Printf("\tIncoming     : %s\r\n", (l2tp->incoming?"YES":"NO"));
     if (l2tp->tun) {
 	Printf("\tCurrent self : %s, port %u\r\n",

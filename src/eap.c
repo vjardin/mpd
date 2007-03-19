@@ -582,7 +582,7 @@ EapStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("\tIdentity     : %s\r\n", eap->identity);
   Printf("EAP options\r\n");
-  OptStat(&eap->conf.options, gConfList);
+  OptStat(ctx, &eap->conf.options, gConfList);
 
   return (0);
 }

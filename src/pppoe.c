@@ -114,7 +114,7 @@ static int	PppoeCallingNum(PhysInfo p, void *buf, int buf_len);
 static int	PppoeCalledNum(PhysInfo p, void *buf, int buf_len);
 static void	PppoeCtrlReadEvent(int type, void *arg);
 static void	PppoeConnectTimeout(void *arg);
-static void	PppoeStat(PhysInfo p);
+static void	PppoeStat(Context ctx);
 static int	PppoeSetCommand(Context ctx, int ac, char *av[], void *arg);
 static int	PppoeOriginated(PhysInfo p);
 static void	PppoeNodeUpdate(PhysInfo p);
@@ -490,9 +490,9 @@ PppoeCtrlReadEvent(int type, void *arg)
  * PppoeStat()
  */
 void
-PppoeStat(PhysInfo p)
+PppoeStat(Context ctx)
 {
-	const PppoeInfo pe = (PppoeInfo)p->info;
+	const PppoeInfo pe = (PppoeInfo)ctx->phys->info;
 	char	buf[64];
 
 	Printf("PPPoE configuration:\r\n");
@@ -500,13 +500,13 @@ PppoeStat(PhysInfo p)
 	Printf("\tIface Hook   : %s\r\n", pe->hook);
 	Printf("\tSession      : %s\r\n", pe->session);
 	Printf("PPPoE options:\r\n");
-	OptStat(&pe->options, gConfList);
+	OptStat(ctx, &pe->options, gConfList);
 	Printf("PPPoE status:\r\n");
-	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-	if (p->state != PHYS_STATE_DOWN) {
+	Printf("\tState        : %s\r\n", gPhysStateNames[ctx->phys->state]);
+	if (ctx->phys->state != PHYS_STATE_DOWN) {
 	    Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
 	    Printf("\tIncoming     : %s\r\n", (pe->incoming?"YES":"NO"));
-	    PppoePeerAddr(p, buf, sizeof(buf));
+	    PppoePeerAddr(ctx->phys, buf, sizeof(buf));
 	    Printf("\tCurrent peer : %s\r\n", buf);
 	}
 }

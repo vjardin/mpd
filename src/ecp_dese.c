@@ -28,7 +28,7 @@
   static Mbuf	DesEncrypt(Bund b, Mbuf plain);
   static Mbuf	DesDecrypt(Bund b, Mbuf cypher);
   static void	DesCleanup(Bund b, int dir);
-  static int	DesStat(Bund b, int dir);
+  static int	DesStat(Context ctx, int dir);
 
   static u_char	*DesBuildConfigReq(Bund b, u_char *cp);
   static void	DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
@@ -111,9 +111,9 @@ DesSubtractBloat(Bund b, int size)
 }
 
 static int
-DesStat(Bund b, int dir) 
+DesStat(Context ctx, int dir) 
 {
-    EcpState	const ecp = &b->ecp;
+    EcpState	const ecp = &ctx->bund->ecp;
     DesInfo	const des = &ecp->des;
     
     switch (dir) {

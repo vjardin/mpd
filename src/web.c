@@ -187,7 +187,7 @@ WebStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tPort          : %d\r\n", w->port);
 
   Printf("Web options:\r\n");
-  OptStat(&w->options, gConfList);
+  OptStat(ctx, &w->options, gConfList);
 
   Printf("Web configured users:\r\n");
   ghash_walk_init(w->users, &walk);
@@ -359,7 +359,6 @@ WebShowSummary(FILE *f)
 
 static void
 WebRunCmdCleanup(void *cookie) {
-    gConsoleSession = NULL;;
 }
 
 static void 
@@ -409,7 +408,6 @@ WebRunCmd(FILE *f, const char *querry)
 	fprintf(f, "<PRE>\n");
 
 	pthread_cleanup_push(WebRunCmdCleanup, NULL);
-	gConsoleSession = cs;
 
 	strcpy(buf1, "phys");
         av[0] = buf1;
@@ -421,7 +419,6 @@ WebRunCmd(FILE *f, const char *querry)
         }
         DoCommand(&cs->context, argc-1, av, NULL, 0);
 
-	gConsoleSession = NULL;;
 	pthread_cleanup_pop(0);
 
 	fprintf(f, "</PRE>\n");

@@ -92,7 +92,7 @@
   static void	PptpOpen(PhysInfo p);
   static void	PptpClose(PhysInfo p);
   static void	PptpShutdown(PhysInfo p);
-  static void	PptpStat(PhysInfo p);
+  static void	PptpStat(Context ctx);
   static int	PptpOriginated(PhysInfo p);
   static int	PptpSetCallingNum(PhysInfo p, void *buf);
   static int	PptpSetCalledNum(PhysInfo p, void *buf);
@@ -437,9 +437,9 @@ PptpCalledNum(PhysInfo p, void *buf, int buf_len)
  */
 
 void
-PptpStat(PhysInfo p)
+PptpStat(Context ctx)
 {
-  PptpInfo	const pptp = (PptpInfo) p->info;
+  PptpInfo	const pptp = (PptpInfo) ctx->phys->info;
   char		buf[32];
 
   Printf("PPTP configuration:\r\n");
@@ -456,10 +456,10 @@ PptpStat(PhysInfo p)
   Printf("\tCalling number: %s\r\n", pptp->conf.callingnum);
   Printf("\tCalled number: %s\r\n", pptp->conf.callednum);
   Printf("PPTP options:\r\n");
-  OptStat(&pptp->conf.options, gConfList);
+  OptStat(ctx, &pptp->conf.options, gConfList);
   Printf("PPTP status:\r\n");
-  Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-  if (p->state != PHYS_STATE_DOWN) {
+  Printf("\tState        : %s\r\n", gPhysStateNames[ctx->phys->state]);
+  if (ctx->phys->state != PHYS_STATE_DOWN) {
     Printf("\tIncoming     : %s\r\n", (pptp->originate?"NO":"YES"));
     Printf("\tCurrent peer : %s, port %u\r\n",
 	u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);

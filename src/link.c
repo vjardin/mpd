@@ -459,7 +459,7 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
   Printf("\tSession-Id     : %s\r\n", l->session_id);
   Printf("Link level options\r\n");
-  OptStat(&l->conf.options, gConfList);
+  OptStat(ctx, &l->conf.options, gConfList);
   LinkUpdateStats(l);
   Printf("Up/Down stats:\r\n");
   if (l->downReason && (!l->downReasonValid))

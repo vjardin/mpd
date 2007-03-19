@@ -83,7 +83,7 @@
   static Bund	BundFind(char *name);
   static void	BundReasses(Bund b, int add);
   static int	BundSetCommand(Context ctx, int ac, char *av[], void *arg);
-  static void	BundShowLinks(Bund b);
+  static void	BundShowLinks(Context ctx);
 
   static void	BundNcpsUp(Bund b);
   static void	BundNcpsDown(Bund b);
@@ -797,7 +797,7 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
       for (k = 0; k < gNumBundles; k++)
 	if ((sb = gBundles[k]) != NULL) {
 	  Printf(BUND_FMT, sb->name);
-	  BundShowLinks(sb);
+	  BundShowLinks(ctx);
 	}
       break;
 
@@ -1056,7 +1056,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("Bundle %s:\r\n", sb->name);
   Printf("\tLinks          : ");
-  BundShowLinks(sb);
+  BundShowLinks(ctx);
   Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");
   Printf("\tM-Session-Id   : %s\r\n", sb->msession_id);
   Printf("\tTotal bandwidth: %u bits/sec\r\n", tbw);
@@ -1075,7 +1075,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\t  Min conn     : %d seconds\r\n", sb->conf.bm_Mc);
   Printf("\t  Min disc     : %d seconds\r\n", sb->conf.bm_Md);
   Printf("Bundle level options:\r\n");
-  OptStat(&sb->conf.options, gConfList);
+  OptStat(ctx, &sb->conf.options, gConfList);
 
   /* Show peer info */
   if (sb->bm.n_up > 0) {
@@ -1165,9 +1165,10 @@ BundResetStats(Bund b)
  */
 
 static void
-BundShowLinks(Bund sb)
+BundShowLinks(Context ctx)
 {
-  int	j;
+    Bund	sb = ctx->bund;
+    int		j;
 
   for (j = 0; j < sb->n_links; j++) {
     Printf("%s", sb->links[j]->name);

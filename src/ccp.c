@@ -419,20 +419,20 @@ CcpStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("[%s] %s [%s]\r\n", Pref(&ccp->fsm), Fsm(&ccp->fsm), FsmStateName(ccp->fsm.state));
   Printf("Enabled protocols:\r\n");
-  OptStat(&ccp->options, gConfList);
+  OptStat(ctx, &ccp->options, gConfList);
 
   Printf("Outgoing compression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(ctx->bund, COMP_DIR_XMIT, buf, sizeof(buf)) : "");
   if (ccp->xmit && ccp->xmit->Stat)
-    ccp->xmit->Stat(ctx->bund, COMP_DIR_XMIT);
+    ccp->xmit->Stat(ctx, COMP_DIR_XMIT);
   Printf("\tResets\t: %d\r\n", ccp->xmit_resets);
 
   Printf("Incoming decompression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->recv ? "none" : ccp->recv->name,
     (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(ctx->bund, COMP_DIR_RECV, buf, sizeof(buf)) : "");
   if (ccp->recv && ccp->recv->Stat)
-    ccp->recv->Stat(ctx->bund, COMP_DIR_RECV);
+    ccp->recv->Stat(ctx, COMP_DIR_RECV);
   Printf("\tResets\t: %d\r\n", ccp->recv_resets);
 
   return(0);

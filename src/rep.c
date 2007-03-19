@@ -42,7 +42,7 @@
 
   static Rep	RepFind(char *name);
   static int	RepSetCommand(Context ctx, int ac, char *av[], void *arg);
-  static void	RepShowLinks(Rep sb);
+  static void	RepShowLinks(Context ctx);
 
 /*
  * GLOBAL VARIABLES
@@ -257,7 +257,7 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
       for (k = 0; k < gNumReps; k++)
 	if ((r = gReps[k]) != NULL) {
 	  Printf("\t%-15s", r->name);
-	  RepShowLinks(r);
+	  RepShowLinks(ctx);
 	}
       break;
 
@@ -414,7 +414,7 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
   /* Show stuff about the repeater */
   Printf("Repeater %s:\r\n", r->name);
   Printf("\tPhyses          : ");
-  RepShowLinks(r);
+  RepShowLinks(ctx);
 
   return(0);
 }
@@ -424,9 +424,10 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
  */
 
 static void
-RepShowLinks(Rep sb)
+RepShowLinks(Context ctx)
 {
-  int	j;
+    Rep		sb = ctx->rep;
+    int		j;
 
   for (j = 0; j < 2; j++) {
     Printf("%s", sb->physes[j]->name);

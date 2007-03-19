@@ -28,7 +28,7 @@
   static Mbuf	DeseBisEncrypt(Bund b, Mbuf plain);
   static Mbuf	DeseBisDecrypt(Bund b, Mbuf cypher);
   static void	DeseBisCleanup(Bund b, int dir);
-  static int    DeseBisStat(Bund b, int dir);
+  static int    DeseBisStat(Context ctx, int dir);
 
   static u_char	*DeseBisBuildConfigReq(Bund b, u_char *cp);
   static void	DeseBisDecodeConfigReq(Fsm fp, FsmOption opt, int mode);
@@ -112,9 +112,9 @@ DeseBisSubtractBloat(Bund b, int size)
 }
 
 static int
-DeseBisStat(Bund b, int dir) 
+DeseBisStat(Context ctx, int dir) 
 {
-    EcpState	const ecp = &b->ecp;
+    EcpState	const ecp = &ctx->bund->ecp;
     DeseBisInfo	const des = &ecp->desebis;
     
     switch (dir) {

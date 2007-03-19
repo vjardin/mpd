@@ -38,7 +38,7 @@
     void	(*close)(PhysInfo p);		/* Disconnect */
     void	(*update)(PhysInfo p);		/* Update config when LCP up */
     void	(*shutdown)(PhysInfo p);	/* Destroy all nodes */
-    void	(*showstat)(PhysInfo p);	/* Shows type specific stats */
+    void	(*showstat)(Context ctx);	/* Shows type specific stats */
     int		(*originate)(PhysInfo p);	/* We originated connection? */
     int		(*setaccm)(PhysInfo p, u_int32_t accm);	/* Set async accm */
     int		(*setcallingnum)(PhysInfo p, void *buf); 

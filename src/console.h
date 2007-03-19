@@ -20,12 +20,12 @@
   #define MAX_CONSOLE_LINE	400
   #define MAX_CONSOLE_BUF_LEN	4096
 
-  #define Printf(fmt, args...)	({ 								\
-	  			  if (gConsoleSession) { 					\
-	  			    gConsoleSession->write(gConsoleSession, fmt, ## args);	\
-	  			  } else {							\
-				    printf(fmt, ## args);					\
-				  } 								\
+  #define Printf(fmt, args...)	({ 						\
+	  			  if (ctx->cs) { 				\
+	  			    ctx->cs->write(ctx->cs, fmt, ## args);	\
+	  			  } else {					\
+				    printf(fmt, ## args);			\
+				  } 						\
   				})
 
   /* Configuration options */
@@ -40,15 +40,21 @@
     struct ghash	*users;		/* allowed users */
     struct ghash	*sessions;	/* active sessions */
     EventRef		event;		/* connect-event */
+    pthread_rwlock_t	lock;
   };
 
   typedef struct console *Console;
+
+  struct console_session;
+
+  typedef struct console_session *ConsoleSession;
 
   struct context {
 	Bund		bund;
 	Link		lnk;
 	Rep		rep;
 	PhysInfo	phys;
+	ConsoleSession	cs;
   };
 
   struct console_user {
@@ -61,18 +67,16 @@
   struct console_session {
     Console		console;
     struct optinfo	options;	/* Configured options */
+    char		active;		/* console active at this moment */
     int			fd;		/* connection fd */
     void		*cookie;	/* device dependent cookie */
     EventRef		readEvent;
-    EventRef		writeEvent;
     struct context	context;
     struct console_user	user;
     struct u_addr	peer_addr;
     in_port_t           peer_port;
     char		cmd[MAX_CONSOLE_LINE];
     int			cmd_len;
-    char		writebuf[MAX_CONSOLE_BUF_LEN];
-    int			writebuf_len;
     void		(*prompt)(struct console_session *);
     void		(*write)(struct console_session *, const char *fmt, ...);
     void		(*writev)(struct console_session *, const char *fmt, va_list vl);
@@ -82,8 +86,6 @@
     int			escaped;
     char		history[MAX_CONSOLE_LINE];	/* last command */
   };
-
-  typedef struct console_session *ConsoleSession;
 
 /*
  * VARIABLES
@@ -100,6 +102,7 @@
   extern int	ConsoleOpen(Console c);
   extern int	ConsoleClose(Console c);
   extern int	ConsoleStat(Context ctx, int ac, char *av[], void *arg);
+  extern Context	StdConsoleConnect(Console c);
 
 #endif
 

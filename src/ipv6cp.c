@@ -143,7 +143,7 @@ Ipv6cpStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tSelf: %04x:%04x:%04x:%04x\r\n", ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]));
   Printf("\tPeer: %04x:%04x:%04x:%04x\r\n", ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3]));
   Printf("IPV6CP Options:\r\n");
-  OptStat(&ipv6cp->conf.options, gConfList);
+  OptStat(ctx, &ipv6cp->conf.options, gConfList);
 
   return(0);
 }

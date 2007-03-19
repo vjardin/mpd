@@ -33,7 +33,7 @@
  */
 
 void
-OptStat(Options opt, ConfInfo list)
+OptStat(Context ctx, Options opt, ConfInfo list)
 {
   int	k,peered;
 
@@ -141,9 +141,9 @@ Do(int which, int ac, char *av[], Options opt, ConfInfo list)
     switch (index)
     {
       case -1:
-	if (!strcasecmp(*av, "help") || !strcmp(*av, "?"))
-	  OptStat(opt, list);
-	else
+//	if (!strcasecmp(*av, "help") || !strcmp(*av, "?"))
+//	  OptStat(opt, list);
+//	else
 	  Log(LG_ERR, ("option \"%s\" unknown", *av));
 	break;
       case -2:

@@ -67,7 +67,7 @@
   static void	Pred1RecvResetAck(Bund b, int id, Mbuf bp);
   static int    Pred1Negotiated(Bund b, int xmit);
   static int    Pred1SubtractBloat(Bund b, int size);
-  static int    Pred1Stat(Bund b, int dir);
+  static int    Pred1Stat(Context ctx, int dir);
 
 #ifndef USE_NG_PRED1
   static int	Compress(Bund b, u_char *source, u_char *dest, int len);
@@ -495,10 +495,10 @@ Pred1SubtractBloat(Bund b, int size)
 }
 
 static int
-Pred1Stat(Bund b, int dir) 
+Pred1Stat(Context ctx, int dir) 
 {
 #ifndef USE_NG_PRED1
-    Pred1Info	p = &b->ccp.pred1;
+    Pred1Info	p = &ctx->bund->ccp.pred1;
     
     switch (dir) {
 	case COMP_DIR_XMIT:
@@ -534,6 +534,7 @@ Pred1Stat(Bund b, int dir)
     }
     return (0);
 #else
+    Bund			b = ctx->bund;
     char			path[NG_PATHLEN + 1];
     struct ng_pred1_stats	stats;
     union {

@@ -290,46 +290,32 @@ LogPrintf(const char *fmt, ...)
 void
 vLogPrintf(const char *fmt, va_list args)
 {
-  char		buf[MAX_CONSOLE_BUF_LEN];
+    char		buf[MAX_CONSOLE_BUF_LEN];
+    struct ghash_walk	walk;
+    ConsoleSession	s;
+
 #if (__FreeBSD_version >= 500000)
-  va_list       args2;
+    va_list       args2;
 #endif
 
-  LogTimeStamp(logprintf);
+    LogTimeStamp(logprintf);
 #if (__FreeBSD_version >= 500000)
-  va_copy(args2,args);
-  valog(LOG_INFO, fmt, args);
-  vsnprintf(buf, sizeof(buf), fmt, args2);
-  va_end(args2);
+    va_copy(args2,args);
+    valog(LOG_INFO, fmt, args);
+    vsnprintf(buf, sizeof(buf), fmt, args2);
+    va_end(args2);
 #else
-  valog(LOG_INFO, fmt, args);
-  vsnprintf(buf, sizeof(buf), fmt, args);
+    valog(LOG_INFO, fmt, args);
+    vsnprintf(buf, sizeof(buf), fmt, args);
 #endif
 
-  if (!gBackground)
-  {
-    fputs(buf, stdout);
-    fputc('\n', stdout);
-    fflush(stdout);
-  } 
-
-  // Console is not thread safe! 
-  // Do not call it in a different thread!
-  if (EventIsCtxThread()) 
-  {
-    if (gConsoleSession) {
-	gConsoleSession->write(gConsoleSession, "%s\r\n", buf);
-    
-    } else {
-	struct ghash_walk	walk;
-	ConsoleSession	s;
-
-	ghash_walk_init(gConsole.sessions, &walk);
-	while ((s = ghash_walk_next(gConsole.sessions, &walk)) !=  NULL)
-          if (Enabled(&s->options, CONSOLE_LOGGING))
+    RWLOCK_RDLOCK(gConsole.lock);
+    ghash_walk_init(gConsole.sessions, &walk);
+    while ((s = ghash_walk_next(gConsole.sessions, &walk)) !=  NULL) {
+	if (s->active || Enabled(&s->options, CONSOLE_LOGGING))
 	    s->write(s, "%s\r\n", buf);
     }
-  }
+    RWLOCK_UNLOCK(gConsole.lock);
 }
 
 /*

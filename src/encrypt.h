@@ -32,7 +32,7 @@
     Mbuf	(*SendResetReq)(Bund b);
     Mbuf	(*RecvResetReq)(Bund b, int id, Mbuf bp);
     void	(*RecvResetAck)(Bund b, int id, Mbuf bp);
-    int         (*Stat)(Bund b, int dir);
+    int         (*Stat)(Context ctx, int dir);
     Mbuf	(*Encrypt)(Bund b, Mbuf plain);
     Mbuf	(*Decrypt)(Bund b, Mbuf cypher);
   };

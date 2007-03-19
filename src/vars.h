@@ -57,7 +57,7 @@
   extern void	DisableCommand(int ac, char *av[], Options opt, ConfInfo conf);
   extern void	YesCommand(int ac, char *av[], Options opt, ConfInfo conf);
   extern void	NoCommand(int ac, char *av[], Options opt, ConfInfo conf);
-  extern void	OptStat(Options c, ConfInfo conf);
+  extern void	OptStat(Context ctx, Options c, ConfInfo conf);
 
 #endif
 

@@ -651,7 +651,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tAuth timeout    : %d\r\n", conf->timeout);
   
   Printf("Auth options\r\n");
-  OptStat(&conf->options, gConfList);
+  OptStat(ctx, &conf->options, gConfList);
 
   Printf("Auth Data\r\n");
   Printf("\tPeer authname   : %s\r\n", a->params.authname);

@@ -1337,7 +1337,7 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\t  down-script   : \"%s\"\r\n",
     *iface->down_script ? iface->down_script : "<none>");
   Printf("Interface options:\r\n");
-  OptStat(&iface->options, gConfList);
+  OptStat(ctx, &iface->options, gConfList);
   if (iface->n_routes) {
     Printf("Static routes via peer:\r\n");
     for (k = 0; k < iface->n_routes; k++) {

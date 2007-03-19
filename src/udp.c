@@ -79,7 +79,7 @@ enum {
   static int	UdpInit(PhysInfo p);
   static void	UdpOpen(PhysInfo p);
   static void	UdpClose(PhysInfo p);
-  static void	UdpStat(PhysInfo p);
+  static void	UdpStat(Context ctx);
   static int	UdpOrigination(PhysInfo p);
   static int	UdpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	UdpCallingNum(PhysInfo p, void *buf, int buf_len);
@@ -408,9 +408,9 @@ UdpCalledNum(PhysInfo p, void *buf, int buf_len)
  */
 
 void
-UdpStat(PhysInfo p)
+UdpStat(Context ctx)
 {
-	UdpInfo const pi = (UdpInfo) p->info;
+	UdpInfo const pi = (UdpInfo) ctx->phys->info;
 	char	buf[64];
 
 	Printf("UDP configuration:\r\n");
@@ -419,10 +419,10 @@ UdpStat(PhysInfo p)
 	Printf("\tPeer address : %s, port %u\r\n",
 	    u_addrtoa(&pi->conf.peer_addr, buf, sizeof(buf)), pi->conf.peer_port);
 	Printf("UDP options:\r\n");
-	OptStat(&pi->conf.options, gConfList);
+	OptStat(ctx, &pi->conf.options, gConfList);
 	Printf("UDP state:\r\n");
-	Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-	if (p->state != PHYS_STATE_DOWN) {
+	Printf("\tState        : %s\r\n", gPhysStateNames[ctx->phys->state]);
+	if (ctx->phys->state != PHYS_STATE_DOWN) {
 	    Printf("\tIncoming     : %s\r\n", (pi->incoming?"YES":"NO"));
 	    Printf("\tCurrent peer : %s, port %u\r\n",
 		u_addrtoa(&pi->peer_addr, buf, sizeof(buf)), pi->peer_port);

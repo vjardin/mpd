@@ -105,7 +105,7 @@
   static void		ModemOpen(PhysInfo p);
   static void		ModemClose(PhysInfo p);
   static int		ModemSetAccm(PhysInfo p, u_int32_t accm);
-  static void		ModemStat(PhysInfo p);
+  static void		ModemStat(Context ctx);
   static int		ModemOriginated(PhysInfo p);
   static int		ModemPeerAddr(PhysInfo p, void *buf, int buf_len);
 
@@ -928,9 +928,9 @@ ModemPeerAddr(PhysInfo p, void *buf, int buf_len)
  */
 
 void
-ModemStat(PhysInfo p)
+ModemStat(Context ctx)
 {
-  ModemInfo		const m = (ModemInfo) p->info;
+  ModemInfo		const m = (ModemInfo) ctx->phys->info;
   struct ng_async_stat	stats;
   const char		*cspeed;
 
@@ -944,8 +944,8 @@ ModemStat(PhysInfo p)
     (m->watch & TIOCM_DSR) ? "DSR" : "");
 
     Printf("Modem status:\r\n");
-    Printf("\tState        : %s\r\n", gPhysStateNames[p->state]);
-    if (p->state != PHYS_STATE_DOWN) {
+    Printf("\tState        : %s\r\n", gPhysStateNames[ctx->phys->state]);
+    if (ctx->phys->state != PHYS_STATE_DOWN) {
 	Printf("\tOpened       : %s\r\n", (m->opened?"YES":"NO"));
 	Printf("\tIncoming     : %s\r\n", (m->originated?"NO":"YES"));
 
@@ -955,8 +955,8 @@ ModemStat(PhysInfo p)
 	    Freee(MB_CHAT, cspeed);
 	}
 
-	if (p->state == PHYS_STATE_UP && 
-    		ModemGetNgStats(p, &stats) >= 0) {
+	if (ctx->phys->state == PHYS_STATE_UP && 
+    		ModemGetNgStats(ctx->phys, &stats) >= 0) {
     	    Printf("Async stats:\r\n");
     	    Printf("\t       syncOctets: %8u\r\n", stats.syncOctets);
     	    Printf("\t       syncFrames: %8u\r\n", stats.syncFrames);

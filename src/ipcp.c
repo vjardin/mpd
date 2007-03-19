@@ -190,7 +190,7 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tPeer: %s\r\n",
     u_rangetoa(&ipcp->conf.peer_allow,buf,sizeof(buf)));
   Printf("IPCP Options:\r\n");
-  OptStat(&ipcp->conf.options, gConfList);
+  OptStat(ctx, &ipcp->conf.options, gConfList);
   Printf("Current addressing:\r\n");
   Printf("\tSelf: %s\r\n", inet_ntoa(ipcp->want_addr));
   Printf("\tPeer: %s\r\n", inet_ntoa(ipcp->peer_addr));

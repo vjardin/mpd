@@ -417,7 +417,7 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
   }
 
   Printf("RADIUS options\r\n");
-  OptStat(&conf->options, gConfList);
+  OptStat(ctx, &conf->options, gConfList);
 
   Printf("Data:\r\n");
   Printf("\tAuthenticated  : %s\r\n", a->params.authentic == AUTH_CONF_RADIUS_AUTH ? 

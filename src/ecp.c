@@ -403,16 +403,16 @@ EcpStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("[%s] %s [%s]\r\n", Pref(&ecp->fsm), Fsm(&ecp->fsm), FsmStateName(ecp->fsm.state));
   Printf("Enabled protocols:\r\n");
-  OptStat(&ecp->options, gConfList);
+  OptStat(ctx, &ecp->options, gConfList);
   Printf("Outgoing encryption:\r\n");
   Printf("\tProto\t: %s\r\n", ecp->xmit ? ecp->xmit->name : "none");
   if (ecp->xmit && ecp->xmit->Stat)
-    ecp->xmit->Stat(ctx->bund, ECP_DIR_XMIT);
+    ecp->xmit->Stat(ctx, ECP_DIR_XMIT);
   Printf("\tResets\t: %d\r\n", ecp->xmit_resets);
   Printf("Incoming decryption:\r\n");
   Printf("\tProto\t: %s\r\n", ecp->recv ? ecp->recv->name : "none");
   if (ecp->recv && ecp->recv->Stat)
-    ecp->recv->Stat(ctx->bund, ECP_DIR_RECV);
+    ecp->recv->Stat(ctx, ECP_DIR_RECV);
   Printf("\tResets\t: %d\r\n", ecp->recv_resets);
   return(0);
 }
