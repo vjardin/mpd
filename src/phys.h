@@ -56,6 +56,7 @@
 
   struct physinfo {
     char		name[LINK_MAX_NAME];	/* Human readable name */
+    int			id;			/* Index of this phys in gPhyses */
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
     u_char		state;			/* Device current state */

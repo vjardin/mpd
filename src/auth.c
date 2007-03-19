@@ -555,20 +555,6 @@ AuthCleanup(Link l)
   authparamsDestroy(&a->params);
 }
 
-static int 
-GetLinkID(Link l) {
-    int port, i;
-    
-    port =- 1;    
-    for (i = 0; i < gNumPhyses; i++) {
-      if (gPhyses[i]->link == l) {
-	port = i;
-	break;
-      }
-    }
-    return port;
-};
-
 /* 
  * AuthDataNew()
  *
@@ -601,7 +587,7 @@ AuthDataNew(Link l)
 
   auth->info.last_open = l->last_open;
   auth->info.phys_type = l->phys->type;
-  auth->info.linkID = GetLinkID(l);
+  auth->info.linkID = l->phys->id;
 
   authparamsCopy(&a->params,&auth->params);
 
@@ -818,6 +804,7 @@ AuthAccountFinish(void *arg, int was_canceled)
 {
     AuthData		auth = (AuthData)arg;
     Link		l;
+    PhysInfo		p;
 
     if (was_canceled)
 	Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
@@ -831,13 +818,14 @@ AuthAccountFinish(void *arg, int was_canceled)
 	return;
     }  
 
-    if ((l = LinkFind(auth->info.lnkname)) == NULL) {
+    p = gPhyses[auth->info.linkID];
+    if ((p == NULL) || ((l = p->link) == NULL)) {
 	AuthDataDestroy(auth);
 	return;
     }    
 
     Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
-	auth->info.lnkname));
+	l->name));
 
     if (auth->acct_type != AUTH_ACCT_STOP) {
 	/* Copy back modified data. */
@@ -1007,6 +995,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
 {
     AuthData	auth = (AuthData)arg;
     Link	l;
+    PhysInfo	p;
 
     if (was_canceled)
 	Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->info.lnkname));
@@ -1019,7 +1008,8 @@ AuthAsyncFinish(void *arg, int was_canceled)
 	return;
     }  
   
-    if ((l = LinkFind(auth->info.lnkname)) == NULL) {
+    p = gPhyses[auth->info.linkID];
+    if ((p == NULL) || ((l = p->link) == NULL)) {
 	AuthDataDestroy(auth);
 	return;
     }    

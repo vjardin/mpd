@@ -97,40 +97,41 @@
 PhysInfo
 PhysInit(char *name, Link l, Rep r)
 {
-  PhysInfo	p;
-  struct context	ctx;
-  int		k;
+    PhysInfo		p;
+    struct context	ctx;
+    int			k;
 
-  /* See if bundle name already taken */
-  if ((p = PhysFind(name)) != NULL) {
-    Log(LG_ERR, ("phys \"%s\" already exists", name));
-    return NULL;
-  }
+    /* See if bundle name already taken */
+    if ((p = PhysFind(name)) != NULL) {
+	Log(LG_ERR, ("phys \"%s\" already exists", name));
+	return NULL;
+    }
 
-  p = Malloc(MB_PHYS, sizeof(*p));
+    p = Malloc(MB_PHYS, sizeof(*p));
   
-  strlcpy(p->name, name, sizeof(p->name));
-  p->state = PHYS_STATE_DOWN;
-  p->msgs = MsgRegister(PhysMsg, 0);
-  p->link = l;
-  p->rep = r;
+    strlcpy(p->name, name, sizeof(p->name));
+    p->state = PHYS_STATE_DOWN;
+    p->msgs = MsgRegister(PhysMsg, 0);
+    p->link = l;
+    p->rep = r;
 
-  /* Find a free link pointer */
-  for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
-  if (k == gNumPhyses)			/* add a new link pointer */
-    LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
+    /* Find a free link pointer */
+    for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
+    if (k == gNumPhyses)			/* add a new link pointer */
+	LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
 
-  gPhyses[k] = p;
+    p->id = k;
+    gPhyses[k] = p;
 
     ctx.lnk = l;
     ctx.phys = p;
     ctx.rep = NULL;
     ctx.bund = NULL;
 
-  /* Read special configuration for link, if any */
-  (void) ReadFile(LINKS_FILE, name, DoCommand, &ctx);
+    /* Read special configuration for link, if any */
+    (void) ReadFile(LINKS_FILE, name, DoCommand, &ctx);
 
-  return(p);
+    return(p);
 }
 
 /*
