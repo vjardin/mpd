@@ -102,6 +102,7 @@
   static Option		OptDecode(char *arg, int longform);
   static void		EventWarnx(const char *fmt, ...);
 
+  static void		ConfigRead(int type, void *arg);
   static void		OpenSignal(int sig);
   static void		CloseSignal(int sig);
   static void		FatalSignal(int sig);
@@ -117,6 +118,7 @@
   static const char	*gPidFile = PID_FILE;
   static const char	*gPeerSystem = NULL;
   static EventRef	gSignalEvent;
+  static EventRef	gConfigReadEvent;
   static int		gSignalPipe[2];
 
 /*
@@ -128,8 +130,6 @@ main(int ac, char *av[])
 {
   int			ret;
   char			*args[MAX_ARGS];
-  struct context	ctx;
-  Context		c;
 
   gPid=getpid();
 
@@ -161,14 +161,6 @@ main(int ac, char *av[])
       err(1, "daemon");
     gPid=getpid();
     (void) chdir(gConfDirectory);
-    ctx.lnk = NULL;
-    ctx.bund = NULL;
-    ctx.phys = NULL;
-    ctx.rep = NULL;
-    ctx.cs = NULL;
-    c = &ctx;
-  } else {
-    c = StdConsoleConnect(&gConsole);
   }
 
   /* Open log file */
@@ -225,20 +217,8 @@ main(int ac, char *av[])
   /* Signals we ignore */
   signal(SIGPIPE, SIG_IGN);
 
-  GIANT_MUTEX_LOCK();
-  /* Read startup configuration section */
-  ReadFile(gConfigFile, STARTUP_CONF, DoCommand, c);
-
-  /* Read configuration as specified on the command line, or default */
-  if (!gPeerSystem)
-    ReadFile(gConfigFile, DEFAULT_CONF, DoCommand, c);
-  else {
-    if (ReadFile(gConfigFile, gPeerSystem, DoCommand, c) < 0) {
-      Log(LG_ERR, ("can't read configuration for \"%s\"", gPeerSystem));
-      DoExit(EX_CONFIG);
-    }
-  }
-  GIANT_MUTEX_UNLOCK();
+  EventRegister(&gConfigReadEvent, EVENT_TIMEOUT,
+    0, 0, ConfigRead, NULL);
 
   pthread_exit(NULL);
 
@@ -256,6 +236,42 @@ Greetings(void)
   LogStdout("Multi-link PPP daemon for FreeBSD");
   Log(LG_ALWAYS, ("process %lu started, version %s", (u_long) gPid, gVersion));
   LogStdout(" ");
+}
+
+/*
+ * ConfigRead()
+ *
+ * handler of initial configuration reading event
+ */
+static void
+ConfigRead(int type, void *arg)
+{
+    struct context	ctx;
+    Context		c;
+
+    if (gBackground) {
+        ctx.lnk = NULL;
+        ctx.bund = NULL;
+        ctx.phys = NULL;
+        ctx.rep = NULL;
+        ctx.cs = NULL;
+        c = &ctx;
+    } else {
+        c = StdConsoleConnect(&gConsole);
+    }
+
+    /* Read startup configuration section */
+    ReadFile(gConfigFile, STARTUP_CONF, DoCommand, c);
+
+    /* Read configuration as specified on the command line, or default */
+    if (!gPeerSystem)
+	ReadFile(gConfigFile, DEFAULT_CONF, DoCommand, c);
+    else {
+	if (ReadFile(gConfigFile, gPeerSystem, DoCommand, c) < 0) {
+	    Log(LG_ERR, ("can't read configuration for \"%s\"", gPeerSystem));
+	    DoExit(EX_CONFIG);
+	}
+    }
 }
 
 /*
