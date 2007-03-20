@@ -48,13 +48,14 @@
 
   static void	ConsoleConnect(int type, void *cookie);
   static void	ConsoleSessionClose(ConsoleSession cs);
-  static void	StdConsoleSessionClose(ConsoleSession cs);
   static void	ConsoleSessionReadEvent(int type, void *cookie);
   static void	ConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...);
   static void	ConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl);
+  static void	ConsoleSessionShowPrompt(ConsoleSession cs);
+
+  static void	StdConsoleSessionClose(ConsoleSession cs);
   static void	StdConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...);
   static void	StdConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl);
-  static void	ConsoleSessionShowPrompt(ConsoleSession cs);
 
   static int		ConsoleUserHashEqual(struct ghash *g, const void *item1, 
 		  		const void *item2);
@@ -306,11 +307,16 @@ StdConsoleConnect(Console c)
 
 /*
  * ConsoleSessionClose()
+ * This function is potentially thread unsafe.
+ * To avois this locks should be used.
+ * The only unlocked place is ->readEvent, 
+ * but it is actually the only place where ->close called.
  */
 
 static void
 ConsoleSessionClose(ConsoleSession cs)
 {
+  cs->write(cs, "Console closed.\r\n");
   RWLOCK_WRLOCK(cs->console->lock);
   EventUnRegister(&cs->readEvent);
   SLIST_REMOVE(&cs->console->sessions, cs, console_session, next);
@@ -329,10 +335,10 @@ ConsoleSessionClose(ConsoleSession cs)
 static void
 StdConsoleSessionClose(ConsoleSession cs)
 {
+  cs->write(cs, "Console closed.\r\n");
   EventUnRegister(&cs->readEvent);
   return;
 }
-
 
 /*
  * ConsoleSessionReadEvent()
@@ -553,9 +559,6 @@ success:
 	exitflag = 0;
       }
       FreeArgs(ac, av_copy);
-      if (exitflag)
-	goto abort;
-      cs->prompt(cs);
       if (c != '?') {
 	memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
         memset(cs->cmd, 0, MAX_CONSOLE_LINE);
@@ -563,6 +566,9 @@ success:
       } else {
 	cs->write(cs, cs->cmd);
       }
+      if (exitflag)
+	goto abort;
+      cs->prompt(cs);
       break;
     }
     /* "normal" char entered */
@@ -586,7 +592,8 @@ success:
   }
 
 abort:
-  cs->close(cs);
+  if (cs->close)
+    cs->close(cs);
 out:
   return;
 }
