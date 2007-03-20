@@ -292,23 +292,23 @@ vLogPrintf(const char *fmt, va_list args)
 {
     char		buf[MAX_CONSOLE_BUF_LEN];
     ConsoleSession	s;
-
 #if (__FreeBSD_version >= 500000)
     va_list       args2;
 #endif
 
     LogTimeStamp(logprintf);
 #if (__FreeBSD_version >= 500000)
-    va_copy(args2,args);
-    valog(LOG_INFO, fmt, args);
-    vsnprintf(buf, sizeof(buf), fmt, args2);
-    va_end(args2);
-#else
-    valog(LOG_INFO, fmt, args);
-    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_copy(args2, args);
 #endif
+    valog(LOG_INFO, fmt, args);
 
     if (!SLIST_EMPTY(&gConsole.sessions)) {
+#if (__FreeBSD_version >= 500000)
+        vsnprintf(buf, sizeof(buf), fmt, args2);
+#else
+        vsnprintf(buf, sizeof(buf), fmt, args);
+#endif
+
 	RWLOCK_RDLOCK(gConsole.lock);
 	SLIST_FOREACH(s, &gConsole.sessions, next) {
 	    if (s->active || Enabled(&s->options, CONSOLE_LOGGING))
@@ -316,6 +316,9 @@ vLogPrintf(const char *fmt, va_list args)
 	}
 	RWLOCK_UNLOCK(gConsole.lock);
     }
+#if (__FreeBSD_version >= 500000)
+    va_end(args2);
+#endif
 }
 
 /*
