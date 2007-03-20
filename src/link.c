@@ -214,7 +214,8 @@ LinkMsg(int type, void *arg)
 	    l->name, l->num_redial));
 	  RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
     	  LcpDown(l);
-	  PhysOpen(l->phys);		/* Try again */
+	  if (!gShutdownInProgress)	/* Giveup on shutdown */
+	    PhysOpen(l->phys);		/* Try again */
 	}
       } else {
         LcpDown(l);

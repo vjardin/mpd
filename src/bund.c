@@ -206,8 +206,13 @@ int
 BundJoin(Link l)
 {
     Bund	b = l->bund;
-  BundBm	const bm = &l->bund->bm;
-  LcpState	const lcp = &l->lcp;
+    BundBm	const bm = &l->bund->bm;
+    LcpState	const lcp = &l->lcp;
+
+    if (gShutdownInProgress) {
+	Log(LG_PHYS, ("Shutdown sequence in progress, BundJoin() denied"));
+        return(0);
+    }
 
   if (!b->open) b->open = TRUE; /* Open bundle on incoming */
 
@@ -369,7 +374,7 @@ BundLeave(Link l)
     memset(&b->ccp.mppc, 0, sizeof(b->ccp.mppc));
  
     /* try to open again later */
-    if (b->open && !Enabled(&b->conf.options, BUND_CONF_NORETRY)) {
+    if (b->open && !Enabled(&b->conf.options, BUND_CONF_NORETRY) && !gShutdownInProgress) {
 	/* wait BUND_REOPEN_DELAY to see if it comes back up */
       int delay = BUND_REOPEN_DELAY;
       delay += ((random() ^ gPid ^ time(NULL)) & 1);
