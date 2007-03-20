@@ -41,7 +41,6 @@
  */
 
   static void	MsgEvent(int type, void *cookie);
-  static void	MsgReregister(void);
 
 /*
  * MsgRegister()
@@ -65,7 +64,13 @@ MsgRegister(void (*func)(int type, void *arg), int prio)
     }
     fcntl(msgpipe[PIPE_READ], F_SETFD, 1);
     fcntl(msgpipe[PIPE_WRITE], F_SETFD, 1);
-    MsgReregister();
+
+    if (EventRegister(&msgevent, EVENT_READ,
+	msgpipe[PIPE_READ], EVENT_RECURRING, MsgEvent, NULL) < 0)
+    {
+	Perror("%s: Can't register event!", __FUNCTION__);
+	DoExit(EX_ERRDEAD);
+    }
   }
   return(m);
 }
@@ -106,7 +111,6 @@ MsgEvent(int type, void *cookie)
     }
   }
   (*msg.func)(msg.type, msg.arg);
-  MsgReregister();
 }
 
 /*
@@ -134,21 +138,6 @@ MsgSend(MsgHandler m, int type, void *arg)
   if (nwrote < sizeof(msg)) {
       Log(LG_ERR, ("%s: Can't write to message pipe, fatal pipe overflow!", __FUNCTION__));
       DoExit(EX_ERRDEAD);
-  }
-}
-
-/*
- * MsgReregister()
- */
-
-static void
-MsgReregister()
-{
-  if (EventRegister(&msgevent, EVENT_READ,
-    msgpipe[PIPE_READ], 0, MsgEvent, NULL) < 0)
-  {
-    Perror("%s: Can't register event!", __FUNCTION__);
-    DoExit(EX_ERRDEAD);
   }
 }
 
