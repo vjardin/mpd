@@ -1204,65 +1204,81 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
   struct ifconf		ifc;
   struct ifreq		ifs[MAX_INTERFACES];
 
-    /* cache value to reduce number of syscalls */
+    /* use cached IP to reduce number of syscalls */
     if (ifname == NULL && have_nipa) {
 	in_addrtou_addr(&nipa, ipaddr);
 	return(0);
     }
 
-  /* Get interface list */
-  if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("%s: Socket creation error", __FUNCTION__);
-    return(-1);
-  }
-
-  ifc.ifc_len = sizeof(ifs);
-  ifc.ifc_req = ifs;
-  if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
-    close(s);
-    return(-1);
-  }
-
-  for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
-	ifr = ifc.ifc_req;
-      ifr < ifend;
-      ifr = (struct ifreq *)(void *)((char *) &ifr->ifr_addr
-	+ MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)))) {
-    if (ifr->ifr_addr.sa_family == AF_INET) {
-
-      if (ifname!=NULL && strcmp(ifname,ifr->ifr_name))
-        continue;
-
-      /* Check that the interface is up; prefer non-p2p and non-loopback */
-      strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
-      if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
-	continue;
-      if ((ifreq.ifr_flags & IFF_UP) != IFF_UP)
-	continue;
-      if ((ifreq.ifr_flags & (IFF_POINTOPOINT|IFF_LOOPBACK)) && ipa.s_addr)
-	continue;
-      if ((ntohl(((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr.s_addr)>>24)==127)
-	continue;
-
-      /* Save IP address and interface name */
-      ipa = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr;
-      p2p = (ifreq.ifr_flags & (IFF_POINTOPOINT|IFF_LOOPBACK)) != 0;
-      
-      if (!p2p) break;
+    /* Get socket */
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Perror("%s: Socket creation error", __FUNCTION__);
+	return(-1);
     }
-  }
-  close(s);
 
-  /* Found? */
-  if (ipa.s_addr == 0)
-    return(-1);
-  if (ifname == NULL) {
-    nipa = ipa;
-    have_nipa = 1;
-  }
-  in_addrtou_addr(&ipa, ipaddr);
-  return(0);
+    /* Try simple call for the first IP on interface */
+    if (ifname != NULL) {
+	strncpy(ifreq.ifr_name, ifname, sizeof(ifreq.ifr_name));
+        if (ioctl(s, SIOCGIFADDR, &ifreq) < 0) {
+    	    Perror("%s: ioctl(SIOCGIFADDR)", __FUNCTION__);
+    	    close(s);
+    	    return(-1);
+        }
+	ipa = ((struct sockaddr_in *)&ifreq.ifr_ifru.ifru_addr)->sin_addr;
+	if ((ntohl(ipa.s_addr)>>24) == 127)
+	    ipa.s_addr = 0; 	/* We don't like 127.0.0.1 */
+    }
+
+    /* If simple is not enouth try complex call */
+    if (ipa.s_addr == 0) {
+      ifc.ifc_len = sizeof(ifs);
+      ifc.ifc_req = ifs;
+      if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+        Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
+        close(s);
+        return(-1);
+      }
+
+      for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
+    	    ifr = ifc.ifc_req;
+          ifr < ifend;
+          ifr = (struct ifreq *)(void *)((char *) &ifr->ifr_addr
+	    + MAX(ifr->ifr_addr.sa_len, sizeof(ifr->ifr_addr)))) {
+        if (ifr->ifr_addr.sa_family == AF_INET) {
+
+          if (ifname!=NULL && strcmp(ifname,ifr->ifr_name))
+	    continue;
+
+          /* Check that the interface is up; prefer non-p2p and non-loopback */
+          strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+          if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
+    	    continue;
+          if ((ifreq.ifr_flags & IFF_UP) != IFF_UP)
+	    continue;
+	  if ((ifreq.ifr_flags & (IFF_POINTOPOINT|IFF_LOOPBACK)) && ipa.s_addr)
+	    continue;
+	  if ((ntohl(((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr.s_addr)>>24)==127)
+	    continue;
+
+          /* Save IP address and interface name */
+          ipa = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr;
+          p2p = (ifreq.ifr_flags & (IFF_POINTOPOINT|IFF_LOOPBACK)) != 0;
+      
+          if (!p2p) break;
+        }
+      }
+    }
+    close(s);
+
+    /* Found? */
+    if (ipa.s_addr == 0)
+	return(-1);
+    if (ifname == NULL) {
+	nipa = ipa;
+	have_nipa = 1;
+    }
+    in_addrtou_addr(&ipa, ipaddr);
+    return(0);
 }
 
 /*
