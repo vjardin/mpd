@@ -205,5 +205,7 @@
   extern void	BundNcpsOpen(Bund b);
   extern void	BundNcpsClose(Bund b);
 
+  extern void	BundNgCtrlEvent(int type, void *cookie);
+
 #endif
 

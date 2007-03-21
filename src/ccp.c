@@ -621,6 +621,10 @@ CcpLayerUp(Fsm fp)
     return;
   }
 
+  /* Register control messages event as it used only by CCP */
+  EventRegister(&b->ctrlEvent, EVENT_READ,
+    b->csock, EVENT_RECURRING, BundNgCtrlEvent, b);
+
   /* Initialize each direction */
   if (ccp->xmit != NULL && ccp->xmit->Init != NULL
       && (*ccp->xmit->Init)(b, COMP_DIR_XMIT) < 0) {
@@ -727,6 +731,9 @@ CcpLayerDown(Fsm fp)
 
   ccp->xmit_resets = 0;
   ccp->recv_resets = 0;
+
+  /* Unregister control messages event as it used only by CCP */
+  EventUnRegister(&b->ctrlEvent);
 }
 
 /*

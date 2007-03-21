@@ -74,7 +74,6 @@
   static void	BundNgShutdown(Bund b, int iface, int ppp);
 
   static void	BundNgDataEvent(int type, void *cookie);
-  static void	BundNgCtrlEvent(int type, void *cookie);
 
   static void	BundBmStart(Bund b);
   static void	BundBmStop(Bund b);
@@ -1496,8 +1495,7 @@ BundNgInit(Bund b, const char *reqIface)
   /* Listen for happenings on our node */
   EventRegister(&b->dataEvent, EVENT_READ,
     b->dsock, EVENT_RECURRING, BundNgDataEvent, b);
-  EventRegister(&b->ctrlEvent, EVENT_READ,
-    b->csock, EVENT_RECURRING, BundNgCtrlEvent, b);
+  /* Control events used only by CCP so Register events there */
 
   /* OK */
   return(0);
@@ -1676,7 +1674,7 @@ BundNgDataEvent(int type, void *cookie)
  *
  */
 
-static void
+void
 BundNgCtrlEvent(int type, void *cookie)
 {
     Bund	b = (Bund)cookie;
