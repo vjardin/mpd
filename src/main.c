@@ -103,8 +103,7 @@
   static void		EventWarnx(const char *fmt, ...);
 
   static void		ConfigRead(int type, void *arg);
-  static void		OpenSignal(int sig);
-  static void		CloseSignal(int sig);
+  static void		OpenCloseSignal(int sig);
   static void		FatalSignal(int sig);
   static void		SignalHandler(int type, void *arg);
   static void		CloseIfaces(void);
@@ -376,11 +375,8 @@ SignalHandler(int type, void *arg)
 
   switch(sig) {
     case SIGUSR1:
-      OpenSignal(sig);
-      break;
-
     case SIGUSR2:
-      CloseSignal(sig);
+      OpenCloseSignal(sig);
       break;
 
     default:
@@ -436,43 +432,41 @@ FatalSignal(sig)
 }
 
 /*
- * OpenSignal()
+ * OpenCloseSignal()
  */
 
 static void
-OpenSignal(int sig)
+OpenCloseSignal(int sig)
 {
-#if 0
-  /* Open bundle */
-  if (lnk && lnk->phys && lnk->phys->type) {
-    Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
-      lnk->name, sys_signame[sig]));
-    RecordLinkUpDownReason(NULL, lnk, 1, STR_MANUALLY, NULL);
-    BundOpenLink(lnk);
-  } else
-    Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
-#endif
+    int		k;
+    Link	l;
+
+    for (k = 0;
+	k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL);
+	k++);
+    if (k == gNumPhyses) {
+	Log(LG_ALWAYS, ("rec'd signal %s, no link defined, ignored", sys_signame[sig]));
+	return;
+    }
+
+    l = gPhyses[k]->link;
+
+    /* Open/Close Link */
+    if (l && l->phys && l->phys->type) {
+	if (sig == SIGUSR1) {
+	    Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
+    		l->name, sys_signame[sig]));
+	    RecordLinkUpDownReason(NULL, l, 1, STR_MANUALLY, NULL);
+	    LinkOpen(l);
+	} else {
+	    Log(LG_ALWAYS, ("[%s] rec'd signal %s, closing",
+    		l->name, sys_signame[sig]));
+	    RecordLinkUpDownReason(NULL, l, 0, STR_MANUALLY, NULL);
+	    LinkClose(l);
+	}
+    } else
+	Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
 }
-
-/*
- * CloseSignal()
- */
-
-static void
-CloseSignal(int sig)
-{
-#if 0
-  /* Close bundle */
-  if (lnk && lnk->phys && lnk->phys->type) {
-    Log(LG_ALWAYS, ("[%s] rec'd signal %s, closing",
-      lnk->name, sys_signame[sig]));
-    RecordLinkUpDownReason(NULL, lnk, 0, STR_MANUALLY, NULL);
-    LinkClose(lnk);
-  } else
-    Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
-#endif
-}
-
 
 /*
  * EventWarnx()
