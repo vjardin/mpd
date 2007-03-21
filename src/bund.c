@@ -82,7 +82,7 @@
   static Bund	BundFind(char *name);
   static void	BundReasses(Bund b, int add);
   static int	BundSetCommand(Context ctx, int ac, char *av[], void *arg);
-  static void	BundShowLinks(Context ctx);
+  static void	BundShowLinks(Context ctx, Bund sb);
 
   static void	BundNcpsUp(Bund b);
   static void	BundNcpsDown(Bund b);
@@ -801,7 +801,7 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
       for (k = 0; k < gNumBundles; k++)
 	if ((sb = gBundles[k]) != NULL) {
 	  Printf(BUND_FMT, sb->name);
-	  BundShowLinks(ctx);
+	  BundShowLinks(ctx, sb);
 	}
       break;
 
@@ -1060,7 +1060,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("Bundle %s:\r\n", sb->name);
   Printf("\tLinks          : ");
-  BundShowLinks(ctx);
+  BundShowLinks(ctx, sb);
   Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");
   Printf("\tM-Session-Id   : %s\r\n", sb->msession_id);
   Printf("\tTotal bandwidth: %u bits/sec\r\n", tbw);
@@ -1169,9 +1169,8 @@ BundResetStats(Bund b)
  */
 
 static void
-BundShowLinks(Context ctx)
+BundShowLinks(Context ctx, Bund sb)
 {
-    Bund	sb = ctx->bund;
     int		j;
 
   for (j = 0; j < sb->n_links; j++) {
