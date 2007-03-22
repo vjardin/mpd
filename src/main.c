@@ -235,6 +235,7 @@ Greetings(void)
   LogStdout("Multi-link PPP daemon for FreeBSD");
   Log(LG_ALWAYS, ("process %lu started, version %s", (u_long) gPid, gVersion));
   LogStdout(" ");
+  LogStdout("process %lu started, version %s", (u_long) gPid, gVersion);
 }
 
 /*
