@@ -272,13 +272,14 @@ StdConsoleConnect(Console c)
     cs = Malloc(MB_CONS, sizeof(*cs));
     memset(cs, 0, sizeof(*cs));
   
+    /* Init stdin */
     cs->fd = 0;
-    tcgetattr(0, &settings);
+    tcgetattr(cs->fd, &settings);
     settings.c_lflag &= (~ICANON);
     settings.c_lflag &= (~ECHO); // don't echo the character
-    settings.c_cc[VTIME] = 1; // timeout (tenths of a second)
+    settings.c_cc[VTIME] = 0; // timeout (tenths of a second)
     settings.c_cc[VMIN] = 0; // minimum number of characters
-    tcsetattr(0, TCSANOW, &settings);
+    tcsetattr(cs->fd, TCSANOW, &settings);
 
     if (fcntl(cs->fd, F_SETFL, O_NONBLOCK) < 0) {
       Perror("%s: fcntl", __FUNCTION__);
@@ -287,6 +288,12 @@ StdConsoleConnect(Console c)
 
     EventRegister(&cs->readEvent, EVENT_READ, cs->fd, 
 	EVENT_RECURRING, ConsoleSessionReadEvent, cs);
+
+    /* Init stdout */
+    if (fcntl(1, F_SETFL, O_NONBLOCK) < 0) {
+      Perror("%s: fcntl", __FUNCTION__);
+      return(NULL);
+    }
 
     Enable(&cs->options, CONSOLE_LOGGING);
     cs->console = c;
