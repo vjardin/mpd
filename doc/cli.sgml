@@ -6,9 +6,8 @@
   <sect><heading>Mpd command line interface<label id="cli"></heading>
 
 <p>
-	After connecting to the telnet port, 
-	mpd presents a command line interface. 
-	Here mpd commands can be entered to
+	Mpd provides to user a command line interface on stdin and 
+	TCP port. Here mpd commands can be entered to
 	configure the various layers and check
 	the status of the defined bundles and links.
 	The commands available at the command line interface
@@ -23,9 +22,9 @@
 	and <tt>modem2</tt>:
 <tscreen><verb>
 $ mpd config1
-Multi-link PPP for FreeBSD, by Archie L. Cobbs.
-Based on iij-ppp, by Toshiharu OHNO.
-mpd: pid 1419, version 4.0 (root@fish.alkar.net 15:29 15-Dec-2006)
+Multi-link PPP daemon for FreeBSD
+
+process 26177 started, version 4.2b1 (root@orphanage.alkar.net 15:37 22-Mar-2007)
 [myisp] ppp node is "mpd771-myisp"
 [myisp] using interface ng0
 </verb></tscreen>
@@ -34,11 +33,9 @@ mpd: pid 1419, version 4.0 (root@fish.alkar.net 15:29 15-Dec-2006)
 	<tt>config1</tt>,
 	which defines the bundle <tt>myisp</tt>. When the bundle
 	is created mpd logs a message showing the name of the
-	associated netgraph <tt>ng_ppp(4)</tt> node and system interface
-	(mpd will automatically select one if not
-	explicitly told which one to use). In this case
-	<tt>mpd771-myisp</tt> is the netgraph node and <tt>ng0</tt>
-	is the interface. 
+	associated netgraph <tt>ng_ppp(4)</tt> node and system interface. 
+	In this case <tt>mpd771-myisp</tt> is the netgraph node and 
+	<tt>ng0</tt> is the interface. 
 	
 	To control mpd runtime you can connect to mpd's Telnet console.
 <tscreen><verb>
@@ -46,12 +43,11 @@ mpd: pid 1419, version 4.0 (root@fish.alkar.net 15:29 15-Dec-2006)
 Trying 0.0.0.0...
 Connected to 0.
 Escape character is '^]'.
-Multi-link PPP for FreeBSD, by Archie L. Cobbs.
-Based on iij-ppp, by Toshiharu OHNO.
+Multi-link PPP daemon for FreeBSD
 
 Username: Admin
 Password: 
-mpd: pid 1419, version 4.0 (root@fish.alkar.net 15:29 15-Dec-2006)
+Mpd pid 1419, version 4.2b1 (root@orphanage.alkar.net 15:37 22-Mar-2007)
 
 [modem1]
 </verb></tscreen>
