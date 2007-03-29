@@ -383,6 +383,7 @@ WebRunCmd(FILE *f, const char *querry)
   cs->write = WebConsoleSessionWrite;
   cs->writev = WebConsoleSessionWriteV;
   cs->prompt = NULL;
+  cs->context.cs = cs;
 
   strlcpy(buf,querry,sizeof(buf));
   tmp = buf;
