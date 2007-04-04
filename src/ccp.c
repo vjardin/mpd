@@ -450,7 +450,12 @@ CcpSendResetReq(Bund b)
   Fsm		const fp = &ccp->fsm;
   Mbuf		bp = NULL;
 
-  assert(ct);
+  if (ct == NULL) {
+    Log(LG_ERR, ("[%s] %s: CcpSendResetReq() call from undefined decompressor!", 
+	Pref(fp), Fsm(fp)));
+    return;
+  }
+  
   ccp->recv_resets++;
   if (ct->SendResetReq)
     bp = (*ct->SendResetReq)(b);
