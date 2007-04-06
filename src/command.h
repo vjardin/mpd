@@ -10,6 +10,8 @@
 #ifndef _COMMAND_H_
 #define _COMMAND_H_
 
+#include "vars.h"
+
 /*
  * DEFINITIONS
  */
@@ -26,8 +28,6 @@
     struct optinfo	options;
   };
 
-  extern const struct cmdtab gCommands[];
-
   struct cmdtab;
   typedef const struct cmdtab	*CmdTab;
   struct cmdtab
@@ -38,6 +38,8 @@
     int		(*admit)(Context ctx, CmdTab cmd);
     void	*arg;
   };
+
+  extern const struct cmdtab gCommands[];
 
 /*
  * FUNCTIONS
