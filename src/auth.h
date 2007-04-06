@@ -105,7 +105,7 @@
     unsigned long	class;      	/* Class */
     char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
     int			eapmsg_len;
-    char		*state;		/* copy of the state attribute, needed for accounting */
+    u_char		*state;		/* copy of the state attribute, needed for accounting */
     int			state_len;
 
     struct acl		*acl_rule;	/* ipfw rules */
@@ -193,7 +193,7 @@
     u_int		code;		/* Proto specific code */
     u_short		status;
     int			why_fail;
-    u_char		ack_mesg[128];
+    char		ack_mesg[128];
     char		*reply_message;	/* Text wich may displayed to the user */
     char		*mschap_error;	/* MSCHAP Error Message */
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */

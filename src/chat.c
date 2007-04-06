@@ -243,7 +243,7 @@
   static char	*ChatReadLine(ChatInfo c);
   static int	ChatParseLine(ChatInfo c, char *line, char *av[], int max);
   static int	ChatSeekToLabel(ChatInfo c, const char *label);
-  static void	ChatDumpBuf(ChatInfo c, const u_char *buf,
+  static void	ChatDumpBuf(ChatInfo c, const char *buf,
 		  int len, const char *fmt, ...);
 
 /*
@@ -1472,7 +1472,7 @@ ChatDumpReadBuf(ChatInfo c)
 {
   if (c->readBufLen)
   {
-    ChatDumpBuf(c, (u_char *) c->readBuf, c->readBufLen, "read");
+    ChatDumpBuf(c, c->readBuf, c->readBufLen, "read");
     c->readBufLen = 0;
   }
 }
@@ -1776,7 +1776,7 @@ ChatSeekToLabel(ChatInfo c, const char *label)
 #define DUMP_BYTES_PER_LINE   16
 
 static void
-ChatDumpBuf(ChatInfo c, const u_char *buf, int len, const char *fmt, ...)
+ChatDumpBuf(ChatInfo c, const char *buf, int len, const char *fmt, ...)
 {
   va_list	args;
   char		cbuf[128];
@@ -1799,7 +1799,7 @@ ChatDumpBuf(ChatInfo c, const u_char *buf, int len, const char *fmt, ...)
     for (k = 0; k < DUMP_BYTES_PER_LINE; k++) {
       snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf),
 	((pos + k < len) ? "%c" : " "),
-	isprint((char) buf[pos + k]) ? (char) buf[pos + k] : '.');
+	isprint(buf[pos + k]) ? buf[pos + k] : '.');
     }
     (*c->log)(c->arg, CHAT_LG_DEBUG, "%s", cbuf);
   }

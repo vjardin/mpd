@@ -64,7 +64,7 @@
   
   extern u_char gNetflowNode;
   extern u_char gNetflowNodeShutdown;
-  extern u_char gNetflowNodeName[64];
+  extern char gNetflowNodeName[64];
   extern u_int gNetflowIface;
   extern struct sockaddr_storage gNetflowExport;
   extern struct sockaddr_storage gNetflowSource;

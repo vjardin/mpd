@@ -1539,7 +1539,8 @@ BundNgDataEvent(int type, void *cookie)
     Bund	b = (Bund)cookie;
   u_char		buf[8192];
   struct sockaddr_ng	naddr;
-  int			nread, nsize = sizeof(naddr);
+  int			nread;
+  socklen_t		nsize = sizeof(naddr);
   Mbuf 			nbp;
 
   /* Read data */

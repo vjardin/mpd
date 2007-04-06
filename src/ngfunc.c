@@ -116,7 +116,7 @@
   #ifdef USE_NG_NETFLOW
   u_char gNetflowNode = FALSE;
   u_char gNetflowNodeShutdown = TRUE;
-  u_char gNetflowNodeName[64] = "mpd-nf";
+  char gNetflowNodeName[64] = "mpd-nf";
   u_int gNetflowIface = 0;
   struct sockaddr_storage gNetflowExport;
   struct sockaddr_storage gNetflowSource;

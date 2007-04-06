@@ -88,7 +88,7 @@
     short		retry;			/* Resend count */
     struct pppTimer	identTimer;		/* Identity timer */
     struct pppTimer	reqTimer;		/* Request timer */
-    u_char		identity[AUTH_MAX_AUTHNAME];	/* Identity */
+    char		identity[AUTH_MAX_AUTHNAME];	/* Identity */
     u_char		peer_types[EAP_NUM_TYPES];	/* list of acceptable types */
     u_char		want_types[EAP_NUM_TYPES];	/* list of requestable types */
     struct eapconf	conf;			/* Configured options */

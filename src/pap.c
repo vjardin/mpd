@@ -246,7 +246,7 @@ badRequest:
     } else {
 	Mesg = AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
     }
-    AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, Mesg, strlen(Mesg), 1, 0);
+    AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);  
     return;
@@ -261,7 +261,7 @@ goodRequest:
   } else {
     Mesg = AUTH_MSG_WELCOME;
   }
-  AuthOutput(l, PROTO_PAP, PAP_ACK, auth->id, Mesg, strlen(Mesg), 1, 0);
+  AuthOutput(l, PROTO_PAP, PAP_ACK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
   AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);  
   AuthDataDestroy(auth);
 }

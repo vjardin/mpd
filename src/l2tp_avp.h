@@ -236,7 +236,7 @@ struct proxyauth_avp {
 
 struct proxyname_avp {
 	u_int		length;
-	u_char		data[0];
+	char		data[0];
 };
 
 struct proxychallenge_avp {

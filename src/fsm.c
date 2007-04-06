@@ -1181,7 +1181,7 @@ FsmRecvIdent(Fsm fp, FsmHeader lhp, Mbuf bp)
     (*fp->type->RecvIdent)(fp, bp);
   else
     if (bp)
-      ShowMesg(fp->log, MBDATA(bp), MBLEN(bp));
+      ShowMesg(fp->log, (char *) MBDATA(bp), MBLEN(bp));
   PFREE(bp);
 }
 
@@ -1215,7 +1215,7 @@ FsmRecvTimeRemain(Fsm fp, FsmHeader lhp, Mbuf bp)
     remain = ntohl(remain);
     Log(fp->log, (" %u seconds remain", remain));
     if (bp)
-      ShowMesg(fp->log, MBDATA(bp), MBLEN(bp));
+      ShowMesg(fp->log, (char *) MBDATA(bp), MBLEN(bp));
   }
   PFREE(bp);
 }

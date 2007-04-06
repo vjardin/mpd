@@ -302,7 +302,7 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
     case EAP_REQUEST:
       switch (type) {
 	case EAP_TYPE_IDENT:
-	  AuthOutput(l, PROTO_EAP, EAP_RESPONSE, auth->id, auth->conf.authname,
+	  AuthOutput(l, PROTO_EAP, EAP_RESPONSE, auth->id, (u_char *) auth->conf.authname,
 	    strlen(auth->conf.authname), 0, EAP_TYPE_IDENT);
 	  break;
 
@@ -425,7 +425,7 @@ EapRadiusProxy(Link l, AuthData auth, const u_char *pkt, u_short len)
         data_len = AUTH_MAX_AUTHNAME - 1;
     }
     memset(eap->identity, 0, sizeof(eap->identity));
-    strncpy(eap->identity, data, data_len);
+    strncpy(eap->identity, (char *) data, data_len);
     Log(LG_AUTH, ("[%s] EAP-RADIUS: Identity:%s", l->name, eap->identity));
   }
 

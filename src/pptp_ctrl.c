@@ -758,7 +758,7 @@ PptpCtrlConnEvent(int type, void *cookie)
 {
   PptpCtrl		const c = (PptpCtrl) cookie;
   struct sockaddr_storage	addr;
-  int			addrLen = sizeof(addr);
+  socklen_t		addrLen = sizeof(addr);
   char			buf[64];
 
   /* Get event */
@@ -790,7 +790,8 @@ PptpCtrlInitCtrl(PptpCtrl c, int orig)
 {
   struct sockaddr_storage	self, peer;
   static const int	one = 1;
-  int			k, addrLen;
+  int			k;
+  socklen_t		addrLen;
   char			buf[64];
 
   /* Good time for a sanity check */
@@ -1613,7 +1614,8 @@ PptpCtrlFindChan(PptpCtrl c, int type, void *msg, int incoming)
   const char	*fname = incoming ? mi->match.inField : mi->match.outField;
   const int	how = incoming ? mi->match.findIn : mi->match.findOut;
   u_int16_t	cid;
-  int		k, off;
+  int		k;
+  u_int		off = 0;
 
   /* Get the identifying CID field */
   if (!fname)

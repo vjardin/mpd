@@ -415,7 +415,7 @@ AuthInput(Link l, int proto, Mbuf bp)
       code = CHAP_FAILURE;
     else
       assert(0);
-    AuthOutput(l, proto, code, fsmh.id, failMesg, strlen(failMesg), 1, 0);
+    AuthOutput(l, proto, code, fsmh.id, (u_char *)failMesg, strlen(failMesg), 1, 0);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);
     return;

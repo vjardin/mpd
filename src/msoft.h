@@ -20,7 +20,7 @@
 		  const char *nthash, u_char *hash);
 
   extern void	NTPasswordHash(const char *password, u_char *hash);
-  extern void	NTPasswordHashHash(const char *nthash, u_char *hash);
+  extern void	NTPasswordHashHash(const u_char *nthash, u_char *hash);
   extern void	LMPasswordHash(const char *password, u_char *hash);
 
   extern void	MsoftGetKey(const u_char *h, u_char *h2, int len);
@@ -29,7 +29,7 @@
   extern void	GenerateNTResponse(const u_char *authchal,
 		  const u_char *peerchal, const char *username,
 		  const char *nthash, u_char *hash);
-  extern void	GenerateAuthenticatorResponse(const char *nthash,
+  extern void	GenerateAuthenticatorResponse(const u_char *nthash,
 		  const u_char *ntresp, const u_char *peerchal,
 		  const u_char *authchal, const char *username,
 		  u_char *authresp);

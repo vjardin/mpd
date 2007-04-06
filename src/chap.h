@@ -63,7 +63,7 @@
   struct chapparams
   {
     u_char		recv_alg;			/* We auth peer with */
-    char		chal_data[CHAP_MAX_VAL];	/* Challenge sent */
+    u_char		chal_data[CHAP_MAX_VAL];	/* Challenge sent */
     short		chal_len;			/* Challenge length */
     u_char		value[CHAP_MAX_VAL];		/* Chap packet */
     int			value_len;			/* Packet length */

@@ -1388,7 +1388,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
  * Decode ASCII message
  */
 void
-ppp_util_ascify(char *buf, size_t bsiz, const u_char *data, size_t len)
+ppp_util_ascify(char *buf, size_t bsiz, const char *data, size_t len)
 {
 	char *bp = buf;
 	int i;

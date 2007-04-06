@@ -55,7 +55,7 @@
 void
 LMPasswordHash(const char *password, u_char *hash)
 {
-  const char	*const clear = "KGS!@#$%%";
+  const u_char	*const clear = (u_char *) "KGS!@#$%%";
   u_char	up[14];		/* upper case password */
   int		k;
 
@@ -102,7 +102,7 @@ NTPasswordHash(const char *password, u_char *hash)
  */
 
 void
-NTPasswordHashHash(const char *nthash, u_char *hash)
+NTPasswordHashHash(const u_char *nthash, u_char *hash)
 {
   MD4_CTX	md4ctx;
 
@@ -252,7 +252,7 @@ ChallengeHash(const u_char *peerchal, const u_char *authchal,
  * "authresp" must point to a 20 byte buffer.
  */
 void
-GenerateAuthenticatorResponse(const char *nthash,
+GenerateAuthenticatorResponse(const u_char *nthash,
   const u_char *ntresp, const u_char *peerchal,
   const u_char *authchal, const char *username, u_char *authresp)
 {

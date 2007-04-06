@@ -484,7 +484,7 @@ badResponse:
     auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
     AuthFailMsg(auth, auth->params.chap.recv_alg, failMesg, sizeof(failMesg));
     AuthOutput(l, auth->proto, auth->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
-	auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
+	auth->id, (u_char *)failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);
   }
@@ -564,7 +564,7 @@ badResponse:
 
     AuthFailMsg(auth, auth->params.chap.recv_alg, failMesg, sizeof(failMesg));
     AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
-	auth->id, failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
+	auth->id, (u_char *)failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);  
     return;  
@@ -584,7 +584,7 @@ goodResponse:
       CHAP_MSOFTv2_RESP_LEN);
   
   AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
-    auth->id, auth->ack_mesg, strlen(auth->ack_mesg), 0, EAP_TYPE_MD5CHAL);
+    auth->id, (u_char *)auth->ack_mesg, strlen(auth->ack_mesg), 0, EAP_TYPE_MD5CHAL);
   AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);
   AuthDataDestroy(auth);
 }
@@ -615,7 +615,7 @@ ChapGetSecret(Link l, int alg, char *password)
       a->params.msoft.has_lm_hash = TRUE;
     }
 
-    pw = a->params.msoft.nt_hash;
+    pw = (char *) a->params.msoft.nt_hash;
   }
 
   return pw;

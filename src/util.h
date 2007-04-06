@@ -89,7 +89,7 @@
   extern int		GetEther(struct u_addr *addr,
 			    struct sockaddr_dl *hwaddr);
   extern void     ppp_util_ascify(char *buf, size_t max,
-			    const u_char *bytes, size_t len);
+			    const char *bytes, size_t len);
 
 #endif
 

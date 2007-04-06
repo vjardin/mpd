@@ -1030,7 +1030,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   const void	*data;
   u_int32_t	vendor;
   char		*route, *acl, *acl1, *acl2;
-  u_char	*tmpval;
+  char		*tmpval;
   short		got_mppe_keys = FALSE;
   struct in_addr	ip;
   struct acl		**acls, *acls1;
