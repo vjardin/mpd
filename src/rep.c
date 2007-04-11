@@ -42,7 +42,7 @@
 
   static Rep	RepFind(char *name);
   static int	RepSetCommand(Context ctx, int ac, char *av[], void *arg);
-  static void	RepShowLinks(Context ctx);
+  static void	RepShowLinks(Context ctx, Rep r);
 
 /*
  * GLOBAL VARIABLES
@@ -257,7 +257,7 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
       for (k = 0; k < gNumReps; k++)
 	if ((r = gReps[k]) != NULL) {
 	  Printf("\t%-15s", r->name);
-	  RepShowLinks(ctx);
+	  RepShowLinks(ctx, r);
 	}
       break;
 
@@ -414,7 +414,7 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
   /* Show stuff about the repeater */
   Printf("Repeater %s:\r\n", r->name);
   Printf("\tPhyses          : ");
-  RepShowLinks(ctx);
+  RepShowLinks(ctx, r);
 
   return(0);
 }
@@ -424,19 +424,18 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
  */
 
 static void
-RepShowLinks(Context ctx)
+RepShowLinks(Context ctx, Rep r)
 {
-    Rep		sb = ctx->rep;
     int		j;
 
   for (j = 0; j < 2; j++) {
-    Printf("%s", sb->physes[j]->name);
-    if (!sb->physes[j]->type)
+    Printf("%s", r->physes[j]->name);
+    if (!r->physes[j]->type)
       Printf("[no type/%s] ",
-      	gPhysStateNames[sb->physes[j]->state]);
+      	gPhysStateNames[r->physes[j]->state]);
     else
-      Printf("[%s/%s] ", sb->physes[j]->type->name,
-      	gPhysStateNames[sb->physes[j]->state]);
+      Printf("[%s/%s] ", r->physes[j]->type->name,
+      	gPhysStateNames[r->physes[j]->state]);
   }
   Printf("\r\n");
 }
