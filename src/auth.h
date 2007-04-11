@@ -70,6 +70,7 @@
     AUTH_CONF_RADIUS_AUTH = 1,
     AUTH_CONF_RADIUS_ACCT,
     AUTH_CONF_INTERNAL,
+    AUTH_CONF_EXTERNAL,
     AUTH_CONF_SYSTEM,
     AUTH_CONF_OPIE,
     AUTH_CONF_MAX_LOGINS,
@@ -162,6 +163,7 @@
     int			acct_update_lim_xmit;
     int			timeout;	/* Authorization timeout in seconds */
     struct optinfo	options;	/* Configured options */
+    char		extauth_script[AUTH_MAX_EXTCMD];/*  External auth script */
   };
   typedef struct authconf	*AuthConf;
 

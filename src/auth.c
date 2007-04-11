@@ -40,6 +40,7 @@
   static void		AuthAccount(void *arg);
   static void		AuthAccountFinish(void *arg, int was_canceled);
   static void		AuthInternal(AuthData auth);
+  static void		AuthExternal(AuthData auth);
   static void		AuthSystem(AuthData auth);
   static void		AuthOpie(AuthData auth);
   static const char	*AuthCode(int proto, u_char code, char *buf, size_t len);
@@ -55,6 +56,7 @@
     SET_NO,
     SET_AUTHNAME,
     SET_PASSWORD,
+    SET_EXTAUTH_SCRIPT,
     SET_MAX_LOGINS,
     SET_ACCT_UPDATE,
     SET_ACCT_UPDATE_LIMIT_IN,
@@ -73,6 +75,8 @@
 	AuthSetCommand, NULL, (void *) SET_AUTHNAME },
     { "password pass",			"Authentication password",
 	AuthSetCommand, NULL, (void *) SET_PASSWORD },
+    { "extauth-script script",		"Authentication script",
+	AuthSetCommand, NULL, (void *) SET_EXTAUTH_SCRIPT },
     { "acct-update <seconds>",		"set update interval",
 	AuthSetCommand, NULL, (void *) SET_ACCT_UPDATE },
     { "update-limit-in <bytes>",	"set update suppresion limit",
@@ -107,6 +111,7 @@
     { 0,	AUTH_CONF_RADIUS_AUTH,	"radius-auth"	},
     { 0,	AUTH_CONF_RADIUS_ACCT,	"radius-acct"	},
     { 0,	AUTH_CONF_INTERNAL,	"internal"	},
+    { 0,	AUTH_CONF_EXTERNAL,	"ext-auth"	},
     { 0,	AUTH_CONF_SYSTEM,	"system"	},
     { 0,	AUTH_CONF_OPIE,		"opie"		},
     { 0,	AUTH_CONF_UTMP_WTMP,	"utmp-wtmp"	},
@@ -273,6 +278,7 @@ AuthInit(Link l)
   Disable(&ac->options, AUTH_CONF_RADIUS_ACCT);
   
   Enable(&ac->options, AUTH_CONF_INTERNAL);
+  Disable(&ac->options, AUTH_CONF_EXTERNAL);
 
   /* default auth timeout */
   ac->timeout = 40;
@@ -649,6 +655,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\t   Limit In     : %d\r\n", conf->acct_update_lim_recv);
   Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
   Printf("\tAuth timeout    : %d\r\n", conf->timeout);
+  Printf("\tExtAuth script  : %s\r\n", conf->extauth_script);
   
   Printf("Auth options\r\n");
   OptStat(ctx, &conf->options, gConfList);
@@ -935,6 +942,13 @@ AuthAsync(void *arg)
   AuthData	const auth = (AuthData)arg;
 
   Log(LG_AUTH, ("[%s] AUTH: Auth-Thread started", auth->info.lnkname));
+
+  if (Enabled(&auth->conf.options, AUTH_CONF_EXTERNAL)) {
+    Log(LG_AUTH, ("[%s] AUTH: Trying EXTERNAL", auth->info.lnkname));
+    AuthExternal(auth);
+    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned %s", auth->info.lnkname, AuthStatusText(auth->status)));
+    return;
+  }
 
   if (auth->proto == PROTO_EAP && auth->eap_radius) {
     RadiusEapProxy(auth);
@@ -1464,6 +1478,10 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
       snprintf(autc->password, sizeof(autc->password), "%s", *av);
       break;
       
+    case SET_EXTAUTH_SCRIPT:
+      snprintf(autc->extauth_script, sizeof(autc->extauth_script), "%s", *av);
+      break;
+      
     case SET_MAX_LOGINS:
       gMaxLogins = atoi(*av);
       break;
@@ -1528,3 +1546,60 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
   return(0);
 }
 
+/*
+ * AuthExternal() by oleg
+ * 
+ * Authenticate via call external script extauth-script
+ */
+ 
+static void
+AuthExternal(AuthData auth)
+{
+    char	cmd[256],ip[20],why_fail[10];
+    FILE	*fp;
+    int		ok = 0,len = 0;
+ 
+  snprintf(cmd, sizeof(cmd), "%s %s %s", auth->conf.extauth_script, auth->info.lnkname, Bin2Hex(auth->params.authname,strlen(auth->params.authname)));
+  Log(LG_AUTH, ("Invoking external auth program: '%s'", cmd));
+  if ((fp = popen(cmd, "r")) == NULL) {
+    Perror("Popen");
+    return;
+  }
+
+  if (fgets(auth->params.password, 20, fp) != NULL) {
+    len = strlen(auth->params.password);/* trim trailing newline */
+    if (len > 0 && auth->params.password[len - 1] == '\n')
+      auth->params.password[len - 1] = '\0';
+    ok = (auth->params.password[0] != '\0');
+    Log(LG_IFACE2, ("[%s] ExtAUTH (1): '%s'", auth->info.lnkname, auth->params.password));
+  } else {
+    if (ferror(fp))
+      Perror("Error reading from external auth program");
+  }
+
+  u_rangeclear(&auth->params.range);
+  if (fgets(ip, 20, fp) != NULL) {
+    len = strlen(ip);/* trim trailing newline */
+    ip[len - 1] = '\0';
+    if (len > 1 && ip[len - 1] == '\0'){
+      auth->params.range_valid = ParseRange(ip, &auth->params.range, ALLOW_IPV4);
+    }
+    Log(LG_IFACE2, ("[%s] ExtAUTH (2): '%s'", auth->info.lnkname, ip));
+  } else {
+    if (ferror(fp))
+      Perror("Error reading from external auth program");
+  }
+
+  if (fgets(why_fail, 2, fp) != NULL) {
+    auth->why_fail = (int)strtol(why_fail, (char **)NULL, 10);
+    auth->status = AUTH_STATUS_FAIL;
+    Log(LG_IFACE2, ("[%s] ExtAUTH (3): '%d'", auth->info.lnkname, auth->why_fail));
+  } else {
+    auth->status = AUTH_STATUS_UNDEF;
+    if (ferror(fp))
+      Perror("Error reading from external auth program");
+  }
+ 
+ pclose(fp);
+ return;
+}
