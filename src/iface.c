@@ -1762,10 +1762,10 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
     snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
     if (out) {
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface + b->id);
+	    gNetflowIface + b->id*2 + out);
     } else {
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface + b->id);
+	    gNetflowIface + b->id*2 + out);
     }
     if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	sizeof(cn)) < 0) {
@@ -1777,10 +1777,10 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
     strlcat(path, hook, NG_PATHLEN);
     if (out) {
 	snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface + b->id);
+	    gNetflowIface + b->id*2 + out);
     } else {
 	snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface + b->id);
+	    gNetflowIface + b->id*2 + out);
     }
     return (0);
 }
@@ -1794,7 +1794,7 @@ IfaceSetupNetflow(Bund b, char out)
     
     /* Configure data link type and interface index. */
     snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
-    nf_setdlt.iface = gNetflowIface + b->id;
+    nf_setdlt.iface = gNetflowIface + b->id*2 + out;
     nf_setdlt.dlt = DLT_RAW;
     if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
 	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
@@ -1803,7 +1803,7 @@ IfaceSetupNetflow(Bund b, char out)
       goto fail;
     }
     if (!out) {
-	nf_setidx.iface = gNetflowIface + b->id;
+	nf_setidx.iface = gNetflowIface + b->id*2 + out;
 	nf_setidx.index = if_nametoindex(b->iface.ifname);
 	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
 	    &nf_setidx, sizeof(nf_setidx)) < 0) {
@@ -1826,10 +1826,10 @@ IfaceShutdownNetflow(Bund b, char out)
 
     snprintf(path, NG_PATHLEN, "%s:", gNetflowNodeName);
     snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface + b->id);
+	    gNetflowIface + b->id*2 + out);
     NgFuncDisconnect(b->csock, b->name, path, hook);
     snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface + b->id);
+	    gNetflowIface + b->id*2 + out);
     NgFuncDisconnect(b->csock, b->name, path, hook);
 }
 #endif
