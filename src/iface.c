@@ -734,10 +734,15 @@ IfaceIpIfaceUp(Bund b, int ready)
   if (ready) {
     in_addrtou_range(&b->ipcp.want_addr, 32, &iface->self_addr);
     in_addrtou_addr(&b->ipcp.peer_addr, &iface->peer_addr);
-    IfaceNgIpInit(b, ready);
   }
 
-  /* Set addresses and bring interface up */
+  if (IfaceNgIpInit(b, ready)) {
+    Log(LG_ERR, ("[%s] IfaceNgIpInit() error, closing IPCP", b->name));
+    FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
+    return;
+  };
+
+  /* Set addresses */
   ExecCmd(LG_IFACE2, b->name, "%s %s %s %s",
     PATH_IFCONFIG, iface->ifname, u_rangetoa(&iface->self_addr,selfaddr,sizeof(selfaddr)), 
     u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)));
@@ -919,14 +924,18 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.hisintid)[1];
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
+  }
 
-    IfaceNgIpv6Init(b, ready);
-
-    /* Set addresses and bring interface up */
+  if (IfaceNgIpv6Init(b, ready)) {
+    Log(LG_ERR, ("[%s] IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
+    FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
+    return;
+  };
+  
+    /* Set addresses */
     ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s",
 	PATH_IFCONFIG, iface->ifname, 
 	u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
-  }
   
   /* Add static routes */
   for (k = 0; k < iface->n_routes; k++) {
@@ -1651,6 +1660,8 @@ IfaceInitNAT(Bund b, char *path, char *hook)
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
   
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting NAT", b->name));
+  
     snprintf(mp.type, sizeof(mp.type), "%s", NG_NAT_NODE_TYPE);
     strcpy(mp.ourhook, hook);
     strcpy(mp.peerhook, NG_NAT_HOOK_IN);
@@ -1712,6 +1723,8 @@ IfaceInitTee(Bund b, char *path, char *hook)
 {
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
+
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting tee", b->name));
   
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
     strcpy(mp.ourhook, hook);
@@ -1751,6 +1764,8 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
 {
     struct ngm_connect	cn;
 
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow (%d)", b->name, out));
+  
     /* Create global ng_netflow(4) node if not yet. */
     if (gNetflowNode == FALSE) {
 	if (NgFuncInitGlobalNetflow(b))
@@ -1839,6 +1854,8 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 {
     struct ngm_connect	cn;
 
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting tcpmssfix", b->name));
+  
 #ifdef USE_NG_TCPMSS
     if (gTcpMSSNodeRefs <= 0) {
 	/* Create global ng_tcpmss(4) node if not yet. */
@@ -2073,6 +2090,8 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 
+	Log(LG_IFACE2, ("[%s] IFACE: Connecting limits", b->name));
+  
 	/* Create a bpf node for traffic filtering. */
 	snprintf(mp.type, sizeof(mp.type), "%s", NG_BPF_NODE_TYPE);
 	snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
