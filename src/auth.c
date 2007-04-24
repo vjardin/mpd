@@ -425,7 +425,7 @@ AuthInput(Link l, int proto, Mbuf bp)
     return;
   }
 
-  pkt = MBDATAU(bp);
+  pkt = MBDATA(bp);
 
   auth->id = fsmh.id;
   auth->code = fsmh.code;
