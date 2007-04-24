@@ -417,8 +417,6 @@ AuthInput(Link l, int proto, Mbuf bp)
     AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
     if (proto == PROTO_PAP)
       code = PAP_NAK;
-    else if (proto == PROTO_CHAP)
-      code = CHAP_FAILURE;
     else
       assert(0);
     AuthOutput(l, proto, code, fsmh.id, (u_char *)failMesg, strlen(failMesg), 1, 0);
