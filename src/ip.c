@@ -184,7 +184,7 @@ ParseAddrPort(int ac, char *av[], u_char allow)
 {
   static struct sockaddr_storage ss;
   struct u_addr addr;
-  in_port_t	port = 0;
+  int		port = 0;
 
   if (ac < 1 || ac > 2)
     return (NULL);
@@ -193,7 +193,7 @@ ParseAddrPort(int ac, char *av[], u_char allow)
     return(NULL);
 
   if (ac > 1) {
-    if ((port = atoi(av[1])) <= 0) {
+    if ((port = atoi(av[1])) < 1 || port > 65535) {
       Log(LG_ERR, ("Bad port \"%s\"", av[1]));
       return (NULL);
     }

@@ -774,7 +774,7 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
 
       port =  strtol(av[0], NULL, 10);
-      if (port < 1 && port > 65535) {
+      if (port < 1 || port > 65535) {
 	Log(LG_ERR, ("CONSOLE: Bogus port given %s", av[0]));
 	return(-1);
       }
