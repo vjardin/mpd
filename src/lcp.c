@@ -438,9 +438,15 @@ LcpNewPhase(Link l, int new)
 
   /* Do whatever for leaving old phase */
   switch (old) {
+    case PHASE_AUTHENTICATE:
+      if (new != PHASE_NETWORK)
+	AuthCleanup(l);
+      break;
+
     case PHASE_NETWORK:
       if (l->joined_bund)
 	BundLeave(l);
+      AuthCleanup(l);
       break;
 
     default:

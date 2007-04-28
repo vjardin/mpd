@@ -349,7 +349,6 @@ BundLeave(Link l)
   TimerStop(&l->statsUpdateTimer);
 
   AuthAccountStart(l, AUTH_ACCT_STOP);
-  AuthCleanup(l);
 
   BundReasses(b, 0);
   

@@ -293,11 +293,13 @@ AuthInit(Link l)
 void
 AuthStart(Link l)
 {
-  Auth	a = &l->lcp.auth;
+    Auth	a = &l->lcp.auth;
 
-  /* What auth protocols were negotiated by LCP? */
-  a->self_to_peer = l->lcp.peer_auth;
-  a->peer_to_self = l->lcp.want_auth;
+    authparamsInit(&a->params);
+
+    /* What auth protocols were negotiated by LCP? */
+    a->self_to_peer = l->lcp.peer_auth;
+    a->peer_to_self = l->lcp.want_auth;
 
     /* remember peer's IP address */
     PhysGetPeerAddr(l->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
