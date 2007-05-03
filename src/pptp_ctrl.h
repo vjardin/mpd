@@ -386,15 +386,16 @@
   };
   typedef struct pptpctrlinfo	*PptpCtrlInfo;
 
-  typedef struct pptplinkinfo	(*PptpGetInLink_t)(struct pptpctrlinfo cinfo,
-				  struct u_addr peer, in_port_t port, int bearType,
+  typedef struct pptplinkinfo	(*PptpGetInLink_t)(struct pptpctrlinfo *cinfo,
+				  struct u_addr *self, struct u_addr *peer, in_port_t port, 
+				  int bearType,
 				  const char *callingNum,
 				  const char *calledNum,
 				  const char *subAddress);
 
-  typedef struct pptplinkinfo	(*PptpGetOutLink_t)(struct pptpctrlinfo cinfo,
-				  struct u_addr peer, in_port_t port, int bearType,
-				  int frameType, int minBps, int maxBps,
+  typedef struct pptplinkinfo	(*PptpGetOutLink_t)(struct pptpctrlinfo *cinfo,
+				  struct u_addr *self, struct u_addr *peer, in_port_t port, 
+				  int bearType, int frameType, int minBps, int maxBps,
 				  const char *calledNum,
 				  const char *subAddress);
 
@@ -403,11 +404,11 @@
  */
 
   extern int			PptpCtrlInit(PptpGetInLink_t getInLink,
-				  PptpGetOutLink_t getOutLink,
-				  struct u_addr myip);
+				  PptpGetOutLink_t getOutLink);
 
-  extern int			PptpCtrlListen(int enable, in_port_t port,
+  extern void*			PptpCtrlListen(struct u_addr *ip, in_port_t port,
 				  int allow_multiple);
+  extern void			PptpCtrlUnListen(void *listener);
 
   extern struct pptpctrlinfo	PptpCtrlInCall(struct pptplinkinfo linfo,
 				  struct u_addr *locip, struct u_addr *ip,
