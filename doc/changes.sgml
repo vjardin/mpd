@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Implemented link repeater functionality (aka LAC/PAC). New "phys" and "repeater" layers added.
 	  </item>
+	  <item> PPTP now supports listening on multiple different IPs.
+	  </item>
 	  <item> Implemented traffic filtering using ng_bpf.
 	  </item>
 	  <item> Implemented fast traffic shaping/rate-limiting using ng_car.
@@ -21,6 +23,8 @@
 	  <item> Implemented minimal client side of auth-driven callback (w/o number specification).
 	  </item>
 	  <item> Restored control console on stdin.
+	  </item>
+	  <item> Added new 'ext-auth' auth backend as full-featured alternative to 'radius-auth'.
 	  </item>
 	</itemize>
 	</item>

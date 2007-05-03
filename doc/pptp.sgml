@@ -56,8 +56,6 @@ set pptp self <em>ipaddr</em> [ <em>port</em> ]
 </tt></tag>
 
 Sets the local IP address and port for the PPTP connection.
-There is only one distinct IP address possible in current mpd's PPTP 
-implementation.
 
 <tag><tt>
 set pptp peer <em>ipaddr</em> [ <em>port</em> ]
