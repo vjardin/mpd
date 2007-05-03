@@ -43,6 +43,7 @@
                               const void *item2);
   static u_int32_t      WebUserHash(struct ghash *g, const void *item);
 				     
+  static void	WebLogger(int sev, const char *fmt, ...);
 
 /*
  * GLOBAL VARIABLES
@@ -119,7 +120,7 @@ WebOpen(Web w)
   }
   
   if (!(w->srv = http_server_start(gWebCtx, w->addr.u.ip4,
-           w->port, NULL, "mpd web server", NULL))) {
+           w->port, NULL, "mpd web server", WebLogger))) {
     Log(LG_ERR, ("%s: error http_server_start: %d", __FUNCTION__, errno));
     return(-1);
   }
@@ -549,6 +550,15 @@ WebUserHashEqual(struct ghash *g, const void *item1, const void *item2)
     return 0;
 }
 
+static void
+WebLogger(int sev, const char *fmt, ...)
+{
+  va_list       args;
+
+  va_start(args, fmt);
+  vLogPrintf(fmt, args);
+  va_end(args);
+}
 
 /*
  * WebSetCommand()
