@@ -111,7 +111,7 @@
     { 0,	AUTH_CONF_RADIUS_AUTH,	"radius-auth"	},
     { 0,	AUTH_CONF_RADIUS_ACCT,	"radius-acct"	},
     { 0,	AUTH_CONF_INTERNAL,	"internal"	},
-    { 0,	AUTH_CONF_EXTERNAL,	"ext-auth"	},
+    { 0,	AUTH_CONF_EXT_AUTH,	"ext-auth"	},
     { 0,	AUTH_CONF_SYSTEM,	"system"	},
     { 0,	AUTH_CONF_OPIE,		"opie"		},
     { 0,	AUTH_CONF_UTMP_WTMP,	"utmp-wtmp"	},
@@ -278,7 +278,7 @@ AuthInit(Link l)
   Disable(&ac->options, AUTH_CONF_RADIUS_ACCT);
   
   Enable(&ac->options, AUTH_CONF_INTERNAL);
-  Disable(&ac->options, AUTH_CONF_EXTERNAL);
+  Disable(&ac->options, AUTH_CONF_EXT_AUTH);
 
   /* default auth timeout */
   ac->timeout = 40;
@@ -943,11 +943,13 @@ AuthAsync(void *arg)
 
   Log(LG_AUTH, ("[%s] AUTH: Auth-Thread started", auth->info.lnkname));
 
-  if (Enabled(&auth->conf.options, AUTH_CONF_EXTERNAL)) {
+  if (Enabled(&auth->conf.options, AUTH_CONF_EXT_AUTH)) {
     Log(LG_AUTH, ("[%s] AUTH: Trying EXTERNAL", auth->info.lnkname));
     AuthExternal(auth);
     Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned %s", auth->info.lnkname, AuthStatusText(auth->status)));
-    return;
+    if (auth->status == AUTH_STATUS_SUCCESS 
+      || auth->status == AUTH_STATUS_UNDEF)
+	return;
   }
 
   if (auth->proto == PROTO_EAP && auth->eap_radius) {
@@ -969,7 +971,7 @@ AuthAsync(void *arg)
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
-      return;
+        return;
   }
   
   if (Enabled(&auth->conf.options, AUTH_CONF_OPIE)) {
@@ -979,7 +981,7 @@ AuthAsync(void *arg)
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
-      return;
+        return;
   }    
   
   if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
@@ -990,7 +992,7 @@ AuthAsync(void *arg)
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
-      return;
+         return;
   } 
 
   Log(LG_ERR, ("[%s] AUTH: ran out of backends", auth->info.lnkname));
@@ -1547,7 +1549,7 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
- * AuthExternal() by oleg
+ * AuthExternal()
  * 
  * Authenticate via call external script extauth-script
  */
@@ -1555,51 +1557,241 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
 static void
 AuthExternal(AuthData auth)
 {
-    char	cmd[256],ip[20],why_fail[10];
+    char	line[256];
     FILE	*fp;
-    int		ok = 0,len = 0;
+    char	*attr, *val;
+    int		len;
  
-  snprintf(cmd, sizeof(cmd), "%s %s %s", auth->conf.extauth_script, auth->info.lnkname, Bin2Hex(auth->params.authname,strlen(auth->params.authname)));
-  Log(LG_AUTH, ("Invoking external auth program: '%s'", cmd));
-  if ((fp = popen(cmd, "r")) == NULL) {
-    Perror("Popen");
-    return;
-  }
-
-  if (fgets(auth->params.password, 20, fp) != NULL) {
-    len = strlen(auth->params.password);/* trim trailing newline */
-    if (len > 0 && auth->params.password[len - 1] == '\n')
-      auth->params.password[len - 1] = '\0';
-    ok = (auth->params.password[0] != '\0');
-    Log(LG_IFACE2, ("[%s] ExtAUTH (1): '%s'", auth->info.lnkname, auth->params.password));
-  } else {
-    if (ferror(fp))
-      Perror("Error reading from external auth program");
-  }
-
-  u_rangeclear(&auth->params.range);
-  if (fgets(ip, 20, fp) != NULL) {
-    len = strlen(ip);/* trim trailing newline */
-    ip[len - 1] = '\0';
-    if (len > 1 && ip[len - 1] == '\0'){
-      auth->params.range_valid = ParseRange(ip, &auth->params.range, ALLOW_IPV4);
+    if (strchr(auth->params.authname, '\'') ||
+	strchr(auth->params.authname, '\n')) {
+	    Log(LG_ERR, ("[%s] Ext-auth: Denied character in USER_NAME!", 
+		auth->info.lnkname));
+	    auth->status = AUTH_STATUS_FAIL;
+	    return;
     }
-    Log(LG_IFACE2, ("[%s] ExtAUTH (2): '%s'", auth->info.lnkname, ip));
-  } else {
-    if (ferror(fp))
-      Perror("Error reading from external auth program");
-  }
+    snprintf(line, sizeof(line), "%s '%s'", 
+	auth->conf.extauth_script, auth->params.authname);
+    Log(LG_AUTH, ("[%s] Ext-auth: Invoking auth program: '%s'", 
+	auth->info.lnkname, line));
+    if ((fp = popen(line, "r+")) == NULL) {
+	Perror("Popen");
+	return;
+    }
 
-  if (fgets(why_fail, 2, fp) != NULL) {
-    auth->why_fail = (int)strtol(why_fail, (char **)NULL, 10);
-    auth->status = AUTH_STATUS_FAIL;
-    Log(LG_IFACE2, ("[%s] ExtAUTH (3): '%d'", auth->info.lnkname, auth->why_fail));
-  } else {
-    auth->status = AUTH_STATUS_UNDEF;
-    if (ferror(fp))
-      Perror("Error reading from external auth program");
-  }
+    /* SENDING REQUEST */
+    fprintf(fp, "USER_NAME:%s\n", auth->params.authname);
+    if (auth->proto == PROTO_PAP)
+	fprintf(fp, "USER_PASSWORD:%s\n", auth->params.pap.peer_pass);
+
+    fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);
+    if (strlen(auth->params.callingnum))
+	fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
+    if (strlen(auth->params.callednum))
+	fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
+
+    /* REQUEST DONE */
+    fprintf(fp, "\n");
+
+    /* REPLY PROCESSING */
+    while (fgets(line, sizeof(line), fp)) {
+	/* trim trailing newline */
+	len = strlen(line);
+	if (len > 0 && line[len - 1] == '\n') {
+    	    line[len - 1] = '\0';
+	    len--;
+	}
+
+	/* Empty line is the end marker */
+	if (len == 0)
+	    break;
+
+	/* split line on attr:value */
+	val = line;
+	attr = strsep(&val, ":");
+
+	/* Log data w/o password */
+	if (strcmp(attr, "USER_PASSWORD") != 0) {
+	    Log(LG_AUTH, ("[%s] Ext-auth: attr:'%s', value:'%s'", 
+		auth->info.lnkname, attr, val));
+	} else {
+	    Log(LG_AUTH, ("[%s] Ext-auth: attr:'%s', value:'XXX'", 
+		auth->info.lnkname, attr));
+	}
+    
+    if (strcmp(attr, "RESULT") == 0) {
+	if (strcmp(val, "SUCCESS") == 0) {
+	    auth->status = AUTH_STATUS_SUCCESS;
+	} else if (strcmp(val, "UNDEF") == 0) {
+	    auth->status = AUTH_STATUS_UNDEF;
+	} else 
+	    auth->status = AUTH_STATUS_FAIL;
+
+    } else if (strcmp(attr, "USER_NAME") == 0) {
+	strncpy(auth->params.authname, val, sizeof(auth->params.authname));
+
+    } else if (strcmp(attr, "USER_PASSWORD") == 0) {
+	strncpy(auth->params.password, val, sizeof(auth->params.password));
+
+    } else if (strcmp(attr, "FRAMED_IP_ADDRESS") == 0) {
+        auth->params.range_valid = 
+    	    ParseRange(val, &auth->params.range, ALLOW_IPV4);
+
+    } else if (strcmp(attr, "FRAMED_ROUTE") == 0) {
+	struct u_range        range;
+
+	if (!ParseRange(val, &range, ALLOW_IPV4)) {
+	  Log(LG_AUTH, ("[%s] Ext-auth: FRAMED_ROUTE: Bad route \"%s\"", 
+	    auth->info.lnkname, val));
+	} else {
+	    struct ifaceroute     r;
+	    int		i, j;
+
+	    r.dest=range;
+	    r.ok=0;
+	    j = 0;
+	    for (i = 0; i < auth->params.n_routes; i++) {
+		if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
+		    Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
+		    j = 1;
+		}
+	    };
+	    if (j == 0)
+		auth->params.routes[auth->params.n_routes++] = r;
+	}
+
+    } else if (strcmp(attr, "FRAMED_IPV6_ROUTE") == 0) {
+	struct u_range        range;
+
+	if (!ParseRange(val, &range, ALLOW_IPV6)) {
+	  Log(LG_AUTH, ("[%s] Ext-auth: FRAMED_IPV6_ROUTE: Bad route \"%s\"", 
+	    auth->info.lnkname, val));
+	} else {
+	    struct ifaceroute     r;
+	    int		i, j;
+
+	    r.dest=range;
+	    r.ok=0;
+	    j = 0;
+	    for (i = 0; i < auth->params.n_routes; i++) {
+		if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
+		    Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
+		    j = 1;
+		}
+	    };
+	    if (j == 0)
+		auth->params.routes[auth->params.n_routes++] = r;
+	}
+
+    } else if (strcmp(attr, "SESSION_TIMEOUT") == 0) {
+	auth->params.session_timeout = atoi(val);
+
+    } else if (strcmp(attr, "IDLE_TIMEOUT") == 0) {
+	auth->params.idle_timeout = atoi(val);
+
+    } else if (strcmp(attr, "FRAMED_MTU") == 0) {
+	auth->params.mtu = atoi(val);
+
+    } else if (strcmp(attr, "REPLY_MESSAGE") == 0) {
+	strncpy(auth->reply_message, val, sizeof(auth->reply_message));
+
+    } else if (strncmp(attr, "MPD_", 4) == 0) {
+	struct acl	**acls, *acls1;
+	char		*acl, *acl1, *acl2;
+	int		i;
+	
+	    if (strcmp(attr, "MPD_RULE") == 0) {
+	      acl1 = acl = val;
+	      acls = &(auth->params.acl_rule);
+	    } else if (strcmp(attr, "MPD_PIPE") == 0) {
+	      acl1 = acl = val;
+	      acls = &(auth->params.acl_pipe);
+	    } else if (strcmp(attr, "MPD_QUEUE") == 0) {
+	      acl1 = acl = val;
+	      acls = &(auth->params.acl_queue);
+	    } else if (strcmp(attr, "MPD_TABLE") == 0) {
+	      acl1 = acl = val;
+	      acls = &(auth->params.acl_table);
+	    } else if (strcmp(attr, "MPD_TABLE_STATIC") == 0) {
+	      acl1 = acl = val;
+	      acls = &(auth->params.acl_table);
+	    } else if (strcmp(attr, "MPD_FILTER") == 0) {
+	      acl1 = acl = val;
+	      acl2 = strsep(&acl1, "#");
+	      i = atol(acl2);
+	      if (i <= 0 || i > ACL_FILTERS) {
+	        Log(LG_ERR, ("[%s] Ext-auth: wrong filter number: %i",
+		  auth->info.lnkname, i));
+	        continue;
+	      }
+	      acls = &(auth->params.acl_filters[i - 1]);
+	    } else if (strcmp(attr, "MPD_LIMIT") == 0) {
+	      acl1 = acl = val;
+	      acl2 = strsep(&acl1, "#");
+	      if (strcasecmp(acl2, "in") == 0) {
+	        i = 0;
+	      } else if (strcasecmp(acl2, "out") == 0) {
+	        i = 1;
+	      } else {
+	        Log(LG_ERR, ("[%s] Ext-auth: wrong limit direction: '%s'",
+		  auth->info.lnkname, acl2));
+	        continue;
+	      }
+	      acls = &(auth->params.acl_limits[i]);
+	    } else {
+	      Log(LG_ERR, ("[%s] Ext-auth: Dropping MPD vendor specific attribute: '%s'",
+		auth->info.lnkname, attr));
+	      continue;
+	    }
+
+	    if (acl1 == NULL) {
+	      Log(LG_ERR, ("[%s] Ext-auth: incorrect acl!",
+		auth->info.lnkname));
+	      continue;
+	    }
+	    
+	    acl2 = acl1;
+	    acl1 = strsep(&acl2, "=");
+	    i = atol(acl1);
+	    if (i <= 0) {
+	      Log(LG_ERR, ("[%s] Ext-auth: wrong acl number: %i",
+		auth->info.lnkname, i));
+	      continue;
+	    }
+	    if ((acl2 == NULL) && (acl2[0] == 0)) {
+	      Log(LG_ERR, ("[%s] Ext-auth: wrong acl", auth->info.lnkname));
+	      continue;
+	    }
+	    acls1 = Malloc(MB_AUTH, sizeof(struct acl));
+	    if (strcmp(attr, "MPD_TABLE_STATIC") != 0) {
+		    acls1->number = i;
+		    acls1->real_number = 0;
+	    } else {
+		    acls1->number = 0;
+		    acls1->real_number = i;
+	    }
+	    strncpy(acls1->rule, acl2, ACL_LEN);
+	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
+	      acls = &((*acls)->next);
+
+	    if (*acls == NULL) {
+	      acls1->next = NULL;
+	    } else if (((*acls)->number == acls1->number) &&
+		(strcmp(attr, "MPD_TABLE") != 0) &&
+		(strcmp(attr, "MPD_TABLE_STATIC") != 0)) {
+	      Log(LG_ERR, ("[%s] Ext-auth: duplicate acl",
+		auth->info.lnkname));
+	      continue;
+	    } else {
+	      acls1->next = *acls;
+	    }
+	    *acls = acls1;
+
+    } else {
+	Log(LG_ERR, ("[%s] Ext-auth: Unknown attr:'%s'", 
+	    auth->info.lnkname, attr));
+    }
+    }
  
- pclose(fp);
- return;
+    pclose(fp);
+    return;
 }
