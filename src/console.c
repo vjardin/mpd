@@ -95,6 +95,8 @@
     { 0,	0,			NULL		},
   };
 
+  struct termios gOrigTermiosAttrs;
+  int		gOrigFlags;
 
 /*
  * ConsoleInit()
@@ -274,7 +276,12 @@ StdConsoleConnect(Console c)
   
     /* Init stdin */
     cs->fd = 0;
+
+    /* Save original STDxxx flags */
+    gOrigFlags = fcntl(0, F_GETFL, 0);
+
     tcgetattr(cs->fd, &settings);
+    gOrigTermiosAttrs = settings;
     settings.c_lflag &= (~ICANON);
     settings.c_lflag &= (~ECHO); // don't echo the character
     settings.c_cc[VTIME] = 0; // timeout (tenths of a second)
@@ -323,16 +330,16 @@ StdConsoleConnect(Console c)
 static void
 ConsoleSessionClose(ConsoleSession cs)
 {
-  cs->write(cs, "Console closed.\r\n");
-  RWLOCK_WRLOCK(cs->console->lock);
-  EventUnRegister(&cs->readEvent);
-  SLIST_REMOVE(&cs->console->sessions, cs, console_session, next);
-  RWLOCK_UNLOCK(cs->console->lock);
-  close(cs->fd);
-  if (cs->user.username)
-    FREE(MB_CONS, cs->user.username);
-  Freee(MB_CONS, cs);
-  return;
+    cs->write(cs, "Console closed.\r\n");
+    RWLOCK_WRLOCK(cs->console->lock);
+    EventUnRegister(&cs->readEvent);
+    SLIST_REMOVE(&cs->console->sessions, cs, console_session, next);
+    RWLOCK_UNLOCK(cs->console->lock);
+    close(cs->fd);
+    if (cs->user.username)
+	FREE(MB_CONS, cs->user.username);
+    Freee(MB_CONS, cs);
+    return;
 }
 
 /*
@@ -342,9 +349,14 @@ ConsoleSessionClose(ConsoleSession cs)
 static void
 StdConsoleSessionClose(ConsoleSession cs)
 {
-  cs->write(cs, "Console closed.\r\n");
-  EventUnRegister(&cs->readEvent);
-  return;
+    cs->write(cs, "Console closed.\r\n");
+    EventUnRegister(&cs->readEvent);
+    /* Restore original attrs */
+    tcsetattr(cs->fd, TCSANOW, &gOrigTermiosAttrs);
+    /* Restore original STDxxx flags. */
+    if (gOrigFlags>=0)
+	fcntl(cs->fd, F_SETFL, gOrigFlags);
+    return;
 }
 
 /*
