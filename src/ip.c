@@ -343,6 +343,52 @@ int u_rangeempty(struct u_range *range)
     return u_addrempty(&range->addr);
 }
 
+static struct in6_addr
+bits2mask6(int bits)
+{
+  struct in6_addr result;
+  u_int32_t bit = 0x80;
+  u_char *c = result.s6_addr;
+
+  memset(&result, '\0', sizeof result);
+
+  while (bits) {
+    if (bit == 0) {
+      bit = 0x80;
+      c++;
+    }
+    *c |= bit;
+    bit >>= 1;
+    bits--;
+  }
+
+  return result;
+}
+
+struct sockaddr_storage *u_rangetosockaddrs(struct u_range *range, struct sockaddr_storage *dst, struct sockaddr_storage *msk)
+{
+    memset(dst,0,sizeof(struct sockaddr_storage));
+    dst->ss_family = msk->ss_family = range->addr.family;
+    switch (range->addr.family) {
+	case AF_INET:
+		((struct sockaddr_in*)dst)->sin_len=sizeof(struct sockaddr_in);
+		((struct sockaddr_in*)dst)->sin_addr=range->addr.u.ip4;
+		((struct sockaddr_in*)msk)->sin_len=sizeof(struct sockaddr_in);
+		((struct sockaddr_in*)msk)->sin_addr.s_addr=(0xFFFFFFFF<<(32 - range->width));
+	    break;
+	case AF_INET6:
+		((struct sockaddr_in6*)dst)->sin6_len=sizeof(struct sockaddr_in6);
+		((struct sockaddr_in6*)dst)->sin6_addr=range->addr.u.ip6;
+		((struct sockaddr_in6*)dst)->sin6_len=sizeof(struct sockaddr_in6);
+		((struct sockaddr_in6*)dst)->sin6_addr=bits2mask6(range->width);
+	    break;
+	default:
+		dst->ss_len=sizeof(struct sockaddr_storage);
+	    break;
+    }
+    return dst;
+}
+
 struct sockaddr_storage *u_addrtosockaddr(struct u_addr *addr, in_port_t port, struct sockaddr_storage *dst)
 {
     memset(dst,0,sizeof(struct sockaddr_storage));

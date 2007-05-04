@@ -155,6 +155,8 @@
   extern void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
   #endif
   extern void	IfaceSetMTU(Bund b, int mtu);
+  extern void	IfaceChangeFlags(Bund b, int clear, int set);
+  extern void	IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer);
 
 #endif
 

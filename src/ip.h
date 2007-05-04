@@ -64,6 +64,7 @@
   extern struct u_range *in_addrtou_range(const struct in_addr *src, u_char width, struct u_range *dst);
   extern struct u_range *in6_addrtou_range(const struct in6_addr *src, u_char width, struct u_range *dst);
 
+  extern struct sockaddr_storage *u_rangetosockaddrs(struct u_range *range, struct sockaddr_storage *dst, struct sockaddr_storage *msk);
   extern struct sockaddr_storage *u_addrtosockaddr(struct u_addr *addr, in_port_t port, struct sockaddr_storage *dst);
   extern void 	sockaddrtou_addr(struct sockaddr_storage *src, struct u_addr *addr, in_port_t *port);
 

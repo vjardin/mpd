@@ -23,8 +23,13 @@
 #include <sys/sockio.h>
 #include <net/if.h>
 #include <net/if_types.h>
+#include <net/if_dl.h>
+#include <net/if_var.h>
+#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <netinet/in_var.h>
 #include <netinet/if_ether.h>
+#include <netinet6/nd6.h>
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
 #include <netgraph/iface/ng_iface.h>
@@ -204,6 +209,10 @@
 
   #define MATCH_PROG_LEN	(sizeof(gMatchProg) / sizeof(*gMatchProg))
 
+#define IN6MASK128	{{{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
+			    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }}}
+static const struct in6_addr in6mask128 = IN6MASK128;
+
 
 /*
  * IfaceInit()
@@ -325,45 +334,41 @@ IfaceUp(Bund b, int ready)
 
   if (ready) {
 
-  /* Start Session timer */
-  TimerStop(&iface->sessionTimer);
+    /* Start Session timer */
+    if (b->params.session_timeout > 0) {
+	session_timeout = b->params.session_timeout;
+    } else if (iface->session_timeout > 0) {
+	session_timeout = iface->session_timeout;
+    }
 
-  if (b->params.session_timeout > 0) {
-    session_timeout = b->params.session_timeout;
-  } else if (iface->session_timeout > 0) {
-    session_timeout = iface->session_timeout;
-  }
+    if (session_timeout > 0) {
+	Log(LG_IFACE2, ("[%s] IFACE: session-timeout: %d seconds", 
+    	    b->name, session_timeout));
+	TimerInit(&iface->sessionTimer, "IfaceSession",
+    	    session_timeout * SECONDS, IfaceSessionTimeout, b);
+	TimerStart(&iface->sessionTimer);
+    }
 
-  if (session_timeout > 0) {
-    Log(LG_IFACE2, ("[%s] IFACE: session-timeout: %d seconds", 
-      b->name, session_timeout));
-    TimerInit(&iface->sessionTimer, "IfaceSession",
-      session_timeout * SECONDS, IfaceSessionTimeout, b);
-    TimerStart(&iface->sessionTimer);
-  }
-
-  /* Start idle timer */
-  TimerStop(&iface->idleTimer);
-
-  if (b->params.idle_timeout > 0) {
-    idle_timeout = b->params.idle_timeout;
-  } else if (iface->idle_timeout > 0) {
-    idle_timeout = iface->idle_timeout;
-  }
+    /* Start idle timer */
+    if (b->params.idle_timeout > 0) {
+	idle_timeout = b->params.idle_timeout;
+    } else if (iface->idle_timeout > 0) {
+	idle_timeout = iface->idle_timeout;
+    }
     
-  if (idle_timeout > 0) {
-    Log(LG_IFACE2, ("[%s] IFACE: idle-timeout: %d seconds", 
-      b->name, idle_timeout));
+    if (idle_timeout > 0) {
+	Log(LG_IFACE2, ("[%s] IFACE: idle-timeout: %d seconds", 
+    	    b->name, idle_timeout));
     
-    TimerInit(&iface->idleTimer, "IfaceIdle",
-      idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, b);
-    TimerStart(&iface->idleTimer);
-    iface->traffic[1] = TRUE;
-    iface->traffic[0] = FALSE;
+	TimerInit(&iface->idleTimer, "IfaceIdle",
+    	    idle_timeout * SECONDS / IFACE_IDLE_SPLIT, IfaceIdleTimeout, b);
+	TimerStart(&iface->idleTimer);
+	iface->traffic[1] = TRUE;
+	iface->traffic[0] = FALSE;
 
-    /* Reset statistics */
-    memset(&iface->idleStats, 0, sizeof(iface->idleStats));
-  }
+	/* Reset statistics */
+	memset(&iface->idleStats, 0, sizeof(iface->idleStats));
+    }
 
   /* Allocate ACLs */
   acls = b->params.acl_pipe;
@@ -444,8 +449,7 @@ IfaceUp(Bund b, int ready)
   };
 
   /* Bring up system interface */
-  ExecCmd(LG_IFACE2, b->name, "%s %s up %slink0", 
-    PATH_IFCONFIG, iface->ifname, ready ? "-" : "");
+  IfaceChangeFlags(b, (ready?IFF_LINK0:0), IFF_UP | (ready?0:IFF_LINK0));
 
   /* Send any cached packets */
   IfaceCacheSend(b);
@@ -468,12 +472,8 @@ IfaceDown(Bund b)
 
   Log(LG_IFACE, ("[%s] IFACE: Down event", b->name));
 
-  /* If we're not open, it doesn't matter to us anyway */
-  TimerStop(&iface->idleTimer);
-
   /* Bring down system interface */
-  ExecCmd(LG_IFACE2, b->name, "%s %s down", 
-    PATH_IFCONFIG, iface->ifname);
+  IfaceChangeFlags(b, IFF_UP | IFF_LINK0, 0);
 
   TimerStop(&iface->idleTimer);
   TimerStop(&iface->sessionTimer);
@@ -743,9 +743,7 @@ IfaceIpIfaceUp(Bund b, int ready)
   };
 
   /* Set addresses */
-  ExecCmd(LG_IFACE2, b->name, "%s %s %s %s",
-    PATH_IFCONFIG, iface->ifname, u_rangetoa(&iface->self_addr,selfaddr,sizeof(selfaddr)), 
-    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)));
+  IfaceChangeAddr(b, 1, &iface->self_addr, &iface->peer_addr);
 
   /* Proxy ARP for peer if desired and peer's address is known */
   u_addrclear(&iface->proxy_addr);
@@ -878,9 +876,8 @@ IfaceIpIfaceDown(Bund b)
   ExecCmd(LG_IFACE2, b->name, "%s delete %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
 
-  /* Bring down system interface */
-  ExecCmd(LG_IFACE2, b->name, "%s %s %s delete -link0", 
-    PATH_IFCONFIG, iface->ifname, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
+  /* Remove address from interface */
+  IfaceChangeAddr(b, 0, &iface->self_addr, &iface->peer_addr);
     
   IfaceNgIpShutdown(b);
 }
@@ -899,6 +896,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
   IfaceState	const iface = &b->iface;
   int		k;
   char		buf[64];
+  struct u_range	rng;
 
   /* For good measure */
   BundUpdateParams(b);
@@ -933,9 +931,9 @@ IfaceIpv6IfaceUp(Bund b, int ready)
   };
   
     /* Set addresses */
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s",
-	PATH_IFCONFIG, iface->ifname, 
-	u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
+    rng.addr = iface->self_ipv6_addr;
+    rng.width = 64;
+    IfaceChangeAddr(b, 1, &rng, NULL);
   
   /* Add static routes */
   for (k = 0; k < iface->n_routes; k++) {
@@ -981,6 +979,7 @@ IfaceIpv6IfaceDown(Bund b)
   IfaceState	const iface = &b->iface;
   int 		k;
   char		buf[64];
+  struct u_range        rng;
 
   /* Call "down" script */
   if (*iface->down_script) {
@@ -1015,10 +1014,10 @@ IfaceIpv6IfaceDown(Bund b)
   }
 
   if (!u_addrempty(&iface->self_ipv6_addr)) {
-    /* Bring down system interface */
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s delete",
-	PATH_IFCONFIG, iface->ifname,
-        u_addrtoa(&iface->self_ipv6_addr, buf, sizeof(buf)), iface->ifname);
+    /* Remove address from interface */
+    rng.addr = iface->self_ipv6_addr;
+    rng.width = 64;
+    IfaceChangeAddr(b, 0, &rng, NULL);
   }
 
   IfaceNgIpv6Shutdown(b);
@@ -1437,6 +1436,111 @@ IfaceSetMTU(Bund b, int mtu)
 
   /* Save MTU */
   iface->mtu = mtu;
+}
+
+void
+IfaceChangeFlags(Bund b, int clear, int set)
+{
+    struct ifreq ifrq;
+    int s, new_flags;
+
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Perror("[%s] IFACE: Can't get socket to change interface flags!", b->name);
+	return;
+    }
+
+    memset(&ifrq, '\0', sizeof ifrq);
+    strncpy(ifrq.ifr_name, b->iface.ifname, sizeof ifrq.ifr_name - 1);
+    ifrq.ifr_name[sizeof ifrq.ifr_name - 1] = '\0';
+    if (ioctl(s, SIOCGIFFLAGS, &ifrq) < 0) {
+	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCGIFFLAGS");
+	close(s);
+	return;
+    }
+    new_flags = (ifrq.ifr_flags & 0xffff) | (ifrq.ifr_flagshigh << 16);
+
+    new_flags &= ~clear;
+    new_flags |= set;
+
+    ifrq.ifr_flags = new_flags & 0xffff;
+    ifrq.ifr_flagshigh = new_flags >> 16;
+
+    if (ioctl(s, SIOCSIFFLAGS, &ifrq) < 0) {
+	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCSIFFLAGS");
+	close(s);
+	return;
+    }
+    close(s);
+}
+
+void
+IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
+{
+  struct ifaliasreq ifra;
+  struct in6_aliasreq ifra6;
+  struct sockaddr_in *me4, *msk4, *peer4;
+  struct sockaddr_storage ssself, sspeer, ssmsk;
+  int res = 0;
+  int s;
+
+    u_rangetosockaddrs(self, &ssself, &ssmsk);
+    if (peer)
+	u_addrtosockaddr(peer, 0, &sspeer);
+
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Perror("[%s] IFACE: Can't get socket to change interface address!", b->name);
+	return;
+    }
+
+  switch (self->addr.family) {
+  case AF_INET:
+    memset(&ifra, '\0', sizeof ifra);
+    strncpy(ifra.ifra_name, b->iface.ifname, sizeof ifra.ifra_name - 1);
+
+    me4 = (struct sockaddr_in *)&ifra.ifra_addr;
+    memcpy(me4, &ssself, sizeof *me4);
+
+    msk4 = (struct sockaddr_in *)&ifra.ifra_mask;
+    memcpy(msk4, &ssmsk, sizeof *msk4);
+
+    peer4 = (struct sockaddr_in *)&ifra.ifra_broadaddr;
+    if (peer == NULL || peer->family == AF_UNSPEC) {
+      peer4->sin_family = AF_INET;
+      peer4->sin_len = sizeof(*peer4);
+      peer4->sin_addr.s_addr = INADDR_NONE;
+    } else
+      memcpy(peer4, &sspeer, sizeof *peer4);
+
+    res = ioctl(s, add?SIOCAIFADDR:SIOCDIFADDR, &ifra);
+    if (res == -1) {
+	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
+	    add?"SIOCAIFADDR":"SIOCDIFADDR");
+    }
+    break;
+
+  case AF_INET6:
+    memset(&ifra6, '\0', sizeof ifra6);
+    strncpy(ifra6.ifra_name, b->iface.ifname, sizeof ifra6.ifra_name - 1);
+
+    memcpy(&ifra6.ifra_addr, &ssself, sizeof ifra6.ifra_addr);
+    memcpy(&ifra6.ifra_prefixmask, &ssmsk, sizeof ifra6.ifra_prefixmask);
+    if (peer == NULL || peer->family == AF_UNSPEC)
+      ifra6.ifra_dstaddr.sin6_family = AF_UNSPEC;
+    else if (memcmp(&((struct sockaddr_in6 *)&ssmsk)->sin6_addr, &in6mask128,
+		    sizeof in6mask128) == 0)
+      memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof ifra6.ifra_dstaddr);
+    ifra6.ifra_lifetime.ia6t_vltime = ND6_INFINITE_LIFETIME;
+    ifra6.ifra_lifetime.ia6t_pltime = ND6_INFINITE_LIFETIME;
+
+    res = ioctl(s, add?SIOCAIFADDR_IN6:SIOCDIFADDR_IN6, &ifra6);
+    if (res == -1) {
+	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
+	    add?"SIOCAIFADDR_IN6":"SIOCDIFADDR_IN6");
+    }
+    break;
+  }
+
+  close(s);
 }
 
 #ifndef USE_NG_TCPMSS
