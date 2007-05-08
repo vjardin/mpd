@@ -607,7 +607,7 @@ extern int	ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
  */
 extern struct	ppp_l2tp_avp_list *ppp_l2tp_avp_unpack(
 			const struct ppp_l2tp_avp_info *info,
-			const u_char *data, size_t dlen,
+			u_char *data, size_t dlen,
 			const u_char *secret, size_t slen);
 
 /*

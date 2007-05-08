@@ -51,6 +51,7 @@
     in_port_t		self_port;	/* self port */
     int			sock;		/* server listen socket */
     EventRef		event;		/* listen for data messages */
+    char		secret[64];	/* L2TP tunnel secret */
   };
   
   struct l2tp_tun {
@@ -71,6 +72,7 @@
 	in_port_t	peer_port_req;	/* Peer port required (or zero) */
 	char		callingnum[64];	/* L2TP phone number to use */
 	char		callednum[64];	/* L2TP phone number to use */
+	char		secret[64];	/* L2TP tunnel secret */
 	struct optinfo	options;
     } conf;
     u_char		opened:1;	/* PPPoE opened by phys */
@@ -90,6 +92,7 @@
     SET_PEERADDR,
     SET_CALLINGNUM,
     SET_CALLEDNUM,
+    SET_SECRET,
     SET_ENABLE,
     SET_DISABLE,
   };
@@ -175,6 +178,8 @@
 	L2tpSetCommand, NULL, (void *) SET_CALLINGNUM },
     { "callednum number",		"Set called L2TP telephone number",
 	L2tpSetCommand, NULL, (void *) SET_CALLEDNUM },
+    { "secret sec",		"Set L2TP tunnel secret",
+	L2tpSetCommand, NULL, (void *) SET_SECRET },
     { "enable [opt ...]",		"Enable option",
 	L2tpSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
@@ -393,7 +398,8 @@ L2tpOpen(PhysInfo p)
 	/* Create a new control connection */
 	if ((tun->ctrl = ppp_l2tp_ctrl_create(gPeventCtx, &gGiantMutex,
 	    &ppp_l2tp_server_ctrl_cb, 0,//XXX: ntohl(peer_sin.sin_addr.s_addr),
-	    &node_id, hook, avps, NULL, 0)) == NULL) {
+	    &node_id, hook, avps, 
+	    pi->conf.secret, strlen(pi->conf.secret))) == NULL) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_ctrl_create: %s", 
 		    p->name, strerror(errno)));
 		goto fail;
@@ -1083,7 +1089,8 @@ L2tpServerEvent(int type, void *arg)
 	/* Create a new control connection */
 	if ((tun->ctrl = ppp_l2tp_ctrl_create(gPeventCtx, &gGiantMutex,
 	    &ppp_l2tp_server_ctrl_cb, 0,//XXX: ntohl(peer_sin.sin_addr.s_addr),
-	    &node_id, hook, avps, NULL, 0)) == NULL) {
+	    &node_id, hook, avps, 
+	    s->secret, strlen(s->secret))) == NULL) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_ctrl_create: %s", strerror(errno)));
 		goto fail;
 	}
@@ -1219,6 +1226,7 @@ L2tpServerCreate(L2tpInfo const p)
 	memset(s, 0, sizeof(*s));
 	u_addrcopy(&p->conf.self_addr, &s->self_addr);
 	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
+	strncpy(s->secret, p->conf.secret, sizeof(s->secret));
 	
 	/* Setup UDP socket that listens for new connections */
 	if (s->self_addr.family==AF_INET6) {
@@ -1357,6 +1365,11 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
       if (ac != 1)
 	return(-1);
       snprintf(l2tp->conf.callednum, sizeof(l2tp->conf.callednum), "%s", av[0]);
+      break;
+    case SET_SECRET:
+      if (ac != 1)
+	return(-1);
+      snprintf(l2tp->conf.secret, sizeof(l2tp->conf.secret), "%s", av[0]);
       break;
     case SET_ENABLE:
       EnableCommand(ac, av, &l2tp->conf.options, gConfList);

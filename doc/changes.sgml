@@ -14,6 +14,8 @@
 	  </item>
 	  <item> PPTP now supports listening on multiple different IPs.
 	  </item>
+	  <item> L2TP now supports tunnel authentication with shared secret.
+	  </item>
 	  <item> Implemented traffic filtering using ng_bpf.
 	  </item>
 	  <item> Implemented fast traffic shaping/rate-limiting using ng_car.
@@ -54,6 +56,12 @@
 	  <item> Fixed broken L2TP outcall mode.
 	  </item>
 	  <item> Updated chat scripts to detect incoming modem calls speed.
+	  </item>
+	</itemize>
+	</item>
+	<item> Performance improvements:
+	<itemize>
+	  <item> Calls to ifconfig program replaced by internal functions.
 	  </item>
 	</itemize>
 	</item>

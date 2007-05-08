@@ -278,6 +278,8 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
 	const struct ppp_l2tp_avp_list *list, const u_char *secret,
 	size_t slen, u_char *buf)
 {
+	uint32_t randvec;
+	int randsent = 0;
 	int len;
 	int i;
 
@@ -287,6 +289,7 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
 		const struct ppp_l2tp_avp_info *desc;
 		u_int16_t hdr[3];
 		int hide = 0;
+		int pad = 0;
 		int j;
 
 		/* Find descriptor */
@@ -306,6 +309,23 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
 			return (-1);
 		}
 
+		/* Add random vector first time */
+		if (secret != NULL && desc->hidden_ok && randsent == 0) {
+			if (buf != NULL) {
+				memset(&hdr, 0, sizeof(hdr));
+				hdr[0] = AVP_MANDATORY | (sizeof(randvec) + 6);
+				hdr[1] = 0;
+				hdr[2] = AVP_RANDOM_VECTOR;
+				for (j = 0; j < 3; j++)
+				    hdr[j] = htons(hdr[j]);
+				memcpy(buf + len, &hdr, 6);
+				randvec = random();
+				memcpy(buf + len + 6, &randvec, sizeof(randvec));
+			}
+			len += 6 + sizeof(randvec);
+			randsent = 1;
+		}
+
 		/* Set header stuff for this AVP */
 		memset(&hdr, 0, sizeof(hdr));
 		if (avp->mandatory)
@@ -313,8 +333,9 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
 		if (secret != NULL && desc->hidden_ok) {
 			hdr[0] |= AVP_HIDDEN;
 			hide = 1;
+			pad = 7 - (avp->vlen & 0x7);
 		}
-		hdr[0] |= (avp->vlen + 6);
+		hdr[0] |= (6 + (hide?2:0) + avp->vlen + pad);
 		hdr[1] = avp->vendor;
 		hdr[2] = avp->type;
 		for (j = 0; j < 3; j++)
@@ -325,8 +346,41 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
 
 		/* Copy AVP value, optionally hiding it */
 		if (hide) {
-			errno = EOPNOTSUPP;	/* XXX implement hiding */
-			return (-1);
+			if (buf != NULL) {
+				MD5_CTX	md5ctx;
+				char hash[MD5_DIGEST_LENGTH];
+				int k, l;
+
+				/* Add original length */
+				buf[len] = ((6 + avp->vlen) >> 8);
+				buf[len + 1] = ((6 + avp->vlen) & 0xff);
+
+				/* Add value */
+				memcpy(buf + len + 2, avp->value, avp->vlen);
+
+				/* Encrypt value */
+				MD5_Init(&md5ctx);
+				MD5_Update(&md5ctx, &avp->type, 2);
+				MD5_Update(&md5ctx, secret, slen);
+				MD5_Update(&md5ctx, &randvec, sizeof(randvec));
+				MD5_Final(hash, &md5ctx);
+				for (l = 0; l <= (2 + avp->vlen - 1)/MD5_DIGEST_LENGTH; l++) {
+				    if (l > 0) {
+					MD5_Init(&md5ctx);
+					MD5_Update(&md5ctx, secret, slen);
+					MD5_Update(&md5ctx, buf + len + (l-1)*MD5_DIGEST_LENGTH, MD5_DIGEST_LENGTH);
+					MD5_Final(hash, &md5ctx);
+				    }
+				    for (k = 0; 
+					k < MD5_DIGEST_LENGTH && 
+					(l*MD5_DIGEST_LENGTH+k) < (2 + avp->vlen); 
+					k++) {
+					    buf[len + l*MD5_DIGEST_LENGTH + k] ^=
+						hash[k];
+				    }
+				}
+			}
+			len += 2 + avp->vlen + pad;
 		} else {
 			if (buf != NULL)
 				memcpy(buf + len, avp->value, avp->vlen);
@@ -344,12 +398,12 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
  */
 struct ppp_l2tp_avp_list *
 ppp_l2tp_avp_unpack(const struct ppp_l2tp_avp_info *info,
-	const u_char *data, size_t dlen, const u_char *secret, size_t slen)
+	u_char *data, size_t dlen, const u_char *secret, size_t slen)
 {
 	struct ppp_l2tp_avp_list *list;
 	const u_char *randvec = NULL;
 	u_int16_t hdr[3];
-	int randvec_len;
+	int randvec_len = 0;
 	int i;
 
 	/* Create list */
@@ -360,7 +414,6 @@ ppp_l2tp_avp_unpack(const struct ppp_l2tp_avp_info *info,
 	while (dlen > 0) {
 		const struct ppp_l2tp_avp_info *desc;
 		u_int16_t alen;
-
 		/* Get header */
 		if (dlen < 6)
 			goto bogus;
@@ -388,26 +441,63 @@ unknown:		if ((hdr[0] & AVP_MANDATORY) != 0) {
 		}
 
 		/* Remember random vector AVP's as we see them */
-		if (hdr[1] == htons(0) && hdr[2] == htons(AVP_RANDOM_VECTOR)) {
+		if (hdr[1] == 0 && hdr[2] == AVP_RANDOM_VECTOR) {
 			randvec = data + 6;
 			randvec_len = alen - 6;
+			data += alen;
+			dlen -= alen;
 			continue;
 		}
 
 		/* Un-hide AVP if hidden */
 		if ((hdr[0] & AVP_HIDDEN) != 0) {
+			MD5_CTX	md5ctx;
+			char hash[MD5_DIGEST_LENGTH];
+			char nhash[MD5_DIGEST_LENGTH];
+			int k, l;
+			u_int16_t olen;
+
 			if (randvec == NULL)
 				goto bogus;
 			if (secret == NULL) {
 				errno = EAUTH;
 				goto fail;
 			}
-			errno = EOPNOTSUPP;	/* XXX implement unhiding */
-			goto fail;
-		} else if (ppp_l2tp_avp_list_append(list,
-		    (hdr[0] & AVP_MANDATORY) != 0, hdr[1], hdr[2],
-		    data + 6, alen - 6) == -1)
-			goto fail;
+
+			/* Encrypt value */
+			MD5_Init(&md5ctx);
+			MD5_Update(&md5ctx, &(hdr[2]), 2);
+			MD5_Update(&md5ctx, secret, slen);
+			MD5_Update(&md5ctx, randvec, randvec_len);
+			MD5_Final(hash, &md5ctx);
+			for (l = 0; l <= (2 + alen - 1)/MD5_DIGEST_LENGTH; l++) {
+			    MD5_Init(&md5ctx);
+			    MD5_Update(&md5ctx, secret, slen);
+			    MD5_Update(&md5ctx, data + 6 + l*MD5_DIGEST_LENGTH, MD5_DIGEST_LENGTH);
+			    MD5_Final(nhash, &md5ctx);
+			    for (k = 0; 
+				k < MD5_DIGEST_LENGTH && 
+				(l*MD5_DIGEST_LENGTH+k) < (alen - 6); 
+				k++) {
+				    data[6 + l*MD5_DIGEST_LENGTH + k] ^=
+					hash[k];
+			    }
+			    memcpy(hash, nhash, sizeof(hash));
+			}
+			olen = (data[6] << 8) + data[7];
+			if ((olen < 6) || (olen > (alen - 2)))
+				goto bogus;
+
+			if (ppp_l2tp_avp_list_append(list,
+			    (hdr[0] & AVP_MANDATORY) != 0, hdr[1], hdr[2],
+			    data + 6 + 2, olen - 6) == -1)
+				goto fail;
+		} else {
+			if (ppp_l2tp_avp_list_append(list,
+			    (hdr[0] & AVP_MANDATORY) != 0, hdr[1], hdr[2],
+			    data + 6, alen - 6) == -1)
+				goto fail;
+		}
 
 skip:
 		/* Continue with next AVP */

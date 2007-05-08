@@ -50,6 +50,7 @@
 #include <netgraph/ng_l2tp.h>
 #include <netgraph/ng_tee.h>
 #endif
+#include <openssl/md5.h>
 #include "l2tp_avp.h"
 #include "l2tp_ctrl.h"
 
@@ -177,6 +178,7 @@ struct ppp_l2tp_ctrl {
 	int			dsock;			/* netgraph data sock */
 	u_char			*secret;		/* shared secret */
 	u_int			seclen;			/* share secret len */
+	u_char			chal[L2TP_CHALLENGE_LEN]; /* our L2TP challenge */
 	struct ng_l2tp_config	config;			/* netgraph node cfg. */
 	struct ghash		*sessions;		/* sessions */
 	struct ppp_l2tp_avp_list *avps;			/* avps for SCCR[QP] */
@@ -459,7 +461,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	struct ngm_mkpeer mkpeer;
 	struct ppp_l2tp_avp *avp = NULL;
 	u_int16_t value16;
-	int index;
+	int index, i;
 
 	/* Create global control structure hash table */
 	if (ppp_l2tp_ctrls == NULL
@@ -585,20 +587,17 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	if (ppp_l2tp_avp_list_append(ctrl->avps, 1,
 	    0, AVP_ASSIGNED_TUNNEL_ID, &value16, sizeof(value16)) == -1)
 		goto fail;
-	if (ctrl->secret == NULL) {
-		if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
-		    0, AVP_CHALLENGE)) != -1)
-			ppp_l2tp_avp_list_remove(ctrl->avps, index);
-	} else if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
-	    0, AVP_CHALLENGE)) == -1) {
-		u_int32_t cbuf[(L2TP_CHALLENGE_LEN + 3) / 4];
-		int i;
 
-		for (i = 0; i < sizeof(cbuf) / sizeof(*cbuf); i++)
-			cbuf[i] = random();
-		if (ppp_l2tp_avp_list_append(ctrl->avps, 1,
-		    0, AVP_CHALLENGE, &cbuf, sizeof(cbuf)) == -1)
-			goto fail;
+	if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
+	    0, AVP_CHALLENGE)) != -1)
+		ppp_l2tp_avp_list_remove(ctrl->avps, index);
+
+	if (ctrl->secret != NULL) {
+	    for (i = 0; i < sizeof(ctrl->chal); i++)
+		    ctrl->chal[i] = random();
+	    if (ppp_l2tp_avp_list_append(ctrl->avps, 1,
+		0, AVP_CHALLENGE, &ctrl->chal, sizeof(ctrl->chal)) == -1)
+		    goto fail;
 	}
 
 	ctrl->state = CS_IDLE;		/* wait for peer's sccrq */
@@ -982,6 +981,9 @@ ppp_l2tp_ctrl_setup_1(struct ppp_l2tp_ctrl *ctrl,
 
 	/* See if there is a challenge AVP */
 	if (ptrs->challenge != NULL) {
+                MD5_CTX md5ctx;
+		char hash[MD5_DIGEST_LENGTH];
+		uint16_t t;
 
 		/* Make sure response was included */
 		if (ctrl->secret == NULL) {
@@ -989,12 +991,19 @@ ppp_l2tp_ctrl_setup_1(struct ppp_l2tp_ctrl *ctrl,
 			    " no shared secret is configured"));
 			ppp_l2tp_ctrl_close(ctrl,
 			    L2TP_RESULT_NOT_AUTH, 0, NULL);
-			return (0);
+			return (-1);
 		}
 
-		/* Compute challenge response XXX unimplemented */
-		Log(LOG_WARNING, ("tunnel challenge/response unimplemented"));
-		ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_NOT_AUTH, 0, NULL);
+		/* Calculate challenge response */
+		t = (ptrs->message->mesgtype == SCCRQ)?SCCRP:SCCCN;
+		MD5_Init(&md5ctx);
+		MD5_Update(&md5ctx, &t, 2);
+		MD5_Update(&md5ctx, ctrl->secret, ctrl->seclen);
+		MD5_Update(&md5ctx, &ptrs->challenge->value, ptrs->challenge->length);
+		MD5_Final(hash, &md5ctx);
+
+		if (ppp_l2tp_avp_list_append(ctrl->avps, 0,
+		    0, AVP_CHALLENGE_RESPONSE, hash, sizeof(hash)) == -1)
 		return (0);
 	}
 
@@ -1018,6 +1027,9 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 
 	/* Verify peer's challenge response */
 	if (ctrl->secret != NULL) {
+                MD5_CTX md5ctx;
+		char hash[MD5_DIGEST_LENGTH];
+		uint16_t t;
 
 		/* Make sure response was included */
 		if (ptrs->challengresp == NULL) {
@@ -1027,10 +1039,20 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 			return (0);
 		}
 
-		/* Validate challenge response XXX unimplemented */
-		Log(LOG_WARNING, ("tunnel challenge/response unimplemented"));
-		ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_NOT_AUTH, 0, NULL);
-		return (0);
+		/* Calculate challenge response */
+		t = ptrs->message->mesgtype;
+		MD5_Init(&md5ctx);
+		MD5_Update(&md5ctx, &t, 2);
+		MD5_Update(&md5ctx, ctrl->secret, ctrl->seclen);
+		MD5_Update(&md5ctx, ctrl->chal, sizeof(ctrl->chal));
+		MD5_Final(hash, &md5ctx);
+		
+		/* Check challenge response */
+		if (bcmp(hash, &ptrs->challengresp->value, sizeof(hash))) {
+		    Log(LOG_WARNING, ("tunnel challenge/response incorrect"));
+		    ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_NOT_AUTH, 0, NULL);
+		    return (-1);
+		}
 	}
 
 	/* Done */
@@ -1641,13 +1663,13 @@ ppp_l2tp_data_event(void *arg)
 	if (pevent_register(ctrl->ctx, &ctrl->idle_timer, 0,
 	    ctrl->mutex, ppp_l2tp_idle_timeout, ctrl, PEVENT_TIME,
 	    L2TP_IDLE_TIMEOUT * 1000) == -1) {
-		Log(LOG_ERR, ("error restarting idle timer: %s", strerror(errno)));
+		Log(LOG_ERR, ("L2TP: error restarting idle timer: %s", strerror(errno)));
 		goto fail_errno;
 	}
 
 	/* Read packet */
 	if ((len = read(ctrl->dsock, buf, sizeof(buf))) == -1) {
-		Log(LOG_ERR, ("error reading ctrl hook: %s", strerror(errno)));
+		Log(LOG_ERR, ("L2TP: error reading ctrl hook: %s", strerror(errno)));
 		goto fail_errno;
 	}
 
@@ -1660,23 +1682,23 @@ ppp_l2tp_data_event(void *arg)
 	    buf + 2, len - 2, ctrl->secret, ctrl->seclen)) == NULL) {
 		switch (errno) {
 		case EILSEQ:
-			Log(LOG_WARNING,
-			    ("rec'd improperly formatted control message"));
+			Log(LOG_ERR,
+			    ("L2TP: rec'd improperly formatted control message"));
 			goto fail_invalid;
 		case EAUTH:
-			Log(LOG_WARNING,
-			    ("rec'd hidden AVP, but no shared secret"));
+			Log(LOG_ERR,
+			    ("L2TP: rec'd hidden AVP, but no shared secret"));
 			ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_ERROR,
 			    L2TP_ERROR_GENERIC, "hidden AVP found"
 			    " but no shared secret configured");
 			goto done;
 		case ENOSYS:
-			Log(LOG_WARNING, ("rec'd mandatory but unknown AVP"));
+			Log(LOG_ERR, ("L2TP: rec'd mandatory but unknown AVP"));
 			ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_ERROR,
 			    L2TP_ERROR_MANDATORY, NULL);
 			goto done;
 		default:
-			Log(LOG_ERR, ("error decoding control message: %s", strerror(errno)));
+			Log(LOG_ERR, ("L2TP: error decoding control message: %s", strerror(errno)));
 			goto fail_errno;
 		}
 	}
@@ -1692,7 +1714,7 @@ ppp_l2tp_data_event(void *arg)
 	/* Message type AVP must be present and first */
 	if (avps->length == 0 || avps->avps[0].type != AVP_MESSAGE_TYPE) {
 		Log(LOG_WARNING,
-		    ("rec'd ctrl message lacking message type AVP"));
+		    ("L2TP: rec'd ctrl message lacking message type AVP"));
 		goto fail_invalid;
 	}
 
@@ -1713,7 +1735,7 @@ ppp_l2tp_data_event(void *arg)
 			goto done;
 		}
 		Log(LOG_NOTICE,
-		    ("rec'd unknown message type %u; ignoring", msgtype));
+		    ("L2TP: rec'd unknown message type %u; ignoring", msgtype));
 		goto done;				/* just ignore it */
 	}
 
@@ -1733,7 +1755,7 @@ ppp_l2tp_data_event(void *arg)
 
 	/* Convert AVP's to friendly form */
 	if ((ptrs = ppp_l2tp_avp_list2ptrs(avps)) == NULL) {
-		Log(LOG_ERR, ("error decoding AVP list: %s", strerror(errno)));
+		Log(LOG_ERR, ("L2TP: error decoding AVP list: %s", strerror(errno)));
 		goto fail_errno;
 	}
 
@@ -1782,7 +1804,7 @@ ppp_l2tp_data_event(void *arg)
 
 		/* This should only happen with CDN messages */
 		if (msgtype != CDN) {
-			Log(LOG_NOTICE, ("rec'd %s with zero session ID",
+			Log(LOG_NOTICE, ("L2TP: rec'd %s with zero session ID",
 			    msg_info->name));
 			goto done;
 		}
@@ -1794,7 +1816,7 @@ ppp_l2tp_data_event(void *arg)
 		if (sess == NULL)
 			goto done;
 	} else if ((sess = ghash_get(ctrl->sessions, &key)) == NULL) {
-		Log(LOG_NOTICE, ("rec'd %s for unknown session 0x%04x",
+		Log(LOG_NOTICE, ("L2TP: rec'd %s for unknown session 0x%04x",
 		    msg_info->name, key.config.session_id));
 		goto done;
 	}
@@ -1833,7 +1855,7 @@ ppp_l2tp_data_event(void *arg)
 	}
 
 	/* Cancel reply timer and invoke handler */
-	Log(LOG_INFO, ("rec'd %s in state %s",
+	Log(LOG_INFO, ("L2TP: rec'd %s in state %s",
 	    msg_info->name, ppp_l2tp_sess_state_str(sess->state)));
 	pevent_unregister(&sess->reply_timer);
 	if ((*msg_info->sess_handler)(sess, avps, ptrs) == -1)
@@ -1878,7 +1900,7 @@ ppp_l2tp_ctrl_event(void *arg)
 
 	/* Read netgraph control message */
 	if ((len = NgRecvMsg(ctrl->csock, msg, sizeof(buf), raddr)) < 0) {
-		Log(LOG_ERR, ("error reading control message: %s", strerror(errno)));
+		Log(LOG_ERR, ("L2TP: error reading control message: %s", strerror(errno)));
 		ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_ERROR,
 		    L2TP_ERROR_GENERIC, strerror(errno));
 		return;

@@ -63,6 +63,19 @@ host. Otherwise, only connections from the stated IP address
 (and, optionally, port) are allowed.
 
 <tag><tt>
+set l2tp secret <em>secret</em>
+</tt></tag>
+
+Sets the L2TP tunnel secret. Used to authenticate tunnel connection 
+and encrypt important control packets avpairs. For server side, only
+one unique secret supported for every listening IP (set l2tp self ...).
+If several secrets defined, only the first will be used for all incoming 
+connections to that IP.
+
+NOTE: This options is not related with usual PPP authentication.
+Windows client does not support tunnel authentication.
+
+<tag><tt>
 set l2tp callingnum <em>number</em>
 </tt></tag><p>
 <tag><tt>
