@@ -321,7 +321,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
   MppcInfo	const mppc = &ccp->mppc;
   u_int32_t	orig_bits;
   u_int32_t	bits;
-  char		buf[32];
+  char		buf[64];
 
   /* Get bits */
   memcpy(&orig_bits, opt->data, 4);
