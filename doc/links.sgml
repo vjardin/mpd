@@ -90,7 +90,7 @@ set link ident <em>string</em>
 
 This enables the sending of an identification string to the peer
 via the LCP Ident code. The Ident string is sent when the link is
-brought up. This is useful for deubgging, etc. and is meant to be
+brought up. This is useful for debugging, etc. and is meant to be
 human-readable. However, it confuses some broken PPP implementations.
 
 Setting an empty string disables this feature; this is the default.
