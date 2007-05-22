@@ -2197,7 +2197,7 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	if (NgSendMsg(b->csock, path,
 		NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-    		NG_TCPMSS_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+    		NG_BPF_NODE_TYPE, path, mp.ourhook, strerror(errno)));
 	    goto fail;
 	}
 
