@@ -728,9 +728,6 @@ IfaceIpIfaceUp(Bund b, int ready)
   int			k;
   char			buf[64];
 
-  /* For good measure */
-  BundUpdateParams(b);
-
   if (ready) {
     in_addrtou_range(&b->ipcp.want_addr, 32, &iface->self_addr);
     in_addrtou_addr(&b->ipcp.peer_addr, &iface->peer_addr);
@@ -897,9 +894,6 @@ IfaceIpv6IfaceUp(Bund b, int ready)
   int		k;
   char		buf[64];
   struct u_range	rng;
-
-  /* For good measure */
-  BundUpdateParams(b);
 
   if (ready) {
 
