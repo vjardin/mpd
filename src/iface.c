@@ -167,10 +167,6 @@
     { 0,	0,				NULL		},
   };
 
-  #ifdef USE_NG_TCPMSS
-  int gTcpMSSNodeRefs = 0;
-  #endif
-
   struct acl_pool * rule_pool = NULL; /* Pointer to the first element in the list of rules */
   struct acl_pool * pipe_pool = NULL; /* Pointer to the first element in the list of pipes */
   struct acl_pool * queue_pool = NULL; /* Pointer to the first element in the list of queues */
@@ -1950,20 +1946,16 @@ IfaceShutdownNetflow(Bund b, char out)
 static int
 IfaceInitMSS(Bund b, char *path, char *hook)
 {
-    struct ngm_connect	cn;
+	struct ngm_mkpeer	mp;
+	struct ngm_name	nm;
 
-    Log(LG_IFACE2, ("[%s] IFACE: Connecting tcpmssfix", b->name));
+	Log(LG_IFACE2, ("[%s] IFACE: Connecting tcpmssfix", b->name));
   
 #ifdef USE_NG_TCPMSS
-    if (gTcpMSSNodeRefs <= 0) {
-	/* Create global ng_tcpmss(4) node if not yet. */
-	struct ngm_mkpeer	mp;
-	struct ngm_name		nm;
-
-	/* Create a global tcpmss node. */
+	/* Create ng_tcpmss(4) node. */
 	snprintf(mp.type, sizeof(mp.type), "%s", NG_TCPMSS_NODE_TYPE);
 	snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
-	snprintf(mp.peerhook, sizeof(mp.peerhook), "%s-in", b->name);
+	snprintf(mp.peerhook, sizeof(mp.peerhook), "in");
 	if (NgSendMsg(b->csock, path,
     		NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
@@ -1973,10 +1965,10 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 
 	strlcat(path, ".", NG_PATHLEN);
 	strlcat(path, hook, NG_PATHLEN);
-	snprintf(hook, NG_HOOKLEN, "%s-out", b->name);
+	snprintf(hook, NG_HOOKLEN, "out");
 
 	/* Set the new node's name. */
-	snprintf(nm.name, sizeof(nm.name), "mpd%d-mss", gPid);
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-mss", gPid, b->name);
 	if (NgSendMsg(b->csock, path,
     		NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
     	    Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
@@ -1984,30 +1976,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 	    goto fail;
 	}
 
-    } else {
-
-        /* Connect ng_tcpmss(4) node. */
-        snprintf(cn.path, sizeof(cn.path), "mpd%d-mss:", gPid);
-        snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", hook);
-	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s-in", b->name);
-	if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
-		sizeof(cn)) < 0) {
-    	    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
-    		b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
-    	    goto fail;
-	}
-
-	strlcat(path, ".", NG_PATHLEN);
-	strlcat(path, hook, NG_PATHLEN);
-    }
-    
-    gTcpMSSNodeRefs++;
-    
-    snprintf(hook, NG_HOOKLEN, "%s-out", b->name);
 #else
-    struct ngm_mkpeer	mp;
-    struct ngm_name	nm;
-
     /* Create a bpf node for SYN detection. */
     snprintf(mp.type, sizeof(mp.type), "%s", NG_BPF_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
@@ -2074,21 +2043,21 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
   struct	ng_tcpmss_config tcpmsscfg;
   char		path[NG_PATHLEN];
 
-  snprintf(path, sizeof(path), "mpd%d-mss:", gPid);
+  snprintf(path, sizeof(path), "mpd%d-%s-mss:", gPid, b->name);
 
   /* Send configure message. */
   memset(&tcpmsscfg, 0, sizeof(tcpmsscfg));
   tcpmsscfg.maxMSS = maxMSS;
 
-  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-in", b->name);
-  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-out", b->name);
+  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "in");
+  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "out");
   if (NgSendMsg(b->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
       &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
     Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
       NG_TCPMSS_NODE_TYPE, strerror(errno)));
   }
-  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "%s-out", b->name);
-  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "%s-in", b->name);
+  snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "out");
+  snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "in");
   if (NgSendMsg(b->csock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
       &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
     Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
@@ -2165,18 +2134,12 @@ static void
 IfaceShutdownMSS(Bund b)
 {
 #ifdef USE_NG_TCPMSS
-    char	path[NG_PATHLEN+1];
-    char	hook[NG_HOOKLEN+1];
+	char	path[NG_PATHLEN+1];
 
-    snprintf(path, sizeof(path), "mpd%d-mss:", gPid);
-    snprintf(hook, NG_HOOKLEN, "%s-in", b->name);
-    NgFuncDisconnect(b->csock, b->name, path, hook);
-    snprintf(hook, NG_HOOKLEN, "%s-out", b->name);
-    NgFuncDisconnect(b->csock, b->name, path, hook);
-
-    gTcpMSSNodeRefs--;
+	snprintf(path, sizeof(path), "mpd%d-%s-mss:", gPid, b->name);
+	NgFuncShutdownNode(b->csock, b->name, path);
 #else
-    NgFuncShutdownNode(b->csock, b->name, MPD_HOOK_TCPMSS_IN);
+	NgFuncShutdownNode(b->csock, b->name, MPD_HOOK_TCPMSS_IN);
 #endif
 }
 
