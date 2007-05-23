@@ -1588,6 +1588,8 @@ AuthExternal(AuthData auth)
 	fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
     if (strlen(auth->params.callednum))
 	fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
+    if (strlen(auth->params.peeraddr))
+	fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
 
     /* REQUEST DONE */
     fprintf(fp, "\n");
