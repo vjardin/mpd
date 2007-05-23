@@ -1694,7 +1694,10 @@ AuthExternal(AuthData auth)
 	auth->params.mtu = atoi(val);
 
     } else if (strcmp(attr, "REPLY_MESSAGE") == 0) {
-	strncpy(auth->reply_message, val, sizeof(auth->reply_message));
+	if (auth->reply_message)
+		Freee(MB_AUTH, auth->reply_message);
+	auth->reply_message = Malloc(MB_AUTH, strlen(val) + 1);
+	strcpy(auth->reply_message, val);
 
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;
