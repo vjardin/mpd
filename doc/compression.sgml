@@ -90,7 +90,7 @@ Enables MPPC compression. This is the only compression method supported by
 Microsoft Windows RAS.
 <P>
 This option requires compression support from ng_mppc node which is 
-usually not implemented as it require some Hi/Fn proprietary files.
+usually disabled as it require some Hi/Fn proprietary files.
 
 <tag><tt>mpp-e40</tt></tag>
 
