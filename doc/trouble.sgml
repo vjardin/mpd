@@ -7,13 +7,27 @@
 
   <p>
   Some tips for troubleshooting.
-  (This section is under construction).
 
   <p>
-  For further help, subscribe to the <tt>freebsd-net@freebsd.org</tt>
-  mailing list and ask your question there.
+  For further help, ask to the <tt>freebsd-net@freebsd.org</tt>
+  mailing list or sourceforge.net mpd project forum and mailing list.
 
 <descrip>
+
+<tag><bf>
+It does not works and I don't understand why.
+</bf></tag>
+
+Mpd has extensive logging system supporting syslog. To direct logs
+into a file add lines
+<verb>
+!mpd
+*.*                                             /var/log/mpd.log
+</verb>
+into your /etc/syslog.conf file, create /var/log/mpd.log file and send 
+SIGHUP to syslogd to reread config.
+
+To enable all possible logging you can use 'log +all' command.
 
 <tag><bf>
 Packets won't flow.
