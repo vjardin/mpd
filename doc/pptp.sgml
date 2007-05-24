@@ -43,15 +43,6 @@ client (PAC emulator) <- PPTP tunnel -> PNS
 <descrip>
 
 <tag><tt>
-set pptp mode [ <em>active</em> | <em>passive</em> ]
-</tt></tag>
-
-Set the link for active or passive mode. In active mode, the local
-side initiates all connections. In passive mode, the local side
-waits for incoming connections (in a future revision bi-directional
-connections will be supported).
-
-<tag><tt>
 set pptp self <em>ipaddr</em> [ <em>port</em> ]
 </tt></tag>
 
