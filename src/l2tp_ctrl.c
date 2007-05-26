@@ -58,12 +58,6 @@
 #define __printflike(x,y)
 #endif
 
-/*
- * Bugs:
- *
- * - We don't handle sending or receiving challenge/response
- */
-
 #define CTRL_MEM_TYPE		"ppp_l2tp_ctrl"
 #define SESS_MEM_TYPE		"ppp_l2tp_sess"
 
