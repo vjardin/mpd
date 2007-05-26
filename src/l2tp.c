@@ -881,9 +881,9 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		pi->outcall = out;
 		pi->tun = tun;
 		pi->sess = sess;
-		if (ptrs->callingnum->number)
+		if (ptrs->callingnum && ptrs->callingnum->number)
 		    strlcpy(pi->callingnum, ptrs->callingnum->number, sizeof(pi->callingnum));
-		if (ptrs->callednum->number)
+		if (ptrs->callednum && ptrs->callednum->number)
 		    strlcpy(pi->callednum, ptrs->callednum->number, sizeof(pi->callednum));
 
 		PhysIncoming(p);
