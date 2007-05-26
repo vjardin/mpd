@@ -2211,7 +2211,7 @@ ppp_l2tp_handle_SLI(struct ppp_l2tp_sess *sess,
 
 	if (ctrl->cb->set_link_info == NULL)
 		return (0);
-	(*ctrl->cb->set_link_info)(sess, ptrs->accm->xmit, ptrs->accm->xmit);
+	(*ctrl->cb->set_link_info)(sess, ptrs->accm->xmit, ptrs->accm->recv);
 	return (0);
 }
 
