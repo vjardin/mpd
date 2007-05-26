@@ -858,6 +858,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   pi->cinfo = *cinfo;
   pi->originate = FALSE;
   pi->incoming = incoming;
+  pi->sync = 1;
   pi->self_addr = *self;
   pi->peer_addr = *peer;
   pi->peer_port = port;
