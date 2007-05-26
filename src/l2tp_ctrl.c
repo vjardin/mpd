@@ -724,6 +724,15 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 			goto fail;
 	}
 	if ((index = ppp_l2tp_avp_list_find(sess->my_avps,
+	    0, AVP_BEARER_TYPE)) == -1) {
+		value32 = (ctrl->peer_bearer
+		    & (L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG));
+		value32 = htonl(value32);
+		if (ppp_l2tp_avp_list_append(sess->my_avps, 1,
+		    0, AVP_BEARER_TYPE, &value32, sizeof(value32)) == -1)
+			goto fail;
+	}
+	if ((index = ppp_l2tp_avp_list_find(sess->my_avps,
 	    0, AVP_FRAMING_TYPE)) == -1) {
 		value32 = (ctrl->peer_framing
 		    & (L2TP_FRAMING_SYNC|L2TP_FRAMING_ASYNC));

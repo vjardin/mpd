@@ -359,14 +359,6 @@ L2tpOpen(PhysInfo p)
 				    p->name, strerror(errno)));
 			  }
 			 }
-			 if (Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)) {
-			    u_int32_t	brr = htonl(L2TP_BEARER_ANALOG);
-			    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_TYPE,
-				    &brr, sizeof(brr)) == -1) {
-				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
-				    p->name, strerror(errno)));
-			    }
-			 }
 			}
 			if ((sess = ppp_l2tp_initiate(tun->ctrl, 
 				Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0,
@@ -821,14 +813,6 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 			    p->name, strerror(errno)));
 		   }
-		  }
-		  if (Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)) {
-		    u_int32_t	brr = htonl(L2TP_BEARER_ANALOG);
-		    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_TYPE,
-			    &brr, sizeof(brr)) == -1) {
-			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
-			    p->name, strerror(errno)));
-		    }
 		  }
 		}
 		if ((sess = ppp_l2tp_initiate(tun->ctrl,
