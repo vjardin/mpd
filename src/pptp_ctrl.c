@@ -2234,6 +2234,9 @@ PptpInCallRequest(PptpCtrl c, struct pptpInCallRequest *req)
   /* Ask link layer about accepting the incoming call */
   PptpCtrlInitCinfo(ch, &cinfo);
   linfo.cookie = NULL;
+  linfo.result = NULL;
+  linfo.setLinkInfo = NULL;
+  linfo.cancel = NULL;
   if (gGetInLink)
     linfo = (*gGetInLink)(&cinfo, &c->self_addr, &c->peer_addr, c->peer_port,
       req->bearType, callingNum, calledNum, subAddress);
