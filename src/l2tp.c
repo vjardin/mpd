@@ -284,6 +284,7 @@ L2tpOpen(PhysInfo p)
 		if (p->state==PHYS_STATE_READY) {
 		    p->state = PHYS_STATE_UP;
 		    if (pi->outcall) {
+			pi->sync = 1;
 			if (p->rep) {
 			    if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
 				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
@@ -294,6 +295,7 @@ L2tpOpen(PhysInfo p)
 					fr = htonl(L2TP_FRAMING_SYNC);
 				} else {
 					fr = htonl(L2TP_FRAMING_ASYNC);
+					pi->sync = 0;
 				}
 				if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
 	        		    &fr, sizeof(fr)) == -1) {
@@ -383,6 +385,7 @@ L2tpOpen(PhysInfo p)
 			pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 			ppp_l2tp_sess_set_cookie(sess, p);
 			if (!pi->outcall) {
+			    pi->sync = 1;
 			    if (p->rep) {
 				if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
 				    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
@@ -393,6 +396,7 @@ L2tpOpen(PhysInfo p)
 					fr = htonl(L2TP_FRAMING_SYNC);
 				    } else {
 					fr = htonl(L2TP_FRAMING_ASYNC);
+					pi->sync = 0;
 				    }
 				    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
 	        			&fr, sizeof(fr)) == -1) {
@@ -764,6 +768,7 @@ L2tpStat(Context ctx)
 	    u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
 	Printf("\tCurrent peer : %s, port %u\r\n",
 	    u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
+	Printf("\tFraming      : %s\r\n", (l2tp->sync?"Sync":"Async"));
     }
     Printf("\tCalling number: %s\r\n", l2tp->callingnum);
     Printf("\tCalled number: %s\r\n", l2tp->callednum);
@@ -841,6 +846,7 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 		pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 		ppp_l2tp_sess_set_cookie(sess, p);
 		if (!pi->outcall) {
+		    pi->sync = 1;
 		    if (p->rep) {
 			if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
 			    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
@@ -851,6 +857,7 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 				fr = htonl(L2TP_FRAMING_SYNC);
 			    } else {
 				fr = htonl(L2TP_FRAMING_ASYNC);
+				pi->sync = 0;
 			    }
 			    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
 	        		&fr, sizeof(fr)) == -1) {
