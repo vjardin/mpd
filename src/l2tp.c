@@ -116,7 +116,7 @@
   static void	L2tpStat(Context ctx);
   static int	L2tpOriginated(PhysInfo p);
   static int	L2tpIsSync(PhysInfo p);
-  static int	L2tpSetAccm(PhysInfo p, u_int32_t accm);
+  static int	L2tpSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv);
   static int	L2tpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCalledNum(PhysInfo p, void *buf, int buf_len);
@@ -665,14 +665,14 @@ L2tpIsSync(PhysInfo p)
 }
 
 static int
-L2tpSetAccm(PhysInfo p, u_int32_t accm)
+L2tpSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv)
 {
     L2tpInfo	const l2tp = (L2tpInfo) p->info;
     
     if (!l2tp->sess)
 	    return (-1);
 
-    return (ppp_l2tp_set_link_info(l2tp->sess, accm, 0xFFFFFFFF));
+    return (ppp_l2tp_set_link_info(l2tp->sess, xmit, recv));
 }
 
 static int
@@ -1067,7 +1067,7 @@ ppp_l2tp_set_link_info_cb(struct ppp_l2tp_sess *sess,
 	PhysInfo p = ppp_l2tp_sess_get_cookie(sess);
 
 	if (p->rep != NULL) {
-		RepSetAccm(p, xmit);
+		RepSetAccm(p, xmit, recv);
 	}
 };
 

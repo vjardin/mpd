@@ -40,7 +40,7 @@
     void	(*showstat)(Context ctx);	/* Shows type specific stats */
     int		(*originate)(PhysInfo p);	/* We originated connection? */
     int		(*issync)(PhysInfo p);		/* Link is synchronous */
-    int		(*setaccm)(PhysInfo p, u_int32_t accm);	/* Set async accm */
+    int		(*setaccm)(PhysInfo p, u_int32_t xmit, u_int32_t recv);	/* Set async accm */
     int		(*setcallingnum)(PhysInfo p, void *buf); 
 						/* sets the calling number */
     int		(*setcallednum)(PhysInfo p, void *buf); 
@@ -89,7 +89,7 @@
   extern void		PhysIncoming(PhysInfo p);
   extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
 
-  extern int		PhysSetAccm(PhysInfo p, uint32_t accm);
+  extern int		PhysSetAccm(PhysInfo p, uint32_t xmit, u_int32_t recv);
   extern int		PhysSetCallingNum(PhysInfo p, char *buf);
   extern int		PhysSetCalledNum(PhysInfo p, char *buf);
   extern int		PhysGetPeerAddr(PhysInfo p, char *buf, int buf_len);

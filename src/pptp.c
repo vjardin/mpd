@@ -592,7 +592,7 @@ PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra)
     p = (PhysInfo)cookie;
 
     if (p->rep != NULL) {
-	    RepSetAccm(p, sa);
+	    RepSetAccm(p, sa, ra);
     }
 };
 

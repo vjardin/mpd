@@ -228,10 +228,10 @@ PhysIncoming(PhysInfo p)
  */
 
 int
-PhysSetAccm(PhysInfo p, uint32_t accm)
+PhysSetAccm(PhysInfo p, uint32_t xmit, u_int32_t recv)
 {
     if (p->type && p->type->setaccm)
-	return (*p->type->setaccm)(p, accm);
+	return (*p->type->setaccm)(p, xmit, recv);
     else 
 	return (0);
 }

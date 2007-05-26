@@ -48,7 +48,7 @@
 
   extern void	RepIncoming(PhysInfo p);
   extern int	RepIsSync(PhysInfo p); /* Is pair link is synchronous */
-  extern void	RepSetAccm(PhysInfo p, u_int32_t accm); /* Set async accm */
+  extern void	RepSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv); /* Set async accm */
   extern void	RepUp(PhysInfo p);
   extern void	RepDown(PhysInfo p);
   extern int	RepGetHook(PhysInfo p, char *path, char *hook);

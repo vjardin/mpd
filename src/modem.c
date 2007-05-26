@@ -104,7 +104,7 @@
   static int		ModemInit(PhysInfo p);
   static void		ModemOpen(PhysInfo p);
   static void		ModemClose(PhysInfo p);
-  static int		ModemSetAccm(PhysInfo p, u_int32_t accm);
+  static int		ModemSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv);
   static void		ModemStat(Context ctx);
   static int		ModemOriginated(PhysInfo p);
   static int		ModemIsSync(PhysInfo p);
@@ -361,13 +361,13 @@ ModemDoClose(PhysInfo p, int opened)
  */
 
 static int
-ModemSetAccm(PhysInfo p, u_int32_t accm)
+ModemSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv)
 {
   ModemInfo		const m = (ModemInfo) p->info;
   char        		path[NG_PATHLEN+1];
 
   /* Update async config */
-  m->acfg.accm = accm;
+  m->acfg.accm = xmit|recv;
   snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
   if (NgSendMsg(m->csock, path, NGM_ASYNC_COOKIE,
       NGM_ASYNC_CMD_SET_CONFIG, &m->acfg, sizeof(m->acfg)) < 0) {
