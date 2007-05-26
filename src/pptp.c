@@ -53,6 +53,7 @@
     } conf;
     u_char		originate:1;	/* Call originated locally */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
+    u_char		sync:1;		/* Call is sync vs. async */
     void		*listener;	/* Listener pointer */
     struct u_addr	self_addr;	/* Current self IP address */
     struct u_addr	peer_addr;	/* Current peer IP address */
@@ -109,7 +110,7 @@
   static int	PptpOriginate(PhysInfo p);
   static void	PptpDoClose(PhysInfo p);
   static void	PptpKillNode(PhysInfo p);
-  static void	PptpResult(void *cookie, const char *errmsg);
+  static void	PptpResult(void *cookie, const char *errmsg, int frameType);
   static void	PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra);
   static void	PptpCancel(void *cookie);
   static int	PptpHookUp(PhysInfo p);
@@ -298,18 +299,22 @@ PptpOriginate(PhysInfo p)
   linfo.cancel = PptpCancel;
   strlcpy(pptp->callingnum, pptp->conf.callingnum, sizeof(pptp->callingnum));
   strlcpy(pptp->callednum, pptp->conf.callednum, sizeof(pptp->callednum));
-  if (pptp->incoming)
+  if (pptp->incoming) {
+    int frameType = PPTP_FRAMECAP_SYNC;
+    if (p->rep && !RepIsSync(p))
+	    frameType = PPTP_FRAMECAP_ASYNC;
     cinfo = PptpCtrlInCall(linfo, 
       &pptp->conf.self_addr, &pptp->conf.peer_addr_req.addr, port,
-      PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
+      PPTP_BEARCAP_ANY, frameType,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, 
       pptp->callingnum, pptp->callednum, "");
-  else
+  } else {
     cinfo = PptpCtrlOutCall(linfo, 
       &pptp->conf.self_addr, &pptp->conf.peer_addr_req.addr, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS,
       pptp->callednum, "");
+  }
   if (cinfo.cookie == NULL)
     return(-1);
   pptp->self_addr = pptp->conf.self_addr;
@@ -408,7 +413,9 @@ PptpOriginated(PhysInfo p)
 static int
 PptpIsSync(PhysInfo p)
 {
-  return (1);
+    PptpInfo	const pptp = (PptpInfo) p->info;
+
+    return (pptp->sync);
 }
 
 static int
@@ -491,6 +498,7 @@ PptpStat(Context ctx)
 	u_addrtoa(&pptp->self_addr, buf, sizeof(buf)));
     Printf("\tCurrent peer : %s, port %u\r\n",
 	u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
+    Printf("\tFraming      : %s\r\n", (pptp->sync?"Sync":"Async"));
     Printf("\tCalling number: %s\r\n", pptp->callingnum);
     Printf("\tCalled number: %s\r\n", pptp->callednum);
   }
@@ -518,7 +526,7 @@ PptpInitCtrl(void)
  */
 
 static void
-PptpResult(void *cookie, const char *errmsg)
+PptpResult(void *cookie, const char *errmsg, int frameType)
 {
   PptpInfo	pptp;
   PhysInfo 	p;
@@ -543,6 +551,7 @@ PptpResult(void *cookie, const char *errmsg)
 
 	/* OK */
 	p->state = PHYS_STATE_UP;
+	pptp->sync = (frameType&PPTP_FRAMECAP_ASYNC)?0:1;
 	PhysUp(p);
       } else {
 	Log(LG_PHYS, ("[%s] PPTP call failed", p->name));

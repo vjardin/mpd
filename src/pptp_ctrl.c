@@ -1478,7 +1478,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     case PPTP_CHAN_ST_ESTABLISHED:
     case PPTP_CHAN_ST_WAIT_CTRL:
     case PPTP_CHAN_ST_WAIT_DISCONNECT:
-      (*ch->linfo.result)(ch->linfo.cookie, errmsg);
+      (*ch->linfo.result)(ch->linfo.cookie, errmsg, 0);
       break;
     case PPTP_CHAN_ST_WAIT_ANSWER:
       (*ch->linfo.cancel)(ch->linfo.cookie);
@@ -2169,7 +2169,7 @@ PptpOutCallReply(PptpChan ch, struct pptpOutCallReply *reply)
       c->id, ch->id, PPTP_OCR_RESL_CODE(reply->result),
       PPTP_ERROR_CODE(reply->err));
     Log(LG_PPTP, ("%s", errmsg));
-    (*ch->linfo.result)(ch->linfo.cookie, errmsg);
+    (*ch->linfo.result)(ch->linfo.cookie, errmsg, 0);
     PptpCtrlKillChan(ch, "remote outgoing call failed");
     return;
   }
@@ -2181,7 +2181,7 @@ PptpOutCallReply(PptpChan ch, struct pptpOutCallReply *reply)
   Log(LG_PPTP, ("pptp%d-%d: outgoing call connected at %d bps",
     c->id, ch->id, reply->speed));
   PptpCtrlNewChanState(ch, PPTP_CHAN_ST_ESTABLISHED);
-  (*ch->linfo.result)(ch->linfo.cookie, NULL);
+  (*ch->linfo.result)(ch->linfo.cookie, NULL, ch->frameType);
 }
 
 /*
@@ -2285,7 +2285,7 @@ PptpInCallReply(PptpChan ch, struct pptpInCallReply *reply)
       c->id, ch->id, PPTP_ICR_RESL_CODE(reply->result),
       PPTP_ERROR_CODE(reply->err));
     Log(LG_PPTP, ("%s", errmsg));
-    (*ch->linfo.result)(ch->linfo.cookie, errmsg);
+    (*ch->linfo.result)(ch->linfo.cookie, errmsg, 0);
     PptpCtrlKillChan(ch, "peer denied incoming call");
     return;
   }
@@ -2296,7 +2296,7 @@ PptpInCallReply(PptpChan ch, struct pptpInCallReply *reply)
   ch->peerPpd = reply->ppd;
   ch->recvWin = reply->recvWin;
   PptpCtrlNewChanState(ch, PPTP_CHAN_ST_ESTABLISHED);
-  (*ch->linfo.result)(ch->linfo.cookie, NULL);
+  (*ch->linfo.result)(ch->linfo.cookie, NULL, ch->frameType);
 
   /* Send back connected message */
   memset(&con, 0, sizeof(con));
@@ -2304,7 +2304,7 @@ PptpInCallReply(PptpChan ch, struct pptpInCallReply *reply)
   con.speed = 64000;			/* XXX */
   con.recvWin = PPTP_RECV_WIN;		/* XXX */
   con.ppd = PPTP_PPD;			/* XXX */
-  con.frameType = PPTP_FRAMECAP_SYNC;
+  con.frameType = ch->frameType;
   PptpCtrlWriteMsg(c, PPTP_InCallConn, &con);
 }
 
@@ -2322,7 +2322,7 @@ PptpInCallConn(PptpChan ch, struct pptpInCallConn *con)
   ch->peerPpd = con->ppd;
   ch->recvWin = con->recvWin;
   ch->frameType = con->frameType;
-  (*ch->linfo.result)(ch->linfo.cookie, NULL);
+  (*ch->linfo.result)(ch->linfo.cookie, NULL, ch->frameType);
   PptpCtrlNewChanState(ch, PPTP_CHAN_ST_ESTABLISHED);
 }
 

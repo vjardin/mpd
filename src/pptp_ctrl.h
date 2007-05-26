@@ -371,7 +371,7 @@
   /* Link <-> control liason structures and callback function types */
   struct pptplinkinfo {		/* PPTP's info for accessing link code */
     void	*cookie;	/* NULL indicates response is invalid */
-    void	(*result)(void *cookie, const char *errmsg);
+    void	(*result)(void *cookie, const char *errmsg, int frameType);
     void	(*setLinkInfo)(void *cookie, u_int32_t sa, u_int32_t ra);
     void	(*cancel)(void *cookie);	/* cancel outgoing call */
   };
