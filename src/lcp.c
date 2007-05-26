@@ -466,9 +466,6 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_NETWORK:
-
-      PhysSetAccm(l->phys, lcp->peer_accmap|lcp->want_accmap);
-
       /* Send ident string, if configured */
       if (l->conf.ident != NULL)
 	FsmSendIdent(&lcp->fsm, l->conf.ident);
