@@ -864,6 +864,41 @@ ppp_l2tp_terminate(struct ppp_l2tp_sess *sess,
 }
 
 /*
+ * Send SLI to peer.
+ */
+int
+ppp_l2tp_set_link_info(struct ppp_l2tp_sess *sess,
+			u_int32_t xmit, u_int32_t recv)
+{
+	struct ppp_l2tp_ctrl *const ctrl = sess->ctrl;
+	struct ppp_l2tp_avp_list *avps;
+	uint16_t accm[5];
+
+	/* Only LNS should send SLI */
+	if (sess->side != SIDE_LNS)
+		return (0);
+
+	avps = ppp_l2tp_avp_list_create();
+	if (avps == NULL)
+		return (-1);
+
+	accm[0] = 0;
+	accm[1] = htons(xmit >> 16);
+	accm[2] = htons(xmit & 0xFFFF);
+	accm[3] = htons(recv >> 16);
+	accm[4] = htons(recv & 0xFFFF);
+	if (ppp_l2tp_avp_list_append(avps, 0,
+	    0, AVP_ACCM, &accm, sizeof(accm)) == -1) {
+		ppp_l2tp_avp_list_destroy(&avps);
+		return (-1);
+	}
+
+	ppp_l2tp_ctrl_send(ctrl, sess->peer_id, SLI, avps);
+	ppp_l2tp_avp_list_destroy(&avps);
+	return (0);
+}
+
+/*
  * Get the link side cookie corresponding to a control connection.
  */
 void *

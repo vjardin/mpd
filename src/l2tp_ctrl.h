@@ -343,6 +343,18 @@ extern void	ppp_l2tp_terminate(struct ppp_l2tp_sess *sess,
 			u_int16_t result, u_int16_t error, const char *errmsg);
 
 /*
+ * This function is used to send the remote side a Set-Link-Info
+ * message.
+ *
+ * Arguments:
+ *	sess	Session structure
+ *	xmit	LAC's send ACCM
+ *	recv	LAC's receive ACCM
+ */
+extern int	ppp_l2tp_set_link_info(struct ppp_l2tp_sess *sess,
+			u_int32_t xmit, u_int32_t recv);
+
+/*
  * Get or set the link side cookie corresponding to a control connection
  * or a call session.
  */

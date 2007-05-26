@@ -114,6 +114,7 @@
   static void	L2tpShutdown(PhysInfo p);
   static void	L2tpStat(Context ctx);
   static int	L2tpOriginated(PhysInfo p);
+  static int	L2tpSetAccm(PhysInfo p, u_int32_t accm);
   static int	L2tpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCalledNum(PhysInfo p, void *buf, int buf_len);
@@ -163,6 +164,7 @@
     .shutdown		= L2tpShutdown,
     .showstat		= L2tpStat,
     .originate		= L2tpOriginated,
+    .setaccm 		= L2tpSetAccm,
     .setcallingnum	= L2tpSetCallingNum,
     .setcallednum	= L2tpSetCalledNum,
     .peeraddr		= L2tpPeerAddr,
@@ -604,6 +606,17 @@ L2tpOriginated(PhysInfo p)
   L2tpInfo	const l2tp = (L2tpInfo) p->info;
 
   return(l2tp->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+}
+
+static int
+L2tpSetAccm(PhysInfo p, u_int32_t accm)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) p->info;
+    
+    if (!l2tp->sess)
+	    return (-1);
+
+    return (ppp_l2tp_set_link_info(l2tp->sess, accm, 0xFFFFFFFF));
 }
 
 static int
