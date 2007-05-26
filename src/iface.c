@@ -225,6 +225,7 @@ IfaceInit(Bund b)
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
+  NatInit(b);
   Log(LG_BUND|LG_IFACE, ("[%s] using interface %s",
     b->name, b->iface.ifname));
 }
@@ -1689,7 +1690,7 @@ IfaceNgIpShutdown(Bund b)
 #ifdef USE_NG_NAT
     if (b->iface.nat_up)
 	IfaceShutdownNAT(b);
-    b->iface.nfin_up = 0;
+    b->iface.nat_up = 0;
 #endif
     if (b->iface.tee_up)
 	IfaceShutdownTee(b);
@@ -1751,9 +1752,13 @@ IfaceNgIpv6Shutdown(Bund b)
 static int
 IfaceInitNAT(Bund b, char *path, char *hook)
 {
+    NatState      const nat = &b->iface.nat;
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
-  
+    struct in_addr	ip;
+#ifdef NG_NAT_LOG
+    struct ng_nat_mode	mode;
+#endif  
     Log(LG_IFACE2, ("[%s] IFACE: Connecting NAT", b->name));
   
     snprintf(mp.type, sizeof(mp.type), "%s", NG_NAT_NODE_TYPE);
@@ -1777,12 +1782,47 @@ IfaceInitNAT(Bund b, char *path, char *hook)
     strcpy(hook, NG_NAT_HOOK_OUT);
 
     /* Set NAT IP */
-    struct in_addr ip = { 1 }; // Setting something just to make it ready
+    if (u_addrempty(&nat->alias_addr)) {
+	ip.s_addr = 1; // Set something just to make it ready
+    } else {
+	ip = nat->alias_addr.u.ip4;
+    }
     if (NgSendMsg(b->csock, path,
 	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &ip, sizeof(ip)) < 0) {
 	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
     	    b->name, strerror(errno)));
     }
+
+#ifdef NG_NAT_LOG
+    /* Set NAT mode */
+    mode.flags = 0;
+    if (Enabled(&nat->options, NAT_CONF_LOG))
+	mode.flags |= NG_NAT_LOG;
+    if (!Enabled(&nat->options, NAT_CONF_INCOMING))
+	mode.flags |= NG_NAT_DENY_INCOMING;
+    if (Enabled(&nat->options, NAT_CONF_SAME_PORTS))
+	mode.flags |= NG_NAT_SAME_PORTS;
+    if (Enabled(&nat->options, NAT_CONF_UNREG_ONLY))
+	mode.flags |= NG_NAT_UNREGISTERED_ONLY;
+    
+    mode.mask = NG_NAT_LOG | NG_NAT_DENY_INCOMING | 
+	NG_NAT_SAME_PORTS | NG_NAT_UNREGISTERED_ONLY;
+    if (NgSendMsg(b->csock, path,
+	    NGM_NAT_COOKIE, NGM_NAT_SET_MODE, &mode, sizeof(mode)) < 0) {
+	Log(LG_ERR, ("[%s] can't set NAT mode: %s",
+    	    b->name, strerror(errno)));
+    }
+
+    /* Set NAT target IP */
+    if (!u_addrempty(&nat->target_addr)) {
+	ip = nat->target_addr.u.ip4;
+	if (NgSendMsg(b->csock, path,
+		NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &ip, sizeof(ip)) < 0) {
+	    Log(LG_ERR, ("[%s] can't set NAT target IP: %s",
+    		b->name, strerror(errno)));
+	}
+    }
+#endif
 
     return(0);
 }
@@ -1790,14 +1830,19 @@ IfaceInitNAT(Bund b, char *path, char *hook)
 static int
 IfaceSetupNAT(Bund b)
 {
+    NatState	const nat = &b->iface.nat;
     char	path[NG_PATHLEN+1];
 
-    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
-    if (NgSendMsg(b->csock, path,
-    	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &b->iface.self_addr.addr.u.ip4, sizeof(b->iface.self_addr.addr.u.ip4)) < 0) {
-	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
-    	    b->name, strerror(errno)));
-	return (-1);
+    if (u_addrempty(&nat->alias_addr)) {
+	snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
+	if (NgSendMsg(b->csock, path,
+    		NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR,
+		&b->iface.self_addr.addr.u.ip4,
+		sizeof(b->iface.self_addr.addr.u.ip4)) < 0) {
+	    Log(LG_ERR, ("[%s] can't set NAT ip: %s",
+    		b->name, strerror(errno)));
+	    return (-1);
+	}
     }
     return (0);
 }

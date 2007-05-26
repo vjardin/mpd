@@ -97,6 +97,8 @@ protocol associated with the currently active bundle.
 <tag>lcp</tag>
 Show status information about the link control
 protocol associated with the currently active link.
+<tag>nat</tag>
+Show information about NAT on the currently active bundle.
 <tag>auth</tag>
 Show status information about Authentication.
 <tag>eap</tag>
@@ -140,6 +142,8 @@ Set bundle layer configuration parameters for the currently active bundle.
 Set link layer configuration parameters for the currently active link.
 <tag><tt>set iface ...</tt></tag>
 Set interface layer configuration parameters for the currently active bundle.
+<tag><tt>set nat ...</tt></tag>
+Set NAT configuration parameters for the currently active bundle.
 <tag><tt>set ipcp ...</tt></tag>
 Set IP control protocol configuration parameters
 for the currently active bundle.

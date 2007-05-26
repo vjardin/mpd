@@ -21,6 +21,7 @@
 #include "bund.h"
 #include "link.h"
 #include "lcp.h"
+#include "nat.h"
 #include "ipcp.h"
 #include "ip.h"
 #include "devices.h"
@@ -138,6 +139,8 @@
 	RadStat, AdmitLink, NULL },
     { "lcp",				"LCP status",
 	LcpStat, AdmitLink, NULL },
+    { "nat",				"NAT status",
+	NatStat, AdmitLink, NULL },
     { "mem",				"Memory map",
 	MemStat, NULL, NULL },
     { "mp",				"Multi-link status",
@@ -192,6 +195,8 @@
     { "netflow ...", 			"NetFlow settings",
 	CMD_SUBMENU, NULL, (void *) NetflowSetCmds },
 #endif
+    { "nat ...", 			"Nat settings",
+	CMD_SUBMENU, NULL, (void *) NatSetCmds },
     { "debug level",			"Set netgraph debug level",
 	SetDebugCommand, NULL, NULL },
 #define _WANT_DEVICE_CMDS

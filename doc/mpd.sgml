@@ -35,6 +35,7 @@
 <!ENTITY authentication SYSTEM "auth.sgml">
 <!ENTITY radius SYSTEM "radius.sgml">
 <!ENTITY eap SYSTEM "eap.sgml">
+<!ENTITY nat SYSTEM "nat.sgml">
 
 <!ENTITY modem SYSTEM "modem.sgml">
 <!ENTITY netgraph SYSTEM "netgraph.sgml">
@@ -123,6 +124,7 @@ You must be running FreeBSD version 4.x or higher.
 	&eap;
 	&radius;
 	&netflow;
+	&nat;
 
     <chapt><heading>Device Types</heading>
 

@@ -27,6 +27,7 @@
 #endif
 #include "mbuf.h"
 #include "timer.h"
+#include "nat.h"
 #include "vars.h"
 
 /*
@@ -106,6 +107,8 @@
     
     u_char		dod:1;			/* Interface flagged -link0 */
     struct dodcache	dodCache;		/* Dial-on-demand cache */
+    
+    struct natstate	nat;			/* NAT config */
 
     struct linkstats	idleStats;		/* Statistics for idle timeout */
   };
