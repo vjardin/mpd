@@ -982,7 +982,7 @@ ppp_l2tp_ctrl_setup_1(struct ppp_l2tp_ctrl *ctrl,
 	/* See if there is a challenge AVP */
 	if (ptrs->challenge != NULL) {
                 MD5_CTX md5ctx;
-		char hash[MD5_DIGEST_LENGTH];
+		u_char hash[MD5_DIGEST_LENGTH];
 		uint16_t t;
 
 		/* Make sure response was included */
@@ -1028,7 +1028,7 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 	/* Verify peer's challenge response */
 	if (ctrl->secret != NULL) {
                 MD5_CTX md5ctx;
-		char hash[MD5_DIGEST_LENGTH];
+		u_char hash[MD5_DIGEST_LENGTH];
 		uint16_t t;
 
 		/* Make sure response was included */

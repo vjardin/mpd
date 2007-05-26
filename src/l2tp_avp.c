@@ -348,7 +348,7 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
 		if (hide) {
 			if (buf != NULL) {
 				MD5_CTX	md5ctx;
-				char hash[MD5_DIGEST_LENGTH];
+				u_char hash[MD5_DIGEST_LENGTH];
 				int k, l;
 
 				/* Add original length */
@@ -452,8 +452,8 @@ unknown:		if ((hdr[0] & AVP_MANDATORY) != 0) {
 		/* Un-hide AVP if hidden */
 		if ((hdr[0] & AVP_HIDDEN) != 0) {
 			MD5_CTX	md5ctx;
-			char hash[MD5_DIGEST_LENGTH];
-			char nhash[MD5_DIGEST_LENGTH];
+			u_char hash[MD5_DIGEST_LENGTH];
+			u_char nhash[MD5_DIGEST_LENGTH];
 			int k, l;
 			u_int16_t olen;
 
