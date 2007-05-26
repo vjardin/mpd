@@ -77,8 +77,8 @@
 #define L2TP_REPLY_TIMEOUT	60
 
 /* Linger time for dying tunnels and sessions */
-#define L2TP_CTRL_DEATH_TIMEOUT	31
-#define L2TP_SESS_DEATH_TIMEOUT	31
+#define L2TP_CTRL_DEATH_TIMEOUT	11
+#define L2TP_SESS_DEATH_TIMEOUT	11
 
 #define LOG_ERR		LG_ERR
 #define LOG_WARNING	LG_PHYS2
