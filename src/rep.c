@@ -217,6 +217,21 @@ RepDown(PhysInfo p)
 }
 
 /*
+ * RepSetAccm()
+ */
+
+void
+RepSetAccm(PhysInfo p, u_int32_t accm) {
+    Rep r = p->rep;
+    int n = (r->physes[0] == p)?0:1;
+    
+    Log(LG_REP, ("[%s] REP: SetAccm(0x%08x) from %s (%d)",
+	r->name, accm, p->name, n));
+
+    PhysSetAccm(r->physes[1-n], accm);
+}
+
+/*
  * RepGetHook()
  */
 

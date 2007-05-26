@@ -47,6 +47,7 @@
   extern void	RepShutdown(Rep r);
 
   extern void	RepIncoming(PhysInfo p);
+  extern void	RepSetAccm(PhysInfo p, u_int32_t accm); /* Set async accm */
   extern void	RepUp(PhysInfo p);
   extern void	RepDown(PhysInfo p);
   extern int	RepGetHook(PhysInfo p, char *path, char *hook);

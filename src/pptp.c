@@ -109,6 +109,7 @@
   static void	PptpDoClose(PhysInfo p);
   static void	PptpKillNode(PhysInfo p);
   static void	PptpResult(void *cookie, const char *errmsg);
+  static void	PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra);
   static void	PptpCancel(void *cookie);
   static int	PptpHookUp(PhysInfo p);
 
@@ -292,7 +293,7 @@ PptpOriginate(PhysInfo p)
   memset(&linfo, 0, sizeof(linfo));
   linfo.cookie = p;
   linfo.result = PptpResult;
-  linfo.setLinkInfo = NULL;
+  linfo.setLinkInfo = PptpSetLinkInfo;
   linfo.cancel = PptpCancel;
   strlcpy(pptp->callingnum, pptp->conf.callingnum, sizeof(pptp->callingnum));
   strlcpy(pptp->callednum, pptp->conf.callednum, sizeof(pptp->callednum));
@@ -563,6 +564,28 @@ PptpResult(void *cookie, const char *errmsg)
 }
 
 /*
+ * PptpSetLinkInfo()
+ *
+ * Received LinkInfo from peer;
+ */
+
+void
+PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra)
+{
+    PhysInfo 	p;
+
+    /* It this fake call? */
+    if (!cookie)
+	    return;
+
+    p = (PhysInfo)cookie;
+
+    if (p->rep != NULL) {
+	    RepSetAccm(p, sa);
+    }
+};
+
+/*
  * PptpHookUp()
  *
  * Connect the PPTP/GRE node to the PPP node
@@ -767,7 +790,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 
   linfo.cookie = NULL;
   linfo.result = PptpResult;
-  linfo.setLinkInfo = NULL;
+  linfo.setLinkInfo = PptpSetLinkInfo;
   linfo.cancel = PptpCancel;
 
   if (gShutdownInProgress) {

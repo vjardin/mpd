@@ -134,6 +134,7 @@
   static ppp_l2tp_initiated_t		ppp_l2tp_initiated_cb;
   static ppp_l2tp_connected_t		ppp_l2tp_connected_cb;
   static ppp_l2tp_terminated_t		ppp_l2tp_terminated_cb;
+  static ppp_l2tp_set_link_info_t	ppp_l2tp_set_link_info_cb;
 
   static const struct ppp_l2tp_ctrl_cb ppp_l2tp_server_ctrl_cb = {
 	ppp_l2tp_ctrl_connected_cb,
@@ -142,7 +143,7 @@
 	ppp_l2tp_initiated_cb,
 	ppp_l2tp_connected_cb,
 	ppp_l2tp_terminated_cb,
-	NULL,
+	ppp_l2tp_set_link_info_cb,
 	NULL,
   };
 
@@ -955,6 +956,20 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	pi->callingnum[0]=0;
 	pi->callednum[0]=0;
 }
+
+/*
+ * This callback called on receiving link info from peer.
+ */
+void
+ppp_l2tp_set_link_info_cb(struct ppp_l2tp_sess *sess,
+			u_int32_t xmit, u_int32_t recv)
+{
+	PhysInfo p = ppp_l2tp_sess_get_cookie(sess);
+
+	if (p->rep != NULL) {
+		RepSetAccm(p, xmit);
+	}
+};
 
 /*
  * Read an incoming packet that might be a new L2TP connection.
