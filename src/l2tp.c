@@ -78,6 +78,7 @@
     u_char		opened:1;	/* PPPoE opened by phys */
     u_char		incoming:1;	/* Call is incoming vs. outgoing */
     u_char		outcall:1;	/* incall or outcall */
+    u_char		sync:1;		/* aync or async call */
     char		callingnum[64];	/* current L2TP phone number */
     char		callednum[64];	/* current L2TP phone number */
     struct l2tp_server	*server;	/* server associated with link */
@@ -114,6 +115,7 @@
   static void	L2tpShutdown(PhysInfo p);
   static void	L2tpStat(Context ctx);
   static int	L2tpOriginated(PhysInfo p);
+  static int	L2tpIsSync(PhysInfo p);
   static int	L2tpSetAccm(PhysInfo p, u_int32_t accm);
   static int	L2tpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCallingNum(PhysInfo p, void *buf, int buf_len);
@@ -154,7 +156,6 @@
 
   const struct phystype	gL2tpPhysType = {
     .name		= "l2tp",
-    .synchronous	= TRUE,
     .minReopenDelay	= L2TP_REOPEN_PAUSE,
     .mtu		= L2TP_MTU,
     .mru		= L2TP_MRU,
@@ -164,6 +165,7 @@
     .shutdown		= L2tpShutdown,
     .showstat		= L2tpStat,
     .originate		= L2tpOriginated,
+    .issync		= L2tpIsSync,
     .setaccm 		= L2tpSetAccm,
     .setcallingnum	= L2tpSetCallingNum,
     .setcallednum	= L2tpSetCalledNum,
@@ -281,8 +283,31 @@ L2tpOpen(PhysInfo p)
 		Log(LG_PHYS2, ("[%s] L2tpOpen() on incoming call", p->name));
 		if (p->state==PHYS_STATE_READY) {
 		    p->state = PHYS_STATE_UP;
-		    if (pi->outcall)
-			ppp_l2tp_connected(pi->sess, NULL);
+		    if (pi->outcall) {
+			if (p->rep) {
+			    if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
+				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
+				    p->name, strerror(errno)));
+			    } else {
+				uint32_t fr;
+				if (RepIsSync(p)) {
+					fr = htonl(L2TP_FRAMING_SYNC);
+				} else {
+					fr = htonl(L2TP_FRAMING_ASYNC);
+				}
+				if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
+	        		    &fr, sizeof(fr)) == -1) {
+					Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+					    p->name, strerror(errno)));
+				}
+			    }
+			} else {
+			    avps = NULL;
+			}
+			ppp_l2tp_connected(pi->sess, avps);
+			if (avps)
+			    ppp_l2tp_avp_list_destroy(&avps);
+		    }
 		    L2tpHookUpIncoming(p);
 		    PhysUp(p);
 		}
@@ -357,8 +382,31 @@ L2tpOpen(PhysInfo p)
 			pi->sess = sess;
 			pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 			ppp_l2tp_sess_set_cookie(sess, p);
-			if (!pi->outcall)
-			    ppp_l2tp_connected(sess, NULL);
+			if (!pi->outcall) {
+			    if (p->rep) {
+				if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
+				    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
+					p->name, strerror(errno)));
+				} else {
+				    uint32_t fr;
+				    if (RepIsSync(p)) {
+					fr = htonl(L2TP_FRAMING_SYNC);
+				    } else {
+					fr = htonl(L2TP_FRAMING_ASYNC);
+				    }
+				    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
+	        			&fr, sizeof(fr)) == -1) {
+					    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+						p->name, strerror(errno)));
+				    }
+				}
+			    } else {
+				avps = NULL;
+			    }
+			    ppp_l2tp_connected(pi->sess, avps);
+			    if (avps)
+				ppp_l2tp_avp_list_destroy(&avps);
+			}
 		    } /* Else wait while it will be connected */
 		    return;
 	    }
@@ -608,6 +656,18 @@ L2tpOriginated(PhysInfo p)
   return(l2tp->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
 }
 
+/*
+ * L2tpIsSync()
+ */
+
+static int
+L2tpIsSync(PhysInfo p)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) p->info;
+
+    return (l2tp->sync);
+}
+
 static int
 L2tpSetAccm(PhysInfo p, u_int32_t accm)
 {
@@ -780,8 +840,31 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 		pi->sess = sess;
 		pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 		ppp_l2tp_sess_set_cookie(sess, p);
-		if (!pi->outcall)
-		    ppp_l2tp_connected(sess, NULL);
+		if (!pi->outcall) {
+		    if (p->rep) {
+			if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
+			    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
+				p->name, strerror(errno)));
+			} else {
+			    uint32_t fr;
+			    if (RepIsSync(p)) {
+				fr = htonl(L2TP_FRAMING_SYNC);
+			    } else {
+				fr = htonl(L2TP_FRAMING_ASYNC);
+			    }
+			    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
+	        		&fr, sizeof(fr)) == -1) {
+				    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+					p->name, strerror(errno)));
+			    }
+			}
+		    } else {
+			avps = NULL;
+		    }
+		    ppp_l2tp_connected(pi->sess, avps);
+		    if (avps)
+			ppp_l2tp_avp_list_destroy(&avps);
+		}
 	};
 }
 
@@ -924,11 +1007,24 @@ ppp_l2tp_connected_cb(struct ppp_l2tp_sess *sess,
 {
 	PhysInfo p;
 	L2tpInfo pi;
+	struct ppp_l2tp_avp_ptrs *ptrs = NULL;
 
 	p = ppp_l2tp_sess_get_cookie(sess);
 	pi = (L2tpInfo)p->info;
 
 	Log(LG_PHYS, ("[%s] L2TP: call %p connected", p->name, sess));
+
+	/* Convert AVP's to friendly form */
+	if ((ptrs = ppp_l2tp_avp_list2ptrs(avps)) == NULL) {
+		Log(LG_ERR, ("L2TP: error decoding AVP list: %s", strerror(errno)));
+	} else {
+		if (ptrs->framing && ptrs->framing->sync) {
+			pi->sync = 1;
+		} else {
+			pi->sync = 0;
+		}
+		ppp_l2tp_avp_ptrs_destroy(&ptrs);
+	}
 
 	if (pi->opened) {
 	    p->state = PHYS_STATE_UP;

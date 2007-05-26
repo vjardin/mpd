@@ -81,6 +81,7 @@ static void	TcpClose(PhysInfo p);
 static void	TcpShutdown(PhysInfo p);
 static void	TcpStat(Context ctx);
 static int	TcpOriginate(PhysInfo p);
+static int	TcpIsSync(PhysInfo p);
 static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
 static int	TcpCallingNum(PhysInfo p, void *buf, int buf_len);
 static int	TcpCalledNum(PhysInfo p, void *buf, int buf_len);
@@ -97,7 +98,6 @@ static int	TcpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
 const struct phystype gTcpPhysType = {
 	.name		= "tcp",
-	.synchronous	= TRUE,
 	.minReopenDelay	= TCP_REOPEN_PAUSE,
 	.mtu		= TCP_MTU,
 	.mru		= TCP_MRU,
@@ -107,6 +107,7 @@ const struct phystype gTcpPhysType = {
 	.shutdown	= TcpShutdown,
 	.showstat	= TcpStat,
 	.originate	= TcpOriginate,
+	.issync		= TcpIsSync,
 	.peeraddr	= TcpPeerAddr,
 	.callingnum	= TcpCallingNum,
 	.callednum	= TcpCalledNum,
@@ -576,6 +577,16 @@ TcpOriginate(PhysInfo p)
 	TcpInfo const pi = (TcpInfo) p->info;
 
 	return (pi->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+}
+
+/*
+ * TcpIsSync()
+ */
+
+static int
+TcpIsSync(PhysInfo p)
+{
+	return (1);
 }
 
 static int

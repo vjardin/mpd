@@ -53,6 +53,7 @@
   static void	NgClose(PhysInfo p);
   static void	NgStat(Context ctx);
   static int	NgSetCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	NgIsSync(PhysInfo p);
   static int	NgPeerAddr(PhysInfo p, void *buf, int buf_len);
 
 /*
@@ -61,7 +62,6 @@
 
   const struct phystype gNgPhysType = {
     .name		= "ng",
-    .synchronous	= TRUE,
     .minReopenDelay	= NG_REOPEN_PAUSE,
     .mtu		= NG_MTU,
     .mru		= NG_MRU,
@@ -69,6 +69,7 @@
     .open		= NgOpen,
     .close		= NgClose,
     .showstat		= NgStat,
+    .issync		= NgIsSync,
     .peeraddr		= NgPeerAddr,
     .callingnum		= NULL,
     .callednum		= NULL,
@@ -213,6 +214,16 @@ NgSetCommand(Context ctx, int ac, char *av[], void *arg)
       assert(0);
   }
   return(0);
+}
+
+/*
+ * NgIsSync()
+ */
+
+static int
+NgIsSync(PhysInfo p)
+{
+	return (1);
 }
 
 /*

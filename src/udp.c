@@ -81,6 +81,7 @@ enum {
   static void	UdpClose(PhysInfo p);
   static void	UdpStat(Context ctx);
   static int	UdpOrigination(PhysInfo p);
+  static int	UdpIsSync(PhysInfo p);
   static int	UdpPeerAddr(PhysInfo p, void *buf, int buf_len);
   static int	UdpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	UdpCalledNum(PhysInfo p, void *buf, int buf_len);
@@ -94,7 +95,6 @@ enum {
 
   const struct phystype gUdpPhysType = {
     .name		= "udp",
-    .synchronous	= TRUE,
     .minReopenDelay	= UDP_REOPEN_PAUSE,
     .mtu		= UDP_MTU,
     .mru		= UDP_MRU,
@@ -103,6 +103,7 @@ enum {
     .close		= UdpClose,
     .showstat		= UdpStat,
     .originate		= UdpOrigination,
+    .issync		= UdpIsSync,
     .peeraddr		= UdpPeerAddr,
     .callingnum		= UdpCallingNum,
     .callednum		= UdpCalledNum,
@@ -354,6 +355,16 @@ UdpOrigination(PhysInfo p)
   UdpInfo	const pi = (UdpInfo) p->info;
 
   return (pi->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+}
+
+/*
+ * UdpIsSync()
+ */
+
+static int
+UdpIsSync(PhysInfo p)
+{
+  return (1);
 }
 
 static int

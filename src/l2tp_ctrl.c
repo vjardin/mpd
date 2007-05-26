@@ -568,7 +568,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	}
 	if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
 	    0, AVP_FRAMING_CAPABILITIES)) == -1) {
-		const u_int32_t value = htonl(L2TP_FRAMING_SYNC);
+		const u_int32_t value = htonl(L2TP_FRAMING_SYNC|L2TP_FRAMING_ASYNC);
 
 		if (ppp_l2tp_avp_list_append(ctrl->avps, 1,
 		    0, AVP_FRAMING_CAPABILITIES, &value, sizeof(value)) == -1)

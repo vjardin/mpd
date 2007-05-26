@@ -117,6 +117,7 @@ static void	PppoeConnectTimeout(void *arg);
 static void	PppoeStat(Context ctx);
 static int	PppoeSetCommand(Context ctx, int ac, char *av[], void *arg);
 static int	PppoeOriginated(PhysInfo p);
+static int	PppoeIsSync(PhysInfo p);
 static void	PppoeNodeUpdate(PhysInfo p);
 static void	PppoeListenUpdate(void *arg);
 
@@ -126,7 +127,6 @@ static void	PppoeListenUpdate(void *arg);
 
 const struct phystype gPppoePhysType = {
     .name		= "pppoe",
-    .synchronous	= TRUE,
     .minReopenDelay 	= PPPOE_REOPEN_PAUSE,
     .mtu		= PPPOE_MTU,
     .mru		= PPPOE_MRU,
@@ -136,6 +136,7 @@ const struct phystype gPppoePhysType = {
     .shutdown		= PppoeShutdown,
     .showstat		= PppoeStat,
     .originate		= PppoeOriginated,
+    .issync		= PppoeIsSync,
     .peeraddr		= PppoePeerAddr,
     .callingnum		= PppoeCallingNum,
     .callednum		= PppoeCalledNum,
@@ -520,6 +521,15 @@ PppoeOriginated(PhysInfo p)
 	PppoeInfo      const pppoe = (PppoeInfo)p->info;
 
 	return (pppoe->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+}
+
+/*
+ * PppoeIsSync()
+ */
+static int
+PppoeIsSync(PhysInfo p)
+{
+	return (1);
 }
 
 static int

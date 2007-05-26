@@ -30,7 +30,6 @@
 
   struct phystype {
     const char	*name;				/* Name of device type */
-    u_char	synchronous:1;			/* Link is synchronous */
     short	minReopenDelay;			/* Min seconds between opens */
     u_short	mtu, mru;			/* Not incl. addr/ctrl/fcs */
     int		(*init)(PhysInfo p);		/* Initialize device info */
@@ -40,6 +39,7 @@
     void	(*shutdown)(PhysInfo p);	/* Destroy all nodes */
     void	(*showstat)(Context ctx);	/* Shows type specific stats */
     int		(*originate)(PhysInfo p);	/* We originated connection? */
+    int		(*issync)(PhysInfo p);		/* Link is synchronous */
     int		(*setaccm)(PhysInfo p, u_int32_t accm);	/* Set async accm */
     int		(*setcallingnum)(PhysInfo p, void *buf); 
 						/* sets the calling number */
@@ -100,6 +100,7 @@
   extern void		PhysShutdown(PhysInfo p);
   extern void		PhysSetDeviceType(PhysInfo p, char *typename);
   extern int		PhysGetOriginate(PhysInfo p);
+  extern int		PhysIsSync(PhysInfo p);
   extern int		PhysCommand(Context ctx, int ac, char *av[], void *arg);
   extern int		PhysStat(Context ctx, int ac, char *av[], void *arg);
 

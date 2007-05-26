@@ -580,7 +580,7 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
     cp = FsmConfValue(cp, TY_ACFCOMP, 0, NULL);
   if (lcp->want_protocomp && !LCP_PEER_REJECTED(lcp, TY_PROTOCOMP))
     cp = FsmConfValue(cp, TY_PROTOCOMP, 0, NULL);
-  if (l->phys->type && (!l->phys->type->synchronous)) {
+  if (!PhysIsSync(l->phys)) {
     if (!LCP_PEER_REJECTED(lcp, TY_ACCMAP))
       cp = FsmConfValue(cp, TY_ACCMAP, -4, &lcp->want_accmap);
   }

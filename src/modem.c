@@ -107,6 +107,7 @@
   static int		ModemSetAccm(PhysInfo p, u_int32_t accm);
   static void		ModemStat(Context ctx);
   static int		ModemOriginated(PhysInfo p);
+  static int		ModemIsSync(PhysInfo p);
   static int		ModemPeerAddr(PhysInfo p, void *buf, int buf_len);
 
   static void		ModemStart(void *arg);
@@ -136,7 +137,6 @@
 
   const struct phystype gModemPhysType = {
     .name		= "modem",
-    .synchronous	= FALSE,
     .minReopenDelay	= MODEM_REOPEN_PAUSE,
     .mtu		= MODEM_MTU,
     .mru		= MODEM_MRU,
@@ -145,6 +145,7 @@
     .close		= ModemClose,
     .showstat		= ModemStat,
     .originate		= ModemOriginated,
+    .issync		= ModemIsSync,
     .setaccm 		= ModemSetAccm,
     .peeraddr		= ModemPeerAddr,
     .callingnum		= NULL,
@@ -906,6 +907,16 @@ ModemOriginated(PhysInfo p)
   ModemInfo	const m = (ModemInfo) p->info;
 
   return(m->originated ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
+}
+
+/*
+ * ModemIsSync()
+ */
+
+static int
+ModemIsSync(PhysInfo p)
+{
+  return (0);
 }
 
 /* XXX mbretter: the phone-number would be correct */

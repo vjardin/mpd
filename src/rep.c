@@ -217,6 +217,18 @@ RepDown(PhysInfo p)
 }
 
 /*
+ * RepIsSync()
+ */
+
+int
+RepIsSync(PhysInfo p) {
+    Rep r = p->rep;
+    int n = (r->physes[0] == p)?0:1;
+    
+    return (PhysIsSync(r->physes[1-n]));
+}
+
+/*
  * RepSetAccm()
  */
 

@@ -269,6 +269,20 @@ PhysGetOriginate(PhysInfo p)
 }
 
 /*
+ * PhysIsSync()
+ *
+ * This returns 1 if link is synchronous
+ */
+
+int
+PhysIsSync(PhysInfo p)
+{
+  PhysType	const pt = p->type;
+
+  return((pt && pt->issync) ? (*pt->issync)(p) : 0);
+}
+
+/*
  * PhysSetCalledNum()
  */
 

@@ -98,6 +98,7 @@
   static void	PptpShutdown(PhysInfo p);
   static void	PptpStat(Context ctx);
   static int	PptpOriginated(PhysInfo p);
+  static int	PptpIsSync(PhysInfo p);
   static int	PptpSetCallingNum(PhysInfo p, void *buf);
   static int	PptpSetCalledNum(PhysInfo p, void *buf);
   static int	PptpPeerAddr(PhysInfo p, void *buf, int buf_len);
@@ -139,7 +140,6 @@
 
   const struct phystype	gPptpPhysType = {
     .name		= "pptp",
-    .synchronous	= TRUE,
     .minReopenDelay	= PPTP_REOPEN_PAUSE,
     .mtu		= PPTP_MTU,
     .mru		= PPTP_MRU,
@@ -149,6 +149,7 @@
     .shutdown		= PptpShutdown,
     .showstat		= PptpStat,
     .originate		= PptpOriginated,
+    .issync		= PptpIsSync,
     .setcallingnum	= PptpSetCallingNum,
     .setcallednum	= PptpSetCalledNum,
     .peeraddr		= PptpPeerAddr,
@@ -398,6 +399,16 @@ PptpOriginated(PhysInfo p)
   PptpInfo	const pptp = (PptpInfo) p->info;
 
   return(pptp->originate ? LINK_ORIGINATE_LOCAL : LINK_ORIGINATE_REMOTE);
+}
+
+/*
+ * PptpIsSync()
+ */
+
+static int
+PptpIsSync(PhysInfo p)
+{
+  return (1);
 }
 
 static int
