@@ -63,7 +63,7 @@
 
 /* Retransmit timeout parameters */
 #define L2TP_REXMIT_MAX		8
-#define L2TP_REXMIT_MAX_TO	20
+#define L2TP_REXMIT_MAX_TO	10
 
 #define L2TP_CHALLENGE_LEN	16
 
