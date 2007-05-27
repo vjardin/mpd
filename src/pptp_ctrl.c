@@ -918,7 +918,7 @@ abort:
 
     memset(&msg, 0, sizeof(msg));
     msg.vers = PPTP_PROTO_VERS;
-    msg.frameCap = PPTP_FRAMECAP_SYNC;
+    msg.frameCap = PPTP_FRAMECAP_ANY;
     msg.bearCap = PPTP_BEARCAP_ANY;
     msg.firmware = PPTP_FIRMWARE_REV;
     gethostname(msg.host, sizeof(msg.host));
@@ -1963,7 +1963,7 @@ reply:
   /* Initialize reply */
   memset(&reply, 0, sizeof(reply));
   reply.vers = PPTP_PROTO_VERS;
-  reply.frameCap = PPTP_FRAMECAP_SYNC;
+  reply.frameCap = PPTP_FRAMECAP_ANY;
   reply.bearCap = PPTP_BEARCAP_ANY;
   reply.firmware = PPTP_FIRMWARE_REV;
   reply.result = PPTP_SCCR_RESL_OK;

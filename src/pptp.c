@@ -311,7 +311,7 @@ PptpOriginate(PhysInfo p)
   } else {
     cinfo = PptpCtrlOutCall(linfo, 
       &pptp->conf.self_addr, &pptp->conf.peer_addr_req.addr, port,
-      PPTP_BEARCAP_ANY, PPTP_FRAMECAP_SYNC,
+      PPTP_BEARCAP_ANY, PPTP_FRAMECAP_ANY,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS,
       pptp->callednum, "");
   }
