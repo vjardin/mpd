@@ -30,10 +30,8 @@
 
   #define NG_REOPEN_PAUSE	5
 
-  #define MAX_PATH		64	/* XXX should be NG_PATHLEN */
-
   struct nginfo {
-    char	path[MAX_PATH + 1];	/* Node that takes PPP frames */
+    char	path[NG_PATHLEN + 1];	/* Node that takes PPP frames */
     char	hook[NG_HOOKLEN + 1];	/* Hook on that node */
   };
   typedef struct nginfo	*NgInfo;
