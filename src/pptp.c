@@ -852,9 +852,13 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 
       /* Link is feasible; now see if it's preferable */
       if (!pi || pi2->conf.peer_addr_req.width > pi->conf.peer_addr_req.width) {
-	p = p2;
-	pi = pi2;
-	break;
+	    p = p2;
+	    pi = pi2;
+	    if ((pi2->conf.peer_addr_req.addr.family==AF_INET && 
+		pi2->conf.peer_addr_req.width == 32) ||
+		pi2->conf.peer_addr_req.width == 128) {
+		    break;	/* Nothing could be better */
+	    }
       }
     }
   }
