@@ -143,7 +143,6 @@
     int			sock;
     EventRef		retry;
     EventRef		event;
-    int			allowMultiple;
   };
   typedef struct pptplis	*PptpLis;
 
@@ -524,7 +523,7 @@ PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink)
  */
 
 void *
-PptpCtrlListen(struct u_addr *ip, in_port_t port, int allow_multiple)
+PptpCtrlListen(struct u_addr *ip, in_port_t port)
 {
     char	buf[64];
     PptpLis	l;
@@ -557,7 +556,6 @@ PptpCtrlListen(struct u_addr *ip, in_port_t port, int allow_multiple)
     l->ref = 1;
     l->self_addr = *ip;
     l->self_port = port;
-    l->allowMultiple = allow_multiple;
     if ((l->sock = TcpGetListenPort(ip, port, FALSE)) < 0) {
         if (errno == EADDRINUSE || errno == EADDRNOTAVAIL) {
 	    EventRegister(&l->retry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
@@ -1175,15 +1173,9 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
 
     if (c != NULL
 	&& (u_addrcompare(&c->peer_addr, peer_addr) == 0)
-	&& c->peer_port == peer_port
+	&& (c->peer_port == peer_port || c->orig != orig)
 	&& (u_addrempty(self_addr) || (u_addrcompare(&c->self_addr, self_addr) == 0))) {
-      if (orig)
-	return(c);
-      else {
-	snprintf(buf, bsiz, "pptp: connection to %s %u already exists",
-	  u_addrtoa(peer_addr, buf1, sizeof(buf1)), peer_port);
-	return(NULL);
-      }
+	    return(c);
     }
   }
 
@@ -1951,35 +1943,6 @@ PptpStartCtrlConnRequest(PptpCtrl c, struct pptpStartCtrlConnRequest *req)
 {
   struct pptpStartCtrlConnReply	reply;
 
-#if 0
-  int				k;
-  char				buf[64];
-
-  /* Are we allowing multiple connections from the same IP address? */
-  if (gAllowMultiple)
-    goto reply;
-
-  /* Check for a collision */
-  for (k = 0; k < gNumPptpCtrl; k++) {
-    PptpCtrl	const c2 = gPptpCtrl[k];
-    int		iwin;
-
-    if (c2 == NULL
-	|| c2 == c
-	|| u_addrcompare(&c2->self_addr, &c->self_addr)
-	|| u_addrcompare(&c2->peer_addr, &c->peer_addr))
-      continue;
-    iwin = (u_addrcompare(&c->self_addr, &c->peer_addr)>0)?1:0;
-    Log(LG_PPTP, ("pptp%d: collision with %s! %s",
-      c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), iwin ? "i win" : "peer wins"));
-    if (iwin)
-      goto abort;		/* Kill this peer-initiated connection */
-    else
-      PptpCtrlKillCtrl(c2);	/* Kill the connection that I initiated */
-  }
-
-reply:
-#endif /* 0 */
   /* Initialize reply */
   memset(&reply, 0, sizeof(reply));
   reply.vers = PPTP_PROTO_VERS;
@@ -2005,7 +1968,6 @@ reply:
     reply.result = PPTP_SCCR_RESL_VERS;
     if (PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply) == -1)
 	return;
-abort:
     PptpCtrlKillCtrl(c);
     return;
   }

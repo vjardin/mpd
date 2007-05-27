@@ -921,30 +921,14 @@ static void
 PptpListenUpdate(PhysInfo p)
 {
     PptpInfo	pi = (PptpInfo) p->info;
-    int		allow_multiple = 1;
 
-  /* Examine all PPTP links */
-/*  for (k = 0; k < gNumPhyses; k++) {
-    if (gPhyses[k] && gPhyses[k]->type == &gPptpPhysType) {
-      PptpInfo	const p = (PptpInfo)gPhyses[k]->info;
-
-      if (Enabled(&p->conf.options, PPTP_CONF_INCOMING)) {
-	    allow_incoming = 1;
-	    pi = p;
-      }
-      if (Enabled(&p->conf.options, PPTP_CONF_ORIGINATE)
-	  && u_rangeempty(&p->conf.peer_addr_req))
-	allow_multiple = 0;
-    }
-  }
-*/
     if (pi->listener == NULL) {
 	if (Enabled(&pi->conf.options, PPTP_CONF_INCOMING)) {
 	    char	buf[64];
 
 	    /* Set up listening for incoming connections */
 	    if ((pi->listener = 
-		PptpCtrlListen(&pi->conf.self_addr, pi->conf.self_port, allow_multiple))
+		PptpCtrlListen(&pi->conf.self_addr, pi->conf.self_port))
 		    != NULL) {
 		Log(LG_PHYS, ("PPTP: waiting for connection on %s",
 		    u_addrtoa(&pi->conf.self_addr, buf, sizeof(buf))));

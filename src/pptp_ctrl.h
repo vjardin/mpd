@@ -407,8 +407,7 @@
   extern int			PptpCtrlInit(PptpGetInLink_t getInLink,
 				  PptpGetOutLink_t getOutLink);
 
-  extern void*			PptpCtrlListen(struct u_addr *ip, in_port_t port,
-				  int allow_multiple);
+  extern void*			PptpCtrlListen(struct u_addr *ip, in_port_t port);
   extern void			PptpCtrlUnListen(void *listener);
 
   extern struct pptpctrlinfo	PptpCtrlInCall(struct pptplinkinfo linfo,
