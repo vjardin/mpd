@@ -183,6 +183,7 @@
   static void	PptpCtrlKillChan(PptpChan ch, const char *errmsg);
   static void	PptpCtrlDialResult(void *cookie,
 		  int result, int error, int cause, int speed);
+  static void	PptpCtrlConected(void *cookie, int speed);
   static void	PptpCtrlSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra);
 
   /* Internal event handlers */
@@ -1291,6 +1292,30 @@ PptpCtrlDialResult(void *cookie, int result, int error, int cause, int speed)
   PptpCtrlWriteMsg(c, PPTP_OutCallReply, &rep);
 }
 
+/*
+ * PptpCtrlConected()
+ *
+ * Link layer calls this to let us know whether an incoming call
+ * has been successfully connected.
+ */
+
+static void
+PptpCtrlConected(void *cookie, int speed)
+{
+  PptpChan			const ch = (PptpChan) cookie;
+  PptpCtrl			const c = ch->ctrl;
+  struct pptpInCallConn con;
+  
+  /* Send back connected message */
+  memset(&con, 0, sizeof(con));
+  con.peerCid = ch->peerCid;
+  con.speed = speed;
+  con.recvWin = PPTP_RECV_WIN;		/* XXX */
+  con.ppd = PPTP_PPD;			/* XXX */
+  con.frameType = ch->frameType;
+  PptpCtrlWriteMsg(c, PPTP_InCallConn, &con);
+}
+
 static void
 PptpCtrlSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra)
 {
@@ -1927,6 +1952,7 @@ PptpCtrlInitCinfo(PptpChan ch, PptpCtrlInfo ci)
   ci->peer_port = c->peer_port;
   ci->close =(void (*)(void *, int, int, int)) PptpCtrlCloseChan;
   ci->answer = (void (*)(void *, int, int, int, int)) PptpCtrlDialResult;
+  ci->connected = PptpCtrlConected;
   ci->setLinkInfo = PptpCtrlSetLinkInfo;
 }
 
@@ -2256,7 +2282,6 @@ static void
 PptpInCallReply(PptpChan ch, struct pptpInCallReply *reply)
 {
   PptpCtrl		const c = ch->ctrl;
-  struct pptpInCallConn	con;
 
   /* Did call go through? */
   if (reply->result != PPTP_ICR_RESL_OK) {
@@ -2279,15 +2304,6 @@ PptpInCallReply(PptpChan ch, struct pptpInCallReply *reply)
   ch->recvWin = reply->recvWin;
   PptpCtrlNewChanState(ch, PPTP_CHAN_ST_ESTABLISHED);
   (*ch->linfo.result)(ch->linfo.cookie, NULL, ch->frameType);
-
-  /* Send back connected message */
-  memset(&con, 0, sizeof(con));
-  con.peerCid = reply->cid;
-  con.speed = 64000;			/* XXX */
-  con.recvWin = PPTP_RECV_WIN;		/* XXX */
-  con.ppd = PPTP_PPD;			/* XXX */
-  con.frameType = ch->frameType;
-  PptpCtrlWriteMsg(c, PPTP_InCallConn, &con);
 }
 
 /*

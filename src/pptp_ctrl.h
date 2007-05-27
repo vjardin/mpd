@@ -383,6 +383,7 @@
     in_port_t		peer_port;
     void		(*close)(void *cookie, int result, int err, int cause);
     void		(*answer)(void *cookie, int rs, int er, int cs, int sp);
+    void		(*connected)(void *cookie, int sp);
     void		(*setLinkInfo)(void *cookie, u_int32_t sa, u_int32_t ra);
   };
   typedef struct pptpctrlinfo	*PptpCtrlInfo;

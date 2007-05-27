@@ -52,7 +52,7 @@
 	char		callednum[64];	/* PPTP phone number to use */
     } conf;
     u_char		originate:1;	/* Call originated locally */
-    u_char		incoming:1;	/* Call is incoming vs. outgoing */
+    u_char		outcall:1;	/* Call is outgoing vs. incoming */
     u_char		sync:1;		/* Call is sync vs. async */
     void		*listener;	/* Listener pointer */
     struct u_addr	self_addr;	/* Current self IP address */
@@ -250,7 +250,7 @@ PptpOpen(PhysInfo p)
     case PHYS_STATE_CONNECTING:
       if (pptp->originate)	/* our call to peer is already in progress */
 	break;
-      if (!pptp->incoming) {
+      if (pptp->outcall) {
 
 	/* Hook up nodes */
 	Log(LG_PHYS, ("[%s] PPTP: attaching to peer's outgoing call", p->name));
@@ -293,7 +293,7 @@ PptpOriginate(PhysInfo p)
 			  pptp->conf.peer_port_req : PPTP_PORT;
 
   pptp->originate = TRUE;
-  pptp->incoming = !Enabled(&pptp->conf.options, PPTP_CONF_OUTCALL);
+  pptp->outcall = Enabled(&pptp->conf.options, PPTP_CONF_OUTCALL);
   memset(&linfo, 0, sizeof(linfo));
   linfo.cookie = p;
   linfo.result = PptpResult;
@@ -301,7 +301,7 @@ PptpOriginate(PhysInfo p)
   linfo.cancel = PptpCancel;
   strlcpy(pptp->callingnum, pptp->conf.callingnum, sizeof(pptp->callingnum));
   strlcpy(pptp->callednum, pptp->conf.callednum, sizeof(pptp->callednum));
-  if (pptp->incoming) {
+  if (!pptp->outcall) {
     int frameType = PPTP_FRAMECAP_SYNC;
     if (p->rep && !RepIsSync(p))
 	    frameType = PPTP_FRAMECAP_ASYNC;
@@ -562,6 +562,9 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 	  PptpDoClose(p); /* We should not set state=DOWN as PptpResult() will be called once more */
 	  break;
 	}
+
+	if (pptp->originate && !pptp->outcall)
+		(*pptp->cinfo.connected)(pptp->cinfo.cookie, 64000 /*XXX*/ );
 
 	/* OK */
 	p->state = PHYS_STATE_UP;
@@ -871,7 +874,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   p->state = PHYS_STATE_CONNECTING;
   pi->cinfo = *cinfo;
   pi->originate = FALSE;
-  pi->incoming = incoming;
+  pi->outcall = !incoming;
   pi->sync = 1;
   pi->self_addr = *self;
   pi->peer_addr = *peer;
