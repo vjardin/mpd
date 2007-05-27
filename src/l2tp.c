@@ -444,7 +444,7 @@ L2tpOpen(PhysInfo p)
 
 	/* Create a new control connection */
 	if ((tun->ctrl = ppp_l2tp_ctrl_create(gPeventCtx, &gGiantMutex,
-	    &ppp_l2tp_server_ctrl_cb, 0,//XXX: ntohl(peer_sin.sin_addr.s_addr),
+	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
 	    pi->conf.secret, strlen(pi->conf.secret))) == NULL) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_ctrl_create: %s", 
@@ -1203,7 +1203,7 @@ L2tpServerEvent(int type, void *arg)
 
 	/* Create a new control connection */
 	if ((tun->ctrl = ppp_l2tp_ctrl_create(gPeventCtx, &gGiantMutex,
-	    &ppp_l2tp_server_ctrl_cb, 0,//XXX: ntohl(peer_sin.sin_addr.s_addr),
+	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
 	    s->secret, strlen(s->secret))) == NULL) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_ctrl_create: %s", strerror(errno)));

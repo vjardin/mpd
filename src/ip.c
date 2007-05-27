@@ -471,3 +471,20 @@ int u_rangecompare(struct u_range *range1, struct u_range *range2)
   return u_addrcompare(&range1->addr,&range2->addr);
 }
 
+uint32_t
+u_addrtoid(struct u_addr *addr)
+{
+    uint32_t id;
+
+    if (addr->family==AF_INET) {
+	id = ntohl(addr->u.ip4.s_addr);
+    } else if (addr->family==AF_INET6) {
+	uint32_t *a32 = (uint32_t *)(&addr->u.ip6.s6_addr[0]);
+        id = a32[0] + a32[1] + a32[2] + a32[3];
+    } else {
+	id = 0;
+    }
+
+    return (id);
+}
+

@@ -77,5 +77,7 @@
   extern int 	u_addrcompare(struct u_addr *addr1, struct u_addr *addr2);
   extern int 	u_rangecompare(struct u_range *range1, struct u_range *range2);
 
+  extern uint32_t	u_addrtoid(struct u_addr *addr);
+
 #endif
 
