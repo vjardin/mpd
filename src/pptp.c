@@ -100,6 +100,7 @@
   static void	PptpStat(Context ctx);
   static int	PptpOriginated(PhysInfo p);
   static int	PptpIsSync(PhysInfo p);
+  static int	PptpSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv);
   static int	PptpSetCallingNum(PhysInfo p, void *buf);
   static int	PptpSetCalledNum(PhysInfo p, void *buf);
   static int	PptpPeerAddr(PhysInfo p, void *buf, int buf_len);
@@ -151,6 +152,7 @@
     .showstat		= PptpStat,
     .originate		= PptpOriginated,
     .issync		= PptpIsSync,
+    .setaccm            = PptpSetAccm,
     .setcallingnum	= PptpSetCallingNum,
     .setcallednum	= PptpSetCalledNum,
     .peeraddr		= PptpPeerAddr,
@@ -416,6 +418,18 @@ PptpIsSync(PhysInfo p)
     PptpInfo	const pptp = (PptpInfo) p->info;
 
     return (pptp->sync);
+}
+
+static int
+PptpSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv)
+{
+    PptpInfo	const pptp = (PptpInfo) p->info;
+    
+    if (!pptp->cinfo.close || !pptp->cinfo.cookie)
+	    return (-1);
+
+    (*pptp->cinfo.setLinkInfo)(pptp->cinfo.cookie, xmit, recv);
+    return (0);
 }
 
 static int

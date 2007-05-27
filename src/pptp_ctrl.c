@@ -184,6 +184,7 @@
   static void	PptpCtrlKillChan(PptpChan ch, const char *errmsg);
   static void	PptpCtrlDialResult(void *cookie,
 		  int result, int error, int cause, int speed);
+  static void	PptpCtrlSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra);
 
   /* Internal event handlers */
   static void	PptpCtrlListenEvent(int type, void *cookie);
@@ -1298,6 +1299,24 @@ PptpCtrlDialResult(void *cookie, int result, int error, int cause, int speed)
   PptpCtrlWriteMsg(c, PPTP_OutCallReply, &rep);
 }
 
+static void
+PptpCtrlSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra)
+{
+  PptpChan			const ch = (PptpChan) cookie;
+  PptpCtrl			const c = ch->ctrl;
+  struct pptpSetLinkInfo	rep;
+
+  /* Only PNS should send SLI */
+  if (!PPTP_CHAN_IS_PNS(ch))
+	return;
+
+  memset(&rep, 0, sizeof(rep));
+  rep.cid = ch->peerCid;
+  rep.sendAccm = sa;
+  rep.recvAccm = ra;
+  PptpCtrlWriteMsg(c, PPTP_SetLinkInfo, &rep);
+}
+
 /*************************************************************************
 		    SHUTDOWN FUNCTIONS
 *************************************************************************/
@@ -1916,6 +1935,7 @@ PptpCtrlInitCinfo(PptpChan ch, PptpCtrlInfo ci)
   ci->peer_port = c->peer_port;
   ci->close =(void (*)(void *, int, int, int)) PptpCtrlCloseChan;
   ci->answer = (void (*)(void *, int, int, int, int)) PptpCtrlDialResult;
+  ci->setLinkInfo = PptpCtrlSetLinkInfo;
 }
 
 /*************************************************************************
