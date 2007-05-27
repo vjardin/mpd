@@ -1005,16 +1005,18 @@ ppp_l2tp_connected_cb(struct ppp_l2tp_sess *sess,
 
 	Log(LG_PHYS, ("[%s] L2TP: call %p connected", p->name, sess));
 
-	/* Convert AVP's to friendly form */
-	if ((ptrs = ppp_l2tp_avp_list2ptrs(avps)) == NULL) {
-		Log(LG_ERR, ("L2TP: error decoding AVP list: %s", strerror(errno)));
-	} else {
-		if (ptrs->framing && ptrs->framing->sync) {
-			pi->sync = 1;
+	if (!pi->incoming && avps != NULL) {
+		/* Convert AVP's to friendly form */
+		if ((ptrs = ppp_l2tp_avp_list2ptrs(avps)) == NULL) {
+			Log(LG_ERR, ("L2TP: error decoding AVP list: %s", strerror(errno)));
 		} else {
-			pi->sync = 0;
+			if (ptrs->framing && ptrs->framing->sync) {
+				pi->sync = 1;
+			} else {
+				pi->sync = 0;
+			}
+			ppp_l2tp_avp_ptrs_destroy(&ptrs);
 		}
-		ppp_l2tp_avp_ptrs_destroy(&ptrs);
 	}
 
 	if (pi->opened) {
