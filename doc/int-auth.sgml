@@ -12,8 +12,14 @@
 
 <tag>Authentication protocols - a short overview</tag>
 <p>
-Currently MPD supports these four authentication protocols: MD5-CHAP,
-MS-CHAPv1, MS-CHAPv2, and PAP.
+Currently MPD supports these authentication protocols: PAP, MD5-CHAP,
+MS-CHAPv1, MS-CHAPv2 and EAP.
+
+When using PAP, the password is sent as plaintext over the network,
+therefore PAP should be avoided, if the link between the peers is
+not secure. On the other hand, PAP allows using any kind of password
+database on the server, even if the passwords are stored in
+non-reversible hashed format.
 
 The traditional CHAP-MD5 needs the plaintext password stored on the
 server. The password hash is computed like this: md5(id + password
@@ -31,12 +37,6 @@ use it! MS-CHAPv2 uses a peer challenge and a server
 challenge and uses SHA1 as hashing algorithm, so it's much more
 secure then MS-CHAPv1. MS-CHAPv2 requires the NT-Hash be available.
 
-When using PAP, the password is sent as plaintext over the network,
-therefore PAP should be avoided, if the link between the peers is
-not secure. On the other hand, PAP allows using any kind of password
-database on the server, even if the passwords are stored in
-non-reversible hashed format.
-
 Usualy UNIX systems have a different non-revertable hashing
 algorithm for passwords, therefore it is not possible to use the
 traditional UNIX password database if you want to use any
@@ -45,6 +45,10 @@ later support the NT-Hash format in the password database
 (configurable via login.conf: <tt>passwd_format=nth</tt>).
 However MPD doesen't currently support authentication against
 the UNIX password database.
+
+EAP is an Extensible Authentication Protocol. Mpd supports 
+natively only the EAP-Type MD5; other EAP-Types may be used 
+in conjunction with a RADIUS server.
 
 Note: in order for MPPE to work, MS-CHAPv1 or MS-CHAPv2 is
 mandatory, because the MPPE keys are generated using the results
