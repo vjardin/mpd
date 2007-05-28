@@ -104,9 +104,11 @@ Currently supported request attributes:
 USER_NAME
 USER_PASSWORD - for PAP only
 NAS_PORT
+NAS_PORT_TYPE
 CALLING_STATION_ID
 CALLED_STATION_ID
 PEER_ADDR
+PEER_PORT
 </verb>
 
 Currently supported response attributes:
