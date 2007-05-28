@@ -956,7 +956,7 @@ BundCreateCmd(Context ctx, int ac, char *av[], void *arg)
     Enable(&b->iface.options, IFACE_CONF_NETFLOW_OUT);
 
   /* Get message channel */
-  b->msgs = MsgRegister(BundMsg, 0);
+  b->msgs = MsgRegister(BundMsg);
 
   /* Initialize bundle configuration */
   b->conf.mrru = MP_DEFAULT_MRRU;

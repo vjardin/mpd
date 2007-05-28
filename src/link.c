@@ -243,7 +243,7 @@ LinkNew(char *name, Bund b, int bI)
   snprintf(lnk->name, sizeof(lnk->name), "%s", name);
   lnk->bund = b;
   lnk->bundleIndex = bI;
-  lnk->msgs = MsgRegister(LinkMsg, 0);
+  lnk->msgs = MsgRegister(LinkMsg);
 
   /* Initialize link configuration with defaults */
   lnk->conf.mru = LCP_DEFAULT_MRU;

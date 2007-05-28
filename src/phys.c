@@ -111,7 +111,7 @@ PhysInit(char *name, Link l, Rep r)
   
     strlcpy(p->name, name, sizeof(p->name));
     p->state = PHYS_STATE_DOWN;
-    p->msgs = MsgRegister(PhysMsg, 0);
+    p->msgs = MsgRegister(PhysMsg);
     p->link = l;
     p->rep = r;
 

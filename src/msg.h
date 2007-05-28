@@ -30,7 +30,7 @@
  * FUNCTIONS
  */
 
-  extern MsgHandler	MsgRegister(void (*func)(int typ, void *arg), int pri);
+  extern MsgHandler	MsgRegister(void (*func)(int typ, void *arg));
   extern void		MsgUnRegister(MsgHandler *m);
   extern void		MsgSend(MsgHandler m, int type, void *arg);
   extern const char	*MsgName(int msg);

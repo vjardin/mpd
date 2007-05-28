@@ -21,7 +21,7 @@
 
   struct mpmsg
   {
-    long	type;
+    int		type;
     void	(*func)(int type, void *arg);
     void	*arg;
   };
@@ -29,7 +29,6 @@
 
   struct msghandler
   {
-    int		prio;
     void	(*func)(int type, void *arg);
   };
 
@@ -47,12 +46,11 @@
  */
 
 MsgHandler
-MsgRegister(void (*func)(int type, void *arg), int prio)
+MsgRegister(void (*func)(int type, void *arg))
 {
   MsgHandler	m;
   
   m = Malloc(MB_UTIL, sizeof(*m));
-  m->prio = prio;
   m->func = func;
 
   if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
