@@ -27,8 +27,6 @@
  * DEFINITIONS
  */
 
-  #define BUND_MAX_SCRIPT	32
-
   /* Configuration options */
   enum {
     BUND_CONF_MULTILINK,	/* multi-link */
@@ -105,14 +103,13 @@
 
   /* Configuration for a bundle */
   struct bundconf {
-    int			mrru;			/* Initial MRU value */
+    uint16_t		mrru;			/* Initial MRU value */
     short		retry_timeout;		/* Timeout for retries */
     u_short		bm_S;			/* Bandwidth mgmt constants */
     u_short		bm_Hi;
     u_short		bm_Lo;
     u_short		bm_Mc;
     u_short		bm_Md;
-    char		script[BUND_MAX_SCRIPT];/* Link change script */
     struct optinfo	options;		/* Configured options */
   };
 
@@ -122,18 +119,14 @@
   struct bundle {
     char		name[LINK_MAX_NAME];	/* Name of this bundle */
     int			id;			/* Index of this bundle in gBundles */
-    char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq session-id */    
-    MsgHandler		msgs;			/* Bundle events */
-    char		interface[10];		/* Interface I'm using */
-    short		n_links;		/* Number of links in bundle */
+    Link		*links;			/* Real links in this bundle */
+    u_short		n_links;		/* Number of links in bundle */
     int			csock;			/* Socket node control socket */
     int			dsock;			/* Socket node data socket */
     EventRef		ctrlEvent;		/* Socket node control event */
     EventRef		dataEvent;		/* Socket node data event */
     ng_ID_t		nodeID;			/* ID of ppp node */
-    Link		*links;			/* Real links in this bundle */
-    struct discrim	peer_discrim;		/* Peer's discriminator */
-    u_char		numRecordUp;		/* # links recorded up */
+    MsgHandler		msgs;			/* Bundle events */
 
     /* PPP node config */
 #if NGM_PPP_COOKIE < 940897794
@@ -143,6 +136,8 @@
 #endif
 
     /* Data chunks */
+    char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq session-id */    
+    struct discrim	peer_discrim;	/* Peer's discriminator */
     struct bundbm	bm;		/* Bandwidth management state */
     struct bundconf	conf;		/* Configuration for this bundle */
     struct linkstats	stats;		/* Statistics for this bundle */
@@ -161,9 +156,9 @@
     struct pppTimer	reOpenTimer;		/* Re-open timer */
 
     /* Boolean variables */
-    u_char		open:1;		/* In the open state */
-    u_char		multilink:1;	/* Doing multi-link on this bundle */
-    u_char		originate:2;	/* Who originated the connection */
+    u_char		open;		/* In the open state */
+    u_char		multilink;	/* Doing multi-link on this bundle */
+    u_char		originate;	/* Who originated the connection */
     
     struct authparams   params;         /* params to pass to from auth backend */
   };
