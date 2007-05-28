@@ -59,14 +59,12 @@
 
   /* Configuration for a link */
   struct linkconf {
-    int			mtu;		/* Initial MTU value */
-    int			mru;		/* Initial MRU value */
-    int			accmap;		/* Initial ACCMAP value */
+    u_short		mtu;		/* Initial MTU value */
+    u_short		mru;		/* Initial MRU value */
+    uint32_t		accmap;		/* Initial ACCMAP value */
     short		retry_timeout;	/* FSM timeout for retries */
     short		max_redial;	/* Max failed connect attempts */
     char		*ident;		/* LCP ident string */
-    char		*node;		/* Netgraph node */
-    char		*hook;		/* Netgraph hook */
     struct optinfo	options;	/* Configured options */
   };
 
@@ -95,10 +93,9 @@
   /* Total state of a link */
   struct linkst {
     char		name[LINK_MAX_NAME];	/* Human readable name */
-    char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq msession-id */
-    char		session_id[AUTH_MAX_SESSIONID];	/* a uniq session-id */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
+    PhysInfo		phys;			/* Physical layer info */
     MsgHandler		msgs;			/* Link events */
 
     /* State info */
@@ -108,22 +105,20 @@
     struct linkstats	stats;		/* Link statistics */
     struct ng_ppp_link_stat oldStats;	/* Previous stats for 64bit emulation */
     struct pppTimer	statsUpdateTimer;	/* update Timer */
-    PhysInfo		phys;		/* Physical layer info */
 
     /* Link properties */
     short		num_redial;	/* Counter for retry attempts */
-    u_char		marked:1;	/* Used by MpAllocate() */
-    u_char		alive:1;	/* Used by MpAllocate() */
-    u_char		joined_bund:1;	/* Link successfully joined bundle */
-    u_char		originate:2;	/* Who originated the connection */
-    u_char		lastStatus;	/* Last status code */
+    u_char		joined_bund;	/* Link successfully joined bundle */
+    u_char		originate;	/* Who originated the connection */
     char		*upReason;	/* Reason for link going up */
-    u_char		upReasonValid:1;
     char		*downReason;	/* Reason for link going down */
+    u_char		upReasonValid:1;
     u_char		downReasonValid:1;
     int			bandwidth;	/* Bandwidth in bits per second */
     int			latency;	/* Latency in microseconds */
     time_t		last_open;	/* Time this link last was opened */
+    char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq msession-id */
+    char		session_id[AUTH_MAX_SESSIONID];	/* a uniq session-id */
 
     /* Info gleaned from negotiations */
     struct discrim	peer_discrim;
