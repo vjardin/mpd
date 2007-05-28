@@ -1,6 +1,6 @@
 
 /*
- * iface.c
+ * nat.c
  *
  * Written by Alexander Motin <mav@alkar.net>
  */
