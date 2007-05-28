@@ -478,21 +478,30 @@ notfound:
       cs->telnet = FALSE;
       break;
     case CTRL('P'):	/* page up */
-      if ((*cs->history) && 
-        (strncmp(cs->cmd, cs->history, MAX_CONSOLE_LINE) != 0)) {
-        if (cs->cmd_len>0) {
-    	    cs->write(cs, "\r\n");
-	    cs->prompt(cs);
-	}
-	memcpy(cs->cmd, cs->history, MAX_CONSOLE_LINE);
+      if ((cs->currhist < MAX_CONSOLE_HIST) && 
+        (cs->history[cs->currhist][0])) {
+    	for (i = 0; i < cs->cmd_len; i++)
+	    cs->write(cs, "\b \b");    
+	memcpy(cs->cmd, cs->history[cs->currhist], MAX_CONSOLE_LINE);
+	cs->currhist++;
 	cs->cmd_len = strlen(cs->cmd);
 	cs->write(cs, cs->cmd);
       }
       break;
     case CTRL('N'):	/* page down */
+      if (cs->currhist > 1) {
+    	for (i = 0; i < cs->cmd_len; i++)
+	    cs->write(cs, "\b \b");    
+	cs->currhist--;
+	memcpy(cs->cmd, cs->history[cs->currhist-1], MAX_CONSOLE_LINE);
+	cs->cmd_len = strlen(cs->cmd);
+	cs->write(cs, cs->cmd);
+      } else {
         if (cs->cmd_len>0) {
-	    if (strncmp(cs->cmd, cs->history, MAX_CONSOLE_LINE) != 0) {
-		memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
+	    if (strncmp(cs->cmd, cs->history[0], MAX_CONSOLE_LINE) != 0) {
+		for (i = 0; i < MAX_CONSOLE_HIST; i++)
+		    memcpy(cs->history[i + 1], cs->history[i], MAX_CONSOLE_LINE);
+		memcpy(cs->history[0], cs->cmd, MAX_CONSOLE_LINE);
     		cs->write(cs, "\r\n");
 		cs->prompt(cs);
 	    } else {
@@ -500,9 +509,11 @@ notfound:
 		    cs->write(cs, "\b \b");    
 	    }
 	}
+        cs->currhist = 0;
 	memset(cs->cmd, 0, MAX_CONSOLE_LINE);
 	cs->cmd_len = 0;
-        break;
+      }
+      break;
     case CTRL('F'):
     case CTRL('B'):
       break;
@@ -578,16 +589,22 @@ success:
 	exitflag = 0;
       }
       FreeArgs(ac, av_copy);
+      if (exitflag)
+	goto abort;
+      cs->prompt(cs);
       if (c != '?') {
-	memcpy(cs->history, cs->cmd, MAX_CONSOLE_LINE);
+        if (cs->cmd_len > 0 &&
+	    strncmp(cs->cmd, cs->history[0], MAX_CONSOLE_LINE) != 0) {
+	    for (i = MAX_CONSOLE_HIST; i > 0; i--)
+		memcpy(cs->history[i], cs->history[i - 1], MAX_CONSOLE_LINE);
+	    memcpy(cs->history[0], cs->cmd, MAX_CONSOLE_LINE);
+	}
+        cs->currhist = 0;
         memset(cs->cmd, 0, MAX_CONSOLE_LINE);
 	cs->cmd_len = 0;
       } else {
 	cs->write(cs, cs->cmd);
       }
-      if (exitflag)
-	goto abort;
-      cs->prompt(cs);
       break;
     }
     /* "normal" char entered */
@@ -598,14 +615,14 @@ success:
 	break;
       }
 
+      if ((cs->cmd_len + 2) >= MAX_CONSOLE_LINE) {
+        cs->write(cs, "\a");
+        break;
+      }
+
       if (cs->state != STATE_PASSWORD)
  	cs->write(cs, "%c", c);
 
-      /* XXX ToDo testing */
-      if ((cs->cmd_len + 1) >= MAX_CONSOLE_LINE) {
-        Log(LG_ERR, ("CONSOLE: console input line too long"));
-        break;
-      }
       cs->cmd[cs->cmd_len++] = c;
     }
   }

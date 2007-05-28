@@ -26,6 +26,8 @@
 	  </item>
 	  <item> Restored control console on stdin.
 	  </item>
+	  <item> Added multiline console command history.
+	  </item>
 	  <item> Added new 'ext-auth' auth backend as full-featured alternative to 'radius-auth'.
 	  </item>
 	  <item> Added support for some new ng_nat features.

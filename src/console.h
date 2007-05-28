@@ -18,6 +18,7 @@
 
   #define MAX_CONSOLE_ARGS	50
   #define MAX_CONSOLE_LINE	400
+  #define MAX_CONSOLE_HIST	10
   #define MAX_CONSOLE_BUF_LEN	4096
 
   #define Printf(fmt, args...)	({ 						\
@@ -84,7 +85,8 @@
     int			state;
     int			telnet;
     int			escaped;
-    char		history[MAX_CONSOLE_LINE];	/* last command */
+    char		history[MAX_CONSOLE_HIST][MAX_CONSOLE_LINE];	/* last command */
+    int			currhist;
     SLIST_ENTRY(console_session)	next;
   };
 
