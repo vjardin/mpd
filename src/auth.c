@@ -665,10 +665,10 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("Auth Data\r\n");
   Printf("\tPeer authname   : %s\r\n", a->params.authname);
-  Printf("\tMTU             : %ld\r\n", a->params.mtu);
-  Printf("\tSession-Timeout : %ld\r\n", a->params.session_timeout);
-  Printf("\tIdle-Timeout    : %ld\r\n", a->params.idle_timeout);
-  Printf("\tAcct-Update     : %ld\r\n", a->params.acct_update);
+  Printf("\tMTU             : %u\r\n", a->params.mtu);
+  Printf("\tSession-Timeout : %u\r\n", a->params.session_timeout);
+  Printf("\tIdle-Timeout    : %u\r\n", a->params.idle_timeout);
+  Printf("\tAcct-Update     : %u\r\n", a->params.acct_update);
   Printf("\tNum Routes      : %d\r\n", a->params.n_routes);
   Printf("\tACL Rules       : %s\r\n", a->params.acl_rule ? "yes" : "no");
   Printf("\tACL Pipes       : %s\r\n", a->params.acl_pipe ? "yes" : "no");

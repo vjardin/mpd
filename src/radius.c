@@ -1172,32 +1172,33 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
       case RAD_SESSION_TIMEOUT:
         auth->params.session_timeout = rad_cvt_int(data);
-        Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_SESSION_TIMEOUT: %lu ",
+        Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_SESSION_TIMEOUT: %u ",
           auth->info.lnkname, __func__, auth->params.session_timeout));
         break;
 
       case RAD_IDLE_TIMEOUT:
         auth->params.idle_timeout = rad_cvt_int(data);
-        Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_IDLE_TIMEOUT: %lu ",
+        Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_IDLE_TIMEOUT: %u ",
           auth->info.lnkname, __func__, auth->params.idle_timeout));
         break;
 
      case RAD_ACCT_INTERIM_INTERVAL:
 	auth->params.acct_update = rad_cvt_int(data);
-        Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_ACCT_INTERIM_INTERVAL: %lu ",
+        Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_ACCT_INTERIM_INTERVAL: %u ",
           auth->info.lnkname, __func__, auth->params.acct_update));
 	break;
 
       case RAD_FRAMED_MTU:
-	auth->params.mtu = rad_cvt_int(data);
-	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: %lu ",
-	  auth->info.lnkname, __func__, auth->params.mtu));
-	if (auth->params.mtu < IFACE_MIN_MTU || auth->params.mtu > IFACE_MAX_MTU) {
-	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: invalid MTU: %lu ",
-	    auth->info.lnkname, __func__, auth->params.mtu));
+	i = rad_cvt_int(data);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: %u ",
+	  auth->info.lnkname, __func__, i));
+	if (i < IFACE_MIN_MTU || i > IFACE_MAX_MTU) {
+	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RAD_FRAMED_MTU: invalid MTU: %u ",
+	    auth->info.lnkname, __func__, i));
 	  auth->params.mtu = 0;
 	  break;
 	}
+	auth->params.mtu = i;
         break;
 
       case RAD_FRAMED_COMPRESSION:

@@ -117,32 +117,32 @@
     struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
     struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
 
-    unsigned long	mtu;			/* MTU */
-    unsigned long	session_timeout;	/* Session-Timeout */
-    unsigned long	idle_timeout;		/* Idle-Timeout */
-    unsigned long	acct_update;		/* interval for accouting updates */
+    u_int		session_timeout;	/* Session-Timeout */
+    u_int		idle_timeout;		/* Idle-Timeout */
+    u_int		acct_update;		/* interval for accouting updates */
     char		*msdomain;		/* Microsoft domain */
-    short		n_routes;
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
+    u_short		n_routes;
+    u_short		mtu;			/* MTU */
 
-    char		peeraddr[64];	/* hr representation of the peer address */
-    char		peerport[6];	/* hr representation of the peer port */
+    u_char		authentic;	/* wich backend was used */
+
     char		callingnum[64];	/* hr representation of the calling number */
     char		callednum[64];	/* hr representation of the called number */
-
-    int			authentic;	/* wich backend was used */
+    char		peeraddr[64];	/* hr representation of the peer address */
+    char		peerport[6];	/* hr representation of the peer port */
 
     struct linkstats	prev_stats;	/* Previous link statistics */
 
     struct {
       int	policy;			/* MPPE_POLICY_* */
       int	types;			/* MPPE_TYPE_*BIT bitmask */
-      int	has_nt_hash;
-      u_char	nt_hash[16];		/* NT-Hash */
-      int	has_lm_hash;
       u_char	lm_hash[16];		/* LM-Hash */
-      int	has_keys;
+      u_char	nt_hash[16];		/* NT-Hash */
       u_char	nt_hash_hash[16];	/* NT-Hash-Hash */
+      u_char	has_lm_hash;
+      u_char	has_nt_hash;
+      u_char	has_keys;
 
       u_char	chap_alg;		/* Callers's CHAP algorithm */
 
