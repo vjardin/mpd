@@ -83,6 +83,7 @@ static void	TcpStat(Context ctx);
 static int	TcpOriginate(PhysInfo p);
 static int	TcpIsSync(PhysInfo p);
 static int	TcpPeerAddr(PhysInfo p, void *buf, int buf_len);
+static int	TcpPeerPort(PhysInfo p, void *buf, int buf_len);
 static int	TcpCallingNum(PhysInfo p, void *buf, int buf_len);
 static int	TcpCalledNum(PhysInfo p, void *buf, int buf_len);
 
@@ -109,6 +110,7 @@ const struct phystype gTcpPhysType = {
 	.originate	= TcpOriginate,
 	.issync		= TcpIsSync,
 	.peeraddr	= TcpPeerAddr,
+	.peerport	= TcpPeerPort,
 	.callingnum	= TcpCallingNum,
 	.callednum	= TcpCalledNum,
 };
@@ -595,6 +597,17 @@ TcpPeerAddr(PhysInfo p, void *buf, int buf_len)
 	TcpInfo const pi = (TcpInfo) p->info;
 
 	if (u_addrtoa(&pi->peer_addr, buf, buf_len))
+		return (0);
+  	else
+		return (-1);
+}
+
+static int
+TcpPeerPort(PhysInfo p, void *buf, int buf_len)
+{
+	TcpInfo const pi = (TcpInfo) p->info;
+
+	if (snprintf( buf, buf_len, "%d", pi->peer_port))
 		return (0);
   	else
 		return (-1);

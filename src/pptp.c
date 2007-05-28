@@ -104,6 +104,7 @@
   static int	PptpSetCallingNum(PhysInfo p, void *buf);
   static int	PptpSetCalledNum(PhysInfo p, void *buf);
   static int	PptpPeerAddr(PhysInfo p, void *buf, int buf_len);
+  static int	PptpPeerPort(PhysInfo p, void *buf, int buf_len);
   static int	PptpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	PptpCalledNum(PhysInfo p, void *buf, int buf_len);
 
@@ -156,6 +157,7 @@
     .setcallingnum	= PptpSetCallingNum,
     .setcallednum	= PptpSetCalledNum,
     .peeraddr		= PptpPeerAddr,
+    .peerport		= PptpPeerPort,
     .callingnum		= PptpCallingNum,
     .callednum		= PptpCalledNum,
   };
@@ -456,6 +458,17 @@ PptpPeerAddr(PhysInfo p, void *buf, int buf_len)
   PptpInfo	const pptp = (PptpInfo) p->info;
 
   if (u_addrtoa(&pptp->peer_addr, buf, buf_len))
+    return(0);
+  else
+    return(-1);
+}
+
+static int
+PptpPeerPort(PhysInfo p, void *buf, int buf_len)
+{
+  PptpInfo	const pptp = (PptpInfo) p->info;
+
+  if (snprintf(buf, buf_len, "%d", pptp->peer_port))
     return(0);
   else
     return(-1);

@@ -83,6 +83,7 @@ enum {
   static int	UdpOrigination(PhysInfo p);
   static int	UdpIsSync(PhysInfo p);
   static int	UdpPeerAddr(PhysInfo p, void *buf, int buf_len);
+  static int	UdpPeerPort(PhysInfo p, void *buf, int buf_len);
   static int	UdpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	UdpCalledNum(PhysInfo p, void *buf, int buf_len);
 
@@ -105,6 +106,7 @@ enum {
     .originate		= UdpOrigination,
     .issync		= UdpIsSync,
     .peeraddr		= UdpPeerAddr,
+    .peerport		= UdpPeerPort,
     .callingnum		= UdpCallingNum,
     .callednum		= UdpCalledNum,
   };
@@ -373,6 +375,17 @@ UdpPeerAddr(PhysInfo p, void *buf, int buf_len)
   UdpInfo	const pi = (UdpInfo) p->info;
 
   if (u_addrtoa(&pi->peer_addr, buf, buf_len))
+    return(0);
+  else
+    return(-1);
+}
+
+static int
+UdpPeerPort(PhysInfo p, void *buf, int buf_len)
+{
+  UdpInfo	const pi = (UdpInfo) p->info;
+
+  if (snprintf(buf, buf_len, "%d", pi->peer_port))
     return(0);
   else
     return(-1);

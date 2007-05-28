@@ -118,6 +118,7 @@
   static int	L2tpIsSync(PhysInfo p);
   static int	L2tpSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv);
   static int	L2tpPeerAddr(PhysInfo p, void *buf, int buf_len);
+  static int	L2tpPeerPort(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCallingNum(PhysInfo p, void *buf, int buf_len);
   static int	L2tpCalledNum(PhysInfo p, void *buf, int buf_len);
   static int	L2tpSetCallingNum(PhysInfo p, void *buf);
@@ -170,6 +171,7 @@
     .setcallingnum	= L2tpSetCallingNum,
     .setcallednum	= L2tpSetCalledNum,
     .peeraddr		= L2tpPeerAddr,
+    .peerport		= L2tpPeerPort,
     .callingnum		= L2tpCallingNum,
     .callednum		= L2tpCalledNum,
   };
@@ -700,6 +702,23 @@ L2tpPeerAddr(PhysInfo p, void *buf, int buf_len)
 
     if (l2tp->tun) {
 	if (u_addrtoa(&l2tp->tun->peer_addr, buf, buf_len))
+	    return(0);
+	else {
+	    ((char*)buf)[0]=0;
+	    return(-1);
+	}
+    }
+    ((char*)buf)[0]=0;
+    return(0);
+}
+
+static int
+L2tpPeerPort(PhysInfo p, void *buf, int buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) p->info;
+
+    if (l2tp->tun) {
+	if (snprintf(buf, buf_len, "%d", l2tp->tun->peer_port))
 	    return(0);
 	else {
 	    ((char*)buf)[0]=0;

@@ -330,6 +330,23 @@ PhysGetPeerAddr(PhysInfo p, char *buf, int buf_len)
 }
 
 /*
+ * PhysGetPeerPort()
+ */
+
+int
+PhysGetPeerPort(PhysInfo p, char *buf, int buf_len)
+{
+    PhysType	const pt = p->type;
+
+    buf[0] = 0;
+
+    if (pt && pt->peerport)
+	return ((*pt->peerport)(p, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
  * PhysGetCalledNum()
  */
 

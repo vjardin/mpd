@@ -304,6 +304,9 @@ AuthStart(Link l)
     /* remember peer's IP address */
     PhysGetPeerAddr(l->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
   
+    /* remember peer's TCP or UDP port */
+    PhysGetPeerPort(l->phys, a->params.peerport, sizeof(a->params.peerport));
+  
     /* remember calling number */
     PhysGetCallingNum(l->phys, a->params.callingnum, sizeof(a->params.callingnum));
   
@@ -1584,12 +1587,16 @@ AuthExternal(AuthData auth)
 	fprintf(fp, "USER_PASSWORD:%s\n", auth->params.pap.peer_pass);
 
     fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);
+    fprintf(fp, "NAS_PORT_TYPE:%s\n", auth->info.phys_type->name);
     if (strlen(auth->params.callingnum))
 	fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
     if (strlen(auth->params.callednum))
 	fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
     if (strlen(auth->params.peeraddr))
 	fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
+    if (strlen(auth->params.peerport))
+	fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
+ 
 
     /* REQUEST DONE */
     fprintf(fp, "\n");

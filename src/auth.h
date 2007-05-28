@@ -126,6 +126,7 @@
     struct ifaceroute	routes[IFACE_MAX_ROUTES];
 
     char		peeraddr[64];	/* hr representation of the peer address */
+    char		peerport[6];	/* hr representation of the peer port */
     char		callingnum[64];	/* hr representation of the calling number */
     char		callednum[64];	/* hr representation of the called number */
 

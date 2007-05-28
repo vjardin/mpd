@@ -47,6 +47,8 @@
 						/* sets the called number */
     int		(*peeraddr)(PhysInfo p, void *buf, int buf_len); 
 						/* returns the peer-address (IP, MAC, whatever) */
+    int		(*peerport)(PhysInfo p, void *buf, int buf_len); 
+						/* returns the peer-port */
     int		(*callingnum)(PhysInfo p, void *buf, int buf_len); 
 						/* returns the calling number (IP, MAC, whatever) */
     int		(*callednum)(PhysInfo p, void *buf, int buf_len); 
@@ -93,6 +95,7 @@
   extern int		PhysSetCallingNum(PhysInfo p, char *buf);
   extern int		PhysSetCalledNum(PhysInfo p, char *buf);
   extern int		PhysGetPeerAddr(PhysInfo p, char *buf, int buf_len);
+  extern int		PhysGetPeerPort(PhysInfo p, char *buf, int buf_len);
   extern int		PhysGetCallingNum(PhysInfo p, char *buf, int buf_len);
   extern int		PhysGetCalledNum(PhysInfo p, char *buf, int buf_len);
 
