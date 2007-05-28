@@ -63,10 +63,10 @@
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
     time_t		lastClose;		/* Time of last close */
-    MsgHandler		msgs;			/* Message channel */
-    struct pppTimer	openTimer;		/* Open retry timer */
     Link		link;			/* Link connected to the device */
     Rep			rep;			/* Rep connected to the device */
+    MsgHandler		msgs;			/* Message channel */
+    struct pppTimer	openTimer;		/* Open retry timer */
   };
 
 /*
