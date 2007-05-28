@@ -92,7 +92,7 @@ Enable authentication by calling external authentination script.
 This method pretended to be a fullfeatured alternative to the 
 <tt><bf>radius-auth</bf></tt>.
 
-Path to that script must be specified using <tt><bf>set extauth-script ...</bf></tt>
+Path to that script must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
 command.
 
 On invocation this script receives on stdin set of request 
