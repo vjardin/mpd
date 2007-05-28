@@ -81,10 +81,10 @@
   #define ACL_LEN	256
 
   struct acl {			/* List of ACLs received from auth */
-    unsigned short number;	/* ACL number given by auth server */
-    unsigned short real_number;	/* ACL number allocated my mpd */
-    char rule[ACL_LEN]; 	/* Text of ACL */
+    u_short number;		/* ACL number given by auth server */
+    u_short real_number;	/* ACL number allocated my mpd */
     struct acl *next;
+    char rule[ACL_LEN]; 	/* Text of ACL */
   };
 
   /* max. number of acl_filters */
@@ -103,7 +103,6 @@
     u_char		range_valid;	/* range is valid */
     struct in_addr	mask;		/* IP Netmask */
 
-    unsigned long	class;      	/* Class */
     char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
     int			eapmsg_len;
     u_char		*state;		/* copy of the state attribute, needed for accounting */
