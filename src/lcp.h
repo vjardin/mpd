@@ -62,7 +62,6 @@
     u_int16_t	want_mrru;		/* My MRRU, or zero if no MP */
     LcpAuthProto	want_protos[LCP_NUM_AUTH_PROTOS];	/* list of requestable auth-protos */
 
-
     /* More params */
     u_char	want_protocomp:1;	/* I want protocol compression */
     u_char	want_acfcomp:1;		/* I want a&c field compression */
@@ -76,7 +75,7 @@
     u_char	peer_shortseq:1;	/* Peer gets ML short seq numbers */
 
     /* Misc */
-    u_long		peer_reject;	/* Request codes rejected by peer */
+    uint32_t		peer_reject;	/* Request codes rejected by peer */
     struct fsm		fsm;		/* Finite state machine */
   };
   typedef struct lcpstate	*LcpState;
