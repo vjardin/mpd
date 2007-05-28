@@ -95,45 +95,6 @@ This method pretended to be a fullfeatured alternative to the
 Path to that script must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
 command.
 
-On invocation this script receives on stdin set of request 
-attribute:value pairs terminated by empty line and generates 
-response in same format on stdout.
-
-Currently supported request attributes:
-<verb>
-USER_NAME
-USER_PASSWORD - for PAP only
-NAS_PORT
-NAS_PORT_TYPE
-CALLING_STATION_ID
-CALLED_STATION_ID
-PEER_ADDR
-PEER_PORT
-</verb>
-
-Currently supported response attributes:
-<verb>
-RESULT - one of SUCCESS, UNDEF (if valid USER_PASSWORD returned) or FAIL
-USER_NAME
-USER_PASSWORD
-FRAMED_IP_ADDRESS
-FRAMED_ROUTE
-FRAMED_IPV6_ROUTE
-FRAMED_MTU
-SESSION_TIMEOUT
-IDLE_TIMEOUT
-REPLY_MESSAGE
-MPD_RULE
-MPD_PIPE
-MPD_QUEUE
-MPD_TABLE
-MPD_TABLE_STATIC
-MPD_FILTER
-MPD_LIMIT
-</verb>
-
-For most of attributes description look their RADIUS alternatives.
-
 Default <tt><bf>disable</bf></tt>.
 
 <tag><tt>system</tt></tag>

@@ -50,6 +50,8 @@
 <!ENTITY trouble SYSTEM "trouble.sgml">
 <!ENTITY todo SYSTEM "todo.sgml">
 <!ENTITY internalsauth SYSTEM "int-auth.sgml">
+<!ENTITY internalsextauth SYSTEM "int-extauth.sgml">
+<!ENTITY internalsradius SYSTEM "int-radius.sgml">
 <!ENTITY developer SYSTEM "developer.sgml">
 
 <!ENTITY refs SYSTEM "refs.sgml">
@@ -146,6 +148,8 @@ You must be running FreeBSD version 4.x or higher.
 
 	&todo;
 	&internalsauth;
+	&internalsradius;
+	&internalsextauth;
 	&developer;
 
     <chapt><heading>References</heading>

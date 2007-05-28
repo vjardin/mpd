@@ -1,0 +1,152 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>RADIUS authentication<label id="internalsradius"></heading>
+
+  <p>
+  This chapter describes implementation specific details of MPD.
+
+<descrip>
+
+<tag>RADIUS internals</tag>
+<p>
+
+All authentication methods are supported (PAP, CHAP, MS-CHAPv1,
+MS-CHAPv2, EAP). Password changing is currently not supported.
+
+Mpd automatically uses attributes like MTU, Idle-Timeout, IP-Address, etc. if they are 
+transmitted by the RADIUS server.
+
+Note: Its possible to use RADIUS-Accounting without RADIUS-Authentication.
+
+The following attributes are set when doing accounting requests:
+
+<tt>RAD_FRAMED_IP_ADDRESS
+<newline>RAD_ACCT_STATUS_TYPE
+<newline>RAD_ACCT_SESSION_ID
+<newline>RAD_ACCT_MULTI_SESSION_ID
+<newline>RAD_USER_NAME
+<newline>RAD_ACCT_LINK_COUNT
+<newline>RAD_ACCT_AUTHENTIC
+<newline>RAD_ACCT_TERMINATE_CAUSE
+<newline>RAD_ACCT_INPUT_OCTETS
+<newline>RAD_ACCT_INPUT_PACKETS
+<newline>RAD_ACCT_OUTPUT_OCTETS
+<newline>RAD_ACCT_OUTPUT_PACKETS
+<newline>RAD_ACCT_INPUT_GIGAWORDS
+<newline>RAD_ACCT_OUTPUT_GIGAWORDS
+<newline>RAD_ACCT_SESSION_TIME
+</tt>
+
+<tag>RADIUS ACL's</tag>
+<p>
+
+Mpd can use the Access Control Lists (ACLs) taken from the RADIUS server.
+This ACLs may include ipfw rules, pipes, queues and tables and also mpd
+internal traffic filtering/shaping/limiting features. That two sets are 
+redundant. ipfw proposed as standard and universal solution, while internal
+filter/shaper/limiter expected to work faster with big number of active links.
+
+To use this feature you should add to your RADIUS server such dictionary:
+<verb>#----------------------------------------------------------
+# dictionary.mpd                                                                                   
+                                                                                                   
+VENDOR          mpd             12341                                                              
+                                                                                                   
+ATTRIBUTE       mpd-rule        1       string          mpd                                        
+ATTRIBUTE       mpd-pipe        2       string          mpd                                        
+ATTRIBUTE       mpd-queue       3       string          mpd 
+ATTRIBUTE       mpd-table       4       string          mpd 
+ATTRIBUTE       mpd-table-static       5       string          mpd 
+ATTRIBUTE       mpd-filter      6       string          mpd 
+ATTRIBUTE       mpd-limit       7       string          mpd 
+#----------------------------------------------------------
+</verb>
+
+<tag>ipfw</tag>
+<p>
+
+You can write in your RADIUS configuration something like:
+<verb>
+mpd-table += "1=10.0.0.1",
+mpd-table += "1=10.0.0.15",
+mpd-pipe += "1=bw 10Kbyte/s",
+mpd-pipe += "5=bw 20Kbyte/s",
+mpd-rule += "1=pipe %p1 all from any to table(%t1) in",
+mpd-rule += "2=pipe %p5 all from table(%t1) to any out",
+mpd-rule += "100=allow all from any to any",
+</verb>
+
+When mpd receives these parameters it will call ipfw(8) to create
+firewall rules, pipes and queues with unique numbers starting from 10000
+(configurable via 'set global start...').
+To the end of each rule will be added "via ngX" to make the rule apply
+only to that client's networking interface.
+
+As a result of this example we would get these commands executed:
+<verb>
+ipfw table 32 add 10.0.0.1
+ipfw table 32 add 10.0.0.15
+ipfw pipe 10000 config bw 10Kbyte/s
+ipfw pipe 10001 config bw 20Kbyte/s
+ipfw add 10000 pipe 10000 all from any to table(32) in via ng0
+ipfw add 10001 pipe 10001 all from table(32) to any out via ng0
+ipfw add 10002 allow all from any to any via ng0
+</verb>
+
+When the link goes down, all created rules will be removed.
+
+<tag>internal (ng_bpf/ng_car)</tag>
+<p>
+
+You can write in your RADIUS configuration something like:
+<verb>
+mpd-filter += "1#1=nomatch src net 10.0.0.0/24",
+mpd-filter += "1#2=match src net 10.0.0.0/10",
+mpd-filter += "2#1=match dst net 10.0.0.0/16",
+mpd-filter += "2#2=match dst net 11.0.0.0/8",
+mpd-limit += "in#1=flt1 pass",
+mpd-limit += "in#2=flt2 shape 64000 4000 pass",
+mpd-limit += "in#3=all deny",
+mpd-limit += "out#1=flt2 pass",
+mpd-limit += "out#2=all rate-limit 1024000 150000 300000",
+mpd-limit += "out#3=all pass",
+</verb>
+
+As result, one ng_bpf node will be created to implement traffic filters 
+and several (two for this example) ng_car nodes for traffic shaping 
+and rate-limiting.
+
+mpd-filter is a packet filter declaration for using in mpd-limit.
+mpd-filter consists of two main parts: match/nomatch verdict and the condition.
+tcpdump (libpcap) expression syntax used for conditions.
+
+mpd-filter: <em>match</em>|<em>nomatch</em> <em>{condition}</em>
+
+mpd-limit is an action which should be done for packet. It consists of two
+main parts: filter and action. 
+
+mpd-limit: <em>{filter}</em> <em>{action}</em>
+
+Filter can be or "all" (any packet) or "fltX"
+(packets matching to specified mpd-filter).
+
+filter: <em>any</em>|<em>fltX</em>
+
+Action can be: "pass" (stop processing and pass packet), 
+"deny" (stop processing and drop packet), 
+"rate-limit" (do Cisco-like rate-limit), 
+"shape" (do simple RED aware traffic shaping). 
+
+Actions "rate-limit" and "shape" can have optional "pass" suffix
+to stop processing after doing this action.
+
+action: <em>pass</em> | <em>deny</em> | 
+<em>rate-limit</em> <em>{rate(bits/s)}</em> [<em>{normal burst(bytes)}</em> [<em>{extended burst(bytes)}</em>]] [<em>pass</em>] |
+<em>shape</em> <em>{rate(bits/s)}</em> [<em>{burst(bytes)}</em>] [<em>pass</em>]
+
+</descrip>
+
+</p>
