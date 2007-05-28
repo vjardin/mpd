@@ -286,7 +286,7 @@ BundJoin(Link l)
 #endif
 
     /* generate a uniq session id */
-    snprintf(b->msession_id, LINK_MAX_NAME, "%d-%s",
+    snprintf(b->msession_id, AUTH_MAX_SESSIONID, "%d-%s",
       (int)(time(NULL) % 10000000), b->name);
       
     b->originate = l->originate;
@@ -300,7 +300,7 @@ BundJoin(Link l)
     sizeof(l->msession_id));
 
   /* generate a uniq session id */
-  snprintf(l->session_id, LINK_MAX_NAME, "%d-%s",
+  snprintf(l->session_id, AUTH_MAX_SESSIONID, "%d-%s",
     (int)(time(NULL) % 10000000), l->name);
 
   /* What to do when the first link comes up */
