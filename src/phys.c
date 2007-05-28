@@ -459,7 +459,6 @@ PhysMsg(int type, void *arg)
     case MSG_OPEN:
         if (p->link)
     	    p->link->downReasonValid=0;
-        p->want_open = TRUE;
         if (now - p->lastClose < p->type->minReopenDelay) {
 	    if (TimerRemain(&p->openTimer) < 0) {
 		int	delay = p->type->minReopenDelay - (now - p->lastClose);
@@ -479,7 +478,6 @@ PhysMsg(int type, void *arg)
         (*p->type->open)(p);
         break;
     case MSG_CLOSE:
-        p->want_open = FALSE;
         TimerStop(&p->openTimer);
         (*p->type->close)(p);
         break;
@@ -512,7 +510,6 @@ PhysOpenTimeout(void *arg)
   PhysInfo	const p = (PhysInfo)arg;
 
   TimerStop(&p->openTimer);
-  assert(p->want_open);
   PhysOpen(p);
 }
 

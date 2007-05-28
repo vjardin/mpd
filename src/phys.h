@@ -59,10 +59,9 @@
   struct physinfo {
     char		name[LINK_MAX_NAME];	/* Human readable name */
     int			id;			/* Index of this phys in gPhyses */
+    u_char		state;			/* Device current state */
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
-    u_char		state;			/* Device current state */
-    u_char		want_open;		/* What upper layer wants */
     time_t		lastClose;		/* Time of last close */
     MsgHandler		msgs;			/* Message channel */
     struct pppTimer	openTimer;		/* Open retry timer */
