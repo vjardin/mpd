@@ -27,7 +27,6 @@ TimerInit(PppTimer timer, const char *desc,
   timer->load	= (load >= 0) ? load : 0;
   timer->func	= handler;
   timer->arg	= arg;
-  timer->init	= TRUE;
 }
 
 /*
@@ -39,7 +38,7 @@ TimerStart(PppTimer timer)
 {
 
   /* Stop timer if running */
-  assert(timer->init);
+  assert(timer->func);
   if (timer->event != NULL)
     EventUnRegister(&timer->event);
 
@@ -57,7 +56,7 @@ TimerStartRecurring(PppTimer timer)
 {
 
   /* Stop timer if running */
-  assert(timer->init);
+  assert(timer->func);
   if (timer->event != NULL)
     EventUnRegister(&timer->event);
 

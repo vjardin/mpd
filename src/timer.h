@@ -29,7 +29,6 @@
     u_int	load;			/* Initial load value */
     void	(*func)(void *arg);	/* Called when timer expires */
     void	*arg;			/* Arg passed to timeout function */
-    u_char	init;			/* Indicates struct is initialized */
   };
 
   #define TimerStop(t)	EventUnRegister(&(t)->event)
