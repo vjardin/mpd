@@ -48,15 +48,15 @@
 
 /* Per link private info */
 struct pppoeinfo {
-	u_char		incoming:1;		/* incoming vs. outgoing */
-	u_char		opened:1;		/* PPPoE opened by phys */
-	char		path[MAX_PATH + 1];	/* PPPoE node path */
+	char		path[MAX_PATH];		/* PPPoE node path */
 	char		hook[NG_HOOKLEN + 1];	/* hook on that node */
-	char		session[MAX_SESSION+1];	/* session name */
+	char		session[MAX_SESSION];	/* session name */
 	u_char		peeraddr[6];		/* Peer MAC address */
+	u_char		incoming;		/* incoming vs. outgoing */
+	u_char		opened;			/* PPPoE opened by phys */
 	struct optinfo	options;
-	struct pppTimer	connectTimer;		/* connection timeout timer */
 	struct PppoeIf  *PIf;			/* pointer on parent ng_pppoe info */
+	struct pppTimer	connectTimer;		/* connection timeout timer */
 };
 typedef struct pppoeinfo	*PppoeInfo;
 
@@ -159,8 +159,8 @@ const struct cmdtab PppoeSetCmds[] = {
  */
 
 struct PppoeIf {
-    char	ifnodepath[MAX_PATH+1];
-    char	session[MAX_SESSION+1];
+    char	ifnodepath[MAX_PATH];
+    char	session[MAX_SESSION];
     int 	listen;
     int		csock;                  /* netgraph Control socket */
     int		dsock;                  /* netgraph Data socket */
