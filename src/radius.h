@@ -93,7 +93,6 @@
   struct radiusconf {
     int		radius_timeout;
     int		radius_retries;
-    int 	acct_update;		/* Accounting Update Interval */
     struct	in_addr radius_me;
     struct	u_addr radius_mev6;
     char	*file;
