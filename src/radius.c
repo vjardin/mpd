@@ -1033,7 +1033,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   short		got_mppe_keys = FALSE;
   struct in_addr	ip;
   struct acl		**acls, *acls1;
-  struct ifaceroute	r;
+  struct ifaceroute	*r, *r1;
   struct u_range	range;
 #if (!defined(__FreeBSD__) || __FreeBSD_version >= 503100)
   u_char	*tmpkey;
@@ -1133,17 +1133,21 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  break;
 	}
 	free(route);
-	r.dest=range;
-	r.ok=0;
+	r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
+	r->dest = range;
+	r->ok = 0;
 	j = 0;
-	for (i = 0;i < auth->params.n_routes; i++) {
-	  if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
+	SLIST_FOREACH(r1, &auth->params.routes, next) {
+	  if (!u_rangecompare(&r->dest, &r1->dest)) {
 	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", auth->info.lnkname, __func__));
 	    j = 1;
 	  }
 	};
-	if (j == 0)
-	  auth->params.routes[auth->params.n_routes++] = r;
+	if (j == 0) {
+	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
+	} else {
+	    Freee(MB_AUTH, r);
+	}
 	break;
 
       case RAD_FRAMED_IPV6_ROUTE:
@@ -1156,17 +1160,21 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  break;
 	}
 	free(route);
-	r.dest=range;
-	r.ok=0;
+	r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
+	r->dest = range;
+	r->ok = 0;
 	j = 0;
-	for (i = 0;i < auth->params.n_routes; i++) {
-	  if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
+	SLIST_FOREACH(r1, &auth->params.routes, next) {
+	  if (!u_rangecompare(&r->dest, &r1->dest)) {
 	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", auth->info.lnkname, __func__));
 	    j = 1;
 	  }
 	};
-	if (j == 0)
-	  auth->params.routes[auth->params.n_routes++] = r;
+	if (j == 0) {
+	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
+	} else {
+	    Freee(MB_AUTH, r);
+	}
 	break;
 
       case RAD_SESSION_TIMEOUT:

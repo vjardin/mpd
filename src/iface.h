@@ -72,6 +72,7 @@
   struct ifaceroute {
     struct u_range	dest;			/* Destination of route */
     u_char		ok:1;			/* Route installed OK */
+    SLIST_ENTRY(ifaceroute)	next;
   };
   typedef struct ifaceroute	*IfaceRoute;
 
@@ -83,8 +84,7 @@
     struct optinfo	options;		/* Configuration options */
     u_int		idle_timeout;		/* Idle timeout */
     u_int		session_timeout;	/* Session timeout */
-    short		n_routes;
-    struct ifaceroute	routes[IFACE_MAX_ROUTES];
+    SLIST_HEAD(, ifaceroute) routes;
     struct acl 		*tables;		/* List of IP added to tables by iface */
     struct u_range	self_addr;		/* Interface's IP address */
     struct u_addr	peer_addr;		/* Peer's IP address */

@@ -120,10 +120,12 @@
 
 void	authparamsInit(struct authparams *ap) {
     memset(ap,0,sizeof(struct authparams));
+    SLIST_INIT(&ap->routes);
 };
 
 void	authparamsDestroy(struct authparams *ap) {
     struct acl		*acls, *acls1;
+    IfaceRoute		r;
     int i;
   
     if (ap->eapmsg) {
@@ -176,6 +178,11 @@ void	authparamsDestroy(struct authparams *ap) {
 	};
     };
 
+    while ((r = SLIST_FIRST(&ap->routes)) != NULL) {
+	SLIST_REMOVE_HEAD(&ap->routes, next);
+	Freee(MB_AUTH, r);
+    }
+
     if (ap->msdomain) {
 	Freee(MB_AUTH, ap->msdomain);
     }
@@ -184,9 +191,10 @@ void	authparamsDestroy(struct authparams *ap) {
 };
 
 void	authparamsCopy(struct authparams *src, struct authparams *dst) {
-    struct acl	*acls;
-    struct acl	**pacl;
-    int		i;
+    struct acl		*acls;
+    struct acl		**pacl;
+    IfaceRoute		r, r1;
+    int			i;
 
     memcpy(dst,src,sizeof(struct authparams));
   
@@ -209,6 +217,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
+    *pacl = NULL;
     acls = src->acl_pipe;
     pacl = &dst->acl_pipe;
     while (acls != NULL) {
@@ -217,6 +226,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
+    *pacl = NULL;
     acls = src->acl_queue;
     pacl = &dst->acl_queue;
     while (acls != NULL) {
@@ -225,6 +235,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
+    *pacl = NULL;
     acls = src->acl_table;
     pacl = &dst->acl_table;
     while (acls != NULL) {
@@ -233,6 +244,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
+    *pacl = NULL;
 
     for (i = 0; i < ACL_FILTERS; i++) {
 	acls = src->acl_filters[i];
@@ -243,6 +255,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	    acls = acls->next;
 	    pacl = &((*pacl)->next);
 	};
+	*pacl = NULL;
     };
 
     for (i = 0; i < ACL_DIRS; i++) {
@@ -254,7 +267,15 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	    acls = acls->next;
 	    pacl = &((*pacl)->next);
 	};
+	*pacl = NULL;
     };
+
+    SLIST_INIT(&dst->routes);
+    SLIST_FOREACH(r, &src->routes, next) {
+	r1 = Malloc(MB_AUTH, sizeof(*r1));
+	memcpy(r1, r, sizeof(*r1));
+	SLIST_INSERT_HEAD(&dst->routes, r1, next);
+    }
 
     if (src->msdomain) {
 	dst->msdomain = Malloc(MB_AUTH, strlen(src->msdomain)+1);
@@ -262,6 +283,11 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     }
 };
 
+void	authparamsMove(struct authparams *src, struct authparams *dst)
+{
+    memcpy(dst,src,sizeof(struct authparams));
+    memset(src,0,sizeof(struct authparams));
+}
 
 /*
  * AuthInit()
@@ -669,7 +695,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tSession-Timeout : %u\r\n", a->params.session_timeout);
   Printf("\tIdle-Timeout    : %u\r\n", a->params.idle_timeout);
   Printf("\tAcct-Update     : %u\r\n", a->params.acct_update);
-  Printf("\tNum Routes      : %d\r\n", a->params.n_routes);
+  Printf("\tRoutes          : %s\r\n", SLIST_EMPTY(&a->params.routes) ? "no" : "yes");
   Printf("\tACL Rules       : %s\r\n", a->params.acl_rule ? "yes" : "no");
   Printf("\tACL Pipes       : %s\r\n", a->params.acl_pipe ? "yes" : "no");
   Printf("\tACL Queues      : %s\r\n", a->params.acl_queue ? "yes" : "no");
@@ -839,7 +865,8 @@ AuthAccountFinish(void *arg, int was_canceled)
 
     if (auth->acct_type != AUTH_ACCT_STOP) {
 	/* Copy back modified data. */
-	authparamsCopy(&auth->params,&l->lcp.auth.params);
+	authparamsDestroy(&l->lcp.auth.params);
+	authparamsMove(&auth->params,&l->lcp.auth.params);
     }
 
      AuthDataDestroy(auth);
@@ -1036,6 +1063,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
     Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", l->name));
 
     /* copy back modified data */
+    authparamsDestroy(&l->lcp.auth.params);
     authparamsCopy(&auth->params,&l->lcp.auth.params);
   
     if (auth->mschapv2resp != NULL)
@@ -1652,20 +1680,24 @@ AuthExternal(AuthData auth)
 	  Log(LG_AUTH, ("[%s] Ext-auth: FRAMED_ROUTE: Bad route \"%s\"", 
 	    auth->info.lnkname, val));
 	} else {
-	    struct ifaceroute     r;
-	    int		i, j;
+	    struct ifaceroute     *r, *r1;
+	    int		j;
 
-	    r.dest=range;
-	    r.ok=0;
+	    r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
+	    r->dest = range;
+	    r->ok = 0;
 	    j = 0;
-	    for (i = 0; i < auth->params.n_routes; i++) {
-		if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
-		    Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
-		    j = 1;
-		}
+	    SLIST_FOREACH(r1, &auth->params.routes, next) {
+	      if (!u_rangecompare(&r->dest, &r1->dest)) {
+	        Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", auth->info.lnkname, __func__));
+	        j = 1;
+	      }
 	    };
-	    if (j == 0)
-		auth->params.routes[auth->params.n_routes++] = r;
+	    if (j == 0) {
+	        SLIST_INSERT_HEAD(&auth->params.routes, r, next);
+	    } else {
+	        Freee(MB_AUTH, r);
+	    }
 	}
 
     } else if (strcmp(attr, "FRAMED_IPV6_ROUTE") == 0) {
@@ -1675,20 +1707,24 @@ AuthExternal(AuthData auth)
 	  Log(LG_AUTH, ("[%s] Ext-auth: FRAMED_IPV6_ROUTE: Bad route \"%s\"", 
 	    auth->info.lnkname, val));
 	} else {
-	    struct ifaceroute     r;
-	    int		i, j;
+	    struct ifaceroute     *r, *r1;
+	    int		j;
 
-	    r.dest=range;
-	    r.ok=0;
+	    r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
+	    r->dest = range;
+	    r->ok = 0;
 	    j = 0;
-	    for (i = 0; i < auth->params.n_routes; i++) {
-		if (!u_rangecompare(&r.dest, &auth->params.routes[i].dest)) {
-		    Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
-		    j = 1;
-		}
+	    SLIST_FOREACH(r1, &auth->params.routes, next) {
+	      if (!u_rangecompare(&r->dest, &r1->dest)) {
+	        Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", auth->info.lnkname, __func__));
+	        j = 1;
+	      }
 	    };
-	    if (j == 0)
-		auth->params.routes[auth->params.n_routes++] = r;
+	    if (j == 0) {
+	        SLIST_INSERT_HEAD(&auth->params.routes, r, next);
+	    } else {
+	        Freee(MB_AUTH, r);
+	    }
 	}
 
     } else if (strcmp(attr, "SESSION_TIMEOUT") == 0) {

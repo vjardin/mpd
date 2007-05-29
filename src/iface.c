@@ -721,8 +721,8 @@ IfaceIpIfaceUp(Bund b, int ready)
   IfaceState		const iface = &b->iface;
   struct sockaddr_dl	hwa;
   char			hisaddr[20],selfaddr[20];
+  IfaceRoute		r;
   u_char		*ether;
-  int			k;
   char			buf[64];
 
   if (ready) {
@@ -765,26 +765,22 @@ IfaceIpIfaceUp(Bund b, int ready)
   ExecCmd(LG_IFACE2, b->name, "%s add %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,selfaddr,sizeof(selfaddr)));
   
-  /* Add static routes */
-  for (k = 0; k < iface->n_routes; k++) {
-    IfaceRoute	const r = &iface->routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET) {
-	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
-		u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
+    /* Add static routes */
+    SLIST_FOREACH(r, &iface->routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET) {
+	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
+		    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
+	}
     }
-  }
-  /* Add dynamic routes */
-  for (k = 0; k < b->params.n_routes; k++) {
-    IfaceRoute	const r = &b->params.routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET) {
-	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
-		u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
+    /* Add dynamic routes */
+    SLIST_FOREACH(r, &b->params.routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET) {
+	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
+		    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
+	}
     }
-  }
 
 #ifdef USE_NG_NAT
   /* Set NAT IP */
@@ -826,7 +822,7 @@ void
 IfaceIpIfaceDown(Bund b)
 {
   IfaceState	const iface = &b->iface;
-  int		k;
+  IfaceRoute	r;
   char          buf[64];
 
   /* Call "down" script */
@@ -836,30 +832,26 @@ IfaceIpIfaceDown(Bund b)
       *b->params.authname ? b->params.authname : "-");
   }
 
-  /* Delete dynamic routes */
-  for (k = 0; k < b->params.n_routes; k++) {
-    IfaceRoute	const r = &b->params.routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET) {
-	if (!r->ok)
-	    continue;
-	ExecCmd(LG_IFACE2, b->name, "%s delete %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
-	r->ok = 0;
+    /* Delete dynamic routes */
+    SLIST_FOREACH(r, &b->params.routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET) {
+	    if (!r->ok)
+		continue;
+	    ExecCmd(LG_IFACE2, b->name, "%s delete %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
+	    r->ok = 0;
+	}
     }
-  }
-  /* Delete static routes */
-  for (k = 0; k < iface->n_routes; k++) {
-    IfaceRoute	const r = &iface->routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET) {
-	if (!r->ok)
-	    continue;
-	ExecCmd(LG_IFACE2, b->name, "%s delete %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
-	r->ok = 0;
+    /* Delete static routes */
+    SLIST_FOREACH(r, &iface->routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET) {
+	    if (!r->ok)
+		continue;
+	    ExecCmd(LG_IFACE2, b->name, "%s delete %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
+	    r->ok = 0;
+	}
     }
-  }
 
   /* Delete any proxy arp entry */
   if (!u_addrempty(&iface->proxy_addr))
@@ -887,9 +879,9 @@ IfaceIpIfaceDown(Bund b)
 void
 IfaceIpv6IfaceUp(Bund b, int ready)
 {
-  IfaceState	const iface = &b->iface;
-  int		k;
-  char		buf[64];
+  IfaceState		const iface = &b->iface;
+  IfaceRoute		r;
+  char			buf[64];
   struct u_range	rng;
 
   if (ready) {
@@ -926,24 +918,20 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     rng.width = 64;
     IfaceChangeAddr(b, 1, &rng, NULL);
   
-  /* Add static routes */
-  for (k = 0; k < iface->n_routes; k++) {
-    IfaceRoute	const r = &iface->routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET6) {
-	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+    /* Add static routes */
+    SLIST_FOREACH(r, &iface->routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET6) {
+	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+	}
     }
-  }
-  /* Add dynamic routes */
-  for (k = 0; k < b->params.n_routes; k++) {
-    IfaceRoute	const r = &b->params.routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET6) {
-	r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+    /* Add dynamic routes */
+    SLIST_FOREACH(r, &b->params.routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET6) {
+	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+	}
     }
-  }
 
   /* Call "up" script */
   if (*iface->up_script) {
@@ -967,9 +955,9 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 void
 IfaceIpv6IfaceDown(Bund b)
 {
-  IfaceState	const iface = &b->iface;
-  int 		k;
-  char		buf[64];
+  IfaceState		const iface = &b->iface;
+  IfaceRoute		r;
+  char			buf[64];
   struct u_range        rng;
 
   /* Call "down" script */
@@ -979,30 +967,26 @@ IfaceIpv6IfaceDown(Bund b)
       *b->params.authname ? b->params.authname : "-");
   }
 
-  /* Delete dynamic routes */
-  for (k = 0; k < b->params.n_routes; k++) {
-    IfaceRoute	const r = &b->params.routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET6) {
-	if (!r->ok)
-	    continue;
-	ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
-	r->ok = 0;
+    /* Delete dynamic routes */
+    SLIST_FOREACH(r, &b->params.routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET6) {
+	    if (!r->ok)
+		continue;
+	    ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	    r->ok = 0;
+	}
     }
-  }
-  /* Delete static routes */
-  for (k = 0; k < iface->n_routes; k++) {
-    IfaceRoute	const r = &iface->routes[k];
-
-    if (u_rangefamily(&r->dest)==AF_INET6) {
-	if (!r->ok)
-	    continue;
-	ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
-	    PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
-	r->ok = 0;
+    /* Delete static routes */
+    SLIST_FOREACH(r, &iface->routes, next) {
+	if (u_rangefamily(&r->dest)==AF_INET6) {
+	    if (!r->ok)
+		continue;
+	    ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
+		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	    r->ok = 0;
+	}
     }
-  }
 
   if (!u_addrempty(&iface->self_ipv6_addr)) {
     /* Remove address from interface */
@@ -1234,15 +1218,11 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_ROUTE:
       {
 	struct u_range		range;
-	struct ifaceroute	r;
+	IfaceRoute		r;
 
 	/* Check */
 	if (ac != 1)
 	  return(-1);
-	if (iface->n_routes >= IFACE_MAX_ROUTES) {
-	  Log(LG_ERR, ("iface: too many routes"));
-	  break;
-	}
 
 	/* Get dest address */
 	if (!strcasecmp(av[0], "default")) {
@@ -1253,9 +1233,10 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  Log(LG_ERR, ("route: bad dest address \"%s\"", av[0]));
 	  break;
 	}
-	r.dest=range;
-	r.ok=0;
-	iface->routes[iface->n_routes++] = r;
+	r = Malloc(MB_IFACE, sizeof(struct ifaceroute));
+	r->dest = range;
+	r->ok = 0;
+	SLIST_INSERT_HEAD(&iface->routes, r, next);
       }
       break;
 
@@ -1322,6 +1303,7 @@ int
 IfaceStat(Context ctx, int ac, char *av[], void *arg)
 {
   IfaceState	const iface = &ctx->bund->iface;
+  IfaceRoute	r;
   int		k;
   char          buf[64];
 
@@ -1337,10 +1319,10 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     *iface->down_script ? iface->down_script : "<none>");
   Printf("Interface options:\r\n");
   OptStat(ctx, &iface->options, gConfList);
-  if (iface->n_routes) {
+  if (!SLIST_EMPTY(&iface->routes)) {
     Printf("Static routes via peer:\r\n");
-    for (k = 0; k < iface->n_routes; k++) {
-	Printf("\t%s\r\n", u_rangetoa(&iface->routes[k].dest,buf,sizeof(buf)));
+    SLIST_FOREACH(r, &iface->routes, next) {
+	Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
     }
   }
   Printf("Interface status:\r\n");
@@ -1357,10 +1339,10 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 	u_addrtoa(&iface->self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
     Printf("%s%%%s\r\n", u_addrtoa(&iface->peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
   }
-  if (iface->up && ctx->bund->params.n_routes) {
+  if (iface->up && !SLIST_EMPTY(&ctx->bund->params.routes)) {
     Printf("Dynamic routes via peer:\r\n");
-    for (k = 0; k < ctx->bund->params.n_routes; k++) {
-	Printf("\t%s\r\n", u_rangetoa(&ctx->bund->params.routes[k].dest,buf,sizeof(buf)));
+    SLIST_FOREACH(r, &ctx->bund->params.routes, next) {
+	Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
     }
   }
   if (iface->up && (ctx->bund->params.acl_limits[0] || ctx->bund->params.acl_limits[1])) {

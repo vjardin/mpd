@@ -120,8 +120,7 @@
     u_int		idle_timeout;		/* Idle-Timeout */
     u_int		acct_update;		/* interval for accouting updates */
     char		*msdomain;		/* Microsoft domain */
-    struct ifaceroute	routes[IFACE_MAX_ROUTES];
-    u_short		n_routes;
+    SLIST_HEAD(, ifaceroute) routes;
     u_short		mtu;			/* MTU */
 
     u_char		authentic;	/* wich backend was used */
@@ -259,6 +258,7 @@
 
   extern void		authparamsInit(struct authparams *ap);
   extern void		authparamsCopy(struct authparams *src, struct authparams *dst);
+  extern void		authparamsMove(struct authparams *src, struct authparams *dst);
   extern void		authparamsDestroy(struct authparams *ap);
 
 #endif
