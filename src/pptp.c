@@ -44,24 +44,24 @@
   struct pptpinfo {
     struct {
 	struct u_addr	self_addr;	/* self IP address */
+	struct u_range	peer_addr;	/* Peer IP addresses allowed */
 	in_port_t	self_port;	/* self port */
-	struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
-	in_port_t	peer_port_req;	/* Peer port required (or zero) */
+	in_port_t	peer_port;	/* Peer port required (or zero) */
 	struct optinfo	options;
 	char		callingnum[64];	/* PPTP phone number to use */
 	char		callednum[64];	/* PPTP phone number to use */
     } conf;
-    u_char		originate:1;	/* Call originated locally */
-    u_char		outcall:1;	/* Call is outgoing vs. incoming */
-    u_char		sync:1;		/* Call is sync vs. async */
     void		*listener;	/* Listener pointer */
     struct u_addr	self_addr;	/* Current self IP address */
     struct u_addr	peer_addr;	/* Current peer IP address */
     in_port_t		peer_port;	/* Current peer port */
-    char		callingnum[64];	/* PPTP phone number to use */
-    char		callednum[64];	/* PPTP phone number to use */
+    u_char		originate;	/* Call originated locally */
+    u_char		outcall;	/* Call is outgoing vs. incoming */
+    u_char		sync;		/* Call is sync vs. async */
     struct pptpctrlinfo	cinfo;
     ng_ID_t		node_id;
+    char		callingnum[64];	/* PPTP phone number to use */
+    char		callednum[64];	/* PPTP phone number to use */
   };
   typedef struct pptpinfo	*PptpInfo;
 
@@ -291,8 +291,8 @@ PptpOriginate(PhysInfo p)
   PptpInfo		const pptp = (PptpInfo) p->info;
   struct pptpctrlinfo	cinfo;
   struct pptplinkinfo	linfo;
-  const u_short		port = pptp->conf.peer_port_req ?
-			  pptp->conf.peer_port_req : PPTP_PORT;
+  const u_short		port = pptp->conf.peer_port ?
+			  pptp->conf.peer_port : PPTP_PORT;
 
   pptp->originate = TRUE;
   pptp->outcall = Enabled(&pptp->conf.options, PPTP_CONF_OUTCALL);
@@ -308,13 +308,13 @@ PptpOriginate(PhysInfo p)
     if (p->rep && !RepIsSync(p))
 	    frameType = PPTP_FRAMECAP_ASYNC;
     cinfo = PptpCtrlInCall(linfo, 
-      &pptp->conf.self_addr, &pptp->conf.peer_addr_req.addr, port,
+      &pptp->conf.self_addr, &pptp->conf.peer_addr.addr, port,
       PPTP_BEARCAP_ANY, frameType,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, 
       pptp->callingnum, pptp->callednum, "");
   } else {
     cinfo = PptpCtrlOutCall(linfo, 
-      &pptp->conf.self_addr, &pptp->conf.peer_addr_req.addr, port,
+      &pptp->conf.self_addr, &pptp->conf.peer_addr.addr, port,
       PPTP_BEARCAP_ANY, PPTP_FRAMECAP_ANY,
       PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS,
       pptp->callednum, "");
@@ -322,7 +322,7 @@ PptpOriginate(PhysInfo p)
   if (cinfo.cookie == NULL)
     return(-1);
   pptp->self_addr = pptp->conf.self_addr;
-  pptp->peer_addr = pptp->conf.peer_addr_req.addr;
+  pptp->peer_addr = pptp->conf.peer_addr.addr;
   pptp->peer_port = port;
   pptp->cinfo = cinfo;
   return(0);
@@ -509,9 +509,9 @@ PptpStat(Context ctx)
     Printf(", port %u", pptp->conf.self_port);
   Printf("\r\n");
   Printf("\tPeer range   : %s",
-    u_rangetoa(&pptp->conf.peer_addr_req, buf, sizeof(buf)));
-  if (pptp->conf.peer_port_req)
-    Printf(", port %u", pptp->conf.peer_port_req);
+    u_rangetoa(&pptp->conf.peer_addr, buf, sizeof(buf)));
+  if (pptp->conf.peer_port)
+    Printf(", port %u", pptp->conf.peer_port);
   Printf("\r\n");
   Printf("\tCalling number: %s\r\n", pptp->conf.callingnum);
   Printf("\tCalled number: %s\r\n", pptp->conf.callednum);
@@ -860,16 +860,16 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	&& (now - p2->lastClose) >= PPTP_REOPEN_PAUSE
 	&& Enabled(&pi2->conf.options, PPTP_CONF_INCOMING)
 	&& (u_addrempty(&pi2->conf.self_addr) || (u_addrcompare(&pi2->conf.self_addr, self) == 0))
-	&& IpAddrInRange(&pi2->conf.peer_addr_req, peer)
-	&& (!pi2->conf.peer_port_req || pi2->conf.peer_port_req == port)) {
+	&& IpAddrInRange(&pi2->conf.peer_addr, peer)
+	&& (!pi2->conf.peer_port || pi2->conf.peer_port == port)) {
 
       /* Link is feasible; now see if it's preferable */
-      if (!pi || pi2->conf.peer_addr_req.width > pi->conf.peer_addr_req.width) {
+      if (!pi || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
 	    p = p2;
 	    pi = pi2;
-	    if ((pi2->conf.peer_addr_req.addr.family==AF_INET && 
-		pi2->conf.peer_addr_req.width == 32) ||
-		pi2->conf.peer_addr_req.width == 128) {
+	    if ((pi2->conf.peer_addr.addr.family==AF_INET && 
+		pi2->conf.peer_addr.width == 32) ||
+		pi2->conf.peer_addr.width == 128) {
 		    break;	/* Nothing could be better */
 	    }
       }
@@ -990,8 +990,8 @@ PptpSetCommand(Context ctx, int ac, char *av[], void *arg)
 	pi->conf.self_addr = rng.addr;
 	pi->conf.self_port = port;
       } else {
-	pi->conf.peer_addr_req = rng;
-	pi->conf.peer_port_req = port;
+	pi->conf.peer_addr = rng;
+	pi->conf.peer_port = port;
       }
       break;
     case SET_CALLINGNUM:
