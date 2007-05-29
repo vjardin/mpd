@@ -9,12 +9,12 @@
 
   This chapter describes commands for configuring Network Address
   Translation on Mpd's interfaces. NAT is implemented by 
-  <tt>ng_nar(4)</tt> node. To enable it on a particular
+  <tt>ng_nat(4)</tt> node. To enable it on a particular
   interface <tt>nat</tt> option should be used.
 
   <bf>Note:</bf> ng_nat node is available only on FreeBSD 6.0-RELEASE
   and newer. Some additional options like setting target address
-  implemeted in later verstions.
+  implemeted in later versions.
 
 <descrip>
 
