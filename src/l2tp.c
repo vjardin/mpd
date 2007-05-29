@@ -56,8 +56,8 @@
   
   struct l2tp_tun {
     struct u_addr	self_addr;	/* self IP address */
-    in_port_t		self_port;	/* self port */
     struct u_addr	peer_addr;	/* peer IP address */
+    in_port_t		self_port;	/* self port */
     in_port_t		peer_port;	/* peer port */
     u_char		connected;	/* control connection is connected */
     u_char		alive;		/* control connection is not dying */
@@ -67,23 +67,23 @@
   struct l2tpinfo {
     struct {
 	struct u_addr	self_addr;	/* self IP address */
+	struct u_range	peer_addr;	/* Peer IP addresses allowed */
 	in_port_t	self_port;	/* self port */
-	struct u_range	peer_addr_req;	/* Peer IP addresses allowed */
-	in_port_t	peer_port_req;	/* Peer port required (or zero) */
+	in_port_t	peer_port;	/* Peer port required (or zero) */
+	struct optinfo	options;
 	char		callingnum[64];	/* L2TP phone number to use */
 	char		callednum[64];	/* L2TP phone number to use */
 	char		secret[64];	/* L2TP tunnel secret */
-	struct optinfo	options;
     } conf;
-    u_char		opened:1;	/* PPPoE opened by phys */
-    u_char		incoming:1;	/* Call is incoming vs. outgoing */
-    u_char		outcall:1;	/* incall or outcall */
-    u_char		sync:1;		/* aync or async call */
-    char		callingnum[64];	/* current L2TP phone number */
-    char		callednum[64];	/* current L2TP phone number */
+    u_char		opened;		/* L2TP opened by phys */
+    u_char		incoming;	/* Call is incoming vs. outgoing */
+    u_char		outcall;	/* incall or outcall */
+    u_char		sync;		/* sync or async call */
     struct l2tp_server	*server;	/* server associated with link */
     struct l2tp_tun	*tun;		/* tunnel associated with link */
     struct ppp_l2tp_sess *sess;		/* current session for this link */
+    char		callingnum[64];	/* current L2TP phone number */
+    char		callednum[64];	/* current L2TP phone number */
   };
   typedef struct l2tpinfo	*L2tpInfo;
 
@@ -237,10 +237,10 @@ L2tpInit(PhysInfo p)
   u_addrclear(&l2tp->conf.self_addr);
   l2tp->conf.self_addr.family = AF_INET;
   l2tp->conf.self_port = 0;
-  u_rangeclear(&l2tp->conf.peer_addr_req);
-  l2tp->conf.peer_addr_req.addr.family = AF_INET;
-  l2tp->conf.peer_addr_req.width = 0;
-  l2tp->conf.peer_port_req = 0;
+  u_rangeclear(&l2tp->conf.peer_addr);
+  l2tp->conf.peer_addr.addr.family = AF_INET;
+  l2tp->conf.peer_addr.width = 0;
+  l2tp->conf.peer_port = 0;
   Disable(&l2tp->conf.options, L2TP_CONF_OUTCALL);
   
   return(0);
@@ -337,8 +337,8 @@ L2tpOpen(PhysInfo p)
 	ghash_walk_init(gL2tpTuns, &walk);
 	while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
 	    if (tun->ctrl && tun->alive &&
-		(IpAddrInRange(&pi->conf.peer_addr_req, &tun->peer_addr)) &&
-		(pi->conf.peer_port_req == 0 || pi->conf.peer_port_req == tun->peer_port)) {
+		(IpAddrInRange(&pi->conf.peer_addr, &tun->peer_addr)) &&
+		(pi->conf.peer_port == 0 || pi->conf.peer_port == tun->peer_port)) {
 		    pi->tun = tun;
 		    if (tun->connected) { /* if tun is connected then just initiate */
 		    
@@ -418,8 +418,8 @@ L2tpOpen(PhysInfo p)
 	}
 	memset(tun, 0, sizeof(*tun));
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
-	u_addrcopy(&pi->conf.peer_addr_req.addr, &tun->peer_addr);
-	tun->peer_port = pi->conf.peer_port_req?pi->conf.peer_port_req:L2TP_PORT;
+	u_addrcopy(&pi->conf.peer_addr.addr, &tun->peer_addr);
+	tun->peer_port = pi->conf.peer_port?pi->conf.peer_port:L2TP_PORT;
 	u_addrcopy(&pi->conf.self_addr, &tun->self_addr);
 	tun->self_port = pi->conf.self_port;
 	tun->alive = 1;
@@ -762,9 +762,9 @@ L2tpStat(Context ctx)
     u_addrtoa(&l2tp->conf.self_addr, buf, sizeof(buf)), l2tp->conf.self_port);
   Printf("\r\n");
   Printf("\tPeer range   : %s",
-    u_rangetoa(&l2tp->conf.peer_addr_req, buf, sizeof(buf)));
-  if (l2tp->conf.peer_port_req)
-    Printf(", port %u", l2tp->conf.peer_port_req);
+    u_rangetoa(&l2tp->conf.peer_addr, buf, sizeof(buf)));
+  if (l2tp->conf.peer_port)
+    Printf(", port %u", l2tp->conf.peer_port);
   Printf("\r\n");
   Printf("\tCalling number: %s\r\n", l2tp->conf.callingnum);
   Printf("\tCalled number: %s\r\n", l2tp->conf.callednum);
@@ -972,8 +972,8 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		    !Enabled(&pi->conf.options, L2TP_CONF_INCOMING) ||
 		    ((!u_addrempty(&pi->conf.self_addr)) && u_addrcompare(&pi->conf.self_addr, &tun->self_addr)) ||
 		    (pi->conf.self_port != 0 && pi->conf.self_port != tun->self_port) ||
-		    (!IpAddrInRange(&pi->conf.peer_addr_req, &tun->peer_addr)) ||
-		    (pi->conf.peer_port_req != 0 && pi->conf.peer_port_req != tun->peer_port))
+		    (!IpAddrInRange(&pi->conf.peer_addr, &tun->peer_addr)) ||
+		    (pi->conf.peer_port != 0 && pi->conf.peer_port != tun->peer_port))
 			continue;
 
 		Log(LG_PHYS, ("[%s] L2TP: %s call %p via control connection %p accepted", 
@@ -1488,8 +1488,8 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
 	l2tp->conf.self_addr = rng.addr;
 	l2tp->conf.self_port = port;
       } else {
-	l2tp->conf.peer_addr_req = rng;
-	l2tp->conf.peer_port_req = port;
+	l2tp->conf.peer_addr = rng;
+	l2tp->conf.peer_port = port;
       }
       break;
     case SET_CALLINGNUM:
