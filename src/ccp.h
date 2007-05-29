@@ -21,9 +21,6 @@
 #ifdef COMPRESSION_PRED1
 #include "ccp_pred1.h"
 #endif
-#ifdef COMPRESSION_STAC
-#include "ccp_stac.h"
-#endif
 #ifdef COMPRESSION_DEFLATE
 #ifdef USE_NG_DEFLATE
 #include "ccp_deflate.h"
@@ -64,9 +61,6 @@
     CompType		recv;		/* recv protocol */
     u_short		self_reject;	/* types rejected by me */
     u_short		peer_reject;	/* types rejected by peer */
-#ifdef COMPRESSION_STAC
-    struct stacinfo	stac;		/* STAC LZS state */
-#endif
 #ifdef COMPRESSION_PRED1
     struct pred1info	pred1;		/* Predictor-1 state */
 #endif

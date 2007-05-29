@@ -118,9 +118,6 @@
   /* These should be listed in order of preference */
   static const CompType		gCompTypes[] = {
     &gCompMppcInfo,
-#ifdef COMPRESSION_STAC
-    &gCompStacInfo,
-#endif
 #ifdef COMPRESSION_DEFLATE
 #ifdef USE_NG_DEFLATE
     &gCompDeflateInfo,
