@@ -101,7 +101,7 @@
 
     struct u_range	range;		/* IP range allowed to user */
     u_char		range_valid;	/* range is valid */
-    struct in_addr	mask;		/* IP Netmask */
+    u_char		netmask;	/* IP Netmask */
 
     char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
     int			eapmsg_len;

@@ -27,7 +27,7 @@
 
   struct u_range {
     struct u_addr	addr;
-    short    		width;
+    u_char    		width;
   };
 
   enum {
@@ -78,6 +78,9 @@
   extern int 	u_rangecompare(struct u_range *range1, struct u_range *range2);
 
   extern uint32_t	u_addrtoid(struct u_addr *addr);
+  
+  extern u_char		in_addrtowidth(struct in_addr *mask);
+  extern struct in_addr *widthtoin_addr(u_char width, struct in_addr *mask);
 
 #endif
 

@@ -233,6 +233,18 @@ RadiusAccount(AuthData auth)
     return;
   }
 
+  if (auth->params.netmask != 0) {
+    struct in_addr	ip;
+    widthtoin_addr(auth->params.netmask, &ip);
+    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_addr(RAD_FRAMED_IP_NETMASK): %s", 
+	auth->info.lnkname, __func__, inet_ntoa(ip)));
+    if (rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ip)) {
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_addr(RAD_FRAMED_IP_NETMASK): %s", 
+    	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
+	return;
+    }
+  }
+
 #if 0
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_addr(RAD_FRAMED_IP_NETMASK): %s", 
     auth->info.lnkname, __func__, inet_ntoa(ac->mask)));
@@ -1122,9 +1134,10 @@ RadiusGetParams(AuthData auth, int eap_proxy)
         break;
 
       case RAD_FRAMED_IP_NETMASK:
-	auth->params.mask = rad_cvt_addr(data);
-	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_IP_NETMASK: %s ",
-	  auth->info.lnkname, __func__, inet_ntoa(auth->params.mask)));
+        ip = rad_cvt_addr(data);
+	auth->params.netmask = in_addrtowidth(&ip);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_IP_NETMASK: %s (/%d) ",
+	  auth->info.lnkname, __func__, inet_ntoa(ip), auth->params.netmask));
 	break;
 
       case RAD_FRAMED_ROUTE:

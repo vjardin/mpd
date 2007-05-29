@@ -488,3 +488,22 @@ u_addrtoid(struct u_addr *addr)
     return (id);
 }
 
+u_char
+in_addrtowidth(struct in_addr *mask)
+{
+	u_char width = 0;
+	uint32_t m = ntohl(mask->s_addr);
+
+	while ((m & 0x80000000) != 0) {
+		m <<= 1;
+		width++;
+	}
+	return (width);
+}
+
+struct in_addr *
+widthtoin_addr(u_char width, struct in_addr *mask)
+{
+	mask->s_addr = htonl(0xFFFFFFFF << (32 - width));
+	return (mask);
+}
