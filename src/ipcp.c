@@ -444,15 +444,9 @@ IpcpLayerUp(Fsm fp)
   BundNcpsJoin(b, NCP_IPCP);
 
   /* Enable IP packets in the PPP node */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableIP = 1;
-  b->pppConfig.enableVJCompression = vjc.enableComp;
-  b->pppConfig.enableVJDecompression = vjc.enableDecomp;
-#else
   b->pppConfig.bund.enableIP = 1;
   b->pppConfig.bund.enableVJCompression = vjc.enableComp;
   b->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
-#endif
   NgFuncSetConfig(b);
 }
 
@@ -469,15 +463,9 @@ IpcpLayerDown(Fsm fp)
   IpcpState		const ipcp = &b->ipcp;
 
   /* Turn off IP packets */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableIP = 0;
-  b->pppConfig.enableVJCompression = 0;
-  b->pppConfig.enableVJDecompression = 0;
-#else
   b->pppConfig.bund.enableIP = 0;
   b->pppConfig.bund.enableVJCompression = 0;
   b->pppConfig.bund.enableVJDecompression = 0;
-#endif
   NgFuncSetConfig(b);
 
   if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 

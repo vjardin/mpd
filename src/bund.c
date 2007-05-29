@@ -269,21 +269,12 @@ BundJoin(Link l)
   if (bm->n_up == 1) {
 
     /* Configure the bundle */
-#if NGM_PPP_COOKIE < 940897794
-    b->pppConfig.enableMultilink = lcp->peer_multilink;
-    b->pppConfig.mrru = lcp->peer_mrru;
-    b->pppConfig.xmitShortSeq = lcp->peer_shortseq;
-    b->pppConfig.recvShortSeq = lcp->want_shortseq;
-    b->pppConfig.enableRoundRobin =
-      Enabled(&b->conf.options, BUND_CONF_ROUNDROBIN);
-#else
     b->pppConfig.bund.enableMultilink = lcp->peer_multilink;
     b->pppConfig.bund.mrru = lcp->peer_mrru;
     b->pppConfig.bund.xmitShortSeq = lcp->peer_shortseq;
     b->pppConfig.bund.recvShortSeq = lcp->want_shortseq;
     b->pppConfig.bund.enableRoundRobin =
       Enabled(&b->conf.options, BUND_CONF_ROUNDROBIN);
-#endif
 
     /* generate a uniq session id */
     snprintf(b->msession_id, AUTH_MAX_SESSIONID, "%d-%s",
@@ -1100,13 +1091,9 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tOctets output  : %llu\r\n", ctx->bund->stats.xmitOctets);
   Printf("\tFrames output  : %llu\r\n", ctx->bund->stats.xmitFrames);
   Printf("\tBad protocols  : %llu\r\n", ctx->bund->stats.badProtos);
-#if NGM_PPP_COOKIE >= 940897794
   Printf("\tRunts          : %llu\r\n", ctx->bund->stats.runts);
-#endif
   Printf("\tDup fragments  : %llu\r\n", ctx->bund->stats.dupFragments);
-#if NGM_PPP_COOKIE >= 940897794
   Printf("\tDrop fragments : %llu\r\n", ctx->bund->stats.dropFragments);
-#endif
 
   return(0);
 }
@@ -1126,13 +1113,9 @@ BundUpdateStats(Bund b)
     b->stats.recvFrames += abs(stats.recvFrames - b->oldStats.recvFrames);
     b->stats.recvOctets += abs(stats.recvOctets - b->oldStats.recvOctets);
     b->stats.badProtos  += abs(stats.badProtos - b->oldStats.badProtos);
-#if NGM_PPP_COOKIE >= 940897794
     b->stats.runts	  += abs(stats.runts - b->oldStats.runts);
-#endif
     b->stats.dupFragments += abs(stats.dupFragments - b->oldStats.dupFragments);
-#if NGM_PPP_COOKIE >= 940897794
     b->stats.dropFragments += abs(stats.dropFragments - b->oldStats.dropFragments);
-#endif
   }
 
   b->oldStats = stats;

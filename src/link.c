@@ -477,13 +477,9 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tOctets output  : %llu\r\n", l->stats.xmitOctets);
   Printf("\tFrames output  : %llu\r\n", l->stats.xmitFrames);
   Printf("\tBad protocols  : %llu\r\n", l->stats.badProtos);
-#if NGM_PPP_COOKIE >= 940897794
   Printf("\tRunts          : %llu\r\n", l->stats.runts);
-#endif
   Printf("\tDup fragments  : %llu\r\n", l->stats.dupFragments);
-#if NGM_PPP_COOKIE >= 940897794
   Printf("\tDrop fragments : %llu\r\n", l->stats.dropFragments);
-#endif
   return(0);
 }
 
@@ -502,13 +498,9 @@ LinkUpdateStats(Link l)
     l->stats.recvFrames += abs(stats.recvFrames - l->oldStats.recvFrames);
     l->stats.recvOctets += abs(stats.recvOctets - l->oldStats.recvOctets);
     l->stats.badProtos  += abs(stats.badProtos - l->oldStats.badProtos);
-#if NGM_PPP_COOKIE >= 940897794
     l->stats.runts	  += abs(stats.runts - l->oldStats.runts);
-#endif
     l->stats.dupFragments += abs(stats.dupFragments - l->oldStats.dupFragments);
-#if NGM_PPP_COOKIE >= 940897794
     l->stats.dropFragments += abs(stats.dropFragments - l->oldStats.dropFragments);
-#endif
   }
 
   l->oldStats = stats;

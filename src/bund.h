@@ -129,11 +129,7 @@
     MsgHandler		msgs;			/* Bundle events */
 
     /* PPP node config */
-#if NGM_PPP_COOKIE < 940897794
-    struct ng_ppp_node_config	pppConfig;
-#else
     struct ng_ppp_node_conf	pppConfig;
-#endif
 
     /* Data chunks */
     char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq session-id */    

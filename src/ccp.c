@@ -672,13 +672,8 @@ CcpLayerUp(Fsm fp)
     (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(b, COMP_DIR_RECV, buf, sizeof(buf)) : ""));
 
   /* Update PPP node config */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableCompression = (ccp->xmit != NULL);
-  b->pppConfig.enableDecompression = (ccp->recv != NULL);
-#else
   b->pppConfig.bund.enableCompression = (ccp->xmit != NULL)?ccp->xmit->mode:0;
   b->pppConfig.bund.enableDecompression = (ccp->recv != NULL)?ccp->recv->mode:0;
-#endif
   NgFuncSetConfig(b);
 
   /* Update interface MTU */
@@ -697,13 +692,8 @@ CcpLayerDown(Fsm fp)
   struct ngm_rmhook rm;
 
   /* Update PPP node config */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableCompression = 0;
-  b->pppConfig.enableDecompression = 0;
-#else
   b->pppConfig.bund.enableCompression = 0;
   b->pppConfig.bund.enableDecompression = 0;
-#endif
   NgFuncSetConfig(b);
 
   /* Update interface MTU */

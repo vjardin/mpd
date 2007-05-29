@@ -282,11 +282,7 @@ Ipv6cpLayerUp(Fsm fp)
   BundNcpsJoin(b, NCP_IPV6CP);
 
   /* Enable IP packets in the PPP node */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableIPv6 = 1;
-#else
   b->pppConfig.bund.enableIPv6 = 1;
-#endif
   NgFuncSetConfig(b);
 }
 
@@ -301,11 +297,7 @@ Ipv6cpLayerDown(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
   /* Turn off IP packets */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableIPv6 = 0;
-#else
   b->pppConfig.bund.enableIPv6 = 0;
-#endif
   NgFuncSetConfig(b);
 
   BundNcpsLeave(b, NCP_IPV6CP);

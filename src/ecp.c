@@ -554,13 +554,8 @@ EcpLayerUp(Fsm fp)
   Log(LG_ECP, ("  Decrypt using: %s", !ecp->recv ? "none" : ecp->recv->name));
 
   /* Update PPP node config */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableEncryption = (ecp->xmit != NULL);
-  b->pppConfig.enableDecryption = (ecp->recv != NULL);
-#else
   b->pppConfig.bund.enableEncryption = (ecp->xmit != NULL);
   b->pppConfig.bund.enableDecryption = (ecp->recv != NULL);
-#endif
   NgFuncSetConfig(b);
 
   /* Update interface MTU */
@@ -581,13 +576,8 @@ EcpLayerDown(Fsm fp)
   struct ngm_rmhook rm;
 
   /* Update PPP node config */
-#if NGM_PPP_COOKIE < 940897794
-  b->pppConfig.enableEncryption = 0;
-  b->pppConfig.enableDecryption = 0;
-#else
   b->pppConfig.bund.enableEncryption = 0;
   b->pppConfig.bund.enableDecryption = 0;
-#endif
   NgFuncSetConfig(b);
 
   /* Update interface MTU */
