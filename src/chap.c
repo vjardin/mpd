@@ -545,7 +545,7 @@ ChapInputFinish(Link l, AuthData auth)
   if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2) {
     struct mschapv2value *const pv = (struct mschapv2value *)auth->params.chap.value;
     char hex[41];
-    u_char authresp[128];
+    u_char authresp[20];
     int i;
 
     /* Generate MS-CHAPv2 'authenticator response' */
