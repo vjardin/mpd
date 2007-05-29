@@ -395,7 +395,7 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
   Printf("Configuration:\r\n");
   Printf("\tTimeout      : %d\r\n", conf->radius_timeout);
   Printf("\tRetries      : %d\r\n", conf->radius_retries);
-  Printf("\tConfig-file  : %s\r\n", conf->file);
+  Printf("\tConfig-file  : %s\r\n", (conf->file ? conf->file : "none"));
   Printf("\tMe (NAS-IP)  : %s\r\n", inet_ntoa(conf->radius_me));
   Printf("\tv6Me (NAS-IP): %s\r\n", u_addrtoa(&conf->radius_mev6, buf1, sizeof(buf1)));
   
@@ -578,10 +578,14 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	break;
 
       case SET_CONFIG:
-	if (strlen(av[0]) > PATH_MAX)
+	if (strlen(av[0]) > PATH_MAX) {
 	  Log(LG_ERR, ("RADIUS: Config file name too long."));
-	else
+	} else {
+	  if (conf->file)
+		Freee(MB_RADIUS, conf->file);
+	  conf->file = Malloc(MB_RADIUS, strlen(av[0])+1);
 	  strcpy(conf->file, av[0]);
+	}
 	break;
 
     case SET_ENABLE:
@@ -623,7 +627,7 @@ RadiusOpen(AuthData auth, short request_type)
 
   }
   
-  if (strlen(conf->file)) {
+  if (conf->file && strlen(conf->file)) {
     Log(LG_RADIUS2, ("[%s] RADIUS: using %s", auth->info.lnkname, conf->file));
     if (rad_config(auth->radius.handle, conf->file) != 0) {
       Log(LG_RADIUS, ("[%s] RADIUS: rad_config: %s", auth->info.lnkname, 
