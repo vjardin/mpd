@@ -14,7 +14,8 @@ a task post it to MPD's maling list.
 
 <tag>callback (client & server)</tag>
 <p>
-Currently MPD doesen't support callback, but it should.
+Currently MPD supports only simpliest LCP callback without number
+negotiation, without CBCP support and only as client.
 </p>
 
 <tag>Unimplemented Protocols</tag>
