@@ -81,9 +81,7 @@
     PPTP_CONF_INCOMING,		/* allow accepting connections from peer */
     PPTP_CONF_OUTCALL,		/* when originating, calls are "outgoing" */
     PPTP_CONF_DELAYED_ACK,	/* enable delayed receive ack algorithm */
-#if NGM_PPTPGRE_COOKIE >= 942783547
     PPTP_CONF_ALWAYS_ACK,	/* include ack with all outgoing data packets */
-#endif
 #if NGM_PPTPGRE_COOKIE >= 1082548365
     PPTP_CONF_WINDOWING,	/* control (stupid) windowing algorithm */
 #endif
@@ -188,9 +186,7 @@
     { 0,	PPTP_CONF_INCOMING,	"incoming"	},
     { 0,	PPTP_CONF_OUTCALL,	"outcall"	},
     { 0,	PPTP_CONF_DELAYED_ACK,	"delayed-ack"	},
-#if NGM_PPTPGRE_COOKIE >= 942783547
     { 0,	PPTP_CONF_ALWAYS_ACK,	"always-ack"	},
-#endif
 #if NGM_PPTPGRE_COOKIE >= 1082548365
     { 0,	PPTP_CONF_WINDOWING,	"windowing"	},
 #endif
@@ -758,9 +754,7 @@ PptpHookUp(PhysInfo p)
   /* Configure PPTP/GRE node */
   gc.enabled = 1;
   gc.enableDelayedAck = Enabled(&pi->conf.options, PPTP_CONF_DELAYED_ACK);
-#if NGM_PPTPGRE_COOKIE >= 942783547
   gc.enableAlwaysAck = Enabled(&pi->conf.options, PPTP_CONF_ALWAYS_ACK);
-#endif
 #if NGM_PPTPGRE_COOKIE >= 1082548365
   gc.enableWindowing = Enabled(&pi->conf.options, PPTP_CONF_WINDOWING);
 #endif
