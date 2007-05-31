@@ -608,6 +608,7 @@ AuthDataNew(Link l)
   strlcpy(auth->info.lnkname, l->name, sizeof(auth->info.lnkname));
   strlcpy(auth->info.msession_id, l->msession_id, sizeof(auth->info.msession_id));
   strlcpy(auth->info.session_id, l->session_id, sizeof(auth->info.session_id));
+  strlcpy(auth->info.peer_ident, l->lcp.peer_ident, sizeof(l->lcp.peer_ident));
 
   auth->info.n_links = l->bund->n_links;
   auth->info.peer_addr = l->bund->ipcp.peer_addr;
@@ -1624,6 +1625,8 @@ AuthExternal(AuthData auth)
 	fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
     if (strlen(auth->params.peerport))
 	fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
+    if (strlen(auth->info.peer_ident))
+	fprintf(fp, "PEER_IDENT:%s\n", auth->info.peer_ident);
  
 
     /* REQUEST DONE */

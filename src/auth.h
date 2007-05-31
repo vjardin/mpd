@@ -218,6 +218,7 @@
       time_t		last_open;	/* Time this link last was opened */
       PhysType		phys_type;	/* Device type descriptor */
       int		linkID;		/* Absolute link number */
+      char		peer_ident[64];	/* LCP ident received from peer */
     } info;
     struct authparams	params;		/* params to pass to from auth backend */
   };

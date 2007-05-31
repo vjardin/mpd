@@ -64,7 +64,7 @@
   static void	LcpFailure(Fsm fp, enum fsmfail reason);
   static const struct fsmoption	*LcpAuthProtoNak(ushort proto, u_char chap_alg);
   static short 	LcpFindAuthProto(ushort proto, u_char chap_alg);
-
+  static void	LcpRecvIdent(Fsm fp, Mbuf bp);
   static void	LcpStopActivity(Link l);
 
 /*
@@ -127,7 +127,7 @@
     LcpFailure,
     NULL,
     NULL,
-    NULL,
+    LcpRecvIdent,
   };
 
   /* List of possible Authentication Protocols */
@@ -226,6 +226,7 @@ LcpConfigure(Fsm fp)
   lcp->peer_auth = 0;
   lcp->want_auth = 0;
   lcp->want_chap_alg = 0;
+  lcp->peer_ident[0] = 0;
 
   memset (lcp->want_protos, 0, sizeof lcp->want_protos);
   /* fill my list of possible auth-protos, most to least secure */
@@ -718,6 +719,26 @@ LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp)
   if (rej)
     FsmFailure(rej, FAIL_WAS_PROTREJ);
   return(fatal);
+}
+
+/*
+ * LcpRecvIdent()
+ */
+
+static void
+LcpRecvIdent (Fsm fp, Mbuf bp)
+{
+  Link	l = (Link)fp->arg;
+  int	len, clen;
+  
+  if (l->lcp.peer_ident[0] != 0)
+    strlcat(l->lcp.peer_ident, " ", sizeof(l->lcp.peer_ident));
+  
+  len = strlen(l->lcp.peer_ident);
+  clen = sizeof(l->lcp.peer_ident) - len;
+  if (clen > (MBLEN(bp) + 1))
+	clen = MBLEN(bp) + 1;
+  strlcpy(l->lcp.peer_ident + len, MBDATA(bp), clen);
 }
 
 /*
