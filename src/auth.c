@@ -35,7 +35,7 @@
 			    char *password, size_t passlen);
   static void		AuthAsync(void *arg);
   static void		AuthAsyncFinish(void *arg, int was_canceled);
-  static int		AuthPreChecks(AuthData auth, int complain);
+  static int		AuthPreChecks(AuthData auth);
   static void		AuthAccountTimeout(void *arg);
   static void		AuthAccount(void *arg);
   static void		AuthAccountFinish(void *arg, int was_canceled);
@@ -943,7 +943,7 @@ AuthAsyncStart(Link l, AuthData auth)
   Auth	const a = &l->lcp.auth;
   
   /* perform pre authentication checks (single-login, etc.) */
-  if (AuthPreChecks(auth, 1) < 0) {
+  if (AuthPreChecks(auth) < 0) {
     Log(LG_AUTH, ("[%s] AUTH: AuthPreCheck failed for \"%s\"", 
       l->name, auth->params.authname));
     auth->finish(l, auth);
@@ -1244,12 +1244,11 @@ AuthOpie(AuthData auth)
  */
 
 static int
-AuthPreChecks(AuthData auth, int complain)
+AuthPreChecks(AuthData auth)
 {
 
   if (!strlen(auth->params.authname)) {
-    if (complain)
-      Log(LG_AUTH, (" We don't accept empty usernames"));
+    Log(LG_AUTH, (" We don't accept empty usernames"));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     return (-1);
@@ -1264,13 +1263,11 @@ AuthPreChecks(AuthData auth, int complain)
 	  num++;
 
     if (num >= gMaxLogins) {
-      if (complain) {
 	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
-	  auth->params.authname));
-      }
-      auth->status = AUTH_STATUS_FAIL;
-      auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
-      return (-1);
+	    auth->params.authname));
+        auth->status = AUTH_STATUS_FAIL;
+        auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+        return (-1);
     }
   }
   return (0);
