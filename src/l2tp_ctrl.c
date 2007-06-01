@@ -395,7 +395,7 @@ static const	struct ppp_l2tp_avp_info ppp_l2tp_avp_info_list[] = {
 	AVP_ITEM(BEARER_CAPABILITIES,	1,  1,  4,  4),
 	AVP_ITEM(TIE_BREAKER,		0,  0,  8,  8),
 	AVP_ITEM(FIRMWARE_REVISION,	1,  0,  2,  2),
-	AVP_ITEM(HOST_NAME,		0,  1,  1,  AVP_MAX_LENGTH),
+	AVP_ITEM(HOST_NAME,		0,  1,  0,  AVP_MAX_LENGTH),
 	AVP_ITEM(VENDOR_NAME,		1,  0,  0,  AVP_MAX_LENGTH),
 	AVP_ITEM(ASSIGNED_TUNNEL_ID,	1,  1,  2,  2),
 	AVP_ITEM(RECEIVE_WINDOW_SIZE,	0,  1,  2,  2),
@@ -1021,7 +1021,7 @@ ppp_l2tp_ctrl_setup_1(struct ppp_l2tp_ctrl *ctrl,
 	if (ptrs->challenge != NULL) {
                 MD5_CTX md5ctx;
 		u_char hash[MD5_DIGEST_LENGTH];
-		uint16_t t;
+		uint8_t t;
 
 		/* Make sure response was included */
 		if (ctrl->secret == NULL) {
@@ -1035,7 +1035,7 @@ ppp_l2tp_ctrl_setup_1(struct ppp_l2tp_ctrl *ctrl,
 		/* Calculate challenge response */
 		t = (ptrs->message->mesgtype == SCCRQ)?SCCRP:SCCCN;
 		MD5_Init(&md5ctx);
-		MD5_Update(&md5ctx, &t, 2);
+		MD5_Update(&md5ctx, &t, 1);
 		MD5_Update(&md5ctx, ctrl->secret, ctrl->seclen);
 		MD5_Update(&md5ctx, &ptrs->challenge->value, ptrs->challenge->length);
 		MD5_Final(hash, &md5ctx);
@@ -1067,7 +1067,7 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 	if (ctrl->secret != NULL) {
                 MD5_CTX md5ctx;
 		u_char hash[MD5_DIGEST_LENGTH];
-		uint16_t t;
+		uint8_t t;
 
 		/* Make sure response was included */
 		if (ptrs->challengresp == NULL) {
@@ -1080,7 +1080,7 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 		/* Calculate challenge response */
 		t = ptrs->message->mesgtype;
 		MD5_Init(&md5ctx);
-		MD5_Update(&md5ctx, &t, 2);
+		MD5_Update(&md5ctx, &t, 1);
 		MD5_Update(&md5ctx, ctrl->secret, ctrl->seclen);
 		MD5_Update(&md5ctx, ctrl->chal, sizeof(ctrl->chal));
 		MD5_Final(hash, &md5ctx);

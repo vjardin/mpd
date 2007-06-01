@@ -350,17 +350,19 @@ ppp_l2tp_avp_pack(const struct ppp_l2tp_avp_info *info,
 				MD5_CTX	md5ctx;
 				u_char hash[MD5_DIGEST_LENGTH];
 				int k, l;
+				uint16_t t;
 
 				/* Add original length */
-				buf[len] = ((6 + avp->vlen) >> 8);
-				buf[len + 1] = ((6 + avp->vlen) & 0xff);
+				buf[len] = (avp->vlen >> 8);
+				buf[len + 1] = (avp->vlen & 0xff);
 
 				/* Add value */
 				memcpy(buf + len + 2, avp->value, avp->vlen);
 
 				/* Encrypt value */
 				MD5_Init(&md5ctx);
-				MD5_Update(&md5ctx, &avp->type, 2);
+				t = htons(avp->type);
+				MD5_Update(&md5ctx, &t, 2);
 				MD5_Update(&md5ctx, secret, slen);
 				MD5_Update(&md5ctx, &randvec, sizeof(randvec));
 				MD5_Final(hash, &md5ctx);
@@ -456,6 +458,7 @@ unknown:		if ((hdr[0] & AVP_MANDATORY) != 0) {
 			u_char nhash[MD5_DIGEST_LENGTH];
 			int k, l;
 			u_int16_t olen;
+			uint16_t t;
 
 			if (randvec == NULL)
 				goto bogus;
@@ -466,7 +469,8 @@ unknown:		if ((hdr[0] & AVP_MANDATORY) != 0) {
 
 			/* Encrypt value */
 			MD5_Init(&md5ctx);
-			MD5_Update(&md5ctx, &(hdr[2]), 2);
+			t = htons(hdr[2]);
+			MD5_Update(&md5ctx, &t, 2);
 			MD5_Update(&md5ctx, secret, slen);
 			MD5_Update(&md5ctx, randvec, randvec_len);
 			MD5_Final(hash, &md5ctx);
@@ -484,7 +488,7 @@ unknown:		if ((hdr[0] & AVP_MANDATORY) != 0) {
 			    }
 			    memcpy(hash, nhash, sizeof(hash));
 			}
-			olen = (data[6] << 8) + data[7];
+			olen = (data[6] << 8) + data[7] + 6;
 			if ((olen < 6) || (olen > (alen - 2)))
 				goto bogus;
 
