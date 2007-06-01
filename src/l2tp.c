@@ -377,11 +377,11 @@ L2tpOpen(PhysInfo p)
 			    return;
 			};
 			ppp_l2tp_avp_list_destroy(&avps);
+			pi->sess = sess;
+			pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 			Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p initiated", 
 			    p->name, (pi->outcall?"Outgoing":"Incoming"), 
 			    ppp_l2tp_sess_get_serial(sess), tun->ctrl));
-			pi->sess = sess;
-			pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 			ppp_l2tp_sess_set_cookie(sess, p);
 			if (!pi->outcall) {
 			    pi->sync = 1;
@@ -859,11 +859,11 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			continue;
 		};
 		ppp_l2tp_avp_list_destroy(&avps);
+		pi->sess = sess;
+		pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 		Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p initiated", 
 		    p->name, (pi->outcall?"Outgoing":"Incoming"), 
 		    ppp_l2tp_sess_get_serial(sess), tun->ctrl));
-		pi->sess = sess;
-		pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 		ppp_l2tp_sess_set_cookie(sess, p);
 		if (!pi->outcall) {
 		    pi->sync = 1;
