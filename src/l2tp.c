@@ -273,6 +273,7 @@ L2tpOpen(PhysInfo p)
 	struct sockaddr_storage sas;
 	char hook[NG_HOOKLEN + 1];
 	char namebuf[64];
+	char hostname[MAXHOSTNAMELEN + 1];
 	ng_ID_t node_id;
 	int csock = -1;
 	int dsock = -1;
@@ -428,6 +429,15 @@ L2tpOpen(PhysInfo p)
 	/* Create vendor name AVP */
 	if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
+		    p->name, strerror(errno)));
+		goto fail;
+	}
+
+	(void)gethostname(hostname, sizeof(hostname) - 1);
+	hostname[sizeof(hostname) - 1] = '\0';
+	if (ppp_l2tp_avp_list_append(avps, 1,
+	    0, AVP_HOST_NAME, hostname, strlen(hostname)) == -1) {
+		Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 		    p->name, strerror(errno)));
 		goto fail;
 	}
@@ -1162,6 +1172,7 @@ L2tpServerEvent(int type, void *arg)
 	const size_t bufsize = 8192;
 	u_int16_t *buf = NULL;
 	char hook[NG_HOOKLEN + 1];
+	char hostname[MAXHOSTNAMELEN + 1];
 	socklen_t sas_len;
 	char namebuf[64];
 	ng_ID_t node_id;
@@ -1208,6 +1219,13 @@ L2tpServerEvent(int type, void *arg)
 	/* Create vendor name AVP */
 	if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_create: %s", strerror(errno)));
+		goto fail;
+	}
+	(void)gethostname(hostname, sizeof(hostname) - 1);
+	hostname[sizeof(hostname) - 1] = '\0';
+	if (ppp_l2tp_avp_list_append(avps, 1,
+	    0, AVP_HOST_NAME, hostname, strlen(hostname)) == -1) {
+		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
 		goto fail;
 	}
 	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
