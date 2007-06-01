@@ -1106,8 +1106,15 @@ void
 BundUpdateStats(Bund b)
 {
   struct ng_ppp_link_stat	stats;
+  int	l = NG_PPP_BUNDLE_LINKNUM;
 
-  if (NgFuncGetStats(b, NG_PPP_BUNDLE_LINKNUM, FALSE, &stats) != -1) {
+#if (__FreeBSD_version < 6002104 || (__FreeBSD_version >= 700000 && __FreeBSD_version < 700029))
+  /* Workaround for broken ng_ppp bundle stats */
+  if (!b->multilink)
+    l = 0;
+#endif
+
+  if (NgFuncGetStats(b, l, FALSE, &stats) != -1) {
     b->stats.xmitFrames += abs(stats.xmitFrames - b->oldStats.xmitFrames);
     b->stats.xmitOctets += abs(stats.xmitOctets - b->oldStats.xmitOctets);
     b->stats.recvFrames += abs(stats.recvFrames - b->oldStats.recvFrames);
