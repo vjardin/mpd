@@ -36,13 +36,11 @@
 #include <netgraph/bpf/ng_bpf.h>
 #include <netgraph/tee/ng_tee.h>
 #include <netgraph/ksocket/ng_ksocket.h>
-#include <netgraph/tcpmss/ng_tcpmss.h>
 #else
 #include <netgraph/ng_iface.h>
 #include <netgraph/ng_bpf.h>
 #include <netgraph/ng_tee.h>
 #include <netgraph/ng_ksocket.h>
-#include <netgraph/ng_tcpmss.h>
 #endif
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
@@ -1974,7 +1972,12 @@ static int
 IfaceInitMSS(Bund b, char *path, char *hook)
 {
 	struct ngm_mkpeer	mp;
-	struct ngm_name	nm;
+#if NG_NODESIZ>=32
+	struct ngm_name		nm;
+#endif
+#ifndef USE_NG_TCPMSS
+	struct ngm_connect	cn;
+#endif
 
 	Log(LG_IFACE2, ("[%s] IFACE: Connecting tcpmssfix", b->name));
   
@@ -2011,7 +2014,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     if (NgSendMsg(b->csock, path,
 	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-    	    NG_TCPMSS_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+    	    NG_BPF_NODE_TYPE, path, mp.ourhook, strerror(errno)));
 	goto fail;
     }
 
@@ -2174,7 +2177,9 @@ static int
 IfaceInitLimits(Bund b, char *path, char *hook)
 {
     struct ngm_mkpeer	mp;
+#if NG_NODESIZ>=32
     struct ngm_name	nm;
+#endif
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 
