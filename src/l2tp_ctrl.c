@@ -164,7 +164,6 @@ struct ppp_l2tp_ctrl {
 	const struct ppp_l2tp_ctrl_cb *cb;		/* link callbacks */
 	struct pevent_ctx	*ctx;			/* event context */
 	pthread_mutex_t		*mutex;			/* mutex */
-	u_int32_t		serial;			/* next call serial */
 	ng_ID_t			node_id;		/* l2tp node id */
 	u_int32_t		peer_id;		/* peer unique id */
 	char			path[32];		/* l2tp node path */
@@ -431,6 +430,8 @@ static const	struct ppp_l2tp_avp_info ppp_l2tp_avp_info_list[] = {
 
 /* All control connections */
 struct ghash	*ppp_l2tp_ctrls;
+
+static u_int32_t gNextSerial = 0;
 
 /************************************************************************
 			PUBLIC FUNCTIONS
@@ -1117,7 +1118,7 @@ ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
 	sess->ctrl = ctrl;
 	sess->orig = orig;
 	sess->side = side;
-	sess->serial = ctrl->serial++;
+	sess->serial = gNextSerial++;
 	sess->state = (orig == ORIG_LOCAL) ? SS_WAIT_REPLY :
 	    (side == SIDE_LNS) ? SS_WAIT_CONNECT : SS_WAIT_ANSWER;
 
