@@ -309,6 +309,8 @@ L2tpOpen(PhysInfo p)
 			} else {
 			    avps = NULL;
 			}
+			Log(LG_PHYS, ("[%s] L2TP: Call #%u connected", p->name, 
+			    ppp_l2tp_sess_get_serial(pi->sess)));
 			ppp_l2tp_connected(pi->sess, avps);
 			if (avps)
 			    ppp_l2tp_avp_list_destroy(&avps);
@@ -375,7 +377,9 @@ L2tpOpen(PhysInfo p)
 			    return;
 			};
 			ppp_l2tp_avp_list_destroy(&avps);
-			Log(LG_PHYS, ("[%s] L2TP: Call %p initiated", p->name, sess));
+			Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p initiated", 
+			    p->name, (pi->outcall?"Outgoing":"Incoming"), 
+			    ppp_l2tp_sess_get_serial(sess), tun->ctrl));
 			pi->sess = sess;
 			pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 			ppp_l2tp_sess_set_cookie(sess, p);
@@ -550,8 +554,8 @@ L2tpOpen(PhysInfo p)
 		goto fail;
 	}
 	pi->tun = tun;
-	ppp_l2tp_ctrl_initiate(tun->ctrl);
 	Log(LG_PHYS, ("L2TP: Control connection %p initiated", tun->ctrl));
+	ppp_l2tp_ctrl_initiate(tun->ctrl);
 
 	/* Clean up and return */
 	ppp_l2tp_avp_list_destroy(&avps);
@@ -589,7 +593,8 @@ L2tpClose(PhysInfo p)
     PhysDown(p, 0, NULL);
     L2tpDoClose(p);
     if (pi->sess) {
-	Log(LG_PHYS, ("[%s] L2TP: Call %p terminated", p->name, pi->sess));
+	Log(LG_PHYS, ("[%s] L2TP: Call #%u terminated locally", p->name, 
+	    ppp_l2tp_sess_get_serial(pi->sess)));
 	ppp_l2tp_terminate(pi->sess, L2TP_RESULT_ADMIN, 0, NULL);
 	pi->sess = NULL;
     }
@@ -854,7 +859,9 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			continue;
 		};
 		ppp_l2tp_avp_list_destroy(&avps);
-		Log(LG_PHYS, ("[%s] L2TP: call %p initiated", p->name, sess));
+		Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p initiated", 
+		    p->name, (pi->outcall?"Outgoing":"Incoming"), 
+		    ppp_l2tp_sess_get_serial(sess), tun->ctrl));
 		pi->sess = sess;
 		pi->outcall = Enabled(&pi->conf.options, L2TP_CONF_OUTCALL);
 		ppp_l2tp_sess_set_cookie(sess, p);
@@ -963,8 +970,9 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		goto fail;
 	}
 
-	Log(LG_PHYS, ("L2TP: %s call via connection %p", 
-	    (out?"Outgoing":"Incoming"), ctrl));
+	Log(LG_PHYS, ("L2TP: %s call #%u via connection %p received", 
+	    (out?"Outgoing":"Incoming"), 
+	    ppp_l2tp_sess_get_serial(sess), ctrl));
 
 	/* Examine all L2TP links. */
 	for (k = 0; k < gNumPhyses; k++) {
@@ -986,8 +994,9 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		    (pi->conf.peer_port != 0 && pi->conf.peer_port != tun->peer_port))
 			continue;
 
-		Log(LG_PHYS, ("[%s] L2TP: %s call %p via control connection %p accepted", 
-		    p->name, (out?"Outgoing":"Incoming"), sess, ctrl));
+		Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p accepted", 
+		    p->name, (out?"Outgoing":"Incoming"), 
+		    ppp_l2tp_sess_get_serial(sess), ctrl));
 
 		if (out)
 		    p->state = PHYS_STATE_READY;
@@ -1032,7 +1041,8 @@ ppp_l2tp_connected_cb(struct ppp_l2tp_sess *sess,
 	p = ppp_l2tp_sess_get_cookie(sess);
 	pi = (L2tpInfo)p->info;
 
-	Log(LG_PHYS, ("[%s] L2TP: call %p connected", p->name, sess));
+	Log(LG_PHYS, ("[%s] L2TP: Call #%u connected", p->name, 
+	    ppp_l2tp_sess_get_serial(sess)));
 
 	if (!pi->incoming && avps != NULL) {
 		/* Convert AVP's to friendly form */
@@ -1077,7 +1087,8 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	/* Control side is notifying us session is down */
 	snprintf(buf, sizeof(buf), "result=%u error=%u errmsg=\"%s\"",
 	    result, error, (errmsg != NULL) ? errmsg : "");
-	Log(LG_PHYS, ("[%s] L2TP: call %p terminated: %s", p->name, sess, buf));
+	Log(LG_PHYS, ("[%s] L2TP: call #%u terminated: %s", p->name, 
+	    ppp_l2tp_sess_get_serial(sess), buf));
 
 	p->state = PHYS_STATE_DOWN;
 	PhysDown(p, STR_DROPPED, NULL);

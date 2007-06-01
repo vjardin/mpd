@@ -256,7 +256,8 @@ static void	ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 static void	ppp_l2tp_ctrl_death_start(struct ppp_l2tp_ctrl *ctrl);
 
 static struct	ppp_l2tp_sess *ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
-			enum l2tp_sess_orig orig, enum l2tp_sess_side side);
+			enum l2tp_sess_orig orig, enum l2tp_sess_side side, 
+			u_int32_t serial);
 static void	ppp_l2tp_sess_destroy(struct ppp_l2tp_sess **sessp);
 static void	ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 			u_int16_t result, u_int16_t error, const char *errmsg);
@@ -431,7 +432,7 @@ static const	struct ppp_l2tp_avp_info ppp_l2tp_avp_info_list[] = {
 /* All control connections */
 struct ghash	*ppp_l2tp_ctrls;
 
-static u_int32_t gNextSerial = 0;
+static uint32_t gNextSerial = 0;
 
 /************************************************************************
 			PUBLIC FUNCTIONS
@@ -457,6 +458,10 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	struct ppp_l2tp_avp *avp = NULL;
 	u_int16_t value16;
 	int index, i;
+	
+	/* Init Call Serial Number */
+	if (gNextSerial == 0)
+	    gNextSerial = (random() % 900) * 10000;
 
 	/* Create global control structure hash table */
 	if (ppp_l2tp_ctrls == NULL
@@ -692,7 +697,8 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 
 	/* Create new session */
 	if ((sess = ppp_l2tp_sess_create(ctrl,
-	    ORIG_LOCAL, out ? SIDE_LNS : SIDE_LAC)) == NULL)
+	    ORIG_LOCAL, out ? SIDE_LNS : SIDE_LAC,
+	    gNextSerial++)) == NULL)
 		return (NULL);
 
 	/* Copy AVP's supplied by caller */
@@ -945,6 +951,15 @@ ppp_l2tp_sess_set_cookie(struct ppp_l2tp_sess *sess, void *cookie)
 }
 
 /*
+ * Get session's Call Serial Number.
+ */
+uint32_t
+ppp_l2tp_sess_get_serial(struct ppp_l2tp_sess *sess)
+{
+	return(sess->serial);
+}
+
+/*
  * Get the node path and hook name for the hook that corresponds
  * to a control connection's L2TP frames.
  */
@@ -1103,7 +1118,7 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
  */
 static struct ppp_l2tp_sess *
 ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
-	enum l2tp_sess_orig orig, enum l2tp_sess_side side)
+	enum l2tp_sess_orig orig, enum l2tp_sess_side side, u_int32_t serial)
 {
 	struct ppp_l2tp_sess *sess = NULL;
 	u_int16_t value16;
@@ -1118,7 +1133,7 @@ ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
 	sess->ctrl = ctrl;
 	sess->orig = orig;
 	sess->side = side;
-	sess->serial = gNextSerial++;
+	sess->serial = serial;
 	sess->state = (orig == ORIG_LOCAL) ? SS_WAIT_REPLY :
 	    (side == SIDE_LNS) ? SS_WAIT_CONNECT : SS_WAIT_ANSWER;
 
@@ -1150,12 +1165,14 @@ ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
 		return (NULL);
 	}
 
-	/* Add call serial number AVP */
-	value32 = htonl(sess->serial);
-	if (ppp_l2tp_avp_list_append(sess->my_avps, 1,
-	    0, AVP_CALL_SERIAL_NUMBER, &value32, sizeof(value32)) == -1) {
-		ppp_l2tp_sess_destroy(&sess);
-		return (NULL);
+	if (orig == ORIG_LOCAL) {
+	    /* Add call serial number AVP */
+	    value32 = htonl(sess->serial);
+	    if (ppp_l2tp_avp_list_append(sess->my_avps, 1,
+		0, AVP_CALL_SERIAL_NUMBER, &value32, sizeof(value32)) == -1) {
+		    ppp_l2tp_sess_destroy(&sess);
+		    return (NULL);
+	    }
 	}
 
 	/* Done */
@@ -2103,7 +2120,8 @@ ppp_l2tp_handle_OCRQ(struct ppp_l2tp_ctrl *ctrl,
 	struct ppp_l2tp_sess *sess;
 
 	/* Create new session */
-	if ((sess = ppp_l2tp_sess_create(ctrl, ORIG_REMOTE, SIDE_LAC)) == NULL)
+	if ((sess = ppp_l2tp_sess_create(ctrl, ORIG_REMOTE, SIDE_LAC,
+	    ptrs->serialnum->serialnum)) == NULL)
 		return (-1);
 	sess->peer_id = ptrs->sessionid->id;
 
@@ -2124,7 +2142,8 @@ ppp_l2tp_handle_ICRQ(struct ppp_l2tp_ctrl *ctrl,
 	struct ppp_l2tp_sess *sess;
 
 	/* Create new session */
-	if ((sess = ppp_l2tp_sess_create(ctrl, ORIG_REMOTE, SIDE_LNS)) == NULL)
+	if ((sess = ppp_l2tp_sess_create(ctrl, ORIG_REMOTE, SIDE_LNS,
+	    ptrs->serialnum->serialnum)) == NULL)
 		return (-1);
 	sess->peer_id = ptrs->sessionid->id;
 

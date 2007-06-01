@@ -366,6 +366,11 @@ extern void	ppp_l2tp_sess_set_cookie(struct ppp_l2tp_sess *sess,
 			void *cookie);
 
 /*
+ * Get session's Call Serial Number.
+ */
+extern uint32_t	ppp_l2tp_sess_get_serial(struct ppp_l2tp_sess *sess);
+
+/*
  * Get the node ID and hook name for the hook that corresponds
  * to a control connection's L2TP frames.
  */
