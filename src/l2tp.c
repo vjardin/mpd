@@ -959,15 +959,19 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	struct ppp_l2tp_sess *sess, int out,
 	const struct ppp_l2tp_avp_list *avps)
 {
-	struct l2tp_tun *const tun = ppp_l2tp_ctrl_get_cookie(ctrl);
-	struct ppp_l2tp_avp_ptrs *ptrs = NULL;
-	int	k;
+	struct	l2tp_tun *const tun = ppp_l2tp_ctrl_get_cookie(ctrl);
+	struct	ppp_l2tp_avp_ptrs *ptrs = NULL;
 	time_t  const now = time(NULL);
+	PhysInfo p = NULL;
+	L2tpInfo pi = NULL;
+	int	k;
 
 	/* Convert AVP's to friendly form */
 	if ((ptrs = ppp_l2tp_avp_list2ptrs(avps)) == NULL) {
 		Log(LG_ERR, ("L2TP: error decoding AVP list: %s", strerror(errno)));
-		goto fail;
+		ppp_l2tp_terminate(sess, L2TP_RESULT_ERROR,
+		    L2TP_ERROR_GENERIC, strerror(errno));
+		return;
 	}
 
 	Log(LG_PHYS, ("L2TP: %s call #%u via connection %p received", 
@@ -976,24 +980,35 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 
 	/* Examine all L2TP links. */
 	for (k = 0; k < gNumPhyses; k++) {
-	        L2tpInfo pi;
-		PhysInfo p;
+		PhysInfo p2;
+	        L2tpInfo pi2;
 
 		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
-		p = gPhyses[k];
-		pi = (L2tpInfo)p->info;
+		p2 = gPhyses[k];
+		pi2 = (L2tpInfo)p2->info;
 
-		if ((p->state != PHYS_STATE_DOWN) ||
-		    (now-p->lastClose < L2TP_REOPEN_PAUSE) ||
-		    !Enabled(&pi->conf.options, L2TP_CONF_INCOMING) ||
-		    ((!u_addrempty(&pi->conf.self_addr)) && u_addrcompare(&pi->conf.self_addr, &tun->self_addr)) ||
-		    (pi->conf.self_port != 0 && pi->conf.self_port != tun->self_port) ||
-		    (!IpAddrInRange(&pi->conf.peer_addr, &tun->peer_addr)) ||
-		    (pi->conf.peer_port != 0 && pi->conf.peer_port != tun->peer_port))
-			continue;
-
+		if ((p2->state == PHYS_STATE_DOWN) &&
+		    (now - p2->lastClose >= L2TP_REOPEN_PAUSE) &&
+		    Enabled(&pi2->conf.options, L2TP_CONF_INCOMING) &&
+		    ((u_addrempty(&pi2->conf.self_addr)) || (u_addrcompare(&pi2->conf.self_addr, &tun->self_addr) == 0)) &&
+		    (pi2->conf.self_port == 0 || pi2->conf.self_port == tun->self_port) &&
+		    (IpAddrInRange(&pi2->conf.peer_addr, &tun->peer_addr)) &&
+		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == tun->peer_port)) {
+			
+			if (pi == NULL || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
+				p = p2;
+				pi = pi2;
+				if ((pi->conf.peer_addr.addr.family==AF_INET && 
+					pi->conf.peer_addr.width == 32) ||
+					pi->conf.peer_addr.width == 128) {
+					break;	/* Nothing could be better */
+				}
+			}
+		}
+	}
+	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p accepted", 
 		    p->name, (out?"Outgoing":"Incoming"), 
 		    ppp_l2tp_sess_get_serial(sess), ctrl));
@@ -1017,11 +1032,9 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		ppp_l2tp_avp_ptrs_destroy(&ptrs);
 		return;
 	}
-fail:
 	Log(LG_PHYS, ("L2TP: No free link with requested parameters "
 	    "was found"));
-	ppp_l2tp_terminate(sess, L2TP_RESULT_ERROR,
-	    L2TP_ERROR_GENERIC, strerror(errno));
+	ppp_l2tp_terminate(sess, L2TP_RESULT_AVAIL_TEMP, 0, NULL);
 	ppp_l2tp_avp_ptrs_destroy(&ptrs);
 }
 
