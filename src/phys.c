@@ -123,6 +123,7 @@ PhysInit(char *name, Link l, Rep r)
     p->id = k;
     gPhyses[k] = p;
 
+    memset(&ctx, 0, sizeof(ctx));
     ctx.lnk = l;
     ctx.phys = p;
     ctx.rep = NULL;
