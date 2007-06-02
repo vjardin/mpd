@@ -44,7 +44,7 @@
     struct {
 	struct optinfo	options;
 	struct u_addr	self_addr;	/* Configured local IP address */
-	struct u_addr	peer_addr;	/* Configured peer IP address */
+	struct u_range	peer_addr;	/* Configured peer IP address */
 	in_port_t	self_port;	/* Configured local port */
 	in_port_t	peer_port;	/* Configured peer port */
     } conf;
@@ -153,7 +153,7 @@ UdpInit(PhysInfo p)
     pi = (UdpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pi)));
 
     u_addrclear(&pi->conf.self_addr);
-    u_addrclear(&pi->conf.peer_addr);
+    u_rangeclear(&pi->conf.peer_addr);
     pi->conf.self_port=0;
     pi->conf.peer_port=0;
 
@@ -209,7 +209,7 @@ UdpOpen(PhysInfo p)
 	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
 	snprintf(mkp.ourhook, sizeof(mkp.ourhook), hook);
 	if ((pi->conf.self_addr.family==AF_INET6) || 
-	    (pi->conf.self_addr.family==AF_UNSPEC && pi->conf.peer_addr.family==AF_INET6)) {
+	    (pi->conf.self_addr.family==AF_UNSPEC && pi->conf.peer_addr.addr.family==AF_INET6)) {
 	        snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	} else {
 	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/dgram/udp");
@@ -263,8 +263,8 @@ UdpOpen(PhysInfo p)
   }
 
   if (!pi->incoming) {
-    if ((!u_addrempty(&pi->conf.peer_addr)) && (pi->conf.peer_port != 0)) {
-	u_addrcopy(&pi->conf.peer_addr,&pi->peer_addr);
+    if ((!u_rangeempty(&pi->conf.peer_addr)) && (pi->conf.peer_port != 0)) {
+	u_addrcopy(&pi->conf.peer_addr.addr,&pi->peer_addr);
 	pi->peer_port = pi->conf.peer_port;
     } else {
 	Log(LG_ERR, ("[%s] Can't connect without peer specified", p->name));
@@ -441,7 +441,7 @@ UdpStat(Context ctx)
 	Printf("\tSelf address : %s, port %u\r\n",
 	    u_addrtoa(&pi->conf.self_addr, buf, sizeof(buf)), pi->conf.self_port);
 	Printf("\tPeer address : %s, port %u\r\n",
-	    u_addrtoa(&pi->conf.peer_addr, buf, sizeof(buf)), pi->conf.peer_port);
+	    u_rangetoa(&pi->conf.peer_addr, buf, sizeof(buf)), pi->conf.peer_port);
 	Printf("UDP options:\r\n");
 	OptStat(ctx, &pi->conf.options, gConfList);
 	Printf("UDP state:\r\n");
@@ -469,6 +469,8 @@ UdpAcceptEvent(int type, void *cookie)
 	int 		k;
 	struct UdpIf 	*If=(struct UdpIf *)(cookie);
 	time_t const 	now = time(NULL);
+	PhysInfo	p = NULL;
+	UdpInfo		pi = NULL;
 
 	char		pktbuf[UDP_MRU+100];
 	char		pktlen;
@@ -493,42 +495,47 @@ UdpAcceptEvent(int type, void *cookie)
 
 	/* Examine all UDP links. */
 	for (k = 0; k < gNumPhyses; k++) {
-		PhysInfo p;
-	        UdpInfo pi;
+		PhysInfo p2;
+	        UdpInfo pi2;
 
 		if (gPhyses[k] && gPhyses[k]->type != &gUdpPhysType)
 			continue;
 
-		p = gPhyses[k];
-		pi = (UdpInfo)p->info;
+		p2 = gPhyses[k];
+		pi2 = (UdpInfo)p2->info;
 
-		if ((If!=pi->If) ||
-		    (p->state != PHYS_STATE_DOWN) ||
-		    (now-p->lastClose < UDP_REOPEN_PAUSE) ||
-		    !Enabled(&pi->conf.options, UDP_CONF_INCOMING) ||
-		    ((!u_addrempty(&pi->conf.peer_addr)) && u_addrcompare(&pi->conf.peer_addr, &addr)) ||
-		    (pi->conf.peer_port != 0 && pi->conf.peer_port != port))
-			continue;
+		if ((p2->state == PHYS_STATE_DOWN) &&
+		    (now - p2->lastClose >= UDP_REOPEN_PAUSE) &&
+		    Enabled(&pi2->conf.options, UDP_CONF_INCOMING) &&
+		    (pi2->If == If) &&
+		    IpAddrInRange(&pi2->conf.peer_addr, &addr) &&
+		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == port)) {
 
-		Log(LG_PHYS, ("[%s] Accepting connection", p->name));
+			if (pi == NULL || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
+				p = p2;
+				pi = pi2;
+				if ((pi->conf.peer_addr.addr.family==AF_INET && 
+					pi->conf.peer_addr.width == 32) ||
+					pi->conf.peer_addr.width == 128) {
+					break;	/* Nothing could be better */
+				}
+			}
+		}
+	}
+	if (pi != NULL) {
+		Log(LG_PHYS, ("[%s] Accepting UDP connection from %s %u to %s %u",
+		    p->name, u_addrtoa(&addr, buf, sizeof(buf)), port,
+		    u_addrtoa(&If->self_addr, buf1, sizeof(buf1)), If->self_port));
 
 		sockaddrtou_addr(&saddr, &pi->peer_addr, &pi->peer_port);
 
 		pi->incoming=1;
 		p->state = PHYS_STATE_READY;
 
-		/* Report connected. */
-		Log(LG_PHYS, ("[%s] connected with %s %u", p->name,
-		    u_addrtoa(&addr, buf, sizeof(buf)), port));
-
 		PhysIncoming(p);
-
-		break;
-	}
-
-	if (k == gNumPhyses) {
-	    Log(LG_PHYS, ("No free UDP link with requested parameters "
-	        "was found"));
+	} else {
+		Log(LG_PHYS, ("No free UDP link with requested parameters "
+	    	    "was found"));
 	}
 
 failed:
@@ -667,18 +674,27 @@ static int
 UdpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
 	UdpInfo		const pi = (UdpInfo) ctx->phys->info;
-	struct sockaddr_storage	*sin;
+	struct u_range	rng;
+	int		port;
 	
   switch ((intptr_t)arg) {
     case SET_PEERADDR:
-      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
-	return (-1);
-      sockaddrtou_addr(sin, &pi->conf.peer_addr, &pi->conf.peer_port);
-      break;
     case SET_SELFADDR:
-      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
-	return (-1);
-      sockaddrtou_addr(sin, &pi->conf.self_addr, &pi->conf.self_port);
+      if (ac < 1 || ac > 2 || !ParseRange(av[0], &rng, ALLOW_IPV4|ALLOW_IPV6))
+	return(-1);
+      if (ac > 1) {
+	if ((port = atoi(av[1])) < 0 || port > 0xffff)
+	  return(-1);
+      } else {
+	port = 0;
+      }
+      if ((intptr_t)arg == SET_SELFADDR) {
+	pi->conf.self_addr = rng.addr;
+	pi->conf.self_port = port;
+      } else {
+	pi->conf.peer_addr = rng;
+	pi->conf.peer_port = port;
+      }
       break;
     case SET_ENABLE:
 	EnableCommand(ac, av, &pi->conf.options, gConfList);
