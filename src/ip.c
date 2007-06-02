@@ -112,8 +112,10 @@ ParseAddr(const char *s, struct u_addr *addr, u_char allow)
   	struct hostent	*hptr;
 	int		k;
 
-	if ((hptr = gethostbyname(s)) == NULL)
+	if ((hptr = gethostbyname(s)) == NULL) {
+	    Log(LG_ERR, ("Incorrect address '%s'", s));
     	    return (FALSE);
+	}
 	for (k = 0; hptr->h_addr_list[k]; k++);
 	memcpy(&addr->u.ip4, hptr->h_addr_list[random() % k], sizeof(addr->u.ip4));
 	addr->family=AF_INET;
