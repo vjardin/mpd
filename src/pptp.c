@@ -844,30 +844,34 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 
   /* Find a suitable link; prefer the link best matching peer's IP address */
   for (k = 0; k < gNumPhyses; k++) {
-    PhysInfo	const p2 = gPhyses[k];
-    PptpInfo	pi2 = (PptpInfo) p2->info;
+	PhysInfo p2;
+	PptpInfo pi2;
 
-    /* See if link is feasible */
-    if (p2 != NULL
-	&& p2->type == &gPptpPhysType
-	&& p2->state == PHYS_STATE_DOWN
-	&& (now - p2->lastClose) >= PPTP_REOPEN_PAUSE
-	&& Enabled(&pi2->conf.options, PPTP_CONF_INCOMING)
-	&& (u_addrempty(&pi2->conf.self_addr) || (u_addrcompare(&pi2->conf.self_addr, self) == 0))
-	&& IpAddrInRange(&pi2->conf.peer_addr, peer)
-	&& (!pi2->conf.peer_port || pi2->conf.peer_port == port)) {
+	if (gPhyses[k] && gPhyses[k]->type != &gPptpPhysType)
+		continue;
 
-      /* Link is feasible; now see if it's preferable */
-      if (!pi || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
-	    p = p2;
-	    pi = pi2;
-	    if ((pi2->conf.peer_addr.addr.family==AF_INET && 
-		pi2->conf.peer_addr.width == 32) ||
-		pi2->conf.peer_addr.width == 128) {
-		    break;	/* Nothing could be better */
-	    }
-      }
-    }
+	p2 = gPhyses[k];
+	pi2 = (PptpInfo)p2->info;
+
+	/* See if link is feasible */
+	if ((p2->state == PHYS_STATE_DOWN) &&
+	    (now - p2->lastClose) >= PPTP_REOPEN_PAUSE &&
+	    Enabled(&pi2->conf.options, PPTP_CONF_INCOMING) &&
+	    (u_addrempty(&pi2->conf.self_addr) || (u_addrcompare(&pi2->conf.self_addr, self) == 0)) &&
+	    IpAddrInRange(&pi2->conf.peer_addr, peer) &&
+	    (!pi2->conf.peer_port || pi2->conf.peer_port == port)) {
+
+    		/* Link is feasible; now see if it's preferable */
+    		if (!pi || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
+			p = p2;
+			pi = pi2;
+			if ((pi2->conf.peer_addr.addr.family==AF_INET && 
+			    pi2->conf.peer_addr.width == 32) ||
+			    pi2->conf.peer_addr.width == 128) {
+				break;	/* Nothing could be better */
+			}
+    		}
+	}
   }
 
   /* If no link is suitable, can't take the call */
