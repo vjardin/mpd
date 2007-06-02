@@ -49,6 +49,9 @@
 	  </item>
 	  <item> Physical device level refactored to remove link and bundle levels dependencies.
 	  </item>
+	  <item> While accepting calls PPTP, L2TP, TCP and UDP links are now trying 
+		 to use link with most specific peer address configured.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
