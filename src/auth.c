@@ -1742,6 +1742,12 @@ AuthExternal(AuthData auth)
 	auth->reply_message = Malloc(MB_AUTH, strlen(val) + 1);
 	strcpy(auth->reply_message, val);
 
+    } else if (strcmp(attr, "MS_CHAP_ERROR") == 0) {
+	if (auth->mschap_error)
+		Freee(MB_AUTH, auth->mschap_error);
+	auth->mschap_error = Malloc(MB_AUTH, strlen(val) + 1);
+	strcpy(auth->mschap_error, val); //"E=%d R=0 M=%s"
+
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;
 	char		*acl, *acl1, *acl2;
