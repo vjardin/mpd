@@ -499,8 +499,8 @@ notfound:
       } else {
         if (cs->cmd_len>0) {
 	    if (strncmp(cs->cmd, cs->history[0], MAX_CONSOLE_LINE) != 0) {
-		for (i = 0; i < MAX_CONSOLE_HIST; i++)
-		    memcpy(cs->history[i + 1], cs->history[i], MAX_CONSOLE_LINE);
+		for (i = MAX_CONSOLE_HIST - 1; i > 0; i--)
+		    memcpy(cs->history[i], cs->history[i - 1], MAX_CONSOLE_LINE);
 		memcpy(cs->history[0], cs->cmd, MAX_CONSOLE_LINE);
     		cs->write(cs, "\r\n");
 		cs->prompt(cs);
@@ -595,7 +595,7 @@ success:
       if (c != '?') {
         if (cs->cmd_len > 0 &&
 	    strncmp(cs->cmd, cs->history[0], MAX_CONSOLE_LINE) != 0) {
-	    for (i = MAX_CONSOLE_HIST; i > 0; i--)
+	    for (i = MAX_CONSOLE_HIST - 1; i > 0; i--)
 		memcpy(cs->history[i], cs->history[i - 1], MAX_CONSOLE_LINE);
 	    memcpy(cs->history[0], cs->cmd, MAX_CONSOLE_LINE);
 	}
