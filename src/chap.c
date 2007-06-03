@@ -500,19 +500,28 @@ badResponse:
 void 
 ChapInputFinish(Link l, AuthData auth)
 {
-  Auth		a = &l->lcp.auth;
-  ChapInfo	chap = &a->chap;
-  u_char	hash_value[CHAP_MAX_VAL];
-  int		hash_value_size;
-  char		ackMesg[128], *secret;
+    Auth	a = &l->lcp.auth;
+    ChapInfo	chap = &a->chap;
+    u_char	hash_value[CHAP_MAX_VAL];
+    int		hash_value_size;
+    char	ackMesg[128], *secret;
    
-  Log(LG_AUTH, ("[%s] CHAP: ChapInputFinish: status %s", 
-    l->name, AuthStatusText(auth->status)));
+    Log(LG_AUTH, ("[%s] CHAP: ChapInputFinish: status %s", 
+	l->name, AuthStatusText(auth->status)));
+    
+    if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2 && 
+	auth->mschapv2resp != NULL) {
+	    strlcpy(ackMesg, auth->mschapv2resp, sizeof(ackMesg));
+    } else if (auth->reply_message != NULL) {
+	    strlcpy(ackMesg, auth->reply_message, sizeof(ackMesg));
+    } else {
+	    strlcpy(ackMesg, AUTH_MSG_WELCOME, sizeof(ackMesg));
+    }
 
-  if (auth->status == AUTH_STATUS_FAIL)
-    goto badResponse;
-  else if (auth->status == AUTH_STATUS_SUCCESS)
-    goto goodResponse;
+    if (auth->status == AUTH_STATUS_FAIL)
+	goto badResponse;
+    else if (auth->status == AUTH_STATUS_SUCCESS)
+	goto goodResponse;
   
   /* Copy in peer challenge for MS-CHAPv2 */
   if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2)
@@ -540,7 +549,6 @@ ChapInputFinish(Link l, AuthData auth)
   
   /* Response is good */
   Log(LG_AUTH, (" Response is valid"));
-  snprintf(ackMesg, sizeof(ackMesg), "%s", AUTH_MSG_WELCOME);
 
   if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2) {
     struct mschapv2value *const pv = (struct mschapv2value *)auth->params.chap.value;
@@ -553,7 +561,7 @@ ChapInputFinish(Link l, AuthData auth)
       pv->peerChal, auth->params.chap.chal_data, auth->params.authname, authresp);
     for (i = 0; i < 20; i++)
       sprintf(hex + (i * 2), "%02X", authresp[i]);
-    snprintf(auth->ack_mesg, sizeof(auth->ack_mesg), "S=%s", hex);
+    snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
   }
   
   goto goodResponse;
@@ -563,6 +571,7 @@ badResponse:
     char        failMesg[64];
 
     AuthFailMsg(auth, auth->params.chap.recv_alg, failMesg, sizeof(failMesg));
+    Log(LG_AUTH, (" Reply message: %s", failMesg));
     AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
 	auth->id, (u_char *)failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
@@ -583,8 +592,9 @@ goodResponse:
       auth->params.chap.value + offsetof(struct mschapv2value, ntHash),
       CHAP_MSOFTv2_RESP_LEN);
   
+    Log(LG_AUTH, (" Reply message: %s", ackMesg));
   AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
-    auth->id, (u_char *)auth->ack_mesg, strlen(auth->ack_mesg), 0, EAP_TYPE_MD5CHAL);
+    auth->id, (u_char *)ackMesg, strlen(ackMesg), 0, EAP_TYPE_MD5CHAL);
   AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);
   AuthDataDestroy(auth);
 }

@@ -27,13 +27,13 @@
 
   #define AUTH_RETRIES		3
 
-  #define AUTH_MSG_WELCOME	"Welcome\r\n"
-  #define AUTH_MSG_INVALID	"Login incorrect\r\n"
-  #define AUTH_MSG_BAD_PACKET	"Incorrectly formatted packet\r\n"
-  #define AUTH_MSG_NOT_ALLOWED	"Login not allowed for this account\r\n"
-  #define AUTH_MSG_NOT_EXPECTED	"Unexpected packet\r\n"
-  #define AUTH_MSG_ACCT_DISAB	"Account disabled\r\n"
-  #define AUTH_MSG_RESTR_HOURS	"Login hours restricted\r\n"
+  #define AUTH_MSG_WELCOME	"Welcome"
+  #define AUTH_MSG_INVALID	"Login incorrect"
+  #define AUTH_MSG_BAD_PACKET	"Incorrectly formatted packet"
+  #define AUTH_MSG_NOT_ALLOWED	"Login not allowed for this account"
+  #define AUTH_MSG_NOT_EXPECTED	"Unexpected packet"
+  #define AUTH_MSG_ACCT_DISAB	"Account disabled"
+  #define AUTH_MSG_RESTR_HOURS	"Login hours restricted"
 
   #define AUTH_PEER_TO_SELF	0
   #define AUTH_SELF_TO_PEER	1
@@ -194,7 +194,6 @@
     u_int		code;		/* Proto specific code */
     u_short		status;
     int			why_fail;
-    char		ack_mesg[128];
     char		*reply_message;	/* Text wich may displayed to the user */
     char		*mschap_error;	/* MSCHAP Error Message */
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */

@@ -1067,9 +1067,6 @@ AuthAsyncFinish(void *arg, int was_canceled)
     authparamsDestroy(&l->lcp.auth.params);
     authparamsCopy(&auth->params,&l->lcp.auth.params);
   
-    if (auth->mschapv2resp != NULL)
-	strcpy(auth->ack_mesg, auth->mschapv2resp);
-  
     auth->finish(l, auth);
 }
 
@@ -1296,65 +1293,72 @@ AuthTimeout(void *arg)
 const char *
 AuthFailMsg(AuthData auth, int alg, char *buf, size_t len)
 {
-  const char	*mesg;
+    const char	*mesg;
 
-  if (auth->proto == PROTO_CHAP
-      && (alg == CHAP_ALG_MSOFT || alg == CHAP_ALG_MSOFTv2)) {
-    int	mscode;
+    if (auth->proto == PROTO_CHAP
+        && (alg == CHAP_ALG_MSOFT || alg == CHAP_ALG_MSOFTv2)) {
+	    int	mscode;
 
-    switch (auth->why_fail) {
-      case AUTH_FAIL_ACCT_DISABLED:
-	mscode = MSCHAP_ERROR_ACCT_DISABLED;
-	mesg = AUTH_MSG_ACCT_DISAB;
-	break;
-      case AUTH_FAIL_NO_PERMISSION:
-	mscode = MSCHAP_ERROR_NO_DIALIN_PERMISSION;
-	mesg = AUTH_MSG_NOT_ALLOWED;
-	break;
-      case AUTH_FAIL_RESTRICTED_HOURS:
-	mscode = MSCHAP_ERROR_RESTRICTED_LOGON_HOURS;
-	mesg = AUTH_MSG_RESTR_HOURS;
-	break;
-      case AUTH_FAIL_INVALID_PACKET:
-      case AUTH_FAIL_INVALID_LOGIN:
-      case AUTH_FAIL_NOT_EXPECTED:
-      default:
-	mscode = MSCHAP_ERROR_AUTHENTICATION_FAILURE;
-	mesg = AUTH_MSG_INVALID;
-	break;
-    }
+	    if (auth->mschap_error != NULL) {
+    		    strlcpy(buf, auth->mschap_error, len);
+		    return(buf);
+	    }
 
-    if (auth->mschap_error != NULL) {
-      snprintf(buf, len, auth->mschap_error);
-    } else {
-      snprintf(buf, len, "E=%d R=0 M=%s", mscode, mesg);
-    }
+	    switch (auth->why_fail) {
+    	      case AUTH_FAIL_ACCT_DISABLED:
+		mscode = MSCHAP_ERROR_ACCT_DISABLED;
+		mesg = AUTH_MSG_ACCT_DISAB;
+		break;
+	      case AUTH_FAIL_NO_PERMISSION:
+		mscode = MSCHAP_ERROR_NO_DIALIN_PERMISSION;
+		mesg = AUTH_MSG_NOT_ALLOWED;
+		break;
+	      case AUTH_FAIL_RESTRICTED_HOURS:
+		mscode = MSCHAP_ERROR_RESTRICTED_LOGON_HOURS;
+		mesg = AUTH_MSG_RESTR_HOURS;
+		break;
+	      case AUTH_FAIL_INVALID_PACKET:
+	      case AUTH_FAIL_INVALID_LOGIN:
+	      case AUTH_FAIL_NOT_EXPECTED:
+	      default:
+		mscode = MSCHAP_ERROR_AUTHENTICATION_FAILURE;
+		mesg = AUTH_MSG_INVALID;
+		break;
+	    }
+
+    	    snprintf(buf, len, "E=%d R=0 M=%s", mscode, mesg);
     
-  } else {
-    switch (auth->why_fail) {
-      case AUTH_FAIL_ACCT_DISABLED:
-	mesg = AUTH_MSG_ACCT_DISAB;
-	break;
-      case AUTH_FAIL_NO_PERMISSION:
-	mesg = AUTH_MSG_NOT_ALLOWED;
-	break;
-      case AUTH_FAIL_RESTRICTED_HOURS:
-	mesg = AUTH_MSG_RESTR_HOURS;
-	break;
-      case AUTH_FAIL_NOT_EXPECTED:
-	mesg = AUTH_MSG_NOT_EXPECTED;
-	break;
-      case AUTH_FAIL_INVALID_PACKET:
-	mesg = AUTH_MSG_BAD_PACKET;
-	break;
-      case AUTH_FAIL_INVALID_LOGIN:
-      default:
-	mesg = AUTH_MSG_INVALID;
-	break;
+    } else {
+
+	    if (auth->reply_message != NULL) {
+    		    strlcpy(buf, auth->reply_message, len);
+		    return(buf);
+	    }
+
+	    switch (auth->why_fail) {
+	      case AUTH_FAIL_ACCT_DISABLED:
+		mesg = AUTH_MSG_ACCT_DISAB;
+		break;
+	      case AUTH_FAIL_NO_PERMISSION:
+		mesg = AUTH_MSG_NOT_ALLOWED;
+		break;
+	      case AUTH_FAIL_RESTRICTED_HOURS:
+		mesg = AUTH_MSG_RESTR_HOURS;
+		break;
+	      case AUTH_FAIL_NOT_EXPECTED:
+		mesg = AUTH_MSG_NOT_EXPECTED;
+		break;
+	      case AUTH_FAIL_INVALID_PACKET:
+		mesg = AUTH_MSG_BAD_PACKET;
+		break;
+	      case AUTH_FAIL_INVALID_LOGIN:
+	      default:
+		mesg = AUTH_MSG_INVALID;
+		break;
+	    }
+	    strlcpy(buf, mesg, len);
     }
-    strlcpy(buf, mesg, len);
-  }
-  return(buf);
+    return(buf);
 }
 
 /* 
