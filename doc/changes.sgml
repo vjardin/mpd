@@ -32,7 +32,7 @@
 	  </item>
 	  <item> Added support for some new ng_nat features.
 	  </item>
-	  <item> Implemented PPTP/L2TP SetLintInfo sending to PAC/LAC.
+	  <item> Implemented PPTP/L2TP SetLinkInfo sending to PAC/LAC.
 	  </item>
 	</itemize>
 	</item>
