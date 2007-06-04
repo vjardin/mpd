@@ -88,10 +88,8 @@ IpAddrInRange(struct u_range *range, struct u_addr *addr)
 int
 ParseAddr(const char *s, struct u_addr *addr, u_char allow)
 {
-  if (strchr(s, '/')) {
-    Log(LG_ERR, ("Mask not allowed in '%s'", s));
+  if (strchr(s, '/'))
     return (FALSE);
-  }
 
 /* Get IP address part; if that fails, try looking up hostname */
 
@@ -113,7 +111,6 @@ ParseAddr(const char *s, struct u_addr *addr, u_char allow)
 	int		k;
 
 	if ((hptr = gethostbyname(s)) == NULL) {
-	    Log(LG_ERR, ("Incorrect address '%s'", s));
     	    return (FALSE);
 	}
 	for (k = 0; hptr->h_addr_list[k]; k++);
@@ -122,7 +119,6 @@ ParseAddr(const char *s, struct u_addr *addr, u_char allow)
   } 
   else 
   {
-    Log(LG_ERR, ("Incorrect address '%s'", s));
     return (FALSE);
   }
 
@@ -160,7 +156,6 @@ ParseRange(const char *s, struct u_range *range, u_char allow)
   {
     if ((n_bits = atoi(widp)) < 0 || (range->addr.family==AF_INET && n_bits > 32) || (range->addr.family==AF_INET6 && n_bits > 128))
     {
-      Log(LG_ERR, ("Bad IP mask width: \"%s\"", widp));
       return(FALSE);
     }
   }
