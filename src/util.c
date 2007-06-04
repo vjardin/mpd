@@ -1220,7 +1220,8 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
     if (ifname != NULL) {
 	strncpy(ifreq.ifr_name, ifname, sizeof(ifreq.ifr_name));
         if (ioctl(s, SIOCGIFADDR, &ifreq) < 0) {
-    	    Perror("%s: ioctl(SIOCGIFADDR)", __FUNCTION__);
+	    if (errno != ENXIO)
+    		Perror("%s: ioctl(SIOCGIFADDR)", __FUNCTION__);
     	    close(s);
     	    return(-1);
         }
@@ -1234,7 +1235,8 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
       ifc.ifc_len = sizeof(ifs);
       ifc.ifc_req = ifs;
       if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-        Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
+	if (errno != ENXIO)
+    	    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
         close(s);
         return(-1);
       }
