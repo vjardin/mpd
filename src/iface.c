@@ -487,7 +487,7 @@ IfaceDown(Bund b)
     };
   };
   if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, b->name, "%s delete%s",
+    ExecCmdNosh(LG_IFACE2, b->name, "%s delete%s",
       PATH_IPFW, cb);
 
   /* Remove table ACLs */
@@ -525,7 +525,7 @@ IfaceDown(Bund b)
     };
   };
   if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, b->name, "%s queue delete%s",
+    ExecCmdNosh(LG_IFACE2, b->name, "%s queue delete%s",
       PATH_IPFW, cb);
 
   /* Remove pipe ACLs */
@@ -542,7 +542,7 @@ IfaceDown(Bund b)
     };
   };
   if (cb[0]!=0)
-    ExecCmd(LG_IFACE2, b->name, "%s pipe delete%s",
+    ExecCmdNosh(LG_IFACE2, b->name, "%s pipe delete%s",
       PATH_IPFW, cb);
 
 }
@@ -750,7 +750,7 @@ IfaceIpIfaceUp(Bund b, int ready)
 	b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
     } else {
       ether = (u_char *) LLADDR(&hwa);
-      if (ExecCmd(LG_IFACE2, b->name, 
+      if (ExecCmdNosh(LG_IFACE2, b->name, 
 	  "%s -S %s %x:%x:%x:%x:%x:%x pub",
 	  PATH_ARP, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)),
 	  ether[0], ether[1], ether[2],
@@ -760,13 +760,13 @@ IfaceIpIfaceUp(Bund b, int ready)
   }
 
   /* Add loopback route */
-  ExecCmd(LG_IFACE2, b->name, "%s add %s/32 -iface lo0",
+  ExecCmdNosh(LG_IFACE2, b->name, "%s add %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,selfaddr,sizeof(selfaddr)));
   
     /* Add static routes */
     SLIST_FOREACH(r, &iface->routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET) {
-	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
+	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add %s %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
 		    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
 	}
@@ -774,7 +774,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     /* Add dynamic routes */
     SLIST_FOREACH(r, &b->params.routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET) {
-	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add %s %s",
+	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add %s %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
 		    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
 	}
@@ -801,7 +801,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     else
       ns2buf[0] = '\0';
 
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s %s %s %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s",
       iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
       u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
       *b->params.authname ? b->params.authname : "-", 
@@ -825,7 +825,7 @@ IfaceIpIfaceDown(Bund b)
 
   /* Call "down" script */
   if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet '%s'",
       iface->down_script, iface->ifname, 
       *b->params.authname ? b->params.authname : "-");
   }
@@ -835,7 +835,7 @@ IfaceIpIfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET) {
 	    if (!r->ok)
 		continue;
-	    ExecCmd(LG_IFACE2, b->name, "%s delete %s",
+	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
 	    r->ok = 0;
 	}
@@ -845,7 +845,7 @@ IfaceIpIfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET) {
 	    if (!r->ok)
 		continue;
-	    ExecCmd(LG_IFACE2, b->name, "%s delete %s",
+	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
 	    r->ok = 0;
 	}
@@ -853,11 +853,11 @@ IfaceIpIfaceDown(Bund b)
 
   /* Delete any proxy arp entry */
   if (!u_addrempty(&iface->proxy_addr))
-    ExecCmd(LG_IFACE2, b->name, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
+    ExecCmdNosh(LG_IFACE2, b->name, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
   u_addrclear(&iface->proxy_addr);
 
   /* Delete loopback route */
-  ExecCmd(LG_IFACE2, b->name, "%s delete %s/32 -iface lo0",
+  ExecCmdNosh(LG_IFACE2, b->name, "%s delete %s/32 -iface lo0",
     PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
 
   /* Remove address from interface */
@@ -919,14 +919,14 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     /* Add static routes */
     SLIST_FOREACH(r, &iface->routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET6) {
-	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
+	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
 	}
     }
     /* Add dynamic routes */
     SLIST_FOREACH(r, &b->params.routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET6) {
-	    r->ok = (ExecCmd(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
+	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
 	}
     }
@@ -935,7 +935,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
   if (*iface->up_script) {
     char	selfbuf[64],peerbuf[64];
 
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
       iface->up_script, iface->ifname, 
       u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
       u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
@@ -960,7 +960,7 @@ IfaceIpv6IfaceDown(Bund b)
 
   /* Call "down" script */
   if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s",
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 '%s'",
       iface->down_script, iface->ifname, 
       *b->params.authname ? b->params.authname : "-");
   }
@@ -970,7 +970,7 @@ IfaceIpv6IfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET6) {
 	    if (!r->ok)
 		continue;
-	    ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
+	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
 	    r->ok = 0;
 	}
@@ -980,7 +980,7 @@ IfaceIpv6IfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET6) {
 	    if (!r->ok)
 		continue;
-	    ExecCmd(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
+	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
 		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
 	    r->ok = 0;
 	}

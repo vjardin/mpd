@@ -79,6 +79,8 @@
 
   extern int		ExecCmd(int log, const char *label, const char *fmt, ...)
 				__printflike(3, 4);
+  extern int		ExecCmdNosh(int log, const char *label, const char *fmt, ...)
+				__printflike(3, 4);
   extern void		ShowMesg(int log, const char *buf, int len);
   extern char		*Bin2Hex(const unsigned char *bin, int len);
   extern u_char		*Hex2Bin(char *hexstr);

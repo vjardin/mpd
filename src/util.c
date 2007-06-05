@@ -13,6 +13,7 @@
 
 #include <netdb.h>
 #include <tcpd.h>
+#include <sys/wait.h>
 
 /*
  * DEFINITIONS
@@ -82,10 +83,11 @@ ExecCmd(int log, const char *label, const char *fmt, ...)
 
   va_start(ap, fmt);
   vsnprintf(cmd, sizeof(cmd), fmt, ap);
+  va_end(ap);
 
 /* Log command on the console */
 
-  Log(log, ("[%s] exec: %s", label, cmd));
+  Log(log, ("[%s] system: %s", label, cmd));
 
 /* Hide any stdout output of command */
 
@@ -94,12 +96,96 @@ ExecCmd(int log, const char *label, const char *fmt, ...)
 /* Do command */
 
   if ((rtn = system(cmd)))
-    Log(log, ("[%s] exec: command returned %d", label, rtn));
+    Log(log, ("[%s] system: command returned %d", label, rtn));
 
 /* Return command's return value */
 
-  va_end(ap);
   return(rtn);
+}
+
+/*
+ * ExecCmdNosh()
+ */
+
+int
+ExecCmdNosh(int log, const char *label, const char *fmt, ...)
+{
+    int		rtn;
+    char	cmd[BIG_LINE_SIZE];
+    char	*cmdp = &(cmd[0]);
+    char	*argv[256];
+    char 	**arg;
+    va_list	ap;
+
+    pid_t pid, savedpid;
+    int pstat;
+    struct sigaction ign, intact, quitact;
+    sigset_t newsigblock, oldsigblock;
+
+    va_start(ap, fmt);
+    vsnprintf(cmd, sizeof(cmd), fmt, ap);
+    va_end(ap);
+  
+    /* Log command on the console */
+    Log(log, ("[%s] exec: %s", label, cmd));
+
+    /* Parce args */
+    for (arg = &argv[0]; (*arg = strsep(&cmdp, " \t")) != NULL;) {
+	if (**arg != '\0') {
+	    if (++arg >= &argv[255])
+		break;
+	}
+    }
+    *arg = NULL;
+
+    /* Do command */
+
+	/*
+	 * Ignore SIGINT and SIGQUIT, block SIGCHLD. Remember to save
+	 * existing signal dispositions.
+	 */
+	ign.sa_handler = SIG_IGN;
+	(void)sigemptyset(&ign.sa_mask);
+	ign.sa_flags = 0;
+	(void)sigaction(SIGINT, &ign, &intact);
+	(void)sigaction(SIGQUIT, &ign, &quitact);
+	(void)sigemptyset(&newsigblock);
+	(void)sigaddset(&newsigblock, SIGCHLD);
+	(void)sigprocmask(SIG_BLOCK, &newsigblock, &oldsigblock);
+	switch(pid = fork()) {
+	case -1:			/* error */
+		break;
+	case 0:				/* child */
+		/*
+		 * Restore original signal dispositions and exec the command.
+		 */
+		(void)sigaction(SIGINT, &intact, NULL);
+		(void)sigaction(SIGQUIT,  &quitact, NULL);
+		(void)sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
+		close(1);
+		open("/dev/null", O_WRONLY);
+		close(2);
+		open("/dev/null", O_WRONLY);
+		execv(argv[0], argv);
+		exit(127);
+	default:			/* parent */
+		savedpid = pid;
+		do {
+			pid = wait4(savedpid, &pstat, 0, (struct rusage *)0);
+		} while (pid == -1 && errno == EINTR);
+		break;
+	}
+	(void)sigaction(SIGINT, &intact, NULL);
+	(void)sigaction(SIGQUIT,  &quitact, NULL);
+	(void)sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
+
+	rtn = (pid == -1 ? -1 : pstat);
+
+    if (rtn)
+	Log(log, ("[%s] exec: command returned %d", label, rtn));
+
+    /* Return command's return value */
+    return(rtn);
 }
 
 /*
