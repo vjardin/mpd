@@ -42,7 +42,7 @@ PapStart(Link l, int which)
       pap->retry = AUTH_RETRIES;
 
       TimerInit(&pap->timer, "PapTimer",
-	l->conf.retry_timeout * SECONDS, PapTimeout, (void *) pap);
+	l->conf.retry_timeout * SECONDS, PapTimeout, l);
       TimerStart(&pap->timer);
 
       /* Send first request */
@@ -272,7 +272,7 @@ static void
 PapTimeout(void *ptr)
 {
   Link		const l = (Link) ptr;
-  PapInfo	const pap = (PapInfo) &l->lcp.auth.pap;
+  PapInfo	const pap = &l->lcp.auth.pap;
 
   TimerStop(&pap->timer);
   if (--pap->retry > 0) {
