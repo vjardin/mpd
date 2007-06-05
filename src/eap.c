@@ -204,7 +204,7 @@ EapSendRequest(Link l, u_char type)
       }
 
       TimerInit(&chap->chalTimer, "ChalTimer",
-        l->conf.retry_timeout * SECONDS, ChapChalTimeout, (void *) chap);
+        l->conf.retry_timeout * SECONDS, ChapChalTimeout, l);
       TimerStart(&chap->chalTimer);
 
       /* Send first challenge */

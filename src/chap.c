@@ -74,7 +74,7 @@ ChapStart(Link l, int which)
       chap->retry = AUTH_RETRIES;
 
       TimerInit(&chap->chalTimer, "ChalTimer",
-	l->conf.retry_timeout * SECONDS, ChapChalTimeout, (void *) chap);
+	l->conf.retry_timeout * SECONDS, ChapChalTimeout, l);
       TimerStart(&chap->chalTimer);
 
       /* Send first challenge */
