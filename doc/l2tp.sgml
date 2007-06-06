@@ -123,5 +123,12 @@ L2TP server (LNS).
 When this option is enabled, mpd will initiate outgoing calls (LNS);
 otherwise mpd will initiate incoming calls (LAC).
 
+<tag><tt>hidden</tt></tag>
+
+When L2TP tunnel secret is configured it is possible hide (encrypt) some
+control data for additional protection.
+
+Default is disabled.
+
 </descrip>
 
