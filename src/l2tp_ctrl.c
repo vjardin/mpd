@@ -190,6 +190,7 @@ struct ppp_l2tp_ctrl {
 	char			*errmsg;		/* close error msg */
 	u_char			link_notified;		/* link notified down */
 	u_char			peer_notified;		/* peer notified down */
+	u_char			hide_avps;		/* enable AVPs hiding */
 };
 
 /* Session */
@@ -445,7 +446,8 @@ struct ppp_l2tp_ctrl *
 ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	const struct ppp_l2tp_ctrl_cb *cb,
 	u_int32_t peer_id, ng_ID_t *nodep, char *hook,
-	const struct ppp_l2tp_avp_list *avps, const void *secret, size_t seclen)
+	const struct ppp_l2tp_avp_list *avps, const void *secret, size_t seclen,
+	u_char hide_avps)
 {
 	union {
 	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
@@ -499,6 +501,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 		memcpy(ctrl->secret, secret, seclen);
 	}
 	ctrl->seclen = seclen;
+	ctrl->hide_avps = hide_avps;
 
 	/* Create sessions hash table */
 	if ((ctrl->sessions = ghash_create(NULL, 0, 0, CTRL_MEM_TYPE,
@@ -1218,14 +1221,14 @@ ppp_l2tp_ctrl_send(struct ppp_l2tp_ctrl *ctrl, u_int16_t session_id,
 
 	/* Encoded AVP's into a packet */
 	if ((len = ppp_l2tp_avp_pack(ppp_l2tp_avp_info_list,
-	    avps, ctrl->secret, ctrl->seclen, NULL)) == -1)
+	    avps, (ctrl->hide_avps?ctrl->secret:NULL), ctrl->seclen, NULL)) == -1)
 		goto fail;
 	if ((data = MALLOC(TYPED_MEM_TEMP, 2 + len)) == NULL)
 		goto fail;
 	session_id = htons(session_id);
 	memcpy(data, &session_id, 2);
 	(void)ppp_l2tp_avp_pack(ppp_l2tp_avp_info_list,
-	    avps, ctrl->secret, ctrl->seclen, data + 2);
+	    avps, (ctrl->hide_avps?ctrl->secret:NULL), ctrl->seclen, data + 2);
 
 	/* Write packet */
 	if (session_id == 0)

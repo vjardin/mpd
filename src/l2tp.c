@@ -52,6 +52,7 @@
     int			sock;		/* server listen socket */
     EventRef		event;		/* listen for data messages */
     char		secret[64];	/* L2TP tunnel secret */
+    u_char		hide_avps;	/* enable AVP hidding */
   };
   
   struct l2tp_tun {
@@ -103,6 +104,7 @@
     L2TP_CONF_ORIGINATE,	/* allow originating connections to peer */
     L2TP_CONF_INCOMING,		/* allow accepting connections from peer */
     L2TP_CONF_OUTCALL,		/* when originating, calls are "outgoing" */
+    L2TP_CONF_HIDDEN,		/* enable AVP hidding */
   };
 
 /*
@@ -202,6 +204,7 @@
     { 0,	L2TP_CONF_ORIGINATE,	"originate"	},
     { 0,	L2TP_CONF_INCOMING,	"incoming"	},
     { 0,	L2TP_CONF_OUTCALL,	"outcall"	},
+    { 0,	L2TP_CONF_HIDDEN,	"hidden"	},
     { 0,	0,			NULL		},
   };
 
@@ -462,7 +465,8 @@ L2tpOpen(PhysInfo p)
 	if ((tun->ctrl = ppp_l2tp_ctrl_create(gPeventCtx, &gGiantMutex,
 	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
-	    pi->conf.secret, strlen(pi->conf.secret))) == NULL) {
+	    pi->conf.secret, strlen(pi->conf.secret),
+	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN))) == NULL) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_ctrl_create: %s", 
 		    p->name, strerror(errno)));
 		goto fail;
@@ -1268,7 +1272,7 @@ L2tpServerEvent(int type, void *arg)
 	if ((tun->ctrl = ppp_l2tp_ctrl_create(gPeventCtx, &gGiantMutex,
 	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
-	    s->secret, strlen(s->secret))) == NULL) {
+	    s->secret, strlen(s->secret), s->hide_avps)) == NULL) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_ctrl_create: %s", strerror(errno)));
 		goto fail;
 	}
@@ -1405,6 +1409,7 @@ L2tpServerCreate(L2tpInfo const p)
 	u_addrcopy(&p->conf.self_addr, &s->self_addr);
 	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
 	strncpy(s->secret, p->conf.secret, sizeof(s->secret));
+	s->hide_avps = Enabled(&p->conf.options, L2TP_CONF_HIDDEN);
 	
 	/* Setup UDP socket that listens for new connections */
 	if (s->self_addr.family==AF_INET6) {

@@ -235,7 +235,7 @@ extern struct	ppp_l2tp_ctrl *ppp_l2tp_ctrl_create(struct pevent_ctx *ctx,
 			const struct ppp_l2tp_ctrl_cb *cb,
 			u_int32_t peer_id, ng_ID_t *nodep,
 			char *hook, const struct ppp_l2tp_avp_list *avps,
-			const void *secret, size_t seclen);
+			const void *secret, size_t seclen, u_char hide_avps);
 
 /*
  * This function initiates a new tunnel connection.
