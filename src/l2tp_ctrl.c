@@ -384,8 +384,8 @@ static const	struct l2tp_msg_info ppp_l2tp_msg_info[] = {
 
 /* Descriptors for each AVP */
 
-#define AVP_ITEM(x,m,h,min,max)	\
-	{ #x, ppp_l2tp_avp_decode_ ## x, 0, AVP_ ## x, m, h, min, max }
+#define AVP_ITEM(x,h,m,min,max)	\
+	{ #x, ppp_l2tp_avp_decode_ ## x, 0, AVP_ ## x, h, m, min, max }
 
 static const	struct ppp_l2tp_avp_info ppp_l2tp_avp_info_list[] = {
 	AVP_ITEM(MESSAGE_TYPE,		0,  1,  2,  2),
