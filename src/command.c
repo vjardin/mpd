@@ -205,7 +205,7 @@
   };
 
   const struct cmdtab gCommands[] = {
-    { "new [-nti ng#] bundle link ...",	"Create new bundle",
+    { "new bundle link ...",		"Create new bundle",
     	BundCreateCmd, NULL, NULL },
     { "rnew repeater link1 link2",	"Create new repeater",
     	RepCreateCmd, NULL, NULL },
