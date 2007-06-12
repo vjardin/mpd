@@ -34,6 +34,12 @@
 	  </item>
 	  <item> Implemented PPTP/L2TP SetLinkInfo sending to PAC/LAC.
 	  </item>
+	  <item> NetFlow generation for both incoming and outgoing packets
+		 same time is now supported.
+		 NOTE: To have more then 1000 interfaces with NetFlow in 6-STABLE 
+		 you may need to increase NG_NETFLOW_MAXIFACES constant
+		 in netflow.h and rebuild ng_netflow kernel module.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
