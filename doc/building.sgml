@@ -34,12 +34,9 @@
   Define these to include support for the corresponding device type.
 
   <tag><tt>COMPRESSION_PRED1</tt></tag><p>
-  <tag><tt>COMPRESSION_STAC</tt></tag><p>
   <tag><tt>COMPRESSION_DEFLATE</tt></tag><p>
 
   These enable support for the corresponding compression types.
-  Note that STAC and MPPC compression require proprietary source
-  files that are not included.
 
   <tag><tt>ENCRYPTION_DES</tt></tag><p>
 
