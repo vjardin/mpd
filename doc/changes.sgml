@@ -78,7 +78,7 @@
 	<itemize>
 	  <item> Calls to ifconfig program replaced by internal functions.
 	  </item>
-	  <item> Where possible system() calls replaced by by fork()+execv()
+	  <item> Where possible system() calls replaced by fork()+execv()
 		 to avoid shell execution.
 	  </item>
 	</itemize>
