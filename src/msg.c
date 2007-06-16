@@ -63,6 +63,10 @@ MsgRegister(void (*func)(int type, void *arg))
     fcntl(msgpipe[PIPE_READ], F_SETFD, 1);
     fcntl(msgpipe[PIPE_WRITE], F_SETFD, 1);
 
+    if (fcntl(msgpipe[PIPE_WRITE], F_SETFL, O_NONBLOCK) < 0) {
+        Perror("%s: fcntl", __FUNCTION__);
+    }
+
     if (EventRegister(&msgevent, EVENT_READ,
 	msgpipe[PIPE_READ], EVENT_RECURRING, MsgEvent, NULL) < 0)
     {
@@ -91,24 +95,21 @@ MsgUnRegister(MsgHandler *m)
 static void
 MsgEvent(int type, void *cookie)
 {
-  int		nread, nrode;
-  struct mpmsg	msg;
+    int			nread, nrode;
+    struct mpmsg	msg;
 
-  for (nrode = 0; nrode < sizeof(msg); nrode += nread)
-  {
-    if ((nread = read(msgpipe[PIPE_READ],
-      (u_char *) &msg + nrode, sizeof(msg) - nrode)) < 0)
-    {
-      Perror("%s: Can't read from message pipe", __FUNCTION__);
-      DoExit(EX_ERRDEAD);
+    for (nrode = 0; nrode < sizeof(msg); nrode += nread) {
+	if ((nread = read(msgpipe[PIPE_READ],
+    	  (u_char *) &msg + nrode, sizeof(msg) - nrode)) < 0) {
+    	    Perror("%s: Can't read from message pipe", __FUNCTION__);
+    	    DoExit(EX_ERRDEAD);
+	}
+	if (nread == 0) {
+    	    Log(LG_ERR, ("%s: Unexpected EOF on message pipe!", __FUNCTION__));
+    	    DoExit(EX_ERRDEAD);
+	}
     }
-    if (nread == 0)
-    {
-      Log(LG_ERR, ("%s: Unexpected EOF on message pipe!", __FUNCTION__));
-      DoExit(EX_ERRDEAD);
-    }
-  }
-  (*msg.func)(msg.type, msg.arg);
+    (*msg.func)(msg.type, msg.arg);
 }
 
 /*
@@ -118,25 +119,27 @@ MsgEvent(int type, void *cookie)
 void
 MsgSend(MsgHandler m, int type, void *arg)
 {
-  struct mpmsg	msg;
-  int		nw, nwrote, retry;
+    struct mpmsg	msg;
+    int			nw, nwrote, retry;
 
-  if (m == NULL)
-    return;
-  msg.type = type;
-  msg.func = m->func;
-  msg.arg = arg;
-  for (nwrote = 0, retry = 10; nwrote < sizeof(msg) && retry > 0; nwrote += nw, retry--)
-    if ((nw = write(msgpipe[PIPE_WRITE],
-      (u_char *) &msg + nwrote, sizeof(msg) - nwrote)) < 0)
-    {
-      Perror("%s: Message pipe write error", __FUNCTION__);
-      DoExit(EX_ERRDEAD);
+    if (m == NULL)
+	    return;
+
+    msg.type = type;
+    msg.func = m->func;
+    msg.arg = arg;
+    for (nwrote = 0, retry = 10; nwrote < sizeof(msg) && retry > 0; nwrote += nw, retry--) {
+	if ((nw = write(msgpipe[PIPE_WRITE],
+    	  ((u_char *) &msg) + nwrote, sizeof(msg) - nwrote)) < 0) {
+    	    Perror("%s: Message pipe write error", __FUNCTION__);
+    	    DoExit(EX_ERRDEAD);
+	}
     }
-  if (nwrote < sizeof(msg)) {
-      Log(LG_ERR, ("%s: Can't write to message pipe, fatal pipe overflow!", __FUNCTION__));
-      DoExit(EX_ERRDEAD);
-  }
+    if (nwrote < sizeof(msg)) {
+        Log(LG_ERR, ("%s: Can't write to message pipe, fatal pipe overflow!", 
+	  __FUNCTION__));
+        DoExit(EX_ERRDEAD);
+    }
 }
 
 /*
