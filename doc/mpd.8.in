@@ -102,18 +102,6 @@ Specify an initial configuration file other than the default,
 Specify an lock/process ID storage file other than the default
 .Pa /var/run/mpd.pid .
 .Pp
-.It Fl c Ar port
-.It Fl -console-port Ar port
-.Pp
-Allow
-.Xr telnet 1
-connections to TCP port
-.Ar port
-to give access to the console command line.
-Note that this is a security hole, and should only
-be used in conjuntion with a console password.
-The default port is 5005.
-.Pp
 .It Fl k
 .It Fl -kill
 .Pp
@@ -136,6 +124,7 @@ Display the program version and exit.
 .It Fl -help
 .Pp
 Display invocation usage and exit.
+.El
 .Sh FILES
 .Bl -tag -width /usr/local/share/doc/mpdXX -compact
 .It Pa @PREFIX@/share/doc/mpd
@@ -152,6 +141,7 @@ Modem chat scripts
 Account name, password pairs
 .It Pa /var/run/mpd.pid
 Stored process ID and lock file
+.El
 .Sh SEE ALSO
 .Xr netgraph 4 ,
 .Xr ng_ppp 4 ,
