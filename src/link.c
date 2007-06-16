@@ -160,7 +160,12 @@ LinkClose(Link l)
 void
 LinkUp(Link l)
 {
-  MsgSend(l->msgs, MSG_UP, l);
+    Log(LG_LINK, ("[%s] link: UP event", l->name));
+
+    l->originate = PhysGetOriginate(l->phys);
+    Log(LG_LINK, ("[%s] link: origination is %s",
+	l->name, LINK_ORIGINATION(l->originate)));
+    LcpUp(l);
 }
 
 /*
@@ -170,7 +175,30 @@ LinkUp(Link l)
 void
 LinkDown(Link l)
 {
-  MsgSend(l->msgs, MSG_DOWN, l);
+    Log(LG_LINK, ("[%s] link: DOWN event", l->name));
+
+    if (OPEN_STATE(l->lcp.fsm.state)) {
+	if ((l->conf.max_redial != 0) && (l->num_redial >= l->conf.max_redial)) {
+	    if (l->conf.max_redial >= 0) {
+		Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
+		  l->name, l->num_redial));
+	    }
+	    LcpClose(l);
+            LcpDown(l);
+	} else {
+	    l->num_redial++;
+	    Log(LG_LINK, ("[%s] link: reconnection attempt %d",
+	      l->name, l->num_redial));
+	    RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
+    	    LcpDown(l);
+	    if (!gShutdownInProgress)	/* Giveup on shutdown */
+		PhysOpen(l->phys);		/* Try again */
+	}
+    } else {
+        LcpDown(l);
+    }
+    /* reset Link-stats */
+    LinkResetStats(l);  /* XXX: I don't think this is a right place */
 }
 
 /*
@@ -184,46 +212,19 @@ LinkMsg(int type, void *arg)
 {
     Link	l = (Link)arg;
 
-  Log(LG_LINK, ("[%s] link: %s event", l->name, MsgName(type)));
-  switch (type) {
-    case MSG_OPEN:
-      l->last_open = time(NULL);
-      l->num_redial = 0;
-      LcpOpen(l);
-      break;
-    case MSG_CLOSE:
-      LcpClose(l);
-      break;
-    case MSG_UP:
-      l->originate = PhysGetOriginate(l->phys);
-      Log(LG_LINK, ("[%s] link: origination is %s",
-	l->name, LINK_ORIGINATION(l->originate)));
-      LcpUp(l);
-      break;
-    case MSG_DOWN:
-      if (OPEN_STATE(l->lcp.fsm.state)) {
-	if ((l->conf.max_redial != 0) && (l->num_redial >= l->conf.max_redial)) {
-	  if (l->conf.max_redial >= 0)
-	    Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
-		l->name, l->num_redial));
-	  LcpClose(l);
-          LcpDown(l);
-	} else {
-	  l->num_redial++;
-	  Log(LG_LINK, ("[%s] link: reconnection attempt %d",
-	    l->name, l->num_redial));
-	  RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
-    	  LcpDown(l);
-	  if (!gShutdownInProgress)	/* Giveup on shutdown */
-	    PhysOpen(l->phys);		/* Try again */
-	}
-      } else {
-        LcpDown(l);
-      }
-      /* reset Link-stats */
-      LinkResetStats(l);  /* XXX: I don't think this is a right place */
-      break;
-  }
+    Log(LG_LINK, ("[%s] link: %s event", l->name, MsgName(type)));
+    switch (type) {
+	case MSG_OPEN:
+    	    l->last_open = time(NULL);
+    	    l->num_redial = 0;
+    	    LcpOpen(l);
+    	    break;
+	case MSG_CLOSE:
+    	    LcpClose(l);
+    	    break;
+	default:
+    	    assert(FALSE);
+    }
 }
 
 /*
