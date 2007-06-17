@@ -739,7 +739,9 @@ AuthAccountStart(Link l, int type)
   if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
   
     /* maybe an outstanding thread is running */
+    MUTEX_LOCK(gAcctMutex);
     paction_cancel(&a->acct_thread);
+    MUTEX_UNLOCK(gAcctMutex);
     
   }
 
@@ -787,7 +789,7 @@ AuthAccountStart(Link l, int type)
   auth = AuthDataNew(l);
   auth->acct_type = type;
 
-  if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
+  if (paction_start(&a->acct_thread, &gAcctMutex, AuthAccount, 
     AuthAccountFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
       l->name, errno));
@@ -861,6 +863,8 @@ AuthAccount(void *arg)
  * AuthAccountFinish
  * 
  * Return point for the accounting thread()
+ * NOTE: Thread safety is needed here,
+ * executed with gAcctMutex instead of gGiantMutex!
  */
  
 static void
