@@ -751,12 +751,39 @@ AuthAccountStart(Link l, int type)
       updateInterval = l->lcp.auth.conf.acct_update;
 
     if (updateInterval > 0) {
-      TimerInit(&a->acct_timer, "AuthAccountTimer",
-	updateInterval * SECONDS, AuthAccountTimeout, l);
-      TimerStart(&a->acct_timer);
+	/* Save initial statistics. */
+	memcpy(&a->prev_stats, &l->stats, 
+	  sizeof(a->prev_stats));
+
+	/* Start accounting update timer. */
+	TimerInit(&a->acct_timer, "AuthAccountTimer",
+	  updateInterval * SECONDS, AuthAccountTimeout, l);
+	TimerStart(&a->acct_timer);
     }
   }
   
+  if (type == AUTH_ACCT_UPDATE) {
+    /*
+     * Suppress sending of accounting update, if byte threshold
+     * is configured, and delta since last update doesn't exceed it.
+     */
+    if (a->conf.acct_update_lim_recv > 0 ||
+      a->conf.acct_update_lim_xmit > 0) {
+	if ((l->stats.recvOctets - a->prev_stats.recvOctets <
+    	   a->conf.acct_update_lim_recv) &&
+    	  (l->stats.xmitOctets - a->prev_stats.xmitOctets <
+    	   a->conf.acct_update_lim_xmit)) {
+    	    Log(LG_AUTH, ("[%s] AUTH: Shouldn't send Interim-Update",
+    	      l->name));
+    	    return;
+        } else {
+	    /* Save current statistics. */
+	    memcpy(&a->prev_stats, &l->stats, 
+	      sizeof(a->prev_stats));
+        }
+    }
+  }
+    
   auth = AuthDataNew(l);
   auth->acct_type = type;
 
@@ -840,37 +867,18 @@ static void
 AuthAccountFinish(void *arg, int was_canceled)
 {
     AuthData		auth = (AuthData)arg;
-    Link		l;
-    PhysInfo		p;
 
-    if (was_canceled)
+    if (was_canceled) {
 	Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
     	    auth->info.lnkname));
+    } else {
+	Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
+	    auth->info.lnkname));
+    }
     
     /* Cleanup */
     RadiusClose(auth);
-  
-    if (was_canceled) {
-	AuthDataDestroy(auth);
-	return;
-    }  
-
-    p = gPhyses[auth->info.linkID];
-    if ((p == NULL) || ((l = p->link) == NULL)) {
-	AuthDataDestroy(auth);
-	return;
-    }    
-
-    Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
-	l->name));
-
-    if (auth->acct_type != AUTH_ACCT_STOP) {
-	/* Copy back modified data. */
-	authparamsDestroy(&l->lcp.auth.params);
-	authparamsMove(&auth->params,&l->lcp.auth.params);
-    }
-
-     AuthDataDestroy(auth);
+    AuthDataDestroy(auth);
 }
 
 /*

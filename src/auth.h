@@ -130,8 +130,6 @@
     char		peeraddr[64];	/* hr representation of the peer address */
     char		peerport[6];	/* hr representation of the peer port */
 
-    struct linkstats	prev_stats;	/* Previous link statistics */
-
     struct {
       int	policy;			/* MPPE_POLICY_* */
       int	types;			/* MPPE_TYPE_*BIT bitmask */
@@ -180,6 +178,7 @@
     struct paction	*acct_thread;	/* async accounting auth thread */
     struct authconf	conf;		/* Auth backends, RADIUS, etc. */
     struct authparams	params;		/* params to pass to from auth backend */
+    struct linkstats	prev_stats;	/* Previous link statistics */
   };
   typedef struct auth	*Auth;
 
