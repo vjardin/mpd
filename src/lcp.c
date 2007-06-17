@@ -738,7 +738,7 @@ LcpRecvIdent (Fsm fp, Mbuf bp)
   clen = sizeof(l->lcp.peer_ident) - len;
   if (clen > (MBLEN(bp) + 1))
 	clen = MBLEN(bp) + 1;
-  strlcpy(l->lcp.peer_ident + len, MBDATA(bp), clen);
+  strlcpy(l->lcp.peer_ident + len, (char *) MBDATA(bp), clen);
 }
 
 /*
