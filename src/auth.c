@@ -413,7 +413,7 @@ AuthInput(Link l, int proto, Mbuf bp)
   }
   
   if (a->thread) {
-    Log(LG_ERR, ("[%s] AUTH: Thread already running, dropping this packet", 
+    Log(LG_AUTH, ("[%s] AUTH: Thread already running, dropping this packet", 
       l->name));
     PFREE(bp);
     return;
