@@ -390,16 +390,25 @@ NgFuncShutdownGlobal(Bund b)
 int
 NgFuncShutdownNode(int csock, const char *label, const char *path)
 {
-  int rtn;
+    int rtn, retry = 10, delay = 1000;
 
-  if ((rtn = NgSendMsg(csock, path,
+retry:
+    if ((rtn = NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_SHUTDOWN, NULL, 0)) < 0) {
-    if (errno != ENOENT) {
-      Log(LG_ERR, ("[%s] can't shutdown \"%s\": %s",
-	label, path, strerror(errno)));
+	if (errno == ENOBUFS && retry > 0) {
+    	    Log(LG_ERR, ("[%s] shutdown \"%s\": %s, retrying...",
+	      label, path, strerror(errno)));
+	    usleep(delay);
+	    retry--;
+	    delay *= 2;
+	    goto retry;
+	}
+	if (errno != ENOENT) {
+    	    Log(LG_ERR, ("[%s] can't shutdown \"%s\": %s",
+	      label, path, strerror(errno)));
+	}
     }
-  }
-  return(rtn);
+    return(rtn);
 }
 
 /*
@@ -498,14 +507,24 @@ int
 NgFuncDisconnect(int csock, char *label, const char *path, const char *hook)
 {
   struct ngm_rmhook	rm;
+  int	retry = 10, delay = 1000;
 
   /* Disconnect hook */
   snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", hook);
+retry:
   if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
-    Log(LG_ERR, ("[%s] can't remove hook %s from node \"%s\": %s",
-      label, hook, path, strerror(errno)));
-    return(-1);
+	if (errno == ENOBUFS && retry > 0) {
+    	    Log(LG_ERR, ("[%s] remove hook %s from node \"%s\": %s, retrying...",
+	      label, hook, path, strerror(errno)));
+	    usleep(delay);
+	    retry--;
+	    delay *= 2;
+	    goto retry;
+	}
+	Log(LG_ERR, ("[%s] can't remove hook %s from node \"%s\": %s",
+    	  label, hook, path, strerror(errno)));
+	return(-1);
   }
   return(0);
 }
