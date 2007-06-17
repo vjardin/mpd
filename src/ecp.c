@@ -573,7 +573,6 @@ EcpLayerDown(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
   EcpState	const ecp = &b->ecp;
-  struct ngm_rmhook rm;
 
   /* Update PPP node config */
   b->pppConfig.bund.enableEncryption = 0;
@@ -585,18 +584,14 @@ EcpLayerDown(Fsm fp)
 
   if (ecp->xmit != NULL && ecp->xmit->Encrypt != NULL) {
     /* Disconnect hook. */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_ENCRYPT);
-    if (NgSendMsg(b->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+    if (NgFuncDisconnect(b->csock, b->name, ".:", NG_PPP_HOOK_ENCRYPT) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_ENCRYPT, strerror(errno)));
     }
   }
   
   if (ecp->recv != NULL && ecp->recv->Decrypt != NULL) {
     /* Disconnect hook. */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECRYPT);
-    if (NgSendMsg(b->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+    if (NgFuncDisconnect(b->csock, b->name, ".:", NG_PPP_HOOK_DECRYPT) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECRYPT, strerror(errno)));
     }
   }

@@ -689,7 +689,6 @@ CcpLayerDown(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
   CcpState	const ccp = &b->ccp;
-  struct ngm_rmhook rm;
 
   /* Update PPP node config */
   b->pppConfig.bund.enableCompression = 0;
@@ -701,18 +700,14 @@ CcpLayerDown(Fsm fp)
   
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
     /* Disconnect hook. */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
-    if (NgSendMsg(b->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+    if (NgFuncDisconnect(b->csock, b->name, ".:", NG_PPP_HOOK_COMPRESS) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_COMPRESS, strerror(errno)));
     }
   }
   
   if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
     /* Disconnect hook. */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    if (NgSendMsg(b->csock, ".",
-	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+    if (NgFuncDisconnect(b->csock, b->name, ".:", NG_PPP_HOOK_DECOMPRESS) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
     }
   }

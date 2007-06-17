@@ -751,7 +751,6 @@ PppoeListenEvent(int type, void *arg)
 	char session_hook[NG_HOOKLEN + 1];
 	struct ngm_connect      cn;
 	struct ngm_mkpeer 	mp;
-	struct ngm_rmhook	rm;
 	u_char *macaddr;
 	time_t	const now = time(NULL);
 
@@ -878,11 +877,9 @@ PppoeListenEvent(int type, void *arg)
 			goto shutdown_tee;
 		}
 		
-		snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", p->name);
-	        if (NgSendMsg(pi->PIf->csock, ".:",
-		    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+	        if (NgFuncDisconnect(pi->PIf->csock, p->name, ".:", p->name) < 0) {
 			Log(LG_ERR, ("[%s] PPPoE: can't remove hook %s: %s", 
-			    p->name, rm.ourhook, strerror(errno)));
+			    p->name, p->name, strerror(errno)));
 			goto shutdown_tee;
     		}
 
