@@ -152,7 +152,7 @@ PhysOpenCmd(Context ctx)
 void
 PhysOpen(PhysInfo p)
 {
-  MsgSend(p->msgs, MSG_OPEN, p);
+    MsgSend(p->msgs, MSG_OPEN, p);
 }
 
 /*
@@ -172,7 +172,7 @@ PhysCloseCmd(Context ctx)
 void
 PhysClose(PhysInfo p)
 {
-  MsgSend(p->msgs, MSG_CLOSE, p);
+    MsgSend(p->msgs, MSG_CLOSE, p);
 }
 
 /*
@@ -182,7 +182,12 @@ PhysClose(PhysInfo p)
 void
 PhysUp(PhysInfo p)
 {
-  MsgSend(p->msgs, MSG_UP, p);
+    Log(LG_PHYS2, ("[%s] device: UP event", p->name));
+    if (p->link) {
+	LinkUp(p->link);
+    } else if (p->rep) {
+	RepUp(p);
+    }
 }
 
 /*
@@ -192,7 +197,8 @@ PhysUp(PhysInfo p)
 void
 PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 {
-    p->lastClose = time(NULL); /* dirty hack to avoid race condition */
+    Log(LG_PHYS2, ("[%s] device: DOWN event", p->name));
+    p->lastClose = time(NULL);
     if (p->link) {
 	if (details) {
 	    va_list	args;
@@ -205,8 +211,11 @@ PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 	} else {
 	    RecordLinkUpDownReason(NULL, p->link, 0, reason, NULL);
 	}
+	p->link->upReasonValid=0;
+	LinkDown(p->link);
+    } else if (p->rep) {
+	RepDown(p);
     }
-    MsgSend(p->msgs, MSG_DOWN, p);
 }
 
 /*
@@ -482,22 +491,8 @@ PhysMsg(int type, void *arg)
         TimerStop(&p->openTimer);
         (*p->type->close)(p);
         break;
-    case MSG_DOWN:
-	p->lastClose = now;
-	if (p->link) {
-    	    p->link->upReasonValid=0;
-	    LinkDown(p->link);
-	} else if (p->rep) {
-	    RepDown(p);
-	}
-        break;
-    case MSG_UP:
-	if (p->link) {
-    	    LinkUp(p->link);
-	} else if (p->rep) {
-	    RepUp(p);
-	}
-        break;
+    default:
+        assert(FALSE);
   }
 }
 
