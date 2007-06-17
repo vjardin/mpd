@@ -509,7 +509,7 @@ ChapInputFinish(Link l, AuthData auth)
     Log(LG_AUTH, ("[%s] CHAP: ChapInputFinish: status %s", 
 	l->name, AuthStatusText(auth->status)));
     
-    if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2 && 
+    if (a->params.chap.recv_alg == CHAP_ALG_MSOFTv2 && 
 	auth->mschapv2resp != NULL) {
 	    strlcpy(ackMesg, auth->mschapv2resp, sizeof(ackMesg));
     } else if (auth->reply_message != NULL) {
@@ -524,14 +524,14 @@ ChapInputFinish(Link l, AuthData auth)
 	goto goodResponse;
   
   /* Copy in peer challenge for MS-CHAPv2 */
-  if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2)
-    memcpy(hash_value, auth->params.chap.value, 16);
+  if (a->params.chap.recv_alg == CHAP_ALG_MSOFTv2)
+    memcpy(hash_value, a->params.chap.value, 16);
     
-  secret = ChapGetSecret(l, auth->params.chap.recv_alg, auth->params.password);
+  secret = ChapGetSecret(l, a->params.chap.recv_alg, a->params.password);
 
   /* Get expected hash value */
-  if ((hash_value_size = ChapHash(l, auth->params.chap.recv_alg, hash_value, auth->id,
-    auth->params.authname, secret, auth->params.chap.chal_data, auth->params.chap.chal_len,
+  if ((hash_value_size = ChapHash(l, a->params.chap.recv_alg, hash_value, auth->id,
+    a->params.authname, secret, a->params.chap.chal_data, a->params.chap.chal_len,
     0)) < 0) {
     Log(LG_AUTH, (" Hash failure"));
     auth->why_fail = AUTH_FAIL_INVALID_PACKET;
@@ -539,9 +539,9 @@ ChapInputFinish(Link l, AuthData auth)
   }
 
   /* Compare with peer's response */
-  if (auth->params.chap.chal_len == 0
-      || !ChapHashAgree(auth->params.chap.recv_alg, hash_value, hash_value_size,
-		auth->params.chap.value, auth->params.chap.value_len)) {
+  if (a->params.chap.chal_len == 0
+      || !ChapHashAgree(a->params.chap.recv_alg, hash_value, hash_value_size,
+		a->params.chap.value, a->params.chap.value_len)) {
     Log(LG_AUTH, (" Invalid response"));
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     goto badResponse;
@@ -550,15 +550,15 @@ ChapInputFinish(Link l, AuthData auth)
   /* Response is good */
   Log(LG_AUTH, (" Response is valid"));
 
-  if (auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2) {
-    struct mschapv2value *const pv = (struct mschapv2value *)auth->params.chap.value;
+  if (a->params.chap.recv_alg == CHAP_ALG_MSOFTv2) {
+    struct mschapv2value *const pv = (struct mschapv2value *)a->params.chap.value;
     char hex[41];
     u_char authresp[20];
     int i;
 
     /* Generate MS-CHAPv2 'authenticator response' */
     GenerateAuthenticatorResponse(a->params.msoft.nt_hash, pv->ntHash,
-      pv->peerChal, auth->params.chap.chal_data, auth->params.authname, authresp);
+      pv->peerChal, a->params.chap.chal_data, a->params.authname, authresp);
     for (i = 0; i < 20; i++)
       sprintf(hex + (i * 2), "%02X", authresp[i]);
     snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
@@ -570,7 +570,7 @@ badResponse:
   {
     char        failMesg[64];
 
-    AuthFailMsg(auth, auth->params.chap.recv_alg, failMesg, sizeof(failMesg));
+    AuthFailMsg(auth, a->params.chap.recv_alg, failMesg, sizeof(failMesg));
     Log(LG_AUTH, (" Reply message: %s", failMesg));
     AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
 	auth->id, (u_char *)failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
@@ -582,14 +582,14 @@ badResponse:
 goodResponse:
   /* make a dummy verify to force an update of the opiekeys database */
   if (a->params.authentic == AUTH_CONF_OPIE)
-    opieverify(&auth->opie.data, auth->params.password);
+    opieverify(&auth->opie.data, a->params.password);
 
   /* Need to remember MS-CHAP stuff for use with MPPE encryption */
   if (l->originate == LINK_ORIGINATE_REMOTE
-    && auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2 
+    && a->params.chap.recv_alg == CHAP_ALG_MSOFTv2 
     && !memcmp(a->params.msoft.ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN))
     memcpy(a->params.msoft.ntResp,
-      auth->params.chap.value + offsetof(struct mschapv2value, ntHash),
+      a->params.chap.value + offsetof(struct mschapv2value, ntHash),
       CHAP_MSOFTv2_RESP_LEN);
   
     Log(LG_AUTH, (" Reply message: %s", ackMesg));

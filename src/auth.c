@@ -1075,9 +1075,9 @@ AuthAsyncFinish(void *arg, int was_canceled)
 
     Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", l->name));
 
-    /* copy back modified data */
+    /* Replace modified data */
     authparamsDestroy(&l->lcp.auth.params);
-    authparamsCopy(&auth->params,&l->lcp.auth.params);
+    authparamsMove(&auth->params,&l->lcp.auth.params);
   
     auth->finish(l, auth);
 }

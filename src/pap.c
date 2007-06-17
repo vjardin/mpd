@@ -215,7 +215,8 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
  
 void PapInputFinish(Link l, AuthData auth)
 {
-  PapParams	pap = &auth->params.pap;
+  Auth		const a = &l->lcp.auth;
+  PapParams	pap = &a->params.pap;
   const char	*Mesg;
   
   Log(LG_AUTH, ("[%s] PAP: PapInputFinish: status %s", 
@@ -227,8 +228,8 @@ void PapInputFinish(Link l, AuthData auth)
     goto goodRequest;
   
   /* Do name & password match? */
-  if (strcmp(auth->params.authname, pap->peer_name) ||
-      strcmp(auth->params.password, pap->peer_pass)) {
+  if (strcmp(a->params.authname, pap->peer_name) ||
+      strcmp(a->params.password, pap->peer_pass)) {
     Log(LG_AUTH, (" Invalid response"));
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     goto badRequest;
