@@ -753,6 +753,7 @@ PppoeListenEvent(int type, void *arg)
 	struct ngm_mkpeer 	mp;
 	u_char *macaddr;
 	time_t	const now = time(NULL);
+	int	retry = 10;
 
 	union {
 	    u_char buf[sizeof(struct ngpppoe_init_data) + MAX_SESSION];
@@ -911,6 +912,12 @@ shutdown_tee:
 close_socket:
 		Log(LG_PHYS, ("[%s] PPPoE connection not accepted due to error",
 			p->name));
+
+		if ((retry--) <= 0) {
+		    Log(LG_PHYS, ("[%s] Too many errors. Drop request.",
+			p->name));
+		    break;
+		}
 	};
 
 	if (k == gNumPhyses)
