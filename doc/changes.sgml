@@ -81,6 +81,10 @@
 	  <item> Where possible system() calls replaced by fork()+execv()
 		 to avoid shell execution.
 	  </item>
+	  <item> Added connect requests storm overload protection.
+		 Mpd will drop incoming requests when message queue 
+		 reach some defined length.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
