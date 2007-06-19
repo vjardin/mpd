@@ -359,11 +359,11 @@ static const	struct l2tp_msg_info ppp_l2tp_msg_info[] = {
 	    { ORIG_LOCAL, -1 }, { SIDE_LNS, -1 },
 	    { AVP_ASSIGNED_SESSION_ID, -1 } },
 	{ "ICCN", ICCN,		NULL, ppp_l2tp_handle_xCCN,
-	    { SS_WAIT_CONNECT, -1 },
+	    { SS_WAIT_CONNECT, SS_DYING, -1 },
 	    { ORIG_REMOTE, -1 }, { SIDE_LNS, -1 },
 	    { AVP_TX_CONNECT_SPEED, AVP_FRAMING_TYPE, -1 } },
 	{ "OCCN", OCCN,		NULL, ppp_l2tp_handle_xCCN,
-	    { SS_WAIT_CONNECT, -1 },
+	    { SS_WAIT_CONNECT, SS_DYING, -1 },
 	    { ORIG_LOCAL, -1 }, { SIDE_LNS, -1 },
 	    { AVP_TX_CONNECT_SPEED, AVP_FRAMING_TYPE, -1 } },
 	{ "CDN", CDN,		NULL, ppp_l2tp_handle_CDN,
@@ -2177,6 +2177,9 @@ static int
 ppp_l2tp_handle_xCCN(struct ppp_l2tp_sess *sess,
 	const struct ppp_l2tp_avp_list *avps, struct ppp_l2tp_avp_ptrs *ptrs)
 {
+	if (sess->state == SS_DYING)
+		return (0);
+
 	/* Save peer's AVP's for this session */
 	ppp_l2tp_avp_list_destroy(&sess->peer_avps);
 	if ((sess->peer_avps = ppp_l2tp_avp_list_copy(avps)) == NULL)
