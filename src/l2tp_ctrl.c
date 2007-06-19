@@ -2165,6 +2165,9 @@ static int
 ppp_l2tp_handle_OCRP(struct ppp_l2tp_sess *sess,
 	const struct ppp_l2tp_avp_list *avps, struct ppp_l2tp_avp_ptrs *ptrs)
 {
+	if (sess->state == SS_DYING)
+		return (0);
+
 	sess->peer_id = ptrs->sessionid->id;
 	sess->state = SS_WAIT_CONNECT;
 	return (0);
@@ -2194,6 +2197,9 @@ ppp_l2tp_handle_ICRP(struct ppp_l2tp_sess *sess,
 {
 	struct ppp_l2tp_ctrl *const ctrl = sess->ctrl;
 	char buf[64];
+	
+	if (sess->state == SS_DYING)
+		return (0);
 
 	/* Save peer ID */
 	sess->peer_id = ptrs->sessionid->id;
@@ -2232,6 +2238,9 @@ ppp_l2tp_handle_SLI(struct ppp_l2tp_sess *sess,
 {
 	struct ppp_l2tp_ctrl *const ctrl = sess->ctrl;
 
+	if (sess->state == SS_DYING)
+		return (0);
+
 	if (ctrl->cb->set_link_info == NULL)
 		return (0);
 	(*ctrl->cb->set_link_info)(sess, ptrs->accm->xmit, ptrs->accm->recv);
@@ -2243,6 +2252,9 @@ ppp_l2tp_handle_WEN(struct ppp_l2tp_sess *sess,
 	const struct ppp_l2tp_avp_list *avps, struct ppp_l2tp_avp_ptrs *ptrs)
 {
 	struct ppp_l2tp_ctrl *const ctrl = sess->ctrl;
+
+	if (sess->state == SS_DYING)
+		return (0);
 
 	if (ctrl->cb->wan_error_notify == NULL)
 		return (0);
