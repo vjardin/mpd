@@ -982,6 +982,16 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	    (out?"Outgoing":"Incoming"), 
 	    ppp_l2tp_sess_get_serial(sess), ctrl));
 
+	if (gShutdownInProgress) {
+		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring request."));
+		goto failed;
+	}
+
+	if (OVERLOAD()) {
+		Log(LG_PHYS, ("Daemon overloaded, ignoring request."));
+		goto failed;
+	}
+
 	/* Examine all L2TP links. */
 	for (k = 0; k < gNumPhyses; k++) {
 		PhysInfo p2;
@@ -1038,6 +1048,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	}
 	Log(LG_PHYS, ("L2TP: No free link with requested parameters "
 	    "was found"));
+failed:
 	ppp_l2tp_terminate(sess, L2TP_RESULT_AVAIL_TEMP, 0, NULL);
 	ppp_l2tp_avp_ptrs_destroy(&ptrs);
 }

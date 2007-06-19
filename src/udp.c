@@ -489,7 +489,12 @@ UdpAcceptEvent(int type, void *cookie)
 	    u_addrtoa(&If->self_addr, buf1, sizeof(buf1)), If->self_port));
 
 	if (gShutdownInProgress) {
-		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
+		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring request."));
+		goto failed;
+	}
+
+	if (OVERLOAD()) {
+		Log(LG_PHYS, ("Daemon overloaded, ignoring request."));
 		goto failed;
 	}
 

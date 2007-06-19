@@ -70,6 +70,19 @@
   #define RWLOCK_RDLOCK(m)	assert(pthread_rwlock_rdlock(&m) == 0)
   #define RWLOCK_WRLOCK(m)	assert(pthread_rwlock_wrlock(&m) == 0)
   #define RWLOCK_UNLOCK(m)	assert(pthread_rwlock_unlock(&m) == 0)
+  
+  #define SETOVERLOAD(q)	do {					\
+				    int t = (q);			\
+				    if (t > 60) {			\
+					gOverload = 100;		\
+				    } else if (t > 10) {		\
+					gOverload = (t - 10) * 2;	\
+				    } else {				\
+					gOverload = 0;			\
+				    }					\
+				} while (0)
+
+  #define OVERLOAD()		(gOverload > (random() % 100))
 
   #define ADLG_WAN_AUTHORIZATION_FAILURE	0
   #define ADLG_WAN_CONNECTED			1
@@ -116,6 +129,7 @@
   extern struct web	gWeb;
   extern int		gBackground;
   extern int		gShutdownInProgress;
+  extern int		gOverload;
   extern pid_t		gPid;
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */

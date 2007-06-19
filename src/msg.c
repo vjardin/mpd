@@ -34,6 +34,7 @@
 
   int		msgpipe[2];
   EventRef	msgevent;
+  int		pipelen = 0;
 
 /*
  * INTERNAL FUNCTIONS
@@ -109,6 +110,9 @@ MsgEvent(int type, void *cookie)
     	    DoExit(EX_ERRDEAD);
 	}
     }
+
+    SETOVERLOAD(--pipelen);
+
     (*msg.func)(msg.type, msg.arg);
 }
 
@@ -124,6 +128,8 @@ MsgSend(MsgHandler m, int type, void *arg)
 
     if (m == NULL)
 	    return;
+
+    SETOVERLOAD(++pipelen);
 
     msg.type = type;
     msg.func = m->func;

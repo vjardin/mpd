@@ -838,7 +838,12 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   linfo.cancel = PptpCancel;
 
   if (gShutdownInProgress) {
-    Log(LG_PHYS, ("Shutdown sequence in progress, ignoring"));
+    Log(LG_PHYS, ("Shutdown sequence in progress, ignoring request."));
+    return(linfo);
+  }
+
+  if (OVERLOAD()) {
+    Log(LG_PHYS, ("Daemon overloaded, ignoring request."));
     return(linfo);
   }
 

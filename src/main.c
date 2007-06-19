@@ -81,6 +81,7 @@
   struct web		gWeb;
   int			gBackground = FALSE;
   int			gShutdownInProgress = FALSE;
+  int			gOverload = 0;
   pid_t          	gPid;
 
   struct globalconf	gGlobalConf;
