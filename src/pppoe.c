@@ -1119,8 +1119,10 @@ PppoeListenUpdate(void *arg)
 		} else {
 			if ((PppoeIfs[j].listen == 0) &&
 			    (ListenPppoeNode(pi->path, pi->hook, &(PppoeIfs[j]),
-			    pi->session, 0)))
+			    pi->session, 0))) {
 				PppoeIfs[j].listen=1;
+			}
+			pi->PIf=&PppoeIfs[j];
 		}
 	}
 }
