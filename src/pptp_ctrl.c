@@ -86,8 +86,8 @@
 
   /* Channel state */
   struct pptpchan {
+    uint16_t		id;		/* channel index */
     u_char		state;		/* channel state */
-    u_char		id;		/* channel index */
     u_char		orig:1;		/* call originated from us */
     u_char		incoming:1;	/* call is incoming, not outgoing */
     u_char		killing:1;	/* channel is being killed */
@@ -112,8 +112,8 @@
 
   /* Control channel state */
   struct pptpctrl {
-    u_char		state;		/* state */
     u_int32_t		id;		/* channel index */
+    u_char		state;		/* state */
     u_char		orig:1;		/* we originated connection */
     u_char		killing:1;	/* connection is being killed */
     union {
