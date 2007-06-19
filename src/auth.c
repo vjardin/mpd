@@ -1038,7 +1038,7 @@ AuthAsync(void *arg)
          return;
   } 
 
-  Log(LG_ERR, ("[%s] AUTH: ran out of backends", auth->info.lnkname));
+  Log(LG_AUTH, ("[%s] AUTH: ran out of backends", auth->info.lnkname));
   auth->status = AUTH_STATUS_FAIL;
   auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
 }
