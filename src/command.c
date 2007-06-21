@@ -65,7 +65,7 @@
   static int	ShowTypes(Context ctx, int ac, char *av[], void *arg);
   static int	ShowSummary(Context ctx, int ac, char *av[], void *arg);
   static int	ShowEvents(Context ctx, int ac, char *av[], void *arg);
-  static int	ShowGlobals(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowGlobal(Context ctx, int ac, char *av[], void *arg);
   static int	OpenCommand(Context ctx, int ac, char *av[], void *arg);
   static int	CloseCommand(Context ctx, int ac, char *av[], void *arg);
   static int	LoadCommand(Context ctx, int ac, char *av[], void *arg);
@@ -149,8 +149,8 @@
 	ConsoleStat, NULL, NULL },
     { "web",				"Web status",
 	WebStat, NULL, NULL },
-    { "globals",			"Global settings",
-	ShowGlobals, NULL, NULL },
+    { "global",				"Global settings",
+	ShowGlobal, NULL, NULL },
     { "types",				"Supported device types",
 	ShowTypes, NULL, NULL },
     { "version",			"Version string",
@@ -570,13 +570,18 @@ ShowEvents(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
- * ShowGlobals()
+ * ShowGlobal()
  */
 
 static int
-ShowGlobals(Context ctx, int ac, char *av[], void *arg)
+ShowGlobal(Context ctx, int ac, char *av[], void *arg)
 {
   Printf("Global settings:\r\n");
+  Printf("	startrule	: %d\r\n", rule_pool_start);
+  Printf("	startpipe	: %d\r\n", pipe_pool_start);
+  Printf("	startqueue	: %d\r\n", queue_pool_start);
+  Printf("	starttable	: %d\r\n", table_pool_start);
+  Printf("Global options:\r\n");
   OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
   return 0;
 }
