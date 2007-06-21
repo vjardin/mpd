@@ -105,13 +105,14 @@
   static const struct {
     const char	*name;
     int		*indexp;
+    u_char	peered;
   } gMppcOptions[] = {
-    { "mpp-compress",	&gMppcCompress },
-    { "mpp-e40",	&gMppe40 },
-    { "mpp-e56",	&gMppe56 },
-    { "mpp-e128",	&gMppe128 },
-    { "mpp-stateless",	&gMppcStateless },
-    { "mppe-policy",	&gMppePolicy },
+    { "mpp-compress",	&gMppcCompress,	1 },
+    { "mpp-e40",	&gMppe40,	1 },
+    { "mpp-e56",	&gMppe56,	1 },
+    { "mpp-e128",	&gMppe128,	1 },
+    { "mpp-stateless",	&gMppcStateless,1 },
+    { "mppe-policy",	&gMppePolicy,	0 },
   };
   #define CCP_NUM_MPPC_OPT	(sizeof(gMppcOptions) / sizeof(*gMppcOptions))
 
@@ -210,7 +211,7 @@ CcpInit(Bund b)
     /* Add MPPE options (YAMCH: yet another microsoft compatibility hack) */
     for (j = 0; j < CCP_NUM_MPPC_OPT; j++, k++) {
       ci[k].option = k;
-      ci[k].peered = TRUE;
+      ci[k].peered = gMppcOptions[j].peered;
       ci[k].name = gMppcOptions[j].name;
       *gMppcOptions[j].indexp = k;
     }
