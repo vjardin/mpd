@@ -585,8 +585,6 @@ AuthCleanup(Link l)
 
   Log(LG_AUTH, ("[%s] AUTH: Cleanup", l->name));
 
-  TimerStop(&a->acct_timer);
-  
   authparamsDestroy(&a->params);
 }
 
@@ -782,6 +780,11 @@ AuthAccountStart(Link l, int type)
 	      sizeof(a->prev_stats));
         }
     }
+  }
+    
+  if (type == AUTH_ACCT_STOP) {
+    /* Stop accounting update timer if running. */
+    TimerStop(&a->acct_timer);
   }
     
   auth = AuthDataNew(l);
