@@ -40,6 +40,8 @@
 		 you may need to increase NG_NETFLOW_MAXIFACES constant
 		 in netflow.h and rebuild ng_netflow kernel module.
 	  </item>
+	  <item> Added mpd-drop-user vendor specific accounting reply attribute support.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
