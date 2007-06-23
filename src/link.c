@@ -507,20 +507,6 @@ LinkUpdateStats(Link l)
   l->oldStats = stats;
 }
 
-/* 
- * LinkUpdateStatsTimer()
- */
-
-void
-LinkUpdateStatsTimer(void *cookie)
-{
-    Link l = (Link)cookie;
-
-  TimerStop(&l->statsUpdateTimer);
-  LinkUpdateStats(l);
-  TimerStart(&l->statsUpdateTimer);
-}
-
 /*
  * LinkResetStats()
  */

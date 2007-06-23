@@ -306,16 +306,10 @@ BundJoin(Link l)
     /* starting bundle statistics timer */
     TimerInit(&b->statsUpdateTimer, "BundUpdateStats", 
 	BUND_STATS_UPDATE_INTERVAL, BundUpdateStatsTimer, b);
-    TimerStart(&b->statsUpdateTimer);
-    
+    TimerStartRecurring(&b->statsUpdateTimer);
   }
 
   AuthAccountStart(l, AUTH_ACCT_START);
-
-  /* starting link statistics timer */
-  TimerInit(&l->statsUpdateTimer, "LinkUpdateStats", 
-    LINK_STATS_UPDATE_INTERVAL, LinkUpdateStatsTimer, l);
-  TimerStart(&l->statsUpdateTimer);
 
   /* Done */
   return(bm->n_up);
@@ -336,9 +330,6 @@ BundLeave(Link l)
   /* Elvis has left the bundle */
   assert(bm->n_up > 0);
   
-  /* stopping link statistics timer */
-  TimerStop(&l->statsUpdateTimer);
-
   AuthAccountStart(l, AUTH_ACCT_STOP);
 
   BundReasses(b, 0);
@@ -1135,10 +1126,14 @@ BundUpdateStats(Bund b)
 void
 BundUpdateStatsTimer(void *cookie)
 {
-  Bund b = (Bund)cookie;
-  TimerStop(&b->statsUpdateTimer);
-  BundUpdateStats(b);
-  TimerStart(&b->statsUpdateTimer);
+    Bund	b = (Bund)cookie;
+    int		k;
+  
+    BundUpdateStats(b);
+    for (k = 0; k < b->n_links; k++) {
+	if (b->links[k]->joined_bund)
+	    LinkUpdateStats(b->links[k]);
+    }
 }
 
 /*

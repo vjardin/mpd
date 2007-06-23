@@ -79,8 +79,6 @@
   };
   typedef struct linkbm	*LinkBm;
 
-  #define LINK_STATS_UPDATE_INTERVAL	60 * SECONDS
-
   /* Values for link origination (must fit in 2 bits) */
   #define LINK_ORIGINATE_UNKNOWN	0
   #define LINK_ORIGINATE_LOCAL		1
@@ -104,7 +102,6 @@
     struct linkbm	bm;		/* Link bandwidth mgmt info */
     struct linkstats	stats;		/* Link statistics */
     struct ng_ppp_link_stat oldStats;	/* Previous stats for 64bit emulation */
-    struct pppTimer	statsUpdateTimer;	/* update Timer */
 
     /* Link properties */
     short		num_redial;	/* Counter for retry attempts */
@@ -147,7 +144,6 @@
   extern int	LinkNuke(Link link);
   extern int	LinkStat(Context ctx, int ac, char *av[], void *arg);
   extern void	LinkUpdateStats(Link l);
-  extern void	LinkUpdateStatsTimer(void *cookie);
   extern void	LinkResetStats(Link l);
   extern Link	LinkFind(char *name);
   extern int	LinkCommand(Context ctx, int ac, char *av[], void *arg);
