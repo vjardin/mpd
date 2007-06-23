@@ -136,7 +136,6 @@
 
   extern struct pevent_ctx	*gPeventCtx;
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
-  extern pthread_mutex_t	gAcctMutex;	/* Acct Mutex */
 
   extern const char	*gVersion;		/* Program version string */
   extern const char	*gConfigFile;		/* Main config file */

@@ -87,7 +87,6 @@
   struct globalconf	gGlobalConf;
 
   pthread_mutex_t	gGiantMutex;
-  pthread_mutex_t	gAcctMutex;
 
   const char		*gConfigFile = CONF_FILE;
   const char		*gConfDirectory = PATH_CONF_DIR;
@@ -187,11 +186,6 @@ main(int ac, char *av[])
   ret = pthread_mutex_init (&gGiantMutex, NULL);
   if (ret != 0) {
     Log(LG_ERR, ("Could not create giant mutex %d", ret));
-    exit(EX_UNAVAILABLE);
-  }
-  ret = pthread_mutex_init (&gAcctMutex, NULL);
-  if (ret != 0) {
-    Log(LG_ERR, ("Could not create acct mutex %d", ret));
     exit(EX_UNAVAILABLE);
   }
 

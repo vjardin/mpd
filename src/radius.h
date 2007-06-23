@@ -71,6 +71,7 @@
   #define RAD_MPD_TABLE_STATIC	5
   #define RAD_MPD_FILTER	6
   #define RAD_MPD_LIMIT		7
+  #define RAD_MPD_DROP_USER	154
 
   /* Configuration options */
   enum {

@@ -198,6 +198,7 @@
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */
     void		(*finish)(Link l, struct authdata *auth); /* Finish handler */
     int			acct_type;	/* Accounting type, Start, Stop, Update */
+    int			drop_user;	/* RAD_MPD_DROP_USER value sent by RADIUS server */
     u_char		eap_radius;
     struct {
       struct rad_handle	*handle;	/* the RADIUS handle */

@@ -739,9 +739,7 @@ AuthAccountStart(Link l, int type)
   if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
   
     /* maybe an outstanding thread is running */
-    MUTEX_LOCK(gAcctMutex);
     paction_cancel(&a->acct_thread);
-    MUTEX_UNLOCK(gAcctMutex);
     
   }
 
@@ -789,7 +787,7 @@ AuthAccountStart(Link l, int type)
   auth = AuthDataNew(l);
   auth->acct_type = type;
 
-  if (paction_start(&a->acct_thread, &gAcctMutex, AuthAccount, 
+  if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
     AuthAccountFinish, auth) == -1) {
     Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
       l->name, errno));
@@ -863,8 +861,6 @@ AuthAccount(void *arg)
  * AuthAccountFinish
  * 
  * Return point for the accounting thread()
- * NOTE: Thread safety is needed here,
- * executed with gAcctMutex instead of gGiantMutex!
  */
  
 static void
@@ -882,6 +878,18 @@ AuthAccountFinish(void *arg, int was_canceled)
     
     /* Cleanup */
     RadiusClose(auth);
+    
+    if (!was_canceled && auth->drop_user && auth->acct_type != AUTH_ACCT_STOP) {
+	PhysInfo	p = gPhyses[auth->info.linkID];
+	Link		l;
+	if ((p != NULL) && ((l = p->link) != NULL)) {
+    	    Log(LG_AUTH, ("[%s] AUTH: Link close requested at the accounting reply", 
+		l->name));
+	    RecordLinkUpDownReason(NULL, l, 0, STR_MANUALLY, NULL);
+	    LinkClose(l);
+	}
+    }
+    
     AuthDataDestroy(auth);
 }
 
