@@ -758,7 +758,7 @@ AuthAccountStart(Link l, int type)
 	/* Start accounting update timer. */
 	TimerInit(&a->acct_timer, "AuthAccountTimer",
 	  updateInterval * SECONDS, AuthAccountTimeout, l);
-	TimerStart(&a->acct_timer);
+	TimerStartRecurring(&a->acct_timer);
     }
   }
   
@@ -806,14 +806,11 @@ static void
 AuthAccountTimeout(void *arg)
 {
     Link	l = (Link)arg;
-  Auth	const a = &l->lcp.auth;
   
-  Log(LG_AUTH, ("[%s] AUTH: Sending Accounting Update",
-    l->name));
+    Log(LG_AUTH, ("[%s] AUTH: Sending Accounting Update",
+	l->name));
 
-  TimerStop(&a->acct_timer);
-  AuthAccountStart(l, AUTH_ACCT_UPDATE);
-  TimerStart(&a->acct_timer);
+    AuthAccountStart(l, AUTH_ACCT_UPDATE);
 }
 
 /*
