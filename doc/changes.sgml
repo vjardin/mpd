@@ -60,6 +60,9 @@
 	  <item> While accepting calls PPTP, L2TP, TCP and UDP links are now trying 
 		 to use link with most specific peer address configured.
 	  </item>
+	  <item> Removed setting up local IPv4 address routing to loopback.
+		 /usr/sbin/ppp does not doing it.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
@@ -78,7 +81,7 @@
 	</item>
 	<item> Performance improvements:
 	<itemize>
-	  <item> Calls to ifconfig program replaced by internal functions.
+	  <item> Calls to ifconfig and route programs replaced by internal functions.
 	  </item>
 	  <item> Where possible system() calls replaced by fork()+execv()
 		 to avoid shell execution.
