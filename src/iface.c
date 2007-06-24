@@ -719,7 +719,7 @@ IfaceIpIfaceUp(Bund b, int ready)
 {
   IfaceState		const iface = &b->iface;
   struct sockaddr_dl	hwa;
-  char			hisaddr[20],selfaddr[20];
+  char			hisaddr[20];
   IfaceRoute		r;
   u_char		*ether;
 
@@ -758,10 +758,6 @@ IfaceIpIfaceUp(Bund b, int ready)
 	iface->proxy_addr = iface->peer_addr;
     }
   }
-
-  /* Add loopback route */
-  ExecCmdNosh(LG_IFACE2, b->name, "%s add %s/32 -iface lo0",
-    PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,selfaddr,sizeof(selfaddr)));
   
     /* Add static routes */
     SLIST_FOREACH(r, &iface->routes, next) {
@@ -849,10 +845,6 @@ IfaceIpIfaceDown(Bund b)
   if (!u_addrempty(&iface->proxy_addr))
     ExecCmdNosh(LG_IFACE2, b->name, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
   u_addrclear(&iface->proxy_addr);
-
-  /* Delete loopback route */
-  ExecCmdNosh(LG_IFACE2, b->name, "%s delete %s/32 -iface lo0",
-    PATH_ROUTE, u_addrtoa(&iface->self_addr.addr,buf,sizeof(buf)));
 
   /* Remove address from interface */
   IfaceChangeAddr(b, 0, &iface->self_addr, &iface->peer_addr);
