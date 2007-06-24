@@ -83,6 +83,7 @@
   int			gShutdownInProgress = FALSE;
   int			gOverload = 0;
   pid_t          	gPid;
+  int			gRouteSeq = 0;
 
   struct globalconf	gGlobalConf;
 

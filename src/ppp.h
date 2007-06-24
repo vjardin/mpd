@@ -131,6 +131,7 @@
   extern int		gShutdownInProgress;
   extern int		gOverload;
   extern pid_t		gPid;
+  extern int		gRouteSeq;
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 

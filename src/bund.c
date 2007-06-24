@@ -1440,6 +1440,7 @@ BundNgInit(Bund b, const char *reqIface)
     }
     newIface = 1;
   }
+  b->iface.ifindex = if_nametoindex(b->iface.ifname);
  
   /* Create new PPP node */
   snprintf(mp.type, sizeof(mp.type), "%s", NG_PPP_NODE_TYPE);

@@ -25,6 +25,7 @@
 #include <net/if_types.h>
 #include <net/if_dl.h>
 #include <net/if_var.h>
+#include <net/route.h>
 #include <netinet/in_systm.h>
 #include <netinet/in.h>
 #include <netinet/in_var.h>
@@ -721,7 +722,6 @@ IfaceIpIfaceUp(Bund b, int ready)
   char			hisaddr[20],selfaddr[20];
   IfaceRoute		r;
   u_char		*ether;
-  char			buf[64];
 
   if (ready) {
     in_addrtou_range(&b->ipcp.want_addr, 32, &iface->self_addr);
@@ -766,17 +766,13 @@ IfaceIpIfaceUp(Bund b, int ready)
     /* Add static routes */
     SLIST_FOREACH(r, &iface->routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET) {
-	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add %s %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
-		    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
+	    r->ok = (IfaceSetRoute(b, RTM_ADD, &r->dest, &iface->peer_addr) == 0);
 	}
     }
     /* Add dynamic routes */
     SLIST_FOREACH(r, &b->params.routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET) {
-	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add %s %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), 
-		    u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))) == 0);
+	    r->ok = (IfaceSetRoute(b, RTM_ADD, &r->dest, &iface->peer_addr) == 0);
 	}
     }
 
@@ -835,8 +831,7 @@ IfaceIpIfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET) {
 	    if (!r->ok)
 		continue;
-	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
+	    IfaceSetRoute(b, RTM_DELETE, &r->dest, &iface->peer_addr);
 	    r->ok = 0;
 	}
     }
@@ -845,8 +840,7 @@ IfaceIpIfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET) {
 	    if (!r->ok)
 		continue;
-	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)));
+	    IfaceSetRoute(b, RTM_DELETE, &r->dest, &iface->peer_addr);
 	    r->ok = 0;
 	}
     }
@@ -879,7 +873,6 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 {
   IfaceState		const iface = &b->iface;
   IfaceRoute		r;
-  char			buf[64];
   struct u_range	rng;
 
   if (ready) {
@@ -904,6 +897,11 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
   }
+    char	selfbuf[64],peerbuf[64];
+
+    Log(LG_IFACE2, (" %s -> %s",
+      u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)),
+      u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf))));
 
   if (IfaceNgIpv6Init(b, ready)) {
     Log(LG_ERR, ("[%s] IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
@@ -914,20 +912,18 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     /* Set addresses */
     rng.addr = iface->self_ipv6_addr;
     rng.width = 64;
-    IfaceChangeAddr(b, 1, &rng, NULL);
+    IfaceChangeAddr(b, 1, &rng, &iface->peer_ipv6_addr);
   
     /* Add static routes */
     SLIST_FOREACH(r, &iface->routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET6) {
-	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+	    r->ok = (IfaceSetRoute(b, RTM_ADD, &r->dest, &iface->peer_ipv6_addr) == 0);
 	}
     }
     /* Add dynamic routes */
     SLIST_FOREACH(r, &b->params.routes, next) {
 	if (u_rangefamily(&r->dest)==AF_INET6) {
-	    r->ok = (ExecCmdNosh(LG_IFACE2, b->name, "%s add -inet6 %s -interface %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname) == 0);
+	    r->ok = (IfaceSetRoute(b, RTM_ADD, &r->dest, &iface->peer_ipv6_addr) == 0);
 	}
     }
 
@@ -955,7 +951,6 @@ IfaceIpv6IfaceDown(Bund b)
 {
   IfaceState		const iface = &b->iface;
   IfaceRoute		r;
-  char			buf[64];
   struct u_range        rng;
 
   /* Call "down" script */
@@ -970,8 +965,7 @@ IfaceIpv6IfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET6) {
 	    if (!r->ok)
 		continue;
-	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	    IfaceSetRoute(b, RTM_DELETE, &r->dest, &iface->peer_ipv6_addr);
 	    r->ok = 0;
 	}
     }
@@ -980,8 +974,7 @@ IfaceIpv6IfaceDown(Bund b)
 	if (u_rangefamily(&r->dest)==AF_INET6) {
 	    if (!r->ok)
 		continue;
-	    ExecCmdNosh(LG_IFACE2, b->name, "%s delete -inet6 %s -interface %s",
-		PATH_ROUTE, u_rangetoa(&r->dest, buf, sizeof(buf)), iface->ifname);
+	    IfaceSetRoute(b, RTM_DELETE, &r->dest, &iface->peer_ipv6_addr);
 	    r->ok = 0;
 	}
     }
@@ -990,7 +983,7 @@ IfaceIpv6IfaceDown(Bund b)
     /* Remove address from interface */
     rng.addr = iface->self_ipv6_addr;
     rng.width = 64;
-    IfaceChangeAddr(b, 0, &rng, NULL);
+    IfaceChangeAddr(b, 0, &rng, &iface->peer_ipv6_addr);
   }
 
   IfaceNgIpv6Shutdown(b);
@@ -1415,6 +1408,9 @@ IfaceChangeFlags(Bund b, int clear, int set)
     struct ifreq ifrq;
     int s, new_flags;
 
+    Log(LG_IFACE2, ("[%s] IFACE: Change interface flags: -%d +%d",
+	b->name, clear, set)); 
+
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to change interface flags!", b->name);
 	return;
@@ -1444,15 +1440,39 @@ IfaceChangeFlags(Bund b, int clear, int set)
     close(s);
 }
 
+#if defined(__KAME__) && !defined(NOINET6)
+static void
+add_scope(struct sockaddr *sa, int ifindex)
+{
+  struct sockaddr_in6 *sa6;
+
+  if (sa->sa_family != AF_INET6)
+    return;
+  sa6 = (struct sockaddr_in6 *)sa;
+  if (!IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr) &&
+      !IN6_IS_ADDR_MC_LINKLOCAL(&sa6->sin6_addr))
+    return;
+  if (*(u_int16_t *)&sa6->sin6_addr.s6_addr[2] != 0)
+    return;
+  *(u_int16_t *)&sa6->sin6_addr.s6_addr[2] = htons(ifindex);
+}
+#endif
+
 void
 IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 {
-  struct ifaliasreq ifra;
-  struct in6_aliasreq ifra6;
-  struct sockaddr_in *me4, *msk4, *peer4;
-  struct sockaddr_storage ssself, sspeer, ssmsk;
-  int res = 0;
-  int s;
+    struct ifaliasreq ifra;
+    struct in6_aliasreq ifra6;
+    struct sockaddr_in *me4, *msk4, *peer4;
+    struct sockaddr_storage ssself, sspeer, ssmsk;
+    int res = 0;
+    int s;
+    char buf[64], buf1[64];
+
+    Log(LG_IFACE2, ("[%s] IFACE: %s address %s->%s %s %s",
+	b->name, add?"Add":"Remove", u_rangetoa(self, buf, sizeof(buf)), 
+	((peer != NULL)?u_addrtoa(peer, buf1, sizeof(buf1)):""),
+	add?"to":"from", b->iface.ifname));
 
     u_rangetosockaddrs(self, &ssself, &ssmsk);
     if (peer)
@@ -1463,55 +1483,141 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 	return;
     }
 
-  switch (self->addr.family) {
-  case AF_INET:
-    memset(&ifra, '\0', sizeof ifra);
-    strncpy(ifra.ifra_name, b->iface.ifname, sizeof ifra.ifra_name - 1);
+    switch (self->addr.family) {
+      case AF_INET:
+	memset(&ifra, '\0', sizeof ifra);
+	strncpy(ifra.ifra_name, b->iface.ifname, sizeof ifra.ifra_name - 1);
 
-    me4 = (struct sockaddr_in *)&ifra.ifra_addr;
-    memcpy(me4, &ssself, sizeof *me4);
+	me4 = (struct sockaddr_in *)&ifra.ifra_addr;
+	memcpy(me4, &ssself, sizeof *me4);
 
-    msk4 = (struct sockaddr_in *)&ifra.ifra_mask;
-    memcpy(msk4, &ssmsk, sizeof *msk4);
+	msk4 = (struct sockaddr_in *)&ifra.ifra_mask;
+	memcpy(msk4, &ssmsk, sizeof *msk4);
 
-    peer4 = (struct sockaddr_in *)&ifra.ifra_broadaddr;
-    if (peer == NULL || peer->family == AF_UNSPEC) {
-      peer4->sin_family = AF_INET;
-      peer4->sin_len = sizeof(*peer4);
-      peer4->sin_addr.s_addr = INADDR_NONE;
-    } else
-      memcpy(peer4, &sspeer, sizeof *peer4);
+	peer4 = (struct sockaddr_in *)&ifra.ifra_broadaddr;
+	if (peer == NULL || peer->family == AF_UNSPEC) {
+    	    peer4->sin_family = AF_INET;
+    	    peer4->sin_len = sizeof(*peer4);
+    	    peer4->sin_addr.s_addr = INADDR_NONE;
+	} else
+    	    memcpy(peer4, &sspeer, sizeof *peer4);
 
-    res = ioctl(s, add?SIOCAIFADDR:SIOCDIFADDR, &ifra);
-    if (res == -1) {
-	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
-	    add?"SIOCAIFADDR":"SIOCDIFADDR");
-    }
-    break;
+	res = ioctl(s, add?SIOCAIFADDR:SIOCDIFADDR, &ifra);
+	if (res == -1) {
+	    Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
+		add?"SIOCAIFADDR":"SIOCDIFADDR");
+	}
+	break;
 
-  case AF_INET6:
-    memset(&ifra6, '\0', sizeof ifra6);
-    strncpy(ifra6.ifra_name, b->iface.ifname, sizeof ifra6.ifra_name - 1);
+      case AF_INET6:
+	memset(&ifra6, '\0', sizeof ifra6);
+	strncpy(ifra6.ifra_name, b->iface.ifname, sizeof ifra6.ifra_name - 1);
 
-    memcpy(&ifra6.ifra_addr, &ssself, sizeof ifra6.ifra_addr);
-    memcpy(&ifra6.ifra_prefixmask, &ssmsk, sizeof ifra6.ifra_prefixmask);
-    if (peer == NULL || peer->family == AF_UNSPEC)
-      ifra6.ifra_dstaddr.sin6_family = AF_UNSPEC;
-    else if (memcmp(&((struct sockaddr_in6 *)&ssmsk)->sin6_addr, &in6mask128,
+	memcpy(&ifra6.ifra_addr, &ssself, sizeof ifra6.ifra_addr);
+	memcpy(&ifra6.ifra_prefixmask, &ssmsk, sizeof ifra6.ifra_prefixmask);
+	if (peer == NULL || peer->family == AF_UNSPEC)
+    	    ifra6.ifra_dstaddr.sin6_family = AF_UNSPEC;
+	else if (memcmp(&((struct sockaddr_in6 *)&ssmsk)->sin6_addr, &in6mask128,
 		    sizeof in6mask128) == 0)
-      memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof ifra6.ifra_dstaddr);
-    ifra6.ifra_lifetime.ia6t_vltime = ND6_INFINITE_LIFETIME;
-    ifra6.ifra_lifetime.ia6t_pltime = ND6_INFINITE_LIFETIME;
+    	    memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof ifra6.ifra_dstaddr);
+        memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof ifra6.ifra_dstaddr);
+	ifra6.ifra_lifetime.ia6t_vltime = ND6_INFINITE_LIFETIME;
+	ifra6.ifra_lifetime.ia6t_pltime = ND6_INFINITE_LIFETIME;
 
-    res = ioctl(s, add?SIOCAIFADDR_IN6:SIOCDIFADDR_IN6, &ifra6);
-    if (res == -1) {
-	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
-	    add?"SIOCAIFADDR_IN6":"SIOCDIFADDR_IN6");
+	res = ioctl(s, add?SIOCAIFADDR_IN6:SIOCDIFADDR_IN6, &ifra6);
+	if (res == -1) {
+	    Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
+		add?"SIOCAIFADDR_IN6":"SIOCDIFADDR_IN6");
+	}
+	break;
     }
-    break;
-  }
+    close(s);
+}
 
-  close(s);
+struct rtmsg {
+  struct rt_msghdr m_rtm;
+  char m_space[256];
+};
+
+static size_t
+memcpy_roundup(char *cp, const void *data, size_t len)
+{
+  size_t padlen;
+
+#define ROUNDUP(x) ((x) ? (1 + (((x) - 1) | (sizeof(long) - 1))) : sizeof(long))
+  padlen = ROUNDUP(len);
+  memcpy(cp, data, len);
+  if (padlen > len)
+    memset(cp + len, '\0', padlen - len);
+
+  return padlen;
+}
+
+int
+IfaceSetRoute(Bund b, int cmd, struct u_range *dst,
+       struct u_addr *gw)
+{
+    struct rtmsg rtmes;
+    int s, nb, wb;
+    char *cp;
+    const char *cmdstr = (cmd == RTM_ADD ? "Add" : "Delete");
+    struct sockaddr_storage sadst, samask, sagw;
+    char buf[64], buf1[64];
+
+    s = socket(PF_ROUTE, SOCK_RAW, 0);
+    if (s < 0) {
+	Perror("[%s] IFACE: Can't get route socket!", b->name);
+	return (-1);
+    }
+    memset(&rtmes, '\0', sizeof rtmes);
+    rtmes.m_rtm.rtm_version = RTM_VERSION;
+    rtmes.m_rtm.rtm_type = cmd;
+    rtmes.m_rtm.rtm_addrs = RTA_DST;
+    rtmes.m_rtm.rtm_seq = ++gRouteSeq;
+    rtmes.m_rtm.rtm_pid = gPid;
+    rtmes.m_rtm.rtm_flags = RTF_UP | RTF_GATEWAY | RTF_STATIC;
+
+    u_rangetosockaddrs(dst, &sadst, &samask);
+#if defined(__KAME__) && !defined(NOINET6)
+    add_scope((struct sockaddr *)&sadst, b->iface.ifindex);
+#endif
+
+    cp = rtmes.m_space;
+    cp += memcpy_roundup(cp, &sadst, sadst.ss_len);
+    if (gw != NULL) {
+	u_addrtosockaddr(gw, 0, &sagw);
+#if defined(__KAME__) && !defined(NOINET6)
+	add_scope((struct sockaddr *)&sagw, b->iface.ifindex);
+#endif
+    	cp += memcpy_roundup(cp, &sagw, sagw.ss_len);
+    	rtmes.m_rtm.rtm_addrs |= RTA_GATEWAY;
+    } else if (cmd == RTM_ADD) {
+    	Log(LG_ERR, ("[%s] IfaceSetRoute: gw is not set\n", b->name));
+    	close(s);
+    	return (-1);
+    }
+
+    if (!u_rangehost(dst)) {
+	cp += memcpy_roundup(cp, &samask, samask.ss_len);
+	rtmes.m_rtm.rtm_addrs |= RTA_NETMASK;
+    }
+
+    nb = cp - (char *)&rtmes;
+    rtmes.m_rtm.rtm_msglen = nb;
+    wb = write(s, &rtmes, nb);
+    if (wb < 0) {
+    	Log(LG_ERR, ("[%s] IFACE: %s route %s %s failed: %s",
+	    b->name, cmdstr, u_rangetoa(dst, buf, sizeof(buf)), 
+	    ((gw != NULL)?u_addrtoa(gw, buf1, sizeof(buf1)):""),
+	    (rtmes.m_rtm.rtm_errno != 0)?strerror(rtmes.m_rtm.rtm_errno):strerror(errno)));
+	close(s);
+	return (-1);
+    }
+    close(s);
+    Log(LG_IFACE2, ("[%s] IFACE: %s route %s %s",
+	    b->name, cmdstr, u_rangetoa(dst, buf, sizeof(buf)), 
+	    ((gw != NULL)?u_addrtoa(gw, buf1, sizeof(buf1)):"")));
+    return (0);
 }
 
 #ifndef USE_NG_TCPMSS

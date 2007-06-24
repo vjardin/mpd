@@ -78,6 +78,7 @@
 
   struct ifacestate {
     char		ifname[IFNAMSIZ+1];	/* Name of my interface */
+    uint		ifindex;		/* System interface index */
     u_char		traffic[IFACE_IDLE_SPLIT];	/* Mark any traffic */
     u_short		mtu;			/* Interface MTU */
     u_short		max_mtu;		/* Configured maximum MTU */
@@ -160,6 +161,7 @@
   extern void	IfaceSetMTU(Bund b, int mtu);
   extern void	IfaceChangeFlags(Bund b, int clear, int set);
   extern void	IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer);
+  extern int	IfaceSetRoute(Bund b, int cmd, struct u_range *dst, struct u_addr *gw);
 
 #endif
 
