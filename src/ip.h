@@ -73,6 +73,7 @@
 
   extern int 	u_addrempty(struct u_addr *addr);
   extern int 	u_rangeempty(struct u_range *range);
+  extern int 	u_rangehost(struct u_range *range);
 
   extern int 	u_addrcompare(struct u_addr *addr1, struct u_addr *addr2);
   extern int 	u_rangecompare(struct u_range *range1, struct u_range *range2);
