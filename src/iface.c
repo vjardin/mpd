@@ -1496,8 +1496,8 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 
 	res = ioctl(s, add?SIOCAIFADDR:SIOCDIFADDR, &ifra);
 	if (res == -1) {
-	    Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
-		add?"SIOCAIFADDR":"SIOCDIFADDR");
+	    Perror("[%s] IFACE: %s IPv4 address %s %s failed", 
+		b->name, add?"Adding":"Removing", add?"to":"from", b->iface.ifname);
 	}
 	break;
 
@@ -1518,8 +1518,8 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 
 	res = ioctl(s, add?SIOCAIFADDR_IN6:SIOCDIFADDR_IN6, &ifra6);
 	if (res == -1) {
-	    Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, 
-		add?"SIOCAIFADDR_IN6":"SIOCDIFADDR_IN6");
+	    Perror("[%s] IFACE: %s IPv6 address %s %s failed", 
+		b->name, add?"Adding":"Removing", add?"to":"from", b->iface.ifname);
 	}
 	break;
     }
