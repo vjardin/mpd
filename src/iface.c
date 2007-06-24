@@ -1702,6 +1702,7 @@ IfaceNgIpv6Init(Bund b, int ready)
 	/* Connect ipv6 hook of ng_ppp(4) node to the ng_iface(4) node. */
 	snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
 	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_IPV6);
+	snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
 	if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 		sizeof(cn)) < 0) {
