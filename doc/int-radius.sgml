@@ -40,6 +40,9 @@ The following attributes are set when doing accounting requests:
 <newline>RAD_ACCT_SESSION_TIME
 </tt>
 
+Mpd allows RADIUS server to terminate user session by setting vendor specific
+mpd-drop-user attribute to nonzero value in accounting start/update reply packet.
+
 <tag>RADIUS ACL's</tag>
 <p>
 
