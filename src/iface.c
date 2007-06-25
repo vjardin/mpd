@@ -889,11 +889,6 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
     iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
   }
-    char	selfbuf[64],peerbuf[64];
-
-    Log(LG_IFACE2, (" %s -> %s",
-      u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)),
-      u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf))));
 
   if (IfaceNgIpv6Init(b, ready)) {
     Log(LG_ERR, ("[%s] IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
@@ -1470,7 +1465,7 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
     if (peer)
 	u_addrtosockaddr(peer, 0, &sspeer);
 
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((s = socket(self->addr.family, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to change interface address!", b->name);
 	return;
     }
@@ -1512,7 +1507,6 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 	else if (memcmp(&((struct sockaddr_in6 *)&ssmsk)->sin6_addr, &in6mask128,
 		    sizeof in6mask128) == 0)
     	    memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof ifra6.ifra_dstaddr);
-        memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof ifra6.ifra_dstaddr);
 	ifra6.ifra_lifetime.ia6t_vltime = ND6_INFINITE_LIFETIME;
 	ifra6.ifra_lifetime.ia6t_pltime = ND6_INFINITE_LIFETIME;
 
