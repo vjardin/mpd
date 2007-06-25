@@ -10,7 +10,7 @@
 PROG?=			mpd4
 PREFIX?=		/usr/local
 BINDIR?=		${PREFIX}/sbin
-VERSION=		4.2rc2
+VERSION=		4.2
 NOMAN=
 NO_MAN=
 
