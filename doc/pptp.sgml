@@ -40,6 +40,11 @@ client <- some link type -> PAC <- PPTP tunnel -> PNS
 client (PAC emulator) <- PPTP tunnel -> PNS
 </verb>
 
+  Mpd is able to operate in both PAC and PNS modes. As PAC mpd supports 
+  both simple case PAC emulator and complete PAC topologies. Complete 
+  PAC can be configured by joining two physical devices using mpd's
+  repeater functionality.
+
 <descrip>
 
 <tag><tt>

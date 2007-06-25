@@ -31,6 +31,11 @@ client <- some link type -> LAC <- L2TP tunnel -> LNS
 client (LAC emulator) <- L2TP tunnel -> LNS
 </verb>
 
+  Mpd is able to operate in both LAC and LNS modes. As LAC mpd supports 
+  both simple case LAC emulator and complete LAC topologies. Complete 
+  LAC can be configured by joining two physical devices using mpd's
+  repeater functionality.
+
   Windows L2TP client uses IPSec encryption for the additional tunnel 
   security. So, to let it connect you must configure IPSec on your 
   MPD router or disable IPSec on Windows by setting registry 
