@@ -15,8 +15,6 @@
 #################################################################
 
 startup:
-	# enable TCP-Wrapper (hosts_access(5)) to block unfriendly clients
-	set global enable tcp-wrapper
 	# configure the console
 	set console port 5005
 	set console ip 0.0.0.0
@@ -85,7 +83,6 @@ myisp:
 
 dialin:
 	new dialin usr
-	set iface addrs 1.1.1.1 2.2.2.2
 	set iface idle 900
 	set iface session 0
 	set bundle enable noretry
@@ -160,8 +157,8 @@ sync:
 #
 # We 'set link mtu 1460' to avoid GRE packet fragmentation.
 #
-# Our DNS server is at 192.168.1.3 and our NT workstation is at 192.168.1.4.
-# If you don't have an NBNS server (eg, NT workstation), leave that line out.
+# Our DNS server is at 192.168.1.3 and our NBNS (WINS server) is at 192.168.1.4.
+# If you don't have an NBNS server, leave that line out.
 #
 # Note, you can have as many of these configurations as you like, eg:
 #	
@@ -264,7 +261,6 @@ pptp:
 vpn:
 	new vpn vpn
 	set iface disable on-demand
-	set iface addrs 192.168.1.1 192.168.2.1
 	set iface idle 0
 # disconnect the client after 8 hours
 	set iface session 28800
@@ -276,8 +272,6 @@ vpn:
 	set link no pap
 	set link yes chap
 	set link mtu 1460
-# If remote machine is NT you need this..
-#	set link enable no-orig-auth
 	set link keep-alive 10 75
 	set ipcp yes vjcomp
 	set ipcp ranges 192.168.1.1/32 192.168.2.1/32
