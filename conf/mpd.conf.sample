@@ -288,6 +288,24 @@ vpn:
 	open
 
 #
+# mpd as pptp-vpn client: only outgoing calls, auto reconnect,
+# ipcp-negotiated address, one-sided authentication,
+# default route points on ISP's end
+#
+
+pptp-client:
+	new pptp-cl pptp-cl
+	set iface route default
+	set bundle no noretry
+	set auth authname MyLogin
+	set auth password MyPass
+	set link max-redial 0
+	set link mtu 1460
+	set link keep-alive 20 75
+	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
+	open
+
+#
 # PPPoE client example (see also mpd.links.sample entry "PPPoE")
 #
 

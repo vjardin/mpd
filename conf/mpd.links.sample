@@ -123,6 +123,17 @@ vpn:
         set pptp enable originate incoming outcall
 
 #
+# PPTP-Client connection
+# ISP has a PPTP-hub on a 5.6.7.8
+#
+
+pptp-cl:
+	set link type pptp
+        set pptp peer 5.6.7.8
+        set pptp enable originate
+        set pptp disable incoming windowing
+
+#
 # For our PPPoE connection, using Ethernte interface "fxp1"
 # Often the service is ignored. If yours is required, replace
 # the "whatever" string with your PPPoE service string.
