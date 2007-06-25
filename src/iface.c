@@ -1976,7 +1976,7 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
 {
     struct ngm_connect	cn;
 
-    Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow (%d)", b->name, out));
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow (%s)", b->name, out?"out":"in"));
   
     /* Create global ng_netflow(4) node if not yet. */
     if (gNetflowNode == FALSE) {
