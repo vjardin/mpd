@@ -232,6 +232,7 @@ L2tpInit(PhysInfo p)
     if ((gL2tpTuns = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
 	== NULL)
 	    return(-1);
+    gInitialized = 1;
   }
 
   /* Initialize this link */
