@@ -385,7 +385,7 @@ struct sockaddr_storage *u_rangetosockaddrs(struct u_range *range, struct sockad
 		((struct sockaddr_in*)dst)->sin_len=sizeof(struct sockaddr_in);
 		((struct sockaddr_in*)dst)->sin_addr=range->addr.u.ip4;
 		((struct sockaddr_in*)msk)->sin_len=sizeof(struct sockaddr_in);
-		((struct sockaddr_in*)msk)->sin_addr.s_addr=htonl(0xFFFFFFFF<<(32 - range->width));
+		((struct sockaddr_in*)msk)->sin_addr.s_addr=htonl(0xFFFFFFFFLL<<(32 - range->width));
 	    break;
 	case AF_INET6:
 		((struct sockaddr_in6*)dst)->sin6_len=sizeof(struct sockaddr_in6);
