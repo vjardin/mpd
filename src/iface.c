@@ -2120,7 +2120,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-mss", gPid, b->name);
     if (NgSendMsg(b->csock, path,
 	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    	Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
+    	Log(LG_ERR, ("can't name %s node: %s", NG_BPF_NODE_TYPE,
     	    strerror(errno)));
 	goto fail;
     }
@@ -2298,7 +2298,7 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lim", gPid, b->name);
 	if (NgSendMsg(b->csock, path,
 		NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    	    Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
+    	    Log(LG_ERR, ("can't name %s node: %s", NG_BPF_NODE_TYPE,
     		strerror(errno)));
 	    goto fail;
 	}
