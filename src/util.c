@@ -1288,7 +1288,6 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
   struct ifreq		*ifr, *ifend;
   struct ifreq		ifreq;
   struct ifconf		ifc;
-  struct ifreq		ifs[MAX_INTERFACES];
 
     /* use cached IP to reduce number of syscalls */
     if (ifname == NULL && have_nipa) {
@@ -1318,9 +1317,11 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
 
     /* If simple is not enouth try complex call */
     if (ipa.s_addr == 0) {
-      ifc.ifc_len = sizeof(ifs);
-      ifc.ifc_req = ifs;
+      struct ifreq *ifs;
+      ifc.ifc_len = sizeof(struct ifreq) * MAX_INTERFACES;
+      ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
       if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+        Freee(MB_UTIL, ifs);
 	if (errno != ENXIO)
     	    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
         close(s);
@@ -1355,6 +1356,7 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
           if (!p2p) break;
         }
       }
+      Freee(MB_UTIL, ifs);
     }
     close(s);
 
@@ -1384,7 +1386,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   u_int32_t		ina, mask;
   struct ifreq		ifreq;
   struct ifconf		ifc;
-  struct ifreq		ifs[MAX_INTERFACES];
+  struct ifreq 		*ifs;
   
   static struct sockaddr_dl nhwaddr;
   static int		have_nhwaddr = 0;
@@ -1402,9 +1404,10 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
     return(-1);
   }
 
-  ifc.ifc_len = sizeof(ifs);
-  ifc.ifc_req = ifs;
+  ifc.ifc_len = sizeof(struct ifreq) * MAX_INTERFACES;
+  ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
   if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+    Freee(MB_UTIL, ifs);
     Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
     close(s);
     return(-1);
@@ -1448,8 +1451,10 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   close(s);
 
   /* Found? */
-  if (ifr >= ifend)
+  if (ifr >= ifend) {
+    Freee(MB_UTIL, ifs);
     return(-1);
+  }
 
   /* Now scan again looking for a link-level address for this interface */
   for (ifp = ifr, ifr = ifc.ifc_req; ifr < ifend; ) {
@@ -1469,6 +1474,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   }
 
   /* Not found! */
+  Freee(MB_UTIL, ifs);
   return(-1);
 }
 
