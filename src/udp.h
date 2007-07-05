@@ -2,7 +2,7 @@
 /*
  * udp.h
  *
- * Written by Alexander Motin <mav@alkar.net>
+ * Written by Alexander Motin <mav@FreeBSD.org>
  */
 
 #ifndef _UDP_H_

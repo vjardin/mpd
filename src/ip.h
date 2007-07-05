@@ -2,7 +2,7 @@
 /*
  * ip.h
  *
- * Written by Alexander Motin <mav@alkar.net>
+ * Written by Alexander Motin <mav@FreeBSD.org>
  */
 
 #ifndef _IP_H_

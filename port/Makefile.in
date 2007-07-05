@@ -12,7 +12,7 @@ MASTER_SITES=	SF
 MASTER_SITE_SUBDIR=	mpd
 DIST_SUBDIR=	mpd4
 
-MAINTAINER=	mav@alkar.net
+MAINTAINER=	mav@FreeBSD.org
 COMMENT=	Multi-link PPP daemon based on netgraph(4)
 
 LIB_DEPENDS=	pdel.0:${PORTSDIR}/devel/libpdel

@@ -2,7 +2,7 @@
 /*
  * ipv6cp.c
  *
- * Written by Alexander Motin <mav@alkar.net>
+ * Written by Alexander Motin <mav@FreeBSD.org>
  */
 
 #include "ppp.h"
