@@ -6,6 +6,20 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.2.1:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fixed build on FreeBSD 5.x.
+	  </item>
+	  <item> Fixed startup script dependencies.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 4.2:
     <itemize>
 	<item> Bugfixes:
