@@ -10,7 +10,7 @@
     <itemize>
 	<item> Bugfixes:
 	<itemize>
-	  <item> Fixed build on FreeBSD 5.x.
+	  <item> Fixed build and stack overflow on FreeBSD 5.x.
 	  </item>
 	  <item> Fixed startup script dependencies.
 	  </item>
