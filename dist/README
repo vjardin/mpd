@@ -3,22 +3,23 @@ MPD MULTI-LINK PPP DAEMON FOR FREEBSD
 
 Version @VERSION@
 Written by Archie Cobbs <archie@FreeBSD.org>
+       and Alexander Motin <mav@FreeBSD.org>
 
 * WHAT IS IT?
 
   A multi-link PPP daemon based on netgraph(4), combining the
-  configurability and flexibility of a user-mode PPP implementation
-  with the speed and reliability of a kernel-mode PPP implementation.
+  configurability and flexibility of a user-mode with the speed and 
+  reliability of a kernel-mode.
+  Mpd supports thousands of Sync, Async, PPTP, L2TP, PPPoE, TCP and UDP 
+  links in client, server and access concentrator (LAC/PAC) modes.
 
 * HOW STABLE IS IT?
 
-  Most of this code has been thoroughly tested. Some parts, such
-  as compression, have not been tested very much at all. However,
-  the core of the daemon is very solid.
+  Most of this code has been thoroughly tested and production ready.
 
 * HOW DO I BUILD AND INSTALL IT?
 
-  cd /usr/ports/net/mpd
+  cd /usr/ports/net/mpd4
   make all install
 
 * HOW DO I SET IT UP?
@@ -26,7 +27,7 @@ Written by Archie Cobbs <archie@FreeBSD.org>
   Complete documentation is included in the "doc" subdirectory.
 
   You will need to create your own versions of the four required
-  configuration files in /etc/ppp:
+  configuration files in /usr/local/etc/mpd4:
 
     mpd.conf    - General configuration
     mpd.links   - Description of available links
@@ -46,11 +47,6 @@ Written by Archie Cobbs <archie@FreeBSD.org>
 
   Add a corresponding line to /etc/newsyslog.conf as well to get
   proper log rotation.
-
-  If you want to start it as a background daemon at boot time,
-  add the appropriate line to /etc/rc.local, e.g.:
-
-    echo -n " mpd" ; /usr/local/bin/mpd -b
 
 * WHAT'S THE COPYRIGHT STATUS?
 
