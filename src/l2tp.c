@@ -51,6 +51,7 @@
     in_port_t		self_port;	/* self port */
     int			sock;		/* server listen socket */
     EventRef		event;		/* listen for data messages */
+    char 		hostname[MAXHOSTNAMELEN]; /* L2TP local hostname */
     char		secret[64];	/* L2TP tunnel secret */
     u_char		hide_avps;	/* enable AVP hidding */
   };
@@ -74,6 +75,7 @@
 	struct optinfo	options;
 	char		callingnum[64];	/* L2TP phone number to use */
 	char		callednum[64];	/* L2TP phone number to use */
+	char 		hostname[MAXHOSTNAMELEN]; /* L2TP local hostname */
 	char		secret[64];	/* L2TP tunnel secret */
     } conf;
     u_char		opened;		/* L2TP opened by phys */
@@ -94,6 +96,7 @@
     SET_PEERADDR,
     SET_CALLINGNUM,
     SET_CALLEDNUM,
+    SET_HOSTNAME,
     SET_SECRET,
     SET_ENABLE,
     SET_DISABLE,
@@ -187,6 +190,8 @@
 	L2tpSetCommand, NULL, (void *) SET_CALLINGNUM },
     { "callednum number",		"Set called L2TP telephone number",
 	L2tpSetCommand, NULL, (void *) SET_CALLEDNUM },
+    { "hostname name",		"Set L2TP local hostname",
+	L2tpSetCommand, NULL, (void *) SET_HOSTNAME },
     { "secret sec",		"Set L2TP tunnel secret",
 	L2tpSetCommand, NULL, (void *) SET_SECRET },
     { "enable [opt ...]",		"Enable option",
@@ -277,7 +282,7 @@ L2tpOpen(PhysInfo p)
 	struct sockaddr_storage sas;
 	char hook[NG_HOOKLEN + 1];
 	char namebuf[64];
-	char hostname[MAXHOSTNAMELEN + 1];
+	char hostname[MAXHOSTNAMELEN];
 	ng_ID_t node_id;
 	int csock = -1;
 	int dsock = -1;
@@ -441,8 +446,12 @@ L2tpOpen(PhysInfo p)
 		goto fail;
 	}
 
-	(void)gethostname(hostname, sizeof(hostname) - 1);
-	hostname[sizeof(hostname) - 1] = '\0';
+	if (pi->conf.hostname[0] != 0) {
+	    strlcpy(hostname, pi->conf.hostname, sizeof(hostname));
+	} else {
+	    (void)gethostname(hostname, sizeof(hostname) - 1);
+	    hostname[sizeof(hostname) - 1] = '\0';
+	}
 	if (ppp_l2tp_avp_list_append(avps, 1,
 	    0, AVP_HOST_NAME, hostname, strlen(hostname)) == -1) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
@@ -1212,7 +1221,7 @@ L2tpServerEvent(int type, void *arg)
 	const size_t bufsize = 8192;
 	u_int16_t *buf = NULL;
 	char hook[NG_HOOKLEN + 1];
-	char hostname[MAXHOSTNAMELEN + 1];
+	char hostname[MAXHOSTNAMELEN];
 	socklen_t sas_len;
 	char namebuf[64];
 	ng_ID_t node_id;
@@ -1261,8 +1270,12 @@ L2tpServerEvent(int type, void *arg)
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_create: %s", strerror(errno)));
 		goto fail;
 	}
-	(void)gethostname(hostname, sizeof(hostname) - 1);
-	hostname[sizeof(hostname) - 1] = '\0';
+	if (s->hostname[0] != 0) {
+	    strlcpy(hostname, s->hostname, sizeof(hostname));
+	} else {
+	    (void)gethostname(hostname, sizeof(hostname) - 1);
+	    hostname[sizeof(hostname) - 1] = '\0';
+	}
 	if (ppp_l2tp_avp_list_append(avps, 1,
 	    0, AVP_HOST_NAME, hostname, strlen(hostname)) == -1) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
@@ -1420,6 +1433,7 @@ L2tpServerCreate(L2tpInfo const p)
 	memset(s, 0, sizeof(*s));
 	u_addrcopy(&p->conf.self_addr, &s->self_addr);
 	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
+	strncpy(s->hostname, p->conf.hostname, sizeof(s->hostname));
 	strncpy(s->secret, p->conf.secret, sizeof(s->secret));
 	s->hide_avps = Enabled(&p->conf.options, L2TP_CONF_HIDDEN);
 	
@@ -1560,6 +1574,11 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
       if (ac != 1)
 	return(-1);
       snprintf(l2tp->conf.callednum, sizeof(l2tp->conf.callednum), "%s", av[0]);
+      break;
+    case SET_HOSTNAME:
+      if (ac != 1)
+	return(-1);
+      snprintf(l2tp->conf.hostname, sizeof(l2tp->conf.hostname), "%s", av[0]);
       break;
     case SET_SECRET:
       if (ac != 1)

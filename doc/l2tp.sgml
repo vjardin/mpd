@@ -68,6 +68,15 @@ host. Otherwise, only connections from the stated IP address
 (and, optionally, port) are allowed.
 
 <tag><tt>
+set l2tp hostname <em>name</em>
+</tt></tag>
+
+Sets the L2TP tunnel local hostname. For server side, only one 
+unique hostname supported for every listening IP (set l2tp self ...).
+If several hostnames defined, only the first will be used for all incoming 
+connections to that IP.
+
+<tag><tt>
 set l2tp secret <em>secret</em>
 </tt></tag>
 

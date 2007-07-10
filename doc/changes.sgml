@@ -6,6 +6,18 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 4.2.2:
+    <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added L2TP local hostname configuration.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+
+  <p>
     Changes since version 4.2.1:
     <itemize>
 	<item> Bugfixes:
