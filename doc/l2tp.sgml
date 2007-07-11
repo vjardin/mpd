@@ -72,9 +72,10 @@ set l2tp hostname <em>name</em>
 </tt></tag>
 
 Sets the L2TP tunnel local hostname. For server side, only one 
-unique hostname supported for every listening IP (set l2tp self ...).
-If several hostnames defined, only the first will be used for all incoming 
-connections to that IP.
+unique hostname supported for every pair of listening IP (set l2tp self ...)
+and peer ip (set l2tp peer ...).
+If several hostnames defined, only the first matching will be used for all
+incoming connections.
 
 <tag><tt>
 set l2tp secret <em>secret</em>
@@ -82,9 +83,10 @@ set l2tp secret <em>secret</em>
 
 Sets the L2TP tunnel secret. Used to authenticate tunnel connection 
 and encrypt important control packets avpairs. For server side, only
-one unique secret supported for every listening IP (set l2tp self ...).
-If several secrets defined, only the first will be used for all incoming 
-connections to that IP.
+one unique secret supported for every pair of listening IP (set l2tp self ...)
+and peer ip (set l2tp peer ...).
+If several secrets defined, only the first matching will be used for all 
+incoming connections.
 
 NOTE: This options is not related with usual PPP authentication.
 Windows client does not support tunnel authentication.
@@ -147,7 +149,7 @@ Default is disabled.
 <tag><tt>length</tt></tag>
 
 By default L2TP uses header Length field for control packets, but not for 
-data packets. This option allows to enable Length field for data packets.
+data packets. This option enables Length field for data packets.
 
 Default is disabled.
 
