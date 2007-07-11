@@ -144,5 +144,12 @@ control data for additional protection.
 
 Default is disabled.
 
+<tag><tt>length</tt></tag>
+
+By default L2TP uses header Length field for control packets, but not for 
+data packets. This option allows to enable Length field for data packets.
+
+Default is disabled.
+
 </descrip>
 
