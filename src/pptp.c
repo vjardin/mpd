@@ -870,9 +870,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
     		if (!pi || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
 			p = p2;
 			pi = pi2;
-			if ((pi2->conf.peer_addr.addr.family==AF_INET && 
-			    pi2->conf.peer_addr.width == 32) ||
-			    pi2->conf.peer_addr.width == 128) {
+			if (u_rangehost(&pi->conf.peer_addr)) {
 				break;	/* Nothing could be better */
 			}
     		}
