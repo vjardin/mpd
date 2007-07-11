@@ -51,9 +51,6 @@
     in_port_t		self_port;	/* self port */
     int			sock;		/* server listen socket */
     EventRef		event;		/* listen for data messages */
-    char 		hostname[MAXHOSTNAMELEN]; /* L2TP local hostname */
-    char		secret[64];	/* L2TP tunnel secret */
-    u_char		hide_avps;	/* enable AVP hidding */
   };
   
   struct l2tp_tun {
@@ -108,6 +105,7 @@
     L2TP_CONF_INCOMING,		/* allow accepting connections from peer */
     L2TP_CONF_OUTCALL,		/* when originating, calls are "outgoing" */
     L2TP_CONF_HIDDEN,		/* enable AVP hidding */
+    L2TP_CONF_LENGTH,		/* enable Length field in data packets */
   };
 
 /*
@@ -210,6 +208,7 @@
     { 0,	L2TP_CONF_INCOMING,	"incoming"	},
     { 0,	L2TP_CONF_OUTCALL,	"outcall"	},
     { 0,	L2TP_CONF_HIDDEN,	"hidden"	},
+    { 0,	L2TP_CONF_LENGTH,	"length"	},
     { 0,	0,			NULL		},
   };
 
@@ -476,7 +475,8 @@ L2tpOpen(PhysInfo p)
 	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
 	    pi->conf.secret, strlen(pi->conf.secret),
-	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN))) == NULL) {
+	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN),
+	    Enabled(&pi->conf.options, L2TP_CONF_LENGTH))) == NULL) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_ctrl_create: %s", 
 		    p->name, strerror(errno)));
 		goto fail;
@@ -1024,9 +1024,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 			if (pi == NULL || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
 				p = p2;
 				pi = pi2;
-				if ((pi->conf.peer_addr.addr.family==AF_INET && 
-					pi->conf.peer_addr.width == 32) ||
-					pi->conf.peer_addr.width == 128) {
+				if (u_rangehost(&pi->conf.peer_addr)) {
 					break;	/* Nothing could be better */
 				}
 			}
@@ -1206,6 +1204,8 @@ static void
 L2tpServerEvent(int type, void *arg)
 {
 	struct l2tp_server *const s = arg;
+	PhysInfo p = NULL;
+	L2tpInfo pi = NULL;
 	struct ppp_l2tp_avp_list *avps = NULL;
 	struct l2tp_tun *tun = NULL;
 	union {
@@ -1229,6 +1229,7 @@ L2tpServerEvent(int type, void *arg)
 	int dsock = -1;
 	int len;
 	u_int32_t	cap;
+	int	k;
 
 	/* Allocate buffer */
 	if ((buf = Malloc(MB_PHYS, bufsize)) == NULL) {
@@ -1254,7 +1255,7 @@ L2tpServerEvent(int type, void *arg)
 	/* Create a new tun */
 	if ((tun = Malloc(MB_PHYS, sizeof(*tun))) == NULL) {
 		Log(LG_ERR, ("L2TP: malloc: %s", strerror(errno)));
-		return;
+		goto fail;
 	}
 	memset(tun, 0, sizeof(*tun));
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
@@ -1265,13 +1266,44 @@ L2tpServerEvent(int type, void *arg)
 	Log(LG_PHYS, ("Incoming L2TP packet from %s %d", 
 		u_addrtoa(&tun->peer_addr, namebuf, sizeof(namebuf)), tun->peer_port));
 
+	/* Examine all L2TP links to get best possible fit tunnel parameters. */
+	for (k = 0; k < gNumPhyses; k++) {
+		PhysInfo p2;
+	        L2tpInfo pi2;
+
+		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
+			continue;
+
+		p2 = gPhyses[k];
+		pi2 = (L2tpInfo)p2->info;
+
+		/* Simplified comparation as it is not a final one. */
+		if ((pi2->server == s) &&
+		    (IpAddrInRange(&pi2->conf.peer_addr, &tun->peer_addr)) &&
+		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == tun->peer_port)) {
+			
+			if (pi == NULL || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
+				p = p2;
+				pi = pi2;
+				if (u_rangehost(&pi->conf.peer_addr)) {
+					break;	/* Nothing could be better */
+				}
+			}
+		}
+	}
+	if (pi == NULL) {
+		Log(LG_PHYS, ("L2TP: No link with requested parameters "
+		    "was found"));
+		goto fail;
+	}
+
 	/* Create vendor name AVP */
 	if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_create: %s", strerror(errno)));
 		goto fail;
 	}
-	if (s->hostname[0] != 0) {
-	    strlcpy(hostname, s->hostname, sizeof(hostname));
+	if (pi->conf.hostname[0] != 0) {
+	    strlcpy(hostname, pi->conf.hostname, sizeof(hostname));
 	} else {
 	    (void)gethostname(hostname, sizeof(hostname) - 1);
 	    hostname[sizeof(hostname) - 1] = '\0';
@@ -1297,7 +1329,9 @@ L2tpServerEvent(int type, void *arg)
 	if ((tun->ctrl = ppp_l2tp_ctrl_create(gPeventCtx, &gGiantMutex,
 	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
-	    s->secret, strlen(s->secret), s->hide_avps)) == NULL) {
+	    pi->conf.secret, strlen(pi->conf.secret),
+	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN),
+	    Enabled(&pi->conf.options, L2TP_CONF_LENGTH))) == NULL) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_ctrl_create: %s", strerror(errno)));
 		goto fail;
 	}
@@ -1433,9 +1467,6 @@ L2tpServerCreate(L2tpInfo const p)
 	memset(s, 0, sizeof(*s));
 	u_addrcopy(&p->conf.self_addr, &s->self_addr);
 	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
-	strncpy(s->hostname, p->conf.hostname, sizeof(s->hostname));
-	strncpy(s->secret, p->conf.secret, sizeof(s->secret));
-	s->hide_avps = Enabled(&p->conf.options, L2TP_CONF_HIDDEN);
 	
 	/* Setup UDP socket that listens for new connections */
 	if (s->self_addr.family==AF_INET6) {

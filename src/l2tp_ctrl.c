@@ -191,6 +191,7 @@ struct ppp_l2tp_ctrl {
 	u_char			link_notified;		/* link notified down */
 	u_char			peer_notified;		/* peer notified down */
 	u_char			hide_avps;		/* enable AVPs hiding */
+	u_char			include_length;		/* enable Length field in data packets */
 };
 
 /* Session */
@@ -447,7 +448,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	const struct ppp_l2tp_ctrl_cb *cb,
 	u_int32_t peer_id, ng_ID_t *nodep, char *hook,
 	const struct ppp_l2tp_avp_list *avps, const void *secret, size_t seclen,
-	u_char hide_avps)
+	u_char hide_avps, u_char include_length)
 {
 	union {
 	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
@@ -502,6 +503,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	}
 	ctrl->seclen = seclen;
 	ctrl->hide_avps = hide_avps;
+	ctrl->include_length = include_length;
 
 	/* Create sessions hash table */
 	if ((ctrl->sessions = ghash_create(NULL, 0, 0, CTRL_MEM_TYPE,
@@ -1533,6 +1535,7 @@ ppp_l2tp_sess_setup(struct ppp_l2tp_sess *sess)
 	sess->config.control_dseq = sess->dseq_required;
 	sess->config.enable_dseq = 1;
 	sess->config.peer_id = sess->peer_id;
+	sess->config.include_length = sess->ctrl->include_length;
 	if (NgSendMsg(ctrl->csock, NG_L2TP_HOOK_CTRL, NGM_L2TP_COOKIE,
 	    NGM_L2TP_SET_SESS_CONFIG, &sess->config,
 	    sizeof(sess->config)) == -1) {
