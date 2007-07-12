@@ -124,7 +124,8 @@ typedef void	ppp_l2tp_ctrl_destroyed_t(struct ppp_l2tp_ctrl *ctrl);
  */
 typedef void	ppp_l2tp_initiated_t(struct ppp_l2tp_ctrl *ctrl,
 			struct ppp_l2tp_sess *sess, int out,
-			const struct ppp_l2tp_avp_list *avps);
+			const struct ppp_l2tp_avp_list *avps,
+			u_char *include_length, u_char *enable_dseq);
 
 /*
  * This callback is used to report successful connection of a remotely
@@ -236,7 +237,7 @@ extern struct	ppp_l2tp_ctrl *ppp_l2tp_ctrl_create(struct pevent_ctx *ctx,
 			u_int32_t peer_id, ng_ID_t *nodep,
 			char *hook, const struct ppp_l2tp_avp_list *avps,
 			const void *secret, size_t seclen,
-			u_char hide_avps, u_char include_length);
+			u_char hide_avps);
 
 /*
  * This function initiates a new tunnel connection.
@@ -303,7 +304,8 @@ extern void	ppp_l2tp_ctrl_destroy(struct ppp_l2tp_ctrl **ctrlp);
  *	sess	Session structure
  */
 extern struct	ppp_l2tp_sess *ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl,
-			int out, const struct ppp_l2tp_avp_list *avps);
+			int out, u_char include_length, u_char enable_dseq, 
+			const struct ppp_l2tp_avp_list *avps);
 
 /*
  * This function is used to report successful connection of a remotely

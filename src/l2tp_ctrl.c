@@ -191,7 +191,6 @@ struct ppp_l2tp_ctrl {
 	u_char			link_notified;		/* link notified down */
 	u_char			peer_notified;		/* peer notified down */
 	u_char			hide_avps;		/* enable AVPs hiding */
-	u_char			include_length;		/* enable Length field in data packets */
 };
 
 /* Session */
@@ -221,6 +220,8 @@ struct ppp_l2tp_sess {
 	u_char			dseq_required;		/* data seq. req'd */
 	u_char			link_notified;		/* link notified down */
 	u_char			peer_notified;		/* peer notified down */
+	u_char			include_length;		/* enable Length field in data packets */
+	u_char			enable_dseq;		/* enable sequence fields in data packets */
 };
 
 /***
@@ -448,7 +449,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	const struct ppp_l2tp_ctrl_cb *cb,
 	u_int32_t peer_id, ng_ID_t *nodep, char *hook,
 	const struct ppp_l2tp_avp_list *avps, const void *secret, size_t seclen,
-	u_char hide_avps, u_char include_length)
+	u_char hide_avps)
 {
 	union {
 	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
@@ -503,7 +504,6 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	}
 	ctrl->seclen = seclen;
 	ctrl->hide_avps = hide_avps;
-	ctrl->include_length = include_length;
 
 	/* Create sessions hash table */
 	if ((ctrl->sessions = ghash_create(NULL, 0, 0, CTRL_MEM_TYPE,
@@ -675,6 +675,7 @@ ppp_l2tp_ctrl_shutdown(struct ppp_l2tp_ctrl *ctrl,
  */
 struct ppp_l2tp_sess *
 ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
+	u_char include_length, u_char enable_dseq,
 	const struct ppp_l2tp_avp_list *avps)
 {
 	struct ppp_l2tp_sess *sess;
@@ -705,6 +706,9 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 	    ORIG_LOCAL, out ? SIDE_LNS : SIDE_LAC,
 	    gNextSerial++)) == NULL)
 		return (NULL);
+	
+	sess->include_length = include_length;
+	sess->enable_dseq = enable_dseq;
 
 	/* Copy AVP's supplied by caller */
 	if (avps) {
@@ -1532,10 +1536,15 @@ ppp_l2tp_sess_setup(struct ppp_l2tp_sess *sess)
 	sess->node_id = ninfo.id;
 
 	/* Configure session hook */
-	sess->config.control_dseq = sess->dseq_required;
-	sess->config.enable_dseq = 1;
+	if (sess->dseq_required) {
+	    sess->config.control_dseq = sess->dseq_required;
+	    sess->config.enable_dseq = 1;
+	} else {
+	    sess->config.control_dseq = (sess->side == SIDE_LNS)?1:0;
+	    sess->config.enable_dseq = sess->enable_dseq;
+	}
 	sess->config.peer_id = sess->peer_id;
-	sess->config.include_length = sess->ctrl->include_length;
+	sess->config.include_length = sess->include_length;
 	if (NgSendMsg(ctrl->csock, NG_L2TP_HOOK_CTRL, NGM_L2TP_COOKIE,
 	    NGM_L2TP_SET_SESS_CONFIG, &sess->config,
 	    sizeof(sess->config)) == -1) {
@@ -2131,11 +2140,13 @@ ppp_l2tp_handle_OCRQ(struct ppp_l2tp_ctrl *ctrl,
 		return (-1);
 	sess->peer_id = ptrs->sessionid->id;
 
-	/* Send response */
-	ppp_l2tp_ctrl_send(ctrl, sess->peer_id, OCRP, sess->my_avps);
-
 	/* Notify link side */
-	(*ctrl->cb->initiated)(ctrl, sess, 1, avps);
+	(*ctrl->cb->initiated)(ctrl, sess, 1, avps, &sess->include_length, &sess->enable_dseq);
+
+	if (sess->state != SS_DYING) {
+		/* Send response */
+		ppp_l2tp_ctrl_send(ctrl, sess->peer_id, OCRP, sess->my_avps);
+	}
 
 	/* Clean up */
 	return (0);
@@ -2153,12 +2164,14 @@ ppp_l2tp_handle_ICRQ(struct ppp_l2tp_ctrl *ctrl,
 		return (-1);
 	sess->peer_id = ptrs->sessionid->id;
 
-	/* Send response */
-	ppp_l2tp_ctrl_send(ctrl, sess->peer_id, ICRP, sess->my_avps);
-	ppp_l2tp_sess_check_reply(sess);
-
 	/* Notify link side */
-	(*ctrl->cb->initiated)(ctrl, sess, 0, avps);
+	(*ctrl->cb->initiated)(ctrl, sess, 0, avps, &sess->include_length, &sess->enable_dseq);
+
+	if (sess->state != SS_DYING) {
+		/* Send response */
+		ppp_l2tp_ctrl_send(ctrl, sess->peer_id, ICRP, sess->my_avps);
+		ppp_l2tp_sess_check_reply(sess);
+	}
 
 	/* Clean up */
 	return (0);

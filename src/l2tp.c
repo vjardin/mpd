@@ -106,6 +106,7 @@
     L2TP_CONF_OUTCALL,		/* when originating, calls are "outgoing" */
     L2TP_CONF_HIDDEN,		/* enable AVP hidding */
     L2TP_CONF_LENGTH,		/* enable Length field in data packets */
+    L2TP_CONF_DATASEQ,		/* enable sequence fields in data packets */
   };
 
 /*
@@ -209,6 +210,7 @@
     { 0,	L2TP_CONF_OUTCALL,	"outcall"	},
     { 0,	L2TP_CONF_HIDDEN,	"hidden"	},
     { 0,	L2TP_CONF_LENGTH,	"length"	},
+    { 0,	L2TP_CONF_DATASEQ,	"dataseq"	},
     { 0,	0,			NULL		},
   };
 
@@ -249,7 +251,8 @@ L2tpInit(PhysInfo p)
   l2tp->conf.peer_addr.addr.family = AF_INET;
   l2tp->conf.peer_addr.width = 0;
   l2tp->conf.peer_port = 0;
-  Disable(&l2tp->conf.options, L2TP_CONF_OUTCALL);
+
+  Enable(&l2tp->conf.options, L2TP_CONF_DATASEQ);
   
   return(0);
 }
@@ -375,6 +378,8 @@ L2tpOpen(PhysInfo p)
 			}
 			if ((sess = ppp_l2tp_initiate(tun->ctrl, 
 				Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0,
+				Enabled(&pi->conf.options, L2TP_CONF_LENGTH)?1:0,
+				Enabled(&pi->conf.options, L2TP_CONF_DATASEQ)?1:0,
 				avps)) == NULL) {
 			    Log(LG_ERR, ("[%s] ppp_l2tp_initiate: %s", 
 				p->name, strerror(errno)));
@@ -475,8 +480,7 @@ L2tpOpen(PhysInfo p)
 	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
 	    pi->conf.secret, strlen(pi->conf.secret),
-	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN),
-	    Enabled(&pi->conf.options, L2TP_CONF_LENGTH))) == NULL) {
+	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN))) == NULL) {
 		Log(LG_ERR, ("[%s] ppp_l2tp_ctrl_create: %s", 
 		    p->name, strerror(errno)));
 		goto fail;
@@ -865,6 +869,8 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 		}
 		if ((sess = ppp_l2tp_initiate(tun->ctrl,
 			    Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0, 
+			    Enabled(&pi->conf.options, L2TP_CONF_LENGTH)?1:0,
+			    Enabled(&pi->conf.options, L2TP_CONF_DATASEQ)?1:0,
 			    avps)) == NULL) {
 			Log(LG_ERR, ("ppp_l2tp_initiate: %s", strerror(errno)));
 			PhysDown(p, STR_ERROR, NULL);
@@ -971,7 +977,8 @@ ppp_l2tp_ctrl_destroyed_cb(struct ppp_l2tp_ctrl *ctrl)
 static void
 ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	struct ppp_l2tp_sess *sess, int out,
-	const struct ppp_l2tp_avp_list *avps)
+	const struct ppp_l2tp_avp_list *avps,
+	u_char *include_length, u_char *enable_dseq)
 {
 	struct	l2tp_tun *const tun = ppp_l2tp_ctrl_get_cookie(ctrl);
 	struct	ppp_l2tp_avp_ptrs *ptrs = NULL;
@@ -1047,6 +1054,9 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		    strlcpy(pi->callingnum, ptrs->callingnum->number, sizeof(pi->callingnum));
 		if (ptrs->callednum && ptrs->callednum->number)
 		    strlcpy(pi->callednum, ptrs->callednum->number, sizeof(pi->callednum));
+		    
+		*include_length = (Enabled(&pi->conf.options, L2TP_CONF_LENGTH)?1:0);
+		*enable_dseq = (Enabled(&pi->conf.options, L2TP_CONF_DATASEQ)?1:0);
 
 		PhysIncoming(p);
 
@@ -1330,8 +1340,7 @@ L2tpServerEvent(int type, void *arg)
 	    &ppp_l2tp_server_ctrl_cb, u_addrtoid(&tun->peer_addr),
 	    &node_id, hook, avps, 
 	    pi->conf.secret, strlen(pi->conf.secret),
-	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN),
-	    Enabled(&pi->conf.options, L2TP_CONF_LENGTH))) == NULL) {
+	    Enabled(&pi->conf.options, L2TP_CONF_HIDDEN))) == NULL) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_ctrl_create: %s", strerror(errno)));
 		goto fail;
 	}
