@@ -150,8 +150,20 @@ Default is disabled.
 
 By default L2TP uses header Length field for control packets, but not for 
 data packets. This option enables Length field for data packets.
+This feature enabled may be useful on links where packets padding may
+happend. Disabling it reduces overhead by 2 bytes per packet.
 
 Default is disabled.
+
+<tag><tt>dataseq</tt></tag>
+
+By default L2TP requires header sequence fields for control packets, but
+not require them for data packets. This option enables sequence fields for 
+data packets.
+This feature enabled may be useful on links where packets reordering may
+happend but it is intolerable. Disabling it reduces overhead by 4 bytes per packet.
+
+Default is enabled.
 
 </descrip>
 

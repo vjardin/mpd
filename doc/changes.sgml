@@ -12,7 +12,7 @@
 	<itemize>
 	  <item> Added L2TP local hostname configuration.
 	  </item>
-	  <item> Added L2TP length option.
+	  <item> Added L2TP length and dataseq options.
 	  </item>
 	  <item> L2TP local hostname and secret at server side is now configurable
 	         depending on client address.
