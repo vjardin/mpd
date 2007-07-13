@@ -799,6 +799,8 @@ L2tpStat(Context ctx)
   if (l2tp->conf.peer_port)
     Printf(", port %u", l2tp->conf.peer_port);
   Printf("\r\n");
+  Printf("\tHostname     : %s\r\n", l2tp->conf.hostname);
+  Printf("\tSecret       : %s\r\n", (l2tp->conf.callingnum[0])?"******":"");
   Printf("\tCalling number: %s\r\n", l2tp->conf.callingnum);
   Printf("\tCalled number: %s\r\n", l2tp->conf.callednum);
   Printf("L2TP options:\r\n");
