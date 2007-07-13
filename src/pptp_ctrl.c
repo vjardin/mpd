@@ -1163,29 +1163,33 @@ static PptpCtrl
 PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
 	struct u_addr *peer_addr, in_port_t peer_port, char *buf, int bsiz)
 {
-  PptpCtrl			c;
-  int				k;
-  struct sockaddr_storage	peer;
-  char				buf1[64];
+    PptpCtrl			c;
+    int				k;
+    struct sockaddr_storage	peer;
+    char			buf1[64];
 
-  /* See if we're already have a control block matching this address and port */
-  for (k = 0; k < gNumPptpCtrl; k++) {
-    PptpCtrl	const c = gPptpCtrl[k];
-
-    if (c != NULL
-	&& (u_addrcompare(&c->peer_addr, peer_addr) == 0)
-	&& (c->peer_port == peer_port || c->orig != orig)
-	&& (u_addrempty(self_addr) || (u_addrcompare(&c->self_addr, self_addr) == 0))) {
-	    return(c);
+    /* For incoming any control is new! */
+    if (!orig) {
+	/* See if we're already have a control block matching this address and port */
+	  for (k = 0; k < gNumPptpCtrl; k++) {
+		PptpCtrl	const c = gPptpCtrl[k];
+	
+		if (c != NULL
+		    && (u_addrcompare(&c->peer_addr, peer_addr) == 0)
+		    && (c->peer_port == peer_port || c->orig != orig)
+		    && (u_addrempty(self_addr) || 
+		      (u_addrcompare(&c->self_addr, self_addr) == 0))) {
+			return(c);
+		}
+	  }
     }
-  }
 
-  /* Find/create a free one */
-  for (k = 0; k < gNumPptpCtrl && gPptpCtrl[k] != NULL; k++);
-  if (k == gNumPptpCtrl)
-    LengthenArray(&gPptpCtrl, sizeof(*gPptpCtrl), &gNumPptpCtrl, MB_PPTP);
-  c = Malloc(MB_PPTP, sizeof(*c));
-  gPptpCtrl[k] = c;
+    /* Find/create a free one */
+    for (k = 0; k < gNumPptpCtrl && gPptpCtrl[k] != NULL; k++);
+    if (k == gNumPptpCtrl)
+	LengthenArray(&gPptpCtrl, sizeof(*gPptpCtrl), &gNumPptpCtrl, MB_PPTP);
+    c = Malloc(MB_PPTP, sizeof(*c));
+    gPptpCtrl[k] = c;
 
   /* Initialize it */
   c->id = k;
@@ -1197,7 +1201,7 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
   PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_IDLE);
 
   /* If not doing the connecting, return here */
-  if (!c->orig)
+  if (!orig)
     return(c);
 
   /* Connect to peer */
