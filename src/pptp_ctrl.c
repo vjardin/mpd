@@ -1169,7 +1169,7 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
     char			buf1[64];
 
     /* For incoming any control is new! */
-    if (!orig) {
+    if (orig) {
 	/* See if we're already have a control block matching this address and port */
 	  for (k = 0; k < gNumPptpCtrl; k++) {
 		PptpCtrl	const c = gPptpCtrl[k];
