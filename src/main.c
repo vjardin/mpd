@@ -251,15 +251,18 @@ ConfigRead(int type, void *arg)
     struct context	ctx;
     Context		c;
 
+    ctx.lnk = NULL;
+    ctx.bund = NULL;
+    ctx.phys = NULL;
+    ctx.rep = NULL;
+    ctx.cs = NULL;
+
     if (gBackground) {
-        ctx.lnk = NULL;
-        ctx.bund = NULL;
-        ctx.phys = NULL;
-        ctx.rep = NULL;
-        ctx.cs = NULL;
         c = &ctx;
     } else {
         c = StdConsoleConnect(&gConsole);
+	if (c == NULL)
+    	    c = &ctx;
     }
 
     /* Read startup configuration section */

@@ -290,15 +290,14 @@ StdConsoleConnect(Console c)
 
     if (fcntl(cs->fd, F_SETFL, O_NONBLOCK) < 0) {
       Perror("%s: fcntl", __FUNCTION__);
+      Freee(MB_CONS, cs);
       return(NULL);
     }
-
-    EventRegister(&cs->readEvent, EVENT_READ, cs->fd, 
-	EVENT_RECURRING, ConsoleSessionReadEvent, cs);
 
     /* Init stdout */
     if (fcntl(1, F_SETFL, O_NONBLOCK) < 0) {
       Perror("%s: fcntl", __FUNCTION__);
+      Freee(MB_CONS, cs);
       return(NULL);
     }
 
@@ -314,6 +313,9 @@ StdConsoleConnect(Console c)
     RWLOCK_WRLOCK(c->lock);
     SLIST_INSERT_HEAD(&c->sessions, cs, next);
     RWLOCK_UNLOCK(c->lock);
+
+    EventRegister(&cs->readEvent, EVENT_READ, cs->fd, 
+	EVENT_RECURRING, ConsoleSessionReadEvent, cs);
 
     return (&cs->context);
 }
