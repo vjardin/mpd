@@ -19,6 +19,14 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fixed race condition on PPTP tunnel creation/death.
+	  </item>
+	  <item> Fixed crash when stdout redirected to /dev/null.
+	  </item>
+	</itemize>
+	</item>
     </itemize>
   </p>
 
