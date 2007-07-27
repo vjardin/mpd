@@ -456,21 +456,13 @@ L2tpOpen(PhysInfo p)
 	    (void)gethostname(hostname, sizeof(hostname) - 1);
 	    hostname[sizeof(hostname) - 1] = '\0';
 	}
-	if (ppp_l2tp_avp_list_append(avps, 1,
-	    0, AVP_HOST_NAME, hostname, strlen(hostname)) == -1) {
-		Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
-		    p->name, strerror(errno)));
-		goto fail;
-	}
-	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
-	    MPD_VENDOR, strlen(MPD_VENDOR)) == -1) {
-		Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
-		    p->name, strerror(errno)));
-		goto fail;
-	}
 	cap = htonl(L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG);
-	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
-	    &cap, sizeof(cap)) == -1) {
+	if ((ppp_l2tp_avp_list_append(avps, 1, 0, AVP_HOST_NAME,
+	      hostname, strlen(hostname)) == -1) ||
+	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
+	      MPD_VENDOR, strlen(MPD_VENDOR)) == -1) ||
+	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
+	      &cap, sizeof(cap)) == -1)) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
 		goto fail;
 	}
@@ -1320,19 +1312,13 @@ L2tpServerEvent(int type, void *arg)
 	    (void)gethostname(hostname, sizeof(hostname) - 1);
 	    hostname[sizeof(hostname) - 1] = '\0';
 	}
-	if (ppp_l2tp_avp_list_append(avps, 1,
-	    0, AVP_HOST_NAME, hostname, strlen(hostname)) == -1) {
-		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
-		goto fail;
-	}
-	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
-	    MPD_VENDOR, strlen(MPD_VENDOR)) == -1) {
-		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
-		goto fail;
-	}
 	cap = htonl(L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG);
-	if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
-	    &cap, sizeof(cap)) == -1) {
+	if ((ppp_l2tp_avp_list_append(avps, 1, 0, AVP_HOST_NAME,
+	      hostname, strlen(hostname)) == -1) ||
+	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
+	      MPD_VENDOR, strlen(MPD_VENDOR)) == -1) ||
+	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
+	      &cap, sizeof(cap)) == -1)) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
 		goto fail;
 	}
