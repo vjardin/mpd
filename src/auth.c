@@ -134,6 +134,9 @@ void	authparamsDestroy(struct authparams *ap) {
     if (ap->state) {
 	Freee(MB_AUTH, ap->state);
     }
+    if (ap->class) {
+	Freee(MB_AUTH, ap->class);
+    }
 
     acls = ap->acl_rule;
     while (acls != NULL) {
@@ -201,17 +204,14 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     if (src->eapmsg) {
 	dst->eapmsg = Malloc(MB_AUTH, src->eapmsg_len);
 	memcpy(dst->eapmsg, src->eapmsg, src->eapmsg_len);
-	dst->eapmsg_len = src->eapmsg_len;
     }
     if (src->state) {
 	dst->state = Malloc(MB_AUTH, src->state_len);
 	memcpy(dst->state, src->state, src->state_len);
-	dst->state_len = src->state_len;
     }
     if (src->class) {
 	dst->class = Malloc(MB_AUTH, src->class_len);
 	memcpy(dst->class, src->class, src->class_len);
-	dst->class_len = src->class_len;
     }
 
     acls = src->acl_rule;
