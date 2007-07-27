@@ -107,6 +107,8 @@
     int			eapmsg_len;
     u_char		*state;		/* copy of the state attribute, needed for accounting */
     int			state_len;
+    u_char		*class;		/* copy of the class attribute, needed for accounting */
+    int			class_len;
 
     struct acl		*acl_rule;	/* ipfw rules */
     struct acl		*acl_pipe;	/* ipfw pipes */

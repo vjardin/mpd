@@ -415,7 +415,11 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
   	"yes" : "no");
   
   buf = Bin2Hex(a->params.state, a->params.state_len); 
-  Printf("\tState          : %s\r\n", buf);
+  Printf("\tState          : 0x%s\r\n", buf);
+  Freee(MB_UTIL, buf);
+  
+  buf = Bin2Hex(a->params.class, a->params.class_len);
+  Printf("\tClass          : 0x%s\r\n", buf);
   Freee(MB_UTIL, buf);
   
   return (0);
@@ -641,6 +645,7 @@ RadiusStart(AuthData auth, short request_type)
   char		host[MAXHOSTNAMELEN];
   int		porttype;
   char		buf[64];
+  char		*tmpval;
 
   if (RadiusOpen(auth, request_type) == RAD_NACK) 
     return RAD_NACK;
@@ -751,9 +756,22 @@ RadiusStart(AuthData auth, short request_type)
   }
 
   if (auth->params.state != NULL) {
-    Log(LG_RADIUS2, ("[%s] RADIUS: putting RAD_STATE", auth->info.lnkname));
+    tmpval = Bin2Hex(auth->params.state, auth->params.state_len);
+    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_attr(RAD_STATE): 0x%s", auth->info.lnkname, __func__, tmpval));
+    Freee(MB_UTIL, tmpval);
     if (rad_put_attr(auth->radius.handle, RAD_STATE, auth->params.state, auth->params.state_len) == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_int(RAD_STATE) failed %s", 
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_attr(RAD_STATE) failed %s", 
+        auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
+      return (RAD_NACK);
+    }
+  }
+
+  if (auth->params.class != NULL) {
+    tmpval = Bin2Hex(auth->params.class, auth->params.class_len);
+    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_attr(RAD_CLASS): 0x%s", auth->info.lnkname, __func__, tmpval));
+    Freee(MB_UTIL, tmpval);
+    if (rad_put_attr(auth->radius.handle, RAD_CLASS, auth->params.class, auth->params.class_len) == -1) {
+      Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_attr(RAD_CLASS) failed %s", 
         auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
       return (RAD_NACK);
     }
@@ -1043,12 +1061,25 @@ RadiusGetParams(AuthData auth, int eap_proxy)
     switch (res) {
 
       case RAD_STATE:
-	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_STATE", auth->info.lnkname, __func__));
+	tmpval = Bin2Hex(data, len);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_STATE: 0x%s", auth->info.lnkname, __func__, tmpval));
+	Freee(MB_UTIL, tmpval);
 	auth->params.state_len = len;
 	if (auth->params.state != NULL)
 	  Freee(MB_AUTH, auth->params.state);
 	auth->params.state = Malloc(MB_AUTH, len);
 	memcpy(auth->params.state, data, len);
+	continue;
+
+      case RAD_CLASS:
+	tmpval = Bin2Hex(data, len);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_CLASS: 0x%s", auth->info.lnkname, __func__, tmpval));
+	Freee(MB_UTIL, tmpval);
+	auth->params.class_len = len;
+	if (auth->params.class != NULL)
+	  Freee(MB_AUTH, auth->params.class);
+	auth->params.class = Malloc(MB_AUTH, len);
+	memcpy(auth->params.class, data, len);
 	continue;
 
 	/* libradius already checks the message-authenticator, so simply ignore it */
@@ -1229,11 +1260,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
       case RAD_SERVICE_TYPE:
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: (RAD_SERVICE_TYPE: %d)",
 	  auth->info.lnkname, __func__, rad_cvt_int(data)));
-        break;
-
-      case RAD_CLASS:
-	Log(LG_RADIUS2, ("[%s] RADIUS: %s: (RAD_CLASS)",
-	  auth->info.lnkname, __func__));
         break;
 
       case RAD_REPLY_MESSAGE:

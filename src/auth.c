@@ -208,6 +208,11 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	memcpy(dst->state, src->state, src->state_len);
 	dst->state_len = src->state_len;
     }
+    if (src->class) {
+	dst->class = Malloc(MB_AUTH, src->class_len);
+	memcpy(dst->class, src->class, src->class_len);
+	dst->class_len = src->class_len;
+    }
 
     acls = src->acl_rule;
     pacl = &dst->acl_rule;
