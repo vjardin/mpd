@@ -99,19 +99,16 @@ RadiusInit(Link l)
 int
 RadiusAuthenticate(AuthData auth) 
 {
-  Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s", 
-    auth->info.lnkname, __func__, auth->params.authname));
+    Log(LG_RADIUS, ("[%s] RADIUS: %s for: %s", 
+	auth->info.lnkname, __func__, auth->params.authname));
 
-  if (RadiusStart(auth, RAD_ACCESS_REQUEST) == RAD_NACK)
-    return RAD_NACK;
-
-  if (RadiusPutAuth(auth) == RAD_NACK)
-    return RAD_NACK;
+    if ((RadiusStart(auth, RAD_ACCESS_REQUEST) == RAD_NACK) ||
+	(RadiusPutAuth(auth) == RAD_NACK) ||
+	(RadiusSendRequest(auth) == RAD_NACK)) {
+	    return RAD_NACK;
+    }
   
-  if (RadiusSendRequest(auth) == RAD_NACK)
-    return RAD_NACK;
-  
-  return RAD_ACK;
+    return RAD_ACK;
 }
 
 /*
@@ -1021,7 +1018,6 @@ RadiusSendRequest(AuthData auth)
       Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request failed: %s", 
         auth->info.lnkname, rad_strerror(auth->radius.handle)));
       return(RAD_NACK);
-      break;
       
     default:
       Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request: unexpected return value: %d", 
