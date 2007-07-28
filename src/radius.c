@@ -878,7 +878,7 @@ RadiusPutAuth(AuthData auth)
 
 	if (cp->value_len != sizeof(*mschapv2val)) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: RADIUS_CHAP (MSOFTv2) unrecognised key length %d/%d", auth->info.lnkname,
-	    __func__, cp->value_len, sizeof(*mschapv2val)));
+	    __func__, cp->value_len, (int)sizeof(*mschapv2val)));
 	  return (RAD_NACK);
 	}
       
@@ -1387,7 +1387,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 		if (len != 32) {
 		  Log(LG_RADIUS, ("[%s] RADIUS: %s: Server returned garbage %d of expected %d Bytes",
-		    auth->info.lnkname, __func__, len, 32));
+		    auth->info.lnkname, __func__, (int)len, 32));
 		  return RAD_NACK;
 		}
 
