@@ -51,6 +51,7 @@ struct pppoeinfo {
 	char		path[MAX_PATH];		/* PPPoE node path */
 	char		hook[NG_HOOKLEN + 1];	/* hook on that node */
 	char		session[MAX_SESSION];	/* session name */
+	char		acname[PPPOE_SERVICE_NAME_SIZE];	/* AC name */
 	u_char		peeraddr[6];		/* Peer MAC address */
 	u_char		incoming;		/* incoming vs. outgoing */
 	u_char		opened;			/* PPPoE opened by phys */
@@ -66,6 +67,7 @@ static u_char gNgEtherLoaded = FALSE;
 enum {
 	SET_IFACE,
 	SET_SESSION,
+	SET_ACNAME,
 	SET_ENABLE,
 	SET_DISABLE,
 };
@@ -147,6 +149,8 @@ const struct cmdtab PppoeSetCmds[] = {
 	  PppoeSetCommand, NULL, (void *)SET_IFACE },
       { "service string",	"Set PPPoE session name",
 	  PppoeSetCommand, NULL, (void *)SET_SESSION },
+      { "acname string",	"Set PPPoE access concentrator name",
+	  PppoeSetCommand, NULL, (void *)SET_ACNAME },
       { "enable [opt ...]",		"Enable option",
 	  PppoeSetCommand, NULL, (void *)SET_ENABLE },
       { "disable [opt ...]",		"Disable option",
@@ -847,10 +851,14 @@ PppoeListenEvent(int type, void *arg)
 		/* Put the PPPoE node into OFFER mode. */
 		memset(idata, 0, sizeof(idata));
 		snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
-		if (gethostname(idata->data, MAX_SESSION) == -1) {
-			Log(LG_ERR, ("[%s] PPPoE: gethostname() failed",
-			    p->name));
-			idata->data[0] = 0;
+		if (pi->acname[0] != 0) {
+			strlcpy(idata->data, pi->acname, MAX_SESSION);
+		} else {
+			if (gethostname(idata->data, MAX_SESSION) == -1) {
+				Log(LG_ERR, ("[%s] PPPoE: gethostname() failed",
+				    p->name));
+				idata->data[0] = 0;
+			}
 		}
 		idata->data_len=strlen(idata->data);
 
@@ -1028,12 +1036,12 @@ PppoeNodeUpdate(PhysInfo p)
 		return;
 	}
 	if (CreatePppoeNode(p, pi->path, pi->hook, &PppoeIfs[PppoeIfCount])) {
-		snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
-		    sizeof(PppoeIfs[PppoeIfCount].ifnodepath),
-		    "%s", pi->path);
-		snprintf(PppoeIfs[PppoeIfCount].session,
-		    sizeof(PppoeIfs[PppoeIfCount].session),
-		    "%s", pi->session);
+		strlcpy(PppoeIfs[PppoeIfCount].ifnodepath,
+		    pi->path,
+		    sizeof(PppoeIfs[PppoeIfCount].ifnodepath));
+		strlcpy(PppoeIfs[PppoeIfCount].session,
+		    pi->session,
+		    sizeof(PppoeIfs[PppoeIfCount].session));
 		PppoeIfs[PppoeIfCount].listen = 0;
 		pi->PIf=&PppoeIfs[PppoeIfCount];
 		PppoeIfCount++;
@@ -1106,12 +1114,12 @@ PppoeListenUpdate(void *arg)
 			}
 			if (ListenPppoeNode(pi->path, pi->hook,
 			    &(PppoeIfs[PppoeIfCount]), pi->session, 1)) {
-				snprintf(PppoeIfs[PppoeIfCount].ifnodepath,
-				    sizeof(PppoeIfs[PppoeIfCount].ifnodepath),
-				    "%s", pi->path);
-				snprintf(PppoeIfs[PppoeIfCount].session,
-				    sizeof(PppoeIfs[PppoeIfCount].session),
-				    "%s",pi->session);
+				strlcpy(PppoeIfs[PppoeIfCount].ifnodepath,
+				    pi->path,
+				    sizeof(PppoeIfs[PppoeIfCount].ifnodepath));
+				strlcpy(PppoeIfs[PppoeIfCount].session,
+				    pi->session,
+				    sizeof(PppoeIfs[PppoeIfCount].session));
 				PppoeIfs[PppoeIfCount].listen = 1;
 				pi->PIf=&PppoeIfs[PppoeIfCount];
 				PppoeIfCount++;
@@ -1159,6 +1167,11 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 		if (ac != 1)
 			return(-1);
 		snprintf(pi->session, sizeof(pi->session), "%s", av[0]);
+		break;
+	case SET_ACNAME:
+		if (ac != 1)
+			return(-1);
+		snprintf(pi->acname, sizeof(pi->acname), "%s", av[0]);
 		break;
 	case SET_ENABLE:
           EnableCommand(ac, av, &pi->options, gConfList);

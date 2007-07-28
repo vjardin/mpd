@@ -42,6 +42,12 @@ Sets the requested PPPoE service name. Setting service name to "*"
 on link with allowed incoming connections allows to accept incoming 
 connection requests with any service name specified.
 
+<tag><tt>
+set pppoe acname <em>name</em>
+</tt></tag>
+
+Set name of this PPPoE access concentrator to be sent to clients.
+
 <tag><tt>set pppoe enable <em>option ...</em> </tt></tag><p>
 <tag><tt>set pppoe disable <em>option ...</em> </tt></tag><p>
 
