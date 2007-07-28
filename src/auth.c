@@ -732,7 +732,8 @@ AuthAccountStart(Link l, int type)
     Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
       l->name, a->params.authname,
       (unsigned long) (time(NULL) - l->last_open),
-      l->stats.recvOctets, l->stats.xmitOctets));
+      (unsigned long long)l->stats.recvOctets,
+      (unsigned long long)l->stats.xmitOctets));
   }
 
   if (!Enabled(&l->lcp.auth.conf.options, AUTH_CONF_RADIUS_ACCT)
@@ -845,10 +846,12 @@ AuthAccount(void *arg)
     strlcpy(ut.ut_line, auth->info.lnkname, sizeof(ut.ut_line));
 
     if (auth->acct_type == AUTH_ACCT_START) {
+      time_t	t;
 
       strlcpy(ut.ut_host, auth->params.peeraddr, sizeof(ut.ut_host));
       strlcpy(ut.ut_name, auth->params.authname, sizeof(ut.ut_name));
-      time(&ut.ut_time);
+      time(&t);
+      ut.ut_time = t;
       login(&ut);
       Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
         ut.ut_name, ut.ut_host));
