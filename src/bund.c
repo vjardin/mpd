@@ -1077,14 +1077,14 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   BundUpdateStats(ctx->bund);
   Printf("Traffic stats:\r\n");
 
-  Printf("\tOctets input   : %llu\r\n", ctx->bund->stats.recvOctets);
-  Printf("\tFrames input   : %llu\r\n", ctx->bund->stats.recvFrames);
-  Printf("\tOctets output  : %llu\r\n", ctx->bund->stats.xmitOctets);
-  Printf("\tFrames output  : %llu\r\n", ctx->bund->stats.xmitFrames);
-  Printf("\tBad protocols  : %llu\r\n", ctx->bund->stats.badProtos);
-  Printf("\tRunts          : %llu\r\n", ctx->bund->stats.runts);
-  Printf("\tDup fragments  : %llu\r\n", ctx->bund->stats.dupFragments);
-  Printf("\tDrop fragments : %llu\r\n", ctx->bund->stats.dropFragments);
+  Printf("\tOctets input   : %llu\r\n", (unsigned long long)ctx->bund->stats.recvOctets);
+  Printf("\tFrames input   : %llu\r\n", (unsigned long long)ctx->bund->stats.recvFrames);
+  Printf("\tOctets output  : %llu\r\n", (unsigned long long)ctx->bund->stats.xmitOctets);
+  Printf("\tFrames output  : %llu\r\n", (unsigned long long)ctx->bund->stats.xmitFrames);
+  Printf("\tBad protocols  : %llu\r\n", (unsigned long long)ctx->bund->stats.badProtos);
+  Printf("\tRunts          : %llu\r\n", (unsigned long long)ctx->bund->stats.runts);
+  Printf("\tDup fragments  : %llu\r\n", (unsigned long long)ctx->bund->stats.dupFragments);
+  Printf("\tDrop fragments : %llu\r\n", (unsigned long long)ctx->bund->stats.dropFragments);
 
   return(0);
 }

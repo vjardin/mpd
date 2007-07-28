@@ -119,29 +119,31 @@ DesStat(Context ctx, int dir)
     switch (dir) {
 	case ECP_DIR_XMIT:
 	    Printf("\tBytes\t: %llu -> %llu (%+lld%%)\r\n",
-		des->xmit_stats.OctetsIn,
-		des->xmit_stats.OctetsOut,
+		(unsigned long long)des->xmit_stats.OctetsIn,
+		(unsigned long long)des->xmit_stats.OctetsOut,
 		((des->xmit_stats.OctetsIn!=0)?
-		    ((int64_t)(des->xmit_stats.OctetsOut - des->xmit_stats.OctetsIn)*100/(int64_t)des->xmit_stats.OctetsIn):
+		    ((unsigned long long)(des->xmit_stats.OctetsOut - des->xmit_stats.OctetsIn)
+			*100/(unsigned long long)des->xmit_stats.OctetsIn):
 		    0));
 	    Printf("\tFrames\t: %llu -> %llu\r\n",
-		des->xmit_stats.FramesIn,
-		des->xmit_stats.FramesOut);
+		(unsigned long long)des->xmit_stats.FramesIn,
+		(unsigned long long)des->xmit_stats.FramesOut);
 	    Printf("\tErrors\t: %llu\r\n",
-		des->xmit_stats.Errors);
+		(unsigned long long)des->xmit_stats.Errors);
 	    break;
 	case ECP_DIR_RECV:
 	    Printf("\tBytes\t: %llu <- %llu (%+lld%%)\r\n",
-		des->recv_stats.OctetsOut,
-		des->recv_stats.OctetsIn,
+		(unsigned long long)des->recv_stats.OctetsOut,
+		(unsigned long long)des->recv_stats.OctetsIn,
 		((des->recv_stats.OctetsOut!=0)?
-		    ((int64_t)(des->recv_stats.OctetsIn - des->recv_stats.OctetsOut)*100/(int64_t)des->recv_stats.OctetsOut):
+		    ((unsigned long long)(des->recv_stats.OctetsIn - des->recv_stats.OctetsOut)
+			*100/(unsigned long long)des->recv_stats.OctetsOut):
 		    0));
 	    Printf("\tFrames\t: %llu <- %llu\r\n",
-		des->xmit_stats.FramesOut,
-		des->xmit_stats.FramesIn);
+		(unsigned long long)des->xmit_stats.FramesOut,
+		(unsigned long long)des->xmit_stats.FramesIn);
 	    Printf("\tErrors\t: %llu\r\n",
-		des->recv_stats.Errors);
+		(unsigned long long)des->recv_stats.Errors);
     	    break;
 	default:
     	    assert(0);

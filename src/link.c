@@ -473,14 +473,14 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
   
   Printf("Traffic stats:\r\n");
 
-  Printf("\tOctets input   : %llu\r\n", l->stats.recvOctets);
-  Printf("\tFrames input   : %llu\r\n", l->stats.recvFrames);
-  Printf("\tOctets output  : %llu\r\n", l->stats.xmitOctets);
-  Printf("\tFrames output  : %llu\r\n", l->stats.xmitFrames);
-  Printf("\tBad protocols  : %llu\r\n", l->stats.badProtos);
-  Printf("\tRunts          : %llu\r\n", l->stats.runts);
-  Printf("\tDup fragments  : %llu\r\n", l->stats.dupFragments);
-  Printf("\tDrop fragments : %llu\r\n", l->stats.dropFragments);
+  Printf("\tOctets input   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
+  Printf("\tFrames input   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
+  Printf("\tOctets output  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
+  Printf("\tFrames output  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
+  Printf("\tBad protocols  : %llu\r\n", (unsigned long long)l->stats.badProtos);
+  Printf("\tRunts          : %llu\r\n", (unsigned long long)l->stats.runts);
+  Printf("\tDup fragments  : %llu\r\n", (unsigned long long)l->stats.dupFragments);
+  Printf("\tDrop fragments : %llu\r\n", (unsigned long long)l->stats.dropFragments);
   return(0);
 }
 
