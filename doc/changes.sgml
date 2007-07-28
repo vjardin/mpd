@@ -19,6 +19,8 @@
 	  </item>
 	  <item> Reimplemented RADIUS Class attribute support.
 	  </item>
+	  <item> Added PPPoE AC-name specification for the server side.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
