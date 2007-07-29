@@ -566,6 +566,11 @@ ShowVersion(Context ctx, int ac, char *av[], void *arg)
 #else
   Printf("	ng_deflate	: no\r\n");
 #endif
+#ifdef	USE_NG_IPACCT
+  Printf("	ng_ipacct	: yes\r\n");
+#else
+  Printf("	ng_ipacct	: no\r\n");
+#endif
 #ifdef	USE_NG_NAT
   Printf("	ng_nat		: yes\r\n");
 #else
