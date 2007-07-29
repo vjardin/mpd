@@ -28,14 +28,6 @@ PHYSTYPE_PPTP=		yes
 PHYSTYPE_PPPOE=		yes
 PHYSTYPE_L2TP=		yes
 
-# Define supported compression types
-# Notes:
-#  The MPPC compressions require proprietary
-#  code from Stac Electronics (now known as Hi/Fn).
-
-COMPRESSION_PRED1=	yes
-COMPRESSION_DEFLATE=	yes
-
 # Define supported encryption types
 
 ENCRYPTION_DES=		yes
@@ -91,14 +83,11 @@ COPTS+=		'-DMPD_VENDOR="${MPD_VENDOR}"'
 # Standard sources
 
 STDSRCS=        assert.c auth.c bund.c rep.c ccp.c chap.c \
-		console.c command.c ecp.c fsm.c iface.c input.c \
+		console.c command.c ecp.c event.c fsm.c iface.c input.c \
 		ip.c ipcp.c ipv6cp.c lcp.c link.c log.c main.c mbuf.c mp.c \
 		msg.c nat.c ngfunc.c pap.c phys.c proto.c radius.c timer.c \
-		util.c vars.c custom.c eap.c ccp_mppc.c msoft.c web.c
-
-# Mpd is event based, using this handy little event library..
-
-STDSRCS+=	event.c
+		util.c vars.c custom.c eap.c ccp_mppc.c msoft.c web.c \
+		ccp_pred1.c ccp_deflate.c
 
 # Add sources and flags for the various physical layer types
 
@@ -129,17 +118,6 @@ COPTS+=		-DPHYSTYPE_PPPOE
 .if defined ( PHYSTYPE_L2TP )
 SRCS+=		l2tp.c l2tp_avp.c l2tp_ctrl.c
 COPTS+=		-DPHYSTYPE_L2TP
-.endif
-
-# Compression
-
-.if defined ( COMPRESSION_PRED1 )
-SRCS+=		ccp_pred1.c
-COPTS+=		-DCOMPRESSION_PRED1
-.endif
-.if defined ( COMPRESSION_DEFLATE )
-SRCS+=		ccp_deflate.c
-COPTS+=		-DCOMPRESSION_DEFLATE
 .endif
 
 # Encryption

@@ -53,10 +53,8 @@
 #ifdef USE_NG_NAT
 #include <netgraph/ng_nat.h>
 #endif
-#ifdef COMPRESSION_PRED1
 #ifdef USE_NG_PRED1
 #include <netgraph/ng_pred1.h>
-#endif
 #endif
 
 #include <netinet/ip_icmp.h>

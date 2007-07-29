@@ -555,6 +555,37 @@ static int
 ShowVersion(Context ctx, int ac, char *av[], void *arg)
 {
   Printf("MPD version: %s\r\n", gVersion);
+  Printf("  Compiled-in system features:\r\n");
+#ifdef	USE_NG_CAR
+  Printf("	ng_car		: yes\r\n");
+#else
+  Printf("	ng_car		: no\r\n");
+#endif
+#ifdef	USE_NG_DEFLATE
+  Printf("	ng_deflate	: yes\r\n");
+#else
+  Printf("	ng_deflate	: no\r\n");
+#endif
+#ifdef	USE_NG_NAT
+  Printf("	ng_nat		: yes\r\n");
+#else
+  Printf("	ng_nat		: no\r\n");
+#endif
+#ifdef	USE_NG_NETFLOW
+  Printf("	ng_netflow	: yes\r\n");
+#else
+  Printf("	ng_netflow	: no\r\n");
+#endif
+#ifdef	USE_NG_PRED1
+  Printf("	ng_pred1	: yes\r\n");
+#else
+  Printf("	ng_pred1	: emulated\r\n");
+#endif
+#ifdef	USE_NG_TCPMSS
+  Printf("	ng_tcpmss	: yes\r\n");
+#else
+  Printf("	ng_tcpmss	: emulated\r\n");
+#endif
   return(0);
 }
 

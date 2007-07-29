@@ -119,14 +119,10 @@
   /* These should be listed in order of preference */
   static const CompType		gCompTypes[] = {
     &gCompMppcInfo,
-#ifdef COMPRESSION_DEFLATE
 #ifdef USE_NG_DEFLATE
     &gCompDeflateInfo,
 #endif
-#endif
-#ifdef COMPRESSION_PRED1
     &gCompPred1Info,
-#endif
   };
   #define CCP_NUM_PROTOS	(sizeof(gCompTypes) / sizeof(*gCompTypes))
 
@@ -293,7 +289,6 @@ CcpRecvMsg(Bund b, struct ng_mesg *msg, int len)
 	  break;
       }
       break;
-#ifdef COMPRESSION_DEFLATE
 #ifdef USE_NG_DEFLATE
     case NGM_DEFLATE_COOKIE:
       switch (msg->header.cmd) {
@@ -306,8 +301,6 @@ CcpRecvMsg(Bund b, struct ng_mesg *msg, int len)
       }
       break;
 #endif
-#endif
-#ifdef COMPRESSION_PRED1
 #ifdef USE_NG_PRED1
     case NGM_PRED1_COOKIE:
       switch (msg->header.cmd) {
@@ -319,7 +312,6 @@ CcpRecvMsg(Bund b, struct ng_mesg *msg, int len)
 	  break;
       }
       break;
-#endif
 #endif
     default:
       break;

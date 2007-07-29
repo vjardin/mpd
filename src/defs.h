@@ -13,23 +13,30 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sysexits.h>
+#include "config.h"
 
 /*
  * DEFINITIONS
  */
 
   /* Compile time configuring. */
-#if (__FreeBSD_version >= 500000)
+#ifdef HAVE_NG_CAR
   #define      USE_NG_CAR
 #endif
-#if (__FreeBSD_version >= 600000)
-  #define      USE_NG_TCPMSS
-  #define      USE_NG_NETFLOW
+#ifdef HAVE_NG_DEFLATE
+  #define      USE_NG_DEFLATE
+#endif
+#ifdef HAVE_NG_NAT
   #define      USE_NG_NAT
 #endif
-#if ((__FreeBSD_version >= 602104 && __FreeBSD_version < 700000) || __FreeBSD_version >= 700029)
-  #define      USE_NG_DEFLATE
+#ifdef HAVE_NG_NETFLOW
+  #define      USE_NG_NETFLOW
+#endif
+#ifdef HAVE_NG_PRED1
   #define      USE_NG_PRED1
+#endif
+#ifdef HAVE_NG_TCPMSS
+  #define      USE_NG_TCPMSS
 #endif
 
   /* Boolean */

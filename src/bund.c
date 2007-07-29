@@ -1681,15 +1681,11 @@ BundNgCtrlEvent(int type, void *cookie)
   switch (u.msg.header.typecookie) {
 
     case NGM_MPPC_COOKIE:
-#ifdef COMPRESSION_DEFLATE
 #ifdef USE_NG_DEFLATE
     case NGM_DEFLATE_COOKIE:
 #endif
-#endif
-#ifdef COMPRESSION_PRED1
 #ifdef USE_NG_PRED1
     case NGM_PRED1_COOKIE:
-#endif
 #endif
       CcpRecvMsg(b, &u.msg, len);
       return;
