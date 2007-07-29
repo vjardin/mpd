@@ -21,6 +21,10 @@
 	  </item>
 	  <item> Added PPPoE AC-name specification for the server side.
 	  </item>
+	  <item> Added configure script for better system features detection.
+	  </item>
+	  <item> 'show version' command now shows compiled-in system features.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
