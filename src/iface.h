@@ -58,6 +58,7 @@
     IFACE_CONF_NAT,
     IFACE_CONF_NETFLOW_IN,
     IFACE_CONF_NETFLOW_OUT,
+    IFACE_CONF_IPACCT,
   };
 
   /* Dial-on-demand packet cache */
@@ -105,6 +106,7 @@
     u_char		nfin_up:1;		/* NFIN is up */
     u_char		nfout_up:1;		/* NFOUT is up */
     u_char		mss_up:1;		/* MSS is up */
+    u_char		ipacct_up:1;		/* IPACCT is up */
     
     u_char		dod:1;			/* Interface flagged -link0 */
     struct dodcache	dodCache;		/* Dial-on-demand cache */

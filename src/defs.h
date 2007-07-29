@@ -26,6 +26,9 @@
 #ifdef HAVE_NG_DEFLATE
   #define      USE_NG_DEFLATE
 #endif
+#ifdef HAVE_NG_IPACCT
+  #define      USE_NG_IPACCT
+#endif
 #ifdef HAVE_NG_NAT
   #define      USE_NG_NAT
 #endif

@@ -52,6 +52,10 @@
 #ifdef USE_NG_TCPMSS
 #include <netgraph/ng_tcpmss.h>
 #endif
+#ifdef USE_NG_IPACCT
+#include <netgraph/ng_ipacct.h>
+#undef r_ip_p	/* XXX:DIRTY CONFLICT! */
+#endif
 #ifdef USE_NG_NETFLOW
 #include <netgraph/netflow/ng_netflow.h>
 #endif
@@ -94,6 +98,11 @@
   static int	IfaceInitNetflow(Bund b, char *path, char *hook, char out);
   static int	IfaceSetupNetflow(Bund b, char out);
   static void	IfaceShutdownNetflow(Bund b, char out);
+#endif
+
+#ifdef USE_NG_IPACCT
+  static int	IfaceInitIpacct(Bund b, char *path, char *hook);
+  static void	IfaceShutdownIpacct(Bund b);
 #endif
 
 #ifdef USE_NG_NAT
@@ -163,6 +172,7 @@
     { 0,	IFACE_CONF_NAT,			"nat"		},
     { 0,	IFACE_CONF_NETFLOW_IN,		"netflow-in"	},
     { 0,	IFACE_CONF_NETFLOW_OUT,		"netflow-out"	},
+    { 0,	IFACE_CONF_IPACCT,		"ipacct"	},
     { 0,	0,				NULL		},
   };
 
@@ -1693,6 +1703,15 @@ IfaceNgIpInit(Bund b, int ready)
 	    b->iface.tee_up = 1;
 	}
   
+#ifdef USE_NG_IPACCT
+	/* Connect a ipacct node if configured */
+	if (Enabled(&b->iface.options, IFACE_CONF_IPACCT)) {
+	    if (IfaceInitIpacct(b, path, hook))
+		goto fail;
+	    b->iface.ipacct_up = 1;
+	}
+#endif	/* USE_NG_IPACCT */
+
 #ifdef USE_NG_NETFLOW
 	/* Connect a netflow node if configured */
 	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)) {
@@ -1774,6 +1793,11 @@ IfaceNgIpShutdown(Bund b)
     if (b->iface.nfout_up)
 	IfaceShutdownNetflow(b, 1);
     b->iface.nfout_up = 0;
+#endif
+#ifdef USE_NG_IPACCT
+    if (b->iface.ipacct_up)
+	IfaceShutdownIpacct(b);
+    b->iface.ipacct_up = 0;
 #endif
     if (b->iface.mss_up)
 	IfaceShutdownMSS(b);
@@ -1969,6 +1993,113 @@ IfaceShutdownTee(Bund b)
     snprintf(path, sizeof(path), "%s-tee:", b->iface.ifname);
     NgFuncShutdownNode(b->csock, b->name, path);
 }
+
+#ifdef USE_NG_IPACCT
+static int
+IfaceInitIpacct(Bund b, char *path, char *hook)
+{
+    struct ngm_mkpeer	mp;
+    struct ngm_name	nm;
+    struct ngm_connect  cn;
+    char		path1[NG_PATHLEN+1];
+    struct {
+	struct ng_ipacct_mesg m;
+	int		data;
+    } ipam;
+
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting ipacct", b->name));
+  
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+    strcpy(mp.ourhook, hook);
+    strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      return(-1);
+    }
+    strlcat(path, ".", NG_PATHLEN);
+    strlcat(path, hook, NG_PATHLEN);
+    snprintf(nm.name, sizeof(nm.name), "%s_acct_tee", b->iface.ifname);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+      Log(LG_ERR, ("[%s] can't name %s node: %s",
+	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
+      return(-1);
+    }
+    strcpy(hook, NG_TEE_HOOK_LEFT);
+
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_IPACCT_NODE_TYPE);
+    strcpy(mp.ourhook, NG_TEE_HOOK_RIGHT2LEFT);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s_in", b->iface.ifname);
+    if (NgSendMsg(b->csock, path,
+	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+	b->name, NG_IPACCT_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      return(-1);
+    }
+    snprintf(path1, sizeof(path1), "%s.%s", path, NG_TEE_HOOK_RIGHT2LEFT);
+    snprintf(nm.name, sizeof(nm.name), "%s_ip_acct", b->iface.ifname);
+    if (NgSendMsg(b->csock, path1,
+	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+      Log(LG_ERR, ("[%s] can't name %s node: %s",
+	b->name, NG_IPACCT_NODE_TYPE, strerror(errno)));
+      return(-1);
+    }
+    strcpy(cn.ourhook, NG_TEE_HOOK_LEFT2RIGHT);
+    strcpy(cn.path, NG_TEE_HOOK_RIGHT2LEFT);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s_out", b->iface.ifname);
+    if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
+	sizeof(cn)) < 0) {
+      Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
+        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+      return (-1);
+    }
+    
+    snprintf(ipam.m.hname, sizeof(ipam.m.hname), "%s_in", b->iface.ifname);
+    ipam.data = DLT_RAW;
+    if (NgSendMsg(b->csock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_SETDLT, 
+	&ipam, sizeof(ipam)) < 0) {
+      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
+        b->name, path, ipam.m.hname, strerror(errno)));
+      return (-1);
+    }
+    ipam.data = 10000;
+    if (NgSendMsg(b->csock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_STHRS, 
+	&ipam, sizeof(ipam)) < 0) {
+      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
+        b->name, path, ipam.m.hname, strerror(errno)));
+      return (-1);
+    }
+    
+    snprintf(ipam.m.hname, sizeof(ipam.m.hname), "%s_out", b->iface.ifname);
+    ipam.data = DLT_RAW;
+    if (NgSendMsg(b->csock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_SETDLT, 
+	&ipam, sizeof(ipam)) < 0) {
+      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
+        b->name, path, ipam.m.hname, strerror(errno)));
+      return (-1);
+    }
+    ipam.data = 10000;
+    if (NgSendMsg(b->csock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_STHRS, 
+	&ipam, sizeof(ipam)) < 0) {
+      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
+        b->name, path, ipam.m.hname, strerror(errno)));
+      return (-1);
+    }
+
+    return(0);
+}
+
+static void
+IfaceShutdownIpacct(Bund b)
+{
+    char	path[NG_PATHLEN+1];
+
+    snprintf(path, sizeof(path), "%s_acct_tee:", b->iface.ifname);
+    NgFuncShutdownNode(b->csock, b->name, path);
+}
+#endif
 
 #ifdef USE_NG_NETFLOW
 static int
