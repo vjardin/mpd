@@ -1467,6 +1467,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
       }
       memcpy(hwaddr, (struct sockaddr_dl *)(void *)&ifr->ifr_addr,
 	sizeof(*hwaddr));
+      Freee(MB_UTIL, ifs);
       return(0);
     }
     ifr = (struct ifreq *)(void *)((char *)&ifr->ifr_addr
