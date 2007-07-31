@@ -35,6 +35,8 @@
 	  </item>
 	  <item> Fixed crash when stdout redirected to /dev/null.
 	  </item>
+	  <item> Fixed memory leak in proxy-arp.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
