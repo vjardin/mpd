@@ -796,8 +796,13 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
 	}
 	ctx->phys = ctx->lnk->phys;
 	ctx->rep = NULL;
-      } else
+      } else {
 	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
+	ctx->lnk = NULL;
+	ctx->bund = NULL;
+	ctx->phys = NULL;
+	ctx->rep = NULL;
+      }
       break;
 
     default:
