@@ -121,6 +121,7 @@
   static EventRef	gSignalEvent;
   static EventRef	gConfigReadEvent;
   static int		gSignalPipe[2];
+  static struct context gCtx;
 
 /*
  * main()
@@ -129,16 +130,26 @@
 int
 main(int ac, char *av[])
 {
-  int			ret;
-  char			*args[MAX_ARGS];
+    int			ret;
+    char		*args[MAX_ARGS];
+    Context		c;
 
-  gPid=getpid();
+    gPid=getpid();
 
-  /* enable libpdel typed_mem */
-  typed_mem_enable();
+    /* enable libpdel typed_mem */
+    typed_mem_enable();
 
-  /* init console-stuff */
-  ConsoleInit(&gConsole);
+    /* init console-stuff */
+    ConsoleInit(&gConsole);
+
+    memset(&gCtx, 0, sizeof(gCtx));
+    if (gBackground) {
+        c = &gCtx;
+    } else {
+        c = StdConsoleConnect(&gConsole);
+	if (c == NULL)
+    	    c = &gCtx;
+    }
 
   /* init web-stuff */
   WebInit(&gWeb);
@@ -219,7 +230,7 @@ main(int ac, char *av[])
   signal(SIGPIPE, SIG_IGN);
 
   EventRegister(&gConfigReadEvent, EVENT_TIMEOUT,
-    0, 0, ConfigRead, NULL);
+    0, 0, ConfigRead, c);
 
   pthread_exit(NULL);
 
@@ -234,10 +245,9 @@ main(int ac, char *av[])
 void
 Greetings(void)
 {
-  LogStdout("Multi-link PPP daemon for FreeBSD");
+  Log(LG_ALWAYS, ("Multi-link PPP daemon for FreeBSD"));
+  Log(LG_ALWAYS, (" "));
   Log(LG_ALWAYS, ("process %lu started, version %s", (u_long) gPid, gVersion));
-  LogStdout(" ");
-  LogStdout("process %lu started, version %s", (u_long) gPid, gVersion);
 }
 
 /*
@@ -248,22 +258,7 @@ Greetings(void)
 static void
 ConfigRead(int type, void *arg)
 {
-    struct context	ctx;
-    Context		c;
-
-    ctx.lnk = NULL;
-    ctx.bund = NULL;
-    ctx.phys = NULL;
-    ctx.rep = NULL;
-    ctx.cs = NULL;
-
-    if (gBackground) {
-        c = &ctx;
-    } else {
-        c = StdConsoleConnect(&gConsole);
-	if (c == NULL)
-    	    c = &ctx;
-    }
+    Context	c = (Context)arg;
 
     /* Read startup configuration section */
     ReadFile(gConfigFile, STARTUP_CONF, DoCommand, c);

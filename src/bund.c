@@ -1316,7 +1316,7 @@ BundBmTimeout(void *arg)
       }
       snprintf(ins + strlen(ins), sizeof(ins) - strlen(ins), " ");
     }
-    LogStdout("%s", ins);
+    Log(LG_BUND, ("%s", ins));
 
     snprintf(ins, sizeof(ins), " IN util: total %3u%%  ", inUtilTotal);
     snprintf(outs, sizeof(outs), "OUT util: total %3u%%  ", outUtilTotal);
@@ -1326,8 +1326,8 @@ BundBmTimeout(void *arg)
       snprintf(outs + strlen(outs), sizeof(outs) - strlen(outs),
 	" %3u%%", outUtil[LINK_BM_N - 1 - j]);
     }
-    LogStdout("  %s", ins);
-    LogStdout("  %s", outs);
+    Log(LG_BUND, ("  %s", ins));
+    Log(LG_BUND, ("  %s", outs));
   }
 #endif
 

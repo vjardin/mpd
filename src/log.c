@@ -322,24 +322,6 @@ vLogPrintf(const char *fmt, va_list args)
 }
 
 /*
- * LogStdout()
- *
- * Print something to the console.
- */
-
-void
-LogStdout(const char *fmt, ...)
-{
-  va_list	args;
-
-  va_start(args, fmt);
-  vfprintf(stdout, fmt, args);
-  putc('\n', stdout);
-  fflush(stdout);
-  va_end(args);
-}
-
-/*
  * LogDumpBp()
  *
  * Dump the contents of an Mbuf to the log
