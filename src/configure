@@ -48,8 +48,19 @@ echo -n "Looking for ng_netflow ..."
 if [ -e /usr/include/netgraph/netflow/ng_netflow.h \
   -o -e /usr/local/include/netgraph/netflow/ng_netflow.h ]
 then
-    echo " found."
-    echo "#define	HAVE_NG_NETFLOW	1" >> $CONFIG
+    if [ -e /usr/include/netgraph/netflow/ng_netflow.h ] && \
+	/usr/bin/grep NG_NETFLOW_HOOK_OUT /usr/include/netgraph/netflow/ng_netflow.h >/dev/null 2>&1
+    then
+	echo " found."
+	echo "#define	HAVE_NG_NETFLOW	1" >> $CONFIG
+    elif [ -e /usr/local/include/netgraph/netflow/ng_netflow.h ] && \
+	/usr/bin/grep NG_NETFLOW_HOOK_OUT /usr/local/include/netgraph/netflow/ng_netflow.h >/dev/null 2>&1
+    then
+	echo " found."
+	echo "#define	HAVE_NG_NETFLOW	1" >> $CONFIG
+    else
+	echo " too old, unsupported."
+    fi
 else
     echo " not found."
 fi
