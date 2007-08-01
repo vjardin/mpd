@@ -807,6 +807,43 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
+ * MSessionCommand()
+ */
+
+int
+MSessionCommand(Context ctx, int ac, char *av[], void *arg)
+{
+    int		k;
+
+    if (ac != 1)
+	return(-1);
+
+    /* Find link */
+    for (k = 0;
+	k < gNumBundles && (gBundles[k] == NULL || 
+	    strcmp(gBundles[k]->msession_id, av[0]));
+	k++);
+    if (k == gNumBundles) {
+	Printf("MultySession \"%s\" is not found\r\n", av[0]);
+	/* Change default link and bundle */
+	ctx->lnk = NULL;
+	ctx->bund = NULL;
+	ctx->phys = NULL;
+	ctx->rep = NULL;
+    } else {
+	/* Change default link and bundle */
+	ctx->bund = gBundles[k];
+	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
+	    ctx->lnk = ctx->bund->links[0];
+	}
+	ctx->phys = ctx->lnk->phys;
+	ctx->rep = NULL;
+    }
+
+    return(0);
+}
+
+/*
  * BundCreateCmd()
  *
  * Create a new bundle. If some of the links can't be added,

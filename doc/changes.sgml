@@ -27,6 +27,9 @@
 	  </item>
 	  <item> 'show version' command now shows compiled-in system features.
 	  </item>
+	  <item> 'session ...' and 'msession ...' commands to select link/bundle
+		 by their current session IDs added.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:

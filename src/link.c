@@ -329,7 +329,7 @@ LinkFind(char *name)
 		strcmp(gPhyses[k]->link->name, name));
 	    k++);
     };
-    if (k == gNumPhyses || gPhyses[k] == NULL || gPhyses[k]->link == NULL) {
+    if (k == gNumPhyses) {
 	return (NULL);
     }
 
@@ -350,6 +350,10 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
 
     if ((l = LinkFind(av[0])) == NULL) {
 	Printf("Link \"%s\" is not defined\r\n", av[0]);
+	ctx->lnk = NULL;
+	ctx->bund = NULL;
+	ctx->phys = NULL;
+	ctx->rep = NULL;
 	return(0);
     }
 
@@ -358,7 +362,44 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
     ctx->bund = l->bund;
     ctx->phys = l->phys;
     ctx->rep = NULL;
-  return(0);
+    return(0);
+}
+
+/*
+ * SessionCommand()
+ */
+
+int
+SessionCommand(Context ctx, int ac, char *av[], void *arg)
+{
+    Link	l;
+    int		k;
+
+    if (ac != 1)
+	return(-1);
+
+    /* Find link */
+    for (k = 0;
+	k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL || 
+	    strcmp(gPhyses[k]->link->session_id, av[0]));
+	k++);
+    if (k == gNumPhyses) {
+	Printf("Session \"%s\" is not found\r\n", av[0]);
+	/* Change default link and bundle */
+	ctx->lnk = NULL;
+	ctx->bund = NULL;
+	ctx->phys = NULL;
+	ctx->rep = NULL;
+    } else {
+	l = gPhyses[k]->link;
+	/* Change default link and bundle */
+	ctx->lnk = l;
+	ctx->bund = l->bund;
+	ctx->phys = l->phys;
+	ctx->rep = NULL;
+    }
+
+    return(0);
 }
 
 /*

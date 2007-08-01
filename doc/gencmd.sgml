@@ -55,6 +55,18 @@ phys <tt><em>name</em></tt>. If no
 of the defined physes and their bundles/repeaters.
 The new phys will be reflected in the prompt.
 
+<tag><tt>msession [ <em>msesid</em> ] </tt>
+</tag>
+
+This command changes the currenly active bundle to the bundle holding
+session with multilink session ID <tt><em>msesid</em></tt>.
+
+<tag><tt>session [ <em>sesid</em> ] </tt>
+</tag>
+
+This command changes the currenly active link to the link holding
+session with session ID <tt><em>sesid</em></tt>.
+
 <tag><tt>load <em>configuration</em></tt>
 </tag>
 
