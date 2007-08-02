@@ -83,6 +83,8 @@
   extern int	NgFuncClrStats(Bund b, u_int16_t linkNum);
   extern int	NgFuncGetStats(Bund b, u_int16_t linkNum,
 			struct ng_ppp_link_stat *s);
+  extern int	NgFuncGetStats64(Bund b, u_int16_t linkNum,
+			struct ng_ppp_link_stat64 *s);
   extern int	NgFuncSendQuery(const char *path, int cookie, int cmd,
 			const void *args, size_t arglen, struct ng_mesg *rbuf,
 			size_t replen, char *raddr);

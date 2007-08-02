@@ -28,12 +28,10 @@
 #ifdef __DragonFly__
 #include <netgraph/socket/ng_socket.h>
 #include <netgraph/iface/ng_iface.h>
-#include <netgraph/ppp/ng_ppp.h>
 #include <netgraph/vjc/ng_vjc.h>
 #else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_iface.h>
-#include <netgraph/ng_ppp.h>
 #include <netgraph/ng_vjc.h>
 #endif
 
@@ -302,11 +300,13 @@ BundJoin(Link l)
     BundNcpsUp(b);
 
     BundResetStats(b);
-    
+
+#ifndef NG_PPP_STATS64    
     /* starting bundle statistics timer */
     TimerInit(&b->statsUpdateTimer, "BundUpdateStats", 
 	BUND_STATS_UPDATE_INTERVAL, BundUpdateStatsTimer, b);
     TimerStartRecurring(&b->statsUpdateTimer);
+#endif
   }
 
   AuthAccountStart(l, AUTH_ACCT_START);
@@ -341,8 +341,10 @@ BundLeave(Link l)
   /* Special stuff when last link goes down... */
   if (bm->n_up == 0) {
   
+#ifndef NG_PPP_STATS64
     /* stopping bundle statistics timer */
     TimerStop(&b->statsUpdateTimer);
+#endif
 
     /* Reset statistics and auth information */
     BundBmStop(b);
@@ -1138,7 +1140,9 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
 void
 BundUpdateStats(Bund b)
 {
+#ifndef NG_PPP_STATS64
   struct ng_ppp_link_stat	stats;
+#endif
   int	l = NG_PPP_BUNDLE_LINKNUM;
 
 #if (__FreeBSD_version < 602104 || (__FreeBSD_version >= 700000 && __FreeBSD_version < 700029))
@@ -1147,6 +1151,7 @@ BundUpdateStats(Bund b)
     l = 0;
 #endif
 
+#ifndef NG_PPP_STATS64
   if (NgFuncGetStats(b, l, &stats) != -1) {
     b->stats.xmitFrames += abs(stats.xmitFrames - b->oldStats.xmitFrames);
     b->stats.xmitOctets += abs(stats.xmitOctets - b->oldStats.xmitOctets);
@@ -1159,6 +1164,9 @@ BundUpdateStats(Bund b)
   }
 
   b->oldStats = stats;
+#else
+    NgFuncGetStats64(b, l, &b->stats);
+#endif
 }
 
 /* 
@@ -1187,7 +1195,9 @@ BundResetStats(Bund b)
 {
   NgFuncClrStats(b, NG_PPP_BUNDLE_LINKNUM);
   memset(&b->stats, 0, sizeof(b->stats));
+#ifndef NG_PPP_STATS64
   memset(&b->oldStats, 0, sizeof(b->oldStats));
+#endif
 }
 
 /*

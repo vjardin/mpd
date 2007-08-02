@@ -15,10 +15,8 @@
 
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
-#include <netgraph/ppp/ng_ppp.h>
 #include <netgraph/socket/ng_socket.h>
 #else
-#include <netgraph/ng_ppp.h>
 #include <netgraph/ng_socket.h>
 #endif
 #include <netgraph.h>

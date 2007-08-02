@@ -31,7 +31,6 @@
 #include <netgraph/socket/ng_socket.h>
 #include <netgraph/ksocket/ng_ksocket.h>
 #include <netgraph/iface/ng_iface.h>
-#include <netgraph/ppp/ng_ppp.h>
 #include <netgraph/vjc/ng_vjc.h>
 #include <netgraph/bpf/ng_bpf.h>
 #include <netgraph/tee/ng_tee.h>
@@ -39,7 +38,6 @@
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_ksocket.h>
 #include <netgraph/ng_iface.h>
-#include <netgraph/ng_ppp.h>
 #include <netgraph/ng_vjc.h>
 #include <netgraph/ng_bpf.h>
 #include <netgraph/ng_tee.h>
@@ -624,7 +622,7 @@ NgFuncClrStats(Bund b, u_int16_t linkNum)
 /*
  * NgFuncGetStats()
  *
- * Get (and optionally clear) link or whole bundle statistics
+ * Get link or whole bundle statistics
  */
 
 int
@@ -649,6 +647,37 @@ NgFuncGetStats(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat *statp)
     memcpy(statp, u.reply.data, sizeof(*statp));
   return(0);
 }
+
+#ifdef NG_PPP_STATS64
+/*
+ * NgFuncGetStats64()
+ *
+ * Get 64bit link or whole bundle statistics
+ */
+
+int
+NgFuncGetStats64(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat64 *statp)
+{
+  union {
+      u_char			buf[sizeof(struct ng_mesg)
+				  + sizeof(struct ng_ppp_link_stat64)];
+      struct ng_mesg		reply;
+  }				u;
+  char                          path[NG_PATHLEN + 1];
+
+  /* Get stats */
+  snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
+  if (NgFuncSendQuery(path, NGM_PPP_COOKIE, NGM_PPP_GET_LINK_STATS64,
+       &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
+    Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
+      b->name, linkNum, strerror(errno)));
+    return -1;
+  }
+  if (statp != NULL)
+    memcpy(statp, u.reply.data, sizeof(*statp));
+  return(0);
+}
+#endif
 
 /*
  * NgFuncErrx()

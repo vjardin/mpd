@@ -180,7 +180,7 @@
     struct paction	*acct_thread;	/* async accounting auth thread */
     struct authconf	conf;		/* Auth backends, RADIUS, etc. */
     struct authparams	params;		/* params to pass to from auth backend */
-    struct linkstats	prev_stats;	/* Previous link statistics */
+    struct ng_ppp_link_stat64	prev_stats;	/* Previous link statistics */
   };
   typedef struct auth	*Auth;
 
@@ -214,7 +214,7 @@
       char		msession_id[AUTH_MAX_SESSIONID]; /* multy-session-id */
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
-      struct linkstats	stats;		/* Current link statistics */
+      struct ng_ppp_link_stat64	stats;		/* Current link statistics */
       char		*downReason;	/* Reason for link going down */
       time_t		last_open;	/* Time this link last was opened */
       PhysType		phys_type;	/* Device type descriptor */

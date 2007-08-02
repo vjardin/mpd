@@ -100,8 +100,10 @@
     struct linkconf	conf;		/* Link configuration */
     struct lcpstate	lcp;		/* LCP state info */
     struct linkbm	bm;		/* Link bandwidth mgmt info */
-    struct linkstats	stats;		/* Link statistics */
+    struct ng_ppp_link_stat64	stats;	/* Link statistics */
+#ifndef NG_PPP_STATS64
     struct ng_ppp_link_stat oldStats;	/* Previous stats for 64bit emulation */
+#endif
 
     /* Link properties */
     short		num_redial;	/* Counter for retry attempts */

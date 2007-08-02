@@ -136,9 +136,11 @@
     struct discrim	peer_discrim;	/* Peer's discriminator */
     struct bundbm	bm;		/* Bandwidth management state */
     struct bundconf	conf;		/* Configuration for this bundle */
-    struct linkstats	stats;		/* Statistics for this bundle */
+    struct ng_ppp_link_stat64	stats;	/* Statistics for this bundle */
+#ifndef NG_PPP_STATS64
     struct ng_ppp_link_stat oldStats;	/* Previous stats for 64bit emulation */
     struct pppTimer     statsUpdateTimer;       /* update Timer */
+#endif
     struct mpstate	mp;		/* MP state for this bundle */
     struct ifacestate	iface;		/* IP state info */
     struct ipcpstate	ipcp;		/* IPCP state info */

@@ -113,7 +113,7 @@
     
     struct natstate	nat;			/* NAT config */
 
-    struct linkstats	idleStats;		/* Statistics for idle timeout */
+    struct ng_ppp_link_stat64	idleStats;	/* Statistics for idle timeout */
   };
   typedef struct ifacestate	*IfaceState;
 

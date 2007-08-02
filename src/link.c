@@ -532,6 +532,7 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 void
 LinkUpdateStats(Link l)
 {
+#ifndef NG_PPP_STATS64
   struct ng_ppp_link_stat	stats;
 
   if (NgFuncGetStats(l->bund, l->bundleIndex, &stats) != -1) {
@@ -546,6 +547,9 @@ LinkUpdateStats(Link l)
   }
 
   l->oldStats = stats;
+#else
+    NgFuncGetStats64(l->bund, l->bundleIndex, &l->stats);
+#endif
 }
 
 /*
@@ -557,7 +561,9 @@ LinkResetStats(Link l)
 {
   NgFuncClrStats(l->bund, l->bundleIndex);
   memset(&l->stats, 0, sizeof(l->stats));
+#ifndef NG_PPP_STATS64
   memset(&l->oldStats, 0, sizeof(l->oldStats));
+#endif
 }
 
 /*

@@ -50,6 +50,11 @@
 #include <pdel/util/paction.h>
 #include <pdel/util/ghash.h>
 
+#ifdef __DragonFly__
+#include <netgraph/ppp/ng_ppp.h>
+#else
+#include <netgraph/ng_ppp.h>
+#endif
 
 #include "defs.h"
 
@@ -93,10 +98,11 @@
   #define ADLG_WAN_NEGOTIATION_FAILURE		6
   #define ADLG_WAN_WAIT_FOR_DEMAND		7
 
+#ifndef NG_PPP_STATS64
   /* internal 64 bit counters as workaround for the 32 bit 
    * limitation for ng_ppp_link_stat
    */
-  struct linkstats {
+  struct ng_ppp_link_stat64 {
 	u_int64_t 	xmitFrames;	/* xmit frames on link */
 	u_int64_t 	xmitOctets;	/* xmit octets on link */
 	u_int64_t 	recvFrames;	/* recv frames on link */
@@ -106,7 +112,7 @@
 	u_int64_t 	dupFragments;	/* MP frames with duplicate seq # */
 	u_int64_t	dropFragments;	/* MP fragments we had to drop */
   };
-  typedef struct linkstat *LinkStats;
+#endif
 
 #include "bund.h"
 #include "link.h"
