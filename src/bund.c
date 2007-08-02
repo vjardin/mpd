@@ -1147,7 +1147,7 @@ BundUpdateStats(Bund b)
     l = 0;
 #endif
 
-  if (NgFuncGetStats(b, l, FALSE, &stats) != -1) {
+  if (NgFuncGetStats(b, l, &stats) != -1) {
     b->stats.xmitFrames += abs(stats.xmitFrames - b->oldStats.xmitFrames);
     b->stats.xmitOctets += abs(stats.xmitOctets - b->oldStats.xmitOctets);
     b->stats.recvFrames += abs(stats.recvFrames - b->oldStats.recvFrames);
@@ -1185,7 +1185,7 @@ BundUpdateStatsTimer(void *cookie)
 void
 BundResetStats(Bund b)
 {
-  NgFuncGetStats(b, NG_PPP_BUNDLE_LINKNUM, TRUE, NULL);
+  NgFuncClrStats(b, NG_PPP_BUNDLE_LINKNUM);
   memset(&b->stats, 0, sizeof(struct linkstats));
   memset(&b->oldStats, 0, sizeof(b->oldStats));
 }
@@ -1305,7 +1305,7 @@ BundBmTimeout(void *arg)
 
       /* Get updated link traffic statistics */
       oldStats = l->bm.idleStats;
-      NgFuncGetStats(l->bund, l->bundleIndex, FALSE, &l->bm.idleStats);
+      NgFuncGetStats(l->bund, l->bundleIndex, &l->bm.idleStats);
       l->bm.traffic[0][0] = l->bm.idleStats.recvOctets - oldStats.recvOctets;
       l->bm.traffic[1][0] = l->bm.idleStats.xmitOctets - oldStats.xmitOctets;
     }

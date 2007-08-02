@@ -1345,7 +1345,7 @@ FsmEchoTimeout(void *arg)
   /* See if there was any traffic since last time */
   oldStats = fp->idleStats;
   NgFuncGetStats(b, fp->type->link_layer ?
-    l->bundleIndex : NG_PPP_BUNDLE_LINKNUM, FALSE, &fp->idleStats);
+    l->bundleIndex : NG_PPP_BUNDLE_LINKNUM, &fp->idleStats);
   if (fp->idleStats.recvFrames > oldStats.recvFrames)
     fp->quietCount = 0;
   else

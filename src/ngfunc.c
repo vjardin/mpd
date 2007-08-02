@@ -600,26 +600,46 @@ NgFuncWriteFrame(Bund b, const char *hookname, Mbuf bp)
 }
 
 /*
+ * NgFuncClrStats()
+ *
+ * Clear link or whole bundle statistics
+ */
+
+int
+NgFuncClrStats(Bund b, u_int16_t linkNum)
+{
+    char	path[NG_PATHLEN + 1];
+
+    /* Get stats */
+    snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
+    if (NgSendMsg(b->csock, path, 
+	NGM_PPP_COOKIE, NGM_PPP_CLR_LINK_STATS, &linkNum, sizeof(linkNum)) < 0) {
+	    Log(LG_ERR, ("[%s] can't clear stats, link=%d: %s",
+    		b->name, linkNum, strerror(errno)));
+	    return (-1);
+    }
+    return(0);
+}
+
+/*
  * NgFuncGetStats()
  *
  * Get (and optionally clear) link or whole bundle statistics
  */
 
 int
-NgFuncGetStats(Bund b, u_int16_t linkNum, int clear, struct ng_ppp_link_stat *statp)
+NgFuncGetStats(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat *statp)
 {
   union {
       u_char			buf[sizeof(struct ng_mesg)
 				  + sizeof(struct ng_ppp_link_stat)];
       struct ng_mesg		reply;
   }				u;
-  int				cmd;
   char                          path[NG_PATHLEN + 1];
 
   /* Get stats */
-  cmd = clear ? NGM_PPP_GETCLR_LINK_STATS : NGM_PPP_GET_LINK_STATS;
   snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
-  if (NgFuncSendQuery(path, NGM_PPP_COOKIE, cmd,
+  if (NgFuncSendQuery(path, NGM_PPP_COOKIE, NGM_PPP_GET_LINK_STATS,
        &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
     Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
       b->name, linkNum, strerror(errno)));

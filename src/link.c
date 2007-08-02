@@ -534,7 +534,7 @@ LinkUpdateStats(Link l)
 {
   struct ng_ppp_link_stat	stats;
 
-  if (NgFuncGetStats(l->bund, l->bundleIndex, FALSE, &stats) != -1) {
+  if (NgFuncGetStats(l->bund, l->bundleIndex, &stats) != -1) {
     l->stats.xmitFrames += abs(stats.xmitFrames - l->oldStats.xmitFrames);
     l->stats.xmitOctets += abs(stats.xmitOctets - l->oldStats.xmitOctets);
     l->stats.recvFrames += abs(stats.recvFrames - l->oldStats.recvFrames);
@@ -555,7 +555,7 @@ LinkUpdateStats(Link l)
 void
 LinkResetStats(Link l)
 {
-  NgFuncGetStats(l->bund, l->bundleIndex, TRUE, NULL);
+  NgFuncClrStats(l->bund, l->bundleIndex);
   memset(&l->stats, 0, sizeof(struct linkstats));
   memset(&l->oldStats, 0, sizeof(l->oldStats));
 }
