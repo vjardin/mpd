@@ -42,6 +42,12 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> Performance improvements:
+	<itemize>
+	  <item> Added support for 64bit ng_ppp counters where available.
+	  </item>
+	</itemize>
+	</item>
     </itemize>
   </p>
 
