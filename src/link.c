@@ -556,7 +556,7 @@ void
 LinkResetStats(Link l)
 {
   NgFuncClrStats(l->bund, l->bundleIndex);
-  memset(&l->stats, 0, sizeof(struct linkstats));
+  memset(&l->stats, 0, sizeof(l->stats));
   memset(&l->oldStats, 0, sizeof(l->oldStats));
 }
 

@@ -1186,7 +1186,7 @@ void
 BundResetStats(Bund b)
 {
   NgFuncClrStats(b, NG_PPP_BUNDLE_LINKNUM);
-  memset(&b->stats, 0, sizeof(struct linkstats));
+  memset(&b->stats, 0, sizeof(b->stats));
   memset(&b->oldStats, 0, sizeof(b->oldStats));
 }
 
