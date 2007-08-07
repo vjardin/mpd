@@ -859,6 +859,8 @@ PppoeListenEvent(int type, void *arg)
 				    p->name));
 				idata->data[0] = 0;
 			}
+			if (idata->data[0] == 0)
+				strlcpy(idata->data, "NONAME", MAX_SESSION);
 		}
 		idata->data_len=strlen(idata->data);
 
