@@ -228,7 +228,7 @@ LcpConfigure(Fsm fp)
   lcp->want_chap_alg = 0;
   lcp->peer_ident[0] = 0;
 
-  memset (lcp->want_protos, 0, sizeof lcp->want_protos);
+  memset(lcp->want_protos, 0, sizeof(lcp->want_protos));
   /* fill my list of possible auth-protos, most to least secure */
   /* for pptp prefer MS-CHAP and for all others CHAP-MD5 */
 #ifdef PHYSTYPE_PPTP
@@ -248,7 +248,7 @@ LcpConfigure(Fsm fp)
   lcp->want_protos[4] = &gLcpAuthProtos[LINK_CONF_EAP];
 
   /* Use the same list for the MODE_REQ */
-  memcpy(lcp->peer_protos, lcp->want_protos, sizeof lcp->peer_protos);
+  memcpy(lcp->peer_protos, lcp->want_protos, sizeof(lcp->peer_protos));
 
   for (i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
     if (Enabled(&l->conf.options, lcp->want_protos[i]->conf) && lcp->want_auth == 0) {

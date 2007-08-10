@@ -1413,9 +1413,9 @@ IfaceChangeFlags(Bund b, int clear, int set)
 	return;
     }
 
-    memset(&ifrq, '\0', sizeof ifrq);
-    strncpy(ifrq.ifr_name, b->iface.ifname, sizeof ifrq.ifr_name - 1);
-    ifrq.ifr_name[sizeof ifrq.ifr_name - 1] = '\0';
+    memset(&ifrq, '\0', sizeof(ifrq));
+    strncpy(ifrq.ifr_name, b->iface.ifname, sizeof(ifrq.ifr_name) - 1);
+    ifrq.ifr_name[sizeof(ifrq.ifr_name) - 1] = '\0';
     if (ioctl(s, SIOCGIFFLAGS, &ifrq) < 0) {
 	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCGIFFLAGS");
 	close(s);
@@ -1482,14 +1482,14 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 
     switch (self->addr.family) {
       case AF_INET:
-	memset(&ifra, '\0', sizeof ifra);
-	strncpy(ifra.ifra_name, b->iface.ifname, sizeof ifra.ifra_name - 1);
+	memset(&ifra, '\0', sizeof(ifra));
+	strncpy(ifra.ifra_name, b->iface.ifname, sizeof(ifra.ifra_name) - 1);
 
 	me4 = (struct sockaddr_in *)&ifra.ifra_addr;
-	memcpy(me4, &ssself, sizeof *me4);
+	memcpy(me4, &ssself, sizeof(*me4));
 
 	msk4 = (struct sockaddr_in *)&ifra.ifra_mask;
-	memcpy(msk4, &ssmsk, sizeof *msk4);
+	memcpy(msk4, &ssmsk, sizeof(*msk4));
 
 	peer4 = (struct sockaddr_in *)&ifra.ifra_broadaddr;
 	if (peer == NULL || peer->family == AF_UNSPEC) {
@@ -1497,7 +1497,7 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
     	    peer4->sin_len = sizeof(*peer4);
     	    peer4->sin_addr.s_addr = INADDR_NONE;
 	} else
-    	    memcpy(peer4, &sspeer, sizeof *peer4);
+    	    memcpy(peer4, &sspeer, sizeof(*peer4));
 
 	res = ioctl(s, add?SIOCAIFADDR:SIOCDIFADDR, &ifra);
 	if (res == -1) {
@@ -1507,16 +1507,16 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 	break;
 
       case AF_INET6:
-	memset(&ifra6, '\0', sizeof ifra6);
-	strncpy(ifra6.ifra_name, b->iface.ifname, sizeof ifra6.ifra_name - 1);
+	memset(&ifra6, '\0', sizeof(ifra6));
+	strncpy(ifra6.ifra_name, b->iface.ifname, sizeof(ifra6.ifra_name) - 1);
 
-	memcpy(&ifra6.ifra_addr, &ssself, sizeof ifra6.ifra_addr);
-	memcpy(&ifra6.ifra_prefixmask, &ssmsk, sizeof ifra6.ifra_prefixmask);
+	memcpy(&ifra6.ifra_addr, &ssself, sizeof(ifra6.ifra_addr));
+	memcpy(&ifra6.ifra_prefixmask, &ssmsk, sizeof(ifra6.ifra_prefixmask));
 	if (peer == NULL || peer->family == AF_UNSPEC)
     	    ifra6.ifra_dstaddr.sin6_family = AF_UNSPEC;
 	else if (memcmp(&((struct sockaddr_in6 *)&ssmsk)->sin6_addr, &in6mask128,
-		    sizeof in6mask128) == 0)
-    	    memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof ifra6.ifra_dstaddr);
+		    sizeof(in6mask128)) == 0)
+    	    memcpy(&ifra6.ifra_dstaddr, &sspeer, sizeof(ifra6.ifra_dstaddr));
 	ifra6.ifra_lifetime.ia6t_vltime = ND6_INFINITE_LIFETIME;
 	ifra6.ifra_lifetime.ia6t_pltime = ND6_INFINITE_LIFETIME;
 
@@ -1565,7 +1565,7 @@ IfaceSetRoute(Bund b, int cmd, struct u_range *dst,
 	Perror("[%s] IFACE: Can't get route socket!", b->name);
 	return (-1);
     }
-    memset(&rtmes, '\0', sizeof rtmes);
+    memset(&rtmes, '\0', sizeof(rtmes));
     rtmes.m_rtm.rtm_version = RTM_VERSION;
     rtmes.m_rtm.rtm_type = cmd;
     rtmes.m_rtm.rtm_addrs = RTA_DST;
