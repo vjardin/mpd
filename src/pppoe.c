@@ -626,7 +626,7 @@ CreatePppoeNode(PhysInfo p, const char *path, const char *hook, struct PppoeIf *
 
 		/* Get response. */
 		resp = (struct ng_mesg *)rbuf;
-		if (NgRecvMsg(PIf->csock, resp, sizeof rbuf, NULL) <= 0) {
+		if (NgRecvMsg(PIf->csock, resp, sizeof(rbuf), NULL) <= 0) {
 			Log(LG_ERR, ("[%s] Cannot get netgraph response: %s",
 			    p->name, strerror(errno)));
 			close(PIf->csock);
@@ -639,7 +639,7 @@ CreatePppoeNode(PhysInfo p, const char *path, const char *hook, struct PppoeIf *
 		for (f = 0; f < tlist->numtypes; f++)
 			if (strncmp(tlist->typeinfo[f].type_name,
 			    NG_ETHER_NODE_TYPE,
-			    sizeof NG_ETHER_NODE_TYPE - 1) == 0)
+			    sizeof(NG_ETHER_NODE_TYPE) - 1) == 0)
 				gNgEtherLoaded = TRUE;
 
 		/* If not found try to load ng_ether and repeat the check. */
@@ -669,7 +669,7 @@ CreatePppoeNode(PhysInfo p, const char *path, const char *hook, struct PppoeIf *
 
 	/* Get our list back. */
 	resp = (struct ng_mesg *)rbuf;
-	if (NgRecvMsg(PIf->csock, resp, sizeof rbuf, NULL) <= 0) {
+	if (NgRecvMsg(PIf->csock, resp, sizeof(rbuf), NULL) <= 0) {
 		Log(LG_ERR, ("[%s] Cannot get netgraph response: %s",
 		    p->name, strerror(errno)));
 		close(PIf->csock);
@@ -682,7 +682,7 @@ CreatePppoeNode(PhysInfo p, const char *path, const char *hook, struct PppoeIf *
 
 	/* Make sure we've got the right type of node. */
 	if (strncmp(ninfo->type, NG_ETHER_NODE_TYPE,
-	    sizeof NG_ETHER_NODE_TYPE - 1)) {
+	    sizeof(NG_ETHER_NODE_TYPE) - 1)) {
 		Log(LG_ERR, ("[%s] Unexpected node type ``%s'' (wanted ``"
 		    NG_ETHER_NODE_TYPE "'') on %s",
 		    p->name, ninfo->type, path));
@@ -765,7 +765,7 @@ PppoeListenEvent(int type, void *arg)
 	} u;
 	struct ngpppoe_init_data *const idata = &u.poeid;
 
-	switch (sz = NgRecvData(PIf->dsock, response, sizeof response, rhook)) {
+	switch (sz = NgRecvData(PIf->dsock, response, sizeof(response), rhook)) {
           case -1:
 	    Log(LG_ERR, ("NgRecvData: %d", sz));
             return;

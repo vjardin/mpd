@@ -360,7 +360,7 @@ bits2mask6(int bits)
   u_int32_t bit = 0x80;
   u_char *c = result.s6_addr;
 
-  memset(&result, '\0', sizeof result);
+  memset(&result, '\0', sizeof(result));
 
   while (bits) {
     if (bit == 0) {

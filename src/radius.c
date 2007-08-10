@@ -653,7 +653,7 @@ RadiusStart(AuthData auth, short request_type)
     return (RAD_NACK);
   }
 
-  if (gethostname(host, sizeof (host)) == -1) {
+  if (gethostname(host, sizeof(host)) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS: %s: gethostname() failed", 
       auth->info.lnkname, __func__));
     return (RAD_NACK);
@@ -855,7 +855,7 @@ RadiusPutAuth(AuthData auth)
 	memcpy(rad_mschapval.nt_response, mschapval->ntHash, 24);
 
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_RESPONSE,
-	    &rad_mschapval, sizeof rad_mschapval) == -1)  {
+	    &rad_mschapval, sizeof(rad_mschapval)) == -1)  {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP_RESPONSE) failed %s",
 	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
 	  return (RAD_NACK);
@@ -883,14 +883,14 @@ RadiusPutAuth(AuthData auth)
 	rad_mschapv2val.ident = auth->id;
 	rad_mschapv2val.flags = mschapv2val->flags;
 	memcpy(rad_mschapv2val.response, mschapv2val->ntHash,
-	  sizeof rad_mschapv2val.response);
+	  sizeof(rad_mschapv2val.response));
 	memset(rad_mschapv2val.reserved, '\0',
-	  sizeof rad_mschapv2val.reserved);
+	  sizeof(rad_mschapv2val.reserved));
 	memcpy(rad_mschapv2val.pchallenge, mschapv2val->peerChal,
-	  sizeof rad_mschapv2val.pchallenge);
+	  sizeof(rad_mschapv2val.pchallenge));
 
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP2_RESPONSE,
-	    &rad_mschapv2val, sizeof rad_mschapv2val) == -1)  {
+	    &rad_mschapv2val, sizeof(rad_mschapv2val)) == -1)  {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_vendor_attr(RAD_MICROSOFT_MS_CHAP2_RESPONSE) failed %s",
 	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
 	  return (RAD_NACK);
