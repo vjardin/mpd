@@ -13,32 +13,78 @@
 <tag>RADIUS internals</tag>
 <p>
 
-All authentication methods are supported (PAP, CHAP, MS-CHAPv1,
+Mpd supports both user authentication and session accounting using RADIUS.
+RADIUS-Accounting and RADIUS-Authentication are independant so it is possible
+to use them in any combination.
+
+All authentication methods are supported with RADIUS (PAP, CHAP, MS-CHAPv1,
 MS-CHAPv2, EAP). Password changing is currently not supported.
 
-Mpd automatically uses attributes like MTU, Idle-Timeout, IP-Address, etc. if they are 
-transmitted by the RADIUS server.
+RADIUS attributes supported by mpd:
+<VERB>
+N   Name                       	   Access	 Accounting
+	                	Req	Resp	Req	Resp
+1   User-Name			+	+	+	-
+2   User-Password		+	-	-	-
+3   CHAP-Password		+	-	-	-
+4   NAS-IP-Address		+	-	+	-
+5   NAS-Port			+	-	+	-
+6   Service-Type		+	-	+	-
+7   Framed-Protocol		+	-	+	-
+8   Framed-IP-Address		-	+	+	-
+9   Framed-IP-Netmask		-	+	+	-
+12  Framed-MTU			-	+	-	-
+18  Reply-Message		-	+	-	-
+22  Framed-Route		-	+	-	-
+24  State			+	+	+	-
+25  Class			-	+	+	-
+27  Session-Timeout		-	+	-	-
+28  Idle-Timeout		-	+	-	-
+30  Called-Station-Id		+	-	+	-
+31  Calling-Station-Id		+	-	+	-
+32  NAS-Identifier		+	-	+	-
+40  Acct-Status-Type		-	-	+	-
+42  Acct-Input-Octets		-	-	+	-
+43  Acct-Output-Octets		-	-	+	-
+44  Acct-Session-Id		-	-	+	-
+45  Acct-Authentic		-	-	+	-
+46  Acct-Session-Time		-	-	+	-
+47  Acct-Input-Packets		-	-	+	-
+48  Acct-Output-Packets		-	-	+	-
+49  Acct-Terminate-Cause	-	-	+	-
+50  Acct-Multi-Session-Id	-	-	+	-
+51  Acct-Link-Count		-	-	+	-
+52  Acct-Input-Gigawords	-	-	+	-
+53  Acct-Output-Gigawords	-	-	+	-
+60  CHAP-Challenge		+	-	-	-
+61  NAS-Port-Type		+	-	+	-
+85  Acct-Interim-Interval	-	+	-	-
+95  NAS-IPv6-Address		+	-	+	-
+99  Framed-IPv6-Route		-	+	-	-
 
-Note: Its possible to use RADIUS-Accounting without RADIUS-Authentication.
+    Microsoft VSA (311)
+1   MS-CHAP-Response		+	-	-	-
+2   MS-CHAP-Error		-	+	-	-
+7   MS-MPPE-Encryption-Policy	-	+	-	-
+8   MS-MPPE-Encryption-Types	-	+	-	-
+10  MS-CHAP-Domain		-	+	-	-
+11  MS-CHAP-Challenge		+	-	-	-
+12  MS-CHAP-MPPE-Keys		-	+	-	-
+16  MS-MPPE-Send-Key		-	+	-	-
+17  MS-MPPE-Recv-Key		-	+	-	-
+25  MS-CHAP2-Response		+	-	-	-
+26  MS-CHAP2-Success		-	+	-	-
 
-The following attributes are set when doing accounting requests:
-
-<tt>RAD_FRAMED_IP_ADDRESS
-<newline>RAD_ACCT_STATUS_TYPE
-<newline>RAD_ACCT_SESSION_ID
-<newline>RAD_ACCT_MULTI_SESSION_ID
-<newline>RAD_USER_NAME
-<newline>RAD_ACCT_LINK_COUNT
-<newline>RAD_ACCT_AUTHENTIC
-<newline>RAD_ACCT_TERMINATE_CAUSE
-<newline>RAD_ACCT_INPUT_OCTETS
-<newline>RAD_ACCT_INPUT_PACKETS
-<newline>RAD_ACCT_OUTPUT_OCTETS
-<newline>RAD_ACCT_OUTPUT_PACKETS
-<newline>RAD_ACCT_INPUT_GIGAWORDS
-<newline>RAD_ACCT_OUTPUT_GIGAWORDS
-<newline>RAD_ACCT_SESSION_TIME
-</tt>
+    mpd VSA (12341)
+1   mpd-rule			-	+	-	-
+2   mpd-pipe			-	+	-	-
+3   mpd-queue			-	+	-	-
+4   mpd-table			-	+	-	-
+5   mpd-table-static		-	+	-	-
+6   mpd-filter			-	+	-	-
+7   mpd-limit			-	+	-	-
+154 mpd-drop-user		-	-	-	+
+</VERB>
 
 Mpd allows RADIUS server to terminate user session by setting vendor specific
 mpd-drop-user attribute to nonzero value in accounting start/update reply packet.
@@ -46,13 +92,14 @@ mpd-drop-user attribute to nonzero value in accounting start/update reply packet
 <tag>RADIUS ACL's</tag>
 <p>
 
-Mpd can use the Access Control Lists (ACLs) taken from the RADIUS server.
+Mpd can use the Access Control Lists (ACLs) given by the RADIUS server.
 This ACLs may include ipfw rules, pipes, queues and tables and also mpd
 internal traffic filtering/shaping/limiting features. That two sets are 
 redundant. ipfw proposed as standard and universal solution, while internal
-filter/shaper/limiter expected to work faster with big number of active links.
+filter/shaper/limiter based on ng_bpf+ng_car expected to work faster with
+big number of active links.
 
-To use this feature you should add to your RADIUS server such dictionary:
+To use this features you should add to your RADIUS server such dictionary:
 <verb>#----------------------------------------------------------
 # dictionary.mpd                                                                                   
                                                                                                    
@@ -105,32 +152,17 @@ When the link goes down, all created rules will be removed.
 <tag>internal (ng_bpf/ng_car)</tag>
 <p>
 
-You can write in your RADIUS configuration something like:
-<verb>
-mpd-filter += "1#1=nomatch src net 10.0.0.0/24",
-mpd-filter += "1#2=match src net 10.0.0.0/10",
-mpd-filter += "2#1=match dst net 10.0.0.0/16",
-mpd-filter += "2#2=match dst net 11.0.0.0/8",
-mpd-limit += "in#1=flt1 pass",
-mpd-limit += "in#2=flt2 shape 64000 4000 pass",
-mpd-limit += "in#3=all deny",
-mpd-limit += "out#1=flt2 pass",
-mpd-limit += "out#2=all rate-limit 1024000 150000 300000",
-mpd-limit += "out#3=all pass",
-</verb>
+Mpd can create complex per-interface traffic filtering/limiting engines inside
+netgraph when it is requested by mpd-filter and mpd-limit RADIUS attributes.
 
-As result, one ng_bpf node will be created to implement traffic filters 
-and several (two for this example) ng_car nodes for traffic shaping 
-and rate-limiting.
-
-mpd-filter is a packet filter declaration for using in mpd-limit.
+mpd-filter attribute is a packet filter declaration for using in mpd-limit.
 mpd-filter consists of two main parts: match/nomatch verdict and the condition.
 tcpdump (libpcap) expression syntax used for conditions.
 
 mpd-filter: <em>match</em>|<em>nomatch</em> <em>{condition}</em>
 
-mpd-limit is an action which should be done for packet. It consists of two
-main parts: filter and action. 
+mpd-limit attribute is an action which should be done for packet. It consists
+of two main parts: filter and action. 
 
 mpd-limit: <em>{filter}</em> <em>{action}</em>
 
@@ -150,6 +182,27 @@ to stop processing after doing this action.
 action: <em>pass</em> | <em>deny</em> | 
 <em>rate-limit</em> <em>{rate(bits/s)}</em> [<em>{normal burst(bytes)}</em> [<em>{extended burst(bytes)}</em>]] [<em>pass</em>] |
 <em>shape</em> <em>{rate(bits/s)}</em> [<em>{burst(bytes)}</em>] [<em>pass</em>]
+
+As example you can write in your RADIUS configuration something like:
+<verb>
+mpd-filter += "1#1=nomatch src net 10.0.0.0/24",
+mpd-filter += "1#2=match src net 10.0.0.0/10",
+mpd-filter += "2#1=match dst net 10.0.0.0/16",
+mpd-filter += "2#2=match dst net 11.0.0.0/8",
+mpd-limit += "in#1=flt1 pass",
+mpd-limit += "in#2=flt2 shape 64000 4000 pass",
+mpd-limit += "in#3=all deny",
+mpd-limit += "out#1=flt2 pass",
+mpd-limit += "out#2=all rate-limit 1024000 150000 300000",
+mpd-limit += "out#3=all pass",
+</verb>
+
+As result, one ng_bpf node will be created to implement traffic filters 
+and several (two for this example) ng_car nodes for traffic shaping 
+and rate-limiting. Incoming traffic from 10.0.0.0/10 except 10.0.0.0/24
+will be passed, traffic to 10.0.0.0/16 and 11.0.0.0/8 will be shaped 
+to 64Kbits/s, all other will be denied. Outgoing traffic to 10.0.0.0/16
+and 11.0.0.0/8 will be passed, all other will be limited to 1024Kbit/s.
 
 </descrip>
 
