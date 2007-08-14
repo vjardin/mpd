@@ -40,6 +40,8 @@
 	  </item>
 	  <item> Fixed memory leak in proxy-arp.
 	  </item>
+	  <item> Fixed Dial-on-Demand functionality.
+	  </item>
 	</itemize>
 	</item>
 	<item> Performance improvements:
