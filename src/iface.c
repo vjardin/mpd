@@ -1055,6 +1055,8 @@ static void
 IfaceCachePkt(Bund b, int proto, Mbuf pkt)
 {
   IfaceState	const iface = &b->iface;
+  Mbuf		new;
+  int		len;
 
   /* Only cache network layer data */
   if (!PROT_NETWORK_DATA(proto)) {
@@ -1065,7 +1067,12 @@ IfaceCachePkt(Bund b, int proto, Mbuf pkt)
   /* Release previously cached packet, if any, and save this one */
   if (iface->dodCache.pkt)
     PFREE(iface->dodCache.pkt);
-  iface->dodCache.pkt = pkt;
+
+  /* Make an own permanent pkt copy */
+  new = mballoc(pkt->type, len = plength(pkt));
+  assert(mbread(pkt, MBDATA(new), len, NULL) == NULL);
+
+  iface->dodCache.pkt = new;
   iface->dodCache.proto = proto;
   iface->dodCache.ts = time(NULL);
 }
@@ -1085,9 +1092,8 @@ IfaceCacheSend(Bund b)
     if (iface->dodCache.ts + MAX_DOD_CACHE_DELAY < time(NULL))
       PFREE(iface->dodCache.pkt);
     else {
-      assert(iface->dodCache.proto == PROTO_IP);
-      if (NgFuncWriteFrame(b,
-	  MPD_HOOK_DEMAND_TAP, iface->dodCache.pkt) < 0) {
+      if (NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM,
+	  iface->dodCache.proto, iface->dodCache.pkt) < 0) {
 	Log(LG_ERR, ("[%s] can't write cached pkt: %s",
 	  b->name, strerror(errno)));
       }
@@ -1778,6 +1784,8 @@ fail:
 static void
 IfaceNgIpShutdown(Bund b)
 {
+    char		path[NG_PATHLEN + 1];
+
 #ifdef USE_NG_NAT
     if (b->iface.nat_up)
 	IfaceShutdownNAT(b);
@@ -1805,6 +1813,9 @@ IfaceNgIpShutdown(Bund b)
 
     IfaceShutdownLimits(b);
     NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+
+    snprintf(path, sizeof(path), "%s:", b->iface.ifname);
+    NgFuncDisconnect(b->csock, b->name, path, NG_IFACE_HOOK_INET);
 }
 
 static int
@@ -1842,7 +1853,12 @@ fail:
 static void
 IfaceNgIpv6Shutdown(Bund b)
 {
+    char		path[NG_PATHLEN + 1];
+
     NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_IPV6);
+
+    snprintf(path, sizeof(path), "%s:", b->iface.ifname);
+    NgFuncDisconnect(b->csock, b->name, path, NG_IFACE_HOOK_INET);
 }
 
 #ifdef USE_NG_NAT
