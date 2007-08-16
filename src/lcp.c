@@ -462,7 +462,8 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_AUTHENTICATE:
-      PhysSetAccm(l->phys, lcp->peer_accmap, lcp->want_accmap);
+      if (!PhysIsSync(l->phys))
+        PhysSetAccm(l->phys, lcp->peer_accmap, lcp->want_accmap);
       AuthStart(l);
       break;
 
