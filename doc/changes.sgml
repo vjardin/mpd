@@ -42,6 +42,8 @@
 	  </item>
 	  <item> Fixed Dial-on-Demand functionality.
 	  </item>
+	  <item> Do not send SLI message for a Sync L2TP links.
+	  </item>
 	</itemize>
 	</item>
 	<item> Performance improvements:
