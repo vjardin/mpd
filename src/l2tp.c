@@ -1084,7 +1084,7 @@ ppp_l2tp_connected_cb(struct ppp_l2tp_sess *sess,
 	Log(LG_PHYS, ("[%s] L2TP: Call #%u connected", p->name, 
 	    ppp_l2tp_sess_get_serial(sess)));
 
-	if (!pi->incoming && avps != NULL) {
+	if ((pi->incoming != pi->outcall) && avps != NULL) {
 		/* Convert AVP's to friendly form */
 		if ((ptrs = ppp_l2tp_avp_list2ptrs(avps)) == NULL) {
 			Log(LG_ERR, ("L2TP: error decoding AVP list: %s", strerror(errno)));
