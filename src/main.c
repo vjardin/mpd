@@ -139,12 +139,18 @@ main(int ac, char *av[])
     /* enable libpdel typed_mem */
     typed_mem_enable();
 
+    /* Read and parse command line */
+    if (ac > MAX_ARGS)
+	ac = MAX_ARGS;
+    memcpy(args, av, ac * sizeof(*av));	/* Copy to preserve "ps" output */
+    OptParse(ac - 1, args + 1);
+
     /* init console-stuff */
     ConsoleInit(&gConsole);
 
     memset(&gCtx, 0, sizeof(gCtx));
     if (gBackground) {
-        c = &gCtx;
+	c = &gCtx;
     } else {
         c = StdConsoleConnect(&gConsole);
 	if (c == NULL)
@@ -160,12 +166,6 @@ main(int ac, char *av[])
   /* init global-config */
   memset(&gGlobalConf, 0, sizeof(gGlobalConf));
   Disable(&gGlobalConf.options, GLOBAL_CONF_TCPWRAPPER);
-
-  /* Read and parse command line */
-  if (ac > MAX_ARGS)
-    ac = MAX_ARGS;
-  memcpy(args, av, ac * sizeof(*av));	/* Copy to preserve "ps" output */
-  OptParse(ac - 1, args + 1);
 
   /* Background mode? */
   if (gBackground) {
