@@ -241,7 +241,7 @@ Normally, only the <tt>iface</tt> and <tt>link</tt> layers should be explicitly
 opened or closed. This is because the other layers are programmed
 to automatically open and close when appropriate. Note that
 the <bf>SIGUSR1</bf> and <bf>SIGUSR2</bf> signals are an alternative
-way to open and close the currently active link.
+way to open and close the first link.
 
 <tag><tt>close [ <em>layer</em> ] </tt>
 </tag>

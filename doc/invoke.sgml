@@ -100,12 +100,12 @@
 
 	<tag>SIGUSR1</tag>
 	This signal causes mpd to initiate a connection
-	with the currently active link. If mpd is already
+	with the first link. If mpd is already
 	attempting to connect, this signal has no effect.
 
 	<tag>SIGUSR2</tag>
 	This signal has the opposite effect, namely, it causes
-	mpd to close the currently active link. If the link
+	mpd to close the first link. If the link
 	is already in a closed state, this signal has no effect.
 
 	</descrip>
