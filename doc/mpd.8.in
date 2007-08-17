@@ -73,7 +73,7 @@ in that bundle.
 .Sh ON-LINE MANUAL
 Mpd is fully documented in the mpd manual, which is available in HTML.
 The manual can be found in the directory
-.Pa @PREFIX@/share/doc/mpd .
+.Pa @PREFIX@/share/doc/mpd4 .
 .Sh OPTIONS
 Mpd supports the following command options:
 .Pp
@@ -88,7 +88,7 @@ Detach from the terminal and run as a background deamon.
 .It Fl -directory Ar dirname
 .Pp
 Specify a configuration directory other than the default,
-.Pa @PREFIX@/etc/mpd .
+.Pa @PREFIX@/etc/mpd4 .
 .Pp
 .It Fl f Ar file
 .It Fl -file Ar file
@@ -127,9 +127,9 @@ Display invocation usage and exit.
 .El
 .Sh FILES
 .Bl -tag -width /usr/local/share/doc/mpdXX -compact
-.It Pa @PREFIX@/share/doc/mpd
+.It Pa @PREFIX@/share/doc/mpd4
 Directory containing the mpd manual
-.It Pa @PREFIX@/etc/mpd
+.It Pa @PREFIX@/etc/mpd4
 Default configuration file directory
 .It Pa mpd.conf
 Configuration file
