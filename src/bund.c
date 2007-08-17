@@ -993,7 +993,8 @@ BundCreateCmd(Context ctx, int ac, char *av[], void *arg)
   b->conf.bm_Mc = BUND_BM_DFL_Mc;
   b->conf.bm_Md = BUND_BM_DFL_Md;
 
-  Enable(&b->conf.options, BUND_CONF_MULTILINK);
+  if (b->n_links > 1)
+    Enable(&b->conf.options, BUND_CONF_MULTILINK);
   Enable(&b->conf.options, BUND_CONF_SHORTSEQ);
   Accept(&b->conf.options, BUND_CONF_SHORTSEQ);
 
