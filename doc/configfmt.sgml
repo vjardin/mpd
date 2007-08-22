@@ -70,12 +70,12 @@ The corresponding <tt>mpd.links</tt> file might look like this:
 # my internal modem which is on COM3
 modem1:
 	set link type modem
-	set modem device /dev/cuaa2
+	set modem device /dev/cuad2
 
 # my external modem which is on COM2
 modem2:
 	set link type modem
-	set modem device /dev/cuaa1
+	set modem device /dev/cuad1
 </verb></tscreen>
 
 Note that the telephone number to dial for each link is set

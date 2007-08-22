@@ -454,7 +454,7 @@ GenericNoDialtone:
 UsrSetup:
 # Lower baudrate to 57600 for crappy internal Sportster modem
 	if $SportsterHack != "yes" goto UsrSetup2
-	if $modemDevice != "/dev/cuaa2" goto UsrSetup2
+	if $modemDevice != "/dev/cuad2" goto UsrSetup2
 	set $Baudrate 57600
 	set $modemCmd ""
 	call ModemCmd2

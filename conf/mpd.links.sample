@@ -24,7 +24,7 @@
 
 usr:
 	set phys type modem
-	set modem device /dev/cuaa1
+	set modem device /dev/cuad1
 	set modem var $DialPrefix "DT"
 
 #
@@ -77,7 +77,7 @@ ltmdm:
 
 bitsurfr:
 	set phys type modem
-	set modem device /dev/cuaa2
+	set modem device /dev/cuad2
 	set link latency 1000
 	set link bandwidth 92160
 	set modem speed 115200

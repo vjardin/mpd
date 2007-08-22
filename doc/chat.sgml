@@ -167,7 +167,7 @@ ${i_am_safely_followed_by_a_letter}
     <tag><tt>$modemDevice</tt></tag>
 
     The serial port device in use as set by the
-    <tt>set modem device</tt> command, e.g., <tt>/dev/cuaa0</tt>.
+    <tt>set modem device</tt> command, e.g., <tt>/dev/cuad0</tt>.
     Changing this string does not change the port being used.
 
     <tag><tt>$Baudrate</tt></tag>
