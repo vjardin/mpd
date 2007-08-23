@@ -287,8 +287,8 @@ CloseIfaces(void)
   /* Shut down all interfaces we grabbed */
   for (k = 0; k < gNumBundles; k++) {
     if ((b = gBundles[k]) != NULL) {
-      BundNcpsClose(b);
       IfaceClose(b);
+      BundNcpsClose(b);
     }
   }
 }
