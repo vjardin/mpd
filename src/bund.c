@@ -542,111 +542,107 @@ BundNcpsFinish(Bund b, int proto)
 void
 BundNcpsJoin(Bund b, int proto)
 {
-    IfaceState	iface = &b->iface;
-    switch(proto) {
+	IfaceState	iface = &b->iface;
+
+	if (iface->dod) {
+		if (iface->ip_up) {
+			iface->ip_up=0;
+			IfaceIpIfaceDown(b);
+		}
+		if (iface->ipv6_up) {
+			iface->ipv6_up=0;
+			IfaceIpv6IfaceDown(b);
+		}
+		iface->dod = 0;
+		iface->up = 0;
+		IfaceDown(b);
+	}
+    
+	if (!iface->up) {
+		iface->up=1;
+		if (proto == NCP_NONE) {
+			iface->dod=1;
+			IfaceUp(b, 0);
+		} else {
+			IfaceUp(b, 1);
+		}
+	}
+
+	switch(proto) {
 	case NCP_IPCP:
-	    if (!iface->ip_up) {
-		iface->ip_up=1;
-		IfaceIpIfaceUp(b, 1);
-	    } else if (iface->dod) {
-		iface->dod = 0;
-		iface->up = 0;
-		IfaceDown(b);
-		if (iface->ip_up) {
-		    iface->ip_up=0;
-		    IfaceIpIfaceDown(b);
+		if (!iface->ip_up) {
+			iface->ip_up=1;
+			IfaceIpIfaceUp(b, 1);
 		}
-		if (iface->ipv6_up) {
-		    iface->ipv6_up=0;
-		    IfaceIpv6IfaceDown(b);
-		}
-		
-		iface->ip_up=1;
-		IfaceIpIfaceUp(b, 1);
-	    }
-	    break;
+		break;
 	case NCP_IPV6CP:
-	    if (!iface->ipv6_up) {
-		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(b, 1);
-	    } else if (iface->dod) {
-		iface->dod = 0;
-		iface->up = 0;
-		IfaceDown(b);
-		if (iface->ip_up) {
-		    iface->ip_up=0;
-		    IfaceIpIfaceDown(b);
+		if (!iface->ipv6_up) {
+			iface->ipv6_up=1;
+			IfaceIpv6IfaceUp(b, 1);
 		}
-		if (iface->ipv6_up) {
-		    iface->ipv6_up=0;
-		    IfaceIpv6IfaceDown(b);
-		}
-		
-		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(b, 1);
-	    }
-	    break;
+		break;
 	case NCP_NONE: /* Manual call by 'open iface' */
-	    if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
-		if (!(iface->up || iface->ip_up || iface->ipv6_up)) {
-		    iface->dod=1;
-		    iface->up=1;
-		    IfaceUp(b, 0);
-		    if (Enabled(&b->conf.options, BUND_CONF_IPCP)) {
+		if (Enabled(&b->conf.options, BUND_CONF_IPCP) &&
+		    iface->dod && !iface->ip_up) {
 			iface->ip_up=1;
 			IfaceIpIfaceUp(b, 0);
-		    }
-		    if (Enabled(&b->conf.options, BUND_CONF_IPV6CP)) {
+		}
+		if (Enabled(&b->conf.options, BUND_CONF_IPV6CP) &&
+		    iface->dod && !iface->ipv6_up) {
 			iface->ipv6_up=1;
 			IfaceIpv6IfaceUp(b, 0);
-		    }
 		}
-	    }
-	    break;
-    }
-    
-    if ((proto==NCP_IPCP || proto==NCP_IPV6CP) && (!iface->up)) {
-	iface->up=1;
-	IfaceUp(b, 1);
-    }
+		break;
+	}
 }
 
 void
 BundNcpsLeave(Bund b, int proto)
 {
-    IfaceState	iface = &b->iface;
-    switch(proto) {
+	IfaceState	iface = &b->iface;
+	switch(proto) {
 	case NCP_IPCP:
-	    if (iface->ip_up && !iface->dod) {
-		iface->ip_up=0;
-		IfaceIpIfaceDown(b);
-	    }
-	    break;
+		if (iface->ip_up && !iface->dod) {
+			iface->ip_up=0;
+			IfaceIpIfaceDown(b);
+		}
+		break;
 	case NCP_IPV6CP:
-	    if (iface->ipv6_up && !iface->dod) {
-		iface->ipv6_up=0;
-		IfaceIpv6IfaceDown(b);
-	    }
-	    break;
-    }
-    
-    if ((iface->up) && (!iface->ip_up) && (!iface->ipv6_up)) {
-	iface->up=0;
-	IfaceDown(b);
-        if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
-	    iface->dod=1;
-	    iface->up=1;
-	    IfaceUp(b, 0);
-	    if (Enabled(&b->conf.options, BUND_CONF_IPCP)) {
-		iface->ip_up=1;
-		IfaceIpIfaceUp(b, 0);
-	    }
-	    if (Enabled(&b->conf.options, BUND_CONF_IPV6CP)) {
-		iface->ipv6_up=1;
-		IfaceIpv6IfaceUp(b, 0);
-	    }
+		if (iface->ipv6_up && !iface->dod) {
+			iface->ipv6_up=0;
+			IfaceIpv6IfaceDown(b);
+		}
+		break;
+	case NCP_NONE:
+		if (iface->ip_up && iface->dod) {
+			iface->ip_up=0;
+			IfaceIpIfaceDown(b);
+		}
+		if (iface->ipv6_up && iface->dod) {
+			iface->ipv6_up=0;
+			IfaceIpv6IfaceDown(b);
+		}
+		break;
 	}
-    }
+    
+	if ((iface->up) && (!iface->ip_up) && (!iface->ipv6_up)) {
+		iface->dod=0;
+		iface->up=0;
+		IfaceDown(b);
+    		if (iface->open) {
+			iface->dod=1;
+			iface->up=1;
+			IfaceUp(b, 0);
+			if (Enabled(&b->conf.options, BUND_CONF_IPCP)) {
+				iface->ip_up=1;
+				IfaceIpIfaceUp(b, 0);
+			}
+			if (Enabled(&b->conf.options, BUND_CONF_IPV6CP)) {
+				iface->ipv6_up=1;
+				IfaceIpv6IfaceUp(b, 0);
+			}
+		}
+	}
 }
 
 /*

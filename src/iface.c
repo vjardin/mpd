@@ -248,23 +248,25 @@ IfaceInit(Bund b)
 void
 IfaceOpen(Bund b)
 {
-  IfaceState	const iface = &b->iface;
+    IfaceState	const iface = &b->iface;
 
-  Log(LG_IFACE, ("[%s] IFACE: Open event", b->name));
+    Log(LG_IFACE, ("[%s] IFACE: Open event", b->name));
 
-  /* If interface is already open do nothing */
-  if (iface->open)
-    return;
-  iface->open = TRUE;
+    /* Open is useless without on-demand. */
+    if (!Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
+	Log(LG_ERR, ("[%s] 'open iface' is useless without on-demand enabled", b->name));
+	return;
+    }
 
-  /* If on-demand, bring up system interface immediately and start
+    /* If interface is already open do nothing */
+    if (iface->open)
+	return;
+    iface->open = TRUE;
+
+    /* If on-demand, bring up system interface immediately and start
      listening for outgoing packets. The next outgoing packet will
      cause us to open the lower layer(s) */
-  if (Enabled(&iface->options, IFACE_CONF_ONDEMAND)) {
     BundNcpsJoin(b, NCP_NONE);
-    return;
-  }
-
 }
 
 /*
@@ -276,17 +278,17 @@ IfaceOpen(Bund b)
 void
 IfaceClose(Bund b)
 {
-  IfaceState	const iface = &b->iface;
+    IfaceState	const iface = &b->iface;
 
-  Log(LG_IFACE, ("[%s] IFACE: Close event", b->name));
+    Log(LG_IFACE, ("[%s] IFACE: Close event", b->name));
 
-  /* If interface is already closed do nothing */
-  if (!iface->open)
-    return;
-  iface->open = FALSE;
+    /* If interface is already closed do nothing */
+    if (!iface->open)
+	return;
+    iface->open = FALSE;
 
-  /* Close lower layer(s) */
-  BundClose(b);
+    /* If there was on-demand, tell that it is not needed anymore */
+    BundNcpsLeave(b, NCP_NONE);
 }
 
 /*
