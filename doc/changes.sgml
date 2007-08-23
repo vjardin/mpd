@@ -40,9 +40,11 @@
 	  </item>
 	  <item> Fixed memory leak in proxy-arp.
 	  </item>
-	  <item> Fixed Dial-on-Demand functionality.
+	  <item> Fixed Dial-on-Demand functionality broken in 4.2.
 	  </item>
-	  <item> Do not send SLI message for a Sync L2TP links.
+	  <item> Do not set ACCM for a Sync links.
+	  </item>
+	  <item> Fixed Sync mode detection for L2TP links.
 	  </item>
 	</itemize>
 	</item>
