@@ -652,18 +652,21 @@ L2tpDoClose(PhysInfo p)
 
 	/* Get this link's node and hook */
 	ppp_l2tp_sess_get_hook(pi->sess, &node_id, &hook);
+	
+	if (node_id != 0) {
 
-	/* Get a temporary netgraph socket node */
-	if (NgMkSockNode(NULL, &csock, NULL) == -1) {
+	    /* Get a temporary netgraph socket node */
+	    if (NgMkSockNode(NULL, &csock, NULL) == -1) {
 		Log(LG_ERR, ("L2TP: NgMkSockNode: %s", strerror(errno)));
 		return;
+	    }
+	
+	    /* Disconnect session hook. */
+	    snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
+	    NgFuncDisconnect(csock, p->name, path, hook);
+	
+	    close(csock);
 	}
-	
-	/* Disconnect session hook. */
-	snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
-	NgFuncDisconnect(csock, p->name, path, hook);
-	
-	close(csock);
     }
 }
 
