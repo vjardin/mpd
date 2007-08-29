@@ -20,7 +20,7 @@ LIB_DEPENDS=	pdel.0:${PORTSDIR}/devel/libpdel
 LATEST_LINK=    mpd4
 
 OPTIONS=	NG_CAR "Use ng_car kernel module from port (< 7.0 only)" off\
-		NG_IPACCT "Use ng_ipacct kernel module from port)" off
+		NG_IPACCT "Use ng_ipacct kernel module from port" off
 
 HAS_CONFIGURE=	YES
 CONFIGURE_WRKSRC= "${WRKSRC}/src"
