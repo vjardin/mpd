@@ -17,13 +17,13 @@ COMMENT=	Multi-link PPP daemon based on netgraph(4)
 
 LIB_DEPENDS=	pdel.0:${PORTSDIR}/devel/libpdel
 
-LATEST_LINK=    mpd4
+LATEST_LINK=	mpd4
 
 OPTIONS=	NG_CAR "Use ng_car kernel module from port (< 7.0 only)" off\
 		NG_IPACCT "Use ng_ipacct kernel module from port" off
 
 HAS_CONFIGURE=	YES
-CONFIGURE_WRKSRC= "${WRKSRC}/src"
+CONFIGURE_WRKSRC=	"${WRKSRC}/src"
 
 USE_OPENSSL=	yes
 
@@ -53,7 +53,7 @@ MANCOMPRESSED=	maybe
 USE_RC_SUBR=	mpd4.sh
 HTMLNUM!=	@HTMLNUM@
 CONFSUF=	conf links secret script
-DOCSDIR=	${TARGETDIR}/share/doc/mpd4
+DOCSDIR=	${PREFIX}/share/doc/mpd4
 PORTDOCS=	${HTMLNUM:S/^/mpd/:S/$/.html/} mpd.html mpd.ps README	\
 		mpd_toc.html
 PLIST_DIRS=	etc/mpd4
