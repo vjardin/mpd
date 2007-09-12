@@ -319,11 +319,7 @@ IfaceCloseCmd(Context ctx)
  * IfaceUp()
  *
  * Our underlying PPP bundle is ready for traffic.
- * Note, while this assumes we're talking about IP traffic
- * here, in general a parameter could specify which type
- * of traffic, IP vs. AppleTalk vs. whatever, along with
- * additional protocol specific information (in this case,
- * the IP addresses of each end of the point-to-point link).
+ * We may signal that the interface is in DoD with the IFF_LINK0 flag.
  */
 
 void
@@ -457,7 +453,7 @@ IfaceUp(Bund b, int ready)
   };
 
   /* Bring up system interface */
-  IfaceChangeFlags(b, (ready?IFF_LINK0:0), IFF_UP | (ready?0:IFF_LINK0));
+  IfaceChangeFlags(b, 0, IFF_UP | (ready?0:IFF_LINK0));
 
   /* Send any cached packets */
   IfaceCacheSend(b);
@@ -868,8 +864,7 @@ IfaceIpIfaceDown(Bund b)
  * IfaceIpv6IfaceUp()
  *
  * Bring up the IPv6 interface. The "ready" flag means that
- * IPCP is also up and we can deliver packets immediately. We signal
- * that the interface is not "ready" with the IFF_LINK0 flag.
+ * IPv6CP is also up and we can deliver packets immediately.
  */
 
 void
