@@ -422,13 +422,13 @@ IpcpLayerUp(Fsm fp)
   snprintf(ipbuf, sizeof(ipbuf), "%s", inet_ntoa(ipcp->peer_addr));
   Log(fp->log, ("  %s -> %s", inet_ntoa(ipcp->want_addr), ipbuf));
 
-  if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
+    memset(&vjc, 0, sizeof(vjc));
+    if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP) {
   
 	IpcpNgInitVJ(b);
 
 	/* Configure VJ compression node */
-	memset(&vjc, 0, sizeof(vjc));
 	vjc.enableComp = ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP;
 	vjc.enableDecomp = ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP;
 	vjc.maxChannel = ipcp->peer_comp.maxchan;
@@ -439,7 +439,7 @@ IpcpLayerUp(Fsm fp)
 	    Log(LG_ERR, ("[%s] can't config %s node: %s",
     		b->name, NG_VJC_NODE_TYPE, strerror(errno)));
 	}
-  }
+    }
 
   BundNcpsJoin(b, NCP_IPCP);
 
