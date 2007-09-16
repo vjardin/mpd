@@ -79,7 +79,8 @@
   extern void	NgFuncShutdownGlobal(Bund b);
   extern void	NgFuncSetConfig(Bund b);
   extern int	NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp);
-  extern int	NgFuncWriteFrame(Bund b, const char *hook, Mbuf bp);
+  extern int	NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp);
+  extern int	NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp);
   extern int	NgFuncClrStats(Bund b, u_int16_t linkNum);
   extern int	NgFuncGetStats(Bund b, u_int16_t linkNum,
 			struct ng_ppp_link_stat *s);

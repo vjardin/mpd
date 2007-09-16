@@ -234,7 +234,13 @@ BundJoin(Link l)
 	("[%s] multi-link peer authorization name mismatch", l->name));
       return(0);
     }
-  } else {
+  }
+
+  if (LinkNgJoin(l))
+	return(0);
+  l->joined_bund = 1;
+
+  if (bm->n_up == 0) {
 
     /* Cancel re-open timer; we've come up somehow (eg, LCP renegotiation) */
     TimerStop(&b->reOpenTimer);
@@ -337,6 +343,9 @@ BundLeave(Link l)
   /* Disable link */
   b->pppConfig.links[l->bundleIndex].enableLink = 0;
   NgFuncSetConfig(b);
+
+  LinkNgLeave(l);
+  l->joined_bund = 0;
 
   /* Special stuff when last link goes down... */
   if (bm->n_up == 0) {
@@ -1588,6 +1597,7 @@ BundNgDataEvent(int type, void *cookie)
 
   /* A PPP frame from the bypass hook? */
   if (strcmp(naddr.sg_data, MPD_HOOK_PPP) == 0) {
+    Link	l;
     u_int16_t	linkNum, proto;
 
     /* Extract link number and protocol */
@@ -1604,9 +1614,12 @@ BundNgDataEvent(int type, void *cookie)
     /* Set link */
     assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < b->n_links);
 
-    /* Input frame */
-    InputFrame(b, linkNum, proto,
-      mbufise(MB_FRAME_IN, buf + 4, nread - 4));
+    if (linkNum != NG_PPP_BUNDLE_LINKNUM)
+	l = b->links[linkNum];
+    else
+	l = NULL;
+
+    InputFrame(b, l, proto, mbufise(MB_FRAME_IN, buf + 4, nread - 4));
     return;
   }
 
@@ -1628,7 +1641,7 @@ BundNgDataEvent(int type, void *cookie)
       "[%s] rec'd IP frame on mssfix-out hook", b->name);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
     IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
-    NgFuncWriteFrame(b, MPD_HOOK_TCPMSS_IN, nbp);
+    NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_IN, b->name, nbp);
     return;
   }
   /* A snooped, incoming TCP SYN frame? */
@@ -1638,7 +1651,7 @@ BundNgDataEvent(int type, void *cookie)
       "[%s] rec'd IP frame on mssfix-in hook", b->name);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
     IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
-    NgFuncWriteFrame(b, MPD_HOOK_TCPMSS_OUT, nbp);
+    NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_OUT, b->name, nbp);
     return;
   }
 #endif
@@ -1652,7 +1665,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = CcpDataOutput(b, mbufise(MB_COMP, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(b, NG_PPP_HOOK_COMPRESS, nbp);
+	NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_COMPRESS, b->name, nbp);
 
     return;
   }
@@ -1665,7 +1678,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = CcpDataInput(b, mbufise(MB_COMP, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(b, NG_PPP_HOOK_DECOMPRESS, nbp);
+	NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECOMPRESS, b->name, nbp);
 
     return;
   }
@@ -1679,7 +1692,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = EcpDataOutput(b, mbufise(MB_CRYPT, buf, nread));
     if (nbp)
-	NgFuncWriteFrame(b, NG_PPP_HOOK_ENCRYPT, nbp);
+	NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_ENCRYPT, b->name, nbp);
 
     return;
   }
@@ -1692,7 +1705,7 @@ BundNgDataEvent(int type, void *cookie)
 
     nbp = EcpDataInput(b, mbufise(MB_CRYPT, buf, nread));
     if (nbp) 
-	NgFuncWriteFrame(b, NG_PPP_HOOK_DECRYPT, nbp);
+	NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECRYPT, b->name, nbp);
 
     return;
   }

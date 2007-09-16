@@ -9,9 +9,9 @@
 # KEYWORD: shutdown
 
 #
-# Add the following lines to /etc/rc.conf to enable mpd4:
+# Add the following lines to /etc/rc.conf to enable mpd5:
 # mpd_enable (bool):	Set to "NO" by default.
-#			Set it to "YES" to enable mpd4.
+#			Set it to "YES" to enable mpd5.
 # mpd_flags (string):	Set to "-b" by default.
 #			Extra flags passed to start command.
 #
@@ -20,7 +20,7 @@
 
 . %%RC_SUBR%%
 
-name="mpd4"
+name="mpd5"
 rcvar=`set_rcvar mpd`
 
 load_rc_config ${name}

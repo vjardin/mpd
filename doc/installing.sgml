@@ -8,11 +8,11 @@
   <p>
 	If you use the FreeBSD package or port, mpd will be
 	automatically installed
-	into <tt>/usr/local/sbin/mpd4</tt>.
+	into <tt>/usr/local/sbin/mpd5</tt>.
 	with the default set of device types compiled into it.
 	In order to run, mpd needs
 	a few configuration files. The directory
-	<tt>/usr/local/etc/mpd4</tt> is created
+	<tt>/usr/local/etc/mpd5</tt> is created
 	to hold them.
 	In it you will find some sample configuration files.
 </p>

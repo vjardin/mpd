@@ -587,7 +587,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
 	Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
 	  b->name, MBLEN(pkt)));
 #endif
-      NgFuncWriteFrame(b, MPD_HOOK_DEMAND_TAP, pkt);
+      NgFuncWriteFrame(b->dsock, MPD_HOOK_DEMAND_TAP, b->name, pkt);
     } else {
       IfaceCachePkt(b, proto, pkt);
     }
@@ -1425,6 +1425,9 @@ IfaceChangeFlags(Bund b, int clear, int set)
 	return;
     }
     new_flags = (ifrq.ifr_flags & 0xffff) | (ifrq.ifr_flagshigh << 16);
+
+    Log(LG_IFACE2, ("[%s] IFACE: Changed interface flags: -%d +%d",
+	b->name, clear&new_flags, set&(~new_flags))); 
 
     new_flags &= ~clear;
     new_flags |= set;

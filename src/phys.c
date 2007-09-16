@@ -13,6 +13,12 @@
 #include "devices.h"
 #include "util.h"
 
+#ifdef __DragonFly__
+#include <netgraph/tee/ng_tee.h>
+#else
+#include <netgraph/ng_tee.h>
+#endif
+
 /*
  * The physical layer has four states: DOWN, OPENING, CLOSING, and UP.
  * Each device type must implement this set of standard methods:
@@ -254,9 +260,8 @@ int
 PhysGetUpperHook(PhysInfo p, char *path, char *hook)
 {
     if (p->link && p->link->bund) {
-	snprintf(path, NG_PATHLEN, "[%lx]:", (u_long)p->link->bund->nodeID);
-	snprintf(hook, NG_HOOKLEN, "%s%d",
-	    NG_PPP_HOOK_LINK_PREFIX, p->link->bundleIndex);
+	snprintf(path, NG_PATHLEN, "[%lx]:", (u_long)p->link->nodeID);
+	snprintf(hook, NG_HOOKLEN, "%s", NG_TEE_HOOK_LEFT);
 	return 1;
     } else if (p->rep) {
 	return RepGetHook(p, path, hook);

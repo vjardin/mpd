@@ -94,6 +94,10 @@
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
     PhysInfo		phys;			/* Physical layer info */
+    int			csock;			/* Socket node control socket */
+    int			dsock;			/* Socket node data socket */
+    EventRef		dataEvent;		/* Socket node data event */
+    ng_ID_t		nodeID;			/* ID of ppp node */
     MsgHandler		msgs;			/* Link events */
 
     /* State info */
@@ -143,6 +147,8 @@
 
   extern Link	LinkNew(char *name, Bund b, int bI);
   extern void	LinkShutdown(Link l);
+  extern int	LinkNgJoin(Link l);
+  extern int	LinkNgLeave(Link l);
   extern int	LinkNuke(Link link);
   extern int	LinkStat(Context ctx, int ac, char *av[], void *arg);
   extern void	LinkUpdateStats(Link l);

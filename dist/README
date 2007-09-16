@@ -19,7 +19,7 @@ Written by Archie Cobbs <archie@FreeBSD.org>
 
 * HOW DO I BUILD AND INSTALL IT?
 
-  cd /usr/ports/net/mpd4
+  cd /usr/ports/net/mpd5
   make all install
 
 * HOW DO I SET IT UP?
@@ -27,7 +27,7 @@ Written by Archie Cobbs <archie@FreeBSD.org>
   Complete documentation is included in the "doc" subdirectory.
 
   You will need to create your own versions of the four required
-  configuration files in /usr/local/etc/mpd4:
+  configuration files in /usr/local/etc/mpd5:
 
     mpd.conf    - General configuration
     mpd.links   - Description of available links

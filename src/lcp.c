@@ -473,28 +473,17 @@ LcpNewPhase(Link l, int new)
 	FsmSendIdent(&lcp->fsm, l->conf.ident);
 
       /* Join my bundle */
-      switch (BundJoin(l)) {
-	case 0:
+      if (!BundJoin(l)) {
 	  Log(LG_LINK|LG_BUND,
 	    ("[%s] link did not validate in bundle \"%s\"",
 	    l->name, l->bund->name));
 	  RecordLinkUpDownReason(NULL, l,
 	    0, STR_PROTO_ERR, "%s", STR_MULTI_FAIL);
 	  LinkClose(l);
-	  l->joined_bund = 0;
-	  break;
-	case 1:
-	  l->joined_bund = 1;
-	  break;
-	default:
-	  l->joined_bund = 1;
-	  break;
+      } else {
+    	    /* If link connection complete, reset redial counter */
+	    l->num_redial = 0;
       }
-
-      /* If link connection complete, reset redial counter */
-      if (l->joined_bund)
-	l->num_redial = 0;
-
       break;
 
     case PHASE_TERMINATE:

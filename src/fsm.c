@@ -215,8 +215,11 @@ FsmOutputMbuf(Fsm fp, u_int code, u_int id, Mbuf payload)
     bp->next = payload;
 
     /* Send it out */
-    NgFuncWritePppFrame(b, fp->type->link_layer ?
-	((Link)fp->arg)->bundleIndex : NG_PPP_BUNDLE_LINKNUM, fp->type->proto, bp);
+    if (fp->type->link_layer) {
+	NgFuncWritePppFrameLink((Link)fp->arg, fp->type->proto, bp);
+    } else {
+	NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM, fp->type->proto, bp);
+    }
 }
 
 /*

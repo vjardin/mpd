@@ -535,7 +535,7 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
 
   /* Send it out */
 
-  NgFuncWritePppFrame(l->bund, l->bundleIndex, proto, bp);
+  NgFuncWritePppFrameLink(l, proto, bp);
 }
 
 /*

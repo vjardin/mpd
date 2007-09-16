@@ -17,6 +17,16 @@
 #include "ngfunc.h"
 #include "util.h"
 
+#include <netgraph.h>
+#include <netgraph/ng_message.h>
+#ifdef __DragonFly__
+#include <netgraph/socket/ng_socket.h>
+#include <netgraph/tee/ng_tee.h>
+#else
+#include <netgraph/ng_socket.h>
+#include <netgraph/ng_tee.h>
+#endif
+
 /*
  * DEFINITIONS
  */
@@ -49,7 +59,9 @@
 
   static int	LinkSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	LinkMsg(int type, void *cookie);
-
+  static int	LinkNgInit(Link l);
+  static void	LinkNgShutdown(Link l, int tee);
+  static void	LinkNgDataEvent(int type, void *cookie);
 /*
  * GLOBAL VARIABLES
  */
@@ -289,6 +301,8 @@ LinkNew(char *name, Bund b, int bI)
   LcpInit(lnk);
   EapInit(lnk);
 
+  LinkNgInit(lnk);
+
   /* Initialize link layer stuff */
   lnk->phys = PhysInit(lnk->name, lnk, NULL);
 
@@ -307,7 +321,207 @@ LinkShutdown(Link l)
     MsgUnRegister(&l->msgs);
     if (l->phys)
       PhysShutdown(l->phys);
+    LinkNgShutdown(l, 1);
     Freee(MB_LINK, l);
+}
+
+/*
+ * LinkNgInit()
+ *
+ * Setup the initial link framework. Initializes these fields
+ * in the supplied bundle structure:
+ *
+ *	csock		- Control socket for socket netgraph node
+ *	dsock		- Data socket for socket netgraph node
+ *
+ * Returns -1 if error.
+ */
+
+static int
+LinkNgInit(Link l)
+{
+  union {
+      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+      struct ng_mesg	reply;
+  }			u;
+  struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
+  struct ngm_mkpeer	mp;
+  struct ngm_name	nm;
+  int			newTee = 0;
+
+  /* Create a netgraph socket node */
+  if (NgMkSockNode(NULL, &l->csock, &l->dsock) < 0) {
+    Log(LG_ERR, ("[%s] can't create %s node: %s",
+      l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
+    return(-1);
+  }
+  (void) fcntl(l->csock, F_SETFD, 1);
+  (void) fcntl(l->dsock, F_SETFD, 1);
+
+#if NG_NODESIZ>=32
+  /* Give it a name */
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lso", gPid, l->name);
+  if (NgSendMsg(l->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    Log(LG_ERR, ("[%s] can't name %s node: %s",
+      l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
+    goto fail;
+  }
+#endif
+
+  /* Create TEE node */
+  snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
+  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
+  if (NgSendMsg(l->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+      l->name, mp.type, ".", mp.ourhook, strerror(errno)));
+    goto fail;
+  }
+  newTee = 1;
+
+  /* Give it a name */
+  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lt", gPid, l->name);
+  if (NgSendMsg(l->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
+      l->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
+    goto fail;
+  }
+
+  /* Get PPP node ID */
+  if (NgSendMsg(l->csock, MPD_HOOK_PPP,
+      NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
+    Log(LG_ERR, ("[%s] ppp nodeinfo: %s", l->name, strerror(errno)));
+    goto fail;
+  }
+  if (NgRecvMsg(l->csock, &u.reply, sizeof(u), NULL) < 0) {
+    Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
+      l->name, MPD_HOOK_PPP, strerror(errno)));
+    goto fail;
+  }
+  l->nodeID = ni->id;
+
+  /* Listen for happenings on our node */
+  EventRegister(&l->dataEvent, EVENT_READ,
+    l->dsock, EVENT_RECURRING, LinkNgDataEvent, l);
+  /* Control events used only by CCP so Register events there */
+
+  /* OK */
+  return(0);
+
+fail:
+  LinkNgShutdown(l, newTee);
+  return(-1);
+}
+
+/*
+ * LinkNgJoin()
+ */
+
+int
+LinkNgJoin(Link l)
+{
+    char		path[NG_PATHLEN + 1];
+    struct ngm_connect	cn;
+
+    snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
+
+    snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->bund->nodeID);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_RIGHT);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", 
+	NG_PPP_HOOK_LINK_PREFIX, l->bundleIndex);
+    if (NgSendMsg(l->csock, path,
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	return(-1);
+    }
+
+    NgFuncDisconnect(l->csock, l->name, path, NG_TEE_HOOK_LEFT2RIGHT);
+    return (0);
+}
+
+/*
+ * LinkNgLeave()
+ */
+
+int
+LinkNgLeave(Link l)
+{
+    char		path[NG_PATHLEN + 1];
+    struct ngm_connect	cn;
+
+    snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->nodeID);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_PPP);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
+    if (NgSendMsg(l->csock, ".",
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	return(-1);
+    }
+
+    snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
+    NgFuncDisconnect(l->csock, l->name, path, NG_TEE_HOOK_RIGHT);
+    return (0);
+}
+
+/*
+ * LinkNgShutdown()
+ */
+
+static void
+LinkNgShutdown(Link l, int tee)
+{
+    if (tee)
+	NgFuncShutdownNode(l->csock, l->name, MPD_HOOK_PPP);
+    close(l->csock);
+    l->csock = -1;
+//    EventUnRegister(&l->ctrlEvent);
+    close(l->dsock);
+    l->dsock = -1;
+    EventUnRegister(&l->dataEvent);
+}
+
+/*
+ * LinkNgDataEvent()
+ */
+
+static void
+LinkNgDataEvent(int type, void *cookie)
+{
+    Link		l = (Link)cookie;
+    u_char		buf[8192];
+    int			nread;
+    u_int16_t		proto;
+    int			ptr;
+
+    /* Read data */
+    if ((nread = recv(l->dsock, buf, sizeof(buf), 0)) < 0) {
+	if (errno == EAGAIN)
+    	    return;
+	Log(LG_BUND, ("[%s] socket read: %s", l->name, strerror(errno)));
+	DoExit(EX_ERRDEAD);
+    }
+
+    /* Extract protocol */
+    ptr = 0;
+    if ((buf[0] == 0xff) && (buf[1] == 0x03))
+	ptr = 2;
+    proto = buf[ptr++];
+    if ((proto & 0x01) == 0)
+	proto = (proto << 8) + buf[ptr++];
+
+    /* Debugging */
+    LogDumpBuf(LG_FRAME, buf, nread,
+      "[%s] rec'd frame from link proto=0x%04x",
+      l->name, proto);
+
+    /* Input frame */
+    InputFrame(l->bund, l, proto,
+      mbufise(MB_FRAME_IN, buf + ptr, nread - ptr));
 }
 
 /*

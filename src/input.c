@@ -36,68 +36,48 @@
  */
 
 void
-InputFrame(Bund b, int linkNum, int proto, Mbuf bp)
+InputFrame(Bund b, Link l, int proto, Mbuf bp)
 {
-  Link		l;
-  Mbuf		protoRej;
-  const char	*label;
-  u_int16_t	nprot;
-  int		k;
+    Mbuf	protoRej;
+    u_int16_t	nprot;
 
-  /* Check the link */
-  if (linkNum == NG_PPP_BUNDLE_LINKNUM) {
-
-    /* Set link and label */
-    l = b->links[0];
-    label = b->name;
-
-    /* Only limited link-layer stuff allowed over the MP bundle */
-    if (PROT_LINK_LAYER(proto)) {
-      InputMPLinkCheck(b, proto, bp);
-      return;
-    }
-  } else {
-
-    /* Sanity check link number */
-    if (linkNum < 0 || linkNum > b->n_links) {
-      Log(LG_ERR, ("[%s] invalid link # %d proto %s",
-	b->name, linkNum, ProtoName(proto)));
-      PFREE(bp);
-      return;
+    /* Check the link */
+    if (l == NULL) {
+	/* Only limited link-layer stuff allowed over the MP bundle */
+	if (PROT_LINK_LAYER(proto)) {
+    	    InputMPLinkCheck(b, proto, bp);
+    	    return;
+	}
+    } else {
+	/* Check protocol vs. link state */
+	if (!InputLinkCheck(l, proto)) {
+    	    PFREE(bp);
+    	    return;
+	}
     }
 
-    /* Set link and label */
-    l = b->links[linkNum];
-    label = b->name;
+    /* Dispatch frame to the appropriate protocol engine */
+    if (InputDispatch(b, l, proto, bp) >= 0)
+	return;
 
-    /* Check protocol vs. link state */
-    if (!InputLinkCheck(l, proto)) {
-      PFREE(bp);
-      return;
+    /* Unknown protocol, so find a link to send protocol reject on */
+    if (l == NULL) {
+	int	k;
+	for (k = 0;
+    	    k < b->n_links && b->links[k]->lcp.phase != PHASE_NETWORK;
+    	    k++);
+	if (k == b->n_links) {
+    	    PFREE(bp);
+    	    return;
+	}
+	l = b->links[k];
     }
-  }
 
-  /* Dispatch frame to the appropriate protocol engine */
-  if (InputDispatch(b, l, proto, bp) >= 0)
-    return;
-
-  /* Unknown protocol, so find a link to send protocol reject on */
-  if (linkNum == NG_PPP_BUNDLE_LINKNUM) {
-    for (k = 0;
-      k < b->n_links && b->links[k]->lcp.phase != PHASE_NETWORK;
-      k++);
-    if (k == b->n_links) {
-      PFREE(bp);
-      return;
-    }
-    l = b->links[k];
-  }
-
-  /* Send a protocol reject on the chosen link */
-  nprot = htons((u_int16_t) proto);
-  protoRej = mbwrite(mballoc(MB_FRAME_OUT, 2), (u_char *) &nprot, 2);
-  protoRej->next = bp;
-  FsmOutputMbuf(&l->lcp.fsm, CODE_PROTOREJ, l->lcp.fsm.rejid++, protoRej);
+    /* Send a protocol reject on the chosen link */
+    nprot = htons((u_int16_t) proto);
+    protoRej = mbwrite(mballoc(MB_FRAME_OUT, 2), (u_char *) &nprot, 2);
+    protoRej->next = bp;
+    FsmOutputMbuf(&l->lcp.fsm, CODE_PROTOREJ, l->lcp.fsm.rejid++, protoRej);
 }
 
 /*
@@ -112,70 +92,79 @@ InputFrame(Bund b, int linkNum, int proto, Mbuf bp)
 static int
 InputDispatch(Bund b, Link l, int proto, Mbuf bp)
 {
-  int reject = 0;
+    int reject = 0;
 
-  switch (proto) {
-    case PROTO_LCP:
-      LcpInput(l, bp);
-      return(0);
-    case PROTO_PAP:
-    case PROTO_CHAP:
-    case PROTO_EAP:
-      AuthInput(l, proto, bp);
-      return(0);
-    case PROTO_IPCP:
-    case PROTO_IP:
-    case PROTO_VJUNCOMP:
-    case PROTO_VJCOMP:
-      if (!Enabled(&b->conf.options, BUND_CONF_IPCP))
-	reject = 1;
-      else if (proto == PROTO_IPCP) {
-        IpcpInput(b, bp);
-        return(0);
-      }
-      break;
-    case PROTO_IPV6CP:
-    case PROTO_IPV6:
-      if (!Enabled(&b->conf.options, BUND_CONF_IPV6CP))
-	reject = 1;
-      else if (proto == PROTO_IPV6CP) {
-        Ipv6cpInput(b, bp);
-        return(0);
-      }
-      break;
-    case PROTO_CCP:
-    case PROTO_COMPD:
-      if (!Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
-	reject = 1;
-      else if (proto == PROTO_CCP) {
-	CcpInput(b, bp);
-	return(0);
-      }
-      break;
-    case PROTO_ECP:
-    case PROTO_CRYPT:
-      if (!Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
-	reject = 1;
-      else if (proto == PROTO_ECP) {
-	EcpInput(b, bp);
-	return(0);
-      }
-      break;
-    case PROTO_MP:
-      if (!Enabled(&b->conf.options, BUND_CONF_MULTILINK))
-	reject = 1;
-      break;
-    default:			/* completely unknown protocol, reject it */
-      reject = 1;
-      break;
-  }
+    /* link level protos */
+    if (l) {
+	switch (proto) {
+        case PROTO_LCP:
+            LcpInput(l, bp);
+            return(0);
+        case PROTO_PAP:
+        case PROTO_CHAP:
+        case PROTO_EAP:
+            AuthInput(l, proto, bp);
+            return(0);
+        }
+    }
 
-  /* Protocol unexpected, so either reject or drop */
-  Log(LG_LINK|LG_BUND, ("[%s] rec'd unexpected protocol %s%s",
-    (l ? l->name : b->name), ProtoName(proto), reject ? ", rejecting" : ""));
-  if (!reject)
-    PFREE(bp);
-  return(reject ? -1 : 0);
+    /* bundle level protos */
+    if (b) {
+	switch (proto) {
+	case PROTO_IPCP:
+	case PROTO_IP:
+        case PROTO_VJUNCOMP:
+        case PROTO_VJCOMP:
+    	    if (!Enabled(&b->conf.options, BUND_CONF_IPCP))
+		reject = 1;
+    	    else if (proto == PROTO_IPCP) {
+    		IpcpInput(b, bp);
+    		return(0);
+    	    }
+    	    break;
+	case PROTO_IPV6CP:
+	case PROTO_IPV6:
+    	    if (!Enabled(&b->conf.options, BUND_CONF_IPV6CP))
+		reject = 1;
+    	    else if (proto == PROTO_IPV6CP) {
+    		Ipv6cpInput(b, bp);
+    		return(0);
+    	    }
+    	    break;
+	case PROTO_CCP:
+	case PROTO_COMPD:
+    	    if (!Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
+		reject = 1;
+    	    else if (proto == PROTO_CCP) {
+		CcpInput(b, bp);
+		return(0);
+    	    }
+    	    break;
+	case PROTO_ECP:
+	case PROTO_CRYPT:
+    	    if (!Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
+		reject = 1;
+    	    else if (proto == PROTO_ECP) {
+		EcpInput(b, bp);
+		return(0);
+    	    }
+    	    break;
+	case PROTO_MP:
+    	    if (!Enabled(&b->conf.options, BUND_CONF_MULTILINK))
+		reject = 1;
+    	    break;
+	default:	/* completely unknown protocol, reject it */
+    	    reject = 1;
+    	    break;
+	}
+    }
+
+    /* Protocol unexpected, so either reject or drop */
+    Log(LG_LINK|LG_BUND, ("[%s] rec'd unexpected protocol %s%s",
+	(l ? l->name : b->name), ProtoName(proto), reject ? ", rejecting" : ""));
+    if (!reject)
+	PFREE(bp);
+    return (reject ? -1 : 0);
 }
 
 /*
@@ -250,8 +239,8 @@ InputMPLinkCheck(Bund b, int proto, Mbuf pkt)
 	  break;
 
 	case CODE_CODEREJ:		/* these two are OK */
-	case CODE_PROTOREJ:
-	  InputFrame(b, 0, proto, pkt);
+	case CODE_PROTOREJ: 
+	  InputFrame(b, b->links[0], proto, pkt);
 	  break;
 
 	case CODE_ECHOREQ:

@@ -558,7 +558,47 @@ NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
     b->name, (int16_t)linkNum, proto);
 
   /* Write frame */
-  return NgFuncWriteFrame(b, MPD_HOOK_PPP, bp);
+  return NgFuncWriteFrame(b->dsock, MPD_HOOK_PPP, b->name, bp);
+}
+
+/*
+ * NgFuncWritePppFrameLink()
+ *
+ * Consumes the mbuf.
+ */
+
+int
+NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
+{
+    Mbuf	hdr;
+    u_int16_t	temp;
+
+    if (l->joined_bund) {
+	return (NgFuncWritePppFrame(l->bund, l->bundleIndex, proto, bp));
+    }
+
+    /* Prepend framing */
+    hdr = mballoc(bp->type, 4);
+    if (hdr == NULL) {
+	Log(LG_ERR, ("[%s] NgFuncWritePppFrameLink: mballoc() error", l->name));
+	PFREE(bp);
+	return (-1);
+    }
+
+    temp = htons(0xff03);
+    memcpy(MBDATAU(hdr), &temp, 2);
+    temp = htons(proto);
+    memcpy(MBDATAU(hdr) + 2, &temp, 2);
+    hdr->next = bp;
+    bp = hdr;
+
+    /* Debugging */
+    LogDumpBp(LG_FRAME, bp,
+	"[%s] xmit frame to link proto=0x%04x",
+	l->name, proto);
+
+    /* Write frame */
+    return NgFuncWriteFrame(l->dsock, MPD_HOOK_PPP, l->name, bp);
 }
 
 /*
@@ -568,7 +608,7 @@ NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
  */
 
 int
-NgFuncWriteFrame(Bund b, const char *hookname, Mbuf bp)
+NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 {
   u_char		buf[sizeof(struct sockaddr_ng) + NG_HOOKLEN];
   struct sockaddr_ng	*ng = (struct sockaddr_ng *)buf;
@@ -585,13 +625,13 @@ NgFuncWriteFrame(Bund b, const char *hookname, Mbuf bp)
   if (bp == NULL)  
     return (-1);
 
-  rtn = sendto(b->dsock, MBDATAU(bp), MBLEN(bp),
+  rtn = sendto(dsock, MBDATAU(bp), MBLEN(bp),
     0, (struct sockaddr *)ng, ng->sg_len);
 
   /* ENOBUFS can be expected on some links, e.g., ng_pptpgre(4) */
   if (rtn < 0 && errno != ENOBUFS) {
     Log(LG_ERR, ("[%s] error writing len %d frame to %s: %s",
-      b->name, MBLEN(bp), hookname, strerror(errno)));
+      label, MBLEN(bp), hookname, strerror(errno)));
   }
   PFREE(bp);
   return (rtn);
