@@ -104,9 +104,10 @@
   extern int		PhysGetCalledNum(PhysInfo p, char *buf, int buf_len);
 
   extern int		PhysCreate(Context ctx, int ac, char *av[], void *arg);
-  extern PhysInfo	PhysInit(char *name, Link l, Rep r);
   extern PhysInfo	PhysInst(PhysInfo pt);
+  extern int		PhysGet(Link l);
   extern void		PhysShutdown(PhysInfo p);
+  extern PhysInfo	PhysFind(char *name);
   extern void		PhysSetDeviceType(PhysInfo p, char *typename);
   extern int		PhysGetOriginate(PhysInfo p);
   extern int		PhysIsSync(PhysInfo p);

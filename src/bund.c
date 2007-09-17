@@ -224,7 +224,7 @@ BundJoin(Link l)
 		}
 	    }
 	    if (!b && (bt = BundFind(l->bundt))) {
-    		b = BundInst(bt);
+    		b = BundInst(bt, NULL);
 	    }
 	    if (b) {
 		k = 0;
@@ -954,7 +954,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
     }
 
     if (bt) {
-	b = BundInst(bt);
+	b = BundInst(bt, av[0]);
     } else {
 	/* Create a new bundle structure */
 	b = Malloc(MB_BUND, sizeof(*b));
@@ -1012,7 +1012,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
  */
 
 Bund
-BundInst(Bund bt)
+BundInst(Bund bt, char *name)
 {
     Bund	b;
     int	k;
@@ -1029,7 +1029,10 @@ BundInst(Bund bt)
 	LengthenArray(&gBundles, sizeof(*gBundles), &gNumBundles, MB_BUND);
 
     b->id = k;
-    snprintf(b->name, sizeof(b->name), "%s-%d", bt->name, k);
+    if (name)
+	strlcpy(b->name, name, sizeof(b->name));
+    else
+	snprintf(b->name, sizeof(b->name), "%s-%d", bt->name, k);
     gBundles[k] = b;
 
     Log(LG_BUND, ("[%s] Instatiate bundle using template '%s'", b->name, bt->name));
@@ -1069,7 +1072,7 @@ BundShutdown(Bund b)
     int		k;
 
     Log(LG_BUND, ("[%s] Shutdown bundle", b->name));
-    for (k = 0; k < b->n_links; k++) {
+    for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
 	if ((l = b->links[k]) != NULL)
 	    LinkShutdown(l);
     }

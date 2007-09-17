@@ -346,15 +346,15 @@ RepCreateCmd(Context ctx, int ac, char *av[], void *arg)
         RepShutdown(r);
 	return (-1);
     }
-    if ((new_link = PhysInit(av[k], NULL, r)) == NULL) {
+/*    if ((new_link = PhysInit(av[k], NULL, r)) == NULL) {
       Log(LG_ERR, ("[%s] creation of phys \"%s\" failed", av[0], av[k]));
       RepShutdown(r);
       return (-1);
     } else {
       r->physes[k - 1] = new_link;
     }
+*/
   }
-
   /* Add repeater to the list of repeaters and make it the current active repeater */
   for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
   if (k == gNumReps)			/* add a new repeater pointer */

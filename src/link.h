@@ -99,12 +99,14 @@
     char		bundt[LINK_MAX_NAME];	/* Bundle template name */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
+    char		physt[LINK_MAX_NAME];	/* Device template name */
     PhysInfo		phys;			/* Physical layer info */
     int			csock;			/* Socket node control socket */
     int			dsock;			/* Socket node data socket */
     EventRef		dataEvent;		/* Socket node data event */
     ng_ID_t		nodeID;			/* ID of ppp node */
     MsgHandler		msgs;			/* Link events */
+    int			die;
 
     /* State info */
     struct linkconf	conf;		/* Link configuration */
@@ -152,7 +154,7 @@
   extern void	LinkCloseCmd(Context ctx);
 
   extern int	LinkCreate(Context ctx, int ac, char *av[], void *arg);
-  extern Link	LinkInst(Link lt);
+  extern Link	LinkInst(Link lt, char *name);
   extern void	LinkShutdown(Link l);
   extern int	LinkNgJoin(Link l);
   extern int	LinkNgLeave(Link l);

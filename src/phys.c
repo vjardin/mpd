@@ -68,7 +68,6 @@ enum {
   static void	PhysOpenTimeout(void *arg);
   static void	PhysMsg(int type, void *arg);
   static int	PhysSetCommand(Context ctx, int ac, char *av[], void *arg);
-  static PhysInfo	PhysFind(char *name);
 
 /*
  * GLOBAL VARIABLES
@@ -190,51 +189,39 @@ PhysInst(PhysInfo pt)
 }
 
 /*
- * PhysInit()
- *
- * Initialize physical layer state. Note that
- * the device type remains unspecified at this point.
+ * PhysGet()
  */
 
-PhysInfo
-PhysInit(char *name, Link l, Rep r)
+int
+PhysGet(Link l)
 {
-    PhysInfo		p;
-    struct context	ctx;
-    int			k;
-
-    /* See if bundle name already taken */
-    if ((p = PhysFind(name)) != NULL) {
-	Log(LG_ERR, ("phys \"%s\" already exists", name));
-	return NULL;
+    if (l->phys)
+	return (1);
+    
+    if (l->physt[0]) {
+	PhysInfo	p = PhysFind(l->physt);
+	if (p) {
+	    if (p->type->tmpl) {
+		p = PhysInst(p);
+		if (!p) {
+		    Log(LG_LINK, ("[%s] Can't instantiate device \"%s\"", l->name, l->physt));
+		    return (0);
+		}
+	    }
+	} else {
+	    Log(LG_LINK, ("[%s] Can't find device \"%s\"", l->name, l->physt));
+	    return (0);
+	}
+	if (p) {
+	    l->phys = p;
+	    p->link = l;
+	}
+    } else {
+	Log(LG_LINK, ("[%s] Phys template not specified", l->name));
+	return (0);
     }
-
-    p = Malloc(MB_PHYS, sizeof(*p));
-  
-    strlcpy(p->name, name, sizeof(p->name));
-    p->state = PHYS_STATE_DOWN;
-    p->msgs = MsgRegister(PhysMsg);
-    p->link = l;
-    p->rep = r;
-
-    /* Find a free link pointer */
-    for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
-    if (k == gNumPhyses)			/* add a new link pointer */
-	LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
-
-    p->id = k;
-    gPhyses[k] = p;
-
-    memset(&ctx, 0, sizeof(ctx));
-    ctx.lnk = l;
-    ctx.phys = p;
-    ctx.rep = NULL;
-    ctx.bund = NULL;
-
-    /* Read special configuration for link, if any */
-    (void) ReadFile(LINKS_FILE, name, DoCommand, &ctx);
-
-    return(p);
+    
+    return (1);
 }
 
 /*
@@ -333,7 +320,7 @@ PhysIncoming(PhysInfo p)
     if (!p->link && p->linkt[0]!=0) {
 	Link lt = LinkFind(p->linkt);
 	if (lt && lt->tmpl) {
-	    p->link = LinkInst(lt);
+	    p->link = LinkInst(lt, NULL);
 	    p->link->phys = p;
 	} else
 	    Log(LG_ERR, ("[%s] Link template '%s' not found", p->name, p->linkt));
@@ -679,7 +666,7 @@ PhysCommand(Context ctx, int ac, char *av[], void *arg)
  * Find a phys structure
  */
 
-static PhysInfo
+PhysInfo
 PhysFind(char *name)
 {
   int	k;

@@ -445,8 +445,8 @@ LcpNewPhase(Link l, int new)
   /* Change phase now */
   lcp->phase = new;
 
-  /* Do whatever for leaving old phase */
-  switch (old) {
+    /* Do whatever for leaving old phase */
+    switch (old) {
     case PHASE_AUTHENTICATE:
       if (new != PHASE_NETWORK)
 	AuthCleanup(l);
@@ -460,10 +460,10 @@ LcpNewPhase(Link l, int new)
 
     default:
       break;
-  }
+    }
 
-  /* Do whatever for entering new phase */
-  switch (new) {
+    /* Do whatever for entering new phase */
+    switch (new) {
     case PHASE_ESTABLISH:
       memset(&l->bm.traffic, 0, sizeof(l->bm.traffic));
       memset(&l->bm.idleStats, 0, sizeof(l->bm.idleStats));
@@ -498,12 +498,13 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_DEAD:
-	LinkShutdown(l);
-      break;
+	if (l->die)
+	    LinkShutdown(l);
+        break;
 
     default:
       assert(0);
-  }
+    }
 }
 
 /*
@@ -635,7 +636,14 @@ static void
 LcpLayerStart(Fsm fp)
 {
     Link	l = (Link)fp->arg;
-  PhysOpen(l->phys);
+    if (!l->phys)
+	PhysGet(l);
+    if (l->phys)
+	PhysOpen(l->phys);
+    else {
+	LcpClose(l);
+	LcpDown(l);
+    }
 }
 
 static void

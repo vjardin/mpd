@@ -34,6 +34,7 @@
   /* Set menu options */
   enum {
     SET_BUNDLE,
+    SET_DEVICE,
     SET_BANDWIDTH,
     SET_LATENCY,
     SET_ACCMAP,
@@ -71,6 +72,8 @@
 	LinkSetCommand, NULL, (void *) SET_BANDWIDTH },
     { "bundle {template}",		"Bundle template name",
 	LinkSetCommand, NULL, (void *) SET_BUNDLE },
+    { "device {template}",		"Device template name",
+	LinkSetCommand, NULL, (void *) SET_DEVICE },
     { "latency {microsecs}",		"Link latency",
 	LinkSetCommand, NULL, (void *) SET_LATENCY },
     { "accmap {hex-value}",		"Accmap value",
@@ -197,6 +200,7 @@ LinkDown(Link l)
 		Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
 		  l->name, l->num_redial));
 	    }
+	    l->die = 1;
 	    LcpClose(l);
             LcpDown(l);
 	} else {
@@ -205,10 +209,13 @@ LinkDown(Link l)
 	      l->name, l->num_redial));
 	    RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
     	    LcpDown(l);
-	    if (!gShutdownInProgress)	/* Giveup on shutdown */
+	    if (!gShutdownInProgress) {	/* Giveup on shutdown */
+		PhysGet(l);
 		PhysOpen(l->phys);		/* Try again */
+	    };
 	}
     } else {
+	l->die = 1;
         LcpDown(l);
     }
     /* reset Link-stats */
@@ -271,7 +278,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
     if (ac == 2) {
 	if (strcmp(av[1], "template") != 0) {
 	    /* See if template name specified */
-	    if ((lt = LinkFind(av[1])) != NULL) {
+	    if ((lt = LinkFind(av[1])) == NULL) {
 		Log(LG_ERR, ("Link template \"%s\" not found", av[1]));
 		return (0);
 	    }
@@ -286,7 +293,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 
     /* Create and initialize new link */
     if (lt) {
-	l = LinkInst(lt);
+	l = LinkInst(lt, av[0]);
     } else {
 	l = Malloc(MB_LINK, sizeof(*l));
 	snprintf(l->name, sizeof(l->name), "%s", av[0]);
@@ -364,7 +371,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
  */
 
 Link
-LinkInst(Link lt)
+LinkInst(Link lt, char *name)
 {
     Link 	l;
     int		k;
@@ -382,7 +389,10 @@ LinkInst(Link lt)
 
     l->id = k;
 
-    snprintf(l->name, sizeof(l->name), "%s-%d", lt->name, k);
+    if (name)
+	strlcpy(l->name, name, sizeof(l->name));
+    else
+	snprintf(l->name, sizeof(l->name), "%s-%d", lt->name, k);
     gLinks[k] = l;
 
     LcpInst(l, lt);
@@ -938,6 +948,12 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 	if (ac != 1)
 	    return(-1);
 	snprintf(ctx->lnk->bundt, sizeof(ctx->lnk->bundt), "%s", av[0]);
+        break;
+
+    case SET_DEVICE:
+	if (ac != 1)
+	    return(-1);
+	snprintf(ctx->lnk->physt, sizeof(ctx->lnk->physt), "%s", av[0]);
         break;
 
     case SET_MRU:

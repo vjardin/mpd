@@ -179,7 +179,7 @@
   extern int	BundCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	MSessionCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	BundCreate(Context ctx, int ac, char *av[], void *arg);
-  extern Bund	BundInst(Bund bt);
+  extern Bund	BundInst(Bund bt, char *name);
   extern Bund	BundFind(char *name);
   extern void	BundShutdown(Bund b);
   extern void   BundUpdateStats(Bund b);
