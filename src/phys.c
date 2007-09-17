@@ -304,10 +304,12 @@ PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 	p->link->upReasonValid=0;
 	p->link->phys = NULL;
 	LinkDown(p->link);
+	p->link = NULL;
     } else if (p->rep) {
 	RepDown(p);
     }
-    PhysShutdown(p);
+    if (p->type->tmpl)
+	PhysShutdown(p);
 }
 
 /*
