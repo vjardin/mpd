@@ -16,48 +16,6 @@
 #include "util.h"
 
 /*
- * MpInit()
- *
- * Initialize MP state
- */
-
-void
-MpInit(Bund b, Link l)
-{
-  MpState	mp = &b->mp;
-
-  assert(MP_MIN_MRRU <= MP_MAX_MRRU);
-  memset(mp, 0, sizeof(*mp));
-  mp->self_mrru = l->lcp.want_mrru;
-  mp->peer_mrru = l->lcp.peer_mrru;
-  mp->self_short_seq = l->lcp.want_shortseq;
-  mp->peer_short_seq = l->lcp.peer_shortseq;
-}
-
-/*
- * MpStat()
- */
-
-int
-MpStat(Context ctx, int ac, char *av[], void *arg)
-{
-  MpState	mp = &ctx->bund->mp;
-
-  Printf("Multilink self:\r\n");
-  Printf("\tMRRU     : %d\r\n"
-	"\tShortSeq : %s\r\n",
-    mp->self_mrru,
-    mp->self_short_seq ? "Yes" : "No");
-
-  Printf("Multilink peer:\r\n");
-  Printf("\tMRRU     : %d\r\n"
-	 "\tShortSeq : %s\r\n",
-    mp->peer_mrru,
-    mp->peer_short_seq ? "Yes" : "No");
-  return(0);
-}
-
-/*
  * MpSetDiscrim()
  *
  * Figure out and set my discriminator
@@ -146,5 +104,3 @@ MpDiscrimText(Discrim dis, char *buf, size_t len)
       len - strlen(buf), " %02x", dis->bytes[k]);
   return(buf);
 }
-
-

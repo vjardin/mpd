@@ -46,22 +46,10 @@
 
   #define MP_LCP_CODE_OK(c)	((c) >= CODE_CODEREJ && (c) <= CODE_ECHOREP)
 
-/* Multi-link configuration */
-
-  struct mpstate {
-    u_short		self_mrru;		/* My MRRU size */
-    u_short		peer_mrru;		/* His MRRU size */
-    u_int		self_short_seq:1;	/* I expect short headers */
-    u_int		peer_short_seq:1;	/* He wants short headers */
-  };
-  typedef struct mpstate	*MpState;
-
 /*
  * FUNCTIONS
  */
 
-  extern void	MpInit(Bund b, Link l);
-  extern int	MpStat(Context ctx, int ac, char *av[], void *arg);
   extern void	MpSetDiscrim(void);
   extern int	MpDiscrimEqual(Discrim dis1, Discrim dis2);
   extern char *	MpDiscrimText(Discrim dis, char *buf, size_t len);

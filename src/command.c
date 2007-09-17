@@ -150,8 +150,6 @@
 	NatStat, AdmitLink, NULL },
     { "mem",				"Memory map",
 	MemStat, NULL, NULL },
-    { "mp",				"Multi-link status",
-	MpStat, AdmitBund, NULL },
     { "console",			"Console status",
 	ConsoleStat, NULL, NULL },
     { "web",				"Web status",

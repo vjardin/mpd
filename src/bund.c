@@ -209,78 +209,56 @@ BundJoin(Link l)
     }
 
     if (!l->bund) {
-	if (l->bundt[0]) {
-	    b = NULL;
-	    if (lcp->peer_multilink) {
-		for (k = 0; k < gNumBundles; k++) {
-		    if (gBundles[k] && !gBundles[k]->tmpl && gBundles[k]->multilink &&
-			MpDiscrimEqual(&l->peer_discrim, &gBundles[k]->peer_discrim) &&
-			!strcmp(l->lcp.auth.params.authname, gBundles[k]->params.authname)) {
-			    break;
-		    }
-		}
-		if (k != gNumBundles) {
-		    b = gBundles[k];
+	b = NULL;
+	if (lcp->peer_multilink) {
+	    for (k = 0; k < gNumBundles; k++) {
+		if (gBundles[k] && !gBundles[k]->tmpl && gBundles[k]->multilink &&
+		    MpDiscrimEqual(&l->peer_discrim, &gBundles[k]->peer_discrim) &&
+		    !strcmp(l->lcp.auth.params.authname, gBundles[k]->params.authname)) {
+		        break;
 		}
 	    }
-	    if (!b && (bt = BundFind(l->bundt))) {
-    		b = BundInst(bt, NULL);
+	    if (k != gNumBundles) {
+	        b = gBundles[k];
 	    }
-	    if (b) {
-		k = 0;
-		while (k < NG_PPP_MAX_LINKS && b->links[k] != NULL)
-		    k++;
-		if (k < NG_PPP_MAX_LINKS) {
-		    l->bund = b;
-		    l->bundleIndex = k;
-		    b->links[k] = l;
-		    b->n_links++;
+	}
+	if (!b) {
+	    if (l->bundt[0]) {
+    		Log(LG_BUND, ("[%s] Creating bundle using template \"%s\".", l->name, l->bundt));
+		if ((bt = BundFind(l->bundt))) {
+    		    b = BundInst(bt, NULL);
+		} else {
+    		    Log(LG_BUND, ("[%s] Bundle template \"%s\" not found.", l->name, l->bundt));
+		    return (0);
 		}
+	    } else {
+    		Log(LG_BUND, ("[%s] No template specified to create bundle.", l->name));
+		return (0);
 	    }
+	    if (!b) {
+    		Log(LG_BUND, ("[%s] Bundle creation error", l->name));
+		return (0);
+	    }
+	}
+	k = 0;
+	while (k < NG_PPP_MAX_LINKS && b->links[k] != NULL)
+	    k++;
+	if (k < NG_PPP_MAX_LINKS) {
+	    l->bund = b;
+	    l->bundleIndex = k;
+	    b->links[k] = l;
+	    b->n_links++;
 	} else {
-    	    Log(LG_BUND, ("[%s] Bundle template not specified", l->name));
+    	    Log(LG_BUND, ("[%s] No more then %d links per bundle allowed. "
+		"Can't join budle.", l->name, NG_PPP_MAX_LINKS));
 	    return (0);
 	}
-    }
-    
-    if (!l->bund) {
-    	Log(LG_BUND, ("[%s] No bundle found to join", l->name));
-	return (0);
     }
 
     b = l->bund;
     bm = &b->bm;
 
     if (!b->open) b->open = TRUE; /* Open bundle on incoming */
-
-    /* Other links in this bundle yet? If so, enforce bundling */
-    if (bm->n_up > 0) {
-
-	/* First of all, we have to be doing multi-link */
-	if (!b->multilink || !lcp->peer_multilink) {
-    	    Log(LG_LCP,
-		("[%s] multi-link is not active on this bundle", l->name));
-	    l->bund = NULL;
-	    BundShutdown(b);
-    	    return(0);
-	}
-
-	/* Discriminator and authname must match */
-	if (!MpDiscrimEqual(&l->peer_discrim, &b->peer_discrim)) {
-    	    Log(LG_LCP,
-		("[%s] multi-link peer discriminator mismatch", l->name));
-	    l->bund = NULL;
-	    BundShutdown(b);
-    	    return(0);
-	}
-	if (strcmp(l->lcp.auth.params.authname, b->params.authname)) {
-    	    Log(LG_LCP,
-		("[%s] multi-link peer authorization name mismatch", l->name));
-	    l->bund = NULL;
-	    BundShutdown(b);
-    	    return(0);
-	}
-    }
 
     if (LinkNgJoin(l)) {
 	l->bund = NULL;
@@ -300,7 +278,6 @@ BundJoin(Link l)
 	/* Initialize multi-link stuff */
 	if ((b->multilink = lcp->peer_multilink)) {
     	    b->peer_discrim = l->peer_discrim;
-    	    MpInit(b, l);
 	}
 
 	/* Start bandwidth management */
@@ -780,43 +757,39 @@ BundUpdateParams(Bund b)
   BundBm	const bm = &b->bm;
   int		k, mtu, the_link = 0;
 
-  /* Recalculate how much bandwidth we have */
-  for (bm->total_bw = k = 0; k < b->n_links; k++) {
-    if (b->links[k] && b->links[k]->lcp.phase == PHASE_NETWORK) {
-      bm->total_bw += b->links[k]->bandwidth;
-      the_link = k;
+    /* Recalculate how much bandwidth we have */
+    bm->total_bw = 0;
+    for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
+	if (b->links[k] && b->links[k]->lcp.phase == PHASE_NETWORK) {
+    	    bm->total_bw += b->links[k]->bandwidth;
+    	    the_link = k;
+	}
     }
-  }
-  if (bm->total_bw < BUND_MIN_TOT_BW)
-    bm->total_bw = BUND_MIN_TOT_BW;
+    if (bm->total_bw < BUND_MIN_TOT_BW)
+	bm->total_bw = BUND_MIN_TOT_BW;
 
-  /* Recalculate MTU corresponding to peer's MRU */
-  switch (bm->n_up) {
-    case 0:
-      mtu = NG_IFACE_MTU_DEFAULT;	/* Reset to default settings */
-      break;
-    case 1:
-      if (!b->multilink) {		/* If no multilink, use peer MRU */
+    /* Recalculate MTU corresponding to peer's MRU */
+    if (bm->n_up == 0) {
+        mtu = NG_IFACE_MTU_DEFAULT;	/* Reset to default settings */
+
+    } else if (!b->multilink) {		/* If no multilink, use peer MRU */
 	mtu = MIN(b->links[the_link]->lcp.peer_mru,
 		  b->links[the_link]->phys->type->mtu);
-	break;
-      }
-      /* FALLTHROUGH */
-    default:			/* We fragment everything, use bundle MRRU */
-      mtu = b->mp.peer_mrru;
-      break;
-  }
 
-  /* Subtract to make room for various frame-bloating protocols */
-  if (bm->n_up > 0) {
-    if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
-      mtu = CcpSubtractBloat(b, mtu);
-    if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
-      mtu = EcpSubtractBloat(b, mtu);
-  }
+    } else {	  	/* Multilink. We fragment everything, use peer MRRU */
+        mtu = b->links[the_link]->lcp.peer_mrru;
+    }
 
-  /* Update interface MTU */
-  IfaceSetMTU(b, mtu);
+    /* Subtract to make room for various frame-bloating protocols */
+    if (bm->n_up > 0) {
+	if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
+    	    mtu = CcpSubtractBloat(b, mtu);
+	if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
+    	    mtu = EcpSubtractBloat(b, mtu);
+    }
+
+    /* Update interface MTU */
+    IfaceSetMTU(b, mtu);
 }
 
 /*
