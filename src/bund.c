@@ -1008,8 +1008,6 @@ BundInst(Bund bt, char *name)
 	snprintf(b->name, sizeof(b->name), "%s-%d", bt->name, k);
     gBundles[k] = b;
 
-    Log(LG_BUND, ("[%s] Instatiate bundle using template '%s'", b->name, bt->name));
-
     /* Inst interface stuff */
     IfaceInst(b, bt);
 
@@ -1021,7 +1019,7 @@ BundInst(Bund bt, char *name)
 
     /* Setup netgraph stuff */
     if (BundNgInit(b) < 0) {
-	Log(LG_ERR, ("[%s] netgraph initialization failed", b->name));
+	Log(LG_ERR, ("[%s] Bundle netgraph initialization failed", b->name));
 	Freee(MB_BUND, b);
 	return(0);
     }
