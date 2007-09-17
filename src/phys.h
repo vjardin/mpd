@@ -32,7 +32,9 @@
     const char	*name;				/* Name of device type */
     short	minReopenDelay;			/* Min seconds between opens */
     u_short	mtu, mru;			/* Not incl. addr/ctrl/fcs */
+    int		tmpl;				/* This type is template, not an instance */
     int		(*init)(PhysInfo p);		/* Initialize device info */
+    int		(*inst)(PhysInfo p, PhysInfo pt);	/* Instantiate device */
     void	(*open)(PhysInfo p);		/* Initiate connection */
     void	(*close)(PhysInfo p);		/* Disconnect */
     void	(*update)(PhysInfo p);		/* Update config when LCP up */
@@ -59,6 +61,7 @@
   struct physinfo {
     char		name[LINK_MAX_NAME];	/* Human readable name */
     int			id;			/* Index of this phys in gPhyses */
+    int			tmpl;			/* This type is template, not an instance */
     u_char		state;			/* Device current state */
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
@@ -67,6 +70,8 @@
     Rep			rep;			/* Rep connected to the device */
     MsgHandler		msgs;			/* Message channel */
     struct pppTimer	openTimer;		/* Open retry timer */
+    struct optinfo	options;
+    char		linkt[LINK_MAX_NAME];	/* Link template for incomings */
   };
 
 /*
@@ -98,7 +103,9 @@
   extern int		PhysGetCallingNum(PhysInfo p, char *buf, int buf_len);
   extern int		PhysGetCalledNum(PhysInfo p, char *buf, int buf_len);
 
+  extern int		PhysCreate(Context ctx, int ac, char *av[], void *arg);
   extern PhysInfo	PhysInit(char *name, Link l, Rep r);
+  extern PhysInfo	PhysInst(PhysInfo pt);
   extern void		PhysShutdown(PhysInfo p);
   extern void		PhysSetDeviceType(PhysInfo p, char *typename);
   extern int		PhysGetOriginate(PhysInfo p);

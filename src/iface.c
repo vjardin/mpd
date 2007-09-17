@@ -15,7 +15,6 @@
 #include "iface.h"
 #include "ipcp.h"
 #include "auth.h"
-#include "custom.h"
 #include "ngfunc.h"
 #include "netgraph.h"
 #include "util.h"
@@ -235,8 +234,18 @@ IfaceInit(Bund b)
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
   NatInit(b);
-  Log(LG_BUND|LG_IFACE, ("[%s] using interface %s",
-    b->name, b->iface.ifname));
+}
+
+/*
+ * IfaceInst()
+ */
+
+void
+IfaceInst(Bund b, Bund bt)
+{
+    IfaceState	const iface = &b->iface;
+
+    memcpy(iface, &bt->iface, sizeof(*iface));
 }
 
 /*
@@ -1426,9 +1435,6 @@ IfaceChangeFlags(Bund b, int clear, int set)
     }
     new_flags = (ifrq.ifr_flags & 0xffff) | (ifrq.ifr_flagshigh << 16);
 
-    Log(LG_IFACE2, ("[%s] IFACE: Changed interface flags: -%d +%d",
-	b->name, clear&new_flags, set&(~new_flags))); 
-
     new_flags &= ~clear;
     new_flags |= set;
 
@@ -2212,9 +2218,7 @@ static int
 IfaceInitMSS(Bund b, char *path, char *hook)
 {
 	struct ngm_mkpeer	mp;
-#if NG_NODESIZ>=32
 	struct ngm_name		nm;
-#endif
 #ifndef USE_NG_TCPMSS
 	struct ngm_connect	cn;
 #endif
@@ -2262,7 +2266,6 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     strlcat(path, hook, NG_PATHLEN);
     strcpy(hook, "iface");
 
-#if NG_NODESIZ>=32
     /* Set the new node's name. */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-mss", gPid, b->name);
     if (NgSendMsg(b->csock, path,
@@ -2271,7 +2274,6 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     	    strerror(errno)));
 	goto fail;
     }
-#endif
 
     /* Connect to the bundle socket node. */
     snprintf(cn.path, sizeof(cn.path), "%s", path);
@@ -2417,9 +2419,7 @@ static int
 IfaceInitLimits(Bund b, char *path, char *hook)
 {
     struct ngm_mkpeer	mp;
-#if NG_NODESIZ>=32
     struct ngm_name	nm;
-#endif
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 
@@ -2440,7 +2440,6 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	strlcat(path, hook, NG_PATHLEN);
 	strcpy(hook, "iface");
 
-#if NG_NODESIZ>=32
 	/* Set the new node's name. */
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lim", gPid, b->name);
 	if (NgSendMsg(b->csock, path,
@@ -2449,7 +2448,6 @@ IfaceInitLimits(Bund b, char *path, char *hook)
     		strerror(errno)));
 	    goto fail;
 	}
-#endif
 
     }
 

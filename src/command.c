@@ -26,7 +26,6 @@
 #include "ip.h"
 #include "devices.h"
 #include "netgraph.h"
-#include "custom.h"
 #include "ngfunc.h"
 #include "util.h"
 
@@ -71,7 +70,6 @@
   static int	LoadCommand(Context ctx, int ac, char *av[], void *arg);
   static int	ExitCommand(Context ctx, int ac, char *av[], void *arg);
   static int	QuitCommand(Context ctx, int ac, char *av[], void *arg);
-  static int	NullCommand(Context ctx, int ac, char *av[], void *arg);
   static int	GlobalSetCommand(Context ctx, int ac, char *av[], void *arg);
   static int	SetDebugCommand(Context ctx, int ac, char *av[], void *arg);
 
@@ -86,17 +84,17 @@
   static int	exitflag;
 
   const struct cmdtab GlobalSetCmds[] = {
-    { "enable [opt ...]", 		"Enable option" ,
+    { "enable {opt ...}", 		"Enable option" ,
        	GlobalSetCommand, NULL, (void *) SET_ENABLE },
-    { "disable [opt ...]", 		"Disable option" ,
+    { "disable {opt ...}", 		"Disable option" ,
        	GlobalSetCommand, NULL, (void *) SET_DISABLE },
-    { "startrule num", 			"Initial ipfw rule number" ,
+    { "startrule {num}", 			"Initial ipfw rule number" ,
        	GlobalSetCommand, NULL, (void *) SET_RULE },
-    { "startqueue num", 		"Initial ipfw queue number" ,
+    { "startqueue {num}", 		"Initial ipfw queue number" ,
        	GlobalSetCommand, NULL, (void *) SET_QUEUE },
-    { "startpipe num",			"Initial ipfw pipe number" ,
+    { "startpipe {num}",			"Initial ipfw pipe number" ,
        	GlobalSetCommand, NULL, (void *) SET_PIPE },
-    { "starttable num", 		"Initial ipfw table number" ,
+    { "starttable {num}", 		"Initial ipfw table number" ,
        	GlobalSetCommand, NULL, (void *) SET_TABLE },
     { NULL },
   };
@@ -106,10 +104,19 @@
     { 0,	0,			NULL		},
   };
 
+  static const struct cmdtab CreateCommands[] = {
+    { "device {name} {template}|template",		"Create physical device",
+	PhysCreate, NULL, NULL },
+    { "link {name} {template}|template",		"Create link instance/template",
+	LinkCreate, NULL, NULL },
+    { "bundle {name} {template}|template",	"Create bundle instance/template",
+	BundCreate, NULL, NULL },
+  };
+
   static const struct cmdtab ShowCommands[] = {
-    { "bundle [name]",			"Bundle status",
+    { "bundle [{name}]",		"Bundle status",
 	BundStat, AdmitBund, NULL },
-    { "repeater [name]",		"Repeater status",
+    { "repeater [{name}]",		"Repeater status",
 	RepStat, AdmitRep, NULL },
     { "ccp",				"CCP status",
 	CcpStat, AdmitBund, NULL },
@@ -129,7 +136,7 @@
 	IpShowRoutes, NULL, NULL },
     { "layers",				"Layers to open/close",
 	ShowLayers, NULL, NULL },
-    { "phys",				"Physical device status",
+    { "device",				"Physical device status",
 	PhysStat, AdmitPhys, NULL },
     { "link",				"Link status",
 	LinkStat, AdmitLink, NULL },
@@ -167,7 +174,7 @@
 	CMD_SUBMENU, AdmitRep, (void *) RepSetCmds },
     { "link ...",			"Link specific stuff",
 	CMD_SUBMENU, AdmitLink, (void *) LinkSetCmds },
-    { "phys ...",			"Phys specific stuff",
+    { "device ...",			"Device specific stuff",
 	CMD_SUBMENU, AdmitPhys, (void *) PhysSetCmds },
     { "iface ...",			"Interface specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) IfaceSetCmds },
@@ -205,44 +212,38 @@
   };
 
   const struct cmdtab gCommands[] = {
-    { "new bundle link ...",		"Create new bundle",
-    	BundCreateCmd, NULL, NULL },
-    { "rnew repeater link1 link2",	"Create new repeater",
-    	RepCreateCmd, NULL, NULL },
-    { "bundle [name]",			"Choose/list bundles",
+    { "bundle [{name}]",		"Choose/list bundles",
 	BundCommand, NULL, NULL },
-    { "msession [msesid]",		"Choose link by multy-session-id",
-	MSessionCommand, NULL, NULL },
-    { "repeater [name]",		"Choose/list repeaters",
-	RepCommand, NULL, NULL },
-    { "custom ...",			"Custom stuff",
-	CMD_SUBMENU, NULL, (void *) CustomCmds },
-    { "link [name]",			"Choose link",
-	LinkCommand, NULL, NULL },
-    { "session [sesid]",		"Choose link by session-id",
-	SessionCommand, NULL, NULL },
-    { "phys [name]",			"Choose phys",
-	PhysCommand, NULL, NULL },
-    { "open [layer]",			"Open a layer",
-	OpenCommand, AdmitLink, NULL },
-    { "close [layer]",			"Close a layer",
+    { "close [{layer}]",		"Close a layer",
 	CloseCommand, AdmitLink, NULL },
-    { "load label",			"Read from config file",
+    { "create ...",			"Create new item",
+    	CMD_SUBMENU, NULL, (void *) CreateCommands },
+    { "device [{name}]",		"Choose/list devices",
+	PhysCommand, NULL, NULL },
+    { "exit",				"Exit console",
+	ExitCommand, NULL, NULL },
+    { "help ...",			"Help on any command",
+	HelpCommand, NULL, NULL },
+    { "link {name}",			"Choose link",
+	LinkCommand, NULL, NULL },
+    { "load {label}",			"Read from config file",
 	LoadCommand, NULL, NULL },
+    { "log [+/-{opt} ...]",		"Set/view log options",
+	LogCommand, NULL, NULL },
+    { "msession {msesid}",		"Choose link by multy-session-id",
+	MSessionCommand, NULL, NULL },
+    { "open [{layer}]",			"Open a layer",
+	OpenCommand, AdmitLink, NULL },
+    { "quit",				"Quit program",
+	QuitCommand, NULL, NULL },
+    { "repeater [{name}]",		"Choose/list repeaters",
+	RepCommand, NULL, NULL },
+    { "session {sesid}",		"Choose link by session-id",
+	SessionCommand, NULL, NULL },
     { "set ...",			"Set parameters",
 	CMD_SUBMENU, NULL, (void *) SetCommands },
     { "show ...",			"Show status",
 	CMD_SUBMENU, NULL, (void *) ShowCommands },
-    { "exit",				"Exit console",
-	ExitCommand, NULL, NULL },
-    { "null",				"Do nothing",
-	NullCommand, NULL, NULL },
-    { "log [+/-opt ...]",		"Set/view log options",
-	LogCommand, NULL, NULL },
-    { "quit",				"Quit program",
-	QuitCommand, NULL, NULL },
-    { "help ...",			"Help on any command",
-	HelpCommand, NULL, NULL },
     { NULL },
   };
 
@@ -288,7 +289,7 @@
       LinkCloseCmd,
       "Link layer"
     },
-    { "phys",
+    { "device",
       PhysOpenCmd,
       PhysCloseCmd,
       "Physical link layer"
@@ -651,16 +652,6 @@ QuitCommand(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
- * NullCommand()
- */
-
-static int
-NullCommand(Context ctx, int ac, char *av[], void *arg)
-{
-  return(0);
-}
-
-/*
  * LoadCommand()
  */
 
@@ -801,7 +792,7 @@ ShowTypes(Context ctx, int ac, char *av[], void *arg)
 static int
 ShowSummary(Context ctx, int ac, char *av[], void *arg)
 {
-  int		b,l;
+  int		b, l, f;
   Bund		B;
   Link  	L;
   Rep		R;
@@ -814,12 +805,15 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
     B=gBundles[b];
     if (B) {
 	Printf("%s\t%s\t%s\t", B->iface.ifname, (B->iface.up?"Up":"Down"), B->name);
-	for (l = 0; l < B->n_links; l++) {
-	    if (l != 0) {
-		Printf("\t\t\t");
-	    }
-	    L=B->links[l];
-	    if (L) {
+	f = 1;
+	if (B->n_links == 0)
+	    Printf("\r\n");
+	else for (l = 0; l < NG_PPP_MAX_LINKS; l++) {
+	    if ((L=B->links[l]) != NULL) {
+		if (f == 1)
+		    f = 0;
+		else
+		    Printf("\t\t\t");
 		PhysGetPeerAddr(L->phys, buf, sizeof(buf));
 		Printf("%s\t%s\t%s\t%s\t%8s\t%s", 
 		    L->name,
@@ -911,7 +905,7 @@ int
 AdmitPhys(Context ctx, CmdTab cmd)
 {
   if (!ctx->phys) {
-    Log(LG_ERR, ("No phys selected for '%s' command", cmd->name));
+    Log(LG_ERR, ("No device selected for '%s' command", cmd->name));
     return(FALSE);
   }
   return(TRUE);
@@ -925,15 +919,11 @@ int
 AdmitDev(Context ctx, CmdTab cmd)
 {
   if (!ctx->phys) {
-    Log(LG_ERR, ("No phys selected for '%s' command", cmd->name));
-    return(FALSE);
-  }
-  if (ctx->phys->type == NULL) {
-    Log(LG_ERR, ("Type of phys \"%s\" is unspecified for '%s' command", ctx->phys->name, cmd->name));
+    Log(LG_ERR, ("No device selected for '%s' command", cmd->name));
     return(FALSE);
   }
   if (strncmp(cmd->name, ctx->phys->type->name, strlen(ctx->phys->type->name))) {
-    Log(LG_ERR, ("[%s] Phys type is %s, '%s' command isn't allowed here!",
+    Log(LG_ERR, ("[%s] device type is %s, '%s' command isn't allowed here!",
       ctx->phys->name, ctx->phys->type->name, cmd->name));
     return(FALSE);
   }

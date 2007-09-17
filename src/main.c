@@ -73,9 +73,11 @@
 
   PhysInfo		*gPhyses;
   Rep			*gReps;
+  Link			*gLinks;
   Bund			*gBundles;
   int			gNumPhyses;
   int			gNumReps;
+  int			gNumLinks;
   int			gNumBundles;
   struct console	gConsole;
   struct web		gWeb;
@@ -218,7 +220,7 @@ main(int ac, char *av[])
   signal(SIGHUP, SendSignal);
 
   /* Catastrophic signals */
-  signal(SIGSEGV, SendSignal);
+//  signal(SIGSEGV, SendSignal);
   signal(SIGBUS, SendSignal);
   signal(SIGABRT, SendSignal);
 
@@ -286,7 +288,7 @@ CloseIfaces(void)
 
   /* Shut down all interfaces we grabbed */
   for (k = 0; k < gNumBundles; k++) {
-    if ((b = gBundles[k]) != NULL) {
+    if (((b = gBundles[k]) != NULL) && (!b->tmpl)) {
       IfaceClose(b);
       BundNcpsClose(b);
     }
@@ -319,7 +321,7 @@ DoExit(int code)
   for (k = 0; k < gNumBundles; k++) {
     int global = 0;
 
-    if ((b = gBundles[k]) != NULL) {
+    if (((b = gBundles[k]) != NULL) && (!b->tmpl)) {
       if (global == 0) {
 	/*
 	 * XXX: We can't move NgFuncShutdownGlobal() out of cycle,

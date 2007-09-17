@@ -92,6 +92,7 @@
  */
 
   extern void	CcpInit(Bund b);
+  extern void	CcpInst(Bund b, Bund bt);
   extern void	CcpUp(Bund b);
   extern void	CcpDown(Bund b);
   extern void	CcpOpen(Bund b);

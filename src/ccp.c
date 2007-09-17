@@ -217,6 +217,20 @@ CcpInit(Bund b)
 }
 
 /*
+ * CcpInst()
+ */
+
+void
+CcpInst(Bund b, Bund bt)
+{
+  CcpState	ccp = &b->ccp;
+
+  /* Init CCP state for this bundle */
+  memcpy(ccp, &bt->ccp, sizeof(*ccp));
+  FsmInit(&ccp->fsm, &gCcpFsmType, b);
+}
+
+/*
  * CcpConfigure()
  */
 

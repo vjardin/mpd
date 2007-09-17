@@ -108,6 +108,7 @@ enum {
  */
 
 static int	PppoeInit(PhysInfo p);
+static int	PppoeInst(PhysInfo p, PhysInfo pt);
 static void	PppoeOpen(PhysInfo p);
 static void	PppoeClose(PhysInfo p);
 static void	PppoeShutdown(PhysInfo p);
@@ -132,7 +133,9 @@ const struct phystype gPppoePhysType = {
     .minReopenDelay 	= PPPOE_REOPEN_PAUSE,
     .mtu		= PPPOE_MTU,
     .mru		= PPPOE_MRU,
+    .tmpl		= 1,
     .init		= PppoeInit,
+    .inst		= PppoeInst,
     .open		= PppoeOpen,
     .close		= PppoeClose,
     .shutdown		= PppoeShutdown,
@@ -202,6 +205,24 @@ PppoeInit(PhysInfo p)
 	snprintf(pe->session, sizeof(pe->session), "*");
 	memset(pe->peeraddr, 0x00, ETHER_ADDR_LEN);
 	pe->PIf = NULL;
+
+	/* Done */
+	return(0);
+}
+
+/*
+ * PppoeInst()
+ *
+ * Instantiate device
+ */
+static int
+PppoeInst(PhysInfo p, PhysInfo pt)
+{
+	PppoeInfo pe;
+
+	/* Allocate private struct */
+	pe = (PppoeInfo)(p->info = Malloc(MB_PHYS, sizeof(*pe)));
+	memcpy(pe, pt->info, sizeof(*pe));
 
 	/* Done */
 	return(0);
@@ -430,7 +451,7 @@ PppoeCtrlReadEvent(int type, void *arg)
 		/* Restore context. */
 		for (k = 0; k < gNumPhyses; k++) {
 
-		    if (gPhyses[k] && gPhyses[k]->type != &gPppoePhysType)
+		    if (!gPhyses[k] || gPhyses[k]->type != &gPppoePhysType)
 			continue;
 
 		    p = gPhyses[k];
@@ -745,19 +766,19 @@ CreatePppoeNode(PhysInfo p, const char *path, const char *hook, struct PppoeIf *
 static void
 PppoeListenEvent(int type, void *arg)
 {
-	int i,k,sz;
-	struct PppoeIf *PIf=(struct PppoeIf *)(arg);
-	char rhook[NG_HOOKLEN + 1];
-	unsigned char response[1024];
+	int			i,k,sz;
+	struct PppoeIf		*PIf=(struct PppoeIf *)(arg);
+	char			rhook[NG_HOOKLEN + 1];
+	unsigned char		response[1024];
 
-	char path[NG_PATHLEN + 1];
-	char path1[NG_PATHLEN + 1];
-	char session_hook[NG_HOOKLEN + 1];
+	char			path[NG_PATHLEN + 1];
+	char			path1[NG_PATHLEN + 1];
+	char			session_hook[NG_HOOKLEN + 1];
 	struct ngm_connect      cn;
 	struct ngm_mkpeer 	mp;
-	u_char *macaddr;
-	time_t	const now = time(NULL);
-	int	retry = 10;
+	u_char 			*macaddr;
+	PhysInfo 		p = NULL;
+	PppoeInfo		pi = NULL;
 
 	union {
 	    u_char buf[sizeof(struct ngpppoe_init_data) + MAX_SESSION];
@@ -797,21 +818,29 @@ PppoeListenEvent(int type, void *arg)
 
 	/* Examine all PPPoE links. */
 	for (k = 0; k < gNumPhyses; k++) {
-		PhysInfo p;
-	        PppoeInfo pi;
+		PhysInfo p2;
+	        PppoeInfo pi2;
 
 		if (gPhyses[k] && gPhyses[k]->type != &gPppoePhysType)
 			continue;
 
-		p = gPhyses[k];
-		pi = (PppoeInfo)p->info;
+		p2 = gPhyses[k];
+		pi2 = (PppoeInfo)p2->info;
 
-		if ((PIf!=pi->PIf) ||
-		    (p->state != PHYS_STATE_DOWN) ||
-		    (now-p->lastClose < PPPOE_REOPEN_PAUSE) ||
-		    !Enabled(&pi->options, PPPOE_CONF_INCOMING))
-			continue;
+		if ((p2->tmpl) &&
+		    (pi2->PIf == PIf) &&
+		    Enabled(&pi2->options, PPPOE_CONF_INCOMING)) {
+			p = p2;
+			break;
+		}
+	}
+	
+	if (p != NULL) {
+	    p = PhysInst(p);
+	    pi = (PppoeInfo)p->info;
+	}
 
+	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] Accepting PPPoE connection", p->name));
 
 		/* Path to the ng_pppoe */
@@ -914,30 +943,22 @@ PppoeListenEvent(int type, void *arg)
 		TimerStart(&pi->connectTimer);
 
 		PhysIncoming(p);
-
-		/* Done. */
-		break;
-
-shutdown_tee:
-		if (NgFuncShutdownNode(pi->PIf->csock, p->name, path1) < 0) {
-			Log(LG_ERR, ("[%s] Shutdown ng_tee node %s error: %s",
-			    p->name, path1, strerror(errno)));
-		};
-
-close_socket:
-		Log(LG_PHYS, ("[%s] PPPoE connection not accepted due to error",
-			p->name));
-
-		if ((retry--) <= 0) {
-		    Log(LG_PHYS, ("[%s] Too many errors. Drop request.",
-			p->name));
-		    break;
-		}
-	};
-
-	if (k == gNumPhyses)
+	} else {
 		Log(LG_PHYS, ("No free PPPoE link with requested parameters "
 		    "was found"));
+	}
+
+	return;
+
+shutdown_tee:
+	if (NgFuncShutdownNode(pi->PIf->csock, p->name, path1) < 0) {
+		Log(LG_ERR, ("[%s] Shutdown ng_tee node %s error: %s",
+		    p->name, path1, strerror(errno)));
+	};
+
+close_socket:
+	Log(LG_PHYS, ("[%s] PPPoE connection not accepted due to error",
+		p->name));
 };
 
 static int 

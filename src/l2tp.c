@@ -114,6 +114,7 @@
  */
 
   static int	L2tpInit(PhysInfo p);
+  static int	L2tpInst(PhysInfo p, PhysInfo pt);
   static void	L2tpOpen(PhysInfo p);
   static void	L2tpClose(PhysInfo p);
   static void	L2tpShutdown(PhysInfo p);
@@ -164,7 +165,9 @@
     .minReopenDelay	= L2TP_REOPEN_PAUSE,
     .mtu		= L2TP_MTU,
     .mru		= L2TP_MRU,
+    .tmpl		= 1,
     .init		= L2tpInit,
+    .inst		= L2tpInst,
     .open		= L2tpOpen,
     .close		= L2tpClose,
     .shutdown		= L2tpShutdown,
@@ -255,6 +258,22 @@ L2tpInit(PhysInfo p)
   Enable(&l2tp->conf.options, L2TP_CONF_DATASEQ);
   
   return(0);
+}
+
+/*
+ * L2tpInst()
+ */
+
+static int
+L2tpInst(PhysInfo p, PhysInfo pt)
+{
+	L2tpInfo	l2tp;
+
+	/* Initialize this link */
+	l2tp = (L2tpInfo) (p->info = Malloc(MB_PHYS, sizeof(*l2tp)));
+	memcpy(l2tp, pt->info, sizeof(*l2tp));
+  
+	return(0);
 }
 
 /*
@@ -621,7 +640,7 @@ L2tpClose(PhysInfo p)
 static void
 L2tpShutdown(PhysInfo p)
 {
-    struct ghash_walk walk;
+/*    struct ghash_walk walk;
     struct l2tp_tun *tun;
 
     ghash_walk_init(gL2tpTuns, &walk);
@@ -632,7 +651,7 @@ L2tpShutdown(PhysInfo p)
 		    L2TP_RESULT_SHUTDOWN, 0, NULL);
 	    ppp_l2tp_ctrl_destroy(&tun->ctrl);
 	}
-    }
+    }*/
 }
 
 /*
@@ -834,7 +853,7 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 		PhysInfo p;
 	        L2tpInfo pi;
 
-		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
+		if (!gPhyses[k] || gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
 		p = gPhyses[k];
@@ -931,7 +950,7 @@ ppp_l2tp_ctrl_terminated_cb(struct ppp_l2tp_ctrl *ctrl,
 		PhysInfo p;
 	        L2tpInfo pi;
 
-		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
+		if (!gPhyses[k] || gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
 		p = gPhyses[k];
@@ -979,7 +998,6 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 {
 	struct	l2tp_tun *const tun = ppp_l2tp_ctrl_get_cookie(ctrl);
 	struct	ppp_l2tp_avp_ptrs *ptrs = NULL;
-	time_t  const now = time(NULL);
 	PhysInfo p = NULL;
 	L2tpInfo pi = NULL;
 	int	k;
@@ -1011,14 +1029,13 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		PhysInfo p2;
 	        L2tpInfo pi2;
 
-		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
+		if (!gPhyses[k] || gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
 		p2 = gPhyses[k];
 		pi2 = (L2tpInfo)p2->info;
 
-		if ((p2->state == PHYS_STATE_DOWN) &&
-		    (now - p2->lastClose >= L2TP_REOPEN_PAUSE) &&
+		if ((p2->tmpl) &&
 		    Enabled(&pi2->conf.options, L2TP_CONF_INCOMING) &&
 		    ((u_addrempty(&pi2->conf.self_addr)) || (u_addrcompare(&pi2->conf.self_addr, &tun->self_addr) == 0)) &&
 		    (pi2->conf.self_port == 0 || pi2->conf.self_port == tun->self_port) &&
@@ -1033,6 +1050,10 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 				}
 			}
 		}
+	}
+	if (p != NULL) {
+    		p = PhysInst(p);
+    		pi = (L2tpInfo)p->info;
 	}
 	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p accepted", 
@@ -1278,14 +1299,15 @@ L2tpServerEvent(int type, void *arg)
 		PhysInfo p2;
 	        L2tpInfo pi2;
 
-		if (gPhyses[k] && gPhyses[k]->type != &gL2tpPhysType)
+		if (!gPhyses[k] || gPhyses[k]->type != &gL2tpPhysType)
 			continue;
 
 		p2 = gPhyses[k];
 		pi2 = (L2tpInfo)p2->info;
 
 		/* Simplified comparation as it is not a final one. */
-		if ((pi2->server == s) &&
+		if ((p2->tmpl) &&
+		    (pi2->server == s) &&
 		    (IpAddrInRange(&pi2->conf.peer_addr, &tun->peer_addr)) &&
 		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == tun->peer_port)) {
 			

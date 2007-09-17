@@ -140,6 +140,7 @@
     .minReopenDelay	= MODEM_REOPEN_PAUSE,
     .mtu		= MODEM_MTU,
     .mru		= MODEM_MRU,
+    .tmpl		= 0,
     .init		= ModemInit,
     .open		= ModemOpen,
     .close		= ModemClose,

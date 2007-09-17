@@ -12,7 +12,6 @@
 #include "pap.h"
 #include "chap.h"
 #include "lcp.h"
-#include "custom.h"
 #include "log.h"
 #include "ngfunc.h"
 #include "msoft.h"
@@ -613,8 +612,8 @@ AuthDataNew(Link l)
   strlcpy(auth->info.session_id, l->session_id, sizeof(auth->info.session_id));
   strlcpy(auth->info.peer_ident, l->lcp.peer_ident, sizeof(l->lcp.peer_ident));
 
-  auth->info.n_links = l->bund->n_links;
-  auth->info.peer_addr = l->bund->ipcp.peer_addr;
+//  auth->info.n_links = l->bund->n_links;
+//  auth->info.peer_addr = l->bund->ipcp.peer_addr;
 
   /* Copy current link statistics */
   memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));

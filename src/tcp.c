@@ -76,6 +76,7 @@ enum {
  */
 
 static int	TcpInit(PhysInfo p);
+static int	TcpInst(PhysInfo p, PhysInfo pt);
 static void	TcpOpen(PhysInfo p);
 static void	TcpClose(PhysInfo p);
 static void	TcpShutdown(PhysInfo p);
@@ -102,7 +103,9 @@ const struct phystype gTcpPhysType = {
 	.minReopenDelay	= TCP_REOPEN_PAUSE,
 	.mtu		= TCP_MTU,
 	.mru		= TCP_MRU,
+	.tmpl		= 1,
 	.init		= TcpInit,
+	.inst		= TcpInst,
 	.open		= TcpOpen,
 	.close		= TcpClose,
 	.shutdown	= TcpShutdown,
@@ -172,6 +175,21 @@ TcpInit(PhysInfo p)
 }
 
 /*
+ * TcpInst()
+ */
+
+static int
+TcpInst(PhysInfo p, PhysInfo pt)
+{
+	TcpInfo pi;
+
+	pi = (TcpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pi)));
+	memcpy(pi, pt->info, sizeof(*pi));
+
+	return (0);
+}
+
+/*
  * TcpOpen()
  */
 
@@ -212,7 +230,6 @@ TcpOpen(PhysInfo p)
 	}
 	(void)fcntl(pi->csock, F_SETFD, 1);
 
-#if NG_NODESIZ>=32
 	/* Give it a name */
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, p->name);
 	if (NgSendMsg(pi->csock, ".:",
@@ -220,7 +237,6 @@ TcpOpen(PhysInfo p)
 		Log(LG_ERR, ("[%s] can't name %s node: %s",
 		    p->name, NG_BPF_NODE_TYPE, strerror(errno)));
 	}
-#endif
 
         if (!PhysGetUpperHook(p, path, hook)) {
 		Log(LG_PHYS, ("[%s] TCP: can't get upper hook", p->name));
@@ -240,7 +256,6 @@ TcpOpen(PhysInfo p)
 	strlcat(path, ".", sizeof(path));
 	strlcat(path, hook, sizeof(path));
 	
-#if NG_NODESIZ>=32
 	/* Give it a name */
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-as", gPid, p->name);
 	if (NgSendMsg(pi->csock, path,
@@ -248,7 +263,6 @@ TcpOpen(PhysInfo p)
 		Log(LG_ERR, ("[%s] can't name %s node: %s",
 		    p->name, NG_BPF_NODE_TYPE, strerror(errno)));
 	}
-#endif
 
 	/* Get async node ID */
 	if (NgSendMsg(pi->csock, path,
@@ -420,7 +434,6 @@ TcpAcceptEvent(int type, void *cookie)
 	char		buf[64];
 	int 		k;
 	struct TcpIf 	*If=(struct TcpIf *)(cookie);
-	time_t const 	now = time(NULL);
 	PhysInfo	p = NULL;
 	TcpInfo		pi = NULL;
 
@@ -452,14 +465,13 @@ TcpAcceptEvent(int type, void *cookie)
 		PhysInfo p2;
 	        TcpInfo pi2;
 
-		if (gPhyses[k] && gPhyses[k]->type != &gTcpPhysType)
+		if (!gPhyses[k] || gPhyses[k]->type != &gTcpPhysType)
 			continue;
 
 		p2 = gPhyses[k];
 		pi2 = (TcpInfo)p2->info;
 
-		if ((p2->state == PHYS_STATE_DOWN) &&
-		    (now - p2->lastClose >= TCP_REOPEN_PAUSE) &&
+		if ((p2->tmpl) &&
 		    Enabled(&pi2->conf.options, TCP_CONF_INCOMING) &&
 		    (pi2->If == If) &&
 		    IpAddrInRange(&pi2->conf.peer_addr, &addr) &&
@@ -473,6 +485,10 @@ TcpAcceptEvent(int type, void *cookie)
 				}
 			}
 		}
+	}
+	if (p != NULL) {
+    		p = PhysInst(p);
+    		pi = (TcpInfo)p->info;
 	}
 	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] Accepting TCP connection from %s %u",

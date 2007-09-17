@@ -187,6 +187,21 @@ LcpInit(Link l)
 }
 
 /*
+ * LcpInst()
+ */
+
+void
+LcpInst(Link l, Link lt)
+{
+  LcpState	const lcp = &l->lcp;
+
+  memcpy(lcp, &lt->lcp, sizeof(*lcp));
+  FsmInit(&lcp->fsm, &gLcpFsmType, l);
+  
+//  AuthInit(l);
+}
+
+/*
  * LcpConfigure()
  */
 
@@ -266,23 +281,16 @@ LcpConfigure(Fsm fp)
       lcp->peer_protos[i] = NULL;
   }
 
-  /* Multi-link stuff */
-  lcp->peer_multilink = FALSE;
-  lcp->peer_shortseq = FALSE;
-  if (Enabled(&l->bund->conf.options, BUND_CONF_MULTILINK)) {
-    lcp->want_multilink = TRUE;
-    if (l->bund->bm.n_up > 0) {
-      lcp->want_mrru = l->bund->mp.self_mrru;	/* We must stay consistent */
-      lcp->peer_mrru = l->bund->mp.peer_mrru;
-      lcp->want_shortseq = l->bund->mp.self_short_seq;
-      lcp->peer_shortseq = l->bund->mp.peer_short_seq;
-    } else {
-      lcp->want_mrru = l->bund->conf.mrru;
-      lcp->peer_mrru = MP_MIN_MRRU;
-      lcp->want_shortseq = Enabled(&l->bund->conf.options, BUND_CONF_SHORTSEQ);
-      lcp->peer_shortseq = FALSE;
+    /* Multi-link stuff */
+    lcp->peer_multilink = FALSE;
+    lcp->peer_shortseq = FALSE;
+    if (Enabled(&l->conf.options, LINK_CONF_MULTILINK)) {
+	lcp->want_multilink = TRUE;
+	lcp->want_mrru = l->conf.mrru;
+	lcp->peer_mrru = MP_MIN_MRRU;
+	lcp->want_shortseq = Enabled(&l->conf.options, LINK_CONF_SHORTSEQ);
+	lcp->peer_shortseq = FALSE;
     }
-  }
 
   /* Peer discriminator */
   l->peer_discrim.class = DISCRIM_CLASS_NULL;
@@ -385,10 +393,10 @@ LcpNewState(Fsm fp, int old, int new)
   }
 
   /* Keep track of how many links in this bundle are in an open state */
-  if (!OPEN_STATE(old) && OPEN_STATE(new))
-    l->bund->bm.n_open++;
-  else if (OPEN_STATE(old) && !OPEN_STATE(new))
-    l->bund->bm.n_open--;
+//  if (!OPEN_STATE(old) && OPEN_STATE(new)) XXXXXXXXXXXXXXXXXXXXXXXX
+//    l->bund->bm.n_open++;
+//  else if (OPEN_STATE(old) && !OPEN_STATE(new))
+//    l->bund->bm.n_open--;
 }
 
 /*
@@ -490,6 +498,7 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_DEAD:
+	LinkShutdown(l);
       break;
 
     default:
@@ -608,7 +617,7 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
   }
 
   /* Multi-link stuff */
-  if (Enabled(&l->bund->conf.options, BUND_CONF_MULTILINK)
+  if (Enabled(&l->conf.options, LINK_CONF_MULTILINK)
       && !LCP_PEER_REJECTED(lcp, TY_MRRU)) {
     cp = FsmConfValue(cp, TY_MRRU, -2, &lcp->want_mrru);
     if (lcp->want_shortseq && !LCP_PEER_REJECTED(lcp, TY_SHORTSEQNUM))
@@ -978,14 +987,8 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  Log(LG_LCP, (" %s %d", oi->name, mrru));
 	  switch (mode) {
 	    case MODE_REQ:
-	      if (!Enabled(&l->bund->conf.options, BUND_CONF_MULTILINK)) {
+	      if (!Enabled(&l->conf.options, LINK_CONF_MULTILINK)) {
 		FsmRej(fp, opt);
-		break;
-	      }
-	      if (l->bund->bm.n_up > 0 && mrru != l->bund->mp.peer_mrru) {
-		mrru = htons(l->bund->mp.peer_mrru);
-		memcpy(opt->data, &mrru, 2);
-		FsmNak(fp, opt);
 		break;
 	      }
 	      if (mrru > MP_MAX_MRRU) {
@@ -1006,20 +1009,14 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	      {
-		int	k;
-
 		/* Make sure we don't violate any rules by changing MRRU now */
-		if (l->bund->bm.n_up > 0)			/* too late */
-		  break;
 		if (mrru > lcp->want_mrru)		/* too big */
 		  break;
 		if (mrru < MP_MIN_MRRU)			/* too small; clip */
 		  mrru = MP_MIN_MRRU;
 
-		/* Update our bundle, and any links currently in negotiation */
-		l->bund->mp.self_mrru = mrru;
-		for (k = 0; k < l->bund->n_links; k++)
-		  l->bund->links[k]->lcp.want_mrru = mrru;
+		/* Update our links */
+		lcp->want_mrru = mrru;
 	      }
 	      break;
 	    case MODE_REJ:
@@ -1034,8 +1031,8 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	Log(LG_LCP, (" %s", oi->name));
 	switch (mode) {
 	  case MODE_REQ:
-	    if (!Enabled(&l->bund->conf.options, BUND_CONF_MULTILINK)
-		|| !Acceptable(&l->bund->conf.options, BUND_CONF_SHORTSEQ)) {
+	    if (!Enabled(&l->conf.options, LINK_CONF_MULTILINK)
+		|| !Acceptable(&l->conf.options, LINK_CONF_SHORTSEQ)) {
 	      FsmRej(fp, opt);
 	      break;
 	    }
@@ -1045,19 +1042,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	    break;
 	  case MODE_NAK:	/* a NAK here doesn't make sense */
 	  case MODE_REJ:
-	    {
-	      int	k;
-
-	      /* Can't change MP configuration after one link already up */
-	      if (l->bund->bm.n_up > 0 && l->bund->mp.self_short_seq)
-		break;
-
-	      /* Update our bundle, and any links currently in negotiation */
 	      lcp->want_shortseq = FALSE;
-	      l->bund->mp.self_short_seq = FALSE;
-	      for (k = 0; k < l->bund->n_links; k++)
-		LCP_PEER_REJ(&l->bund->links[k]->lcp, opt->type);
-	    }
 	    break;
 	}
 	break;

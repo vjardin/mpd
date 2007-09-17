@@ -144,6 +144,7 @@
  */
 
   extern void	IfaceInit(Bund b);
+  extern void	IfaceInst(Bund b, Bund bt);
   extern void	IfaceOpen(Bund b);
   extern void	IfaceClose(Bund b);
   extern void	IfaceOpenCmd(Context ctx);

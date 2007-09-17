@@ -29,8 +29,6 @@
 
   /* Configuration options */
   enum {
-    BUND_CONF_MULTILINK,	/* multi-link */
-    BUND_CONF_SHORTSEQ,		/* multi-link short sequence numbers */
     BUND_CONF_IPCP,		/* IPCP */
     BUND_CONF_IPV6CP,		/* IPV6CP */
     BUND_CONF_COMPRESSION,	/* compression */
@@ -103,7 +101,6 @@
 
   /* Configuration for a bundle */
   struct bundconf {
-    uint16_t		mrru;			/* Initial MRU value */
     short		retry_timeout;		/* Timeout for retries */
     u_short		bm_S;			/* Bandwidth mgmt constants */
     u_short		bm_Hi;
@@ -119,7 +116,8 @@
   struct bundle {
     char		name[LINK_MAX_NAME];	/* Name of this bundle */
     int			id;			/* Index of this bundle in gBundles */
-    Link		*links;			/* Real links in this bundle */
+    int			tmpl;			/* This is template, not an instance */
+    Link		links[NG_PPP_MAX_LINKS];	/* Real links in this bundle */
     u_short		n_links;		/* Number of links in bundle */
     int			csock;			/* Socket node control socket */
     int			dsock;			/* Socket node data socket */
@@ -180,7 +178,9 @@
   extern void	BundUpdateParams(Bund b);
   extern int	BundCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	MSessionCommand(Context ctx, int ac, char *av[], void *arg);
-  extern int	BundCreateCmd(Context ctx, int ac, char *av[], void *arg);
+  extern int	BundCreate(Context ctx, int ac, char *av[], void *arg);
+  extern Bund	BundInst(Bund bt);
+  extern Bund	BundFind(char *name);
   extern void	BundShutdown(Bund b);
   extern void   BundUpdateStats(Bund b);
   extern void	BundUpdateStatsTimer(void *cookie);

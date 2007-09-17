@@ -10,7 +10,6 @@
 #include "fsm.h"
 #include "ip.h"
 #include "iface.h"
-#include "custom.h"
 #include "msg.h"
 #include "ngfunc.h"
 #include "util.h"
@@ -195,6 +194,20 @@ Ipv6cpInit(Bund b)
 
   CreateInterfaceID(ipv6cp->myintid,0);
 
+}
+
+/*
+ * Ipv6cpInst()
+ */
+
+void
+Ipv6cpInst(Bund b, Bund bt)
+{
+  Ipv6cpState	ipv6cp = &b->ipv6cp;
+
+  /* Init state machine */
+  memcpy(ipv6cp, &bt->ipv6cp, sizeof(*ipv6cp));
+  FsmInit(&ipv6cp->fsm, &gIpv6cpFsmType, b);
 }
 
 /*

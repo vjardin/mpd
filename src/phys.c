@@ -51,14 +51,15 @@
 
   /* Set menu options */
   enum {
-    SET_DEVTYPE,
-    SET_ACCEPT,
-    SET_DENY,
+    SET_LINK,
     SET_ENABLE,
     SET_DISABLE,
-    SET_YES,
-    SET_NO,
   };
+
+enum {
+	PHYS_CONF_ORIGINATE,	/* allow originating connections to peer */
+	PHYS_CONF_INCOMING,	/* allow accepting connections from peer */
+};
 
 /*
  * INTERNAL FUNCTIONS
@@ -73,11 +74,15 @@
  * GLOBAL VARIABLES
  */
 
-  const struct cmdtab PhysSetCmds[] = {
-    { "type type",			"Device type",
-	PhysSetCommand, NULL, (void *) SET_DEVTYPE },
+const struct cmdtab PhysSetCmds[] = {
+    { "link {template}",		"Set link template for incomings",
+	  PhysSetCommand, NULL, (void *)SET_LINK },
+    { "enable {opt ...}",		"Enable option",
+	  PhysSetCommand, NULL, (void *)SET_ENABLE },
+    { "disable {opt ...}",		"Disable option",
+	  PhysSetCommand, NULL, (void *)SET_DISABLE },
     { NULL },
-  };
+};
 
 
   const PhysType gPhysTypes[] = {
@@ -92,6 +97,97 @@
     "READY",
     "UP",
   };
+
+static struct confinfo	gConfList[] = {
+    { 0,	PHYS_CONF_ORIGINATE,	"originate"	},
+    { 0,	PHYS_CONF_INCOMING,	"incoming"	},
+    { 0,	0,			NULL		},
+};
+
+int
+PhysCreate(Context ctx, int ac, char *av[], void *arg)
+{
+    PhysInfo	p;
+    PhysType	pt;
+    int		k;
+
+    memset(ctx, 0, sizeof(*ctx));
+
+    /* Args */
+    if (ac < 2)
+	return(-1);
+
+    /* Locate type */
+    for (k = 0; (pt = gPhysTypes[k]); k++) {
+	if (!strcmp(pt->name, av[1]))
+    	    break;
+    }
+    if (pt == NULL) {
+	Log(LG_ERR, ("Device type \"%s\" unknown", av[1]));
+	return (0);
+    }
+
+    /* See if device name already taken */
+    if ((p = PhysFind(av[0])) != NULL) {
+	Log(LG_ERR, ("Device \"%s\" already exists", av[0]));
+	return (0);
+    }
+
+    p = Malloc(MB_PHYS, sizeof(*p));
+
+    strlcpy(p->name, av[0], sizeof(p->name));
+    p->tmpl = pt->tmpl;
+    p->state = PHYS_STATE_DOWN;
+    p->msgs = MsgRegister(PhysMsg);
+    p->type = pt;
+
+    /* Find a free link pointer */
+    for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
+    if (k == gNumPhyses)			/* add a new link pointer */
+	LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
+
+    p->id = k;
+    gPhyses[k] = p;
+
+    /* Initialize type specific stuff */
+    if ((p->type->init)(p) < 0) {
+	Log(LG_ERR, ("[%s] type \"%s\" initialization failed",
+    	    p->name, p->type->name));
+	p->type = NULL;
+	return (0);
+    }
+
+    ctx->phys = p;
+    return (0);
+}
+
+/*
+ * PhysInst()
+ */
+
+PhysInfo
+PhysInst(PhysInfo pt)
+{
+    PhysInfo	p;
+    int		k;
+    
+    p = Malloc(MB_PHYS, sizeof(*p));
+    memcpy(p, pt, sizeof(*p));
+    p->tmpl = 0;
+
+    /* Find a free link pointer */
+    for (k = 0; k < gNumPhyses && gPhyses[k] != NULL; k++);
+    if (k == gNumPhyses)			/* add a new link pointer */
+	LengthenArray(&gPhyses, sizeof(*gPhyses), &gNumPhyses, MB_PHYS);
+    p->id = k;
+
+    snprintf(p->name, sizeof(p->name), "%s-%d", pt->name, k);
+    (p->type->inst)(p, pt);
+
+    gPhyses[k] = p;
+    
+    return (p);
+}
 
 /*
  * PhysInit()
@@ -178,7 +274,8 @@ PhysCloseCmd(Context ctx)
 void
 PhysClose(PhysInfo p)
 {
-    MsgSend(p->msgs, MSG_CLOSE, p);
+    if (p)
+	MsgSend(p->msgs, MSG_CLOSE, p);
 }
 
 /*
@@ -218,10 +315,12 @@ PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 	    RecordLinkUpDownReason(NULL, p->link, 0, reason, NULL);
 	}
 	p->link->upReasonValid=0;
+	p->link->phys = NULL;
 	LinkDown(p->link);
     } else if (p->rep) {
 	RepDown(p);
     }
+    PhysShutdown(p);
 }
 
 /*
@@ -231,9 +330,18 @@ PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 void
 PhysIncoming(PhysInfo p)
 {
+    if (!p->link && p->linkt[0]!=0) {
+	Link lt = LinkFind(p->linkt);
+	if (lt && lt->tmpl) {
+	    p->link = LinkInst(lt);
+	    p->link->phys = p;
+	} else
+	    Log(LG_ERR, ("[%s] Link template '%s' not found", p->name, p->linkt));
+    }
+
     if (p->link) {
 	RecordLinkUpDownReason(NULL, p->link, 1, STR_INCOMING_CALL, NULL);
-	BundOpenLink(p->link);
+	LinkOpen(p->link);
     } else if (p->rep) {
         RepIncoming(p);
     }
@@ -259,7 +367,7 @@ PhysSetAccm(PhysInfo p, uint32_t xmit, u_int32_t recv)
 int
 PhysGetUpperHook(PhysInfo p, char *path, char *hook)
 {
-    if (p->link && p->link->bund) {
+    if (p->link) {
 	snprintf(path, NG_PATHLEN, "[%lx]:", (u_long)p->link->nodeID);
 	snprintf(hook, NG_HOOKLEN, "%s", NG_TEE_HOOK_LEFT);
 	return 1;
@@ -408,11 +516,10 @@ PhysShutdown(PhysInfo p)
     if (pt && pt->shutdown)
 	(*pt->shutdown)(p);
 
-    for (k = 0; 
-	k < gNumPhyses && gPhyses[k] != p;
-	k++);
-    if (k < gNumPhyses)
-	gPhyses[k] = NULL;
+    for (k = 0; k < gNumPhyses; k++) {
+	if (gPhyses[k] == p)
+	    gPhyses[k] = NULL;
+    }
 
     Freee(MB_PHYS, p);
 }
@@ -591,12 +698,14 @@ PhysFind(char *name)
 int
 PhysStat(Context ctx, int ac, char *av[], void *arg)
 {
-  PhysInfo	const p = ctx->phys;
+    PhysInfo	const p = ctx->phys;
 
-  Printf("\tType  : %s\r\n", p->type->name);
-  if (p->type->showstat)
-    (*p->type->showstat)(ctx);
-  return 0;
+    Printf("Device '%s' (%s)\r\n", p->name, (p->tmpl)?"template":"instance");
+    Printf("\tType         : %s\r\n", p->type->name);
+
+    if (p->type->showstat)
+	(*p->type->showstat)(ctx);
+    return 0;
 }
 
 /*
@@ -606,42 +715,28 @@ PhysStat(Context ctx, int ac, char *av[], void *arg)
 static int
 PhysSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  if (ac == 0)
-    return(-1);
+    if (ac == 0)
+	return(-1);
 
-  switch ((intptr_t)arg) {
-    case SET_DEVTYPE:
-      PhysSetDeviceType(ctx->phys, *av);
-      break;
-/*
-    case SET_ACCEPT:
-      AcceptCommand(ac, av, &phys->options, gConfList);
-      break;
-
-    case SET_DENY:
-      DenyCommand(ac, av, &phys->options, gConfList);
-      break;
+    switch ((intptr_t)arg) {
+    case SET_LINK:
+	if (ac != 1)
+	    return(-1);
+	snprintf(ctx->phys->linkt, sizeof(ctx->phys->linkt), "%s", av[0]);
+	break;
 
     case SET_ENABLE:
-      EnableCommand(ac, av, &phys->options, gConfList);
-      break;
+        EnableCommand(ac, av, &ctx->phys->options, gConfList);
+        break;
 
     case SET_DISABLE:
-      DisableCommand(ac, av, &phys->options, gConfList);
-      break;
+        DisableCommand(ac, av, &ctx->phys->options, gConfList);
+        break;
 
-    case SET_YES:
-      YesCommand(ac, av, &phys->options, gConfList);
-      break;
-
-    case SET_NO:
-      NoCommand(ac, av, &phys->options, gConfList);
-      break;
-*/
     default:
-      assert(0);
-  }
+        assert(0);
+    }
 
-  return(0);
+    return(0);
 }
 

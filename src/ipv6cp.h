@@ -49,6 +49,7 @@
  */
 
   extern void	Ipv6cpInit(Bund b);
+  extern void	Ipv6cpInst(Bund b, Bund bt);
   extern void	Ipv6cpUp(Bund b);
   extern void	Ipv6cpDown(Bund b);
   extern void	Ipv6cpOpen(Bund b);

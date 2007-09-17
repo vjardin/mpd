@@ -63,8 +63,8 @@ InputFrame(Bund b, Link l, int proto, Mbuf bp)
     /* Unknown protocol, so find a link to send protocol reject on */
     if (l == NULL) {
 	int	k;
-	for (k = 0;
-    	    k < b->n_links && b->links[k]->lcp.phase != PHASE_NETWORK;
+	for (k = 0; k < NG_PPP_MAX_LINKS && 
+	    (!b->links[k] || b->links[k]->lcp.phase != PHASE_NETWORK);
     	    k++);
 	if (k == b->n_links) {
     	    PFREE(bp);
@@ -105,6 +105,10 @@ InputDispatch(Bund b, Link l, int proto, Mbuf bp)
         case PROTO_EAP:
             AuthInput(l, proto, bp);
             return(0);
+	case PROTO_MP:
+    	    if (!Enabled(&l->conf.options, LINK_CONF_MULTILINK))
+		reject = 1;
+    	    goto done;
         }
     }
 
@@ -149,16 +153,13 @@ InputDispatch(Bund b, Link l, int proto, Mbuf bp)
 		return(0);
     	    }
     	    break;
-	case PROTO_MP:
-    	    if (!Enabled(&b->conf.options, BUND_CONF_MULTILINK))
-		reject = 1;
-    	    break;
 	default:	/* completely unknown protocol, reject it */
     	    reject = 1;
     	    break;
 	}
     }
 
+done:
     /* Protocol unexpected, so either reject or drop */
     Log(LG_LINK|LG_BUND, ("[%s] rec'd unexpected protocol %s%s",
 	(l ? l->name : b->name), ProtoName(proto), reject ? ", rejecting" : ""));

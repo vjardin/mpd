@@ -86,6 +86,7 @@
  */
 
   extern void	IpcpInit(Bund b);
+  extern void	IpcpInst(Bund b, Bund bt);
   extern void	IpcpUp(Bund b);
   extern void	IpcpDown(Bund b);
   extern void	IpcpOpen(Bund b);

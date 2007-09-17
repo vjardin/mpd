@@ -77,6 +77,7 @@ enum {
  */
 
   static int	UdpInit(PhysInfo p);
+  static int	UdpInst(PhysInfo p, PhysInfo pt);
   static void	UdpOpen(PhysInfo p);
   static void	UdpClose(PhysInfo p);
   static void	UdpStat(Context ctx);
@@ -99,7 +100,9 @@ enum {
     .minReopenDelay	= UDP_REOPEN_PAUSE,
     .mtu		= UDP_MTU,
     .mru		= UDP_MRU,
+    .tmpl		= 1,
     .init		= UdpInit,
+    .inst		= UdpInst,
     .open		= UdpOpen,
     .close		= UdpClose,
     .showstat		= UdpStat,
@@ -162,6 +165,21 @@ UdpInit(PhysInfo p)
 
     u_addrclear(&pi->peer_addr);
     pi->peer_port=0;
+
+    return(0);
+}
+
+/*
+ * UdpInst()
+ */
+
+static int
+UdpInst(PhysInfo p, PhysInfo pt)
+{
+    UdpInfo	pi;
+
+    pi = (UdpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pi)));
+    memcpy(pi, pt->info, sizeof(*pi));
 
     return(0);
 }
@@ -468,7 +486,6 @@ UdpAcceptEvent(int type, void *cookie)
 	char		buf1[64];
 	int 		k;
 	struct UdpIf 	*If=(struct UdpIf *)(cookie);
-	time_t const 	now = time(NULL);
 	PhysInfo	p = NULL;
 	UdpInfo		pi = NULL;
 
@@ -503,14 +520,13 @@ UdpAcceptEvent(int type, void *cookie)
 		PhysInfo p2;
 	        UdpInfo pi2;
 
-		if (gPhyses[k] && gPhyses[k]->type != &gUdpPhysType)
+		if (!gPhyses[k] || gPhyses[k]->type != &gUdpPhysType)
 			continue;
 
 		p2 = gPhyses[k];
 		pi2 = (UdpInfo)p2->info;
 
-		if ((p2->state == PHYS_STATE_DOWN) &&
-		    (now - p2->lastClose >= UDP_REOPEN_PAUSE) &&
+		if ((p2->tmpl) &&
 		    Enabled(&pi2->conf.options, UDP_CONF_INCOMING) &&
 		    (pi2->If == If) &&
 		    IpAddrInRange(&pi2->conf.peer_addr, &addr) &&
@@ -524,6 +540,10 @@ UdpAcceptEvent(int type, void *cookie)
 				}
 			}
 		}
+	}
+	if (p != NULL) {
+    		p = PhysInst(p);
+    		pi = (UdpInfo)p->info;
 	}
 	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] Accepting UDP connection from %s %u to %s %u",

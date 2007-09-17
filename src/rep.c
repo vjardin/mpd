@@ -323,11 +323,7 @@ RepCreateCmd(Context ctx, int ac, char *av[], void *arg)
   if (ac != 3)
     return(-1);
 
-#if NG_NODESIZ>=32
   if (strlen(av[0])>16) {
-#else
-  if (strlen(av[0])>6) {
-#endif
     Log(LG_ERR, ("repeater name \"%s\" is too long", av[0]));
     return (-1);
   }
@@ -345,11 +341,7 @@ RepCreateCmd(Context ctx, int ac, char *av[], void *arg)
 
   /* Create each link and add it to the repeater */
   for (k = 1; k < ac; k++) {
-#if NG_NODESIZ>=32
     if (strlen(av[k])>16) {
-#else
-    if (strlen(av[k])>6) {
-#endif
 	Log(LG_ERR, ("phys name \"%s\" is too long", av[k]));
         RepShutdown(r);
 	return (-1);

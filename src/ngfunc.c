@@ -324,8 +324,8 @@ NgFuncCreateIface(Bund b, const char *ifname, char *buf, int max)
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_IFACE_HOOK_INET);
   if (NgSendMsg(b->csock, ".",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-      b->name, NG_IFACE_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
+    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s %d",
+      b->name, NG_IFACE_NODE_TYPE, ".", mp.ourhook, strerror(errno), b->csock));
     return(-1);
   }
 

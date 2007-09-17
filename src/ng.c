@@ -63,6 +63,7 @@
     .minReopenDelay	= NG_REOPEN_PAUSE,
     .mtu		= NG_MTU,
     .mru		= NG_MRU,
+    .tmpl		= 0,
     .init		= NgInit,
     .open		= NgOpen,
     .close		= NgClose,

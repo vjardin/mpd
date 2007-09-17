@@ -16,7 +16,6 @@
 #include "fsm.h"
 #include "ip.h"
 #include "iface.h"
-#include "custom.h"
 #include "msg.h"
 #include "ngfunc.h"
 #include "util.h"
@@ -258,6 +257,20 @@ IpcpInit(Bund b)
   /* Default we want VJ comp */
   Enable(&ipcp->conf.options, IPCP_CONF_VJCOMP);
   Accept(&ipcp->conf.options, IPCP_CONF_VJCOMP);
+}
+
+/*
+ * IpcpInst()
+ */
+
+void
+IpcpInst(Bund b, Bund bt)
+{
+  IpcpState		const ipcp = &b->ipcp;
+
+  /* Init state machine */
+  memcpy(ipcp, &bt->ipcp, sizeof(*ipcp));
+  FsmInit(&ipcp->fsm, &gIpcpFsmType, b);
 }
 
 /*
@@ -761,10 +774,8 @@ IpcpNgInitVJ(Bund b)
 {
   struct ngm_mkpeer	mp;
   struct ngm_connect	cn;
-#if NG_NODESIZ>=32
   char path[NG_PATHLEN + 1];
   struct ngm_name	nm;
-#endif
 
   /* Add a VJ compression node */
   snprintf(mp.type, sizeof(mp.type), "%s", NG_VJC_NODE_TYPE);
@@ -777,7 +788,6 @@ IpcpNgInitVJ(Bund b)
     goto fail;
   }
 
-#if NG_NODESIZ>=32
   /* Give it a name */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
   snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-vjc", gPid, b->name);
@@ -787,7 +797,6 @@ IpcpNgInitVJ(Bund b)
       b->name, NG_VJC_NODE_TYPE, strerror(errno)));
     goto fail;
   }
-#endif
 
   /* Connect the other three hooks between the ppp and vjc nodes */
   snprintf(cn.path, sizeof(cn.path), "%s", NG_PPP_HOOK_VJC_IP);

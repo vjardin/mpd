@@ -92,6 +92,7 @@
  */
 
   static int	PptpInit(PhysInfo p);
+  static int	PptpInst(PhysInfo p, PhysInfo pt);
   static void	PptpOpen(PhysInfo p);
   static void	PptpClose(PhysInfo p);
   static void	PptpShutdown(PhysInfo p);
@@ -144,7 +145,9 @@
     .minReopenDelay	= PPTP_REOPEN_PAUSE,
     .mtu		= PPTP_MTU,
     .mru		= PPTP_MRU,
+    .tmpl		= 1,
     .init		= PptpInit,
+    .inst		= PptpInst,
     .open		= PptpOpen,
     .close		= PptpClose,
     .shutdown		= PptpShutdown,
@@ -218,6 +221,23 @@ PptpInit(PhysInfo p)
   }
 
   return(0);
+}
+
+/*
+ * PptpInst()
+ */
+
+static int
+PptpInst(PhysInfo p, PhysInfo pt)
+{
+    PptpInfo	pptp;
+
+    /* Initialize this link */
+    pptp = (PptpInfo) (p->info = Malloc(MB_PHYS, sizeof(*pptp)));
+    memcpy(pptp, pt->info, sizeof(*pptp));
+    pptp->listener = NULL;
+
+    return(0);
 }
 
 /*
@@ -828,7 +848,6 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
   PhysInfo		p = NULL;
   PptpInfo		pi = NULL;
   int			k;
-  time_t  		now = time(NULL);
 
   memset(&linfo, 0, sizeof(linfo));
 
@@ -847,20 +866,19 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
     return(linfo);
   }
 
-  /* Find a suitable link; prefer the link best matching peer's IP address */
-  for (k = 0; k < gNumPhyses; k++) {
+    /* Find a suitable link; prefer the link best matching peer's IP address */
+    for (k = 0; k < gNumPhyses; k++) {
 	PhysInfo p2;
 	PptpInfo pi2;
 
-	if (gPhyses[k] && gPhyses[k]->type != &gPptpPhysType)
+	if (!gPhyses[k] || gPhyses[k]->type != &gPptpPhysType)
 		continue;
 
 	p2 = gPhyses[k];
 	pi2 = (PptpInfo)p2->info;
 
 	/* See if link is feasible */
-	if ((p2->state == PHYS_STATE_DOWN) &&
-	    (now - p2->lastClose) >= PPTP_REOPEN_PAUSE &&
+	if ((p2->tmpl) &&
 	    Enabled(&pi2->conf.options, PPTP_CONF_INCOMING) &&
 	    (u_addrempty(&pi2->conf.self_addr) || (u_addrcompare(&pi2->conf.self_addr, self) == 0)) &&
 	    IpAddrInRange(&pi2->conf.peer_addr, peer) &&
@@ -875,14 +893,19 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 			}
     		}
 	}
-  }
+    }
 
-  /* If no link is suitable, can't take the call */
-  if (p == NULL) {
-    Log(LG_PHYS, ("No free PPTP link with requested parameters "
-	"was found"));
-    return(linfo);
-  }
+    if (p != NULL) {
+        p = PhysInst(p);
+        pi = (PptpInfo)p->info;
+    }
+
+    /* If no link is suitable, can't take the call */
+    if (p == NULL) {
+	Log(LG_PHYS, ("No free PPTP link with requested parameters "
+	    "was found"));
+	return(linfo);
+    }
 
   Log(LG_PHYS, ("[%s] Accepting PPTP connection", p->name));
   PhysIncoming(p);

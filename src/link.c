@@ -33,7 +33,7 @@
 
   /* Set menu options */
   enum {
-    SET_DEVTYPE,
+    SET_BUNDLE,
     SET_BANDWIDTH,
     SET_LATENCY,
     SET_ACCMAP,
@@ -67,37 +67,37 @@
  */
 
   const struct cmdtab LinkSetCmds[] = {
-    { "bandwidth bps",			"Link bandwidth",
+    { "bandwidth {bps}",		"Link bandwidth",
 	LinkSetCommand, NULL, (void *) SET_BANDWIDTH },
-    { "type type",			"Device type",
-	LinkSetCommand, NULL, (void *) SET_DEVTYPE },
-    { "latency microsecs",		"Link latency",
+    { "bundle {template}",		"Bundle template name",
+	LinkSetCommand, NULL, (void *) SET_BUNDLE },
+    { "latency {microsecs}",		"Link latency",
 	LinkSetCommand, NULL, (void *) SET_LATENCY },
-    { "accmap hex-value",		"Accmap value",
+    { "accmap {hex-value}",		"Accmap value",
 	LinkSetCommand, NULL, (void *) SET_ACCMAP },
-    { "mru value",			"Link MRU value",
+    { "mru {value}",			"Link MRU value",
 	LinkSetCommand, NULL, (void *) SET_MRU },
-    { "mtu value",			"Link MTU value",
+    { "mtu {value}",			"Link MTU value",
 	LinkSetCommand, NULL, (void *) SET_MTU },
-    { "fsm-timeout seconds",		"FSM retry timeout",
+    { "fsm-timeout {seconds}",		"FSM retry timeout",
 	LinkSetCommand, NULL, (void *) SET_FSM_RETRY },
-    { "max-redial num",			"Max connect attempts",
+    { "max-redial {num}",		"Max connect attempts",
 	LinkSetCommand, NULL, (void *) SET_MAX_RETRY },
-    { "keep-alive secs max",		"LCP echo keep-alives",
+    { "keep-alive {secs} {max}",	"LCP echo keep-alives",
 	LinkSetCommand, NULL, (void *) SET_KEEPALIVE },
-    { "ident ident-string",		"LCP ident string",
+    { "ident {string}",			"LCP ident string",
 	LinkSetCommand, NULL, (void *) SET_IDENT },
-    { "accept [opt ...]",		"Accept option",
+    { "accept {opt ...}",		"Accept option",
 	LinkSetCommand, NULL, (void *) SET_ACCEPT },
-    { "deny [opt ...]",			"Deny option",
+    { "deny {opt ...}",			"Deny option",
 	LinkSetCommand, NULL, (void *) SET_DENY },
-    { "enable [opt ...]",		"Enable option",
+    { "enable {opt ...}",		"Enable option",
 	LinkSetCommand, NULL, (void *) SET_ENABLE },
-    { "disable [opt ...]",		"Disable option",
+    { "disable {opt ...}",		"Disable option",
 	LinkSetCommand, NULL, (void *) SET_DISABLE },
-    { "yes [opt ...]",			"Enable and accept option",
+    { "yes {opt ...}",			"Enable and accept option",
 	LinkSetCommand, NULL, (void *) SET_YES },
-    { "no [opt ...]",			"Disable and deny option",
+    { "no {opt ...}",			"Disable and deny option",
 	LinkSetCommand, NULL, (void *) SET_NO },
     { NULL },
   };
@@ -120,6 +120,8 @@
     { 0,	LINK_CONF_CHECK_MAGIC,	"check-magic"	},
     { 0,	LINK_CONF_NO_ORIG_AUTH,	"no-orig-auth"	},
     { 0,	LINK_CONF_CALLBACK,	"callback"	},
+    { 0,	LINK_CONF_MULTILINK,	"multilink"	},
+    { 1,	LINK_CONF_SHORTSEQ,	"shortseq"	},
     { 0,	0,			NULL		},
   };
 
@@ -210,7 +212,7 @@ LinkDown(Link l)
         LcpDown(l);
     }
     /* reset Link-stats */
-    LinkResetStats(l);  /* XXX: I don't think this is a right place */
+//    LinkResetStats(l);  /* XXX: I don't think this is a right place */
 }
 
 /*
@@ -240,74 +242,153 @@ LinkMsg(int type, void *arg)
 }
 
 /*
- * LinkNew()
- *
- * Allocate a new link for the specified device, then
- * read in any device-specific commands from ppp.links.
+ * LinkCreate()
+ */
+
+int
+LinkCreate(Context ctx, int ac, char *av[], void *arg)
+{
+    Link 	l, lt = NULL;
+    int 	tmpl = 0;
+    int 	k;
+
+    memset(ctx, 0, sizeof(*ctx));
+
+    if (ac < 1 || ac > 2)
+	return(-1);
+
+    if (strlen(av[0])>16) {
+	Log(LG_ERR, ("Link name \"%s\" is too long", av[0]));
+	return(0);
+    }
+
+    /* See if link name already taken */
+    if ((l = LinkFind(av[0])) != NULL) {
+	Log(LG_ERR, ("Link \"%s\" already exists", av[0]));
+	return (0);
+    }
+
+    if (ac == 2) {
+	if (strcmp(av[1], "template") != 0) {
+	    /* See if template name specified */
+	    if ((lt = LinkFind(av[1])) != NULL) {
+		Log(LG_ERR, ("Link template \"%s\" not found", av[1]));
+		return (0);
+	    }
+	    if (!lt->tmpl) {
+		Log(LG_ERR, ("Link \"%s\" is not a template", av[1]));
+		return (0);
+	    }
+	} else {
+	    tmpl = 1;
+	}
+    }
+
+    /* Create and initialize new link */
+    if (lt) {
+	l = LinkInst(lt);
+    } else {
+	l = Malloc(MB_LINK, sizeof(*l));
+	snprintf(l->name, sizeof(l->name), "%s", av[0]);
+	l->tmpl = tmpl;
+
+	/* Initialize link configuration with defaults */
+	l->conf.mru = LCP_DEFAULT_MRU;
+        l->conf.mtu = LCP_DEFAULT_MRU;
+	l->conf.mrru = MP_DEFAULT_MRRU;
+        l->conf.accmap = 0x000a0000;
+        l->conf.max_redial = -1;
+        l->conf.retry_timeout = LINK_DEFAULT_RETRY;
+        l->bandwidth = LINK_DEFAULT_BANDWIDTH;
+        l->latency = LINK_DEFAULT_LATENCY;
+        l->upReason = NULL;
+        l->upReasonValid = 0;
+        l->downReason = NULL;
+        l->downReasonValid = 0;
+
+        Disable(&l->conf.options, LINK_CONF_CHAPMD5);
+        Accept(&l->conf.options, LINK_CONF_CHAPMD5);
+
+        Disable(&l->conf.options, LINK_CONF_CHAPMSv1);
+        Deny(&l->conf.options, LINK_CONF_CHAPMSv1);
+
+        Disable(&l->conf.options, LINK_CONF_CHAPMSv2);
+        Accept(&l->conf.options, LINK_CONF_CHAPMSv2);
+
+        Disable(&l->conf.options, LINK_CONF_PAP);
+	Accept(&l->conf.options, LINK_CONF_PAP);
+
+        Disable(&l->conf.options, LINK_CONF_EAP);
+        Accept(&l->conf.options, LINK_CONF_EAP);
+
+        Disable(&l->conf.options, LINK_CONF_MSDOMAIN);
+
+        Enable(&l->conf.options, LINK_CONF_ACFCOMP);
+        Accept(&l->conf.options, LINK_CONF_ACFCOMP);
+
+        Enable(&l->conf.options, LINK_CONF_PROTOCOMP);
+        Accept(&l->conf.options, LINK_CONF_PROTOCOMP);
+
+        Enable(&l->conf.options, LINK_CONF_MAGICNUM);
+        Disable(&l->conf.options, LINK_CONF_PASSIVE);
+        Enable(&l->conf.options, LINK_CONF_CHECK_MAGIC);
+
+	Disable(&l->conf.options, LINK_CONF_MULTILINK);
+	Enable(&l->conf.options, LINK_CONF_SHORTSEQ);
+	Accept(&l->conf.options, LINK_CONF_SHORTSEQ);
+
+        LcpInit(l);
+        EapInit(l);
+	
+	if (!tmpl)
+	    l->msgs = MsgRegister(LinkMsg);
+
+	/* Find a free link pointer */
+        for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++);
+        if (k == gNumLinks)			/* add a new link pointer */
+    	    LengthenArray(&gLinks, sizeof(*gLinks), &gNumLinks, MB_LINK);
+
+	l->id = k;
+	gLinks[k] = l;
+
+	if (!tmpl)
+	    LinkNgInit(l);
+    }
+
+    ctx->lnk = l;
+    return (0);
+}
+
+/*
+ * LinkInst()
  */
 
 Link
-LinkNew(char *name, Bund b, int bI)
+LinkInst(Link lt)
 {
-    Link lnk;
+    Link 	l;
+    int		k;
 
-  /* Create and initialize new link */
-  lnk = Malloc(MB_LINK, sizeof(*lnk));
-  snprintf(lnk->name, sizeof(lnk->name), "%s", name);
-  lnk->bund = b;
-  lnk->bundleIndex = bI;
-  lnk->msgs = MsgRegister(LinkMsg);
+    /* Create and initialize new link */
+    l = Malloc(MB_LINK, sizeof(*l));
+    memcpy(l, lt, sizeof(*l));
+    l->msgs = MsgRegister(LinkMsg);
+    l->tmpl = 0;
 
-  /* Initialize link configuration with defaults */
-  lnk->conf.mru = LCP_DEFAULT_MRU;
-  lnk->conf.mtu = LCP_DEFAULT_MRU;
-  lnk->conf.accmap = 0x000a0000;
-  lnk->conf.max_redial = -1;
-  lnk->conf.retry_timeout = LINK_DEFAULT_RETRY;
-  lnk->bandwidth = LINK_DEFAULT_BANDWIDTH;
-  lnk->latency = LINK_DEFAULT_LATENCY;
-  lnk->upReason = NULL;
-  lnk->upReasonValid = 0;
-  lnk->downReason = NULL;
-  lnk->downReasonValid = 0;
+    /* Find a free link pointer */
+    for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++);
+    if (k == gNumLinks)			/* add a new link pointer */
+	LengthenArray(&gLinks, sizeof(*gLinks), &gNumLinks, MB_LINK);
 
-  Disable(&lnk->conf.options, LINK_CONF_CHAPMD5);
-  Accept(&lnk->conf.options, LINK_CONF_CHAPMD5);
+    l->id = k;
 
-  Disable(&lnk->conf.options, LINK_CONF_CHAPMSv1);
-  Deny(&lnk->conf.options, LINK_CONF_CHAPMSv1);
+    snprintf(l->name, sizeof(l->name), "%s-%d", lt->name, k);
+    gLinks[k] = l;
 
-  Disable(&lnk->conf.options, LINK_CONF_CHAPMSv2);
-  Accept(&lnk->conf.options, LINK_CONF_CHAPMSv2);
+    LcpInst(l, lt);
+    LinkNgInit(l);
 
-  Disable(&lnk->conf.options, LINK_CONF_PAP);
-  Accept(&lnk->conf.options, LINK_CONF_PAP);
-
-  Disable(&lnk->conf.options, LINK_CONF_EAP);
-  Accept(&lnk->conf.options, LINK_CONF_EAP);
-
-  Disable(&lnk->conf.options, LINK_CONF_MSDOMAIN);
-
-  Enable(&lnk->conf.options, LINK_CONF_ACFCOMP);
-  Accept(&lnk->conf.options, LINK_CONF_ACFCOMP);
-
-  Enable(&lnk->conf.options, LINK_CONF_PROTOCOMP);
-  Accept(&lnk->conf.options, LINK_CONF_PROTOCOMP);
-
-  Enable(&lnk->conf.options, LINK_CONF_MAGICNUM);
-  Disable(&lnk->conf.options, LINK_CONF_PASSIVE);
-  Enable(&lnk->conf.options, LINK_CONF_CHECK_MAGIC);
-
-  LcpInit(lnk);
-  EapInit(lnk);
-
-  LinkNgInit(lnk);
-
-  /* Initialize link layer stuff */
-  lnk->phys = PhysInit(lnk->name, lnk, NULL);
-
-  /* Hang out and be a link */
-  return(lnk);
+    return (l);
 }
 
 /*
@@ -318,9 +399,15 @@ LinkNew(char *name, Bund b, int bI)
 void
 LinkShutdown(Link l)
 {
-    MsgUnRegister(&l->msgs);
+    int		k;
+    
+    for(k = 0; k < gNumLinks; k++) {
+	if (gLinks[k] == l)
+	    gLinks[k] = NULL;
+    }
     if (l->phys)
-      PhysShutdown(l->phys);
+	l->phys->link = NULL;
+    MsgUnRegister(&l->msgs);
     LinkNgShutdown(l, 1);
     Freee(MB_LINK, l);
 }
@@ -358,7 +445,6 @@ LinkNgInit(Link l)
   (void) fcntl(l->csock, F_SETFD, 1);
   (void) fcntl(l->dsock, F_SETFD, 1);
 
-#if NG_NODESIZ>=32
   /* Give it a name */
   snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lso", gPid, l->name);
   if (NgSendMsg(l->csock, ".",
@@ -367,7 +453,6 @@ LinkNgInit(Link l)
       l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
     goto fail;
   }
-#endif
 
   /* Create TEE node */
   snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
@@ -535,19 +620,19 @@ LinkFind(char *name)
 {
     int		k;
 
-    k = gNumPhyses;
-    if ((sscanf(name, "[%x]", &k) != 1) || (k < 0) || (k >= gNumPhyses)) {
+    k = gNumLinks;
+    if ((sscanf(name, "[%x]", &k) != 1) || (k < 0) || (k >= gNumLinks)) {
         /* Find link */
 	for (k = 0;
-	    k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL || 
-		strcmp(gPhyses[k]->link->name, name));
+	    k < gNumLinks && (gLinks[k] == NULL ||
+		strcmp(gLinks[k]->name, name));
 	    k++);
     };
-    if (k == gNumPhyses) {
+    if (k == gNumLinks) {
 	return (NULL);
     }
 
-    return (gPhyses[k]->link);
+    return (gLinks[k]);
 }
 
 /*
@@ -696,6 +781,7 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("Configuration\r\n");
   Printf("\tMRU            : %d bytes\r\n", l->conf.mru);
+  Printf("\tMRRU           : %d bytes\r\n", l->conf.mrru);
   Printf("\tCtrl char map  : 0x%08x bytes\r\n", l->conf.accmap);
   Printf("\tRetry timeout  : %d seconds\r\n", l->conf.retry_timeout);
   Printf("\tMax redial     : ");
@@ -717,26 +803,29 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tSession-Id     : %s\r\n", l->session_id);
   Printf("Link level options\r\n");
   OptStat(ctx, &l->conf.options, gConfList);
-  LinkUpdateStats(l);
-  Printf("Up/Down stats:\r\n");
-  if (l->downReason && (!l->downReasonValid))
-    Printf("\tDown Reason    : %s\r\n", l->downReason);
-  if (l->upReason)
-    Printf("\tUp Reason      : %s\r\n", l->upReason);
-  if (l->downReason && l->downReasonValid)
-    Printf("\tDown Reason    : %s\r\n", l->downReason);
-  
-  Printf("Traffic stats:\r\n");
 
-  Printf("\tOctets input   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
-  Printf("\tFrames input   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
-  Printf("\tOctets output  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
-  Printf("\tFrames output  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
-  Printf("\tBad protocols  : %llu\r\n", (unsigned long long)l->stats.badProtos);
-  Printf("\tRunts          : %llu\r\n", (unsigned long long)l->stats.runts);
-  Printf("\tDup fragments  : %llu\r\n", (unsigned long long)l->stats.dupFragments);
-  Printf("\tDrop fragments : %llu\r\n", (unsigned long long)l->stats.dropFragments);
-  return(0);
+    if (!l->tmpl) {
+	Printf("Up/Down stats:\r\n");
+	if (l->downReason && (!l->downReasonValid))
+	    Printf("\tDown Reason    : %s\r\n", l->downReason);
+	if (l->upReason)
+	    Printf("\tUp Reason      : %s\r\n", l->upReason);
+	if (l->downReason && l->downReasonValid)
+	    Printf("\tDown Reason    : %s\r\n", l->downReason);
+  
+	LinkUpdateStats(l);
+	Printf("Traffic stats:\r\n");
+
+	Printf("\tOctets input   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
+	Printf("\tFrames input   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
+	Printf("\tOctets output  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
+	Printf("\tFrames output  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
+	Printf("\tBad protocols  : %llu\r\n", (unsigned long long)l->stats.badProtos);
+	Printf("\tRunts          : %llu\r\n", (unsigned long long)l->stats.runts);
+	Printf("\tDup fragments  : %llu\r\n", (unsigned long long)l->stats.dupFragments);
+	Printf("\tDrop fragments : %llu\r\n", (unsigned long long)l->stats.dropFragments);
+    }
+    return(0);
 }
 
 /* 
@@ -845,9 +934,11 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
         l->latency = val;
       break;
 
-    case SET_DEVTYPE:
-      PhysSetDeviceType(ctx->phys, *av);
-      break;
+    case SET_BUNDLE:
+	if (ac != 1)
+	    return(-1);
+	snprintf(ctx->lnk->bundt, sizeof(ctx->lnk->bundt), "%s", av[0]);
+        break;
 
     case SET_MRU:
     case SET_MTU:

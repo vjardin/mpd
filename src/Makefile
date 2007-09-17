@@ -86,7 +86,7 @@ STDSRCS=        assert.c auth.c bund.c rep.c ccp.c chap.c \
 		console.c command.c ecp.c event.c fsm.c iface.c input.c \
 		ip.c ipcp.c ipv6cp.c lcp.c link.c log.c main.c mbuf.c mp.c \
 		msg.c nat.c ngfunc.c pap.c phys.c proto.c radius.c timer.c \
-		util.c vars.c custom.c eap.c ccp_mppc.c msoft.c web.c \
+		util.c vars.c eap.c ccp_mppc.c msoft.c web.c \
 		ccp_pred1.c ccp_deflate.c
 
 # Add sources and flags for the various physical layer types

@@ -70,6 +70,7 @@
  */
 
   extern void	EcpInit(Bund b);
+  extern void	EcpInst(Bund b, Bund bt);
   extern void	EcpUp(Bund b);
   extern void	EcpDown(Bund b);
   extern void	EcpOpen(Bund b);

@@ -55,12 +55,15 @@
     LINK_CONF_RINGBACK,
     LINK_CONF_NO_ORIG_AUTH,
     LINK_CONF_CALLBACK,
+    LINK_CONF_MULTILINK,	/* multi-link */
+    LINK_CONF_SHORTSEQ,		/* multi-link short sequence numbers */
   };
 
   /* Configuration for a link */
   struct linkconf {
     u_short		mtu;		/* Initial MTU value */
     u_short		mru;		/* Initial MRU value */
+    uint16_t		mrru;		/* Initial MRRU value */
     uint32_t		accmap;		/* Initial ACCMAP value */
     short		retry_timeout;	/* FSM timeout for retries */
     short		max_redial;	/* Max failed connect attempts */
@@ -91,6 +94,9 @@
   /* Total state of a link */
   struct linkst {
     char		name[LINK_MAX_NAME];	/* Human readable name */
+    int			id;			/* Index of this link in gLinks */
+    int			tmpl;			/* This is template, not an instance */
+    char		bundt[LINK_MAX_NAME];	/* Bundle template name */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
     PhysInfo		phys;			/* Physical layer info */
@@ -145,7 +151,8 @@
   extern void	LinkOpenCmd(Context ctx);
   extern void	LinkCloseCmd(Context ctx);
 
-  extern Link	LinkNew(char *name, Bund b, int bI);
+  extern int	LinkCreate(Context ctx, int ac, char *av[], void *arg);
+  extern Link	LinkInst(Link lt);
   extern void	LinkShutdown(Link l);
   extern int	LinkNgJoin(Link l);
   extern int	LinkNgLeave(Link l);
