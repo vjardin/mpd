@@ -232,6 +232,7 @@ WebShowCSS(FILE *f)
   fprintf(f, "td.r {background-color: #EECCCC; }\n");
   fprintf(f, "td.y {background-color: #EEEEBB; }\n");
   fprintf(f, "td.g {background-color: #BBEEBB; }\n");
+  fprintf(f, "td.d {background-color: #CCCCCC; }\n");
   fprintf(f, "pre {background-color: #FFFFFF; }\n");
   fprintf(f, "a, a:visited, a:link { color: blue; }\n");
 }
@@ -248,44 +249,58 @@ WebShowSummary(FILE *f)
 
   fprintf(f, "<H2>Current status summary</H2>\n");
   fprintf(f, "<table>\n");
-  fprintf(f, "<TR><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>ECP</TH><TH>Bund</TH>"
-	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=2>Device</TH><TH>Peer</TH><TH colspan=3></TH><TH></TH></TR>");
-  for (b = 0; b<gNumBundles; b++) {
-    B=gBundles[b];
-    if (B) {
-	int shown = 0;
-	for (l = 0; l < B->n_links; l++) {
-	    L=B->links[l];
-	    if (L) {
-		fprintf(f, "<TR>\n");
+  fprintf(f, "<TR><TH>Bund</TH><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>ECP</TH>"
+	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=3>Device</TH><TH>Peer</TH><TH colspan=3></TH><TH></TH></TR>");
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
-		if (!shown) {
-		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;iface\">%s</a></TD>\n", 
-			B->n_links, (B->iface.up?"g":"r"), L->name, B->iface.ifname);
-		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;iface\">%s</a></TD>\n", 
-			B->n_links, (B->iface.up?"g":"r"), L->name, (B->iface.up?"Up":"Down"));
-		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ipcp\">%s</a></TD>\n", 
-			B->n_links, FSM_COLOR(B->ipcp.fsm.state), L->name,FsmStateName(B->ipcp.fsm.state));
-		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ipv6cp\">%s</a></TD>\n", 
-			B->n_links, FSM_COLOR(B->ipv6cp.fsm.state), L->name,FsmStateName(B->ipv6cp.fsm.state));
-		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ccp\">%s</a></TD>\n", 
-			B->n_links, FSM_COLOR(B->ccp.fsm.state), L->name,FsmStateName(B->ccp.fsm.state));
-		    fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;ecp\">%s</a></TD>\n", 
-			B->n_links, FSM_COLOR(B->ecp.fsm.state), L->name,FsmStateName(B->ecp.fsm.state));
-		    fprintf(f, "<TD rowspan=\"%d\"><A href=\"/cmd?%s&amp;show&amp;bund\">%s</a></TD>\n", 
-			B->n_links, L->name, B->name);
-		}
-		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;link\">%s</a></TD>\n", 
-		    L->name, L->name);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;lcp\">%s</a></TD>\n", 
-		    FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
-		fprintf(f, "<TD><A href=\"/cmd?%s&amp;show&amp;auth\">%s</a></TD>\n", 
-		    L->name, L->lcp.auth.params.authname);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
-		    PHYS_COLOR(L->phys->state), L->name, L->phys->type?L->phys->type->name:"");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
-		    PHYS_COLOR(L->phys->state), L->name, gPhysStateNames[L->phys->state]);
+    for (b = 0; b<gNumPhyses; b++) {
+	if ((P=gPhyses[b]) != NULL && P->link == NULL && P->rep == NULL) {
+	    fprintf(f, "<TR>\n");
+	    fprintf(f, "<TD colspan=\"10\">&nbsp;</a></TD>\n");
+	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
+	        P->tmpl?"d":PHYS_COLOR(P->state), P->name, P->name);
+	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
+	        P->tmpl?"d":PHYS_COLOR(P->state), P->name, P->type?P->type->name:"");
+	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
+	        P->tmpl?"d":PHYS_COLOR(P->state), P->name, gPhysStateNames[P->state]);
+	    if (P->state != PHYS_STATE_DOWN) {
+	        PhysGetPeerAddr(P, buf, sizeof(buf));
+	        fprintf(f, "<TD>%s</TD>\n", buf);
+	        PhysGetCallingNum(P, buf, sizeof(buf));
+	        PhysGetCalledNum(P, buf2, sizeof(buf2));
+	        if (PhysGetOriginate(P) == LINK_ORIGINATE_REMOTE) {
+	    	    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
+	    		buf2, buf);
+	        } else {
+	    	    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
+	    		buf, buf2);
+	        }
+	    } else {
+	    	fprintf(f, "<TD></TD>\n");
+	    	fprintf(f, "<TD colspan=3></TD>\n");
+	    }
+	    fprintf(f, "<TD><A href=\"/cmd?D=%s&amp;open\">[Open]</a><A href=\"/cmd?D=%s&amp;close\">[Close]</a></TD>\n", 
+	        P->name, P->name);
+	    fprintf(f, "</TR>\n");
+	}
+    }
+    for (b = 0; b<gNumLinks; b++) {
+	if ((L=gLinks[b]) != NULL && L->bund == NULL) {
+	    fprintf(f, "<TR>\n");
+	    fprintf(f, "<TD colspan=\"7\">&nbsp;</a></TD>\n");
+	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;link\">%s</a></TD>\n", 
+	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->name);
+	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;lcp\">%s</a></TD>\n", 
+	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
+	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;auth\">%s</a></TD>\n", 
+	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
+	    if (L->phys) {
+		fprintf(f, "<TD class=\"D=%s\"><A href=\"/cmd?%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->name);
+		fprintf(f, "<TD class=\"D=%s\"><A href=\"/cmd?%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->type?L->phys->type->name:"");
+		fprintf(f, "<TD class=\"D=%s\"><A href=\"/cmd?%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, gPhysStateNames[L->phys->state]);
 		if (L->phys->state != PHYS_STATE_DOWN) {
 		    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
 		    fprintf(f, "<TD>%s</TD>\n", buf);
@@ -302,22 +317,82 @@ WebShowSummary(FILE *f)
 			fprintf(f, "<TD></TD>\n");
 			fprintf(f, "<TD colspan=3></TD>\n");
 		}
-		fprintf(f, "<TD><A href=\"/cmd?%s&amp;open\">[Open]</a><A href=\"/cmd?%s&amp;close\">[Close]</a></TD>\n", 
+		fprintf(f, "<TD><A href=\"/cmd?L=%s&amp;open\">[Open]</a><A href=\"/cmd?L=%s&amp;close\">[Close]</a></TD>\n", 
+		    L->name, L->name);
+	    } else {
+		fprintf(f, "<TD colspan=\"8\">&nbsp;</a></TD>\n</TR>\n");
+	    }
+	    fprintf(f, "</TR>\n");
+	}
+    }
+  for (b = 0; b<gNumBundles; b++) {
+    if ((B=gBundles[b]) != NULL) {
+	int rows = B->n_links?B->n_links:1;
+	int first = 1;
+	fprintf(f, "<TR>\n");
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?B=%s&amp;show&amp;bund\">%s</a></TD>\n", 
+	    rows, B->tmpl?"d":(B->iface.up?"g":"r"), B->name, B->name);
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?B=%s&amp;show&amp;iface\">%s</a></TD>\n", 
+	    rows, B->tmpl?"d":(B->iface.up?"g":"r"), B->name, B->iface.ifname);
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?B=%s&amp;show&amp;iface\">%s</a></TD>\n", 
+	    rows, B->tmpl?"d":(B->iface.up?"g":"r"), B->name, (B->iface.up?"Up":"Down"));
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?B=%s&amp;show&amp;ipcp\">%s</a></TD>\n", 
+	    rows, B->tmpl?"d":FSM_COLOR(B->ipcp.fsm.state), B->name,FsmStateName(B->ipcp.fsm.state));
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?B=%s&amp;show&amp;ipv6cp\">%s</a></TD>\n", 
+	    rows, B->tmpl?"d":FSM_COLOR(B->ipv6cp.fsm.state), B->name,FsmStateName(B->ipv6cp.fsm.state));
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?B=%s&amp;show&amp;ccp\">%s</a></TD>\n", 
+	    rows, B->tmpl?"d":FSM_COLOR(B->ccp.fsm.state), B->name,FsmStateName(B->ccp.fsm.state));
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?B=%s&amp;show&amp;ecp\">%s</a></TD>\n", 
+	    rows, B->tmpl?"d":FSM_COLOR(B->ecp.fsm.state), B->name,FsmStateName(B->ecp.fsm.state));
+	if (B->n_links == 0) {
+	    fprintf(f, "<TD colspan=\"11\">&nbsp;</a></TD>\n</TR>\n");
+	}
+	for (l = 0; l < NG_PPP_MAX_LINKS; l++) {
+	    if ((L=B->links[l]) != NULL) {
+		if (first)
+		    first = 0;
+		else
+		    fprintf(f, "<TR>\n");
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;link\">%s</a></TD>\n", 
+		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->name);
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;lcp\">%s</a></TD>\n", 
+		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;auth\">%s</a></TD>\n", 
+		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->name);
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->type?L->phys->type->name:"");
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, gPhysStateNames[L->phys->state]);
+		if (L->phys->state != PHYS_STATE_DOWN) {
+		    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
+		    fprintf(f, "<TD>%s</TD>\n", buf);
+		    PhysGetCallingNum(L->phys, buf, sizeof(buf));
+		    PhysGetCalledNum(L->phys, buf2, sizeof(buf2));
+		    if (PhysGetOriginate(L->phys) == LINK_ORIGINATE_REMOTE) {
+			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
+				buf2, buf);
+		    } else {
+			    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
+				buf, buf2);
+		    }
+		} else {
+			fprintf(f, "<TD></TD>\n");
+			fprintf(f, "<TD colspan=3></TD>\n");
+		}
+		fprintf(f, "<TD><A href=\"/cmd?L=%s&amp;open\">[Open]</a><A href=\"/cmd?L=%s&amp;close\">[Close]</a></TD>\n", 
 		    L->name, L->name);
 		fprintf(f, "</TR>\n");
-		
-		shown = 1;
 	    }
 	}
     }
   }
   for (b = 0; b<gNumReps; b++) {
-    R=gReps[b];
-    if (R) {
+    if ((R=gReps[b]) != NULL) {
 	int shown = 0;
 	for (l = 0; l < 2; l++) {
-	    P=R->physes[l];
-	    if (P) {
+	    if ((P=R->physes[l]) != NULL) {
 		fprintf(f, "<TR>\n");
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
@@ -327,9 +402,11 @@ WebShowSummary(FILE *f)
 			(R->p_up?"g":"r"), P->name, R->name);
 		}
 		fprintf(f, "<TD colspan=3></TD>\n");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    PHYS_COLOR(P->state), P->name, P->name);
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
 		    PHYS_COLOR(P->state), P->name, P->type?P->type->name:"");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;phys\">%s</a></TD>\n", 
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
 		    PHYS_COLOR(P->state), P->name, gPhysStateNames[P->state]);
 		if (P->state != PHYS_STATE_DOWN) {
 		    PhysGetPeerAddr(P, buf, sizeof(buf));
@@ -399,7 +476,15 @@ WebRunCmd(FILE *f, const char *querry)
     for (k = 1; k < argc; k++) {
 	fprintf(f, "%s ",argv[k]);
     }
-    fprintf(f, "' for phys '%s'</H2>\n", argv[0]);
+    if (strncmp(argv[0], "D=", 2) == 0)
+        strcpy(buf1, "device");
+    else if (strncmp(argv[0], "R=", 2) == 0)
+        strcpy(buf1, "repeater");
+    else if (strncmp(argv[0], "B=", 2) == 0)
+        strcpy(buf1, "bundle");
+    else
+        strcpy(buf1, "link");
+    fprintf(f, "' for %s '%s'</H2>\n", buf1, argv[0]+2);
 
     if ((!strcmp(argv[1], "show")) ||
 	(!strcmp(argv[1], "open")) ||
@@ -411,9 +496,8 @@ WebRunCmd(FILE *f, const char *querry)
 
 	pthread_cleanup_push(WebRunCmdCleanup, NULL);
 
-	strcpy(buf1, "phys");
         av[0] = buf1;
-        av[1] = argv[0];
+        av[1] = argv[0]+2;
         DoCommand(&cs->context, 2, av, NULL, 0);
   
         for (k = 1; k < argc; k++) {

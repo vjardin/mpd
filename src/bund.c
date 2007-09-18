@@ -828,7 +828,8 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
 	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
 	    ctx->lnk = ctx->bund->links[0];
 	}
-	ctx->phys = ctx->lnk->phys;
+	if (ctx->lnk)
+	    ctx->phys = ctx->lnk->phys;
 	ctx->rep = NULL;
       } else {
 	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
