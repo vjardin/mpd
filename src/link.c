@@ -409,12 +409,8 @@ LinkInst(Link lt, char *name)
 void
 LinkShutdown(Link l)
 {
-    int		k;
-    
-    for(k = 0; k < gNumLinks; k++) {
-	if (gLinks[k] == l)
-	    gLinks[k] = NULL;
-    }
+    Log(LG_LINK, ("[%s] Link shutdown", l->name));
+    gLinks[l->id] = NULL;
     if (l->phys)
 	l->phys->link = NULL;
     MsgUnRegister(&l->msgs);

@@ -667,8 +667,8 @@ PhysFind(char *name)
 {
   int	k;
 
-  for (k = 0;
-    k < gNumPhyses && strcmp(gPhyses[k]->name, name);
+  for (k = 0; k < gNumPhyses && 
+    (gPhyses[k] == NULL || strcmp(gPhyses[k]->name, name));
     k++);
   return((k < gNumPhyses) ? gPhyses[k] : NULL);
 }
