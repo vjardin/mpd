@@ -156,8 +156,10 @@
   extern int	LinkCreate(Context ctx, int ac, char *av[], void *arg);
   extern Link	LinkInst(Link lt, char *name);
   extern void	LinkShutdown(Link l);
+  extern int	LinkNgInit(Link l);
   extern int	LinkNgJoin(Link l);
   extern int	LinkNgLeave(Link l);
+  extern void	LinkNgShutdown(Link l, int tee);
   extern int	LinkNuke(Link link);
   extern int	LinkStat(Context ctx, int ac, char *av[], void *arg);
   extern void	LinkUpdateStats(Link l);

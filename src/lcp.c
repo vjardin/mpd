@@ -292,9 +292,9 @@ LcpConfigure(Fsm fp)
 	lcp->peer_shortseq = FALSE;
     }
 
-  /* Peer discriminator */
-  l->peer_discrim.class = DISCRIM_CLASS_NULL;
-  l->peer_discrim.len = 0;
+    /* Peer discriminator */
+    l->peer_discrim.class = DISCRIM_CLASS_NULL;
+    l->peer_discrim.len = 0;
 }
 
 /*
@@ -648,6 +648,9 @@ static void
 LcpLayerStart(Fsm fp)
 {
     Link	l = (Link)fp->arg;
+  
+    LinkNgInit(l);
+
     if (!l->phys)
 	PhysGet(l);
     if (l->phys)
@@ -668,8 +671,9 @@ static void
 LcpLayerFinish(Fsm fp)
 {
     Link	l = (Link)fp->arg;
-  LcpStopActivity(l);
-  PhysClose(l->phys);
+    LcpStopActivity(l);
+    PhysClose(l->phys);
+    LinkNgShutdown(l, 1);
 }
 
 /*

@@ -60,8 +60,6 @@
 
   static int	LinkSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	LinkMsg(int type, void *cookie);
-  static int	LinkNgInit(Link l);
-  static void	LinkNgShutdown(Link l, int tee);
   static void	LinkNgDataEvent(int type, void *cookie);
 /*
  * GLOBAL VARIABLES
@@ -357,9 +355,6 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 
 	l->id = k;
 	gLinks[k] = l;
-
-	if (!tmpl)
-	    LinkNgInit(l);
     }
 
     ctx->lnk = l;
@@ -396,7 +391,6 @@ LinkInst(Link lt, char *name)
     gLinks[k] = l;
 
     LcpInst(l, lt);
-    LinkNgInit(l);
 
     return (l);
 }
@@ -414,7 +408,8 @@ LinkShutdown(Link l)
     if (l->phys)
 	l->phys->link = NULL;
     MsgUnRegister(&l->msgs);
-    LinkNgShutdown(l, 1);
+    if (l->csock >= 0)
+	LinkNgShutdown(l, 1);
     Freee(MB_LINK, l);
 }
 
@@ -430,7 +425,7 @@ LinkShutdown(Link l)
  * Returns -1 if error.
  */
 
-static int
+int
 LinkNgInit(Link l)
 {
   union {
@@ -563,7 +558,7 @@ LinkNgLeave(Link l)
  * LinkNgShutdown()
  */
 
-static void
+void
 LinkNgShutdown(Link l, int tee)
 {
     if (tee)
