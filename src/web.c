@@ -253,7 +253,7 @@ WebShowSummary(FILE *f)
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
     for (b = 0; b<gNumLinks; b++) {
-	if ((L=gLinks[b]) != NULL && L->bund == NULL) {
+	if ((L=gLinks[b]) != NULL && L->bund == NULL && L->rep == NULL) {
 	    fprintf(f, "<TR>\n");
 	    fprintf(f, "<TD colspan=\"7\">&nbsp;</a></TD>\n");
 	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;link\">%s</a></TD>\n", 

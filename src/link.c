@@ -308,6 +308,8 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	snprintf(l->name, sizeof(l->name), "%s", av[0]);
 	l->type = pt;
 	l->tmpl = pt->tmpl;
+	l->csock = -1;
+	l->dsock = -1;
 
 	/* Initialize link configuration with defaults */
 	l->conf.mru = LCP_DEFAULT_MRU;
@@ -422,6 +424,7 @@ LinkShutdown(Link l)
     MsgUnRegister(&l->msgs);
     if (l->csock >= 0)
 	LinkNgShutdown(l, 1);
+    PhysShutdown(l);
     Freee(MB_LINK, l);
 }
 

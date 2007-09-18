@@ -22,8 +22,8 @@
     char		name[LINK_MAX_NAME];	/* Name of this repeater */
     int			id;			/* Index of this link in gReps */
     int			tmpl;			/* This is template, not an instance */
-    char		linkt[LINK_MAX_NAME];	/* Link template names */
-    Link		links[2];		/* Physes used by repeater */
+    char		linkt[LINK_MAX_NAME];	/* Link template name */
+    Link		links[2];		/* Links used by repeater */
     struct optinfo	options;		/* Configured options */
     int			csock;			/* Socket node control socket */
     int			p_open;			/* Opened phys */

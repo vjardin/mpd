@@ -211,8 +211,6 @@ RepDown(Link l)
 
     r->p_up &= ~(1 << n);
 
-//    if (r->links[0])
-//	PhysClose(r->links[0]);
     if (r->links[1-n])
 	PhysClose(r->links[1-n]);
 
@@ -479,7 +477,7 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
   /* Show stuff about the repeater */
   Printf("Repeater %s:\r\n", r->name);
   Printf("\tLink template   : %s\r\n", r->linkt);
-  Printf("\tPhyses          : ");
+  Printf("\tLinks           : ");
   RepShowLinks(ctx, r);
 
   return(0);

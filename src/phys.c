@@ -231,9 +231,9 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	else
 	    l->rep->links[1] = NULL;
 	l->rep = NULL;
+	if (l->type->tmpl)
+	    LinkShutdown(l);
     }
-    if (l->type->tmpl)
-	PhysShutdown(l);
 }
 
 /*
