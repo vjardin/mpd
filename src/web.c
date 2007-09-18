@@ -244,7 +244,6 @@ WebShowSummary(FILE *f)
   Bund		B;
   Link  	L;
   Rep		R;
-  PhysInfo	P;
   char		buf[64],buf2[64];
 
   fprintf(f, "<H2>Current status summary</H2>\n");
@@ -253,37 +252,6 @@ WebShowSummary(FILE *f)
 	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=3>Device</TH><TH>Peer</TH><TH colspan=3></TH><TH></TH></TR>");
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
-    for (b = 0; b<gNumPhyses; b++) {
-	if ((P=gPhyses[b]) != NULL && P->link == NULL && P->rep == NULL) {
-	    fprintf(f, "<TR>\n");
-	    fprintf(f, "<TD colspan=\"10\">&nbsp;</a></TD>\n");
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-	        P->tmpl?"d":PHYS_COLOR(P->state), P->name, P->name);
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-	        P->tmpl?"d":PHYS_COLOR(P->state), P->name, P->type?P->type->name:"");
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-	        P->tmpl?"d":PHYS_COLOR(P->state), P->name, gPhysStateNames[P->state]);
-	    if (P->state != PHYS_STATE_DOWN) {
-	        PhysGetPeerAddr(P, buf, sizeof(buf));
-	        fprintf(f, "<TD>%s</TD>\n", buf);
-	        PhysGetCallingNum(P, buf, sizeof(buf));
-	        PhysGetCalledNum(P, buf2, sizeof(buf2));
-	        if (PhysGetOriginate(P) == LINK_ORIGINATE_REMOTE) {
-	    	    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
-	    		buf2, buf);
-	        } else {
-	    	    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
-	    		buf, buf2);
-	        }
-	    } else {
-	    	fprintf(f, "<TD></TD>\n");
-	    	fprintf(f, "<TD colspan=3></TD>\n");
-	    }
-	    fprintf(f, "<TD><A href=\"/cmd?D=%s&amp;open\">[Open]</a><A href=\"/cmd?D=%s&amp;close\">[Close]</a></TD>\n", 
-	        P->name, P->name);
-	    fprintf(f, "</TR>\n");
-	}
-    }
     for (b = 0; b<gNumLinks; b++) {
 	if ((L=gLinks[b]) != NULL && L->bund == NULL) {
 	    fprintf(f, "<TR>\n");
@@ -294,34 +262,30 @@ WebShowSummary(FILE *f)
 	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
 	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;auth\">%s</a></TD>\n", 
 	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
-	    if (L->phys) {
-		fprintf(f, "<TD class=\"D=%s\"><A href=\"/cmd?%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->name);
-		fprintf(f, "<TD class=\"D=%s\"><A href=\"/cmd?%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->type?L->phys->type->name:"");
-		fprintf(f, "<TD class=\"D=%s\"><A href=\"/cmd?%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, gPhysStateNames[L->phys->state]);
-		if (L->phys->state != PHYS_STATE_DOWN) {
-		    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
-		    fprintf(f, "<TD>%s</TD>\n", buf);
-		    PhysGetCallingNum(L->phys, buf, sizeof(buf));
-		    PhysGetCalledNum(L->phys, buf2, sizeof(buf2));
-		    if (PhysGetOriginate(L->phys) == LINK_ORIGINATE_REMOTE) {
-			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
-				buf2, buf);
-		    } else {
-			    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
-				buf, buf2);
-		    }
+	    fprintf(f, "<TD class=\"L=%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+	        L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->name);
+	    fprintf(f, "<TD class=\"L=%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+	        L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
+	    fprintf(f, "<TD class=\"L=%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+	        L->tmpl?"d":PHYS_COLOR(L->state), L->name, gPhysStateNames[L->state]);
+	    if (L->state != PHYS_STATE_DOWN) {
+		PhysGetPeerAddr(L, buf, sizeof(buf));
+		fprintf(f, "<TD>%s</TD>\n", buf);
+		PhysGetCallingNum(L, buf, sizeof(buf));
+		PhysGetCalledNum(L, buf2, sizeof(buf2));
+		if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
+		    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
+			buf2, buf);
 		} else {
-			fprintf(f, "<TD></TD>\n");
-			fprintf(f, "<TD colspan=3></TD>\n");
+		    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
+			buf, buf2);
 		}
-		fprintf(f, "<TD><A href=\"/cmd?L=%s&amp;open\">[Open]</a><A href=\"/cmd?L=%s&amp;close\">[Close]</a></TD>\n", 
-		    L->name, L->name);
 	    } else {
-		fprintf(f, "<TD colspan=\"8\">&nbsp;</a></TD>\n</TR>\n");
+	    	fprintf(f, "<TD></TD>\n");
+	    	fprintf(f, "<TD colspan=3></TD>\n");
 	    }
+	    fprintf(f, "<TD><A href=\"/cmd?L=%s&amp;open\">[Open]</a><A href=\"/cmd?L=%s&amp;close\">[Close]</a></TD>\n", 
+	        L->name, L->name);
 	    fprintf(f, "</TR>\n");
 	}
     }
@@ -359,18 +323,18 @@ WebShowSummary(FILE *f)
 		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;auth\">%s</a></TD>\n", 
 		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->name);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, L->phys->type?L->phys->type->name:"");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    L->phys->tmpl?"d":PHYS_COLOR(L->phys->state), L->phys->name, gPhysStateNames[L->phys->state]);
-		if (L->phys->state != PHYS_STATE_DOWN) {
-		    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->name);
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    L->tmpl?"d":PHYS_COLOR(L->state), L->name, gPhysStateNames[L->state]);
+		if (L->state != PHYS_STATE_DOWN) {
+		    PhysGetPeerAddr(L, buf, sizeof(buf));
 		    fprintf(f, "<TD>%s</TD>\n", buf);
-		    PhysGetCallingNum(L->phys, buf, sizeof(buf));
-		    PhysGetCalledNum(L->phys, buf2, sizeof(buf2));
-		    if (PhysGetOriginate(L->phys) == LINK_ORIGINATE_REMOTE) {
+		    PhysGetCallingNum(L, buf, sizeof(buf));
+		    PhysGetCalledNum(L, buf2, sizeof(buf2));
+		    if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
 			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
 				buf2, buf);
 		    } else {
@@ -393,7 +357,7 @@ WebShowSummary(FILE *f)
 	int shown = 0;
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
-	int rows = (R->physes[0]?1:0) + (R->physes[1]?1:0);
+	int rows = (R->links[0]?1:0) + (R->links[1]?1:0);
 	if (rows == 0)
 	    rows = 1;
 	fprintf(f, "<TR>\n");
@@ -401,22 +365,22 @@ WebShowSummary(FILE *f)
 	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?R=%s&amp;show&amp;repeater\">%s</a></TD>\n", 
 	     rows, R->tmpl?"d":(R->p_up?"g":"r"), R->name, R->name);
 	for (l = 0; l < 2; l++) {
-	    if ((P=R->physes[l]) != NULL) {
+	    if ((L=R->links[l]) != NULL) {
 		if (shown)
 		    fprintf(f, "<TR>\n");
 		fprintf(f, "<TD colspan=3></TD>\n");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    PHYS_COLOR(P->state), P->name, P->name);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    PHYS_COLOR(P->state), P->name, P->type?P->type->name:"");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
-		    PHYS_COLOR(P->state), P->name, gPhysStateNames[P->state]);
-		if (P->state != PHYS_STATE_DOWN) {
-		    PhysGetPeerAddr(P, buf, sizeof(buf));
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    PHYS_COLOR(L->state), L->name, L->name);
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
+		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?L=%s&amp;show&amp;device\">%s</a></TD>\n", 
+		    PHYS_COLOR(L->state), L->name, gPhysStateNames[L->state]);
+		if (L->state != PHYS_STATE_DOWN) {
+		    PhysGetPeerAddr(L, buf, sizeof(buf));
 		    fprintf(f, "<TD>%s</TD>\n", buf);
-		    PhysGetCallingNum(P, buf, sizeof(buf));
-		    PhysGetCalledNum(P, buf2, sizeof(buf2));
-		    if (PhysGetOriginate(P) == LINK_ORIGINATE_REMOTE) {
+		    PhysGetCallingNum(L, buf, sizeof(buf));
+		    PhysGetCalledNum(L, buf2, sizeof(buf2));
+		    if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
 			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
 				buf2, buf);
 		    } else {
@@ -483,9 +447,7 @@ WebRunCmd(FILE *f, const char *querry)
     for (k = 1; k < argc; k++) {
 	fprintf(f, "%s ",argv[k]);
     }
-    if (strncmp(argv[0], "D=", 2) == 0)
-        strcpy(buf1, "device");
-    else if (strncmp(argv[0], "R=", 2) == 0)
+    if (strncmp(argv[0], "R=", 2) == 0)
         strcpy(buf1, "repeater");
     else if (strncmp(argv[0], "B=", 2) == 0)
         strcpy(buf1, "bundle");

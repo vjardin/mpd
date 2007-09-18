@@ -46,13 +46,13 @@
  * INTERNAL FUNCTIONS
  */
 
-  static int	NgInit(PhysInfo p);
-  static void	NgOpen(PhysInfo p);
-  static void	NgClose(PhysInfo p);
+  static int	NgInit(Link l);
+  static void	NgOpen(Link l);
+  static void	NgClose(Link l);
   static void	NgStat(Context ctx);
   static int	NgSetCommand(Context ctx, int ac, char *av[], void *arg);
-  static int	NgIsSync(PhysInfo p);
-  static int	NgPeerAddr(PhysInfo p, void *buf, int buf_len);
+  static int	NgIsSync(Link l);
+  static int	NgPeerAddr(Link l, void *buf, int buf_len);
 
 /*
  * GLOBAL VARIABLES
@@ -89,12 +89,12 @@
  */
 
 static int
-NgInit(PhysInfo p)
+NgInit(Link l)
 {
   NgInfo	ng;
 
   /* Allocate private struct */
-  ng = (NgInfo) (p->info = Malloc(MB_PHYS, sizeof(*ng)));
+  ng = (NgInfo) (l->info = Malloc(MB_PHYS, sizeof(*ng)));
   snprintf(ng->path, sizeof(ng->path), "undefined:");
   snprintf(ng->hook, sizeof(ng->hook), "undefined");
 
@@ -107,22 +107,22 @@ NgInit(PhysInfo p)
  */
 
 static void
-NgOpen(PhysInfo p)
+NgOpen(Link l)
 {
-    NgInfo	const ng = (NgInfo) p->info;
+    NgInfo	const ng = (NgInfo) l->info;
     char	path[NG_PATHLEN + 1];
     int		csock = -1;
     struct ngm_connect	cn;
 
-    if (!PhysGetUpperHook(p, path, cn.ourhook)) {
-        Log(LG_PHYS, ("[%s] NG: can't get upper hook", p->name));
+    if (!PhysGetUpperHook(l, path, cn.ourhook)) {
+        Log(LG_PHYS, ("[%s] NG: can't get upper hook", l->name));
 	goto fail;
     }
     
     /* Get a temporary netgraph socket node */
     if (NgMkSockNode(NULL, &csock, NULL) == -1) {
 	Log(LG_ERR, ("[%s] NG: NgMkSockNode: %s", 
-	    p->name, strerror(errno)));
+	    l->name, strerror(errno)));
 	goto fail;
     }
 
@@ -130,13 +130,13 @@ NgOpen(PhysInfo p)
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", ng->hook);
     if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] NG: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    p->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 	goto fail;
     }
     
     close(csock);
-    p->state = PHYS_STATE_UP;
-    PhysUp(p);
+    l->state = PHYS_STATE_UP;
+    PhysUp(l);
     return;
 
 fail:
@@ -144,8 +144,8 @@ fail:
 	close(csock);
 	csock = -1;
     }
-    p->state = PHYS_STATE_DOWN;
-    PhysDown(p, STR_CON_FAILED0, NULL);
+    l->state = PHYS_STATE_DOWN;
+    PhysDown(l, STR_CON_FAILED0, NULL);
 }
 
 /*
@@ -153,26 +153,26 @@ fail:
  */
 
 static void
-NgClose(PhysInfo p)
+NgClose(Link l)
 {
-    NgInfo	const ng = (NgInfo) p->info;
+    NgInfo	const ng = (NgInfo) l->info;
     int		csock = -1;
 
     /* Get a temporary netgraph socket node */
     if (NgMkSockNode(NULL, &csock, NULL) == -1) {
 	Log(LG_ERR, ("[%s] NG: NgMkSockNode: %s", 
-	    p->name, strerror(errno)));
+	    l->name, strerror(errno)));
 	goto fail;
     }
 
-    NgFuncDisconnect(csock, p->name, ng->path, ng->hook);
+    NgFuncDisconnect(csock, l->name, ng->path, ng->hook);
 
     close(csock);
     /* FALL */
 
 fail:
-    p->state = PHYS_STATE_DOWN;
-    PhysDown(p, 0, NULL);
+    l->state = PHYS_STATE_DOWN;
+    PhysDown(l, 0, NULL);
 }
 
 /*
@@ -182,7 +182,7 @@ fail:
 void
 NgStat(Context ctx)
 {
-  NgInfo	const ng = (NgInfo) ctx->phys->info;
+  NgInfo	const ng = (NgInfo) ctx->lnk->info;
 
   Printf("Netgraph node configuration:\r\n");
   Printf("\tNode : %s\r\n", ng->path);
@@ -196,7 +196,7 @@ NgStat(Context ctx)
 static int
 NgSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  NgInfo	const ng = (NgInfo) ctx->phys->info;
+  NgInfo	const ng = (NgInfo) ctx->lnk->info;
 
   switch ((intptr_t)arg) {
     case SET_NODE:
@@ -220,7 +220,7 @@ NgSetCommand(Context ctx, int ac, char *av[], void *arg)
  */
 
 static int
-NgIsSync(PhysInfo p)
+NgIsSync(Link l)
 {
 	return (1);
 }
@@ -230,9 +230,9 @@ NgIsSync(PhysInfo p)
  */
 
 static int
-NgPeerAddr(PhysInfo p, void *buf, int buf_len)
+NgPeerAddr(Link l, void *buf, int buf_len)
 {
-  NgInfo	const ng = (NgInfo) p->info;
+  NgInfo	const ng = (NgInfo) l->info;
 
   if (buf_len < sizeof(ng->path))
     return(-1);

@@ -41,6 +41,7 @@
 
   /* Configuration options */
   enum {
+    LINK_CONF_INCOMING,
     LINK_CONF_PAP,
     LINK_CONF_CHAPMD5,
     LINK_CONF_CHAPMSv1,
@@ -99,8 +100,6 @@
     char		bundt[LINK_MAX_NAME];	/* Bundle template name */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
-    char		physt[LINK_MAX_NAME];	/* Device template name */
-    PhysInfo		phys;			/* Physical layer info */
     int			csock;			/* Socket node control socket */
     int			dsock;			/* Socket node data socket */
     EventRef		dataEvent;		/* Socket node data event */
@@ -133,6 +132,16 @@
 
     /* Info gleaned from negotiations */
     struct discrim	peer_discrim;
+
+    u_char		state;			/* Device current state */
+    PhysType		type;			/* Device type descriptor */
+    void		*info;			/* Type specific info */
+    time_t		lastClose;		/* Time of last close */
+    MsgHandler		pmsgs;			/* Message channel */
+    struct pppTimer	openTimer;		/* Open retry timer */
+    struct optinfo	options;
+    Rep			rep;			/* Rep connected to the device */
+    char		rept[LINK_MAX_NAME];	/* Repeater template for incomings */
   };
 
   

@@ -22,8 +22,8 @@
     char		name[LINK_MAX_NAME];	/* Name of this repeater */
     int			id;			/* Index of this link in gReps */
     int			tmpl;			/* This is template, not an instance */
-    char		physt[LINK_MAX_NAME];	/* Device template name */
-    PhysInfo		physes[2];		/* Physes used by repeater */
+    char		linkt[LINK_MAX_NAME];	/* Link template names */
+    Link		links[2];		/* Physes used by repeater */
     struct optinfo	options;		/* Configured options */
     int			csock;			/* Socket node control socket */
     int			p_open;			/* Opened phys */
@@ -50,12 +50,12 @@
   extern Rep	RepInst(Rep rt, char *name);
   extern void	RepShutdown(Rep r);
 
-  extern void	RepIncoming(PhysInfo p);
-  extern int	RepIsSync(PhysInfo p); /* Is pair link is synchronous */
-  extern void	RepSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv); /* Set async accm */
-  extern void	RepUp(PhysInfo p);
-  extern void	RepDown(PhysInfo p);
-  extern int	RepGetHook(PhysInfo p, char *path, char *hook);
+  extern void	RepIncoming(Link l);
+  extern int	RepIsSync(Link l); /* Is pair link is synchronous */
+  extern void	RepSetAccm(Link l, u_int32_t xmit, u_int32_t recv); /* Set async accm */
+  extern void	RepUp(Link l);
+  extern void	RepDown(Link l);
+  extern int	RepGetHook(Link l, char *path, char *hook);
   extern Rep	RepFind(char *name);
 
 #endif

@@ -221,8 +221,8 @@ LcpConfigure(Fsm fp)
   /* Initialize normal LCP stuff */
   lcp->peer_mru = l->conf.mtu;
   lcp->want_mru = l->conf.mru;
-  if (l->phys->type && (lcp->want_mru > l->phys->type->mru))
-    lcp->want_mru = l->phys->type->mru;
+  if (l->type && (lcp->want_mru > l->type->mru))
+    lcp->want_mru = l->type->mru;
   lcp->peer_accmap = 0xffffffff;
   lcp->want_accmap = l->conf.accmap;
   lcp->peer_acfcomp = FALSE;
@@ -247,7 +247,7 @@ LcpConfigure(Fsm fp)
   /* fill my list of possible auth-protos, most to least secure */
   /* for pptp prefer MS-CHAP and for all others CHAP-MD5 */
 #ifdef PHYSTYPE_PPTP
-  if (l->phys->type == &gPptpPhysType) {
+  if (l->type == &gPptpPhysType) {
     lcp->want_protos[0] = &gLcpAuthProtos[LINK_CONF_CHAPMSv2];
     lcp->want_protos[1] = &gLcpAuthProtos[LINK_CONF_CHAPMSv1];
     lcp->want_protos[2] = &gLcpAuthProtos[LINK_CONF_CHAPMD5];
@@ -470,8 +470,8 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_AUTHENTICATE:
-      if (!PhysIsSync(l->phys))
-        PhysSetAccm(l->phys, lcp->peer_accmap, lcp->want_accmap);
+      if (!PhysIsSync(l))
+        PhysSetAccm(l, lcp->peer_accmap, lcp->want_accmap);
       AuthStart(l);
       break;
 
@@ -498,7 +498,7 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_DEAD:
-	if (l->die)
+	if (l->die && l->type->tmpl)
 	    LinkShutdown(l);
         break;
 
@@ -590,7 +590,7 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
     cp = FsmConfValue(cp, TY_ACFCOMP, 0, NULL);
   if (lcp->want_protocomp && !LCP_PEER_REJECTED(lcp, TY_PROTOCOMP))
     cp = FsmConfValue(cp, TY_PROTOCOMP, 0, NULL);
-  if (!PhysIsSync(l->phys)) {
+  if (!PhysIsSync(l)) {
     if (!LCP_PEER_REJECTED(lcp, TY_ACCMAP))
       cp = FsmConfValue(cp, TY_ACCMAP, -4, &lcp->want_accmap);
   }
@@ -650,29 +650,22 @@ LcpLayerStart(Fsm fp)
     Link	l = (Link)fp->arg;
   
     LinkNgInit(l);
-
-    if (!l->phys)
-	PhysGet(l);
-    if (l->phys)
-	PhysOpen(l->phys);
-    else {
-	LcpClose(l);
-	LcpDown(l);
-    }
+    PhysOpen(l);
 }
 
 static void
 LcpStopActivity(Link l)
 {
-  AuthStop(l);
+    AuthStop(l);
 }
 
 static void
 LcpLayerFinish(Fsm fp)
 {
     Link	l = (Link)fp->arg;
+
     LcpStopActivity(l);
-    PhysClose(l->phys);
+    PhysClose(l);
     LinkNgShutdown(l, 1);
 }
 
@@ -847,7 +840,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		break;
 	      }
 	      if (mru >= LCP_MIN_MRU
-		  && (mru <= l->phys->type->mru || mru < lcp->want_mru))
+		  && (mru <= l->type->mru || mru < lcp->want_mru))
 		lcp->want_mru = mru;
 	      break;
 	    case MODE_REJ:

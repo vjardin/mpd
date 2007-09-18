@@ -105,8 +105,6 @@
   };
 
   static const struct cmdtab CreateCommands[] = {
-    { "device {name} {template}|template",		"Create physical device",
-	PhysCreate, NULL, NULL },
     { "link {name} {template}|template",		"Create link instance/template",
 	LinkCreate, NULL, NULL },
     { "bundle {name} {template}|template",	"Create bundle instance/template",
@@ -139,7 +137,7 @@
     { "layers",				"Layers to open/close",
 	ShowLayers, NULL, NULL },
     { "device",				"Physical device status",
-	PhysStat, AdmitPhys, NULL },
+	PhysStat, AdmitLink, NULL },
     { "link",				"Link status",
 	LinkStat, AdmitLink, NULL },
     { "auth",				"Auth status",
@@ -174,8 +172,6 @@
 	CMD_SUBMENU, AdmitRep, (void *) RepSetCmds },
     { "link ...",			"Link specific stuff",
 	CMD_SUBMENU, AdmitLink, (void *) LinkSetCmds },
-    { "device ...",			"Device specific stuff",
-	CMD_SUBMENU, AdmitPhys, (void *) PhysSetCmds },
     { "iface ...",			"Interface specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) IfaceSetCmds },
     { "ipcp ...",			"IPCP specific stuff",
@@ -218,8 +214,6 @@
 	CloseCommand, AdmitLink, NULL },
     { "create ...",			"Create new item",
     	CMD_SUBMENU, NULL, (void *) CreateCommands },
-    { "device [{name}]",		"Choose/list devices",
-	PhysCommand, NULL, NULL },
     { "exit",				"Exit console",
 	ExitCommand, NULL, NULL },
     { "help ...",			"Help on any command",
@@ -796,38 +790,23 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
   Bund		B;
   Link  	L;
   Rep		R;
-  PhysInfo 	P;
   char	buf[64];
 
   Printf("Current daemon status summary\r\n");
   Printf("Iface\tBund\t\tLink\tLCP\tDevice\t\tUser\t\tFrom\r\n");
-  for (b = 0; b<gNumPhyses; b++) {
-    if ((P=gPhyses[b]) != NULL && P->link == NULL && P->rep == NULL) {
-	Printf("\t\t\t\t\t");
-	PhysGetPeerAddr(P, buf, sizeof(buf));
-	Printf("%s\t%s\t\t\t%s", 
-	    (P->type?P->type->name:""),
-	    gPhysStateNames[P->state],
-	    buf
-	);
-	Printf("\r\n");
-    }
-  }
   for (b = 0; b<gNumLinks; b++) {
     if ((L=gLinks[b]) != NULL && L->bund == NULL) {
 	Printf("\t\t\t");
 	Printf("%s\t%s\t", 
 	    L->name,
 	    FsmStateName(L->lcp.fsm.state));
-	if (L->phys) {
-	    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
-	    Printf("%s\t%s\t%8s\t%s", 
-		(L->phys->type?L->phys->type->name:""),
-		gPhysStateNames[L->phys->state],
-		L->lcp.auth.params.authname,
-		buf
-	    );
-	}
+	PhysGetPeerAddr(L, buf, sizeof(buf));
+	Printf("%s\t%s\t%8s\t%s", 
+	    (L->type?L->type->name:""),
+	    gPhysStateNames[L->state],
+	    L->lcp.auth.params.authname,
+	    buf
+	);
 	Printf("\r\n");
     }
   }
@@ -843,12 +822,12 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 		    f = 0;
 		else
 		    Printf("\t\t\t");
-		PhysGetPeerAddr(L->phys, buf, sizeof(buf));
+		PhysGetPeerAddr(L, buf, sizeof(buf));
 		Printf("%s\t%s\t%s\t%s\t%8s\t%s", 
 		    L->name,
 		    FsmStateName(L->lcp.fsm.state),
-		    (L->phys->type?L->phys->type->name:""),
-		    gPhysStateNames[L->phys->state],
+		    (L->type?L->type->name:""),
+		    gPhysStateNames[L->state],
 		    L->lcp.auth.params.authname,
 		    buf
 		    );
@@ -862,17 +841,17 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 	Printf("Repeater\t%s\t", R->name);
 	int first = 1;
 	for (l = 0; l < 2; l++) {
-	    if ((P = R->physes[l]) != NULL) {
+	    if ((L = R->links[l])!= NULL) {
 		if (first)
 		    first = 0;
 		else
 		    Printf("\t\t\t");
-		PhysGetPeerAddr(P, buf, sizeof(buf));
+		PhysGetPeerAddr(L, buf, sizeof(buf));
 		Printf("%s\t%s\t%s\t%s\t%8s\t%s", 
-		    P->name,
+		    L->name,
 		    "",
-		    (P->type?P->type->name:""),
-		    gPhysStateNames[P->state],
+		    (L->type?L->type->name:""),
+		    gPhysStateNames[L->state],
 		    "",
 		    buf
 		    );
@@ -929,33 +908,19 @@ AdmitRep(Context ctx, CmdTab cmd)
 }
 
 /*
- * AdmitPhys()
- */
-
-int
-AdmitPhys(Context ctx, CmdTab cmd)
-{
-  if (!ctx->phys) {
-    Log(LG_ERR, ("No device selected for '%s' command", cmd->name));
-    return(FALSE);
-  }
-  return(TRUE);
-}
-
-/*
  * AdmitDev()
  */
 
 int
 AdmitDev(Context ctx, CmdTab cmd)
 {
-  if (!ctx->phys) {
+  if (!ctx->lnk) {
     Log(LG_ERR, ("No device selected for '%s' command", cmd->name));
     return(FALSE);
   }
-  if (strncmp(cmd->name, ctx->phys->type->name, strlen(ctx->phys->type->name))) {
+  if (strncmp(cmd->name, ctx->lnk->type->name, strlen(ctx->lnk->type->name))) {
     Log(LG_ERR, ("[%s] device type is %s, '%s' command isn't allowed here!",
-      ctx->phys->name, ctx->phys->type->name, cmd->name));
+      ctx->lnk->name, ctx->lnk->type->name, cmd->name));
     return(FALSE);
   }
   return(TRUE);

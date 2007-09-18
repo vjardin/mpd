@@ -774,7 +774,7 @@ BundUpdateParams(Bund b)
 
     } else if (!b->multilink) {		/* If no multilink, use peer MRU */
 	mtu = MIN(b->links[the_link]->lcp.peer_mru,
-		  b->links[the_link]->phys->type->mtu);
+		  b->links[the_link]->type->mtu);
 
     } else {	  	/* Multilink. We fragment everything, use peer MRRU */
         mtu = b->links[the_link]->lcp.peer_mrru;
@@ -828,14 +828,11 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
 	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
 	    ctx->lnk = ctx->bund->links[0];
 	}
-	if (ctx->lnk)
-	    ctx->phys = ctx->lnk->phys;
 	ctx->rep = NULL;
       } else {
 	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
 	ctx->lnk = NULL;
 	ctx->bund = NULL;
-	ctx->phys = NULL;
 	ctx->rep = NULL;
       }
       break;
@@ -868,7 +865,6 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 	/* Change default link and bundle */
 	ctx->lnk = NULL;
 	ctx->bund = NULL;
-	ctx->phys = NULL;
 	ctx->rep = NULL;
     } else {
 	/* Change default link and bundle */
@@ -876,7 +872,6 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
 	    ctx->lnk = ctx->bund->links[0];
 	}
-	ctx->phys = ctx->lnk->phys;
 	ctx->rep = NULL;
     }
 
@@ -1224,11 +1219,11 @@ BundShowLinks(Context ctx, Bund sb)
   for (j = 0; j < NG_PPP_MAX_LINKS; j++) {
     if (sb->links[j]) {
 	Printf("%s", sb->links[j]->name);
-	if (!sb->links[j]->phys->type)
+	if (!sb->links[j]->type)
     	    Printf("[no type] ");
 	else
     	    Printf("[%s/%s] ", FsmStateName(sb->links[j]->lcp.fsm.state),
-		gPhysStateNames[sb->links[j]->phys->state]);
+		gPhysStateNames[sb->links[j]->state]);
     }
   }
   Printf("\r\n");

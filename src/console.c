@@ -581,7 +581,7 @@ success:
       memcpy(av_copy, av, sizeof(av));
       if (c != '?') {
         Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
-	    cs->context.phys ? cs->context.phys->name : "", 
+	    cs->context.lnk ? cs->context.lnk->name : "", 
 	    cs->user.username, cs->cmd));
 	cs->active = 1;
         exitflag = DoCommand(&cs->context, ac, av, NULL, 0);
@@ -704,8 +704,8 @@ ConsoleSessionShowPrompt(ConsoleSession cs)
     cs->write(cs, "Password: ");
     break;
   case STATE_AUTHENTIC:
-    if (cs->context.phys)
-	cs->write(cs, "[%s] ", cs->context.phys->name);
+    if (cs->context.lnk)
+	cs->write(cs, "[%s] ", cs->context.lnk->name);
     else
 	cs->write(cs, "[] ");
     break;

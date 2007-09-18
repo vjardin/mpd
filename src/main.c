@@ -71,11 +71,9 @@
  * GLOBAL VARIABLES
  */
 
-  PhysInfo		*gPhyses;
   Rep			*gReps;
   Link			*gLinks;
   Bund			*gBundles;
-  int			gNumPhyses;
   int			gNumReps;
   int			gNumLinks;
   int			gNumBundles;
@@ -414,8 +412,8 @@ FatalSignal(sig)
     }
   }
   upLinkCount = 0;
-  for (k = 0; k < gNumPhyses; k++) {
-    if (gPhyses[k] && (gPhyses[k]->state!=PHYS_STATE_DOWN))
+  for (k = 0; k < gNumLinks; k++) {
+    if (gLinks[k] && (gLinks[k]->state!=PHYS_STATE_DOWN))
 	upLinkCount++;
   }
 
@@ -445,17 +443,17 @@ OpenCloseSignal(int sig)
     Link	l;
 
     for (k = 0;
-	k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL);
+	k < gNumLinks && gLinks[k] == NULL;
 	k++);
-    if (k == gNumPhyses) {
+    if (k == gNumLinks) {
 	Log(LG_ALWAYS, ("rec'd signal %s, no link defined, ignored", sys_signame[sig]));
 	return;
     }
 
-    l = gPhyses[k]->link;
+    l = gLinks[k];
 
     /* Open/Close Link */
-    if (l && l->phys && l->phys->type) {
+    if (l && l->type) {
 	if (sig == SIGUSR1) {
 	    Log(LG_ALWAYS, ("[%s] rec'd signal %s, opening",
     		l->name, sys_signame[sig]));

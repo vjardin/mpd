@@ -28,7 +28,7 @@
 
   /* Set menu options */
   enum {
-    SET_DEVICE,
+    SET_LINK,
     SET_ACCEPT,
     SET_DENY,
     SET_ENABLE,
@@ -51,8 +51,8 @@
   struct discrim	self_discrim;
 
   const struct cmdtab RepSetCmds[] = {
-    { "device {template}",		"Set device template",
-	RepSetCommand, NULL, (void *) SET_DEVICE },
+    { "link {template}",		"Set link template",
+	RepSetCommand, NULL, (void *) SET_LINK },
     { "accept [opt ...]",		"Accept option",
 	RepSetCommand, NULL, (void *) SET_ACCEPT },
     { "deny [opt ...]",			"Deny option",
@@ -101,10 +101,10 @@ RepClose(void)
  */
 
 void
-RepIncoming(PhysInfo p)
+RepIncoming(Link l)
 {
-    Rep		r = p->rep;
-    int		n = (r->physes[0] == p)?0:1;
+    Rep		r = l->rep;
+    int		n = (r->links[0] == l)?0:1;
     struct ngm_mkpeer       mkp;
     union {
         u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
@@ -117,12 +117,12 @@ RepIncoming(PhysInfo p)
     r->initiator = n;
 
     Log(LG_REP, ("[%s] REP: INCOMING event from %s (%d)",
-	r->name, p->name, n));
+	r->name, l->name, n));
 	
-    if (!r->physes[1])
+    if (!r->links[1])
 	PhysGetRep(r);
-    if (!r->physes[1]) {
-	PhysClose(p);
+    if (!r->links[1]) {
+	PhysClose(l);
 	return;
     }
 
@@ -131,7 +131,7 @@ RepIncoming(PhysInfo p)
 	if (NgMkSockNode(NULL, &r->csock, NULL) < 0) {
     	    Log(LG_ERR, ("[%s] REP: can't create control socket: %s",
     		r->name, strerror(errno)));
-    	    PhysClose(p);
+    	    PhysClose(l);
 	    return;
 	}
 	(void)fcntl(r->csock, F_SETFD, 1);
@@ -143,9 +143,9 @@ RepIncoming(PhysInfo p)
     if (NgSendMsg(r->csock, ".:", NGM_GENERIC_COOKIE,
         NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
     	Log(LG_ERR, ("[%s] REP: can't attach %s %s node: %s",
-    	    p->name, NG_TEE_NODE_TYPE, mkp.ourhook, strerror(errno)));
+    	    l->name, NG_TEE_NODE_TYPE, mkp.ourhook, strerror(errno)));
 	close(r->csock);
-    	PhysClose(p);
+    	PhysClose(l);
 	return;
     }
 
@@ -157,13 +157,13 @@ RepIncoming(PhysInfo p)
 	    }
     }
     
-    PhysGetCallingNum(r->physes[n], buf, sizeof(buf));
-    PhysSetCallingNum(r->physes[1-n], buf);
+    PhysGetCallingNum(r->links[n], buf, sizeof(buf));
+    PhysSetCallingNum(r->links[1-n], buf);
 
-    PhysGetCalledNum(r->physes[n], buf, sizeof(buf));
-    PhysSetCalledNum(r->physes[1-n], buf);
+    PhysGetCalledNum(r->links[n], buf, sizeof(buf));
+    PhysSetCalledNum(r->links[1-n], buf);
 
-    PhysOpen(r->physes[1-n]);
+    PhysOpen(r->links[1-n]);
 }
 
 /*
@@ -171,18 +171,18 @@ RepIncoming(PhysInfo p)
  */
 
 void
-RepUp(PhysInfo p)
+RepUp(Link l)
 {
-    Rep r = p->rep;
-    int n = (r->physes[0] == p)?0:1;
+    Rep r = l->rep;
+    int n = (r->links[0] == l)?0:1;
     
     Log(LG_REP, ("[%s] REP: UP event from %s (%d)",
-	r->name, p->name, n));
+	r->name, l->name, n));
 
     r->p_up |= (1 << n);
     
     if (n != r->initiator) {
-	PhysOpen(r->physes[1-n]);
+	PhysOpen(r->links[1-n]);
     }
 
     if (r->p_up == 3 && r->csock > 0 && r->node_id) {
@@ -201,20 +201,20 @@ RepUp(PhysInfo p)
  */
 
 void
-RepDown(PhysInfo p)
+RepDown(Link l)
 {
-    Rep r = p->rep;
-    int n = (r->physes[0] == p)?0:1;
+    Rep r = l->rep;
+    int n = (r->links[0] == l)?0:1;
 
     Log(LG_REP, ("[%s] REP: DOWN event from %s (%d)",
-	r->name, p->name, n));
+	r->name, l->name, n));
 
     r->p_up &= ~(1 << n);
 
-//    if (r->physes[0])
-//	PhysClose(r->physes[0]);
-    if (r->physes[1-n])
-	PhysClose(r->physes[1-n]);
+//    if (r->links[0])
+//	PhysClose(r->links[0]);
+    if (r->links[1-n])
+	PhysClose(r->links[1-n]);
 
     if (r->csock > 0 && r->node_id) {
 	char path[NG_PATHLEN + 1];
@@ -226,7 +226,7 @@ RepDown(PhysInfo p)
 	r->csock = -1;
     }
     
-    if (r->physes[1-n] == NULL)
+    if (r->links[1-n] == NULL)
 	RepShutdown(r);
 }
 
@@ -235,11 +235,11 @@ RepDown(PhysInfo p)
  */
 
 int
-RepIsSync(PhysInfo p) {
-    Rep r = p->rep;
-    int n = (r->physes[0] == p)?0:1;
+RepIsSync(Link l) {
+    Rep r = l->rep;
+    int n = (r->links[0] == l)?0:1;
     
-    return (PhysIsSync(r->physes[1-n]));
+    return (PhysIsSync(r->links[1-n]));
 }
 
 /*
@@ -247,14 +247,14 @@ RepIsSync(PhysInfo p) {
  */
 
 void
-RepSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv) {
-    Rep r = p->rep;
-    int n = (r->physes[0] == p)?0:1;
+RepSetAccm(Link l, u_int32_t xmit, u_int32_t recv) {
+    Rep r = l->rep;
+    int n = (r->links[0] == l)?0:1;
     
     Log(LG_REP, ("[%s] REP: SetAccm(0x%08x, 0x%08x) from %s (%d)",
-	r->name, xmit, recv, p->name, n));
+	r->name, xmit, recv, l->name, n));
 
-    PhysSetAccm(r->physes[1-n], xmit, recv);
+    PhysSetAccm(r->links[1-n], xmit, recv);
 }
 
 /*
@@ -262,10 +262,10 @@ RepSetAccm(PhysInfo p, u_int32_t xmit, u_int32_t recv) {
  */
 
 int
-RepGetHook(PhysInfo p, char *path, char *hook)
+RepGetHook(Link l, char *path, char *hook)
 {
-    Rep r = p->rep;
-    int n = (r->physes[0] == p)?0:1;
+    Rep r = l->rep;
+    int n = (r->links[0] == l)?0:1;
 
     if (r->node_id == 0)
 	return (0);
@@ -307,9 +307,8 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
       /* Change bundle, and link also if needed */
       if ((r = RepFind(av[0])) != NULL) {
 	ctx->rep = r;
-	ctx->phys = r->physes[0];
 	ctx->bund = NULL;
-	ctx->lnk = NULL;
+	ctx->lnk = r->links[0];
       } else
 	Printf("Repeater \"%s\" not defined.\r\n", av[0]);
       break;
@@ -479,7 +478,7 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
 
   /* Show stuff about the repeater */
   Printf("Repeater %s:\r\n", r->name);
-  Printf("\tDevice template : %s\r\n", r->physt);
+  Printf("\tLink template   : %s\r\n", r->linkt);
   Printf("\tPhyses          : ");
   RepShowLinks(ctx, r);
 
@@ -496,14 +495,14 @@ RepShowLinks(Context ctx, Rep r)
     int		j;
 
     for (j = 0; j < 2; j++) {
-	if (r->physes[j]) {
-	    Printf("%s", r->physes[j]->name);
-	    if (!r->physes[j]->type)
+	if (r->links[j]) {
+	    Printf("%s", r->links[j]->name);
+	    if (!r->links[j]->type)
     		Printf("[no type/%s] ",
-      		    gPhysStateNames[r->physes[j]->state]);
+      		    gPhysStateNames[r->links[j]->state]);
 	    else
-    		Printf("[%s/%s] ", r->physes[j]->type->name,
-      		    gPhysStateNames[r->physes[j]->state]);
+    		Printf("[%s/%s] ", r->links[j]->type->name,
+      		    gPhysStateNames[r->links[j]->state]);
 	}
     }
     Printf("\r\n");
@@ -538,10 +537,10 @@ RepSetCommand(Context ctx, int ac, char *av[], void *arg)
   if (ac == 0)
     return(-1);
   switch ((intptr_t)arg) {
-    case SET_DEVICE:
+    case SET_LINK:
 	if (ac != 1)
 	    return(-1);
-	snprintf(ctx->rep->physt, sizeof(ctx->rep->physt), "%s", av[0]);
+	snprintf(ctx->rep->linkt, sizeof(ctx->rep->linkt), "%s", av[0]);
 	break;
 
     case SET_ACCEPT:

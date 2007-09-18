@@ -124,12 +124,10 @@
  * VARIABLES
  */
 
-  extern PhysInfo	*gPhyses;		/* Physes */
   extern Rep		*gReps;			/* Repeaters */
   extern Link		*gLinks;		/* Links */
   extern Bund		*gBundles;		/* Bundles */
 
-  extern int		gNumPhyses;		/* Total number of phys */
   extern int		gNumReps;		/* Total number of repeaters */
   extern int		gNumLinks;		/* Total number of links */
   extern int		gNumBundles;		/* Total number of bundles */

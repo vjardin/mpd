@@ -24,60 +24,36 @@
     PHYS_STATE_UP,
   };
 
-  enum {
-	PHYS_CONF_INCOMING,	/* allow accepting connections from peer */
-  };
-
   /* Descriptor for a given type of physical layer */
-  struct physinfo;
-  typedef struct physinfo	*PhysInfo;
-
   struct phystype {
     const char	*name;				/* Name of device type */
     short	minReopenDelay;			/* Min seconds between opens */
     u_short	mtu, mru;			/* Not incl. addr/ctrl/fcs */
     int		tmpl;				/* This type is template, not an instance */
-    int		(*init)(PhysInfo p);		/* Initialize device info */
-    int		(*inst)(PhysInfo p, PhysInfo pt);	/* Instantiate device */
-    void	(*open)(PhysInfo p);		/* Initiate connection */
-    void	(*close)(PhysInfo p);		/* Disconnect */
-    void	(*update)(PhysInfo p);		/* Update config */
-    void	(*shutdown)(PhysInfo p);	/* Destroy all nodes */
+    int		(*init)(Link l);		/* Initialize device info */
+    int		(*inst)(Link l, Link lt);	/* Instantiate device */
+    void	(*open)(Link l);		/* Initiate connection */
+    void	(*close)(Link l);		/* Disconnect */
+    void	(*update)(Link l);		/* Update config */
+    void	(*shutdown)(Link l);	/* Destroy all nodes */
     void	(*showstat)(Context ctx);	/* Shows type specific stats */
-    int		(*originate)(PhysInfo p);	/* We originated connection? */
-    int		(*issync)(PhysInfo p);		/* Link is synchronous */
-    int		(*setaccm)(PhysInfo p, u_int32_t xmit, u_int32_t recv);	/* Set async accm */
-    int		(*setcallingnum)(PhysInfo p, void *buf); 
+    int		(*originate)(Link l);	/* We originated connection? */
+    int		(*issync)(Link l);		/* Link is synchronous */
+    int		(*setaccm)(Link l, u_int32_t xmit, u_int32_t recv);	/* Set async accm */
+    int		(*setcallingnum)(Link l, void *buf); 
 						/* sets the calling number */
-    int		(*setcallednum)(PhysInfo p, void *buf); 
+    int		(*setcallednum)(Link l, void *buf); 
 						/* sets the called number */
-    int		(*peeraddr)(PhysInfo p, void *buf, int buf_len); 
+    int		(*peeraddr)(Link l, void *buf, int buf_len); 
 						/* returns the peer-address (IP, MAC, whatever) */
-    int		(*peerport)(PhysInfo p, void *buf, int buf_len); 
+    int		(*peerport)(Link l, void *buf, int buf_len); 
 						/* returns the peer-port */
-    int		(*callingnum)(PhysInfo p, void *buf, int buf_len); 
+    int		(*callingnum)(Link l, void *buf, int buf_len); 
 						/* returns the calling number (IP, MAC, whatever) */
-    int		(*callednum)(PhysInfo p, void *buf, int buf_len); 
+    int		(*callednum)(Link l, void *buf, int buf_len); 
 						/* returns the called number (IP, MAC, whatever) */
   };
   typedef struct phystype	*PhysType;
-
-  struct physinfo {
-    char		name[LINK_MAX_NAME];	/* Human readable name */
-    int			id;			/* Index of this phys in gPhyses */
-    int			tmpl;			/* This type is template, not an instance */
-    u_char		state;			/* Device current state */
-    PhysType		type;			/* Device type descriptor */
-    void		*info;			/* Type specific info */
-    time_t		lastClose;		/* Time of last close */
-    Link		link;			/* Link connected to the device */
-    Rep			rep;			/* Rep connected to the device */
-    MsgHandler		msgs;			/* Message channel */
-    struct pppTimer	openTimer;		/* Open retry timer */
-    struct optinfo	options;
-    char		linkt[LINK_MAX_NAME];	/* Link template for incomings */
-    char		rept[LINK_MAX_NAME];	/* Repeater template for incomings */
-  };
 
 /*
  * VARIABLES
@@ -85,39 +61,36 @@
 
   extern const PhysType	gPhysTypes[];
   extern const char *gPhysStateNames[];
-  extern const struct cmdtab	PhysSetCmds[];
 
 /*
  * FUNCTIONS
  */
 
   extern void		PhysOpenCmd(Context ctx);
-  extern void		PhysOpen(PhysInfo p);
+  extern void		PhysOpen(Link l);
   extern void		PhysCloseCmd(Context ctx);
-  extern void		PhysClose(PhysInfo p);
-  extern void		PhysUp(PhysInfo p);
-  extern void		PhysDown(PhysInfo p, const char *reason, const char *details, ...);
-  extern void		PhysIncoming(PhysInfo p);
-  extern int		PhysGetUpperHook(PhysInfo p, char *path, char *hook);
+  extern void		PhysClose(Link l);
+  extern void		PhysUp(Link l);
+  extern void		PhysDown(Link l, const char *reason, const char *details, ...);
+  extern void		PhysIncoming(Link l);
+  extern int		PhysGetUpperHook(Link l, char *path, char *hook);
 
-  extern int		PhysSetAccm(PhysInfo p, uint32_t xmit, u_int32_t recv);
-  extern int		PhysSetCallingNum(PhysInfo p, char *buf);
-  extern int		PhysSetCalledNum(PhysInfo p, char *buf);
-  extern int		PhysGetPeerAddr(PhysInfo p, char *buf, int buf_len);
-  extern int		PhysGetPeerPort(PhysInfo p, char *buf, int buf_len);
-  extern int		PhysGetCallingNum(PhysInfo p, char *buf, int buf_len);
-  extern int		PhysGetCalledNum(PhysInfo p, char *buf, int buf_len);
+  extern int		PhysSetAccm(Link l, uint32_t xmit, u_int32_t recv);
+  extern int		PhysSetCallingNum(Link l, char *buf);
+  extern int		PhysSetCalledNum(Link l, char *buf);
+  extern int		PhysGetPeerAddr(Link l, char *buf, int buf_len);
+  extern int		PhysGetPeerPort(Link l, char *buf, int buf_len);
+  extern int		PhysGetCallingNum(Link l, char *buf, int buf_len);
+  extern int		PhysGetCalledNum(Link l, char *buf, int buf_len);
 
-  extern int		PhysCreate(Context ctx, int ac, char *av[], void *arg);
-  extern PhysInfo	PhysInst(PhysInfo pt);
+  extern int		PhysInit(Link l);
+  extern int		PhysInst(Link l, Link lt);
   extern int		PhysGet(Link l);
   extern int		PhysGetRep(Rep r);
-  extern void		PhysShutdown(PhysInfo p);
-  extern PhysInfo	PhysFind(char *name);
-  extern void		PhysSetDeviceType(PhysInfo p, char *typename);
-  extern int		PhysGetOriginate(PhysInfo p);
-  extern int		PhysIsSync(PhysInfo p);
-  extern int		PhysCommand(Context ctx, int ac, char *av[], void *arg);
+  extern void		PhysShutdown(Link l);
+  extern void		PhysSetDeviceType(Link l, char *typename);
+  extern int		PhysGetOriginate(Link l);
+  extern int		PhysIsSync(Link l);
   extern int		PhysStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif

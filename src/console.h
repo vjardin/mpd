@@ -54,7 +54,6 @@
 	Bund		bund;
 	Link		lnk;
 	Rep		rep;
-	PhysInfo	phys;
 	ConsoleSession	cs;
   };
 

@@ -34,7 +34,7 @@
   /* Set menu options */
   enum {
     SET_BUNDLE,
-    SET_DEVICE,
+    SET_REPEATER,
     SET_BANDWIDTH,
     SET_LATENCY,
     SET_ACCMAP,
@@ -70,8 +70,8 @@
 	LinkSetCommand, NULL, (void *) SET_BANDWIDTH },
     { "bundle {template}",		"Bundle template name",
 	LinkSetCommand, NULL, (void *) SET_BUNDLE },
-    { "device {template}",		"Device template name",
-	LinkSetCommand, NULL, (void *) SET_DEVICE },
+    { "repeater {template}",		"Repeater template name",
+	LinkSetCommand, NULL, (void *) SET_REPEATER },
     { "latency {microsecs}",		"Link latency",
 	LinkSetCommand, NULL, (void *) SET_LATENCY },
     { "accmap {hex-value}",		"Accmap value",
@@ -108,6 +108,7 @@
  */
 
   static struct confinfo	gConfList[] = {
+    { 0,	LINK_CONF_INCOMING,	"incoming"	},
     { 1,	LINK_CONF_PAP,		"pap"		},
     { 1,	LINK_CONF_CHAPMD5,	"chap-md5"	},
     { 1,	LINK_CONF_CHAPMSv1,	"chap-msv1"	},
@@ -177,7 +178,7 @@ LinkUp(Link l)
 {
     Log(LG_LINK, ("[%s] link: UP event", l->name));
 
-    l->originate = PhysGetOriginate(l->phys);
+    l->originate = PhysGetOriginate(l);
     Log(LG_LINK, ("[%s] link: origination is %s",
 	l->name, LINK_ORIGINATION(l->originate)));
     LcpUp(l);
@@ -208,8 +209,7 @@ LinkDown(Link l)
 	    RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
     	    LcpDown(l);
 	    if (!gShutdownInProgress) {	/* Giveup on shutdown */
-		PhysGet(l);
-		PhysOpen(l->phys);		/* Try again */
+		PhysOpen(l);		/* Try again */
 	    };
 	}
     } else {
@@ -254,12 +254,13 @@ int
 LinkCreate(Context ctx, int ac, char *av[], void *arg)
 {
     Link 	l, lt = NULL;
+    PhysType    pt;
     int 	tmpl = 0;
     int 	k;
 
     memset(ctx, 0, sizeof(*ctx));
 
-    if (ac < 1 || ac > 2)
+    if (ac < 2 || ac > 3)
 	return(-1);
 
     if (strlen(av[0])>16) {
@@ -273,15 +274,25 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	return (0);
     }
 
-    if (ac == 2) {
-	if (strcmp(av[1], "template") != 0) {
+    /* Locate type */
+    for (k = 0; (pt = gPhysTypes[k]); k++) {
+	if (!strcmp(pt->name, av[1]))
+    	    break;
+    }
+    if (pt == NULL) {
+	Log(LG_ERR, ("Device type \"%s\" unknown", av[1]));
+	return (0);
+    }
+
+    if (ac > 2) {
+	if (strcmp(av[2], "template") != 0) {
 	    /* See if template name specified */
-	    if ((lt = LinkFind(av[1])) == NULL) {
-		Log(LG_ERR, ("Link template \"%s\" not found", av[1]));
+	    if ((lt = LinkFind(av[2])) == NULL) {
+		Log(LG_ERR, ("Link template \"%s\" not found", av[2]));
 		return (0);
 	    }
 	    if (!lt->tmpl) {
-		Log(LG_ERR, ("Link \"%s\" is not a template", av[1]));
+		Log(LG_ERR, ("Link \"%s\" is not a template", av[2]));
 		return (0);
 	    }
 	} else {
@@ -295,7 +306,8 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
     } else {
 	l = Malloc(MB_LINK, sizeof(*l));
 	snprintf(l->name, sizeof(l->name), "%s", av[0]);
-	l->tmpl = tmpl;
+	l->type = pt;
+	l->tmpl = pt->tmpl;
 
 	/* Initialize link configuration with defaults */
 	l->conf.mru = LCP_DEFAULT_MRU;
@@ -342,6 +354,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	Enable(&l->conf.options, LINK_CONF_SHORTSEQ);
 	Accept(&l->conf.options, LINK_CONF_SHORTSEQ);
 
+        PhysInit(l);
         LcpInit(l);
         EapInit(l);
 	
@@ -390,6 +403,7 @@ LinkInst(Link lt, char *name)
 	snprintf(l->name, sizeof(l->name), "%s-%d", lt->name, k);
     gLinks[k] = l;
 
+    PhysInst(l, lt);
     LcpInst(l, lt);
 
     return (l);
@@ -405,8 +419,6 @@ LinkShutdown(Link l)
 {
     Log(LG_LINK, ("[%s] Link shutdown", l->name));
     gLinks[l->id] = NULL;
-    if (l->phys)
-	l->phys->link = NULL;
     MsgUnRegister(&l->msgs);
     if (l->csock >= 0)
 	LinkNgShutdown(l, 1);
@@ -652,7 +664,6 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
 	Printf("Link \"%s\" is not defined\r\n", av[0]);
 	ctx->lnk = NULL;
 	ctx->bund = NULL;
-	ctx->phys = NULL;
 	ctx->rep = NULL;
 	return(0);
     }
@@ -660,7 +671,6 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
     /* Change default link and bundle */
     ctx->lnk = l;
     ctx->bund = l->bund;
-    ctx->phys = l->phys;
     ctx->rep = NULL;
     return(0);
 }
@@ -672,7 +682,6 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
 int
 SessionCommand(Context ctx, int ac, char *av[], void *arg)
 {
-    Link	l;
     int		k;
 
     if (ac != 1)
@@ -680,22 +689,19 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
 
     /* Find link */
     for (k = 0;
-	k < gNumPhyses && (gPhyses[k] == NULL || gPhyses[k]->link == NULL || 
-	    strcmp(gPhyses[k]->link->session_id, av[0]));
+	k < gNumLinks && (gLinks[k] == NULL || 
+	    strcmp(gLinks[k]->session_id, av[0]));
 	k++);
-    if (k == gNumPhyses) {
+    if (k == gNumLinks) {
 	Printf("Session \"%s\" is not found\r\n", av[0]);
 	/* Change default link and bundle */
 	ctx->lnk = NULL;
 	ctx->bund = NULL;
-	ctx->phys = NULL;
 	ctx->rep = NULL;
     } else {
-	l = gPhyses[k]->link;
 	/* Change default link and bundle */
-	ctx->lnk = l;
-	ctx->bund = l->bund;
-	ctx->phys = l->phys;
+	ctx->lnk = gLinks[k];
+	ctx->bund = ctx->lnk->bund;
 	ctx->rep = NULL;
     }
 
@@ -802,7 +808,6 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
       l->lcp.fsm.conf.echo_int, l->lcp.fsm.conf.echo_max);
   Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
   Printf("\tSession-Id     : %s\r\n", l->session_id);
-  Printf("\tDevice template: %s\r\n", l->physt);
   Printf("\tBundle template: %s\r\n", l->bundt);
   Printf("Link level options\r\n");
   OptStat(ctx, &l->conf.options, gConfList);
@@ -943,23 +948,23 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 	snprintf(ctx->lnk->bundt, sizeof(ctx->lnk->bundt), "%s", av[0]);
         break;
 
-    case SET_DEVICE:
+    case SET_REPEATER:
 	if (ac != 1)
 	    return(-1);
-	snprintf(ctx->lnk->physt, sizeof(ctx->lnk->physt), "%s", av[0]);
-        break;
+	snprintf(ctx->lnk->rept, sizeof(ctx->lnk->rept), "%s", av[0]);
+	break;
 
     case SET_MRU:
     case SET_MTU:
       val = atoi(*av);
       name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
-      if (!l->phys->type)
+      if (!l->type)
 	Log(LG_ERR, ("[%s] this link has no type set", l->name));
       else if (val < LCP_MIN_MRU)
 	Log(LG_ERR, ("[%s] the min %s is %d", l->name, name, LCP_MIN_MRU));
-      else if (l->phys->type && (val > l->phys->type->mru))
+      else if (l->type && (val > l->type->mru))
 	Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
-	  l->name, name, l->phys->type->name, l->phys->type->mru));
+	  l->name, name, l->type->name, l->type->mru));
       else if ((intptr_t)arg == SET_MTU)
 	l->conf.mtu = val;
       else
@@ -1009,6 +1014,9 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_ENABLE:
       EnableCommand(ac, av, &l->conf.options, gConfList);
+	if (ctx->lnk->type->update) {
+	    (ctx->lnk->type->update)(ctx->lnk);
+	}
       break;
 
     case SET_DISABLE:
@@ -1017,6 +1025,9 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_YES:
       YesCommand(ac, av, &l->conf.options, gConfList);
+	if (ctx->lnk->type->update) {
+	    (ctx->lnk->type->update)(ctx->lnk);
+	}
       break;
 
     case SET_NO:

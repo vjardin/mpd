@@ -332,16 +332,16 @@ AuthStart(Link l)
     a->peer_to_self = l->lcp.want_auth;
 
     /* remember peer's IP address */
-    PhysGetPeerAddr(l->phys, a->params.peeraddr, sizeof(a->params.peeraddr));
+    PhysGetPeerAddr(l, a->params.peeraddr, sizeof(a->params.peeraddr));
   
     /* remember peer's TCP or UDP port */
-    PhysGetPeerPort(l->phys, a->params.peerport, sizeof(a->params.peerport));
+    PhysGetPeerPort(l, a->params.peerport, sizeof(a->params.peerport));
   
     /* remember calling number */
-    PhysGetCallingNum(l->phys, a->params.callingnum, sizeof(a->params.callingnum));
+    PhysGetCallingNum(l, a->params.callingnum, sizeof(a->params.callingnum));
   
     /* remember called number */
-    PhysGetCalledNum(l->phys, a->params.callednum, sizeof(a->params.callednum));
+    PhysGetCalledNum(l, a->params.callednum, sizeof(a->params.callednum));
   
   Log(LG_AUTH, ("[%s] %s: auth: peer wants %s, I want %s",
     Pref(&l->lcp.fsm), Fsm(&l->lcp.fsm),
@@ -624,8 +624,8 @@ AuthDataNew(Link l)
   }
 
   auth->info.last_open = l->last_open;
-  auth->info.phys_type = l->phys->type;
-  auth->info.linkID = l->phys->id;
+  auth->info.phys_type = l->type;
+  auth->info.linkID = l->id;
 
   authparamsCopy(&a->params,&auth->params);
 
@@ -887,9 +887,8 @@ AuthAccountFinish(void *arg, int was_canceled)
     RadiusClose(auth);
     
     if (!was_canceled && auth->drop_user && auth->acct_type != AUTH_ACCT_STOP) {
-	PhysInfo	p = gPhyses[auth->info.linkID];
-	Link		l;
-	if ((p != NULL) && ((l = p->link) != NULL)) {
+	Link 		l = gLinks[auth->info.linkID];
+	if (l != NULL) {
     	    Log(LG_AUTH, ("[%s] AUTH: Link close requested at the accounting reply", 
 		l->name));
 	    RecordLinkUpDownReason(NULL, l, 0, STR_MANUALLY, NULL);
@@ -1069,7 +1068,6 @@ AuthAsyncFinish(void *arg, int was_canceled)
 {
     AuthData	auth = (AuthData)arg;
     Link	l;
-    PhysInfo	p;
 
     if (was_canceled)
 	Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->info.lnkname));
@@ -1082,8 +1080,8 @@ AuthAsyncFinish(void *arg, int was_canceled)
 	return;
     }  
   
-    p = gPhyses[auth->info.linkID];
-    if ((p == NULL) || ((l = p->link) == NULL)) {
+    l = gLinks[auth->info.linkID];
+    if (l == NULL) {
 	AuthDataDestroy(auth);
 	return;
     }    
