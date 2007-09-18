@@ -66,11 +66,6 @@ enum {
 	SET_DISABLE,
 };
 
-enum {
-	TCP_CONF_ORIGINATE,	/* allow originating connections to peer */
-	TCP_CONF_INCOMING,	/* allow accepting connections from peer */
-};
-
 /*
  * INTERNAL FUNCTIONS
  */
@@ -93,6 +88,7 @@ static void	TcpAcceptEvent(int type, void *cookie);
 static void	TcpConnectEvent(int type, void *cookie);
 
 static int	TcpSetCommand(Context ctx, int ac, char *av[], void *arg);
+static void	TcpNodeUpdate(PhysInfo p);
 
 /*
  * GLOBAL VARIABLES
@@ -108,6 +104,7 @@ const struct phystype gTcpPhysType = {
 	.inst		= TcpInst,
 	.open		= TcpOpen,
 	.close		= TcpClose,
+	.update		= TcpNodeUpdate,
 	.shutdown	= TcpShutdown,
 	.showstat	= TcpStat,
 	.originate	= TcpOriginate,
@@ -131,8 +128,6 @@ const struct cmdtab TcpSetCmds[] = {
 };
 
 static struct confinfo	gConfList[] = {
-    { 0,	TCP_CONF_ORIGINATE,	"originate"	},
-    { 0,	TCP_CONF_INCOMING,	"incoming"	},
     { 0,	0,			NULL		},
 };
 
@@ -212,15 +207,6 @@ TcpOpen(PhysInfo p)
     } repbuf;
     struct ng_mesg *const reply = &repbuf.reply;
     struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
-
-	if ((!pi->incoming) && (!Enabled(&pi->conf.options, TCP_CONF_ORIGINATE))) {
-		Log(LG_ERR, ("[%s] Originate option is not enabled",
-		    p->name));
-		p->state = PHYS_STATE_DOWN;
-		TcpDoClose(p);
-		PhysDown(p, STR_DEV_NOT_READY, NULL);
-		return;
-	};
 
 	/* Create a new netgraph node to control TCP ksocket node. */
 	if (NgMkSockNode(NULL, &pi->csock, NULL) < 0) {
@@ -472,7 +458,7 @@ TcpAcceptEvent(int type, void *cookie)
 		pi2 = (TcpInfo)p2->info;
 
 		if ((p2->tmpl) &&
-		    Enabled(&pi2->conf.options, TCP_CONF_INCOMING) &&
+		    Enabled(&p2->options, PHYS_CONF_INCOMING) &&
 		    (pi2->If == If) &&
 		    IpAddrInRange(&pi2->conf.peer_addr, &addr) &&
 		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == port)) {
@@ -815,7 +801,7 @@ TcpListenUpdate(void *arg)
 		p = gPhyses[k];
 		pi = (TcpInfo)p->info;
 
-		if (!Enabled(&pi->conf.options, TCP_CONF_INCOMING))
+		if (!Enabled(&p->options, PHYS_CONF_INCOMING))
 			continue;
 
 		if (!pi->conf.self_port) {
@@ -856,16 +842,14 @@ TcpListenUpdate(void *arg)
 static void
 TcpNodeUpdate(PhysInfo p)
 {
-  TcpInfo pi = (TcpInfo)p->info;
-
-  if (Enabled(&pi->conf.options, TCP_CONF_INCOMING) &&
+    if (Enabled(&p->options, PHYS_CONF_INCOMING) &&
         (!TcpListenUpdateSheduled)) {
     	    /* Set a timer to run TcpListenUpdate(). */
 	    TimerInit(&TcpListenUpdateTimer, "TcpListenUpdate",
 		0, TcpListenUpdate, NULL);
 	    TimerStart(&TcpListenUpdateTimer);
 	    TcpListenUpdateSheduled = 1;
-  }
+    }
 }
 
 /*

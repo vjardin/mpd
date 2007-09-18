@@ -24,6 +24,10 @@
     PHYS_STATE_UP,
   };
 
+  enum {
+	PHYS_CONF_INCOMING,	/* allow accepting connections from peer */
+  };
+
   /* Descriptor for a given type of physical layer */
   struct physinfo;
   typedef struct physinfo	*PhysInfo;
@@ -37,7 +41,7 @@
     int		(*inst)(PhysInfo p, PhysInfo pt);	/* Instantiate device */
     void	(*open)(PhysInfo p);		/* Initiate connection */
     void	(*close)(PhysInfo p);		/* Disconnect */
-    void	(*update)(PhysInfo p);		/* Update config when LCP up */
+    void	(*update)(PhysInfo p);		/* Update config */
     void	(*shutdown)(PhysInfo p);	/* Destroy all nodes */
     void	(*showstat)(Context ctx);	/* Shows type specific stats */
     int		(*originate)(PhysInfo p);	/* We originated connection? */

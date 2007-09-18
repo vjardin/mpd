@@ -67,11 +67,6 @@
     SET_DISABLE,
   };
 
-enum {
-	UDP_CONF_ORIGINATE,	/* allow originating connections to peer */
-	UDP_CONF_INCOMING,	/* allow accepting connections from peer */
-};
-
 /*
  * INTERNAL FUNCTIONS
  */
@@ -90,6 +85,7 @@ enum {
 
   static void	UdpDoClose(PhysInfo p);
   static int	UdpSetCommand(Context ctx, int ac, char *av[], void *arg);
+  static void	UdpNodeUpdate(PhysInfo p);
 
 /*
  * GLOBAL VARIABLES
@@ -105,6 +101,7 @@ enum {
     .inst		= UdpInst,
     .open		= UdpOpen,
     .close		= UdpClose,
+    .update		= UdpNodeUpdate,
     .showstat		= UdpStat,
     .originate		= UdpOrigination,
     .issync		= UdpIsSync,
@@ -127,8 +124,6 @@ enum {
   };
 
 static struct confinfo	gConfList[] = {
-    { 0,	UDP_CONF_ORIGINATE,	"originate"	},
-    { 0,	UDP_CONF_INCOMING,	"incoming"	},
     { 0,	0,			NULL		},
 };
 
@@ -527,7 +522,7 @@ UdpAcceptEvent(int type, void *cookie)
 		pi2 = (UdpInfo)p2->info;
 
 		if ((p2->tmpl) &&
-		    Enabled(&pi2->conf.options, UDP_CONF_INCOMING) &&
+		    Enabled(&p2->options, PHYS_CONF_INCOMING) &&
 		    (pi2->If == If) &&
 		    IpAddrInRange(&pi2->conf.peer_addr, &addr) &&
 		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == port)) {
@@ -636,7 +631,7 @@ UdpListenUpdate(void *arg)
 		p = gPhyses[k];
 		pi = (UdpInfo)p->info;
 
-		if (!Enabled(&pi->conf.options, UDP_CONF_INCOMING))
+		if (!Enabled(&p->options, PHYS_CONF_INCOMING))
 			continue;
 
 		if (!pi->conf.self_port) {
@@ -677,16 +672,14 @@ UdpListenUpdate(void *arg)
 static void
 UdpNodeUpdate(PhysInfo p)
 {
-  UdpInfo pi = (UdpInfo)p->info;
-
-  if (Enabled(&pi->conf.options, UDP_CONF_INCOMING) &&
+    if (Enabled(&p->options, PHYS_CONF_INCOMING) &&
         (!UdpListenUpdateSheduled)) {
     	    /* Set a timer to run UdpListenUpdate(). */
 	    TimerInit(&UdpListenUpdateTimer, "UdpListenUpdate",
 		0, UdpListenUpdate, NULL);
 	    TimerStart(&UdpListenUpdateTimer);
 	    UdpListenUpdateSheduled = 1;
-  }
+    }
 }
 
 /*

@@ -72,11 +72,6 @@ enum {
 	SET_DISABLE,
 };
 
-enum {
-	PPPOE_CONF_ORIGINATE,	/* allow originating connections to peer */
-	PPPOE_CONF_INCOMING,	/* allow accepting connections from peer */
-};
-
 /*
    Invariants:
    ----------
@@ -138,6 +133,7 @@ const struct phystype gPppoePhysType = {
     .inst		= PppoeInst,
     .open		= PppoeOpen,
     .close		= PppoeClose,
+    .update		= PppoeNodeUpdate,
     .shutdown		= PppoeShutdown,
     .showstat		= PppoeStat,
     .originate		= PppoeOriginated,
@@ -181,8 +177,6 @@ int PppoeListenUpdateSheduled=0;
 struct pppTimer PppoeListenUpdateTimer;
 
 static struct confinfo	gConfList[] = {
-    { 0,	PPPOE_CONF_ORIGINATE,	"originate"	},
-    { 0,	PPPOE_CONF_INCOMING,	"incoming"	},
     { 0,	0,			NULL		},
 };
 
@@ -291,13 +285,6 @@ PppoeOpen(PhysInfo p)
 	/* Sanity check. */
 	if (p->state != PHYS_STATE_DOWN) {
 		Log(LG_PHYS, ("[%s] PPPoE allready active", p->name));
-		return;
-	};
-
-	if (!Enabled(&pe->options, PPPOE_CONF_ORIGINATE)) {
-		Log(LG_ERR, ("[%s] PPPoE originate option is not enabled",
-		    p->name));
-		PhysDown(p, STR_DEV_NOT_READY, NULL);
 		return;
 	};
 
@@ -829,7 +816,7 @@ PppoeListenEvent(int type, void *arg)
 
 		if ((p2->tmpl) &&
 		    (pi2->PIf == PIf) &&
-		    Enabled(&pi2->options, PPPOE_CONF_INCOMING)) {
+		    Enabled(&p2->options, PHYS_CONF_INCOMING)) {
 			p = p2;
 			break;
 		}
@@ -1078,7 +1065,7 @@ PppoeNodeUpdate(PhysInfo p)
     }
   }
   
-  if (Enabled(&pi->options, PPPOE_CONF_INCOMING) &&
+  if (Enabled(&p->options, PHYS_CONF_INCOMING) &&
         (!PppoeListenUpdateSheduled)) {
     	    /* Set a timer to run PppoeListenUpdate(). */
 	    TimerInit(&PppoeListenUpdateTimer, "PppoeListenUpdate",
@@ -1119,7 +1106,7 @@ PppoeListenUpdate(void *arg)
 			continue;
 		}
 
-		if (!Enabled(&pi->options, PPPOE_CONF_INCOMING))
+		if (!Enabled(&p->options, PHYS_CONF_INCOMING))
 			continue;
 
 		for (i = 0; i < PppoeIfCount; i++)

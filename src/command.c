@@ -799,6 +799,36 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 
   Printf("Current daemon status summary\r\n");
   Printf("Iface\tBund\t\tLink\tLCP\tDevice\t\tUser\t\tFrom\r\n");
+  for (b = 0; b<gNumPhyses; b++) {
+    if ((P=gPhyses[b]) != NULL && P->link == NULL && P->rep == NULL) {
+	Printf("\t\t\t\t\t");
+	PhysGetPeerAddr(P, buf, sizeof(buf));
+	Printf("%s\t%s\t\t\t%s", 
+	    (P->type?P->type->name:""),
+	    gPhysStateNames[P->state],
+	    buf
+	);
+	Printf("\r\n");
+    }
+  }
+  for (b = 0; b<gNumLinks; b++) {
+    if ((L=gLinks[b]) != NULL && L->bund == NULL) {
+	Printf("\t\t\t");
+	Printf("%s\t%s\t", 
+	    L->name,
+	    FsmStateName(L->lcp.fsm.state));
+	if (L->phys) {
+	    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
+	    Printf("%s\t%s\t%8s\t%s", 
+		(L->phys->type?L->phys->type->name:""),
+		gPhysStateNames[L->phys->state],
+		L->lcp.auth.params.authname,
+		buf
+	    );
+	}
+	Printf("\r\n");
+    }
+  }
   for (b = 0; b<gNumBundles; b++) {
     if ((B=gBundles[b]) != NULL) {
 	Printf("%s\t%s\t%s\t", B->iface.ifname, B->name, (B->iface.up?"Up":"Down"));
@@ -825,24 +855,6 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 	}
     }
   }
-  for (b = 0; b<gNumLinks; b++) {
-    if ((L=gLinks[b]) != NULL && L->bund == NULL) {
-	Printf("\t\t\t");
-	Printf("%s\t%s\t", 
-	    L->name,
-	    FsmStateName(L->lcp.fsm.state));
-	if (L->phys) {
-	    PhysGetPeerAddr(L->phys, buf, sizeof(buf));
-	    Printf("%s\t%s\t%8s\t%s", 
-		(L->phys->type?L->phys->type->name:""),
-		gPhysStateNames[L->phys->state],
-		L->lcp.auth.params.authname,
-		buf
-	    );
-	}
-	Printf("\r\n");
-    }
-  }
   for (b = 0; b<gNumReps; b++) {
     if ((R=gReps[b]) != NULL) {
 	Printf("Repeater\t%s\t", R->name);
@@ -863,18 +875,6 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 		Printf("\r\n");
 	    }
 	}
-    }
-  }
-  for (b = 0; b<gNumPhyses; b++) {
-    if ((P=gPhyses[b]) != NULL && P->link == NULL && P->rep == NULL) {
-	Printf("\t\t\t\t\t");
-	PhysGetPeerAddr(P, buf, sizeof(buf));
-	Printf("%s\t%s\t\t\t%s", 
-	    (P->type?P->type->name:""),
-	    gPhysStateNames[P->state],
-	    buf
-	);
-	Printf("\r\n");
     }
   }
   return(0);

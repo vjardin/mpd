@@ -56,11 +56,6 @@
     SET_DISABLE,
   };
 
-enum {
-	PHYS_CONF_ORIGINATE,	/* allow originating connections to peer */
-	PHYS_CONF_INCOMING,	/* allow accepting connections from peer */
-};
-
 /*
  * INTERNAL FUNCTIONS
  */
@@ -98,7 +93,6 @@ const struct cmdtab PhysSetCmds[] = {
   };
 
 static struct confinfo	gConfList[] = {
-    { 0,	PHYS_CONF_ORIGINATE,	"originate"	},
     { 0,	PHYS_CONF_INCOMING,	"incoming"	},
     { 0,	0,			NULL		},
 };
@@ -716,6 +710,9 @@ PhysSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_ENABLE:
         EnableCommand(ac, av, &ctx->phys->options, gConfList);
+	if (ctx->phys->type->update) {
+	    (ctx->phys->type->update)(ctx->phys);
+	}
         break;
 
     case SET_DISABLE:

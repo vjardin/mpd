@@ -101,8 +101,6 @@
 
   /* Binary options */
   enum {
-    L2TP_CONF_ORIGINATE,	/* allow originating connections to peer */
-    L2TP_CONF_INCOMING,		/* allow accepting connections from peer */
     L2TP_CONF_OUTCALL,		/* when originating, calls are "outgoing" */
     L2TP_CONF_HIDDEN,		/* enable AVP hidding */
     L2TP_CONF_LENGTH,		/* enable Length field in data packets */
@@ -170,6 +168,7 @@
     .inst		= L2tpInst,
     .open		= L2tpOpen,
     .close		= L2tpClose,
+    .update		= L2tpNodeUpdate,
     .shutdown		= L2tpShutdown,
     .showstat		= L2tpStat,
     .originate		= L2tpOriginated,
@@ -208,8 +207,6 @@
  */
 
   static struct confinfo	gConfList[] = {
-    { 0,	L2TP_CONF_ORIGINATE,	"originate"	},
-    { 0,	L2TP_CONF_INCOMING,	"incoming"	},
     { 0,	L2TP_CONF_OUTCALL,	"outcall"	},
     { 0,	L2TP_CONF_HIDDEN,	"hidden"	},
     { 0,	L2TP_CONF_LENGTH,	"length"	},
@@ -357,13 +354,6 @@ L2tpOpen(PhysInfo p)
 		return;
 	};
 
-	if (!Enabled(&pi->conf.options, L2TP_CONF_ORIGINATE)) {
-		Log(LG_ERR, ("[%s] L2TP: originate option is not enabled",
-		    p->name));
-		PhysDown(p, STR_DEV_NOT_READY, NULL);
-		return;
-	};
-	
 	strlcpy(pi->callingnum, pi->conf.callingnum, sizeof(pi->callingnum));
 	strlcpy(pi->callednum, pi->conf.callednum, sizeof(pi->callednum));
 
@@ -1036,7 +1026,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		pi2 = (L2tpInfo)p2->info;
 
 		if ((p2->tmpl) &&
-		    Enabled(&pi2->conf.options, L2TP_CONF_INCOMING) &&
+		    Enabled(&p2->options, PHYS_CONF_INCOMING) &&
 		    ((u_addrempty(&pi2->conf.self_addr)) || (u_addrcompare(&pi2->conf.self_addr, &tun->self_addr) == 0)) &&
 		    (pi2->conf.self_port == 0 || pi2->conf.self_port == tun->self_port) &&
 		    (IpAddrInRange(&pi2->conf.peer_addr, &tun->peer_addr)) &&
@@ -1537,16 +1527,14 @@ fail:
 static void
 L2tpNodeUpdate(PhysInfo p)
 {
-  L2tpInfo pe = (L2tpInfo)p->info;
-
-  if (Enabled(&pe->conf.options, L2TP_CONF_INCOMING) &&
+    if (Enabled(&p->options, PHYS_CONF_INCOMING) &&
         (!L2tpListenUpdateSheduled)) {
     	    /* Set a timer to run PppoeListenUpdate(). */
 	    TimerInit(&L2tpListenUpdateTimer, "L2tpListenUpdate",
 		0, L2tpListenUpdate, NULL);
 	    TimerStart(&L2tpListenUpdateTimer);
 	    L2tpListenUpdateSheduled = 1;
-  }
+    }
 }
 
 /*
@@ -1563,7 +1551,7 @@ L2tpListenUpdate(void *arg)
     if (gPhyses[k] && gPhyses[k]->type == &gL2tpPhysType) {
         L2tpInfo	const p = (L2tpInfo)gPhyses[k]->info;
 
-        if (Enabled(&p->conf.options, L2TP_CONF_INCOMING)) {
+        if (Enabled(&gPhyses[k]->options, PHYS_CONF_INCOMING)) {
 	    struct ghash_walk walk;
 	    struct l2tp_server *srv;
 

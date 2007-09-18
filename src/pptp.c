@@ -77,8 +77,6 @@
 
   /* Binary options */
   enum {
-    PPTP_CONF_ORIGINATE,	/* allow originating connections to peer */
-    PPTP_CONF_INCOMING,		/* allow accepting connections from peer */
     PPTP_CONF_OUTCALL,		/* when originating, calls are "outgoing" */
     PPTP_CONF_DELAYED_ACK,	/* enable delayed receive ack algorithm */
     PPTP_CONF_ALWAYS_ACK,	/* include ack with all outgoing data packets */
@@ -115,6 +113,7 @@
   static void	PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra);
   static void	PptpCancel(void *cookie);
   static int	PptpHookUp(PhysInfo p);
+  static void	PptpListenUpdate(PhysInfo p);
 
   static struct pptplinkinfo	PptpIncoming(struct pptpctrlinfo *cinfo,
 				  struct u_addr *self, struct u_addr *peer, in_port_t port, int bearType,
@@ -150,6 +149,7 @@
     .inst		= PptpInst,
     .open		= PptpOpen,
     .close		= PptpClose,
+    .update		= PptpListenUpdate,
     .shutdown		= PptpShutdown,
     .showstat		= PptpStat,
     .originate		= PptpOriginated,
@@ -185,8 +185,6 @@
 
   static u_char			gInitialized;
   static struct confinfo	gConfList[] = {
-    { 0,	PPTP_CONF_ORIGINATE,	"originate"	},
-    { 0,	PPTP_CONF_INCOMING,	"incoming"	},
     { 0,	PPTP_CONF_OUTCALL,	"outcall"	},
     { 0,	PPTP_CONF_DELAYED_ACK,	"delayed-ack"	},
     { 0,	PPTP_CONF_ALWAYS_ACK,	"always-ack"	},
@@ -252,11 +250,6 @@ PptpOpen(PhysInfo p)
   /* Check state */
   switch (p->state) {
     case PHYS_STATE_DOWN:
-      if (!Enabled(&pptp->conf.options, PPTP_CONF_ORIGINATE)) {
-	Log(LG_ERR, ("[%s] pptp originate option is not enabled", p->name));
-	PhysDown(p, STR_DEV_NOT_READY, NULL);
-	return;
-      }
       if (PptpOriginate(p) < 0) {
 	Log(LG_PHYS, ("[%s] PPTP call failed", p->name));
 	PhysDown(p, STR_ERROR, NULL);
@@ -879,7 +872,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 
 	/* See if link is feasible */
 	if ((p2->tmpl) &&
-	    Enabled(&pi2->conf.options, PPTP_CONF_INCOMING) &&
+	    Enabled(&p2->options, PHYS_CONF_INCOMING) &&
 	    (u_addrempty(&pi2->conf.self_addr) || (u_addrcompare(&pi2->conf.self_addr, self) == 0)) &&
 	    IpAddrInRange(&pi2->conf.peer_addr, peer) &&
 	    (!pi2->conf.peer_port || pi2->conf.peer_port == port)) {
@@ -967,7 +960,7 @@ PptpListenUpdate(PhysInfo p)
     PptpInfo	pi = (PptpInfo) p->info;
 
     if (pi->listener == NULL) {
-	if (Enabled(&pi->conf.options, PPTP_CONF_INCOMING)) {
+	if (Enabled(&p->options, PHYS_CONF_INCOMING)) {
 	    char	buf[64];
 
 	    /* Set up listening for incoming connections */
@@ -981,7 +974,7 @@ PptpListenUpdate(PhysInfo p)
 	    }
 	}
     } else {
-	if (!Enabled(&pi->conf.options, PPTP_CONF_INCOMING)) {
+	if (!Enabled(&p->options, PHYS_CONF_INCOMING)) {
 	    PptpCtrlUnListen(pi->listener);
 	    pi->listener = NULL;
 	}
