@@ -52,6 +52,7 @@
   /* Set menu options */
   enum {
     SET_LINK,
+    SET_REPEATER,
     SET_ENABLE,
     SET_DISABLE,
   };
@@ -71,6 +72,8 @@
 const struct cmdtab PhysSetCmds[] = {
     { "link {template}",		"Set link template for incomings",
 	  PhysSetCommand, NULL, (void *)SET_LINK },
+    { "repeater {template}",		"Set repeater template for incomings",
+	  PhysSetCommand, NULL, (void *)SET_REPEATER },
     { "enable {opt ...}",		"Enable option",
 	  PhysSetCommand, NULL, (void *)SET_ENABLE },
     { "disable {opt ...}",		"Disable option",
@@ -198,12 +201,12 @@ PhysGet(Link l)
 	    if (p->type->tmpl) {
 		p = PhysInst(p);
 		if (!p) {
-		    Log(LG_LINK, ("[%s] Can't instantiate device \"%s\"", l->name, l->physt));
+		    Log(LG_LINK, ("[%s] link: Can't instantiate device \"%s\"", l->name, l->physt));
 		    return (0);
 		}
 	    }
 	} else {
-	    Log(LG_LINK, ("[%s] Can't find device \"%s\"", l->name, l->physt));
+	    Log(LG_LINK, ("[%s] link: Can't find device \"%s\"", l->name, l->physt));
 	    return (0);
 	}
 	if (p) {
@@ -211,7 +214,43 @@ PhysGet(Link l)
 	    p->link = l;
 	}
     } else {
-	Log(LG_LINK, ("[%s] Phys template not specified", l->name));
+	Log(LG_LINK, ("[%s] link: Device template not specified", l->name));
+	return (0);
+    }
+    
+    return (1);
+}
+
+/*
+ * PhysGetRep()
+ */
+
+int
+PhysGetRep(Rep r)
+{
+    if (r->physes[1])
+	return (1);
+    
+    if (r->physt[0]) {
+	PhysInfo	p = PhysFind(r->physt);
+	if (p) {
+	    if (p->type->tmpl) {
+		p = PhysInst(p);
+		if (!p) {
+		    Log(LG_REP, ("[%s] rep: Can't instantiate device \"%s\"", r->name, r->physt));
+		    return (0);
+		}
+	    }
+	} else {
+	    Log(LG_REP, ("[%s] rep: Can't find device \"%s\"", r->name, r->physt));
+	    return (0);
+	}
+	if (p) {
+	    r->physes[1] = p;
+	    p->rep = r;
+	}
+    } else {
+	Log(LG_REP, ("[%s] rep: Device template not specified", r->name));
 	return (0);
     }
     
@@ -301,6 +340,11 @@ PhysDown(PhysInfo p, const char *reason, const char *details, ...)
 	p->link = NULL;
     } else if (p->rep) {
 	RepDown(p);
+	if (p->rep->physes[0] == p)
+	    p->rep->physes[0] = NULL;
+	else
+	    p->rep->physes[1] = NULL;
+	p->rep = NULL;
     }
     if (p->type->tmpl)
 	PhysShutdown(p);
@@ -320,6 +364,15 @@ PhysIncoming(PhysInfo p)
 	    p->link->phys = p;
 	} else
 	    Log(LG_ERR, ("[%s] Link template '%s' not found", p->name, p->linkt));
+
+    }
+    if (!p->link && !p->rep && p->rept[0]!=0) {
+	Rep rt = RepFind(p->rept);
+	if (rt && rt->tmpl) {
+	    p->rep = RepInst(rt, NULL);
+	    p->rep->physes[0] = p;
+	} else
+	    Log(LG_ERR, ("[%s] Repeater template '%s' not found", p->name, p->rept));
     }
 
     if (p->link) {
@@ -685,6 +738,10 @@ PhysStat(Context ctx, int ac, char *av[], void *arg)
 
     Printf("Device '%s' (%s)\r\n", p->name, (p->tmpl)?"template":"instance");
     Printf("\tType         : %s\r\n", p->type->name);
+    Printf("\tLink template: %s\r\n", p->linkt);
+    Printf("\tRepeater temp: %s\r\n", p->rept);
+    Printf("Device options\r\n");
+    OptStat(ctx, &p->options, gConfList);
 
     if (p->type->showstat)
 	(*p->type->showstat)(ctx);
@@ -706,6 +763,12 @@ PhysSetCommand(Context ctx, int ac, char *av[], void *arg)
 	if (ac != 1)
 	    return(-1);
 	snprintf(ctx->phys->linkt, sizeof(ctx->phys->linkt), "%s", av[0]);
+	break;
+
+    case SET_REPEATER:
+	if (ac != 1)
+	    return(-1);
+	snprintf(ctx->phys->rept, sizeof(ctx->phys->rept), "%s", av[0]);
 	break;
 
     case SET_ENABLE:

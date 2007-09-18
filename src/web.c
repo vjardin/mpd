@@ -391,16 +391,19 @@ WebShowSummary(FILE *f)
   for (b = 0; b<gNumReps; b++) {
     if ((R=gReps[b]) != NULL) {
 	int shown = 0;
-	for (l = 0; l < 2; l++) {
-	    if ((P=R->physes[l]) != NULL) {
-		fprintf(f, "<TR>\n");
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
-		if (!shown) {
-		    fprintf(f, "<TD rowspan=2 colspan=6>Repeater</TD>\n");
-		    fprintf(f, "<TD rowspan=2 class=\"%s\"><A href=\"/cmd?%s&amp;show&amp;repeater\">%s</a></TD>\n", 
-			(R->p_up?"g":"r"), P->name, R->name);
-		}
+	int rows = (R->physes[0]?1:0) + (R->physes[1]?1:0);
+	if (rows == 0)
+	    rows = 1;
+	fprintf(f, "<TR>\n");
+	fprintf(f, "<TD rowspan=\"%d\" colspan=6>Repeater</TD>\n", rows);
+	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?R=%s&amp;show&amp;repeater\">%s</a></TD>\n", 
+	     rows, R->tmpl?"d":(R->p_up?"g":"r"), R->name, R->name);
+	for (l = 0; l < 2; l++) {
+	    if ((P=R->physes[l]) != NULL) {
+		if (shown)
+		    fprintf(f, "<TR>\n");
 		fprintf(f, "<TD colspan=3></TD>\n");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?D=%s&amp;show&amp;device\">%s</a></TD>\n", 
 		    PHYS_COLOR(P->state), P->name, P->name);
@@ -429,6 +432,10 @@ WebShowSummary(FILE *f)
 		
 		shown = 1;
 	    }
+	}
+	if (!shown) {
+	    fprintf(f, "<TD colspan = \"11\"></TD>\n");
+	    fprintf(f, "</TR>\n");
 	}
     }
   }

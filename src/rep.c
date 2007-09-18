@@ -28,6 +28,7 @@
 
   /* Set menu options */
   enum {
+    SET_DEVICE,
     SET_ACCEPT,
     SET_DENY,
     SET_ENABLE,
@@ -40,7 +41,6 @@
  * INTERNAL FUNCTIONS
  */
 
-  static Rep	RepFind(char *name);
   static int	RepSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	RepShowLinks(Context ctx, Rep r);
 
@@ -51,6 +51,8 @@
   struct discrim	self_discrim;
 
   const struct cmdtab RepSetCmds[] = {
+    { "device {template}",		"Set device template",
+	RepSetCommand, NULL, (void *) SET_DEVICE },
     { "accept [opt ...]",		"Accept option",
 	RepSetCommand, NULL, (void *) SET_ACCEPT },
     { "deny [opt ...]",			"Deny option",
@@ -116,6 +118,13 @@ RepIncoming(PhysInfo p)
 
     Log(LG_REP, ("[%s] REP: INCOMING event from %s (%d)",
 	r->name, p->name, n));
+	
+    if (!r->physes[1])
+	PhysGetRep(r);
+    if (!r->physes[1]) {
+	PhysClose(p);
+	return;
+    }
 
     if (r->csock <= 0) {
 	/* Create a new netgraph node to control TCP ksocket node. */
@@ -201,9 +210,11 @@ RepDown(PhysInfo p)
 	r->name, p->name, n));
 
     r->p_up &= ~(1 << n);
-    
-    PhysClose(r->physes[0]);
-    PhysClose(r->physes[1]);
+
+//    if (r->physes[0])
+//	PhysClose(r->physes[0]);
+    if (r->physes[1-n])
+	PhysClose(r->physes[1-n]);
 
     if (r->csock > 0 && r->node_id) {
 	char path[NG_PATHLEN + 1];
@@ -214,6 +225,9 @@ RepDown(PhysInfo p)
 	close(r->csock);
 	r->csock = -1;
     }
+    
+    if (r->physes[1-n] == NULL)
+	RepShutdown(r);
 }
 
 /*
@@ -313,61 +327,105 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
  */
 
 int
-RepCreateCmd(Context ctx, int ac, char *av[], void *arg)
+RepCreate(Context ctx, int ac, char *av[], void *arg)
 {
-    Rep		r;
-    PhysInfo	new_link;
+    Rep		r, rt = NULL;
     int		k;
+    int         tmpl = 0;
 
-  /* Args */
-  if (ac != 3)
-    return(-1);
+    memset(ctx, 0, sizeof(*ctx));
 
-  if (strlen(av[0])>16) {
-    Log(LG_ERR, ("repeater name \"%s\" is too long", av[0]));
-    return (-1);
-  }
+    /* Args */
+    if (ac < 1 || ac > 2)
+	return(-1);
 
-  /* See if repeater name already taken */
-  if ((r = RepFind(av[0])) != NULL) {
-    Log(LG_ERR, ("repeater \"%s\" already exists", av[0]));
-    return (-1);
-  }
-
-  /* Create a new repeater structure */
-  r = Malloc(MB_REP, sizeof(*r));
-  snprintf(r->name, sizeof(r->name), "%s", av[0]);
-  r->csock = -1;
-
-  /* Create each link and add it to the repeater */
-  for (k = 1; k < ac; k++) {
-    if (strlen(av[k])>16) {
-	Log(LG_ERR, ("phys name \"%s\" is too long", av[k]));
-        RepShutdown(r);
+    if (strlen(av[0])>16) {
+	Log(LG_ERR, ("repeater name \"%s\" is too long", av[0]));
 	return (-1);
     }
-/*    if ((new_link = PhysInit(av[k], NULL, r)) == NULL) {
-      Log(LG_ERR, ("[%s] creation of phys \"%s\" failed", av[0], av[k]));
-      RepShutdown(r);
-      return (-1);
-    } else {
-      r->physes[k - 1] = new_link;
-    }
-*/
-  }
-  /* Add repeater to the list of repeaters and make it the current active repeater */
-  for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
-  if (k == gNumReps)			/* add a new repeater pointer */
-    LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
-  gReps[k] = r;
-  
-  ctx->rep = r;
-  ctx->phys = r->physes[0];
-  ctx->lnk = NULL;
-  ctx->bund = NULL;
 
-  /* Done */
-  return(0);
+    /* See if repeater name already taken */
+    if ((r = RepFind(av[0])) != NULL) {
+	Log(LG_ERR, ("repeater \"%s\" already exists", av[0]));
+	return (-1);
+    }
+
+    if (ac == 2) {
+	if (strcmp(av[1], "template") != 0) {
+	    /* See if template name specified */
+	    if ((rt = RepFind(av[1])) == NULL) {
+		Log(LG_ERR, ("Repeater template \"%s\" not found", av[1]));
+		return (0);
+	    }
+	    if (!rt->tmpl) {
+		Log(LG_ERR, ("Repeater \"%s\" is not a template", av[1]));
+		return (0);
+	    }
+	} else {
+	    tmpl = 1;
+	}
+    }
+
+    /* Create and initialize new link */
+    if (rt) {
+	r = RepInst(rt, av[0]);
+    } else {
+        /* Create a new repeater structure */
+        r = Malloc(MB_REP, sizeof(*r));
+	snprintf(r->name, sizeof(r->name), "%s", av[0]);
+	r->tmpl = tmpl;
+	r->csock = -1;
+
+	/* Create each link and add it to the repeater */
+	for (k = 1; k < ac; k++) {
+	    if (strlen(av[k])>16) {
+		Log(LG_ERR, ("phys name \"%s\" is too long", av[k]));
+    		RepShutdown(r);
+		return (-1);
+	    }
+	}
+	/* Add repeater to the list of repeaters and make it the current active repeater */
+	for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
+	if (k == gNumReps)			/* add a new repeater pointer */
+	    LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
+	gReps[k] = r;
+    }
+  
+    ctx->rep = r;
+
+    /* Done */
+    return(0);
+}
+
+/*
+ * RepInst()
+ */
+
+Rep
+RepInst(Rep rt, char *name)
+{
+    Rep 	r;
+    int		k;
+
+    /* Create and initialize new link */
+    r = Malloc(MB_REP, sizeof(*r));
+    memcpy(r, rt, sizeof(*r));
+    r->tmpl = 0;
+
+    /* Find a free rep pointer */
+    for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
+    if (k == gNumReps)			/* add a new repeater pointer */
+        LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
+
+    r->id = k;
+
+    if (name)
+	strlcpy(r->name, name, sizeof(r->name));
+    else
+	snprintf(r->name, sizeof(r->name), "%s-%d", rt->name, k);
+    gReps[k] = r;
+
+    return (r);
 }
 
 /*
@@ -378,18 +436,7 @@ RepCreateCmd(Context ctx, int ac, char *av[], void *arg)
 void
 RepShutdown(Rep r)
 {
-    int		k;
-    
-    for(k = 0; k < 2; k++) {
-	if (r->physes[k])
-	    PhysShutdown(r->physes[k]);
-    }
-
-    for (k = 0; 
-	k < gNumReps && gReps[k] != r;
-	k++);
-    if (k < gNumReps)
-	gReps[k] = NULL;
+    gReps[r->id] = NULL;
 
     if (r->csock > 0 && r->node_id) {
 	char path[NG_PATHLEN + 1];
@@ -432,6 +479,7 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
 
   /* Show stuff about the repeater */
   Printf("Repeater %s:\r\n", r->name);
+  Printf("\tDevice template : %s\r\n", r->physt);
   Printf("\tPhyses          : ");
   RepShowLinks(ctx, r);
 
@@ -447,16 +495,18 @@ RepShowLinks(Context ctx, Rep r)
 {
     int		j;
 
-  for (j = 0; j < 2; j++) {
-    Printf("%s", r->physes[j]->name);
-    if (!r->physes[j]->type)
-      Printf("[no type/%s] ",
-      	gPhysStateNames[r->physes[j]->state]);
-    else
-      Printf("[%s/%s] ", r->physes[j]->type->name,
-      	gPhysStateNames[r->physes[j]->state]);
-  }
-  Printf("\r\n");
+    for (j = 0; j < 2; j++) {
+	if (r->physes[j]) {
+	    Printf("%s", r->physes[j]->name);
+	    if (!r->physes[j]->type)
+    		Printf("[no type/%s] ",
+      		    gPhysStateNames[r->physes[j]->state]);
+	    else
+    		Printf("[%s/%s] ", r->physes[j]->type->name,
+      		    gPhysStateNames[r->physes[j]->state]);
+	}
+    }
+    Printf("\r\n");
 }
 
 /*
@@ -465,13 +515,13 @@ RepShowLinks(Context ctx, Rep r)
  * Find a repeater structure
  */
 
-static Rep
+Rep
 RepFind(char *name)
 {
   int	k;
 
   for (k = 0;
-    k < gNumReps && (strcmp(gReps[k]->name, name));
+    k < gNumReps && (!gReps[k] || strcmp(gReps[k]->name, name));
     k++);
   return((k < gNumReps) ? gReps[k] : NULL);
 }
@@ -488,6 +538,12 @@ RepSetCommand(Context ctx, int ac, char *av[], void *arg)
   if (ac == 0)
     return(-1);
   switch ((intptr_t)arg) {
+    case SET_DEVICE:
+	if (ac != 1)
+	    return(-1);
+	snprintf(ctx->rep->physt, sizeof(ctx->rep->physt), "%s", av[0]);
+	break;
+
     case SET_ACCEPT:
       AcceptCommand(ac, av, &r->options, gConfList);
       break;

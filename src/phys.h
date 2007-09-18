@@ -76,6 +76,7 @@
     struct pppTimer	openTimer;		/* Open retry timer */
     struct optinfo	options;
     char		linkt[LINK_MAX_NAME];	/* Link template for incomings */
+    char		rept[LINK_MAX_NAME];	/* Repeater template for incomings */
   };
 
 /*
@@ -110,6 +111,7 @@
   extern int		PhysCreate(Context ctx, int ac, char *av[], void *arg);
   extern PhysInfo	PhysInst(PhysInfo pt);
   extern int		PhysGet(Link l);
+  extern int		PhysGetRep(Rep r);
   extern void		PhysShutdown(PhysInfo p);
   extern PhysInfo	PhysFind(char *name);
   extern void		PhysSetDeviceType(PhysInfo p, char *typename);

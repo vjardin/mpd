@@ -807,6 +807,8 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
       l->lcp.fsm.conf.echo_int, l->lcp.fsm.conf.echo_max);
   Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
   Printf("\tSession-Id     : %s\r\n", l->session_id);
+  Printf("\tDevice template: %s\r\n", l->physt);
+  Printf("\tBundle template: %s\r\n", l->bundt);
   Printf("Link level options\r\n");
   OptStat(ctx, &l->conf.options, gConfList);
 

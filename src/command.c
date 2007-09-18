@@ -111,6 +111,8 @@
 	LinkCreate, NULL, NULL },
     { "bundle {name} {template}|template",	"Create bundle instance/template",
 	BundCreate, NULL, NULL },
+    { "repeater {name} {template}|template",	"Create repeater instance/template",
+	RepCreate, NULL, NULL },
   };
 
   static const struct cmdtab ShowCommands[] = {
@@ -855,14 +857,16 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 	}
     }
   }
-  for (b = 0; b<gNumReps; b++) {
-    if ((R=gReps[b]) != NULL) {
+  for (b = 0; b < gNumReps; b++) {
+    if ((R = gReps[b]) != NULL) {
 	Printf("Repeater\t%s\t", R->name);
+	int first = 1;
 	for (l = 0; l < 2; l++) {
-	    if (l != 0) {
-		Printf("\t\t\t");
-	    }
-	    if ((P=R->physes[l]) != NULL) {
+	    if ((P = R->physes[l]) != NULL) {
+		if (first)
+		    first = 0;
+		else
+		    Printf("\t\t\t");
 		PhysGetPeerAddr(P, buf, sizeof(buf));
 		Printf("%s\t%s\t%s\t%s\t%8s\t%s", 
 		    P->name,
@@ -875,6 +879,8 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 		Printf("\r\n");
 	    }
 	}
+	if (first)
+	    Printf("\r\n");
     }
   }
   return(0);

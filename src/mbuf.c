@@ -113,7 +113,6 @@ mbfree(Mbuf bp)
   {
 
    /* Sanity checks */
-
     assert(bp->base);
 //    assert(bp == (Mbuf)(void *)(bp->base - sizeof(*bp)));
 

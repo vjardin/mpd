@@ -20,6 +20,9 @@
   /* Total state of a repeater */
   struct rep {
     char		name[LINK_MAX_NAME];	/* Name of this repeater */
+    int			id;			/* Index of this link in gReps */
+    int			tmpl;			/* This is template, not an instance */
+    char		physt[LINK_MAX_NAME];	/* Device template name */
     PhysInfo		physes[2];		/* Physes used by repeater */
     struct optinfo	options;		/* Configured options */
     int			csock;			/* Socket node control socket */
@@ -43,7 +46,8 @@
   extern void	RepClose(void);
   extern int	RepStat(Context ctx, int ac, char *av[], void *arg);
   extern int	RepCommand(Context ctx, int ac, char *av[], void *arg);
-  extern int	RepCreateCmd(Context ctx, int ac, char *av[], void *arg);
+  extern int	RepCreate(Context ctx, int ac, char *av[], void *arg);
+  extern Rep	RepInst(Rep rt, char *name);
   extern void	RepShutdown(Rep r);
 
   extern void	RepIncoming(PhysInfo p);
@@ -52,6 +56,7 @@
   extern void	RepUp(PhysInfo p);
   extern void	RepDown(PhysInfo p);
   extern int	RepGetHook(PhysInfo p, char *path, char *hook);
+  extern Rep	RepFind(char *name);
 
 #endif
 
