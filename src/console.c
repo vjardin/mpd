@@ -35,8 +35,7 @@
     SET_OPEN,
     SET_CLOSE,
     SET_USER,
-    SET_PORT,
-    SET_IP,
+    SET_SELF,
     SET_DISABLE,
     SET_ENABLE,
   };
@@ -74,10 +73,8 @@
   	ConsoleSetCommand, NULL, (void *) SET_CLOSE },
     { "user <name> <password>", "Add a console user" ,
       	ConsoleSetCommand, NULL, (void *) SET_USER },
-    { "port <port>",		"Set port" ,
-  	ConsoleSetCommand, NULL, (void *) SET_PORT },
-    { "ip <ip>",		"Set IP address" ,
-  	ConsoleSetCommand, NULL, (void *) SET_IP },
+    { "self {ip} [{port}]",	"Set console ip and port" ,
+  	ConsoleSetCommand, NULL, (void *) SET_SELF },
     { "enable [opt ...]",	"Enable this console option" ,
   	ConsoleSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]",	"Disable this console option" ,
@@ -800,26 +797,23 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
       RWLOCK_UNLOCK(c->lock);
       break;
 
-    case SET_PORT:
-      if (ac != 1)
+    case SET_SELF:
+      if (ac < 1 || ac > 2)
 	return(-1);
 
-      port =  strtol(av[0], NULL, 10);
-      if (port < 1 || port > 65535) {
-	Log(LG_ERR, ("CONSOLE: Bogus port given %s", av[0]));
-	return(-1);
-      }
-      c->port=port;
-      break;
-
-    case SET_IP:
-      if (ac != 1)
-	return(-1);
-
-      if (!ParseAddr(av[0],&c->addr, ALLOW_IPV4|ALLOW_IPV6)) 
+      if (!ParseAddr(av[0], &c->addr, ALLOW_IPV4|ALLOW_IPV6)) 
       {
 	Log(LG_ERR, ("CONSOLE: Bogus IP address given %s", av[0]));
 	return(-1);
+      }
+
+      if (ac == 2) {
+        port =  strtol(av[1], NULL, 10);
+        if (port < 1 || port > 65535) {
+	    Log(LG_ERR, ("CONSOLE: Bogus port given %s", av[1]));
+	    return(-1);
+        }
+        c->port=port;
       }
       break;
 

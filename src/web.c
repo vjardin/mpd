@@ -19,8 +19,7 @@
     SET_OPEN,
     SET_CLOSE,
     SET_USER,
-    SET_PORT,
-    SET_IP,
+    SET_SELF,
     SET_DISABLE,
     SET_ENABLE,
   };
@@ -56,10 +55,8 @@
   	WebSetCommand, NULL, (void *) SET_CLOSE },
     { "user <name> <password>", "Add a web user" ,
       	WebSetCommand, NULL, (void *) SET_USER },
-    { "port <port>",		"Set port" ,
-  	WebSetCommand, NULL, (void *) SET_PORT },
-    { "ip <ip>",		"Set IP address" ,
-  	WebSetCommand, NULL, (void *) SET_IP },
+    { "self {ip} [{port}]",	"Set web ip and port" ,
+  	WebSetCommand, NULL, (void *) SET_SELF },
     { "enable [opt ...]",	"Enable web option" ,
   	WebSetCommand, NULL, (void *) SET_ENABLE },
     { "disable [opt ...]",	"Disable web option" ,
@@ -652,26 +649,23 @@ WebSetCommand(Context ctx, int ac, char *av[], void *arg)
       ghash_put(w->users, u);
       break;
 
-    case SET_PORT:
-      if (ac != 1)
-	return(-1);
-
-      port =  strtol(av[0], NULL, 10);
-      if (port < 1 || port > 65535) {
-	Log(LG_ERR, ("web: Bogus port given %s", av[0]));
-	return(-1);
-      }
-      w->port=port;
-      break;
-
-    case SET_IP:
-      if (ac != 1)
+    case SET_SELF:
+      if (ac < 1 || ac > 2)
 	return(-1);
 
       if (!ParseAddr(av[0],&w->addr, ALLOW_IPV4)) 
       {
 	Log(LG_ERR, ("web: Bogus IP address given %s", av[0]));
 	return(-1);
+      }
+
+      if (ac == 2) {
+        port =  strtol(av[1], NULL, 10);
+        if (port < 1 || port > 65535) {
+	    Log(LG_ERR, ("web: Bogus port given %s", av[1]));
+	    return(-1);
+        }
+        w->port=port;
       }
       break;
 

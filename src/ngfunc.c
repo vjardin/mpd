@@ -67,8 +67,8 @@
 
   /* Set menu options */
   enum {
-    SET_EXPORT,
-    SET_SOURCE,
+    SET_PEER,
+    SET_SELF,
     SET_TIMEOUTS,
     SET_NODE,
     SET_HOOK,
@@ -88,10 +88,10 @@
 
 #ifdef USE_NG_NETFLOW
   const struct cmdtab NetflowSetCmds[] = {
-    { "export <ip> <port>",	"Set export destination" ,
-        NetflowSetCommand, NULL, (void *) SET_EXPORT },
-    { "source <ip> <port>",	"Set local binding" ,
-        NetflowSetCommand, NULL, (void *) SET_SOURCE },
+    { "peer <ip> <port>",	"Set export destination" ,
+        NetflowSetCommand, NULL, (void *) SET_PEER },
+    { "self <ip> <port>",	"Set export source" ,
+        NetflowSetCommand, NULL, (void *) SET_SELF },
     { "timeouts <inactive> <active>", "Set NetFlow timeouts" ,
         NetflowSetCommand, NULL, (void *) SET_TIMEOUTS },
     { "node <name>", "Set node name to use" ,
@@ -762,12 +762,12 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
   struct sockaddr_storage *sin;
 
   switch ((intptr_t)arg) {
-    case SET_EXPORT: 
+    case SET_PEER: 
       if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 	return (-1);
       gNetflowExport = *sin;
       break;
-    case SET_SOURCE:
+    case SET_SELF:
       if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 	return (-1);
       gNetflowSource = *sin;
