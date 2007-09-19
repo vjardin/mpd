@@ -88,6 +88,21 @@
 				} while (0)
 
   #define OVERLOAD()		(gOverload > (random() % 100))
+  
+  #define REF(p)		do {					\
+				    (p)->refs++;			\
+				} while (0)
+
+  #define UNREF(p)		do {					\
+				    if ((--(p)->refs) == 0)		\
+					Freee(NULL, p);			\
+				} while (0)
+
+  #define RESETREF(v, p)	do {					\
+				    if (v) UNREF(v);			\
+				    (v) = (p);				\
+				    if (v) REF(v);			\
+				} while (0)
 
   #define ADLG_WAN_AUTHORIZATION_FAILURE	0
   #define ADLG_WAN_CONNECTED			1

@@ -387,6 +387,19 @@ ConsoleSessionReadEvent(int type, void *cookie)
       }
       goto abort;
     }
+    
+    if (cs->context.lnk && cs->context.lnk->dead) {
+	UNREF(cs->context.lnk);
+	cs->context.lnk = NULL;
+    }
+    if (cs->context.bund && cs->context.bund->dead) {
+	UNREF(cs->context.bund);
+	cs->context.bund = NULL;
+    }
+    if (cs->context.rep && cs->context.rep->dead) {
+	UNREF(cs->context.rep);
+	cs->context.rep = NULL;
+    }
 
     /* deal with escapes, map cursors */
     if (cs->escaped) {

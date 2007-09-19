@@ -125,6 +125,8 @@
     EventRef		dataEvent;		/* Socket node data event */
     ng_ID_t		nodeID;			/* ID of ppp node */
     MsgHandler		msgs;			/* Bundle events */
+    int			refs;			/* Number of references */
+    int			dead;			/* Dead flag */
 
     /* PPP node config */
     struct ng_ppp_node_conf	pppConfig;

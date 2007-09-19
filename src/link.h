@@ -106,6 +106,8 @@
     ng_ID_t		nodeID;			/* ID of ppp node */
     MsgHandler		msgs;			/* Link events */
     int			die;
+    int			refs;			/* Number of references */
+    int			dead;			/* Dead flag */
 
     /* State info */
     struct linkconf	conf;		/* Link configuration */

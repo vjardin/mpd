@@ -156,7 +156,8 @@ LinkCloseCmd(Context ctx)
 void
 LinkOpen(Link l)
 {
-  MsgSend(l->msgs, MSG_OPEN, l);
+    REF(l);
+    MsgSend(l->msgs, MSG_OPEN, l);
 }
 
 /*
@@ -166,7 +167,8 @@ LinkOpen(Link l)
 void
 LinkClose(Link l)
 {
-  MsgSend(l->msgs, MSG_CLOSE, l);
+    REF(l);
+    MsgSend(l->msgs, MSG_CLOSE, l);
 }
 
 /*
@@ -231,6 +233,10 @@ LinkMsg(int type, void *arg)
 {
     Link	l = (Link)arg;
 
+    if (l->dead) {
+	UNREF(l);
+	return;
+    }
     Log(LG_LINK, ("[%s] link: %s event", l->name, MsgName(type)));
     switch (type) {
 	case MSG_OPEN:
@@ -244,6 +250,7 @@ LinkMsg(int type, void *arg)
 	default:
     	    assert(FALSE);
     }
+    UNREF(l);
 }
 
 /*
@@ -258,7 +265,9 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
     int 	tmpl = 0;
     int 	k;
 
-    memset(ctx, 0, sizeof(*ctx));
+    RESETREF(ctx->lnk, NULL);
+    RESETREF(ctx->bund, NULL);
+    RESETREF(ctx->rep, NULL);
 
     if (ac < 2 || ac > 3)
 	return(-1);
@@ -367,12 +376,14 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
         for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++);
         if (k == gNumLinks)			/* add a new link pointer */
     	    LengthenArray(&gLinks, sizeof(*gLinks), &gNumLinks, MB_LINK);
-
+	    
 	l->id = k;
 	gLinks[k] = l;
+	REF(l);
     }
 
-    ctx->lnk = l;
+    RESETREF(ctx->lnk, l);
+
     return (0);
 }
 
@@ -391,6 +402,7 @@ LinkInst(Link lt, char *name)
     memcpy(l, lt, sizeof(*l));
     l->msgs = MsgRegister(LinkMsg);
     l->tmpl = 0;
+    l->refs = 0;
 
     /* Find a free link pointer */
     for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++);
@@ -404,6 +416,7 @@ LinkInst(Link lt, char *name)
     else
 	snprintf(l->name, sizeof(l->name), "%s-%d", lt->name, k);
     gLinks[k] = l;
+    REF(l);
 
     PhysInst(l, lt);
     LcpInst(l, lt);
@@ -425,7 +438,8 @@ LinkShutdown(Link l)
     if (l->csock >= 0)
 	LinkNgShutdown(l, 1);
     PhysShutdown(l);
-    Freee(MB_LINK, l);
+    l->dead = 1;
+    UNREF(l);
 }
 
 /*
@@ -665,16 +679,16 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
 
     if ((l = LinkFind(av[0])) == NULL) {
 	Printf("Link \"%s\" is not defined\r\n", av[0]);
-	ctx->lnk = NULL;
-	ctx->bund = NULL;
-	ctx->rep = NULL;
+	RESETREF(ctx->lnk, NULL);
+	RESETREF(ctx->bund, NULL);
+	RESETREF(ctx->rep, NULL);
 	return(0);
     }
 
     /* Change default link and bundle */
-    ctx->lnk = l;
-    ctx->bund = l->bund;
-    ctx->rep = NULL;
+    RESETREF(ctx->lnk, l);
+    RESETREF(ctx->bund, l->bund);
+    RESETREF(ctx->rep, NULL);
     return(0);
 }
 
@@ -698,14 +712,14 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
     if (k == gNumLinks) {
 	Printf("Session \"%s\" is not found\r\n", av[0]);
 	/* Change default link and bundle */
-	ctx->lnk = NULL;
-	ctx->bund = NULL;
-	ctx->rep = NULL;
+	RESETREF(ctx->lnk, NULL);
+	RESETREF(ctx->bund, NULL);
+	RESETREF(ctx->rep, NULL);
     } else {
 	/* Change default link and bundle */
-	ctx->lnk = gLinks[k];
-	ctx->bund = ctx->lnk->bund;
-	ctx->rep = NULL;
+	RESETREF(ctx->lnk, gLinks[k]);
+	RESETREF(ctx->bund, ctx->lnk->bund);
+	RESETREF(ctx->rep, NULL);
     }
 
     return(0);

@@ -162,6 +162,7 @@ PhysOpenCmd(Context ctx)
 void
 PhysOpen(Link l)
 {
+    REF(l);
     MsgSend(l->pmsgs, MSG_OPEN, l);
 }
 
@@ -182,8 +183,8 @@ PhysCloseCmd(Context ctx)
 void
 PhysClose(Link l)
 {
-    if (l)
-	MsgSend(l->pmsgs, MSG_CLOSE, l);
+    REF(l);
+    MsgSend(l->pmsgs, MSG_CLOSE, l);
 }
 
 /*
@@ -473,16 +474,16 @@ PhysSetDeviceType(Link l, char *typename)
 static void
 PhysMsg(int type, void *arg)
 {
-  Link	const l = (Link)arg;
-  time_t	const now = time(NULL);
+    Link	const l = (Link)arg;
+    time_t	const now = time(NULL);
 
-  Log(LG_PHYS2, ("[%s] device: %s event",
-    l->name, MsgName(type)));
-  if (!l->type) {
-    Log(LG_ERR, ("[%s] this link has no type set", l->name));
-    return;
-  }
-  switch (type) {
+    if (l->dead) {
+	UNREF(l);
+	return;
+    }
+    Log(LG_PHYS2, ("[%s] device: %s event",
+	l->name, MsgName(type)));
+    switch (type) {
     case MSG_OPEN:
         if (!l->rep)
     	    l->downReasonValid=0;
@@ -510,7 +511,8 @@ PhysMsg(int type, void *arg)
         break;
     default:
         assert(FALSE);
-  }
+    }
+    UNREF(l);
 }
 
 /*

@@ -304,9 +304,9 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
 
       /* Change bundle, and link also if needed */
       if ((r = RepFind(av[0])) != NULL) {
-	ctx->rep = r;
-	ctx->bund = NULL;
-	ctx->lnk = r->links[0];
+        RESETREF(ctx->rep, r);
+        RESETREF(ctx->bund, NULL);
+        RESETREF(ctx->lnk, r->links[0]);
       } else
 	Printf("Repeater \"%s\" not defined.\r\n", av[0]);
       break;
@@ -330,7 +330,9 @@ RepCreate(Context ctx, int ac, char *av[], void *arg)
     int		k;
     int         tmpl = 0;
 
-    memset(ctx, 0, sizeof(*ctx));
+    RESETREF(ctx->lnk, NULL);
+    RESETREF(ctx->bund, NULL);
+    RESETREF(ctx->rep, NULL);
 
     /* Args */
     if (ac < 1 || ac > 2)
@@ -386,9 +388,10 @@ RepCreate(Context ctx, int ac, char *av[], void *arg)
 	if (k == gNumReps)			/* add a new repeater pointer */
 	    LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
 	gReps[k] = r;
+	REF(r);
     }
   
-    ctx->rep = r;
+    RESETREF(ctx->rep, r);
 
     /* Done */
     return(0);
@@ -408,6 +411,7 @@ RepInst(Rep rt, char *name)
     r = Malloc(MB_REP, sizeof(*r));
     memcpy(r, rt, sizeof(*r));
     r->tmpl = 0;
+    r->refs = 0;
 
     /* Find a free rep pointer */
     for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
@@ -421,6 +425,7 @@ RepInst(Rep rt, char *name)
     else
 	snprintf(r->name, sizeof(r->name), "%s-%d", rt->name, k);
     gReps[k] = r;
+    REF(r);
 
     return (r);
 }
@@ -444,8 +449,8 @@ RepShutdown(Rep r)
 	close(r->csock);
 	r->csock = -1;
     }
-    
-    Freee(MB_REP, r);
+    r->dead = 1;
+    UNREF(r);
 }
 
 /*

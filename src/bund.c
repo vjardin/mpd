@@ -145,7 +145,8 @@
 void
 BundOpen(Bund b)
 {
-  MsgSend(b->msgs, MSG_OPEN, b);
+    REF(b);
+    MsgSend(b->msgs, MSG_OPEN, b);
 }
 
 /*
@@ -155,7 +156,8 @@ BundOpen(Bund b)
 void
 BundClose(Bund b)
 {
-  MsgSend(b->msgs, MSG_CLOSE, b);
+    REF(b);
+    MsgSend(b->msgs, MSG_CLOSE, b);
 }
 
 /*
@@ -165,7 +167,7 @@ BundClose(Bund b)
 void
 BundOpenCmd(Context ctx)
 {
-  MsgSend(ctx->bund->msgs, MSG_OPEN, ctx->bund);
+    MsgSend(ctx->bund->msgs, MSG_OPEN, ctx->bund);
 }
 
 /*
@@ -175,7 +177,7 @@ BundOpenCmd(Context ctx)
 void
 BundCloseCmd(Context ctx)
 {
-  MsgSend(ctx->bund->msgs, MSG_CLOSE, ctx->bund);
+    MsgSend(ctx->bund->msgs, MSG_CLOSE, ctx->bund);
 }
 
 /*
@@ -447,22 +449,27 @@ BundMsg(int type, void *arg)
 {
     Bund	b = (Bund)arg;
 
-  Log(LG_BUND, ("[%s] bundle: %s event in state %s",
-    b->name, MsgName(type), b->open ? "OPENED" : "CLOSED"));
-  TimerStop(&b->reOpenTimer);
-  switch (type) {
+    if (b->dead) {
+	UNREF(b);
+	return;
+    }
+    Log(LG_BUND, ("[%s] bundle: %s event in state %s",
+	b->name, MsgName(type), b->open ? "OPENED" : "CLOSED"));
+    TimerStop(&b->reOpenTimer);
+    switch (type) {
     case MSG_OPEN:
-      b->open = TRUE;
-      break;
+        b->open = TRUE;
+        break;
 
     case MSG_CLOSE:
-      b->open = FALSE;
-      BundCloseLinks(b);
-      break;
+        b->open = FALSE;
+        BundCloseLinks(b);
+        break;
 
     default:
-      assert(FALSE);
-  }
+        assert(FALSE);
+    }
+    UNREF(b);
 }
 
 /*
@@ -823,19 +830,19 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
     case 1:
 
       /* Change bundle, and link also if needed */
-      if ((sb = BundFind(av[0])) != NULL) {
-	ctx->bund = sb;
-	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
-	    ctx->lnk = ctx->bund->links[0];
-	}
-	ctx->rep = NULL;
-      } else {
-	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
-	ctx->lnk = NULL;
-	ctx->bund = NULL;
-	ctx->rep = NULL;
-      }
-      break;
+	if ((sb = BundFind(av[0])) != NULL) {
+	    RESETREF(ctx->bund, sb);
+	    if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
+		RESETREF(ctx->lnk, ctx->bund->links[0]);
+	    }
+	    RESETREF(ctx->rep, NULL);
+        } else {
+	    Printf("Bundle \"%s\" not defined.\r\n", av[0]);
+	    RESETREF(ctx->lnk, NULL);
+	    RESETREF(ctx->bund, NULL);
+	    RESETREF(ctx->rep, NULL);
+        }
+        break;
 
     default:
       return(-1);
@@ -863,16 +870,16 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
     if (k == gNumBundles) {
 	Printf("MultySession \"%s\" is not found\r\n", av[0]);
 	/* Change default link and bundle */
-	ctx->lnk = NULL;
-	ctx->bund = NULL;
-	ctx->rep = NULL;
+	RESETREF(ctx->lnk, NULL);
+	RESETREF(ctx->bund, NULL);
+	RESETREF(ctx->rep, NULL);
     } else {
 	/* Change default link and bundle */
-	ctx->bund = gBundles[k];
+	RESETREF(ctx->bund, gBundles[k]);
 	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
-	    ctx->lnk = ctx->bund->links[0];
+	    RESETREF(ctx->lnk, ctx->bund->links[0]);
 	}
-	ctx->rep = NULL;
+	RESETREF(ctx->rep, NULL);
     }
 
     return(0);
@@ -889,7 +896,9 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
     int         tmpl = 0;
     int	k;
 
-    memset(ctx, 0, sizeof(*ctx));
+    RESETREF(ctx->lnk, NULL);
+    RESETREF(ctx->bund, NULL);
+    RESETREF(ctx->rep, NULL);
 
     /* Args */
     if (ac < 1 || ac > 2)
@@ -938,6 +947,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 
 	b->id = k;
 	gBundles[k] = b;
+	REF(b);
 
 	/* Init interface stuff */
 	IfaceInit(b);
@@ -970,7 +980,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
         EcpInit(b);
     }
   
-    ctx->bund = b;
+    RESETREF(ctx->bund, b);
   
     /* Done */
     return(0);
@@ -990,6 +1000,7 @@ BundInst(Bund bt, char *name)
     b = Malloc(MB_BUND, sizeof(*b));
     memcpy(b, bt, sizeof(*b));
     b->tmpl = 0;
+    b->refs = 0;
     b->csock = b->dsock = -1;
 
     /* Add bundle to the list of bundles and make it the current active bundle */
@@ -1003,6 +1014,7 @@ BundInst(Bund bt, char *name)
     else
 	snprintf(b->name, sizeof(b->name), "%s-%d", bt->name, k);
     gBundles[k] = b;
+    REF(b);
 
     /* Inst interface stuff */
     IfaceInst(b, bt);
@@ -1047,7 +1059,8 @@ BundShutdown(Bund b)
     if (!b->tmpl)
 	BundNgShutdown(b, 1, 1);
     gBundles[b->id] = NULL;
-    Freee(MB_BUND, b);
+    b->dead = 1;
+    UNREF(b);
 }
 
 /*
