@@ -226,15 +226,19 @@ BundJoin(Link l)
 	}
 	if (!b) {
 	    if (l->bundt[0]) {
-    		Log(LG_BUND, ("[%s] Creating bundle using template \"%s\".", l->name, l->bundt));
 		if ((bt = BundFind(l->bundt))) {
-    		    b = BundInst(bt, NULL);
+		    if (bt->tmpl) {
+    			Log(LG_BUND, ("[%s] Creating new bundle using template \"%s\".", l->name, l->bundt));
+    			b = BundInst(bt, NULL, 0, 0);
+		    } else {
+			b = bt;
+		    }
 		} else {
-    		    Log(LG_BUND, ("[%s] Bundle template \"%s\" not found.", l->name, l->bundt));
+    		    Log(LG_BUND, ("[%s] Bundle \"%s\" not found.", l->name, l->bundt));
 		    return (0);
 		}
 	    } else {
-    		Log(LG_BUND, ("[%s] No template specified to create bundle.", l->name));
+    		Log(LG_BUND, ("[%s] No bundle specified", l->name));
 		return (0);
 	    }
 	    if (!b) {
@@ -264,7 +268,9 @@ BundJoin(Link l)
 
     if (LinkNgJoin(l)) {
 	l->bund = NULL;
-	BundShutdown(b);
+	b->links[l->bundleIndex] = NULL;
+	if (!b->stay)
+	    BundShutdown(b);
 	return(0);
     }
     l->joined_bund = 1;
@@ -409,8 +415,8 @@ BundLeave(Link l)
 //	} else if (b->open) {
 	    b->open = FALSE;
 //	}
-
-	BundShutdown(b);
+	if (!b->stay)
+	    BundShutdown(b);
     }
 }
 
@@ -894,50 +900,56 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 {
     Bund	b, bt = NULL;
     int         tmpl = 0;
+    int         stay = 0;
     int	k;
 
     RESETREF(ctx->lnk, NULL);
     RESETREF(ctx->bund, NULL);
     RESETREF(ctx->rep, NULL);
 
-    /* Args */
-    if (ac < 1 || ac > 2)
+    if (ac < 1)
 	return(-1);
 
-    if (strlen(av[0])>16) {
-	Log(LG_ERR, ("Bundle name \"%s\" is too long", av[0]));
+    if (strcmp(av[0], "template") == 0) {
+	tmpl = 1;
+	stay = 1;
+    } else if (strcmp(av[0], "static") == 0)
+	stay = 1;
+
+    if (ac - stay < 1 || ac - stay > 2)
+	return(-1);
+
+    if (strlen(av[0 + stay]) > 16) {
+	Log(LG_ERR, ("Bundle name \"%s\" is too long", av[0 + stay]));
 	return(0);
     }
 
     /* See if bundle name already taken */
-    if ((b = BundFind(av[0])) != NULL) {
-	Log(LG_ERR, ("Bundle \"%s\" already exists", av[0]));
+    if ((b = BundFind(av[0 + stay])) != NULL) {
+	Log(LG_ERR, ("Bundle \"%s\" already exists", av[0 + stay]));
 	return(0);
     }
 
-    if (ac == 2) {
-	if (strcmp(av[1], "template") != 0) {
-	    /* See if template name specified */
-	    if ((bt = BundFind(av[1])) != NULL) {
-		Log(LG_ERR, ("Bundle template \"%s\" not found", av[1]));
-		return (0);
-	    }
-	    if (!bt->tmpl) {
-		Log(LG_ERR, ("Bundle \"%s\" is not a template", av[1]));
-		return (0);
-	    }
-	} else {
-	    tmpl = 1;
+    if (ac - stay == 2) {
+	/* See if template name specified */
+	if ((bt = BundFind(av[1 + stay])) != NULL) {
+	    Log(LG_ERR, ("Bundle template \"%s\" not found", av[1 + stay]));
+	    return (0);
+	}
+	if (!bt->tmpl) {
+	    Log(LG_ERR, ("Bundle \"%s\" is not a template", av[1 + stay]));
+	    return (0);
 	}
     }
 
     if (bt) {
-	b = BundInst(bt, av[0]);
+	b = BundInst(bt, av[0 + stay], tmpl, stay);
     } else {
 	/* Create a new bundle structure */
 	b = Malloc(MB_BUND, sizeof(*b));
-	snprintf(b->name, sizeof(b->name), "%s", av[0]);
+	snprintf(b->name, sizeof(b->name), "%s", av[0 + stay]);
 	b->tmpl = tmpl;
+	b->stay = stay;
 	b->csock = b->dsock = -1;
 
 	/* Add bundle to the list of bundles and make it the current active bundle */
@@ -948,9 +960,6 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	b->id = k;
 	gBundles[k] = b;
 	REF(b);
-
-	/* Init interface stuff */
-	IfaceInit(b);
 
 	/* Get message channel */
 	b->msgs = MsgRegister(BundMsg);
@@ -973,11 +982,21 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
   
         Enable(&b->conf.options, BUND_CONF_NORETRY);
 
-        /* Init NCP's */
+        /* Init iface and NCP's */
+	IfaceInit(b);
         IpcpInit(b);
         Ipv6cpInit(b);
         CcpInit(b);
         EcpInit(b);
+
+	if (!tmpl) {
+	    /* Setup netgraph stuff */
+	    if (BundNgInit(b) < 0) {
+		Log(LG_ERR, ("[%s] Bundle netgraph initialization failed", b->name));
+		Freee(MB_BUND, b);
+		return(0);
+	    }
+	}
     }
   
     RESETREF(ctx->bund, b);
@@ -991,7 +1010,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
  */
 
 Bund
-BundInst(Bund bt, char *name)
+BundInst(Bund bt, char *name, int tmpl, int stay)
 {
     Bund	b;
     int	k;
@@ -999,7 +1018,8 @@ BundInst(Bund bt, char *name)
     /* Create a new bundle structure */
     b = Malloc(MB_BUND, sizeof(*b));
     memcpy(b, bt, sizeof(*b));
-    b->tmpl = 0;
+    b->tmpl = tmpl;
+    b->stay = stay;
     b->refs = 0;
     b->csock = b->dsock = -1;
 
@@ -1016,10 +1036,8 @@ BundInst(Bund bt, char *name)
     gBundles[k] = b;
     REF(b);
 
-    /* Inst interface stuff */
+    /* Inst iafce and NCP's */
     IfaceInst(b, bt);
-
-    /* Inst NCP's */
     IpcpInst(b, bt);
     Ipv6cpInst(b, bt);
     CcpInst(b, bt);
@@ -1102,7 +1120,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
     }
   }
 
-  Printf("Bundle '%s' (%s):\r\n", sb->name, (sb->tmpl)?"template":"instance");
+  Printf("Bundle '%s'%s:\r\n", sb->name, sb->tmpl?" (template)":(sb->stay?" (static)":""));
   Printf("\tLinks          : ");
   BundShowLinks(ctx, sb);
   Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");

@@ -483,8 +483,8 @@ LcpNewPhase(Link l, int new)
       /* Join my bundle */
       if (!BundJoin(l)) {
 	  Log(LG_LINK|LG_BUND,
-	    ("[%s] link did not validate in bundle \"%s\"",
-	    l->name, l->bund->name));
+	    ("[%s] link did not validate in bundle",
+	    l->name));
 	  RecordLinkUpDownReason(NULL, l,
 	    0, STR_PROTO_ERR, "%s", STR_MULTI_FAIL);
 	  LinkClose(l);
@@ -498,7 +498,7 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_DEAD:
-	if (l->die && l->type->tmpl)
+	if (l->die && !l->stay)
 	    LinkShutdown(l);
         break;
 

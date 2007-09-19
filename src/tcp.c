@@ -457,7 +457,7 @@ TcpAcceptEvent(int type, void *cookie)
 		l2 = gLinks[k];
 		pi2 = (TcpInfo)l2->info;
 
-		if ((l2->tmpl) &&
+		if ((!PhysIsBusy(l2)) &&
 		    Enabled(&l2->conf.options, LINK_CONF_INCOMING) &&
 		    (pi2->If == If) &&
 		    IpAddrInRange(&pi2->conf.peer_addr, &addr) &&
@@ -472,8 +472,8 @@ TcpAcceptEvent(int type, void *cookie)
 			}
 		}
 	}
-	if (l != NULL) {
-    		l = LinkInst(l, NULL);
+	if (l != NULL && l->tmpl) {
+    		l = LinkInst(l, NULL, 0, 0);
     		pi = (TcpInfo)l->info;
 	}
 	if (pi != NULL) {

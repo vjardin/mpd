@@ -871,7 +871,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	pi2 = (PptpInfo)l2->info;
 
 	/* See if link is feasible */
-	if ((l2->tmpl) &&
+	if ((!PhysIsBusy(l2)) &&
 	    Enabled(&l2->conf.options, LINK_CONF_INCOMING) &&
 	    (u_addrempty(&pi2->conf.self_addr) || (u_addrcompare(&pi2->conf.self_addr, self) == 0)) &&
 	    IpAddrInRange(&pi2->conf.peer_addr, peer) &&
@@ -888,8 +888,8 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	}
     }
 
-    if (l != NULL) {
-        l = LinkInst(l, NULL);
+    if (l != NULL && l->tmpl) {
+        l = LinkInst(l, NULL, 0, 0);
         pi = (PptpInfo)l->info;
     }
 

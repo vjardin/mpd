@@ -82,7 +82,8 @@
   extern int		PhysGetPeerPort(Link l, char *buf, int buf_len);
   extern int		PhysGetCallingNum(Link l, char *buf, int buf_len);
   extern int		PhysGetCalledNum(Link l, char *buf, int buf_len);
-
+  extern int		PhysIsBusy(Link l);
+ 
   extern int		PhysInit(Link l);
   extern int		PhysInst(Link l, Link lt);
   extern int		PhysGet(Link l);

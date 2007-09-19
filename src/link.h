@@ -97,6 +97,7 @@
     char		name[LINK_MAX_NAME];	/* Human readable name */
     int			id;			/* Index of this link in gLinks */
     int			tmpl;			/* This is template, not an instance */
+    int			stay;			/* Must not disappear */
     char		bundt[LINK_MAX_NAME];	/* Bundle template name */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
@@ -165,7 +166,7 @@
   extern void	LinkCloseCmd(Context ctx);
 
   extern int	LinkCreate(Context ctx, int ac, char *av[], void *arg);
-  extern Link	LinkInst(Link lt, char *name);
+  extern Link	LinkInst(Link lt, char *name, int tmpl, int stay);
   extern void	LinkShutdown(Link l);
   extern int	LinkNgInit(Link l);
   extern int	LinkNgJoin(Link l);

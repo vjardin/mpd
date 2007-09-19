@@ -88,11 +88,11 @@
        	GlobalSetCommand, NULL, (void *) SET_ENABLE },
     { "disable {opt ...}", 		"Disable option" ,
        	GlobalSetCommand, NULL, (void *) SET_DISABLE },
-    { "startrule {num}", 			"Initial ipfw rule number" ,
+    { "startrule {num}",		"Initial ipfw rule number" ,
        	GlobalSetCommand, NULL, (void *) SET_RULE },
     { "startqueue {num}", 		"Initial ipfw queue number" ,
        	GlobalSetCommand, NULL, (void *) SET_QUEUE },
-    { "startpipe {num}",			"Initial ipfw pipe number" ,
+    { "startpipe {num}",		"Initial ipfw pipe number" ,
        	GlobalSetCommand, NULL, (void *) SET_PIPE },
     { "starttable {num}", 		"Initial ipfw table number" ,
        	GlobalSetCommand, NULL, (void *) SET_TABLE },
@@ -105,11 +105,11 @@
   };
 
   static const struct cmdtab CreateCommands[] = {
-    { "link {name} {template}|template",		"Create link instance/template",
+    { "link [template] {name} {template}",	"Create link/template",
 	LinkCreate, NULL, NULL },
-    { "bundle {name} {template}|template",	"Create bundle instance/template",
+    { "bundle [template] {name} {template}",	"Create bundle/template",
 	BundCreate, NULL, NULL },
-    { "repeater {name} {template}|template",	"Create repeater instance/template",
+    { "repeater [template] {name} {template}",	"Create repeater/template",
 	RepCreate, NULL, NULL },
   };
 
@@ -795,7 +795,7 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
   Printf("Current daemon status summary\r\n");
   Printf("Iface\tBund\t\tLink\tLCP\tDevice\t\tUser\t\tFrom\r\n");
   for (b = 0; b<gNumLinks; b++) {
-    if ((L=gLinks[b]) != NULL && L->bund == NULL) {
+    if ((L=gLinks[b]) != NULL && L->bund == NULL && L->rep == NULL) {
 	Printf("\t\t\t");
 	Printf("%s\t%s\t", 
 	    L->name,

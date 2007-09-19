@@ -117,6 +117,7 @@
     char		name[LINK_MAX_NAME];	/* Name of this bundle */
     int			id;			/* Index of this bundle in gBundles */
     int			tmpl;			/* This is template, not an instance */
+    int			stay;			/* Must not disappear */
     Link		links[NG_PPP_MAX_LINKS];	/* Real links in this bundle */
     u_short		n_links;		/* Number of links in bundle */
     int			csock;			/* Socket node control socket */
@@ -180,7 +181,7 @@
   extern int	BundCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	MSessionCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	BundCreate(Context ctx, int ac, char *av[], void *arg);
-  extern Bund	BundInst(Bund bt, char *name);
+  extern Bund	BundInst(Bund bt, char *name, int tmpl, int stay);
   extern Bund	BundFind(char *name);
   extern void	BundShutdown(Bund b);
   extern void   BundUpdateStats(Bund b);

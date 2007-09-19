@@ -22,6 +22,7 @@
     char		name[LINK_MAX_NAME];	/* Name of this repeater */
     int			id;			/* Index of this link in gReps */
     int			tmpl;			/* This is template, not an instance */
+    int			stay;			/* Must not disappear */
     char		linkt[LINK_MAX_NAME];	/* Link template name */
     Link		links[2];		/* Links used by repeater */
     struct optinfo	options;		/* Configured options */
@@ -44,12 +45,10 @@
  * FUNCTIONS
  */
 
-  extern void	RepOpen(void);
-  extern void	RepClose(void);
   extern int	RepStat(Context ctx, int ac, char *av[], void *arg);
   extern int	RepCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	RepCreate(Context ctx, int ac, char *av[], void *arg);
-  extern Rep	RepInst(Rep rt, char *name);
+  extern Rep	RepInst(Rep rt, char *name, int tmpl, int stay);
   extern void	RepShutdown(Rep r);
 
   extern void	RepIncoming(Link l);

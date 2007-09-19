@@ -122,8 +122,8 @@ PhysGetRep(Rep r)
     if (r->linkt[0]) {
 	Link	l = LinkFind(r->linkt);
 	if (l) {
-	    if (l->type->tmpl) {
-		l = LinkInst(l, NULL);
+	    if (l->tmpl) {
+		l = LinkInst(l, NULL, 0, 0);
 		if (!l) {
 		    Log(LG_REP, ("[%s] rep: Can't instantiate link \"%s\"", r->name, r->linkt));
 		    return (0);
@@ -232,7 +232,7 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	else
 	    l->rep->links[1] = NULL;
 	l->rep = NULL;
-	if (l->type->tmpl)
+	if (!l->stay)
 	    LinkShutdown(l);
     }
 }
@@ -246,11 +246,16 @@ PhysIncoming(Link l)
 {
     if (!l->rep && l->rept[0]!=0) {
 	Rep rt = RepFind(l->rept);
-	if (rt && rt->tmpl) {
-	    l->rep = RepInst(rt, NULL);
+	if (rt) {
+	    if (rt->tmpl)
+		l->rep = RepInst(rt, NULL, 0, 0);
+	    else
+		l->rep = rt;
 	    l->rep->links[0] = l;
-	} else
+	} else {
 	    Log(LG_ERR, ("[%s] Repeater template '%s' not found", l->name, l->rept));
+	    PhysClose(l);
+	}
     }
 
     if (!l->rep) {
@@ -415,6 +420,18 @@ PhysGetCalledNum(Link l, char *buf, int buf_len)
 	return ((*pt->callednum)(l, buf, buf_len));
     else
 	return (0);
+}
+
+/*
+ * PhysIsBusy()
+ *
+ * This returns 1 if link is busy
+ */
+
+int
+PhysIsBusy(Link l)
+{
+  return (l->rep || l->state != PHYS_STATE_DOWN);
 }
 
 /*

@@ -263,60 +263,72 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
     Link 	l, lt = NULL;
     PhysType    pt;
     int 	tmpl = 0;
+    int 	stay = 0;
     int 	k;
 
     RESETREF(ctx->lnk, NULL);
     RESETREF(ctx->bund, NULL);
     RESETREF(ctx->rep, NULL);
 
-    if (ac < 2 || ac > 3)
+    if (ac < 1)
 	return(-1);
 
-    if (strlen(av[0])>16) {
-	Log(LG_ERR, ("Link name \"%s\" is too long", av[0]));
+    if (strcmp(av[0], "template") == 0) {
+	tmpl = 1;
+	stay = 1;
+    } else if (strcmp(av[0], "static") == 0)
+	stay = 1;
+
+    if (ac - stay < 1 || ac - stay > 2)
+	return(-1);
+
+    if (strlen(av[0 + stay])>16) {
+	Log(LG_ERR, ("Link name \"%s\" is too long", av[0 + stay]));
 	return(0);
     }
 
     /* See if link name already taken */
-    if ((l = LinkFind(av[0])) != NULL) {
-	Log(LG_ERR, ("Link \"%s\" already exists", av[0]));
+    if ((l = LinkFind(av[0 + stay])) != NULL) {
+	Log(LG_ERR, ("Link \"%s\" already exists", av[0 + stay]));
 	return (0);
     }
 
     /* Locate type */
     for (k = 0; (pt = gPhysTypes[k]); k++) {
-	if (!strcmp(pt->name, av[1]))
+	if (!strcmp(pt->name, av[1 + stay]))
     	    break;
     }
     if (pt == NULL) {
-	Log(LG_ERR, ("Device type \"%s\" unknown", av[1]));
+	Log(LG_ERR, ("Link type \"%s\" unknown", av[1 + stay]));
+	return (0);
+    }
+    
+    if (!pt->tmpl && tmpl) {
+	Log(LG_ERR, ("Link type \"%s\" does not support templating", av[1 + stay]));
 	return (0);
     }
 
-    if (ac > 2) {
-	if (strcmp(av[2], "template") != 0) {
-	    /* See if template name specified */
-	    if ((lt = LinkFind(av[2])) == NULL) {
-		Log(LG_ERR, ("Link template \"%s\" not found", av[2]));
-		return (0);
-	    }
-	    if (!lt->tmpl) {
-		Log(LG_ERR, ("Link \"%s\" is not a template", av[2]));
-		return (0);
-	    }
-	} else {
-	    tmpl = 1;
+    if (ac - stay > 2) {
+	/* See if template name specified */
+	if ((lt = LinkFind(av[2 + stay])) == NULL) {
+	    Log(LG_ERR, ("Link template \"%s\" not found", av[2 + tmpl]));
+	    return (0);
+	}
+	if (!lt->tmpl) {
+	    Log(LG_ERR, ("Link \"%s\" is not a template", av[2 + stay]));
+	    return (0);
 	}
     }
 
     /* Create and initialize new link */
     if (lt) {
-	l = LinkInst(lt, av[0]);
+	l = LinkInst(lt, av[0 + stay], tmpl, stay);
     } else {
 	l = Malloc(MB_LINK, sizeof(*l));
-	snprintf(l->name, sizeof(l->name), "%s", av[0]);
+	snprintf(l->name, sizeof(l->name), "%s", av[0 + stay]);
 	l->type = pt;
-	l->tmpl = pt->tmpl;
+	l->tmpl = tmpl;
+	l->stay = stay;
 	l->csock = -1;
 	l->dsock = -1;
 
@@ -392,7 +404,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
  */
 
 Link
-LinkInst(Link lt, char *name)
+LinkInst(Link lt, char *name, int tmpl, int stay)
 {
     Link 	l;
     int		k;
@@ -400,8 +412,10 @@ LinkInst(Link lt, char *name)
     /* Create and initialize new link */
     l = Malloc(MB_LINK, sizeof(*l));
     memcpy(l, lt, sizeof(*l));
-    l->msgs = MsgRegister(LinkMsg);
-    l->tmpl = 0;
+    if (!tmpl)
+	l->msgs = MsgRegister(LinkMsg);
+    l->tmpl = tmpl;
+    l->stay = stay;
     l->refs = 0;
 
     /* Find a free link pointer */
@@ -673,22 +687,44 @@ int
 LinkCommand(Context ctx, int ac, char *av[], void *arg)
 {
     Link	l;
+    int		k;
 
-    if (ac != 1)
-	return(-1);
+    switch (ac) {
+    case 0:
 
-    if ((l = LinkFind(av[0])) == NULL) {
-	Printf("Link \"%s\" is not defined\r\n", av[0]);
-	RESETREF(ctx->lnk, NULL);
-	RESETREF(ctx->bund, NULL);
+        Printf("Defined links:\r\n");
+
+        for (k = 0; k < gNumLinks; k++) {
+	    if ((l = gLinks[k]) != NULL) {
+		if (l && l->bund)
+		    Printf("\t\"%s\" -> bundle \"%s\"\r\n", 
+			l->name, l->bund->name);
+		else if (l->rep)
+		    Printf("\t\"%s\" -> repeater \"%s\"\r\n",
+			 l->name, l->rep->name);
+		else
+		    Printf("\t\"%s\" -> unknown\r\n", l->name);
+	    }
+	}
+      break;
+
+    case 1:
+        if ((l = LinkFind(av[0])) == NULL) {
+    	    Printf("Link \"%s\" is not defined\r\n", av[0]);
+	    RESETREF(ctx->lnk, NULL);
+	    RESETREF(ctx->bund, NULL);
+	    RESETREF(ctx->rep, NULL);
+	    return(0);
+	}
+
+	/* Change default link and bundle */
+	RESETREF(ctx->lnk, l);
+	RESETREF(ctx->bund, l->bund);
 	RESETREF(ctx->rep, NULL);
-	return(0);
+	break;
+    default:
+	return (-1);
     }
-
-    /* Change default link and bundle */
-    RESETREF(ctx->lnk, l);
-    RESETREF(ctx->bund, l->bund);
-    RESETREF(ctx->rep, NULL);
     return(0);
 }
 
@@ -801,7 +837,7 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 {
     Link 	l = ctx->lnk;
 
-  Printf("Link %s:\r\n", l->name);
+  Printf("Link %s%s:\r\n", l->name, l->tmpl?" (template)":(l->stay?" (static)":""));
 
   Printf("Configuration\r\n");
   Printf("\tMRU            : %d bytes\r\n", l->conf.mru);
@@ -838,17 +874,19 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 	if (l->downReason && l->downReasonValid)
 	    Printf("\tDown Reason    : %s\r\n", l->downReason);
   
-	LinkUpdateStats(l);
-	Printf("Traffic stats:\r\n");
+	if (l->bund) {
+	    LinkUpdateStats(l);
+	    Printf("Traffic stats:\r\n");
 
-	Printf("\tOctets input   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
-	Printf("\tFrames input   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
-	Printf("\tOctets output  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
-	Printf("\tFrames output  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
-	Printf("\tBad protocols  : %llu\r\n", (unsigned long long)l->stats.badProtos);
-	Printf("\tRunts          : %llu\r\n", (unsigned long long)l->stats.runts);
-	Printf("\tDup fragments  : %llu\r\n", (unsigned long long)l->stats.dupFragments);
-	Printf("\tDrop fragments : %llu\r\n", (unsigned long long)l->stats.dropFragments);
+	    Printf("\tOctets input   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
+	    Printf("\tFrames input   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
+	    Printf("\tOctets output  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
+	    Printf("\tFrames output  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
+	    Printf("\tBad protocols  : %llu\r\n", (unsigned long long)l->stats.badProtos);
+	    Printf("\tRunts          : %llu\r\n", (unsigned long long)l->stats.runts);
+	    Printf("\tDup fragments  : %llu\r\n", (unsigned long long)l->stats.dupFragments);
+	    Printf("\tDrop fragments : %llu\r\n", (unsigned long long)l->stats.dropFragments);
+	}
     }
     return(0);
 }

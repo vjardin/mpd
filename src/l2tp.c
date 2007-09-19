@@ -1025,7 +1025,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		l2 = gLinks[k];
 		pi2 = (L2tpInfo)l2->info;
 
-		if ((l2->tmpl) &&
+		if ((!PhysIsBusy(l2)) &&
 		    Enabled(&l2->conf.options, LINK_CONF_INCOMING) &&
 		    ((u_addrempty(&pi2->conf.self_addr)) || (u_addrcompare(&pi2->conf.self_addr, &tun->self_addr) == 0)) &&
 		    (pi2->conf.self_port == 0 || pi2->conf.self_port == tun->self_port) &&
@@ -1041,8 +1041,8 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 			}
 		}
 	}
-	if (l != NULL) {
-    		l = LinkInst(l, NULL);
+	if (l != NULL && l->tmpl) {
+    		l = LinkInst(l, NULL, 0, 0);
     		pi = (L2tpInfo)l->info;
 	}
 	if (pi != NULL) {
@@ -1296,7 +1296,7 @@ L2tpServerEvent(int type, void *arg)
 		pi2 = (L2tpInfo)l2->info;
 
 		/* Simplified comparation as it is not a final one. */
-		if ((l2->tmpl) &&
+		if ((!PhysIsBusy(l2)) &&
 		    (pi2->server == s) &&
 		    (IpAddrInRange(&pi2->conf.peer_addr, &tun->peer_addr)) &&
 		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == tun->peer_port)) {

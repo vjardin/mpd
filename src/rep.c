@@ -77,26 +77,6 @@
   };
 
 /*
- * RepOpen()
- */
-
-void
-RepOpen(void)
-{
-//  MsgSend(rep->msgs, MSG_OPEN, NULL);
-}
-
-/*
- * RepClose()
- */
-
-void
-RepClose(void)
-{
-//  MsgSend(rep->msgs, MSG_CLOSE, NULL);
-}
-
-/*
  * RepIncoming()
  */
 
@@ -224,7 +204,7 @@ RepDown(Link l)
 	r->csock = -1;
     }
     
-    if (r->links[1-n] == NULL)
+    if (r->links[1-n] == NULL && !r->stay)
 	RepShutdown(r);
 }
 
@@ -329,64 +309,63 @@ RepCreate(Context ctx, int ac, char *av[], void *arg)
     Rep		r, rt = NULL;
     int		k;
     int         tmpl = 0;
+    int         stay = 0;
 
     RESETREF(ctx->lnk, NULL);
     RESETREF(ctx->bund, NULL);
     RESETREF(ctx->rep, NULL);
 
-    /* Args */
-    if (ac < 1 || ac > 2)
+    if (ac < 1)
 	return(-1);
 
-    if (strlen(av[0])>16) {
-	Log(LG_ERR, ("repeater name \"%s\" is too long", av[0]));
+    if (strcmp(av[0], "template") == 0) {
+	tmpl = 1;
+	stay = 1;
+    } else if (strcmp(av[0], "static") == 0)
+	stay = 1;
+
+    if (ac - stay < 1 || ac - stay > 2)
+	return(-1);
+
+    if (strlen(av[0 + stay])>16) {
+	Log(LG_ERR, ("repeater name \"%s\" is too long", av[0 + stay]));
 	return (-1);
     }
 
     /* See if repeater name already taken */
-    if ((r = RepFind(av[0])) != NULL) {
-	Log(LG_ERR, ("repeater \"%s\" already exists", av[0]));
+    if ((r = RepFind(av[0 + stay])) != NULL) {
+	Log(LG_ERR, ("repeater \"%s\" already exists", av[0 + stay]));
 	return (-1);
     }
 
-    if (ac == 2) {
-	if (strcmp(av[1], "template") != 0) {
-	    /* See if template name specified */
-	    if ((rt = RepFind(av[1])) == NULL) {
-		Log(LG_ERR, ("Repeater template \"%s\" not found", av[1]));
-		return (0);
-	    }
-	    if (!rt->tmpl) {
-		Log(LG_ERR, ("Repeater \"%s\" is not a template", av[1]));
-		return (0);
-	    }
-	} else {
-	    tmpl = 1;
+    if (ac - stay == 2) {
+	/* See if template name specified */
+	if ((rt = RepFind(av[1 + stay])) == NULL) {
+	    Log(LG_ERR, ("Repeater template \"%s\" not found", av[1 + stay]));
+	    return (0);
+	}
+	if (!rt->tmpl) {
+	    Log(LG_ERR, ("Repeater \"%s\" is not a template", av[1 + stay]));
+	    return (0);
 	}
     }
 
     /* Create and initialize new link */
     if (rt) {
-	r = RepInst(rt, av[0]);
+	r = RepInst(rt, av[0 + stay], tmpl, stay);
     } else {
         /* Create a new repeater structure */
         r = Malloc(MB_REP, sizeof(*r));
-	snprintf(r->name, sizeof(r->name), "%s", av[0]);
+	snprintf(r->name, sizeof(r->name), "%s", av[0 + stay]);
 	r->tmpl = tmpl;
+	r->stay = stay;
 	r->csock = -1;
 
-	/* Create each link and add it to the repeater */
-	for (k = 1; k < ac; k++) {
-	    if (strlen(av[k])>16) {
-		Log(LG_ERR, ("phys name \"%s\" is too long", av[k]));
-    		RepShutdown(r);
-		return (-1);
-	    }
-	}
 	/* Add repeater to the list of repeaters and make it the current active repeater */
 	for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
 	if (k == gNumReps)			/* add a new repeater pointer */
 	    LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
+	r->id = k;
 	gReps[k] = r;
 	REF(r);
     }
@@ -402,7 +381,7 @@ RepCreate(Context ctx, int ac, char *av[], void *arg)
  */
 
 Rep
-RepInst(Rep rt, char *name)
+RepInst(Rep rt, char *name, int tmpl, int stay)
 {
     Rep 	r;
     int		k;
@@ -410,14 +389,14 @@ RepInst(Rep rt, char *name)
     /* Create and initialize new link */
     r = Malloc(MB_REP, sizeof(*r));
     memcpy(r, rt, sizeof(*r));
-    r->tmpl = 0;
+    r->tmpl = tmpl;
+    r->stay = stay;
     r->refs = 0;
 
     /* Find a free rep pointer */
     for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
     if (k == gNumReps)			/* add a new repeater pointer */
         LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
-
     r->id = k;
 
     if (name)
@@ -480,7 +459,7 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
   }
 
   /* Show stuff about the repeater */
-  Printf("Repeater %s:\r\n", r->name);
+  Printf("Repeater %s%s:\r\n", r->name, r->tmpl?" (template)":(r->stay?" (static)":""));
   Printf("\tLink template   : %s\r\n", r->linkt);
   Printf("\tLinks           : ");
   RepShowLinks(ctx, r);

@@ -806,22 +806,23 @@ PppoeListenEvent(int type, void *arg)
 		Link l2;
 	        PppoeInfo pi2;
 
-		if (gLinks[k] && gLinks[k]->type != &gPppoePhysType)
+		if (!gLinks[k] || gLinks[k]->type != &gPppoePhysType)
 			continue;
 
 		l2 = gLinks[k];
 		pi2 = (PppoeInfo)l2->info;
 
-		if ((l2->tmpl) &&
+		if ((!PhysIsBusy(l2)) &&
 		    (pi2->PIf == PIf) &&
 		    Enabled(&l2->conf.options, LINK_CONF_INCOMING)) {
 			l = l2;
+			pi = pi2;
 			break;
 		}
 	}
 	
-	if (l != NULL) {
-	    l = LinkInst(l, NULL);
+	if (l != NULL && l->tmpl) {
+	    l = LinkInst(l, NULL, 0, 0);
 	    pi = (PppoeInfo)l->info;
 	}
 
