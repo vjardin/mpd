@@ -20,6 +20,7 @@
   #define MSG_CLOSE		2	/* Bring yourself down */
   #define MSG_UP		3	/* Lower layer went up */
   #define MSG_DOWN		4	/* Lower layer went down */
+  #define MSG_SHUTDOWN		5	/* Object should disappear */
 
 /* Forward decl */
 

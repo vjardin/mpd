@@ -719,22 +719,22 @@ ModemCheck(void *arg)
     Log(LG_ERR, ("[%s] MODEM: can't ioctl(%s) %s: %s",
       l->name, "TIOCMGET", m->device, strerror(errno)));
     l->state = PHYS_STATE_DOWN;
-    PhysDown(l, STR_ERROR, "ioctl(%s): %s", "TIOCMGET", strerror(errno));
     ModemDoClose(l, FALSE);
+    PhysDown(l, STR_ERROR, "ioctl(%s): %s", "TIOCMGET", strerror(errno));
     return;
   }
   if ((m->watch & TIOCM_CAR) && !(state & TIOCM_CAR)) {
     Log(LG_PHYS, ("[%s] MODEM: carrier detect (CD) signal lost", l->name));
     l->state = PHYS_STATE_DOWN;
-    PhysDown(l, STR_DROPPED, "%s", STR_LOST_CD);
     ModemDoClose(l, FALSE);
+    PhysDown(l, STR_DROPPED, "%s", STR_LOST_CD);
     return;
   }
   if ((m->watch & TIOCM_DSR) && !(state & TIOCM_DSR)) {
     Log(LG_PHYS, ("[%s] MODEM: data-set ready (DSR) signal lost", l->name));
     l->state = PHYS_STATE_DOWN;
-    PhysDown(l, STR_DROPPED, "%s", STR_LOST_DSR);
     ModemDoClose(l, FALSE);
+    PhysDown(l, STR_DROPPED, "%s", STR_LOST_DSR);
     return;
   }
   TimerStart(&m->checkTimer);

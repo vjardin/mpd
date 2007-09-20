@@ -165,6 +165,8 @@ MsgName(int msg)
       return("UP");
     case MSG_DOWN:
       return("DOWN");
+    case MSG_SHUTDOWN:
+      return("SHUTDOWN");
     default:
       return("???");
   }

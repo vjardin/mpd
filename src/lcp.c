@@ -392,6 +392,9 @@ LcpNewState(Fsm fp, int old, int new)
       assert(0);
   }
 
+    if (new == ST_INITIAL && l->die && !l->stay && l->state == PHYS_STATE_DOWN)
+	MsgSend(l->msgs, MSG_SHUTDOWN, l);
+
   /* Keep track of how many links in this bundle are in an open state */
 //  if (!OPEN_STATE(old) && OPEN_STATE(new)) XXXXXXXXXXXXXXXXXXXXXXXX
 //    l->bund->bm.n_open++;
@@ -498,8 +501,6 @@ LcpNewPhase(Link l, int new)
       break;
 
     case PHASE_DEAD:
-	if (l->die && !l->stay)
-	    LinkShutdown(l);
         break;
 
     default:

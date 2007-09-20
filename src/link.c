@@ -247,6 +247,9 @@ LinkMsg(int type, void *arg)
 	case MSG_CLOSE:
     	    LcpClose(l);
     	    break;
+	case MSG_SHUTDOWN:
+    	    LinkShutdown(l);
+    	    break;
 	default:
     	    assert(FALSE);
     }
@@ -446,7 +449,6 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
 void
 LinkShutdown(Link l)
 {
-    Log(LG_LINK, ("[%s] Link shutdown", l->name));
     gLinks[l->id] = NULL;
     MsgUnRegister(&l->msgs);
     if (l->csock >= 0)

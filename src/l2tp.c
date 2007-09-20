@@ -392,10 +392,10 @@ L2tpOpen(Link l)
 				avps)) == NULL) {
 			    Log(LG_ERR, ("[%s] ppp_l2tp_initiate: %s", 
 				l->name, strerror(errno)));
-			    PhysDown(l, STR_ERROR, NULL);
 			    ppp_l2tp_avp_list_destroy(&avps);
 			    pi->sess = NULL;
 			    pi->tun = NULL;
+			    PhysDown(l, STR_ERROR, NULL);
 			    return;
 			};
 			ppp_l2tp_avp_list_destroy(&avps);
@@ -609,7 +609,6 @@ L2tpClose(Link l)
     pi->outcall = 0;
     if (l->state == PHYS_STATE_DOWN)
     	return;
-    PhysDown(l, 0, NULL);
     L2tpDoClose(l);
     if (pi->sess) {
 	Log(LG_PHYS, ("[%s] L2TP: Call #%u terminated locally", l->name, 
@@ -621,6 +620,7 @@ L2tpClose(Link l)
     pi->callingnum[0]=0;
     pi->callednum[0]=0;
     l->state = PHYS_STATE_DOWN;
+    PhysDown(l, 0, NULL);
 }
 
 /*
@@ -879,9 +879,9 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			    Enabled(&pi->conf.options, L2TP_CONF_DATASEQ)?1:0,
 			    avps)) == NULL) {
 			Log(LG_ERR, ("ppp_l2tp_initiate: %s", strerror(errno)));
-			PhysDown(l, STR_ERROR, NULL);
 			pi->sess = NULL;
 			pi->tun = NULL;
+			PhysDown(l, STR_ERROR, NULL);
 			continue;
 		};
 		ppp_l2tp_avp_list_destroy(&avps);
@@ -950,12 +950,12 @@ ppp_l2tp_ctrl_terminated_cb(struct ppp_l2tp_ctrl *ctrl,
 			continue;
 
 		l->state = PHYS_STATE_DOWN;
-		PhysDown(l, STR_DROPPED, NULL);
 		L2tpDoClose(l);
 		pi->sess = NULL;
 		pi->tun = NULL;
 		pi->callingnum[0]=0;
 	        pi->callednum[0]=0;
+		PhysDown(l, STR_DROPPED, NULL);
 	};
 	
 	tun->alive = 0;
@@ -1145,12 +1145,12 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	    ppp_l2tp_sess_get_serial(sess), buf));
 
 	l->state = PHYS_STATE_DOWN;
-	PhysDown(l, STR_DROPPED, NULL);
 	L2tpDoClose(l);
 	pi->sess = NULL;
 	pi->tun = NULL;
 	pi->callingnum[0]=0;
 	pi->callednum[0]=0;
+	PhysDown(l, STR_DROPPED, NULL);
 }
 
 /*

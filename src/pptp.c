@@ -594,26 +594,26 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 	PhysUp(l);
       } else {
 	Log(LG_PHYS, ("[%s] PPTP call failed", l->name));
-	PhysDown(l, STR_CON_FAILED, "%s", errmsg);
 	l->state = PHYS_STATE_DOWN;
 	u_addrclear(&pptp->self_addr);
 	u_addrclear(&pptp->peer_addr);
 	pptp->peer_port = 0;
         pptp->callingnum[0]=0;
         pptp->callednum[0]=0;
+	PhysDown(l, STR_CON_FAILED, "%s", errmsg);
       }
       break;
     case PHYS_STATE_UP:
       assert(errmsg);
       Log(LG_PHYS, ("[%s] PPTP call terminated", l->name));
       PptpDoClose(l);
-      PhysDown(l, STR_DROPPED, NULL);
       l->state = PHYS_STATE_DOWN;
       u_addrclear(&pptp->self_addr);
       u_addrclear(&pptp->peer_addr);
       pptp->peer_port = 0;
       pptp->callingnum[0]=0;
       pptp->callednum[0]=0;
+      PhysDown(l, STR_DROPPED, NULL);
       break;
     case PHYS_STATE_DOWN:
       return;
@@ -942,12 +942,12 @@ PptpCancel(void *cookie)
     l->name, gPhysStateNames[l->state]));
   if (l->state == PHYS_STATE_DOWN)
     return;
-  PhysDown(l, STR_CON_FAILED0, NULL);
   l->state = PHYS_STATE_DOWN;
   u_addrclear(&pi->peer_addr);
   pi->peer_port = 0;
   pi->callingnum[0]=0;
   pi->callednum[0]=0;
+  PhysDown(l, STR_CON_FAILED0, NULL);
 }
 
 /*

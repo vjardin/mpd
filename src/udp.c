@@ -307,10 +307,10 @@ fail:
     l->state = PHYS_STATE_DOWN;
     u_addrclear(&pi->peer_addr);
     pi->peer_port=0;
-    PhysDown(l, STR_ERROR, NULL);
-
     if (csock>0)
 	close(csock);
+
+    PhysDown(l, STR_ERROR, NULL);
 }
 
 /*

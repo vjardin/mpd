@@ -233,7 +233,7 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	    l->rep->links[1] = NULL;
 	l->rep = NULL;
 	if (!l->stay)
-	    LinkShutdown(l);
+	    MsgSend(l->msgs, MSG_SHUTDOWN, l);
     }
 }
 
@@ -431,7 +431,7 @@ PhysGetCalledNum(Link l, char *buf, int buf_len)
 int
 PhysIsBusy(Link l)
 {
-  return (l->rep || l->state != PHYS_STATE_DOWN);
+  return (l->die || l->rep || l->state != PHYS_STATE_DOWN || l->lcp.fsm.state != ST_INITIAL);
 }
 
 /*
