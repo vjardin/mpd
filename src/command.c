@@ -37,6 +37,7 @@
     const char	*name;
     void	(*opener)(Context ctx);
     void	(*closer)(Context ctx);
+    int		(*admit)(Context ctx, CmdTab cmd);
     const char	*desc;
   };
   typedef struct layer	*Layer;
@@ -227,7 +228,7 @@
     { "msession {msesid}",		"Choose link by multy-session-id",
 	MSessionCommand, NULL, NULL },
     { "open [{layer}]",			"Open a layer",
-	OpenCommand, AdmitLink, NULL },
+	OpenCommand, NULL, NULL },
     { "quit",				"Quit program",
 	QuitCommand, NULL, NULL },
     { "repeater [{name}]",		"Choose/list repeaters",
@@ -251,41 +252,49 @@
     { "iface",
       IfaceOpenCmd,
       IfaceCloseCmd,
+      AdmitBund,
       "System interface"
     },
     { "ipcp",
       IpcpOpenCmd,
       IpcpCloseCmd,
+      AdmitBund,
       "IPCP: IP control protocol"
     },
     { "ipv6cp",
       Ipv6cpOpenCmd,
       Ipv6cpCloseCmd,
+      AdmitBund,
       "IPV6CP: IPv6 control protocol"
     },
     { "ccp",
       CcpOpenCmd,
       CcpCloseCmd,
+      AdmitBund,
       "CCP: compression ctrl prot."
     },
     { "ecp",
       EcpOpenCmd,
       EcpCloseCmd,
+      AdmitBund,
       "ECP: encryption ctrl prot."
     },
     { "bund",
       BundOpenCmd,
       BundCloseCmd,
+      AdmitBund,
       "Multilink bundle"
     },
     { "link",
       LinkOpenCmd,
       LinkCloseCmd,
+      AdmitLink,
       "Link layer"
     },
     { "device",
       PhysOpenCmd,
       PhysCloseCmd,
+      AdmitLink,
       "Physical link layer"
     },
   };
@@ -676,22 +685,25 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 OpenCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  Layer		layer;
-  const char	*name;
+    Layer	layer;
+    const char	*name;
 
-  switch (ac) {
+    switch (ac) {
     case 0:
-      name = DEFAULT_OPEN_LAYER;
-      break;
+        name = DEFAULT_OPEN_LAYER;
+        break;
     case 1:
-      name = av[0];
-      break;
+        name = av[0];
+        break;
     default:
-      return(-1);
-  }
-  if ((layer = GetLayer(name)) != NULL)
-    (*layer->opener)(ctx);
-  return(0);
+        return(-1);
+    }
+    if ((layer = GetLayer(name)) != NULL) {
+	/* Check command admissibility */
+	if (!layer->admit || (layer->admit)(ctx, NULL))
+	    (*layer->opener)(ctx);
+    }
+    return(0);
 }
 
 /*
@@ -701,10 +713,10 @@ OpenCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 CloseCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  Layer		layer;
-  const char	*name;
+    Layer	layer;
+    const char	*name;
 
-  switch (ac) {
+    switch (ac) {
     case 0:
       name = DEFAULT_OPEN_LAYER;
       break;
@@ -713,10 +725,13 @@ CloseCommand(Context ctx, int ac, char *av[], void *arg)
       break;
     default:
       return(-1);
-  }
-  if ((layer = GetLayer(name)) != NULL)
-    (*layer->closer)(ctx);
-  return(0);
+    }
+    if ((layer = GetLayer(name)) != NULL) {
+	/* Check command admissibility */
+	if (!layer->admit || (layer->admit)(ctx, NULL))
+	    (*layer->closer)(ctx);
+    }
+    return(0);
 }
 
 /*
@@ -872,11 +887,16 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 int
 AdmitBund(Context ctx, CmdTab cmd)
 {
-  if (!ctx->bund) {
-    Log(LG_ERR, ("No bundle selected for '%s' command", cmd->name));
-    return(FALSE);
-  }
-  return(TRUE);
+    const char	*c;
+    if (cmd)
+	c = cmd->name;
+    else
+	c = "";
+    if (!ctx->bund) {
+        Log(LG_ERR, ("No bundle selected for '%s' command", c));
+	return(FALSE);
+    }
+    return(TRUE);
 }
 
 /*
@@ -886,11 +906,16 @@ AdmitBund(Context ctx, CmdTab cmd)
 int
 AdmitLink(Context ctx, CmdTab cmd)
 {
-  if (!ctx->lnk) {
-    Log(LG_ERR, ("No link selected for '%s' command", cmd->name));
-    return(FALSE);
-  }
-  return(TRUE);
+    const char	*c;
+    if (cmd)
+	c = cmd->name;
+    else
+	c = "";
+    if (!ctx->lnk) {
+	Log(LG_ERR, ("No link selected for '%s' command", c));
+	return(FALSE);
+    }
+    return(TRUE);
 }
 
 /*
@@ -900,11 +925,16 @@ AdmitLink(Context ctx, CmdTab cmd)
 int
 AdmitRep(Context ctx, CmdTab cmd)
 {
-  if (!ctx->rep) {
-    Log(LG_ERR, ("No repeater selected for '%s' command", cmd->name));
-    return(FALSE);
-  }
-  return(TRUE);
+    const char	*c;
+    if (cmd)
+	c = cmd->name;
+    else
+	c = "";
+    if (!ctx->rep) {
+	Log(LG_ERR, ("No repeater selected for '%s' command", c));
+	return(FALSE);
+    }
+    return(TRUE);
 }
 
 /*
@@ -914,15 +944,20 @@ AdmitRep(Context ctx, CmdTab cmd)
 int
 AdmitDev(Context ctx, CmdTab cmd)
 {
-  if (!ctx->lnk) {
-    Log(LG_ERR, ("No device selected for '%s' command", cmd->name));
-    return(FALSE);
-  }
-  if (strncmp(cmd->name, ctx->lnk->type->name, strlen(ctx->lnk->type->name))) {
-    Log(LG_ERR, ("[%s] device type is %s, '%s' command isn't allowed here!",
-      ctx->lnk->name, ctx->lnk->type->name, cmd->name));
-    return(FALSE);
-  }
-  return(TRUE);
+    const char	*c;
+    if (cmd)
+	c = cmd->name;
+    else
+	c = "";
+    if (!ctx->lnk) {
+	Log(LG_ERR, ("No device selected for '%s' command", c));
+	return(FALSE);
+    }
+    if (strncmp(cmd->name, ctx->lnk->type->name, strlen(ctx->lnk->type->name))) {
+	Log(LG_ERR, ("[%s] device type is %s, '%s' command isn't allowed here!",
+    	    ctx->lnk->name, ctx->lnk->type->name, c));
+	return(FALSE);
+    }
+    return(TRUE);
 }
 

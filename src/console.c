@@ -716,6 +716,10 @@ ConsoleSessionShowPrompt(ConsoleSession cs)
   case STATE_AUTHENTIC:
     if (cs->context.lnk)
 	cs->write(cs, "[%s] ", cs->context.lnk->name);
+    else if (cs->context.bund)
+	cs->write(cs, "[%s] ", cs->context.bund->name);
+    else if (cs->context.rep)
+	cs->write(cs, "[%s] ", cs->context.rep->name);
     else
 	cs->write(cs, "[] ");
     break;

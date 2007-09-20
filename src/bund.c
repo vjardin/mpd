@@ -932,7 +932,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 
     if (ac - stay == 2) {
 	/* See if template name specified */
-	if ((bt = BundFind(av[1 + stay])) != NULL) {
+	if ((bt = BundFind(av[1 + stay])) == NULL) {
 	    Log(LG_ERR, ("Bundle template \"%s\" not found", av[1 + stay]));
 	    return (0);
 	}
