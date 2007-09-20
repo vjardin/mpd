@@ -167,7 +167,11 @@ BundClose(Bund b)
 void
 BundOpenCmd(Context ctx)
 {
-    MsgSend(ctx->bund->msgs, MSG_OPEN, ctx->bund);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] bundle: impossible to open template", ctx->bund->name));
+	return;
+    }
+    BundOpen(ctx->bund);
 }
 
 /*
@@ -177,7 +181,11 @@ BundOpenCmd(Context ctx)
 void
 BundCloseCmd(Context ctx)
 {
-    MsgSend(ctx->bund->msgs, MSG_CLOSE, ctx->bund);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] bundle: impossible to close template", ctx->bund->name));
+	return;
+    }
+    BundClose(ctx->bund);
 }
 
 /*

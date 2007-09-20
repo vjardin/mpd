@@ -134,8 +134,12 @@
 void
 LinkOpenCmd(Context ctx)
 {
-  RecordLinkUpDownReason(NULL, ctx->lnk, 1, STR_MANUALLY, NULL);
-  LinkOpen(ctx->lnk);
+    if (ctx->lnk->tmpl) {
+	Log(LG_ERR, ("[%s] link: impossible to open template", ctx->lnk->name));
+	return;
+    }
+    RecordLinkUpDownReason(NULL, ctx->lnk, 1, STR_MANUALLY, NULL);
+    LinkOpen(ctx->lnk);
 }
 
 /*
@@ -145,8 +149,12 @@ LinkOpenCmd(Context ctx)
 void
 LinkCloseCmd(Context ctx)
 {
-  RecordLinkUpDownReason(NULL, ctx->lnk, 0, STR_MANUALLY, NULL);
-  LinkClose(ctx->lnk);
+    if (ctx->lnk->tmpl) {
+	Log(LG_ERR, ("[%s] link: impossible to close template", ctx->lnk->name));
+	return;
+    }
+    RecordLinkUpDownReason(NULL, ctx->lnk, 0, STR_MANUALLY, NULL);
+    LinkClose(ctx->lnk);
 }
 
 /*
