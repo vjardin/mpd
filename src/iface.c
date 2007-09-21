@@ -834,8 +834,11 @@ IfaceIpIfaceDown(Bund b)
 
   /* Call "down" script */
   if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet '%s'",
-      iface->down_script, iface->ifname, 
+    char	selfbuf[40],peerbuf[40];
+
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s'",
+      iface->down_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
+      u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
       *b->params.authname ? b->params.authname : "-");
   }
 
@@ -958,8 +961,12 @@ IfaceIpv6IfaceDown(Bund b)
 
   /* Call "down" script */
   if (*iface->down_script) {
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 '%s'",
+    char	selfbuf[64],peerbuf[64];
+
+    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
       iface->down_script, iface->ifname, 
+      u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
+      u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
       *b->params.authname ? b->params.authname : "-");
   }
 
