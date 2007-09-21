@@ -212,7 +212,7 @@
     { "bundle [{name}]",		"Choose/list bundles",
 	BundCommand, NULL, NULL },
     { "close [{layer}]",		"Close a layer",
-	CloseCommand, AdmitLink, NULL },
+	CloseCommand, NULL, NULL },
     { "create ...",			"Create new item",
     	CMD_SUBMENU, NULL, (void *) CreateCommands },
     { "exit",				"Exit console",
