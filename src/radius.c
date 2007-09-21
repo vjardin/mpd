@@ -1396,6 +1396,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		memcpy(auth->params.msoft.lm_hash, tmpkey, sizeof(auth->params.msoft.lm_hash));
 		auth->params.msoft.has_lm_hash = TRUE;
 		memcpy(auth->params.msoft.nt_hash_hash, &tmpkey[8], sizeof(auth->params.msoft.nt_hash_hash));
+		auth->params.msoft.has_nt_hash = TRUE;
 		free(tmpkey);
 		break;
 #endif
