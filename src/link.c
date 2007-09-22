@@ -306,7 +306,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 
     for (k = 0; (pt = gPhysTypes[k]); k++) {
         if (!strcmp(pt->name, av[0 + stay])) {
-	    Log(LG_ERR, ("Link name \"%s\" is reserved", av[0 + stay]));
+	    Log(LG_ERR, ("Name \"%s\" is reserved by device type", av[0 + stay]));
 	    return (0);
 	}
     }
