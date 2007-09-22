@@ -601,35 +601,37 @@ AuthCleanup(Link l)
 AuthData
 AuthDataNew(Link l) 
 {
-  AuthData	auth;
-  Auth		a = &l->lcp.auth;  
+    AuthData	auth;
+    Auth	a = &l->lcp.auth;  
 
-  auth = Malloc(MB_AUTH, sizeof(*auth));
-  auth->conf = l->lcp.auth.conf;
+    auth = Malloc(MB_AUTH, sizeof(*auth));
+    auth->conf = l->lcp.auth.conf;
 
-  strlcpy(auth->info.lnkname, l->name, sizeof(auth->info.lnkname));
-  strlcpy(auth->info.msession_id, l->msession_id, sizeof(auth->info.msession_id));
-  strlcpy(auth->info.session_id, l->session_id, sizeof(auth->info.session_id));
-  strlcpy(auth->info.peer_ident, l->lcp.peer_ident, sizeof(l->lcp.peer_ident));
+    strlcpy(auth->info.lnkname, l->name, sizeof(auth->info.lnkname));
+    strlcpy(auth->info.msession_id, l->msession_id, sizeof(auth->info.msession_id));
+    strlcpy(auth->info.session_id, l->session_id, sizeof(auth->info.session_id));
+    strlcpy(auth->info.peer_ident, l->lcp.peer_ident, sizeof(l->lcp.peer_ident));
 
-//  auth->info.n_links = l->bund->n_links;
-//  auth->info.peer_addr = l->bund->ipcp.peer_addr;
+    if (l->bund) {
+        auth->info.n_links = l->bund->n_links;
+	auth->info.peer_addr = l->bund->ipcp.peer_addr;
+    }
 
-  /* Copy current link statistics */
-  memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));
+    /* Copy current link statistics */
+    memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));
 
-  if (l->downReasonValid) {
-    auth->info.downReason = Malloc(MB_LINK, strlen(l->downReason) + 1);
-    strcpy(auth->info.downReason, l->downReason);
-  }
+    if (l->downReasonValid) {
+	auth->info.downReason = Malloc(MB_LINK, strlen(l->downReason) + 1);
+	strcpy(auth->info.downReason, l->downReason);
+    }
 
-  auth->info.last_open = l->last_open;
-  auth->info.phys_type = l->type;
-  auth->info.linkID = l->id;
+    auth->info.last_open = l->last_open;
+    auth->info.phys_type = l->type;
+    auth->info.linkID = l->id;
 
-  authparamsCopy(&a->params,&auth->params);
+    authparamsCopy(&a->params,&auth->params);
 
-  return auth;
+    return auth;
 }
 
 /*
