@@ -1,0 +1,205 @@
+
+/*
+ * ippool.c
+ *
+ * Written by Alexander Motin <mav@FreeBSD.org>
+ */
+
+#include "ppp.h"
+#include "ip.h"
+#include "ippool.h"
+#include "util.h"
+
+enum {
+    SET_ADD,
+};
+
+struct ippool_rec {
+    struct in_addr	ip;
+    time_t		until;
+};
+
+struct ippool {
+    char		name[LINK_MAX_NAME];
+    struct ippool_rec	*pool;
+    int			size;
+    SLIST_ENTRY(ippool)	next;
+};
+
+typedef	struct ippool	*IPPool;
+
+SLIST_HEAD(, ippool)	gIPPools;
+
+static void	IPPoolAdd(char *pool, struct in_addr begin, struct in_addr end);
+static int	IPPoolSetCommand(Context ctx, int ac, char *av[], void *arg);
+
+  const struct cmdtab IPPoolSetCmds[] = {
+    { "add {pool} {start} {end}",	"Add IP range to the pool",
+	IPPoolSetCommand, NULL, (void *) SET_ADD },
+    { NULL },
+  };
+
+int IPPoolGet(char *pool, struct u_addr *ip)
+{
+    IPPool	p;
+    time_t	now = time(NULL);
+    int		i;
+
+    SLIST_FOREACH(p, &gIPPools, next) {
+	if (strcmp(p->name, pool) == 0)
+	    break;
+    }
+    if (!p)
+	return (-1);
+    i = 0;
+    while (i < p->size) {
+	if (p->pool[i].until < now) {
+	    p->pool[i].until = now + 30;
+	    in_addrtou_addr(&p->pool[i].ip, ip);
+	    return (0);
+	}
+	i++;
+    }
+    return (-1);
+}
+
+void IPPoolReserve(struct u_addr *ip) {
+    IPPool	p;
+    time_t	now = time(NULL);
+    int		i;
+
+    SLIST_FOREACH(p, &gIPPools, next) {
+	i = 0;
+	while (i < p->size) {
+	    if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
+		p->pool[i].until = now + 3600*24*365*10;
+		return;
+	    }
+	    i++;
+	}
+    }
+    Log(LG_ERR, ("unable to reserve ip"));
+}
+void IPPoolFree(struct u_addr *ip) {
+    IPPool	p;
+    int		i;
+
+    SLIST_FOREACH(p, &gIPPools, next) {
+	i = 0;
+	while (i < p->size) {
+	    if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
+		p->pool[i].until = 0;
+		return;
+	    }
+	    i++;
+	}
+    }
+    Log(LG_ERR, ("unable to free ip"));
+}
+
+static void
+IPPoolAdd(char *pool, struct in_addr begin, struct in_addr end)
+{
+
+    IPPool 		p;
+    struct ippool_rec	*r;
+    int			i, j, k;
+    int			total;
+    u_int		c = ntohl(end.s_addr) - ntohl(begin.s_addr) + 1;
+    
+    if (c > 65536) {
+	Log(LG_ERR, ("Too big IP range: %d", c));
+	return;
+    }
+    
+    SLIST_FOREACH(p, &gIPPools, next) {
+	if (strcmp(p->name, pool) == 0)
+	    break;
+    }
+
+    if (!p) {
+	p = Malloc(MB_IPPOOL, sizeof(struct ippool));
+	strlcpy(p->name, pool, sizeof(p->name));
+	SLIST_INSERT_HEAD(&gIPPools, p, next);
+    }
+    total = 0;
+    for (i = 0; i < p->size; i++) {
+	if (p->pool[i].ip.s_addr)
+	    total++;
+    }
+    r = Malloc(MB_IPPOOL, (total + c) * sizeof(struct ippool_rec));
+    if (p->pool != NULL) {
+	memcpy(r, p->pool, p->size * sizeof(struct ippool_rec));
+	Freee(MB_IPPOOL, p->pool);
+    }
+    p->pool = r;
+    k = p->size;
+    for (i = 0; i < c; i++) {
+	struct in_addr ip;
+	ip.s_addr = htonl(ntohl(begin.s_addr) + i);
+	for (j = 0; j < p->size; j++) {
+	    if (p->pool[j].ip.s_addr == ip.s_addr)
+		break;
+	}
+	if (j != p->size)
+	    continue;
+	p->pool[k++].ip = ip;
+    }
+    p->size = k;
+}
+
+/*
+ * IPPoolStat()
+ */
+
+int
+IPPoolStat(Context ctx, int ac, char *av[], void *arg)
+{
+    IPPool 	p;
+    time_t	now = time(NULL);
+
+    Printf("Available IP pools:\r\n");
+    SLIST_FOREACH(p, &gIPPools, next) {
+	int	i;
+	int	total = 0;
+	int	used = 0;
+	for (i = 0; i < p->size; i++) {
+	    if (p->pool[i].ip.s_addr) {
+		total++;
+		if (p->pool[i].until > now)
+		    used++;
+	    }
+	}
+	Printf("\t%s:\tused %4d of %4d\r\n", p->name, used, total);
+    }
+    return(0);
+}
+
+/*
+ * IPPoolSetCommand()
+ */
+
+static int
+IPPoolSetCommand(Context ctx, int ac, char *av[], void *arg)
+{
+    switch ((intptr_t)arg) {
+    case SET_ADD:
+      {
+	struct u_addr	begin;
+	struct u_addr	end;
+
+	/* Parse args */
+	if (ac != 3
+	    || !ParseAddr(av[1], &begin, ALLOW_IPV4)
+	    || !ParseAddr(av[2], &end, ALLOW_IPV4))
+	  return(-1);
+
+	IPPoolAdd(av[0], begin.u.ip4, end.u.ip4);
+      }
+      break;
+    default:
+      assert(0);
+  }
+  return(0);
+}
+
