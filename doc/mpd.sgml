@@ -29,7 +29,6 @@
 <!ENTITY netflow SYSTEM "netflow.sgml">
 <!ENTITY ipcp SYSTEM "ipcp.sgml">
 <!ENTITY links SYSTEM "links.sgml">
-<!ENTITY phys SYSTEM "phys.sgml">
 <!ENTITY compression SYSTEM "compression.sgml">
 <!ENTITY encryption SYSTEM "encryption.sgml">
 <!ENTITY authentication SYSTEM "auth.sgml">
@@ -114,7 +113,6 @@ all mpd features.
 	&interface;
 	&ipcp;
 	&links;
-	&phys;
 	&compression;
 	&encryption;
 	&authentication;
