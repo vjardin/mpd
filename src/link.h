@@ -137,7 +137,6 @@
     time_t		lastClose;		/* Time of last close */
     MsgHandler		pmsgs;			/* Message channel */
     struct pppTimer	openTimer;		/* Open retry timer */
-    struct optinfo	options;
     Rep			rep;			/* Rep connected to the device */
     char		rept[LINK_MAX_NAME];	/* Repeater template for incomings */
   };
