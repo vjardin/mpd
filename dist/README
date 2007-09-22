@@ -30,7 +30,6 @@ Written by Archie Cobbs <archie@FreeBSD.org>
   configuration files in /usr/local/etc/mpd5:
 
     mpd.conf    - General configuration
-    mpd.links   - Description of available links
     mpd.script  - Modem scripts
     mpd.secret  - Login/password pairs
 

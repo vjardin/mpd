@@ -133,8 +133,6 @@ Directory containing the mpd manual
 Default configuration file directory
 .It Pa mpd.conf
 Configuration file
-.It Pa mpd.links
-Definitions of individual links
 .It Pa mpd.script
 Modem chat scripts
 .It Pa mpd.secret

@@ -12,7 +12,7 @@
 	the status of the defined bundles and links.
 	The commands available at the command line interface
 	are exactly the same ones available in the
-	<tt>mpd.conf</tt> and <tt>mpd.links</tt> config files.
+	<tt>mpd.conf</tt> config file.
 
 	At any given time, there is always an <em>active bundle</em>
 	and an <em>active link</em> within that bundle. These are

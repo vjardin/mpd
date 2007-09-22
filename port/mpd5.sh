@@ -30,7 +30,7 @@ load_rc_config ${name}
 
 pidfile="/var/run/${name}.pid"
 command="%%PREFIX%%/sbin/${name}"
-required_files="%%PREFIX%%/etc/${name}/mpd.conf %%PREFIX%%/etc/${name}/mpd.links"
+required_files="%%PREFIX%%/etc/${name}/mpd.conf"
 
 case "${mpd_flags}" in
 *-p\ *)

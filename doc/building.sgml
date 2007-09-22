@@ -21,7 +21,7 @@
   </tt></tag>
 
   The default configuration directory where mpd looks for
-  <tt>mpd.conf</tt>, <tt>mpd.links</tt>, etc.
+  <tt>mpd.conf</tt>, etc.
 
   <tag><tt>PHYSTYPE_MODEM</tt></tag><p>
   <tag><tt>PHYSTYPE_TCP</tt></tag><p>

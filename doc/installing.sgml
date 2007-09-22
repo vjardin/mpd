@@ -49,24 +49,6 @@
 	configure the device independent information for a bundle.
 </p>
 
-	<tag> <bf><tt>mpd.links</tt></bf>
-
-<p>
-	This file contains definitions of the various links that
-	are available on the system. Different links may be part
-	of different bundles in different configurations. Therefore,
-	the commands in this file configure information that is
-	link specific and independent of any particular configuration.
-	For example, a certain modem may require a special init string,
-	no matter how or in what bundle the modem is to be used.
-	The commands in this file are executed when the bundle 
-	is defined (i.e., as a result of a <bf><tt>new</tt></bf>
-	command). So the information configured for a link by that
-	link's <tt>mpd.links</tt> entry can be overriden by subsequent
-	commands in <tt>mpd.conf</tt>.
-</p>
-
-
 	<tag> <bf><tt>mpd.secret</tt></bf>
 
 <p>

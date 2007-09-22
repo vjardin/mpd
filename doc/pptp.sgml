@@ -147,8 +147,7 @@ Default is on.
 <p>
 
 If what you want to do is setup a PPTP server for remote clients
-to connect to your LAN, you would want something like this for
-each <tt>mpd.links</tt> entry:
+to connect to your LAN, you would want something like this:
 <tscreen><verb>
 #
 # Act like a PPTP server allowing clients to connect

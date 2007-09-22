@@ -230,7 +230,7 @@ pptp_vpn:
 #
 # The "inside" IP addresses are configured by "set ipcp ranges ..."
 # (in mpd.conf) while the "outside" IP addreses are configured by
-# "set pptp self ..." and "set pptp peer ..." (in mpd.links).
+# "set pptp self ..." and "set pptp peer ...".
 #
 
 	create bundle static B1

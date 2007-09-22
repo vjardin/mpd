@@ -15,7 +15,7 @@
 ##  $ConnectTimeout	Wait-for-connect timeout, in seconds (default 45 secs)
 ##  $SpeakerOff		Set to "yes" to quiet modem speakers
 ##  $Serial230K		If "yes", we can support 230K serial port speed
-##  $CountryCode	Country code for Winmodem (see mpd.links.sample)
+##  $CountryCode	Country code for Winmodem
 ##
 ## ISDN Terminal Adapter specific variables (all start with "TA_"):
 ##

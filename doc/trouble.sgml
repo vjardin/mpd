@@ -91,8 +91,8 @@ manually.
 My configuration doesn't seem to be working as expected.
 </bf></tag>
 
-Make sure your <tt>mpd.conf</tt> and <tt>mpd.links</tt> files are
-formatted properly. Labels must be left-justified, while other lines must not.
+Make sure your <tt>mpd.conf</tt> file formatted properly.
+Labels must be left-justified, while other lines must not.
 
 <tag><bf>
 I'm getting no valid response from the RADIUS server.

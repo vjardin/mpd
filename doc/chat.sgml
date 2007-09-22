@@ -24,7 +24,7 @@
   column and ends with a colon character.
 
   <bf>Chat commands</bf> are indented with tab characters and written
-  one per line. Contrary to <tt>mpd.conf</tt> and <tt>mpd.links</tt>,
+  one per line. Contrary to <tt>mpd.conf</tt>,
   the processing of chat commands <em>does not</em> stop when a blank
   line is encountered.
 
