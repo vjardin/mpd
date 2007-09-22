@@ -8,8 +8,7 @@
 <p>
 
   This chapter describes commands that configure the repeater layer.
-  All of these commands (except <bf><tt>rnew</tt></bf>)
-  apply to the currently active repeater.
+  All of these commands apply to the currently active repeater.
   
   Repeater repeats all connections, coming from one physical device, 
   to another without any processing. This technology is also known as 
@@ -20,13 +19,10 @@
 
 <descrip>
 
-<tag><tt>rnew </tt> <tt><em>name</em> <em>phys1</em> <em>phys2</em> </tt>
-</tag>
+<tag><tt>set repeater link <em>name</em></tt></tag><p>
 
-This command creates a new repeater named <tt><em>name</em></tt>.
-
-Two physical devices that constitute the repeater are created and named
-<tt><em>phys1</em></tt> and <tt><em>phys2</em></tt>.
+This command specifies the name of link which repeater should use.
+If the link template name specified new link will be created using it.
 
 </descrip>
 
