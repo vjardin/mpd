@@ -209,7 +209,8 @@ LinkDown(Link l)
 		Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
 		  l->name, l->num_redial));
 	    }
-	    l->die = 1;
+	    if (!l->stay)
+		l->die = 1;
 	    LcpClose(l);
             LcpDown(l);
 	} else {
@@ -223,7 +224,8 @@ LinkDown(Link l)
 	    };
 	}
     } else {
-	l->die = 1;
+	if (!l->stay)
+	    l->die = 1;
         LcpDown(l);
     }
     /* reset Link-stats */
