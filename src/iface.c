@@ -587,7 +587,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
   fsm = &b->ipcp.fsm;
 
   if (OPEN_STATE(fsm->state)) {
-    if (b->bm.n_up > 0) {
+    if (b->n_links > 0) {
 #ifndef USE_NG_TCPMSS
       if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
 	if (proto == PROTO_IP)
@@ -604,7 +604,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
   } else if (iface->open && isDemand) {
     Log(LG_IFACE, ("[%s] outgoing packet is demand", b->name));
     RecordLinkUpDownReason(b, NULL, 1, STR_DEMAND, NULL);
-    BundOpenLinks(b);
+    BundOpen(b);
     IfaceCachePkt(b, proto, pkt);
   } else {
     PFREE(pkt);

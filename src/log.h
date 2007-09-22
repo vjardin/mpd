@@ -22,6 +22,7 @@
   {
     LG_I_ALWAYS = 0,
     LG_I_BUND,
+    LG_I_BUND2,
     LG_I_LINK,
     LG_I_REP,
     LG_I_CHAT,
@@ -46,9 +47,6 @@
     LG_I_PHYS2,
     LG_I_PHYS3,
     LG_I_FRAME,
-    LG_I_PPTP,
-    LG_I_PPTP2,
-    LG_I_PPTP3,
     LG_I_RADIUS,
     LG_I_RADIUS2,
     LG_I_CONSOLE
@@ -57,6 +55,7 @@
 /* Definition of log options */
 
   #define LG_BUND		(1 << LG_I_BUND)
+  #define LG_BUND2		(1 << LG_I_BUND2)
   #define LG_LINK		(1 << LG_I_LINK)
   #define LG_REP		(1 << LG_I_REP)
   #define LG_CHAT		(1 << LG_I_CHAT)
@@ -81,9 +80,6 @@
   #define LG_PHYS2		(1 << LG_I_PHYS2)
   #define LG_PHYS3		(1 << LG_I_PHYS3)
   #define LG_FRAME		(1 << LG_I_FRAME)
-  #define LG_PPTP		(1 << LG_I_PPTP)
-  #define LG_PPTP2		(1 << LG_I_PPTP2)
-  #define LG_PPTP3		(1 << LG_I_PPTP3)
   #define LG_RADIUS		(1 << LG_I_RADIUS)
   #define LG_RADIUS2		(1 << LG_I_RADIUS2)
   #define LG_CONSOLE		(1 << LG_I_CONSOLE)
@@ -109,7 +105,6 @@
 			        | LG_RADIUS		\
 			        | LG_FSM		\
 			        | LG_PHYS		\
-			        | LG_PPTP		\
 				)
 
   #define Log(lev, args)	do {				\

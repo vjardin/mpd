@@ -225,6 +225,9 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	}
 	l->upReasonValid=0;
 	LinkDown(l);
+	if (l->lcp.fsm.state == ST_INITIAL && l->die && !l->stay && l->state == PHYS_STATE_DOWN)
+	    MsgSend(l->msgs, MSG_SHUTDOWN, l);
+
     } else {
 	RepDown(l);
 	if (l->rep->links[0] == l)
@@ -431,7 +434,7 @@ PhysGetCalledNum(Link l, char *buf, int buf_len)
 int
 PhysIsBusy(Link l)
 {
-  return (l->die || l->rep || l->state != PHYS_STATE_DOWN || l->lcp.fsm.state != ST_INITIAL);
+    return (l->die || l->rep || l->state != PHYS_STATE_DOWN || l->lcp.fsm.state != ST_INITIAL);
 }
 
 /*

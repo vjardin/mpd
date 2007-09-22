@@ -688,7 +688,7 @@ PptpCtrlOrigCall(int incoming, struct pptplinkinfo linfo,
   /* Find/create control block */
   if ((c = PptpCtrlGetCtrl(TRUE, locip, ip, port,
       ebuf, sizeof(ebuf))) == NULL) {
-    Log(LG_PPTP, ("%s", ebuf));
+    Log(LG_PHYS2, ("%s", ebuf));
     return(cinfo);
   }
 
@@ -793,14 +793,14 @@ PptpCtrlListenEvent(int type, void *cookie)
     } else {
 	sockaddrtou_addr(&selfst, &self_addr, &self_port);
     }
-    Log(LG_PPTP, ("PPTP: Incoming control connection from %s %u to %s %u",
+    Log(LG_PHYS2, ("PPTP: Incoming control connection from %s %u to %s %u",
 	u_addrtoa(&peer_addr, buf, sizeof(buf)), peer_port,
 	u_addrtoa(&self_addr, buf2, sizeof(buf2)), self_port));
 
     /* Initialize a new control block */
     if ((c = PptpCtrlGetCtrl(FALSE, &self_addr, &peer_addr, peer_port,
     	    ebuf, sizeof(ebuf))) == NULL) {
-	Log(LG_PPTP, ("PPTP: Control connection failed: %s", ebuf));
+	Log(LG_PHYS2, ("PPTP: Control connection failed: %s", ebuf));
 	close(sock);
 	return;
     }
@@ -830,14 +830,14 @@ PptpCtrlConnEvent(int type, void *cookie)
 
   /* Check whether the connection was successful or not */
   if (getpeername(c->csock, (struct sockaddr *) &addr, &addrLen) < 0) {
-    Log(LG_PPTP, ("pptp%d: connection to %s %d failed",
+    Log(LG_PHYS2, ("pptp%d: connection to %s %d failed",
       c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
     PptpCtrlKillCtrl(c);
     return;
   }
 
   /* Initialize the session */
-  Log(LG_PPTP, ("pptp%d: connected to %s %u",
+  Log(LG_PHYS2, ("pptp%d: connected to %s %u",
     c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
   PptpCtrlInitCtrl(c, TRUE);
 }
@@ -881,7 +881,7 @@ PptpCtrlInitCtrl(PptpCtrl c, int orig)
   /* Get local IP address */
   addrLen = sizeof(self);
   if (getsockname(c->csock, (struct sockaddr *) &self, &addrLen) < 0) {
-    Log(LG_PPTP, ("pptp%d: %s: %s", c->id, "getsockname", strerror(errno)));
+    Log(LG_PHYS2, ("pptp%d: %s: %s", c->id, "getsockname", strerror(errno)));
 abort:
     PptpCtrlKillCtrl(c);
     return;
@@ -891,19 +891,19 @@ abort:
   /* Get remote IP address */
   addrLen = sizeof(peer);
   if (getpeername(c->csock, (struct sockaddr *) &peer, &addrLen) < 0) {
-    Log(LG_PPTP, ("pptp%d: %s: %s", c->id, "getpeername", strerror(errno)));
+    Log(LG_PHYS2, ("pptp%d: %s: %s", c->id, "getpeername", strerror(errno)));
     goto abort;
   }
   sockaddrtou_addr(&peer, &c->peer_addr, &c->peer_port);
 
   /* Log which control block */
-  Log(LG_PPTP, ("pptp%d: attached to connection with %s %u",
+  Log(LG_PHYS2, ("pptp%d: attached to connection with %s %u",
     c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
 
   /* Turn of Nagle algorithm on the TCP socket, since we are going to
      be writing complete control frames one at a time */
   if (setsockopt(c->csock, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one)) < 0)
-    Log(LG_PPTP, ("pptp%d: %s: %s", c->id, "setsockopt", strerror(errno)));
+    Log(LG_PHYS2, ("pptp%d: %s: %s", c->id, "setsockopt", strerror(errno)));
 
   /* Register for events on control and data sockets */
   EventRegister(&c->ctrlEvent, EVENT_READ,
@@ -949,12 +949,12 @@ PptpCtrlReadCtrl(int type, void *cookie)
     if (nread < 0) {
       if (errno == EAGAIN)
 	return;
-      Log(LG_PPTP, ("pptp%d: %s: %s", c->id, "read", strerror(errno)));
+      Log(LG_PHYS2, ("pptp%d: %s: %s", c->id, "read", strerror(errno)));
     } else
-      Log(LG_PPTP, ("pptp%d: ctrl connection closed by peer", c->id));
+      Log(LG_PHYS2, ("pptp%d: ctrl connection closed by peer", c->id));
     goto abort;
   }
-  LogDumpBuf(LG_PPTP3, c->frame.buf + c->flen, nread,
+  LogDumpBuf(LG_FRAME, c->frame.buf + c->flen, nread,
     "pptp%d: read ctrl data", c->id);
   c->flen += nread;
 
@@ -963,28 +963,28 @@ PptpCtrlReadCtrl(int type, void *cookie)
     return;
   if (c->flen == sizeof(*hdr)) {		/* complete header */
     PptpCtrlSwap(0, hdr);		/* byte swap header */
-    Log(LG_PPTP3, ("pptp%d: got hdr", c->id));
-    PptpCtrlDump(LG_PPTP3, 0, hdr);
+    Log(LG_FRAME, ("pptp%d: got hdr", c->id));
+    PptpCtrlDump(LG_FRAME, 0, hdr);
     if (hdr->msgType != PPTP_CTRL_MSG_TYPE) {
-      Log(LG_PPTP, ("pptp%d: invalid msg type %d", c->id, hdr->msgType));
+      Log(LG_PHYS2, ("pptp%d: invalid msg type %d", c->id, hdr->msgType));
       goto abort;
     }
     if (hdr->magic != PPTP_MAGIC) {
-      Log(LG_PPTP, ("pptp%d: invalid magic %x", c->id, hdr->type));
+      Log(LG_PHYS2, ("pptp%d: invalid magic %x", c->id, hdr->type));
       goto abort;
     }
     if (!PPTP_VALID_CTRL_TYPE(hdr->type)) {
-      Log(LG_PPTP, ("pptp%d: invalid ctrl type %d", c->id, hdr->type));
+      Log(LG_PHYS2, ("pptp%d: invalid ctrl type %d", c->id, hdr->type));
       goto abort;
     }
     if (hdr->resv0 != 0) {
-      Log(LG_PPTP, ("pptp%d: non-zero reserved field in header", c->id));
+      Log(LG_PHYS2, ("pptp%d: non-zero reserved field in header", c->id));
 #if 0
       goto abort;
 #endif
     }
     if (hdr->length != sizeof(*hdr) + gPptpMsgInfo[hdr->type].length) {
-      Log(LG_PPTP, ("pptp%d: invalid length %d for type %d",
+      Log(LG_PHYS2, ("pptp%d: invalid length %d for type %d",
 	c->id, hdr->length, hdr->type));
 abort:
       PptpCtrlKillCtrl(c);
@@ -996,8 +996,8 @@ abort:
     void	*const msg = ((u_char *) hdr) + sizeof(*hdr);
 
     PptpCtrlSwap(hdr->type, msg);		/* byte swap message */
-    Log(LG_PPTP2, ("pptp%d: recv %s", c->id, gPptpMsgInfo[hdr->type].name));
-    PptpCtrlDump(LG_PPTP2, hdr->type, msg);
+    Log(LG_PHYS3, ("pptp%d: recv %s", c->id, gPptpMsgInfo[hdr->type].name));
+    PptpCtrlDump(LG_PHYS3, hdr->type, msg);
     c->flen = 0;
     PptpCtrlResetIdleTimer(c);
     PptpCtrlMsg(c, hdr->type, msg);
@@ -1024,7 +1024,7 @@ PptpCtrlMsg(PptpCtrl c, int type, void *msg)
   for (off = 0; field->name; off += field->length, field++) {
     if (!strncmp(field->name, PPTP_RESV_PREF, strlen(PPTP_RESV_PREF))
 	&& memcmp((u_char *) msg + off, zeros, field->length)) {
-      Log(LG_PPTP, ("pptp%d: non-zero reserved field %s in %s",
+      Log(LG_PHYS2, ("pptp%d: non-zero reserved field %s in %s",
 	c->id, field->name, mi->name));
 #if 0
       PptpCtrlKillCtrl(c);
@@ -1045,7 +1045,7 @@ PptpCtrlMsg(PptpCtrl c, int type, void *msg)
 
   /* If not, and this message is *always* a reply, ignore it */
   if (*pp == NULL && mi->isReply) {
-    Log(LG_PPTP, ("pptp%d: rec'd spurious %s", c->id, mi->name));
+    Log(LG_PHYS2, ("pptp%d: rec'd spurious %s", c->id, mi->name));
     return;
   }
 
@@ -1060,13 +1060,13 @@ PptpCtrlMsg(PptpCtrl c, int type, void *msg)
 
   /* Check for invalid message and call or control state combinations */
   if (!ch && ((1 << c->state) & mi->states) == 0) {
-    Log(LG_PPTP, ("pptp%d: got %s in state %s",
+    Log(LG_PHYS2, ("pptp%d: got %s in state %s",
       c->id, gPptpMsgInfo[type].name, gPptpCtrlStates[c->state]));
     PptpCtrlKillCtrl(c);
     return;
   }
   if (ch && ((1 << ch->state) & mi->states) == 0) {
-    Log(LG_PPTP, ("pptp%d-%d: got %s in state %s",
+    Log(LG_PHYS2, ("pptp%d-%d: got %s in state %s",
       c->id, ch->id, gPptpMsgInfo[type].name, gPptpChanStates[ch->state]));
     PptpCtrlKillCtrl(c);
     return;
@@ -1106,9 +1106,9 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
   hdr->magic = PPTP_MAGIC;
   hdr->type = type;
   memcpy(payload, msg, gPptpMsgInfo[type].length);
-  Log(LG_PPTP2, ("pptp%d: send %s msg", c->id, gPptpMsgInfo[hdr->type].name));
-  PptpCtrlDump(LG_PPTP2, 0, hdr);
-  PptpCtrlDump(LG_PPTP2, type, msg);
+  Log(LG_PHYS3, ("pptp%d: send %s msg", c->id, gPptpMsgInfo[hdr->type].name));
+  PptpCtrlDump(LG_PHYS3, 0, hdr);
+  PptpCtrlDump(LG_PHYS3, type, msg);
 
   /* Byte swap it */
   PptpCtrlSwap(0, hdr);
@@ -1117,13 +1117,13 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
   /* Send it; if TCP buffer is full, we abort the connection */
   if ((nwrote = write(c->csock, frame.buf, totlen)) != totlen) {
     if (nwrote < 0)
-      Log(LG_PPTP, ("pptp%d: %s: %s", c->id, "write", strerror(errno)));
+      Log(LG_PHYS2, ("pptp%d: %s: %s", c->id, "write", strerror(errno)));
     else
-      Log(LG_PPTP, ("pptp%d: only wrote %d/%d", c->id, nwrote, totlen));
+      Log(LG_PHYS2, ("pptp%d: only wrote %d/%d", c->id, nwrote, totlen));
     PptpCtrlKillCtrl(c);
     return -1;
   }
-  LogDumpBuf(LG_PPTP3, frame.buf, totlen, "pptp%d: wrote ctrl data", c->id);
+  LogDumpBuf(LG_FRAME, frame.buf, totlen, "pptp%d: wrote ctrl data", c->id);
 
   /* If we expect a reply to this message, start expecting it now */
   if (PPTP_VALID_CTRL_TYPE(mi->reqrep.reply)) {
@@ -1223,7 +1223,7 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
   /* Wait for it to go through */
   EventRegister(&c->connEvent, EVENT_WRITE, c->csock,
     0, PptpCtrlConnEvent, c);
-  Log(LG_PPTP, ("pptp%d: connecting to %s %u",
+  Log(LG_PHYS2, ("pptp%d: connecting to %s %u",
     c->id, u_addrtoa(&c->peer_addr,buf1,sizeof(buf1)), c->peer_port));
   return(c);
 }
@@ -1351,7 +1351,7 @@ PptpCtrlCloseCtrl(PptpCtrl c)
 {
   char	buf[64];
 
-  Log(LG_PPTP, ("pptp%d: closing connection with %s %u",
+  Log(LG_PHYS2, ("pptp%d: closing connection with %s %u",
     c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
   switch (c->state) {
     case PPTP_CTRL_ST_IDLE:
@@ -1393,7 +1393,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
   c->killing = 1;
 
   /* Do ungraceful shutdown */
-  Log(LG_PPTP, ("pptp%d: killing connection with %s %u",
+  Log(LG_PHYS2, ("pptp%d: killing connection with %s %u",
     c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
   for (k = 0; k < c->numChannels; k++) {
     PptpChan	const ch = c->channels[k];
@@ -1457,7 +1457,7 @@ pacClear:
       {
 	struct pptpCallDiscNotify	disc;
 
-	Log(LG_PPTP, ("pptp%d-%d: clearing call", c->id, ch->id));
+	Log(LG_PHYS2, ("pptp%d-%d: clearing call", c->id, ch->id));
 	memset(&disc, 0, sizeof(disc));
 	disc.cid = ch->cid;
 	disc.result = result;
@@ -1475,7 +1475,7 @@ pnsClear:
       {
 	struct pptpCallClearRequest	req;
 
-	Log(LG_PPTP, ("pptp%d-%d: clearing call", c->id, ch->id));
+	Log(LG_PHYS2, ("pptp%d-%d: clearing call", c->id, ch->id));
 	memset(&req, 0, sizeof(req));
 	req.cid = ch->cid;
 	PptpCtrlNewChanState(ch, PPTP_CHAN_ST_WAIT_DISCONNECT);
@@ -1510,7 +1510,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
   ch->killing = 1;
 
   /* If link layer needs notification, tell it */
-  Log(LG_PPTP, ("pptp%d-%d: killing channel", c->id, ch->id));
+  Log(LG_PHYS2, ("pptp%d-%d: killing channel", c->id, ch->id));
   switch (ch->state) {
     case PPTP_CHAN_ST_WAIT_IN_REPLY:
     case PPTP_CHAN_ST_WAIT_OUT_REPLY:
@@ -1574,10 +1574,10 @@ PptpCtrlReplyTimeout(void *arg)
 
   /* Log it */
   if (ch) {
-    Log(LG_PPTP, ("pptp%d-%d: no reply to %s after %d sec",
+    Log(LG_PHYS2, ("pptp%d-%d: no reply to %s after %d sec",
       c->id, ch->id, prep->request->name, prep->request->reqrep.timeout));
   } else {
-    Log(LG_PPTP, ("pptp%d: no reply to %s after %d sec",
+    Log(LG_PHYS2, ("pptp%d: no reply to %s after %d sec",
       c->id, prep->request->name, prep->request->reqrep.timeout));
   }
 
@@ -1757,7 +1757,7 @@ PptpCtrlFindChan(PptpCtrl c, int type, void *msg, int incoming)
   }
 
   /* Not found */
-  Log(LG_PPTP, ("pptp%d: CID 0x%04x in %s not found", c->id, cid, mi->name));
+  Log(LG_PHYS2, ("pptp%d: CID 0x%04x in %s not found", c->id, cid, mi->name));
   return(NULL);
 }
 
@@ -1773,7 +1773,7 @@ static void
 PptpCtrlNewCtrlState(PptpCtrl c, int new)
 {
   assert(c->state != new);
-  Log(LG_PPTP2, ("pptp%d: ctrl state %s --> %s",
+  Log(LG_PHYS3, ("pptp%d: ctrl state %s --> %s",
     c->id, gPptpCtrlStates[c->state], gPptpCtrlStates[new]));
   if (new == PPTP_CTRL_ST_FREE) {
     gPptpCtrl[c->id] = NULL;
@@ -1795,7 +1795,7 @@ PptpCtrlNewChanState(PptpChan ch, int new)
   PptpCtrl	const c = ch->ctrl;
 
   assert(ch->state != new);
-  Log(LG_PPTP2, ("pptp%d-%d: chan state %s --> %s",
+  Log(LG_PHYS3, ("pptp%d-%d: chan state %s --> %s",
     c->id, ch->id, gPptpChanStates[ch->state], gPptpChanStates[new]));
   switch (new) {
     case PPTP_CHAN_ST_FREE:
@@ -1994,7 +1994,7 @@ PptpStartCtrlConnRequest(PptpCtrl c, struct pptpStartCtrlConnRequest *req)
 
   /* Check protocol version */
   if (req->vers != PPTP_PROTO_VERS) {
-    Log(LG_PPTP, ("pptp%d: incompatible protocol 0x%04x", c->id, req->vers));
+    Log(LG_PHYS2, ("pptp%d: incompatible protocol 0x%04x", c->id, req->vers));
     reply.result = PPTP_SCCR_RESL_VERS;
     if (PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply) == -1)
 	return;
@@ -2017,7 +2017,7 @@ PptpStartCtrlConnReply(PptpCtrl c, struct pptpStartCtrlConnReply *rep)
 
   /* Is peer happy? */
   if (rep->result != 0 && rep->result != PPTP_SCCR_RESL_OK) {
-    Log(LG_PPTP, ("pptp%d: my %s failed, result=%s err=%s",
+    Log(LG_PHYS2, ("pptp%d: my %s failed, result=%s err=%s",
       c->id, gPptpMsgInfo[PPTP_StartCtrlConnRequest].name,
       PPTP_SCCR_RESL_CODE(rep->result), PPTP_ERROR_CODE(rep->err)));
     PptpCtrlKillCtrl(c);
@@ -2028,7 +2028,7 @@ PptpStartCtrlConnReply(PptpCtrl c, struct pptpStartCtrlConnReply *rep)
   if (rep->vers != PPTP_PROTO_VERS) {
     struct pptpStopCtrlConnRequest	req;
 
-    Log(LG_PPTP, ("pptp%d: incompatible protocol 0x%04x", c->id, rep->vers));
+    Log(LG_PHYS2, ("pptp%d: incompatible protocol 0x%04x", c->id, rep->vers));
     memset(&req, 0, sizeof(req));
     req.reason = PPTP_SCCR_REAS_PROTO;
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_WAIT_STOP_REPLY);
@@ -2050,7 +2050,7 @@ PptpStopCtrlConnRequest(PptpCtrl c, struct pptpStopCtrlConnRequest *req)
 {
   struct pptpStopCtrlConnReply	rep;
 
-  Log(LG_PPTP, ("pptp%d: got %s: reason=%s",
+  Log(LG_PHYS2, ("pptp%d: got %s: reason=%s",
     c->id, gPptpMsgInfo[PPTP_StopCtrlConnRequest].name,
     PPTP_SCCR_REAS_CODE(req->reason)));
   memset(&rep, 0, sizeof(rep));
@@ -2094,11 +2094,11 @@ static void
 PptpEchoReply(PptpCtrl c, struct pptpEchoReply *rep)
 {
   if (rep->result != PPTP_ECHO_RESL_OK) {
-    Log(LG_PPTP, ("pptp%d: echo reply failed: res=%s err=%s",
+    Log(LG_PHYS2, ("pptp%d: echo reply failed: res=%s err=%s",
       c->id, PPTP_ECHO_RESL_CODE(rep->result), PPTP_ERROR_CODE(rep->err)));
     PptpCtrlKillCtrl(c);
   } else if (rep->id != c->echoId) {
-    Log(LG_PPTP, ("pptp%d: bogus echo reply: %u != %u",
+    Log(LG_PHYS2, ("pptp%d: bogus echo reply: %u != %u",
       c->id, rep->id, c->echoId));
     PptpCtrlKillCtrl(c);
   }
@@ -2132,7 +2132,7 @@ PptpOutCallRequest(PptpCtrl c, struct pptpOutCallRequest *req)
   if ((ch = PptpCtrlGetChan(c, PPTP_CHAN_ST_WAIT_ANSWER, FALSE, FALSE,
       req->bearType, req->frameType, req->minBps, req->maxBps,
       PPTP_STR_INTERNAL_CALLING, calledNum, subAddress)) == NULL) {
-    Log(LG_PPTP, ("pptp%d: no free channels for outgoing call", c->id));
+    Log(LG_PHYS2, ("pptp%d: no free channels for outgoing call", c->id));
     goto chFail;
   }
 
@@ -2153,7 +2153,7 @@ PptpOutCallRequest(PptpCtrl c, struct pptpOutCallRequest *req)
 
   /* Failed */
 denied:
-  Log(LG_PPTP, ("pptp%d: peer's outgoing call request denied", c->id));
+  Log(LG_PHYS2, ("pptp%d: peer's outgoing call request denied", c->id));
   if (ch)
     PptpCtrlNewChanState(ch, PPTP_CHAN_ST_FREE);
 chFail:
@@ -2180,7 +2180,7 @@ PptpOutCallReply(PptpChan ch, struct pptpOutCallReply *reply)
       "pptp%d-%d: outgoing call failed: res=%s err=%s",
       c->id, ch->id, PPTP_OCR_RESL_CODE(reply->result),
       PPTP_ERROR_CODE(reply->err));
-    Log(LG_PPTP, ("%s", errmsg));
+    Log(LG_PHYS2, ("%s", errmsg));
     (*ch->linfo.result)(ch->linfo.cookie, errmsg, 0);
     PptpCtrlKillChan(ch, "remote outgoing call failed");
     return;
@@ -2190,7 +2190,7 @@ PptpOutCallReply(PptpChan ch, struct pptpOutCallReply *reply)
   ch->peerPpd = reply->ppd;
   ch->recvWin = reply->recvWin;
   ch->peerCid = reply->cid;
-  Log(LG_PPTP, ("pptp%d-%d: outgoing call connected at %d bps",
+  Log(LG_PHYS2, ("pptp%d-%d: outgoing call connected at %d bps",
     c->id, ch->id, reply->speed));
   PptpCtrlNewChanState(ch, PPTP_CHAN_ST_ESTABLISHED);
   (*ch->linfo.result)(ch->linfo.cookie, NULL, ch->frameType);
@@ -2223,7 +2223,7 @@ PptpInCallRequest(PptpCtrl c, struct pptpInCallRequest *req)
   strncpy(subAddress, req->subaddr, sizeof(subAddress) - 1);
   subAddress[sizeof(subAddress) - 1] = 0;
 
-  Log(LG_PPTP, ("pptp%d: peer incoming call to \"%s\" from \"%s\"",
+  Log(LG_PHYS2, ("pptp%d: peer incoming call to \"%s\" from \"%s\"",
     c->id, calledNum, callingNum));
 
   /* Initialize reply */
@@ -2236,7 +2236,7 @@ PptpInCallRequest(PptpCtrl c, struct pptpInCallRequest *req)
   if ((ch = PptpCtrlGetChan(c, PPTP_CHAN_ST_WAIT_CONNECT, FALSE, TRUE,
       req->bearType, 0, 0, INT_MAX,
       callingNum, calledNum, subAddress)) == NULL) {
-    Log(LG_PPTP, ("pptp%d: no free channels for incoming call", c->id));
+    Log(LG_PHYS2, ("pptp%d: no free channels for incoming call", c->id));
     reply.result = PPTP_ICR_RESL_ERR;
     reply.err = PPTP_ERROR_NO_RESOURCE;
     goto done;
@@ -2254,13 +2254,13 @@ PptpInCallRequest(PptpCtrl c, struct pptpInCallRequest *req)
       req->bearType, callingNum, calledNum, subAddress);
   ch->linfo = linfo;
   if (linfo.cookie == NULL) {
-    Log(LG_PPTP, ("pptp%d: incoming call request denied", c->id));
+    Log(LG_PHYS2, ("pptp%d: incoming call request denied", c->id));
     reply.result = PPTP_ICR_RESL_NAK;
     goto done;
   }
 
   /* Link layer says it's OK */
-  Log(LG_PPTP, ("pptp%d-%d: accepting incoming call to \"%s\" from \"%s\"",
+  Log(LG_PHYS2, ("pptp%d-%d: accepting incoming call to \"%s\" from \"%s\"",
     c->id, ch->id, calledNum, callingNum));
   reply.result = PPTP_ICR_RESL_OK;
   ch->serno = req->serno;
@@ -2295,14 +2295,14 @@ PptpInCallReply(PptpChan ch, struct pptpInCallReply *reply)
       "pptp%d-%d: peer denied incoming call: res=%s err=%s",
       c->id, ch->id, PPTP_ICR_RESL_CODE(reply->result),
       PPTP_ERROR_CODE(reply->err));
-    Log(LG_PPTP, ("%s", errmsg));
+    Log(LG_PHYS2, ("%s", errmsg));
     (*ch->linfo.result)(ch->linfo.cookie, errmsg, 0);
     PptpCtrlKillChan(ch, "peer denied incoming call");
     return;
   }
 
   /* Call succeeded */
-  Log(LG_PPTP, ("pptp%d-%d: incoming call accepted by peer", c->id, ch->id));
+  Log(LG_PHYS2, ("pptp%d-%d: incoming call accepted by peer", c->id, ch->id));
   ch->peerCid = reply->cid;
   ch->peerPpd = reply->ppd;
   ch->recvWin = reply->recvWin;
@@ -2319,7 +2319,7 @@ PptpInCallConn(PptpChan ch, struct pptpInCallConn *con)
 {
   PptpCtrl	const c = ch->ctrl;
 
-  Log(LG_PPTP, ("pptp%d-%d: peer incoming call connected at %d bps",
+  Log(LG_PHYS2, ("pptp%d-%d: peer incoming call connected at %d bps",
     c->id, ch->id, con->speed));
   ch->peerPpd = con->ppd;
   ch->recvWin = con->recvWin;
@@ -2339,12 +2339,12 @@ PptpCallClearRequest(PptpChan ch, struct pptpCallClearRequest *req)
   PptpCtrl			const c = ch->ctrl;
 
   if (PPTP_CHAN_IS_PNS(ch)) {
-    Log(LG_PPTP, ("pptp%d-%d: got %s, but we are PNS for this call",
+    Log(LG_PHYS2, ("pptp%d-%d: got %s, but we are PNS for this call",
       c->id, ch->id, gPptpMsgInfo[PPTP_CallClearRequest].name));
     PptpCtrlKillCtrl(c);
     return;
   }
-  Log(LG_PPTP, ("pptp%d-%d: call cleared by peer", c->id, ch->id));
+  Log(LG_PHYS2, ("pptp%d-%d: call cleared by peer", c->id, ch->id));
   memset(&notify, 0, sizeof(notify));
   notify.cid = ch->cid;			/* we are the PAC, use our CID */
   notify.result = PPTP_CDN_RESL_REQ;
@@ -2362,7 +2362,7 @@ PptpCallDiscNotify(PptpChan ch, struct pptpCallDiscNotify *notify)
 {
   PptpCtrl	const c = ch->ctrl;
 
-  Log(LG_PPTP, ("pptp%d-%d: peer call disconnected res=%s err=%s",
+  Log(LG_PHYS2, ("pptp%d-%d: peer call disconnected res=%s err=%s",
     c->id, ch->id, PPTP_CDN_RESL_CODE(notify->result),
     PPTP_ERROR_CODE(notify->err)));
   PptpCtrlKillChan(ch, "disconnected by peer");
@@ -2377,7 +2377,7 @@ PptpWanErrorNotify(PptpChan ch, struct pptpWanErrorNotify *notif)
 {
   PptpCtrl	const c = ch->ctrl;
 
-  Log(LG_PPTP, ("pptp%d-%d: ignoring %s",
+  Log(LG_PHYS2, ("pptp%d-%d: ignoring %s",
     c->id, ch->id, gPptpMsgInfo[PPTP_WanErrorNotify].name));
 }
 
@@ -2393,7 +2393,7 @@ PptpSetLinkInfo(PptpChan ch, struct pptpSetLinkInfo *info)
   if (ch->linfo.setLinkInfo)
     (*ch->linfo.setLinkInfo)(ch->linfo.cookie, info->sendAccm, info->recvAccm);
   else {
-    Log(LG_PPTP, ("pptp%d-%d: ignoring %s",
+    Log(LG_PHYS2, ("pptp%d-%d: ignoring %s",
       c->id, ch->id, gPptpMsgInfo[PPTP_SetLinkInfo].name));
   }
 }

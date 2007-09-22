@@ -394,12 +394,6 @@ LcpNewState(Fsm fp, int old, int new)
 
     if (new == ST_INITIAL && l->die && !l->stay && l->state == PHYS_STATE_DOWN)
 	MsgSend(l->msgs, MSG_SHUTDOWN, l);
-
-  /* Keep track of how many links in this bundle are in an open state */
-//  if (!OPEN_STATE(old) && OPEN_STATE(new)) XXXXXXXXXXXXXXXXXXXXXXXX
-//    l->bund->bm.n_open++;
-//  else if (OPEN_STATE(old) && !OPEN_STATE(new))
-//    l->bund->bm.n_open--;
 }
 
 /*
@@ -468,8 +462,6 @@ LcpNewPhase(Link l, int new)
     /* Do whatever for entering new phase */
     switch (new) {
     case PHASE_ESTABLISH:
-      memset(&l->bm.traffic, 0, sizeof(l->bm.traffic));
-      memset(&l->bm.idleStats, 0, sizeof(l->bm.idleStats));
       break;
 
     case PHASE_AUTHENTICATE:

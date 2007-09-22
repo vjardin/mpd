@@ -61,6 +61,9 @@
 #ifdef LG_BUND
     ADD_OPT(BUND,	"Bundle events")
 #endif
+#ifdef LG_BUND2
+    ADD_OPT(BUND2,	"Detailed bundle events")
+#endif
 #ifdef LG_LINK
     ADD_OPT(LINK,	"Link events")
 #endif
@@ -132,15 +135,6 @@
 #endif
 #ifdef LG_FRAME
     ADD_OPT(FRAME,	"Dump all incoming & outgoing frames")
-#endif
-#ifdef LG_PPTP
-    ADD_OPT(PPTP,	"PPTP high level events")
-#endif
-#ifdef LG_PPTP2
-    ADD_OPT(PPTP2,	"PPTP more detailed events")
-#endif
-#ifdef LG_PPTP3
-    ADD_OPT(PPTP3,	"PPTP packet dumps")
 #endif
 #ifdef LG_RADIUS
     ADD_OPT(RADIUS,	"Radius authentication events")

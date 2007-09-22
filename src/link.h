@@ -72,12 +72,7 @@
     struct optinfo	options;	/* Configured options */
   };
 
-  /* Per-link bandwidth mgmt info */
-  #define LINK_BM_N	6		/* Number of sampling intervals */
-
   struct linkbm {
-    u_int	traffic[2][LINK_BM_N];	/* Traffic deltas */
-    u_char	wasUp[LINK_BM_N];	/* Sub-intervals link was up */
     struct ng_ppp_link_stat
 		idleStats;		/* Link management stats */
   };
@@ -109,6 +104,7 @@
     int			die;
     int			refs;			/* Number of references */
     int			dead;			/* Dead flag */
+    int			dod;			/* Link created by DoD */
 
     /* State info */
     struct linkconf	conf;		/* Link configuration */

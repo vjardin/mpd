@@ -52,6 +52,7 @@
     SET_HIGH_WATER,
     SET_MIN_CONNECT,
     SET_MIN_DISCONNECT,
+    SET_LINKS,
     SET_AUTHNAME,
     SET_PASSWORD,
     SET_RETRY,
@@ -76,7 +77,7 @@
   static void	BundBmStop(Bund b);
   static void	BundBmTimeout(void *arg);
 
-  static void	BundReasses(Bund b, int add);
+  static void	BundReasses(Bund b);
   static int	BundSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	BundShowLinks(Context ctx, Bund sb);
 
@@ -95,16 +96,18 @@
   struct discrim	self_discrim;
 
   const struct cmdtab BundSetCmds[] = {
-    { "period {seconds}",		"BOD sampling period",
+    { "period {seconds}",		"BoD sampling period",
 	BundSetCommand, NULL, (void *) SET_PERIOD },
-    { "lowat {percent}",			"BOD low water mark",
+    { "lowat {percent}",		"BoD low water mark",
 	BundSetCommand, NULL, (void *) SET_LOW_WATER },
-    { "hiwat {percent}",		"BOD high water mark",
+    { "hiwat {percent}",		"BoD high water mark",
 	BundSetCommand, NULL, (void *) SET_HIGH_WATER },
-    { "min-con {seconds}",		"BOD min connected time",
+    { "min-con {seconds}",		"BoD min connected time",
 	BundSetCommand, NULL, (void *) SET_MIN_CONNECT },
-    { "min-dis {seconds}",		"BOD min disconnected time",
+    { "min-dis {seconds}",		"BoD min disconnected time",
 	BundSetCommand, NULL, (void *) SET_MIN_DISCONNECT },
+    { "links {link list ...}",		"Links list for BoD/DoD",
+	BundSetCommand, NULL, (void *) SET_LINKS },
     { "retry {seconds}",		"FSM retry timeout",
 	BundSetCommand, NULL, (void *) SET_RETRY },
     { "accept {opt ...}",		"Accept option",
@@ -283,7 +286,7 @@ BundJoin(Link l)
     }
     l->joined_bund = 1;
 
-    if (bm->n_up == 0) {
+    if (b->n_links == 1) {
 
 	/* Cancel re-open timer; we've come up somehow (eg, LCP renegotiation) */
 	TimerStop(&b->reOpenTimer);
@@ -301,7 +304,7 @@ BundJoin(Link l)
     }
 
     /* Reasses MTU, bandwidth, etc. */
-    BundReasses(b, 1);
+    BundReasses(b);
 
     /* Configure this link */
     b->pppConfig.links[l->bundleIndex].enableLink = 1;
@@ -312,7 +315,7 @@ BundJoin(Link l)
     b->pppConfig.links[l->bundleIndex].latency = (l->latency + 500) / 1000;
 
     /* What to do when the first link comes up */
-    if (bm->n_up == 1) {
+    if (b->n_links == 1) {
 
 	/* Configure the bundle */
 	b->pppConfig.bund.enableMultilink = lcp->peer_multilink;
@@ -341,7 +344,7 @@ BundJoin(Link l)
 	(int)(time(NULL) % 10000000), l->name);
 
     /* What to do when the first link comes up */
-    if (bm->n_up == 1) {
+    if (b->n_links == 1) {
 
 	BundNcpsOpen(b);
 	BundNcpsUp(b);
@@ -358,7 +361,7 @@ BundJoin(Link l)
 
     AuthAccountStart(l, AUTH_ACCT_START);
 
-    return(bm->n_up);
+    return(b->n_links);
 }
 
 /*
@@ -371,15 +374,12 @@ void
 BundLeave(Link l)
 {
     Bund	b = l->bund;
-    BundBm	const bm = &b->bm;
 
     /* Elvis has left the bundle */
-    assert(bm->n_up > 0);
+    assert(b->n_links > 0);
   
     AuthAccountStart(l, AUTH_ACCT_STOP);
 
-    BundReasses(b, 0);
-  
     /* Disable link */
     b->pppConfig.links[l->bundleIndex].enableLink = 0;
     NgFuncSetConfig(b);
@@ -392,8 +392,10 @@ BundLeave(Link l)
     b->n_links--;
     l->bund = NULL;
 
+    BundReasses(b);
+  
     /* Special stuff when last link goes down... */
-    if (bm->n_up == 0) {
+    if (b->n_links == 0) {
   
 #ifndef NG_PPP_STATS64
 	/* stopping bundle statistics timer */
@@ -473,6 +475,7 @@ BundMsg(int type, void *arg)
     switch (type) {
     case MSG_OPEN:
         b->open = TRUE;
+	BundOpenLinks(b);
         break;
 
     case MSG_CLOSE:
@@ -496,16 +499,67 @@ BundMsg(int type, void *arg)
 void
 BundOpenLinks(Bund b)
 {
-  TimerStop(&b->reOpenTimer);
-  if (Enabled(&b->conf.options, BUND_CONF_BWMANAGE)) {
-    if (!b->bm.links_open || b->bm.n_open == 0)
-      BundOpenLink(b->links[0]);
-  } else {
     int	k;
 
-    for (k = 0; k < b->n_links; k++)
-      BundOpenLink(b->links[k]);
-  }
+    TimerStop(&b->reOpenTimer);
+    if (Enabled(&b->conf.options, BUND_CONF_BWMANAGE)) {
+	if (b->n_links != 0)
+	    return;
+	for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
+	    if (b->links[k]) {
+    		BundOpenLink(b->links[k]);
+		break;
+	    } else if (b->conf.linkst[k][0]) {
+		BundCreateOpenLink(b, k);
+		break;
+	    }
+	}
+    } else {
+	for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
+	    if (b->links[k])
+    		BundOpenLink(b->links[k]);
+	    else if (b->conf.linkst[k][0])
+		BundCreateOpenLink(b, k);
+	}
+    }
+}
+
+/*
+ * BundCreateOpenLink()
+ */
+
+int
+BundCreateOpenLink(Bund b, int n)
+{
+    if (!b->links[n]) {
+	if (b->conf.linkst[n][0]) {
+	    Link l;
+	    Link lt = LinkFind(b->conf.linkst[n]);
+	    if (!lt) {
+		Log(LG_BUND, ("[%s] Bund: Link \"%s\" not found", b->name, b->conf.linkst[n]));
+		return (-1);
+	    }
+	    if (PhysIsBusy(lt)) {
+		Log(LG_BUND, ("[%s] Bund: Link \"%s\" is busy", b->name, b->conf.linkst[n]));
+		return (-1);
+	    }
+	    if (lt->tmpl) {
+		l = LinkInst(lt, NULL, 0, 0);
+		l->dod = 1;
+	    } else
+		l = lt;
+	    b->links[n] = l;
+	    b->n_links++;
+	    l->bund = b;
+	    l->bundleIndex = n;
+	    l->conf.max_redial = -1;
+	} else {
+	    Log(LG_BUND, ("[%s] Bund: Link %d name not specified", b->name, n));
+	    return (-1);
+	}
+    }
+    BundOpenLink(b->links[n]);
+    return (0);
 }
 
 /*
@@ -517,7 +571,6 @@ BundOpenLink(Link l)
 {
   Log(LG_BUND, ("[%s] opening link \"%s\"...", l->bund->name, l->name));
   LinkOpen(l);
-  l->bund->bm.links_open = 1;
 }
 
 /*
@@ -535,7 +588,6 @@ BundCloseLinks(Bund b)
   for (k = 0; k < NG_PPP_MAX_LINKS; k++)
     if (b->links[k] && OPEN_STATE(b->links[k]->lcp.fsm.state))
       BundCloseLink(b->links[k]);
-  b->bm.links_open = 0;
 }
 
 /*
@@ -545,8 +597,8 @@ BundCloseLinks(Bund b)
 static void
 BundCloseLink(Link l)
 {
-  Log(LG_BUND, ("[%s] closing link \"%s\"...", l->bund->name, l->name));
-  LinkClose(l);
+    Log(LG_BUND, ("[%s] closing link \"%s\"...", l->bund->name, l->name));
+    LinkClose(l);
 }
 
 /*
@@ -748,21 +800,15 @@ BundNcpsClose(Bund b)
  */
 
 static void
-BundReasses(Bund b, int add)
+BundReasses(Bund b)
 {
   BundBm	const bm = &b->bm;
-
-  /* Add or subtract link */
-  if (add)
-    bm->n_up++;
-  else
-    bm->n_up--;
 
   /* Update system interface parameters */
   BundUpdateParams(b);
 
   Log(LG_BUND, ("[%s] Bundle up: %d link%s, total bandwidth %d bps",
-    b->name, bm->n_up, bm->n_up == 1 ? "" : "s", bm->total_bw));
+    b->name, b->n_links, b->n_links == 1 ? "" : "s", bm->total_bw));
 
 }
 
@@ -790,7 +836,7 @@ BundUpdateParams(Bund b)
 	bm->total_bw = BUND_MIN_TOT_BW;
 
     /* Recalculate MTU corresponding to peer's MRU */
-    if (bm->n_up == 0) {
+    if (b->n_links == 0) {
         mtu = NG_IFACE_MTU_DEFAULT;	/* Reset to default settings */
 
     } else if (!b->multilink) {		/* If no multilink, use peer MRU */
@@ -802,7 +848,7 @@ BundUpdateParams(Bund b)
     }
 
     /* Subtract to make room for various frame-bloating protocols */
-    if (bm->n_up > 0) {
+    if (b->n_links > 0) {
 	if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
     	    mtu = CcpSubtractBloat(b, mtu);
 	if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
@@ -1147,11 +1193,14 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\t  High mark    : %d%%\r\n", sb->conf.bm_Hi);
   Printf("\t  Min conn     : %d seconds\r\n", sb->conf.bm_Mc);
   Printf("\t  Min disc     : %d seconds\r\n", sb->conf.bm_Md);
+  Printf("\t  Links        : ");
+  for (k = 0; k < NG_PPP_MAX_LINKS; k++)
+    Printf("%s ", sb->conf.linkst[k]);
+  Printf("\r\n");
   Printf("Bundle level options:\r\n");
   OptStat(ctx, &sb->conf.options, gConfList);
 
   /* Show peer info */
-  if (sb->bm.n_up > 0) {
     Printf("Multilink PPP:\r\n");
     Printf("\tStatus         : %s\r\n",
       sb->multilink ? "Active" : "Inactive\r\n");
@@ -1159,7 +1208,6 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
       Printf("\tPeer auth name : \"%s\"\r\n", sb->params.authname);
       Printf("\tPeer discrimin.: %s\r\n", MpDiscrimText(&sb->peer_discrim, buf, sizeof(buf)));
     }
-  }
 
     if (!sb->tmpl) {
 	/* Show stats */
@@ -1294,23 +1342,24 @@ BundFind(char *name)
 static void
 BundBmStart(Bund b)
 {
-  int	k;
+    int	k;
 
-  /* Reset bandwidth management stats */
-  for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
-    if (b->links[k]) {
-	memset(&b->links[k]->bm.traffic, 0, sizeof(b->links[k]->bm.traffic));
-	memset(&b->links[k]->bm.wasUp, 0, sizeof(b->links[k]->bm.wasUp));
-	memset(&b->links[k]->bm.idleStats,
-    	    0, sizeof(b->links[k]->bm.idleStats));
+    /* Reset bandwidth management stats */
+    memset(&b->bm.traffic, 0, sizeof(b->bm.traffic));
+    memset(&b->bm.avail, 0, sizeof(b->bm.avail));
+    memset(&b->bm.wasUp, 0, sizeof(b->bm.wasUp));
+    for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
+	if (b->links[k]) {
+	    memset(&b->links[k]->bm.idleStats,
+    		0, sizeof(b->links[k]->bm.idleStats));
+	}
     }
-  }
 
   /* Start bandwidth management timer */
   TimerStop(&b->bm.bmTimer);
   if (Enabled(&b->conf.options, BUND_CONF_BWMANAGE)) {
     TimerInit(&b->bm.bmTimer, "BundBm",
-      b->conf.bm_S * SECONDS / LINK_BM_N,
+      (b->conf.bm_S * SECONDS) / BUND_BM_N,
       BundBmTimeout, b);
     TimerStart(&b->bm.bmTimer);
   }
@@ -1335,125 +1384,128 @@ BundBmStop(Bund b)
 static void
 BundBmTimeout(void *arg)
 {
-    Bund b = (Bund)arg;
+    Bund		b = (Bund)arg;
 
-  const time_t	now = time(NULL);
-  u_int		availTotal;
-  u_int		inUtilTotal = 0, outUtilTotal = 0;
-  u_int		inBitsTotal, outBitsTotal;
-  u_int		inUtil[LINK_BM_N];	/* Incoming % utilization */
-  u_int		outUtil[LINK_BM_N];	/* Outgoing % utilization */
-  int		j, k;
+    const time_t	now = time(NULL);
+    u_int		availTotal;
+    u_int		inUtilTotal = 0, outUtilTotal = 0;
+    u_int		inBitsTotal, outBitsTotal;
+    u_int		inUtil[BUND_BM_N];	/* Incoming % utilization */
+    u_int		outUtil[BUND_BM_N];	/* Outgoing % utilization */
+    int			j, k;
 
-  /* Shift and update stats */
-  for (k = 0; k < b->n_links; k++) {
-    Link	const l = b->links[k];
+    /* Shift and update stats */
+    memmove(&b->bm.wasUp[1], &b->bm.wasUp[0],
+	(BUND_BM_N - 1) * sizeof(b->bm.wasUp[0]));
+    b->bm.wasUp[0] = b->n_links;
+    memmove(&b->bm.avail[1], &b->bm.avail[0],
+	(BUND_BM_N - 1) * sizeof(b->bm.avail[0]));
+    b->bm.avail[0] = b->bm.total_bw;
 
     /* Shift stats */
-    memmove(&l->bm.wasUp[1], &l->bm.wasUp[0],
-      (LINK_BM_N - 1) * sizeof(l->bm.wasUp[0]));
-    l->bm.wasUp[0] = (l->lcp.fsm.state == ST_OPENED);
-    memmove(&l->bm.traffic[0][1], &l->bm.traffic[0][0],
-      (LINK_BM_N - 1) * sizeof(l->bm.traffic[0][0]));
-    memmove(&l->bm.traffic[1][1], &l->bm.traffic[1][0],
-      (LINK_BM_N - 1) * sizeof(l->bm.traffic[1][0]));
-    if (!l->bm.wasUp[0]) {
-      l->bm.traffic[0][0] = 0;
-      l->bm.traffic[1][0] = 0;
-    } else {
-      struct ng_ppp_link_stat	oldStats;
+    memmove(&b->bm.traffic[0][1], &b->bm.traffic[0][0],
+	(BUND_BM_N - 1) * sizeof(b->bm.traffic[0][0]));
+    memmove(&b->bm.traffic[1][1], &b->bm.traffic[1][0],
+	(BUND_BM_N - 1) * sizeof(b->bm.traffic[1][0]));
+    b->bm.traffic[0][0] = 0;
+    b->bm.traffic[1][0] = 0;
+    for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
+	if (b->links[k] && b->links[k]->joined_bund) {
+	    Link	const l = b->links[k];
 
-      /* Get updated link traffic statistics */
-      oldStats = l->bm.idleStats;
-      NgFuncGetStats(l->bund, l->bundleIndex, &l->bm.idleStats);
-      l->bm.traffic[0][0] = l->bm.idleStats.recvOctets - oldStats.recvOctets;
-      l->bm.traffic[1][0] = l->bm.idleStats.xmitOctets - oldStats.xmitOctets;
+	    struct ng_ppp_link_stat	oldStats;
+	
+	    /* Get updated link traffic statistics */
+	    oldStats = l->bm.idleStats;
+	    NgFuncGetStats(l->bund, l->bundleIndex, &l->bm.idleStats);
+	    b->bm.traffic[0][0] += l->bm.idleStats.recvOctets - oldStats.recvOctets;
+	    b->bm.traffic[1][0] += l->bm.idleStats.xmitOctets - oldStats.xmitOctets;
+	}
     }
-  }
 
-  /* Compute utilizations */
-  memset(&inUtil, 0, sizeof(inUtil));
-  memset(&outUtil, 0, sizeof(outUtil));
-  for (availTotal = inBitsTotal = outBitsTotal = j = 0; j < LINK_BM_N; j++) {
-    u_int	avail, inBits, outBits;
+    /* Compute utilizations */
+    memset(&inUtil, 0, sizeof(inUtil));
+    memset(&outUtil, 0, sizeof(outUtil));
+    availTotal = inBitsTotal = outBitsTotal = 0;
+    for (j = 0; j < BUND_BM_N; j++) {
+	u_int	avail, inBits, outBits;
 
-    /* Sum up over all links */
-    for (avail = inBits = outBits = k = 0; k < b->n_links; k++) {
-      Link	const l = b->links[k];
+	avail = (b->bm.avail[j] * b->conf.bm_S) / BUND_BM_N;
+	inBits = b->bm.traffic[0][j] * 8;
+	outBits = b->bm.traffic[1][j] * 8;
 
-      if (l->bm.wasUp[j]) {
-	avail += (l->bandwidth * b->conf.bm_S) / LINK_BM_N;
-	inBits += l->bm.traffic[0][j] * 8;
-	outBits += l->bm.traffic[1][j] * 8;
-      }
+	availTotal += avail;
+	inBitsTotal += inBits;
+	outBitsTotal += outBits;
+
+	/* Compute bandwidth utilizations as percentages */
+	if (avail != 0) {
+    	    inUtil[j] = ((float) inBits / avail) * 100;
+    	    outUtil[j] = ((float) outBits / avail) * 100;
+	}
     }
-    availTotal += avail;
-    inBitsTotal += inBits;
-    outBitsTotal += outBits;
 
-    /* Compute bandwidth utilizations as percentages */
-    if (avail != 0) {
-      inUtil[j] = ((float) inBits / avail) * 100;
-      outUtil[j] = ((float) outBits / avail) * 100;
+    /* Compute total averaged utilization */
+    if (availTotal != 0) {
+	inUtilTotal = ((float) inBitsTotal / availTotal) * 100;
+	outUtilTotal = ((float) outBitsTotal / availTotal) * 100;
     }
-  }
 
-  /* Compute total averaged utilization */
-  if (availTotal != 0) {
-    inUtilTotal = ((float) inBitsTotal / availTotal) * 100;
-    outUtilTotal = ((float) outBitsTotal / availTotal) * 100;
-  }
-
-#ifdef DEBUG_BOD
   {
     char	ins[100], outs[100];
 
-    snprintf(ins, sizeof(ins), ">>Link status:             ");
-    for (j = 0; j < LINK_BM_N; j++) {
-      for (k = 0; k < b->n_links; k++) {
-	Link	const l = b->links[k];
-
+    ins[0] = 0;
+    for (j = 0; j < BUND_BM_N; j++) {
 	snprintf(ins + strlen(ins), sizeof(ins) - strlen(ins),
-	  l->bm.wasUp[LINK_BM_N - 1 - j] ? "Up" : "Dn");
-      }
-      snprintf(ins + strlen(ins), sizeof(ins) - strlen(ins), " ");
+		" %3u ", b->bm.wasUp[BUND_BM_N - 1 - j]);
     }
-    Log(LG_BUND, ("%s", ins));
+    Log(LG_BUND2, ("[%s]                       %s", b->name, ins));
 
     snprintf(ins, sizeof(ins), " IN util: total %3u%%  ", inUtilTotal);
     snprintf(outs, sizeof(outs), "OUT util: total %3u%%  ", outUtilTotal);
-    for (j = 0; j < LINK_BM_N; j++) {
+    for (j = 0; j < BUND_BM_N; j++) {
       snprintf(ins + strlen(ins), sizeof(ins) - strlen(ins),
-	" %3u%%", inUtil[LINK_BM_N - 1 - j]);
+	" %3u%%", inUtil[BUND_BM_N - 1 - j]);
       snprintf(outs + strlen(outs), sizeof(outs) - strlen(outs),
-	" %3u%%", outUtil[LINK_BM_N - 1 - j]);
+	" %3u%%", outUtil[BUND_BM_N - 1 - j]);
     }
-    Log(LG_BUND, ("  %s", ins));
-    Log(LG_BUND, ("  %s", outs));
+    Log(LG_BUND2, ("[%s] %s", b->name, ins));
+    Log(LG_BUND2, ("[%s] %s", b->name, outs));
   }
-#endif
 
   /* See if it's time to bring up another link */
   if (now - b->bm.last_open >= b->conf.bm_Mc
-      && (inUtilTotal >= b->conf.bm_Hi || outUtilTotal >= b->conf.bm_Hi)
-      && b->bm.n_open < b->n_links) {
-    k = 0;
-    while (k < b->n_links && OPEN_STATE(b->links[k]->lcp.fsm.state))
-	k++;
-    assert(k < b->n_links);
-    Log(LG_BUND, ("[%s] opening link %s due to increased demand",
-      b->name, b->links[k]->name));
-    b->bm.last_open = now;
-    RecordLinkUpDownReason(NULL, b->links[k], 1, STR_PORT_NEEDED, NULL);
-    BundOpenLink(b->links[k]);
+      && (inUtilTotal >= b->conf.bm_Hi || outUtilTotal >= b->conf.bm_Hi)) {
+    for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
+cont:
+	if (!b->links[k] && b->conf.linkst[k][0])
+		break;
+    }
+    if (k < NG_PPP_MAX_LINKS) {
+	Log(LG_BUND, ("[%s] opening link \"%s\" due to increased demand",
+    	    b->name, b->conf.linkst[k]));
+	b->bm.last_open = now;
+	if (b->links[k]) {
+	    RecordLinkUpDownReason(NULL, b->links[k], 1, STR_PORT_NEEDED, NULL);
+	    BundOpenLink(b->links[k]);
+	} else {
+	    if (BundCreateOpenLink(b, k)) {
+		if (k < NG_PPP_MAX_LINKS) {
+		    k++;
+		    goto cont;
+		}
+	    } else
+		RecordLinkUpDownReason(NULL, b->links[k], 1, STR_PORT_NEEDED, NULL);
+	}
+    }
   }
 
   /* See if it's time to bring down a link */
   if (now - b->bm.last_close >= b->conf.bm_Md
       && (inUtilTotal < b->conf.bm_Lo && outUtilTotal < b->conf.bm_Lo)
-      && b->bm.n_up > 1) {
-    k = b->n_links - 1;
-    while (k >= 0 && !OPEN_STATE(b->links[k]->lcp.fsm.state))
+      && b->n_links > 1) {
+    k = NG_PPP_MAX_LINKS - 1;
+    while (k >= 0 && (!b->links[k] || !OPEN_STATE(b->links[k]->lcp.fsm.state)))
 	k--;
     assert(k >= 0);
     Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
@@ -1792,6 +1844,7 @@ static int
 BundSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
     Bund	b = ctx->bund;
+    int		i;
 
   if (ac == 0)
     return(-1);
@@ -1811,6 +1864,14 @@ BundSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_MIN_DISCONNECT:
       b->conf.bm_Md = atoi(*av);
       break;
+    case SET_LINKS:
+	if (ac > NG_PPP_MAX_LINKS)
+	    return (-1);
+        for (i = 0; i < ac; i++)
+	    strncpy(b->conf.linkst[i], av[i], LINK_MAX_NAME);
+        for (; i < NG_PPP_MAX_LINKS; i++)
+	    b->conf.linkst[i][0] = 0;
+        break;
 
     case SET_RETRY:
       b->conf.retry_timeout = atoi(*av);

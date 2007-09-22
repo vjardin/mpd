@@ -457,6 +457,12 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
 void
 LinkShutdown(Link l)
 {
+    /* Late divorce for DoD case */
+    if (l->bund) {
+	l->bund->links[l->bundleIndex] = NULL;
+	l->bund->n_links--;
+	l->bund = NULL;
+    }
     gLinks[l->id] = NULL;
     MsgUnRegister(&l->msgs);
     if (l->csock >= 0)

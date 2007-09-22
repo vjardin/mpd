@@ -88,13 +88,15 @@
   #define BUND_BM_DFL_Mc	30	/* Min connect period (secs) */
   #define BUND_BM_DFL_Md	90	/* Min disconnect period (secs) */
 
+  #define BUND_BM_N	6		/* Number of sampling intervals */
+
   struct bundbm {
-    short		n_up;		/* Number of links in NETWORK phase */
-    short		n_open;		/* Number of links in an OPEN state */
+    u_int		traffic[2][BUND_BM_N];	/* Traffic deltas */
+    u_int		avail[BUND_BM_N];	/* Available traffic deltas */
+    u_char		wasUp[BUND_BM_N];	/* Sub-intervals link was up */
     time_t		last_open;	/* Time we last open any link */
     time_t		last_close;	/* Time we last closed any link */
     struct pppTimer	bmTimer;	/* Bandwidth mgmt timer */
-    u_char		links_open:1;	/* One or more links told to open */
     u_int		total_bw;	/* Total bandwidth available */
   };
   typedef struct bundbm	*BundBm;
@@ -108,6 +110,7 @@
     u_short		bm_Mc;
     u_short		bm_Md;
     struct optinfo	options;		/* Configured options */
+    char		linkst[NG_PPP_MAX_LINKS][LINK_MAX_NAME]; /* Link names for DoD */
   };
 
   #define BUND_STATS_UPDATE_INTERVAL    65 * SECONDS
@@ -196,6 +199,7 @@
   extern void	BundNcpsFinish(Bund b, int proto);
   extern void	BundOpenLinks(Bund b);
   extern void	BundCloseLinks(Bund b);
+  extern int	BundCreateOpenLink(Bund b, int n);
   extern void	BundOpenLink(Link l);
 
   extern void	BundNcpsOpen(Bund b);
