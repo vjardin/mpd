@@ -15,6 +15,7 @@
 #include "log.h"
 #include "ngfunc.h"
 #include "msoft.h"
+#include "ippool.h"
 #include "util.h"
 
 #include <libutil.h>
@@ -61,6 +62,7 @@
     SET_ACCT_UPDATE_LIMIT_IN,
     SET_ACCT_UPDATE_LIMIT_OUT,
     SET_TIMEOUT,
+    SET_IPPOOL,
   };
 
 /*
@@ -84,6 +86,8 @@
 	AuthSetCommand, NULL, (void *) SET_ACCT_UPDATE_LIMIT_OUT },
     { "timeout <seconds>",		"set auth timeout",
 	AuthSetCommand, NULL, (void *) SET_TIMEOUT },
+    { "ippool <name>",			"set IP pool to use",
+	AuthSetCommand, NULL, (void *) SET_IPPOOL },
     { "accept [opt ...]",		"Accept option",
 	AuthSetCommand, NULL, (void *) SET_ACCEPT },
     { "deny [opt ...]",			"Deny option",
@@ -737,19 +741,13 @@ AuthAccountStart(Link l, int type)
       (unsigned long long)l->stats.xmitOctets));
   }
 
-  if (!Enabled(&l->lcp.auth.conf.options, AUTH_CONF_RADIUS_ACCT)
-      && !Enabled(&l->lcp.auth.conf.options, AUTH_CONF_SYSTEM_ACCT))
-    return;
-
   if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
-  
     /* maybe an outstanding thread is running */
     paction_cancel(&a->acct_thread);
-    
   }
 
   if (type == AUTH_ACCT_START) {
-    
+  
     if (a->params.acct_update > 0)
       updateInterval = a->params.acct_update;
     else if (l->lcp.auth.conf.acct_update > 0)
@@ -833,37 +831,46 @@ AuthAccountTimeout(void *arg)
 static void
 AuthAccount(void *arg)
 {
-  AuthData	const auth = (AuthData)arg;
+    AuthData	const auth = (AuthData)arg;
   
-  Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", auth->info.lnkname));
-
-  if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
-    RadiusAccount(auth);
-
-  if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_ACCT)) {
-    struct utmp	ut;
-
-    memset(&ut, 0, sizeof(ut));
-    strlcpy(ut.ut_line, auth->info.lnkname, sizeof(ut.ut_line));
-
-    if (auth->acct_type == AUTH_ACCT_START) {
-      time_t	t;
-
-      strlcpy(ut.ut_host, auth->params.peeraddr, sizeof(ut.ut_host));
-      strlcpy(ut.ut_name, auth->params.authname, sizeof(ut.ut_name));
-      time(&t);
-      ut.ut_time = t;
-      login(&ut);
-      Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
-        ut.ut_name, ut.ut_host));
-    }
+    Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", auth->info.lnkname));
   
-    if (auth->acct_type == AUTH_ACCT_STOP) {
-      Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", auth->info.lnkname, ut.ut_line));
-      logout(ut.ut_line);
-      logwtmp(ut.ut_line, "", "");
+    if (auth->params.ippool_used) {
+	struct u_addr ip;
+	in_addrtou_addr(&auth->info.peer_addr, &ip);
+	if (auth->acct_type == AUTH_ACCT_START)
+	    IPPoolReserve(&ip);
+	else if (auth->acct_type == AUTH_ACCT_STOP)
+	    IPPoolFree(&ip);
     }
-  }
+
+    if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
+	RadiusAccount(auth);
+
+    if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_ACCT)) {
+	struct utmp	ut;
+
+	memset(&ut, 0, sizeof(ut));
+	strlcpy(ut.ut_line, auth->info.lnkname, sizeof(ut.ut_line));
+
+	if (auth->acct_type == AUTH_ACCT_START) {
+    	    time_t	t;
+
+    	    strlcpy(ut.ut_host, auth->params.peeraddr, sizeof(ut.ut_host));
+    	    strlcpy(ut.ut_name, auth->params.authname, sizeof(ut.ut_name));
+    	    time(&t);
+    	    ut.ut_time = t;
+    	    login(&ut);
+    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
+    		ut.ut_name, ut.ut_host));
+	}
+  
+	if (auth->acct_type == AUTH_ACCT_STOP) {
+    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", auth->info.lnkname, ut.ut_line));
+    	    logout(ut.ut_line);
+    	    logwtmp(ut.ut_line, "", "");
+	}
+    }
 }
 
 /*
@@ -1093,6 +1100,21 @@ AuthAsyncFinish(void *arg, int was_canceled)
     /* Replace modified data */
     authparamsDestroy(&l->lcp.auth.params);
     authparamsMove(&auth->params,&l->lcp.auth.params);
+    
+    if (auth->status != AUTH_STATUS_FAIL &&
+      l->lcp.auth.params.range_valid == 0 &&
+      l->lcp.auth.conf.ippool[0]) {
+	if (IPPoolGet(l->lcp.auth.conf.ippool, &l->lcp.auth.params.range.addr)) {
+	    Log(LG_AUTH, ("[%s] AUTH: Can't get IP from pool \"%s\"",
+		l->name, l->lcp.auth.conf.ippool));
+	} else {
+	    Log(LG_AUTH, ("[%s] AUTH: Using IP from pool \"%s\"",
+		l->name, l->lcp.auth.conf.ippool));
+	    l->lcp.auth.params.range.width = 32;
+	    l->lcp.auth.params.range_valid = 1;
+	    l->lcp.auth.params.ippool_used = 1;
+	}
+    }
   
     auth->finish(l, auth);
 }
@@ -1282,7 +1304,7 @@ AuthPreChecks(AuthData auth)
     int		ac;
     u_long	num = 0;
     for(ac = 0; ac < gNumBundles; ac++)
-      if (gBundles[ac]->open)
+      if (gBundles[ac] && gBundles[ac]->open)
 	if (!strcmp(gBundles[ac]->params.authname, auth->params.authname))
 	  num++;
 
@@ -1575,6 +1597,10 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
 	Log(LG_ERR, ("Authorization timeout must be greater then 20."));
       else
 	autc->timeout = val;
+      break;
+      
+    case SET_IPPOOL:
+      strlcpy(autc->ippool, av[0], sizeof(autc->ippool));
       break;
       
     case SET_ACCEPT:

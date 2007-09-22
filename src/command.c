@@ -24,6 +24,7 @@
 #include "nat.h"
 #include "ipcp.h"
 #include "ip.h"
+#include "ippool.h"
 #include "devices.h"
 #include "netgraph.h"
 #include "ngfunc.h"
@@ -131,6 +132,8 @@
 	IpcpStat, AdmitBund, NULL },
     { "ipv6cp",				"IPV6CP status",
 	Ipv6cpStat, AdmitBund, NULL },
+    { "ippool",				"IP pool status",
+	IPPoolStat, NULL, NULL },
     { "iface",				"Interface status",
 	IfaceStat, AdmitBund, NULL },
     { "routes",				"IP routing table",
@@ -179,6 +182,8 @@
 	CMD_SUBMENU, AdmitBund, (void *) IpcpSetCmds },
     { "ipv6cp ...",			"IPV6CP specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) Ipv6cpSetCmds },
+    { "ippool ...",			"IP pool specific stuff",
+	CMD_SUBMENU, NULL, (void *) IPPoolSetCmds },
     { "ccp ...",			"CCP specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) CcpSetCmds },
     { "ecp ...",			"ECP specific stuff",

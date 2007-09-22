@@ -176,14 +176,15 @@ pptp_server:
 # If you don't have an NBNS server, leave that line out.
 #
 
+# Define dynamic IP address pool.
+	set ippool add pool1 192.168.1.50 2.168.1.99
+
 # Create clonable bundle template named B
 	create bundle template B
 	set iface enable proxy-arp
 	set iface idle 1800
 	set iface enable tcpmssfix
 	set ipcp yes vjcomp
-# Note: We configure one IP for all bundles. To have many clients
-# you have to define client's IPs in mpd.secret or use RADIUS.
 	set ipcp ranges 192.168.1.1/32 192.168.1.50/32
 	set ipcp dns 192.168.1.3
 	set ipcp nbns 192.168.1.4
@@ -192,12 +193,14 @@ pptp_server:
 	create link template L pptp
 # Multilink adds some overhead, but gives full 1500 MTU.
 	set link enable multilink
-# We can use use RADIUS authentication/accounting by including
-# another config section with label 'radius'.
-#	load radius
 	set link yes acfcomp protocomp
 	set link no pap chap
 	set link enable chap
+# We can use use RADIUS authentication/accounting by including
+# another config section with label 'radius'.
+#	load radius
+# Specify IP address pool for dynamic assigment.
+	set link ippool pool1
 	set link keep-alive 10 60
 # We reducing link mtu to avoid GRE packet fragmentation.
 	set link mtu 1460

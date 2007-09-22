@@ -65,6 +65,7 @@
   #define MB_RADIUS	"RADIUS"
   #define MB_UTIL	"UTIL"
   #define MB_VJCOMP	"VJCOMP"
+  #define MB_IPPOOL	"IPPOOL"
 
 /*
  * FUNCTIONS

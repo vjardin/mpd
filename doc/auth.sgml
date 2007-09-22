@@ -55,6 +55,10 @@ Under some circumstances the value should be changed; it usually
 depends on the authentication backend and protocol.
 E.g. when using EAP with a slow RADIUS server this value should be increased.
 
+<tag><tt>set auth ippool <em>pool</em></tt></tag>
+
+Sets IP address pool to be used if auth backend have not provided IP address.
+
 <tag><tt>
 <newline>set auth enable <em>option ...</em>
 <newline>set auth disable <em>option ...</em>

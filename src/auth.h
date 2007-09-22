@@ -103,6 +103,8 @@
     u_char		range_valid;	/* range is valid */
     u_char		netmask;	/* IP Netmask */
 
+    u_char		ippool_used;
+
     char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
     int			eapmsg_len;
     u_char		*state;		/* copy of the state attribute, needed for accounting */
@@ -163,6 +165,7 @@
     int			timeout;	/* Authorization timeout in seconds */
     struct optinfo	options;	/* Configured options */
     char		extauth_script[AUTH_MAX_EXTCMD];/*  External auth script */
+    char		ippool[LINK_MAX_NAME];
   };
   typedef struct authconf	*AuthConf;
 

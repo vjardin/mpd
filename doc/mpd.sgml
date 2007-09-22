@@ -35,6 +35,7 @@
 <!ENTITY radius SYSTEM "radius.sgml">
 <!ENTITY eap SYSTEM "eap.sgml">
 <!ENTITY nat SYSTEM "nat.sgml">
+<!ENTITY ippool SYSTEM "ippool.sgml">
 
 <!ENTITY modem SYSTEM "modem.sgml">
 <!ENTITY netgraph SYSTEM "netgraph.sgml">
@@ -120,6 +121,7 @@ all mpd features.
 	&radius;
 	&netflow;
 	&nat;
+	&ippool;
 
     <chapt><heading>Device Types</heading>
 

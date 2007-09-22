@@ -107,6 +107,8 @@ Show the current IP routing table.
 <tag>ipcp</tag>
 Show status information about the IP control
 protocol associated with the currently active bundle.
+<tag>ippool</tag>
+Show status information about configures IP pools.
 <tag>ccp</tag>
 Show status information about the compression control
 protocol associated with the currently active bundle.
