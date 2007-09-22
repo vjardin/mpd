@@ -106,11 +106,11 @@
   };
 
   static const struct cmdtab CreateCommands[] = {
-    { "link [template] {name} {template}",	"Create link/template",
+    { "link [template|static] {name} {template|type}",	"Create link/template",
 	LinkCreate, NULL, NULL },
-    { "bundle [template] {name} {template}",	"Create bundle/template",
+    { "bundle [template|static] {name} {template}",	"Create bundle/template",
 	BundCreate, NULL, NULL },
-    { "repeater [template] {name} {template}",	"Create repeater/template",
+    { "repeater [template|static] {name} {template}",	"Create repeater/template",
 	RepCreate, NULL, NULL },
   };
 
