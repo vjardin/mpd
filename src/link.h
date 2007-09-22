@@ -104,7 +104,6 @@
     int			die;
     int			refs;			/* Number of references */
     int			dead;			/* Dead flag */
-    int			dod;			/* Link created by DoD */
 
     /* State info */
     struct linkconf	conf;		/* Link configuration */

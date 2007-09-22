@@ -543,7 +543,6 @@ BundCreateOpenLink(Bund b, int n)
 	    }
 	    if (lt->tmpl) {
 		l = LinkInst(lt, NULL, 0, 0);
-		l->dod = 1;
 	    } else
 		l = lt;
 	    b->links[n] = l;
