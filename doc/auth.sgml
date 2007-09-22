@@ -10,8 +10,8 @@
   This chapter describes commands that configure the Authentication 
   subsystem of LCP layer. All of these commands apply to the currently
   active link. Mpd currently supports authentication against (tried 
-  in this order) RADIUS, systems password database (<tt>master.passwd</tt>), 
-  OPIE and its integrated <tt>mpd.secrets</tt> file.
+  in this order) external script, RADIUS, systems password database 
+  (<tt>master.passwd</tt>), OPIE and its internal <tt>mpd.secrets</tt> file.
 
 <descrip>
 
@@ -22,7 +22,7 @@ set auth authname <em>login</em>
 This command sets the authentication login name associated with
 the link (in multi-link PPP, though each link is authenticated
 individually, they all must use the same login name). The
-<tt><em>login</em></tt> must have a corresponding entry in
+<tt><em>login</em></tt> may have a corresponding entry in
 <tt>mpd.secrets</tt>. The <tt><em>login</em></tt> and password
 are used when the peer requires us to authenticate ourselves.
 
@@ -31,8 +31,8 @@ set auth password <em>password</em>
 </tt></tag>
 
 This command is normally not necessary. It causes mpd to <em>not</em>
-lookup the password corresponding to
-<tt><em>login</em></tt> in <tt>mpd.secrets</tt>, but rather to use
+lookup the password corresponding to <tt><em>login</em></tt>
+in <tt>mpd.secrets</tt>, but rather to use
 <tt><em>password</em></tt> instead. If you're too lazy to set up
 <tt>mpd.secrets</tt> and are only dialing out, you can use this
 command instead.
@@ -97,7 +97,7 @@ command.
 
 Default <tt><bf>disable</bf></tt>.
 
-<tag><tt>system</tt></tag>
+<tag><tt>system-auth</tt></tag>
 
 Enables authentication against the systems password database.
 This options can only be used with PAP and MS-CHAP, but not 
@@ -105,6 +105,12 @@ with CHAP-MD5. If you intend to use this with MS-CHAP, then
 the passwords in the <tt>master.passwd</tt> must be NT-Hashes.
 You can enable this by putting <tt>:passwd_format=nth:</tt> into 
 your <tt>/etc/login.conf</tt>, but you need at least FreeBSD 5.2.
+
+Default <tt><bf>disable</bf></tt>.
+
+<tag><tt>system-acct</tt></tag>
+
+Enable accounting via utmp/wtmp.
 
 Default <tt><bf>disable</bf></tt>.
 
@@ -122,12 +128,6 @@ themselfs using Winkey.
 <bf>IMPORTANT</bf>: Disable the internal authentication when using 
 OPIE and CHAP, because otherwise users are also able to authenticate 
 with their secret pass phrase.
-
-Default <tt><bf>disable</bf></tt>.
-
-<tag><tt>utmp-wtmp</tt></tag>
-
-Enable accounting via utmp/wtmp.
 
 Default <tt><bf>disable</bf></tt>.
 

@@ -111,9 +111,9 @@
     { 0,	AUTH_CONF_RADIUS_ACCT,	"radius-acct"	},
     { 0,	AUTH_CONF_INTERNAL,	"internal"	},
     { 0,	AUTH_CONF_EXT_AUTH,	"ext-auth"	},
-    { 0,	AUTH_CONF_SYSTEM,	"system"	},
+    { 0,	AUTH_CONF_SYSTEM_AUTH,	"system-auth"	},
+    { 0,	AUTH_CONF_SYSTEM_ACCT,	"system-acct"	},
     { 0,	AUTH_CONF_OPIE,		"opie"		},
-    { 0,	AUTH_CONF_UTMP_WTMP,	"utmp-wtmp"	},
     { 0,	0,			NULL		},
   };
 
@@ -736,7 +736,7 @@ AuthAccountStart(Link l, int type)
   }
 
   if (!Enabled(&l->lcp.auth.conf.options, AUTH_CONF_RADIUS_ACCT)
-      && !Enabled(&l->lcp.auth.conf.options, AUTH_CONF_UTMP_WTMP))
+      && !Enabled(&l->lcp.auth.conf.options, AUTH_CONF_SYSTEM_ACCT))
     return;
 
   if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
@@ -838,7 +838,7 @@ AuthAccount(void *arg)
   if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
     RadiusAccount(auth);
 
-  if (Enabled(&auth->conf.options, AUTH_CONF_UTMP_WTMP)) {
+  if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_ACCT)) {
     struct utmp	ut;
 
     memset(&ut, 0, sizeof(ut));
@@ -1021,7 +1021,7 @@ AuthAsync(void *arg)
       return;
   }
 
-  if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM)) {
+  if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_AUTH)) {
     Log(LG_AUTH, ("[%s] AUTH: Trying SYSTEM", auth->info.lnkname));
     AuthSystem(auth);
     Log(LG_AUTH, ("[%s] AUTH: SYSTEM returned %s", 
