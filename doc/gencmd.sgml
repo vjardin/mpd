@@ -27,7 +27,7 @@ after operation.
 Create new repeater with specified name, optionally based on
 specified template.
 
-<tag><tt>create link [ template | static ] <em>name</em> <em>type</em> [ <em>template</em> ] </tt>
+<tag><tt>create link [ template | static ] <em>name</em> ( <em>type</em> | <em>template</em> ) </tt>
 </tag>
 
 Create new link with specified name and type, optionally based on

@@ -112,7 +112,18 @@ multi_dialup:
 	set iface route default
 	set iface idle 900
 
-	create link template L modem
+# Instantiate links from template and open them
+	create link static L1 modem
+	load common
+	set modem device /dev/cuad0
+	open
+
+	create link static L2 modem
+	load common
+	set modem device /dev/cuad1
+	open
+
+common:
 # Enable multilink protocol
 	set link enable multilimk
 # Set bundle template to use
@@ -126,15 +137,6 @@ multi_dialup:
 	set modem var $DialPrefix "DT"
 	set modem var $Telephone "1-415-555-1212"
 	set modem script DialPeer
-
-# Instantiate links from template and open them
-	create link static L1 L
-	set modem device /dev/cuad0
-	open
-
-	create link static L2 L
-	set modem device /dev/cuad1
-	open
 
 sync:
 #

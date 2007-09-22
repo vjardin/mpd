@@ -272,7 +272,7 @@ int
 LinkCreate(Context ctx, int ac, char *av[], void *arg)
 {
     Link 	l, lt = NULL;
-    PhysType    pt;
+    PhysType    pt = NULL;
     int 	tmpl = 0;
     int 	stay = 0;
     int 	k;
@@ -304,30 +304,28 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	return (0);
     }
 
-    /* Locate type */
-    for (k = 0; (pt = gPhysTypes[k]); k++) {
-	if (!strcmp(pt->name, av[1 + stay]))
-    	    break;
-    }
-    if (pt == NULL) {
-	Log(LG_ERR, ("Link type \"%s\" unknown", av[1 + stay]));
-	return (0);
-    }
-    
-    if (!pt->tmpl && tmpl) {
-	Log(LG_ERR, ("Link type \"%s\" does not support templating", av[1 + stay]));
-	return (0);
-    }
-
-    if (ac - stay > 2) {
-	/* See if template name specified */
-	if ((lt = LinkFind(av[2 + stay])) == NULL) {
-	    Log(LG_ERR, ("Link template \"%s\" not found", av[2 + tmpl]));
-	    return (0);
+    if (ac - stay == 2) {
+	/* Locate type */
+	for (k = 0; (pt = gPhysTypes[k]); k++) {
+	    if (!strcmp(pt->name, av[1 + stay]))
+    		break;
 	}
-	if (!lt->tmpl) {
-	    Log(LG_ERR, ("Link \"%s\" is not a template", av[2 + stay]));
-	    return (0);
+	if (pt != NULL) {
+	    if (!pt->tmpl && tmpl) {
+		Log(LG_ERR, ("Link type \"%s\" does not support templating", av[1 + stay]));
+		return (0);
+	    }
+
+	} else {
+	    /* See if template name specified */
+	    if ((lt = LinkFind(av[1 + stay])) == NULL) {
+		Log(LG_ERR, ("Link template \"%s\" not found", av[2 + tmpl]));
+		return (0);
+	    }
+	    if (!lt->tmpl) {
+		Log(LG_ERR, ("Link \"%s\" is not a template", av[2 + stay]));
+		return (0);
+	    }
 	}
     }
 
