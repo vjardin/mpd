@@ -304,6 +304,13 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	return (0);
     }
 
+    for (k = 0; (pt = gPhysTypes[k]); k++) {
+        if (!strcmp(pt->name, av[0 + stay])) {
+	    Log(LG_ERR, ("Link name \"%s\" is reserved", av[0 + stay]));
+	    return (0);
+	}
+    }
+
     if (ac - stay == 2) {
 	/* Locate type */
 	for (k = 0; (pt = gPhysTypes[k]); k++) {
