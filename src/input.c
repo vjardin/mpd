@@ -66,7 +66,7 @@ InputFrame(Bund b, Link l, int proto, Mbuf bp)
 	for (k = 0; k < NG_PPP_MAX_LINKS && 
 	    (!b->links[k] || b->links[k]->lcp.phase != PHASE_NETWORK);
     	    k++);
-	if (k == b->n_links) {
+	if (k == NG_PPP_MAX_LINKS) {
     	    PFREE(bp);
     	    return;
 	}

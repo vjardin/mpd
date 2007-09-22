@@ -36,7 +36,6 @@
     BUND_CONF_CRYPT_REQD,	/* encryption is required */
     BUND_CONF_BWMANAGE,		/* dynamic bandwidth */
     BUND_CONF_ROUNDROBIN,	/* round-robin MP scheduling */
-    BUND_CONF_NORETRY,		/* don't retry failed links */
   };
 
   /* Default bundle-layer FSM retry timeout */
@@ -123,6 +122,7 @@
     int			stay;			/* Must not disappear */
     Link		links[NG_PPP_MAX_LINKS];	/* Real links in this bundle */
     u_short		n_links;		/* Number of links in bundle */
+    u_short		n_up;			/* Number of links joined the bundle */
     int			csock;			/* Socket node control socket */
     int			dsock;			/* Socket node data socket */
     EventRef		ctrlEvent;		/* Socket node control event */

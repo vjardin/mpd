@@ -137,7 +137,6 @@
     { 0,	BUND_CONF_CRYPT_REQD,	"crypt-reqd"	},
     { 0,	BUND_CONF_BWMANAGE,	"bw-manage"	},
     { 0,	BUND_CONF_ROUNDROBIN,	"round-robin"	},
-    { 0,	BUND_CONF_NORETRY,	"noretry"	},
     { 0,	0,			NULL		},
   };
 
@@ -285,8 +284,9 @@ BundJoin(Link l)
 	return(0);
     }
     l->joined_bund = 1;
+    b->n_up++;
 
-    if (b->n_links == 1) {
+    if (b->n_up == 1) {
 
 	/* Cancel re-open timer; we've come up somehow (eg, LCP renegotiation) */
 	TimerStop(&b->reOpenTimer);
@@ -315,7 +315,7 @@ BundJoin(Link l)
     b->pppConfig.links[l->bundleIndex].latency = (l->latency + 500) / 1000;
 
     /* What to do when the first link comes up */
-    if (b->n_links == 1) {
+    if (b->n_up == 1) {
 
 	/* Configure the bundle */
 	b->pppConfig.bund.enableMultilink = lcp->peer_multilink;
@@ -344,7 +344,7 @@ BundJoin(Link l)
 	(int)(time(NULL) % 10000000), l->name);
 
     /* What to do when the first link comes up */
-    if (b->n_links == 1) {
+    if (b->n_up == 1) {
 
 	BundNcpsOpen(b);
 	BundNcpsUp(b);
@@ -361,7 +361,7 @@ BundJoin(Link l)
 
     AuthAccountStart(l, AUTH_ACCT_START);
 
-    return(b->n_links);
+    return(b->n_up);
 }
 
 /*
@@ -376,7 +376,7 @@ BundLeave(Link l)
     Bund	b = l->bund;
 
     /* Elvis has left the bundle */
-    assert(b->n_links > 0);
+    assert(b->n_up > 0);
   
     AuthAccountStart(l, AUTH_ACCT_STOP);
 
@@ -386,6 +386,7 @@ BundLeave(Link l)
 
     LinkNgLeave(l);
     l->joined_bund = 0;
+    b->n_up--;
     
     /* Divorce link and bundle */
     b->links[l->bundleIndex] = NULL;
@@ -395,7 +396,7 @@ BundLeave(Link l)
     BundReasses(b);
   
     /* Special stuff when last link goes down... */
-    if (b->n_links == 0) {
+    if (b->n_up == 0) {
   
 #ifndef NG_PPP_STATS64
 	/* stopping bundle statistics timer */
@@ -412,21 +413,23 @@ BundLeave(Link l)
 	memset(&b->ccp.mppc, 0, sizeof(b->ccp.mppc));
  
 	/* try to open again later */
-//	if (b->open && !Enabled(&b->conf.options, BUND_CONF_NORETRY) && !gShutdownInProgress) {
-//	    /* wait BUND_REOPEN_DELAY to see if it comes back up */
-//    	    int delay = BUND_REOPEN_DELAY;
-//    	    delay += ((random() ^ gPid ^ time(NULL)) & 1);
-//    	    Log(LG_BUND, ("[%s] Last link has gone and no noretry option, will reopen in %d seconds", 
-//    		b->name, delay));
-//    	    TimerStop(&b->reOpenTimer);
-//    	    TimerInit(&b->reOpenTimer, "BundReOpen",
-//		delay * SECONDS, BundReOpenLinks, b);
-//    	    TimerStart(&b->reOpenTimer);
-//	} else if (b->open) {
-	    b->open = FALSE;
-//	}
-	if (!b->stay)
-	    BundShutdown(b);
+	if (b->open && Enabled(&b->conf.options, BUND_CONF_BWMANAGE) &&
+	  !Enabled(&b->iface.options, IFACE_CONF_ONDEMAND) && !gShutdownInProgress) {
+	    /* wait BUND_REOPEN_DELAY to see if it comes back up */
+    	    int delay = BUND_REOPEN_DELAY;
+    	    delay += ((random() ^ gPid ^ time(NULL)) & 1);
+    	    Log(LG_BUND, ("[%s] Bundle: Last link has gone, reopening in %d seconds", 
+    		b->name, delay));
+    	    TimerStop(&b->reOpenTimer);
+    	    TimerInit(&b->reOpenTimer, "BundReOpen",
+		delay * SECONDS, BundReOpenLinks, b);
+    	    TimerStart(&b->reOpenTimer);
+	} else {
+	    if (b->open)
+		b->open = FALSE;
+	    if (!b->stay)
+		BundShutdown(b);
+	}
     }
 }
 
@@ -445,13 +448,8 @@ BundReOpenLinks(void *arg)
 {
     Bund b = (Bund)arg;
     
-  Log(LG_BUND, ("[%s] Last link has gone and no noretry option, reopening in %d seconds", b->name, BUND_REOPEN_PAUSE));
-  BundCloseLinks(b);
-  TimerStop(&b->reOpenTimer);
-  TimerInit(&b->reOpenTimer, "BundOpen",
-    BUND_REOPEN_PAUSE * SECONDS, (void (*)(void *)) BundOpenLinks, b);
-  TimerStart(&b->reOpenTimer);
-  RecordLinkUpDownReason(b, NULL, 1, STR_REDIAL, NULL);
+    Log(LG_BUND, ("[%s] Bundle: Last link has gone, reopening...", b->name));
+    BundOpenLinks(b);
 }
 
 /*
@@ -808,7 +806,7 @@ BundReasses(Bund b)
   BundUpdateParams(b);
 
   Log(LG_BUND, ("[%s] Bundle up: %d link%s, total bandwidth %d bps",
-    b->name, b->n_links, b->n_links == 1 ? "" : "s", bm->total_bw));
+    b->name, b->n_up, b->n_up == 1 ? "" : "s", bm->total_bw));
 
 }
 
@@ -836,7 +834,7 @@ BundUpdateParams(Bund b)
 	bm->total_bw = BUND_MIN_TOT_BW;
 
     /* Recalculate MTU corresponding to peer's MRU */
-    if (b->n_links == 0) {
+    if (b->n_up == 0) {
         mtu = NG_IFACE_MTU_DEFAULT;	/* Reset to default settings */
 
     } else if (!b->multilink) {		/* If no multilink, use peer MRU */
@@ -848,7 +846,7 @@ BundUpdateParams(Bund b)
     }
 
     /* Subtract to make room for various frame-bloating protocols */
-    if (b->n_links > 0) {
+    if (b->n_up > 0) {
 	if (Enabled(&b->conf.options, BUND_CONF_COMPRESSION))
     	    mtu = CcpSubtractBloat(b, mtu);
 	if (Enabled(&b->conf.options, BUND_CONF_ENCRYPTION))
@@ -1034,8 +1032,6 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	Disable(&b->conf.options, BUND_CONF_ENCRYPTION);
         Disable(&b->conf.options, BUND_CONF_CRYPT_REQD);
   
-        Enable(&b->conf.options, BUND_CONF_NORETRY);
-
         /* Init iface and NCP's */
 	IfaceInit(b);
         IpcpInit(b);
@@ -1397,7 +1393,7 @@ BundBmTimeout(void *arg)
     /* Shift and update stats */
     memmove(&b->bm.wasUp[1], &b->bm.wasUp[0],
 	(BUND_BM_N - 1) * sizeof(b->bm.wasUp[0]));
-    b->bm.wasUp[0] = b->n_links;
+    b->bm.wasUp[0] = b->n_up;
     memmove(&b->bm.avail[1], &b->bm.avail[0],
 	(BUND_BM_N - 1) * sizeof(b->bm.avail[0]));
     b->bm.avail[0] = b->bm.total_bw;

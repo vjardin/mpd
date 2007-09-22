@@ -833,7 +833,7 @@ RecordLinkUpDownReason(Bund b, Link l, int up, const char *key, const char *fmt,
     va_end(args);
 
   } else if (b != NULL) {
-    for (k = 0; k < b->n_links; k++) {
+    for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
       if (b->links[k]) {
 	va_start(args, fmt);
 	RecordLinkUpDownReason2(b->links[k], up, key, fmt, args);

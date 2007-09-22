@@ -587,7 +587,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
   fsm = &b->ipcp.fsm;
 
   if (OPEN_STATE(fsm->state)) {
-    if (b->n_links > 0) {
+    if (b->n_up > 0) {
 #ifndef USE_NG_TCPMSS
       if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
 	if (proto == PROTO_IP)
