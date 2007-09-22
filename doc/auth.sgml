@@ -88,7 +88,7 @@ Default <tt><bf>disable</bf></tt>.
 
 <tag><tt>ext-auth</tt></tag>
 
-Enable authentication by calling external authentination script.
+Enable authentication by calling external script.
 This method pretended to be a fullfeatured alternative to the 
 <tt><bf>radius-auth</bf></tt>.
 

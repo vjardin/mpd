@@ -36,24 +36,30 @@ and follow the label on the next and subsequent lines.
 
 <p>
 Here is an example <tt>mpd.conf</tt> that contains a single
-configuration <tt>config1</tt> that defines a single bundle <tt>myisp</tt>,
-containing two links <tt>modem1</tt> and <tt>modem2</tt>:
+configuration <tt>client</tt> that defines a single bundle template <tt>B1</tt>
+and one link <tt>L1</tt>:
 <tscreen><verb>
 #
 # mpd.conf configuration file
 #
 
-config1:
-	new myisp modem1 modem2
-	set auth authname "mylogin1"
-	set iface enable on-demand
-	set iface addrs 1.2.3.4 5.6.7.8
-	set iface route default
-	set iface idle 300
-	link modem1
-	set modem var $Telephone "123-4567"
-	link modem2
-	set modem var $Telephone "123-4567"
+client:
+	create bundle template B1
+
+	create link static L1 modem
+	set modem device /dev/cuad0
+	set modem speed 115200
+	set modem script DialPeer
+	set modem idle-script AnswerCall
+	set modem var $DialPrefix "DT"
+	set modem var $Telephone "1234567"
+	set link no pap chap eap
+	set link accept pap
+	set link max-redial 0
+	set link bundle B1
+	set auth authname "MyLogin"
+	set auth password "MyPassword"
+	open
 </verb></tscreen>
 
 <sect1><heading><tt>mpd.secret</tt></heading>

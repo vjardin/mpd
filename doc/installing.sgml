@@ -29,24 +29,15 @@
 	When mpd is invoked, you specify the name of a
 	configuration on the command line. This configuration
 	(which merely consists of a series of mpd commands) is loaded.
-	If no configuration
-	is given, the first one listed in <tt>mpd.conf</tt>
+	If no configuration is given, 'default' configuration
 	is loaded.
 </p>
 
 <p>
-	Each configuration defines one or more bundles. Each bundle
-	is given a name, assigned a system interface and one or
-	more links that make up the bundle.
-	A bundle
-	is defined with the <bf><tt>new</tt></bf> command.
+	Each configuration defines one or more bundles, links and repeaters.
+	They can be defined with the <bf><tt>create</tt></bf> command.
 	Subsequent commands in the configuration configure the various
-	layers for that bundle.
-</p>
-
-<p>
-	Generally speaking, the commands in <tt>mpd.conf</tt> only
-	configure the device independent information for a bundle.
+	layers for that item.
 </p>
 
 	<tag> <bf><tt>mpd.secret</tt></bf>

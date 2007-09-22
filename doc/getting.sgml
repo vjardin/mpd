@@ -8,7 +8,7 @@
   <p>
 	Mpd is supplied as a
 	<bf><htmlurl url="http://www.freebsd.org/ports" name="FreeBSD port">
-	</bf>, under the name <bf><tt>net/mpd</tt></bf>.
+	</bf>, under the name <bf><tt>net/mpd5</tt></bf>.
 	Therefore, the simplest way to get mpd onto your machine
 	is to install the mpd package or port.
 	For information on how to do this, see the

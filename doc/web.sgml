@@ -25,8 +25,7 @@ set web close
 Closes the web server, i.e., closes the listening TCP socket.
 
 <tag><tt>
-set web port <em>port</em>
-<newline>set web ip <em>ip</em>
+set web self <em>ip</em> [ <em>port</em> ]
 </tt></tag>
 
 Sets the credentials for the web-listener. After changing one of these

@@ -72,17 +72,12 @@
       <date>&date;</date>
 
 <abstract>
-This manual covers the use of <bf>mpd</bf>, a multi-link PPP daemon
-for FreeBSD based on <tt>netgraph(4)</tt>.  Mpd is highly configurable
-and extendable as well as being very fast. It supports many
-combination of drivers and protocols including asynchronous serial
-(e.g., modems), synchronous serial, Frame Relay, PPTP, and others.
+This manual covers the use of <bf>mpd</bf> version <bf>&version;</bf>,
+a multi-link PPP daemon for FreeBSD based on <tt>netgraph(4)</tt>.
 
-This manual documents mpd version <bf>&version;</bf>.
-This version relies on the Netgraph networking system to combine
-the advantages of user-level configuration and negotiation flexibility
-with kernel-level speed of data handling.
-You must be running FreeBSD version 4.x or higher.
+You must be running FreeBSD version 5.x or higher to use it, and
+it is advised to have the latest system version to get access to
+all mpd features.
 </abstract>
 
 <toc>

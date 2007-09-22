@@ -12,6 +12,13 @@
 
 <descrip>
 
+<tag><tt>set link bundle <em>name</em></tt></tag><p>
+
+This command specifies the name of bundle which link should join
+after reaching NETWORK state if there is no multilink bundle ready for it.
+If the bundle template name specified new bundle will be created
+using it.
+
 <tag><tt>set link latency <em>microseconds</em></tt></tag><p>
 <tag><tt>set link bandwidth <em>bits-per-second</em></tt></tag><p>
 
@@ -217,6 +224,17 @@ Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
 Extensible Authentication Protocol.
 
 Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
+
+<tag><tt>multilink</tt></tag>
+
+This command enables multi-link PPP on the link. This option is required
+in both directions if there is more than one link in the bundle. However,
+multi-link PPP is sometimes useful on single links when the link MTU is
+low; multi-link PPP allows arbitrarily long packets to go over a link
+in fragments.
+
+This option defaults to <tt>disable</tt> and <tt>deny</tt>
+(i.e., normal non-multilink PPP).
 
 <tag><tt>acfcomp</tt></tag>
 

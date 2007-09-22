@@ -12,6 +12,27 @@
 
 <descrip>
 
+<tag><tt>create bundle [ template | static ] <em>name</em> [ <em>template</em> ] </tt>
+</tag>
+
+Create new bundle with specified name, optionally based on
+specified template. If 'template' option is specified bundle template
+will be created, else if will be an instance. If 'static' option
+is specified, it will be a permanent bundle which will not disapear
+after operation.
+
+<tag><tt>create repeater [ template | static ] <em>name</em> [ <em>template</em> ] </tt>
+</tag>
+
+Create new repeater with specified name, optionally based on
+specified template.
+
+<tag><tt>create link [ template | static ] <em>name</em> <em>type</em> [ <em>template</em> ] </tt>
+</tag>
+
+Create new link with specified name and type, optionally based on
+specified template.
+
 <tag><tt>bundle [ <em>name</em> ] </tt>
 </tag>
 
@@ -41,18 +62,6 @@ This command changes the currenly active repeater to the repeater named
 changed, to the first phys of the repeater. If no
 <tt><em>name</em></tt> is given, this command lists all
 of the defined repeaters and their constituent physes.
-The new phys will be reflected in the prompt.
-
-<tag><tt>phys [ <em>name</em> ] </tt>
-</tag>
-
-This command changes the currenly active phys to the phys named
-<tt><em>name</em></tt>. If this phys does not belong to
-the currently active bundle/repeater, then the currently active 
-bundle/repeater is changed to the bundle/repeater that owns 
-phys <tt><em>name</em></tt>. If no
-<tt><em>name</em></tt> is given, this command lists all
-of the defined physes and their bundles/repeaters.
 The new phys will be reflected in the prompt.
 
 <tag><tt>msession [ <em>msesid</em> ] </tt>
@@ -90,16 +99,11 @@ Show status information about the currently active bundle.
 Show status information about the currently active link.
 <tag>repeater</tag>
 Show status information about the currently active repeater.
-<tag>phys</tag>
-Show status information about the currently active physical device.
 <tag>iface</tag>
 Show status information about the interface layer associated
 with the currently active bundle.
 <tag>routes</tag>
 Show the current IP routing table.
-<tag>mp</tag>
-Show status information about the multi-link
-protocol associated with the currently active bundle.
 <tag>ipcp</tag>
 Show status information about the IP control
 protocol associated with the currently active bundle.
@@ -230,7 +234,7 @@ This is normally opened and closed automatically.
 Link control protocol FSM. This is default layer for open/close commands.
 Opening of this layer initiates outgoing call by this link.
 
-<tag>phys</tag>
+<tag>device</tag>
 
 Device layer.
 This is normally opened and closed automatically.
@@ -285,9 +289,6 @@ categories. Those with a * are turned on by default:
 <tag>mp</tag>		Multi-link events and negotiation
 <tag>mp2</tag>		Multi-link more verbosity
 <tag>phys*</tag>	Device layer events
-<tag>pptp*</tag>	PPTP device layer high level events
-<tag>pptp2</tag>	PPTP more verbosity
-<tag>pptp3</tag>	PPTP even more verbosity
 <tag>radius*</tag>	RADIUS authentication events
 </descrip>
 
@@ -296,11 +297,6 @@ categories. Those with a * are turned on by default:
 
 This gives a brief description of the supplied command, or if
 an incomplete command is given, lists the available alternatives.
-
-<tag><tt>null</tt>
-</tag>
-
-This command does nothing.
 
 <tag><tt>exit</tt>
 </tag>

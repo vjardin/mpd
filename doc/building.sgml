@@ -9,8 +9,8 @@
   If you choose to build mpd yourself to customize it, the
   process is straightforward. First, edit the <tt>Makefile</tt>
   to define (or undefine) the various device types and options
-  you want to support. Then type <tt>make depend all</tt> to
-  rebuild the binary.
+  you want to support. Run 'configure' script and then type
+  <tt>make depend all</tt> to rebuild the binary.
 
   The various build-time definitions in the Makefile are below:
 
@@ -32,11 +32,6 @@
   <tag><tt>PHYSTYPE_PPPOE</tt></tag><p>
 
   Define these to include support for the corresponding device type.
-
-  <tag><tt>COMPRESSION_PRED1</tt></tag><p>
-  <tag><tt>COMPRESSION_DEFLATE</tt></tag><p>
-
-  These enable support for the corresponding compression types.
 
   <tag><tt>ENCRYPTION_DES</tt></tag><p>
 

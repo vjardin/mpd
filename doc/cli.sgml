@@ -24,7 +24,7 @@
 $ mpd config1
 Multi-link PPP daemon for FreeBSD
 
-process 26177 started, version 4.2 (root@orphanage.alkar.net 15:37 19-Jun-2007)
+process 26177 started, version 5.0 (root@orphanage.alkar.net 13:16 22-Sep-2007)
 [myisp] ppp node is "mpd771-myisp"
 [myisp] using interface ng0
 </verb></tscreen>
@@ -47,7 +47,7 @@ Multi-link PPP daemon for FreeBSD
 
 Username: Admin
 Password: 
-Mpd pid 1419, version 4.2 (root@orphanage.alkar.net 15:37 19-Jun-2007)
+Mpd pid 1419, version 5.0a1 (root@orphanage.alkar.net 13:16 22-Sep-2007)
 
 [modem1]
 </verb></tscreen>
@@ -81,14 +81,13 @@ Commands available under "show":
  eap      : EAP status                   events   : Current events
  ipcp     : IPCP status                  ipv6cp   : IPV6CP status
  iface    : Interface status             routes   : IP routing table
- layers   : Layers to open/close         phys     : Physical device status
+ layers   : Layers to open/close         device   : Physical device status
  link     : Link status                  auth     : Auth status
  radius   : RADIUS status                lcp      : LCP status
  nat      : NAT status                   mem      : Memory map
- mp       : Multi-link status            console  : Console status
- web      : Web status                   global   : Global settings
- types    : Supported device types       version  : Version string
- summary  : Daemon status summary
+ console  : Console status               web      : Web status
+ global   : Global settings              types    : Supported device types
+ version  : Version string               summary  : Daemon status summary
 [modem2]
 </verb></tscreen>
 
