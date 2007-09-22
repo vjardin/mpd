@@ -1028,7 +1028,7 @@ PppoeNodeUpdate(Link l)
 
     if (!(strcmp(pi->path, "undefined:")
         &&strcmp(pi->session, "undefined:"))) {
-    	    Log(LG_ERR, ("[%s] PPPoE: Skipping link %s with undefined "
+    	    Log(LG_ERR, ("[%s] PPPoE: Skipping link \"%s\" with undefined "
 	        "interface or session", l->name, l->name));
 	    return;
     }
@@ -1100,7 +1100,7 @@ PppoeListenUpdate(void *arg)
 
 		if (!(strcmp(pi->path, "undefined:")
 		    &&strcmp(pi->session, "undefined:"))) {
-			Log(LG_ERR, ("PPPoE: Skipping link %s with undefined "
+			Log(LG_ERR, ("PPPoE: Skipping link \"%s\" with undefined "
 			    "interface or session", l->name));
 			continue;
 		}

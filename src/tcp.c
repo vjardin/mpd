@@ -805,7 +805,7 @@ TcpListenUpdate(void *arg)
 			continue;
 
 		if (!pi->conf.self_port) {
-			Log(LG_ERR, ("Tcp: Skipping link %s with undefined "
+			Log(LG_ERR, ("Tcp: Skipping link \"%s\" with undefined "
 			    "port number", l->name));
 			continue;
 		}
