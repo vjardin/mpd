@@ -29,7 +29,6 @@
     int			csock;			/* Socket node control socket */
     int			p_open;			/* Opened phys */
     int			p_up;			/* Up phys */
-    int			initiator;		/* Number of phys initiator */
     ng_ID_t		node_id;		/* ng_tee node ID */
     int			refs;			/* Number of references */
     int			dead;			/* Dead flag */

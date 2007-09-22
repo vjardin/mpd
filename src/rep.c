@@ -84,7 +84,6 @@ void
 RepIncoming(Link l)
 {
     Rep		r = l->rep;
-    int		n = (r->links[0] == l)?0:1;
     struct ngm_mkpeer       mkp;
     union {
         u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
@@ -94,10 +93,8 @@ RepIncoming(Link l)
     struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
     char	buf[64];
     
-    r->initiator = n;
-
-    Log(LG_REP, ("[%s] REP: INCOMING event from %s (%d)",
-	r->name, l->name, n));
+    Log(LG_REP, ("[%s] REP: INCOMING event from %s (0)",
+	r->name, l->name));
 	
     if (!r->links[1])
 	PhysGetRep(r);
@@ -137,13 +134,13 @@ RepIncoming(Link l)
 	    }
     }
     
-    PhysGetCallingNum(r->links[n], buf, sizeof(buf));
-    PhysSetCallingNum(r->links[1-n], buf);
+    PhysGetCallingNum(r->links[0], buf, sizeof(buf));
+    PhysSetCallingNum(r->links[1], buf);
 
-    PhysGetCalledNum(r->links[n], buf, sizeof(buf));
-    PhysSetCalledNum(r->links[1-n], buf);
+    PhysGetCalledNum(r->links[0], buf, sizeof(buf));
+    PhysSetCalledNum(r->links[1], buf);
 
-    PhysOpen(r->links[1-n]);
+    PhysOpen(r->links[1]);
 }
 
 /*
@@ -161,9 +158,8 @@ RepUp(Link l)
 
     r->p_up |= (1 << n);
     
-    if (n != r->initiator) {
+    if (n == 1)
 	PhysOpen(r->links[1-n]);
-    }
 
     if (r->p_up == 3 && r->csock > 0 && r->node_id) {
 	char path[NG_PATHLEN + 1];
