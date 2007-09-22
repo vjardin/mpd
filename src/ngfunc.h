@@ -76,7 +76,7 @@
  * FUNCTIONS
  */
 
-  extern void	NgFuncShutdownGlobal(Bund b);
+  extern void	NgFuncShutdownGlobal(void);
   extern void	NgFuncSetConfig(Bund b);
   extern int	NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp);
   extern int	NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp);

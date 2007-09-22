@@ -284,13 +284,13 @@ CloseIfaces(void)
     Bund	b;
     int		k;
 
-  /* Shut down all interfaces we grabbed */
-  for (k = 0; k < gNumBundles; k++) {
-    if (((b = gBundles[k]) != NULL) && (!b->tmpl)) {
-      IfaceClose(b);
-      BundNcpsClose(b);
+    /* Shut down all interfaces we grabbed */
+    for (k = 0; k < gNumBundles; k++) {
+	if (((b = gBundles[k]) != NULL) && (!b->tmpl)) {
+    	    IfaceClose(b);
+    	    BundNcpsClose(b);
+	}
     }
-  }
 }
 
 /*
@@ -304,45 +304,41 @@ DoExit(int code)
 {
     Bund	b;
     Rep		r;
-  int	k;
+    Link	l;
+    int		k;
 
-  gShutdownInProgress=1;
-  /* Weak attempt to record what happened */
-  if (code == EX_ERRDEAD)
-    Log(LG_ERR, ("fatal error, exiting"));
+    gShutdownInProgress=1;
+    /* Weak attempt to record what happened */
+    if (code == EX_ERRDEAD)
+	Log(LG_ERR, ("fatal error, exiting"));
 
-  /* Shutdown stuff */
-  if (code != EX_TERMINATE)	/* kludge to avoid double shutdown */
-    CloseIfaces();
+    /* Shutdown stuff */
+    if (code != EX_TERMINATE)	/* kludge to avoid double shutdown */
+	CloseIfaces();
 
-  /* Blow away all netgraph nodes */
-  for (k = 0; k < gNumBundles; k++) {
-    int global = 0;
+    NgFuncShutdownGlobal();
 
-    if (((b = gBundles[k]) != NULL) && (!b->tmpl)) {
-      if (global == 0) {
-	/*
-	 * XXX: We can't move NgFuncShutdownGlobal() out of cycle,
-	 * because we need active netgraph socket to perform shutdown.
-	 */
-        NgFuncShutdownGlobal(b);
-	global = 1;
-      }
-      BundShutdown(b);
+    /* Blow away all netgraph nodes */
+    for (k = 0; k < gNumBundles; k++) {
+	if (((b = gBundles[k]) != NULL) && (!b->tmpl))
+    	    BundShutdown(b);
     }
-  }
 
-  for (k = 0; k < gNumReps; k++) {
-    if ((r = gReps[k]) != NULL) {
-      RepShutdown(r);
+    for (k = 0; k < gNumReps; k++) {
+	if ((r = gReps[k]) != NULL)
+    	    RepShutdown(r);
     }
-  }
 
-  /* Remove our PID file and exit */
-  Log(LG_ALWAYS, ("process %d terminated", gPid));
-  LogClose();
-  (void) unlink(gPidFile);
-  exit(code == EX_TERMINATE ? EX_NORMAL : code);
+    for (k = 0; k < gNumLinks; k++) {
+	if ((l = gLinks[k]) != NULL)
+    	    LinkShutdown(l);
+    }
+
+    /* Remove our PID file and exit */
+    Log(LG_ALWAYS, ("process %d terminated", gPid));
+    LogClose();
+    (void) unlink(gPidFile);
+    exit(code == EX_TERMINATE ? EX_NORMAL : code);
 }
 
 /*

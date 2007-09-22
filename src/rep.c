@@ -413,7 +413,17 @@ RepInst(Rep rt, char *name, int tmpl, int stay)
 void
 RepShutdown(Rep r)
 {
+    int k;
+
     gReps[r->id] = NULL;
+
+    Log(LG_REP, ("[%s] Repeater shutdown", r->name));
+    for (k = 0; k < 2; k++) {
+	Link	l;
+	if ((l = r->links[k]) != NULL)
+	    if (!l->stay)
+		LinkShutdown(l);
+    }
 
     if (r->csock > 0 && r->node_id) {
 	char path[NG_PATHLEN + 1];

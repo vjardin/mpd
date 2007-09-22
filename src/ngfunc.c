@@ -366,16 +366,26 @@ done:
  */
 
 void
-NgFuncShutdownGlobal(Bund b)
+NgFuncShutdownGlobal(void)
 {
 #ifdef USE_NG_NETFLOW
-  char	path[NG_PATHLEN + 1];
+    char	path[NG_PATHLEN + 1];
+    int		csock;
 
-  if (gNetflowNode == FALSE || gNetflowNodeShutdown==FALSE)
-    return;
+    if (gNetflowNode == FALSE || gNetflowNodeShutdown==FALSE)
+	return;
 
-  snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
-  NgFuncShutdownNode(b->csock, "netflow", path);
+    /* Create a netgraph socket node */
+    if (NgMkSockNode(NULL, &csock, NULL) < 0) {
+	Log(LG_ERR, ("NgFuncShutdownGlobal: can't create %s node: %s",
+    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
+        return;
+    }
+
+    snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+    NgFuncShutdownNode(csock, "netflow", path);
+    
+    close(csock);
 #endif
 }
 
