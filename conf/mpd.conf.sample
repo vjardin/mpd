@@ -396,7 +396,7 @@ complete_lac:
 	set link action forward L2 "@corp1.net$"
 	set link action forward L3 "@corp2.net$"
 	set link action bundle B1
-	set link ippool pool1
+	set auth ippool pool1
 	set link enable incoming
 
 	create link template L2 l2tp
