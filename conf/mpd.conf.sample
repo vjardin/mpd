@@ -362,3 +362,50 @@ radius:
 	set ccp enable mppe-policy
 # protect our requests with the message-authenticator
 	set radius enable message-authentic
+
+simple_lac:
+#
+# This is a simple L2TP access concentrator which receives PPPoE calls
+# and forwards them to LNS on 1.2.3.4
+#
+
+	create link template L1 pppoe
+	set pppoe iface fxp0
+	set link action forward L2
+	set link enable incoming
+
+	create link template L2 l2tp
+	set l2tp peer 1.2.3.4
+
+complete_lac:
+#
+# This is more complicated L2TP access concentrator which receives PPPoE calls
+# and if peer auth name includes @corp1.net forwards them to LNS on 1.2.3.4,
+# if peer auth name includes @corp2.net forwards them to LNS on 2.3.4.5
+# all other connections processes itself localy using internal auth and
+# assigning dynamic IP from specified pool.
+#
+
+	set ippool add pool1 192.168.1.50 2.168.1.99
+
+	create link template L1 pppoe
+	set pppoe iface fxp0
+# We must ask authentication to get peer login
+	set link no pap chap eap
+	set link enable pap
+	set link action forward L2 "@corp1.net$"
+	set link action forward L3 "@corp2.net$"
+	set link action bundle B1
+	set link ippool pool1
+	set link enable incoming
+
+	create link template L2 l2tp
+	set l2tp peer 1.2.3.4
+	set l2tp secret corp1secret
+
+	create link template L3 l2tp
+	set l2tp peer 2.3.4.5
+	set l2tp secret corp2secret
+
+	create bundle templare B1
+	set ipcp ranges 192.168.1.1/32 127.0.0.2/32
