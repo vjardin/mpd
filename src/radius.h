@@ -52,6 +52,10 @@
   #define RAD_MESSAGE_AUTHENTIC 80
   #endif
 
+  #ifndef RAD_FRAMED_POOL
+  #define RAD_FRAMED_POOL	88
+  #endif
+
   #ifndef RAD_MAX_ATTR_LEN
   #define RAD_MAX_ATTR_LEN 253
   #endif

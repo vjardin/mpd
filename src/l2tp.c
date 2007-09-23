@@ -160,6 +160,7 @@
 
   const struct phystype	gL2tpPhysType = {
     .name		= "l2tp",
+    .descr		= "Layer Two Tunneling Protocol",
     .minReopenDelay	= L2TP_REOPEN_PAUSE,
     .mtu		= L2TP_MTU,
     .mru		= L2TP_MRU,

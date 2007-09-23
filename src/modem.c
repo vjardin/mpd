@@ -137,6 +137,7 @@
 
   const struct phystype gModemPhysType = {
     .name		= "modem",
+    .descr		= "Serial port modem",
     .minReopenDelay	= MODEM_REOPEN_PAUSE,
     .mtu		= MODEM_MTU,
     .mru		= MODEM_MRU,

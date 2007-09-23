@@ -60,6 +60,7 @@
 
   const struct phystype gNgPhysType = {
     .name		= "ng",
+    .descr		= "Netgraph hook",
     .minReopenDelay	= NG_REOPEN_PAUSE,
     .mtu		= NG_MTU,
     .mru		= NG_MRU,

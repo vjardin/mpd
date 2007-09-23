@@ -105,6 +105,7 @@
     u_char		range_valid;	/* range is valid */
     u_char		netmask;	/* IP Netmask */
 
+    char		ippool[LINK_MAX_NAME];
     u_char		ippool_used;
 
     char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */

@@ -1267,6 +1267,15 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	free(tmpval);
         break;
 
+      case RAD_FRAMED_POOL:
+	tmpval = rad_cvt_string(data, len);
+	/* copy it into the persistent data struct */
+	strcpy(auth->params.ippool, tmpval);
+	free(tmpval);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_FRAMED_POOL: %s ",
+	  auth->info.lnkname, __func__, auth->params.ippool));
+        break;
+
       case RAD_VENDOR_SPECIFIC:
 	if ((res = rad_get_vendor_attr(&vendor, &data, &len)) == -1) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_get_vendor_attr failed: %s ",

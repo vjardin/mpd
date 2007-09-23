@@ -141,6 +141,7 @@
 
   const struct phystype	gPptpPhysType = {
     .name		= "pptp",
+    .descr		= "Point-to-Point Tunneling Protocol",
     .minReopenDelay	= PPTP_REOPEN_PAUSE,
     .mtu		= PPTP_MTU,
     .mru		= PPTP_MRU,

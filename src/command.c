@@ -792,10 +792,9 @@ ShowTypes(Context ctx, int ac, char *av[], void *arg)
   PhysType	pt;
   int		k;
 
-  Printf("Supported device types:\r\n\t");
+  Printf("Supported device types:\r\n");
   for (k = 0; (pt = gPhysTypes[k]); k++)
-    Printf(" %s", pt->name);
-  Printf("\r\n");
+    Printf("\t%s\t%s\r\n", pt->name, pt->descr);
   return(0);
 }
 

@@ -59,6 +59,7 @@ N   Name                       	   Access	 Accounting
 60  CHAP-Challenge		+	-	-	-
 61  NAS-Port-Type		+	-	+	-
 85  Acct-Interim-Interval	-	+	-	-
+88  Framed-Pool			-	+	-	-
 95  NAS-IPv6-Address		+	-	+	-
 99  Framed-IPv6-Route		-	+	-	-
 

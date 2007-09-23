@@ -354,6 +354,8 @@ AuthStart(Link l)
   
     /* remember called number */
     PhysGetCalledNum(l, a->params.callednum, sizeof(a->params.callednum));
+    
+    strlcpy(a->params.ippool, a->conf.ippool, sizeof(a->params.ippool));
   
   Log(LG_AUTH, ("[%s] %s: auth: peer wants %s, I want %s",
     Pref(&l->lcp.fsm), Fsm(&l->lcp.fsm),
@@ -573,8 +575,8 @@ AuthFinish(Link l, int which, int ok)
     /* Get IP from pool if needed */
     if (which == AUTH_PEER_TO_SELF &&
       a->params.range_valid == 0 &&
-      a->conf.ippool[0]) {
-	if (IPPoolGet(a->conf.ippool, &a->params.range.addr)) {
+      a->params.ippool[0]) {
+	if (IPPoolGet(a->params.ippool, &a->params.range.addr)) {
 	    Log(LG_AUTH, ("[%s] AUTH: Can't get IP from pool \"%s\"",
 		l->name, a->conf.ippool));
 	} else {
@@ -1962,6 +1964,9 @@ AuthExternal(AuthData auth)
 
     } else if (strcmp(attr, "FRAMED_MTU") == 0) {
 	auth->params.mtu = atoi(val);
+
+    } else if (strcmp(attr, "FRAMED_POOL") == 0) {
+	strlcpy(auth->params.ippool, val, sizeof(auth->params.ippool));
 
     } else if (strcmp(attr, "REPLY_MESSAGE") == 0) {
 	if (auth->reply_message)

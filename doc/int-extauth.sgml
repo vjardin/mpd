@@ -37,6 +37,7 @@ FRAMED_IP_ADDRESS
 FRAMED_ROUTE
 FRAMED_IPV6_ROUTE
 FRAMED_MTU
+FRAMED_POOL
 SESSION_TIMEOUT
 IDLE_TIMEOUT
 REPLY_MESSAGE
@@ -50,6 +51,6 @@ MPD_FILTER
 MPD_LIMIT
 </verb>
 
-For most of attributes description look their RADIUS alternatives.
+For description of most attributes look their RADIUS alternatives.
 
 </p>

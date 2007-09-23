@@ -125,6 +125,7 @@ static void	PppoeListenUpdate(void *arg);
 
 const struct phystype gPppoePhysType = {
     .name		= "pppoe",
+    .descr		= "PPP over Ethernet",
     .minReopenDelay 	= PPPOE_REOPEN_PAUSE,
     .mtu		= PPPOE_MTU,
     .mru		= PPPOE_MRU,

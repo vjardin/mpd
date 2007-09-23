@@ -96,6 +96,7 @@ static void	TcpNodeUpdate(Link l);
 
 const struct phystype gTcpPhysType = {
 	.name		= "tcp",
+	.descr		= "PPP over TCP",
 	.minReopenDelay	= TCP_REOPEN_PAUSE,
 	.mtu		= TCP_MTU,
 	.mru		= TCP_MRU,

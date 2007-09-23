@@ -93,6 +93,7 @@
 
   const struct phystype gUdpPhysType = {
     .name		= "udp",
+    .descr		= "PPP over UDP",
     .minReopenDelay	= UDP_REOPEN_PAUSE,
     .mtu		= UDP_MTU,
     .mru		= UDP_MRU,

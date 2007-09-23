@@ -18,6 +18,7 @@
 #include "web.h"
 #include "ngfunc.h"
 #include "util.h"
+#include "ippool.h"
 
 #include <netgraph.h>
 
