@@ -1201,7 +1201,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   /* Show peer info */
     Printf("Multilink PPP:\r\n");
     Printf("\tStatus         : %s\r\n",
-      sb->multilink ? "Active" : "Inactive\r\n");
+      sb->multilink ? "Active" : "Inactive");
     if (sb->multilink) {
       Printf("\tPeer auth name : \"%s\"\r\n", sb->params.authname);
       Printf("\tPeer discrimin.: %s\r\n", MpDiscrimText(&sb->peer_discrim, buf, sizeof(buf)));
