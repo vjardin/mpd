@@ -11,24 +11,24 @@
 	<item> Design changes:
 	<itemize>
 	  <item> Removed static relations between links and bundles.
-		 Links now chooses it's bundle using negotiated parameters
-		 after it reached NETWORK state.
+		 Links now choose their bundles using negotiated parameters
+		 when they reach NETWORK phase.
 		 
 		 The first received benefit of it is simple and complete
 		 client and server multilink configuration. Also it gives
-		 ability to implement later more complicated
-		 LAC, PAC and TSA setups then it was possible before.
+		 ability to implement more complicated LAC, PAC and TSA
+		 setups then it was possible before.
 	  </item>
 	  <item> Implemented template based dynamic link/bundle creation.
 	         It allows significantly reduce amount of configuration
 		 required to operate big access servers.
 
 		 Links may be autocreated by incoming call request from device
-		 or bt DoD or BoD request from bundle. Bundle may be autocreated
-		 by the link reaching NETWORK state.
+		 or by DoD/BoD request from bundle. Bundle may be autocreated
+		 by the link reached NETWORK phase.
 	  </item>
 	  <item> To simplify configuration link and phys layers separated
-		 since version 4.2 are now rejoined again into single link layer.
+		 since version 4.2 are now rejoined again into a single link layer.
 	  </item>
 	</itemize>
 	</item>
