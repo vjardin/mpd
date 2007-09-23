@@ -32,7 +32,7 @@ default:
 
 dialup:
 #
-# Example of a simple PPP dialup account using "usr" modem device.
+# Example of a simple PPP dialup account using modem device.
 # This will connect whenever there is outgoing demand (DoD), and hangup
 # after a 15 minute idle time. It also connects and disconnects
 # when signals SIGUSR1 and SIGUSR2 are received, respectively.
