@@ -857,9 +857,9 @@ AuthAccount(void *arg)
 	struct u_addr ip;
 	in_addrtou_addr(&auth->info.peer_addr, &ip);
 	if (auth->acct_type == AUTH_ACCT_START)
-	    IPPoolReserve(&ip);
+	    IPPoolReserve(auth->params.ippool, &ip);
 	else if (auth->acct_type == AUTH_ACCT_STOP)
-	    IPPoolFree(&ip);
+	    IPPoolFree(auth->params.ippool, &ip);
     }
 
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))

@@ -28,8 +28,8 @@
  */
 
   extern int	IPPoolGet(char *pool, struct u_addr *ip);
-  extern void	IPPoolReserve(struct u_addr *ip);
-  extern void	IPPoolFree(struct u_addr *ip);
+  extern void	IPPoolReserve(char *pool, struct u_addr *ip);
+  extern void	IPPoolFree(char *pool, struct u_addr *ip);
   
   extern void	IPPoolInit(void);
   extern int	IPPoolStat(Context ctx, int ac, char *av[], void *arg);

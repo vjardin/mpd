@@ -80,44 +80,54 @@ int IPPoolGet(char *pool, struct u_addr *ip)
     return (-1);
 }
 
-void IPPoolReserve(struct u_addr *ip) {
+void IPPoolReserve(char *pool, struct u_addr *ip) {
     IPPool	p;
     time_t	now = time(NULL);
     int		i;
 
     MUTEX_LOCK(gIPPoolMutex);
     SLIST_FOREACH(p, &gIPPools, next) {
-	i = 0;
-	while (i < p->size) {
-	    if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
-		p->pool[i].until = now + 3600*24*365*10;
-		MUTEX_UNLOCK(gIPPoolMutex);
-		return;
-	    }
-	    i++;
+	if (strcmp(p->name, pool) == 0)
+	    break;
+    }
+    if (!p) {
+	MUTEX_UNLOCK(gIPPoolMutex);
+	return;
+    }
+    i = 0;
+    while (i < p->size) {
+        if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
+    	    p->pool[i].until = now + 3600*24*365*10;
+	    MUTEX_UNLOCK(gIPPoolMutex);
+	    return;
 	}
+	i++;
     }
     MUTEX_UNLOCK(gIPPoolMutex);
-    Log(LG_ERR, ("unable to reserve ip"));
 }
-void IPPoolFree(struct u_addr *ip) {
+void IPPoolFree(char *pool, struct u_addr *ip) {
     IPPool	p;
     int		i;
 
     MUTEX_LOCK(gIPPoolMutex);
     SLIST_FOREACH(p, &gIPPools, next) {
-	i = 0;
-	while (i < p->size) {
-	    if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
-		p->pool[i].until = 0;
-		MUTEX_UNLOCK(gIPPoolMutex);
-		return;
-	    }
-	    i++;
+	if (strcmp(p->name, pool) == 0)
+	    break;
+    }
+    if (!p) {
+	MUTEX_UNLOCK(gIPPoolMutex);
+	return;
+    }
+    i = 0;
+    while (i < p->size) {
+        if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
+    	    p->pool[i].until = 0;
+	    MUTEX_UNLOCK(gIPPoolMutex);
+	    return;
 	}
+	i++;
     }
     MUTEX_UNLOCK(gIPPoolMutex);
-    Log(LG_ERR, ("unable to free ip"));
 }
 
 static void
