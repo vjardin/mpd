@@ -360,7 +360,7 @@ WebShowSummary(FILE *f)
 	fprintf(f, "<TR>\n");
 	fprintf(f, "<TD rowspan=\"%d\" colspan=6>Repeater</TD>\n", rows);
 	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?R=%s&amp;show&amp;repeater\">%s</a></TD>\n", 
-	     rows, R->tmpl?"d":(R->p_up?"g":"r"), R->name, R->name);
+	     rows, R->p_up?"g":"r", R->name, R->name);
 	for (l = 0; l < 2; l++) {
 	    if ((L=R->links[l]) != NULL) {
 		if (shown)
