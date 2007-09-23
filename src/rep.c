@@ -23,58 +23,10 @@
 #include <netgraph.h>
 
 /*
- * DEFINITIONS
- */
-
-  /* Set menu options */
-  enum {
-    SET_LINK,
-    SET_ACCEPT,
-    SET_DENY,
-    SET_ENABLE,
-    SET_DISABLE,
-    SET_YES,
-    SET_NO,
-  };
-
-/*
  * INTERNAL FUNCTIONS
  */
 
-  static int	RepSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	RepShowLinks(Context ctx, Rep r);
-
-/*
- * GLOBAL VARIABLES
- */
-
-  struct discrim	self_discrim;
-
-  const struct cmdtab RepSetCmds[] = {
-    { "link {template}",		"Set link template",
-	RepSetCommand, NULL, (void *) SET_LINK },
-    { "accept [opt ...]",		"Accept option",
-	RepSetCommand, NULL, (void *) SET_ACCEPT },
-    { "deny [opt ...]",			"Deny option",
-	RepSetCommand, NULL, (void *) SET_DENY },
-    { "enable [opt ...]",		"Enable option",
-	RepSetCommand, NULL, (void *) SET_ENABLE },
-    { "disable [opt ...]",		"Disable option",
-	RepSetCommand, NULL, (void *) SET_DISABLE },
-    { "yes [opt ...]",			"Enable and accept option",
-	RepSetCommand, NULL, (void *) SET_YES },
-    { "no [opt ...]",			"Disable and deny option",
-	RepSetCommand, NULL, (void *) SET_NO },
-    { NULL },
-  };
-
-/*
- * INTERNAL VARIABLES
- */
-
-  static const struct confinfo	gConfList[] = {
-    { 0,	0,			NULL		},
-  };
 
 /*
  * RepIncoming()
@@ -96,13 +48,6 @@ RepIncoming(Link l)
     Log(LG_REP, ("[%s] REP: INCOMING event from %s (0)",
 	r->name, l->name));
 	
-    if (!r->links[1])
-	PhysGetRep(r);
-    if (!r->links[1]) {
-	PhysClose(l);
-	return;
-    }
-
     if (r->csock <= 0) {
 	/* Create a new netgraph node to control TCP ksocket node. */
 	if (NgMkSockNode(NULL, &r->csock, NULL) < 0) {
@@ -200,7 +145,7 @@ RepDown(Link l)
 	r->csock = -1;
     }
     
-    if (r->links[1-n] == NULL && !r->stay)
+    if (r->links[1-n] == NULL)
 	RepShutdown(r);
 }
 
@@ -300,114 +245,52 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
  */
 
 int
-RepCreate(Context ctx, int ac, char *av[], void *arg)
+RepCreate(Link in, char *out)
 {
-    Rep		r, rt = NULL;
+    Rep		r;
+    Link	l;
     int		k;
-    int         tmpl = 0;
-    int         stay = 0;
 
-    RESETREF(ctx->lnk, NULL);
-    RESETREF(ctx->bund, NULL);
-    RESETREF(ctx->rep, NULL);
-
-    if (ac < 1)
-	return(-1);
-
-    if (strcmp(av[0], "template") == 0) {
-	tmpl = 1;
-	stay = 1;
-    } else if (strcmp(av[0], "static") == 0)
-	stay = 1;
-
-    if (ac - stay < 1 || ac - stay > 2)
-	return(-1);
-
-    if (strlen(av[0 + stay])>16) {
-	Log(LG_ERR, ("repeater name \"%s\" is too long", av[0 + stay]));
+    if ((l = LinkFind(out)) == NULL) {
+	Log(LG_REP, ("[%s] Can't find link \"%s\"", in->name, out));
+	return (-1);
+    }
+    if (PhysIsBusy(l)) {
+	Log(LG_REP, ("[%s] Link \"%s\" is busy", in->name, out));
+	return (-1);
+    }
+    if (l->tmpl)
+	l = LinkInst(l, NULL, 0, 0);
+    if (!l) {
+	Log(LG_REP, ("[%s] Can't create link \"%s\"", in->name, out));
 	return (-1);
     }
 
-    /* See if repeater name already taken */
-    if ((r = RepFind(av[0 + stay])) != NULL) {
-	Log(LG_ERR, ("repeater \"%s\" already exists", av[0 + stay]));
-	return (-1);
-    }
+    /* Create a new repeater structure */
+    r = Malloc(MB_REP, sizeof(*r));
+    snprintf(r->name, sizeof(r->name), "R-%s", in->name);
+    r->csock = -1;
 
-    if (ac - stay == 2) {
-	/* See if template name specified */
-	if ((rt = RepFind(av[1 + stay])) == NULL) {
-	    Log(LG_ERR, ("Repeater template \"%s\" not found", av[1 + stay]));
-	    return (0);
-	}
-	if (!rt->tmpl) {
-	    Log(LG_ERR, ("Repeater \"%s\" is not a template", av[1 + stay]));
-	    return (0);
-	}
-    }
+    /* Add repeater to the list of repeaters and make it the current active repeater */
+    for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
+    if (k == gNumReps)			/* add a new repeater pointer */
+        LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
+    r->id = k;
+    gReps[k] = r;
+    REF(r);
 
-    /* Create and initialize new link */
-    if (rt) {
-	r = RepInst(rt, av[0 + stay], tmpl, stay);
-    } else {
-        /* Create a new repeater structure */
-        r = Malloc(MB_REP, sizeof(*r));
-	snprintf(r->name, sizeof(r->name), "%s", av[0 + stay]);
-	r->tmpl = tmpl;
-	r->stay = stay;
-	r->csock = -1;
-
-	/* Add repeater to the list of repeaters and make it the current active repeater */
-	for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
-	if (k == gNumReps)			/* add a new repeater pointer */
-	    LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
-	r->id = k;
-	gReps[k] = r;
-	REF(r);
-    }
-  
-    RESETREF(ctx->rep, r);
+    /* Join all part */
+    r->links[0] = in;
+    r->links[1] = l;
+    in->rep = r;
+    l->rep = r;
 
     /* Done */
     return(0);
 }
 
 /*
- * RepInst()
- */
-
-Rep
-RepInst(Rep rt, char *name, int tmpl, int stay)
-{
-    Rep 	r;
-    int		k;
-
-    /* Create and initialize new link */
-    r = Malloc(MB_REP, sizeof(*r));
-    memcpy(r, rt, sizeof(*r));
-    r->tmpl = tmpl;
-    r->stay = stay;
-    r->refs = 0;
-
-    /* Find a free rep pointer */
-    for (k = 0; k < gNumReps && gReps[k] != NULL; k++);
-    if (k == gNumReps)			/* add a new repeater pointer */
-        LengthenArray(&gReps, sizeof(*gReps), &gNumReps, MB_REP);
-    r->id = k;
-
-    if (name)
-	strlcpy(r->name, name, sizeof(r->name));
-    else
-	snprintf(r->name, sizeof(r->name), "%s-%d", rt->name, k);
-    gReps[k] = r;
-    REF(r);
-
-    return (r);
-}
-
-/*
  * RepShutdown()
- *
  */
  
 void
@@ -465,8 +348,7 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
   }
 
   /* Show stuff about the repeater */
-  Printf("Repeater %s%s:\r\n", r->name, r->tmpl?" (template)":(r->stay?" (static)":""));
-  Printf("\tLink template   : %s\r\n", r->linkt);
+  Printf("Repeater %s:\r\n", r->name);
   Printf("\tLinks           : ");
   RepShowLinks(ctx, r);
 
@@ -511,53 +393,5 @@ RepFind(char *name)
     k < gNumReps && (!gReps[k] || strcmp(gReps[k]->name, name));
     k++);
   return((k < gNumReps) ? gReps[k] : NULL);
-}
-
-/*
- * RepSetCommand()
- */
-
-static int
-RepSetCommand(Context ctx, int ac, char *av[], void *arg)
-{
-    Rep		r = ctx->rep;
-
-  if (ac == 0)
-    return(-1);
-  switch ((intptr_t)arg) {
-    case SET_LINK:
-	if (ac != 1)
-	    return(-1);
-	snprintf(ctx->rep->linkt, sizeof(ctx->rep->linkt), "%s", av[0]);
-	break;
-
-    case SET_ACCEPT:
-      AcceptCommand(ac, av, &r->options, gConfList);
-      break;
-
-    case SET_DENY:
-      DenyCommand(ac, av, &r->options, gConfList);
-      break;
-
-    case SET_ENABLE:
-      EnableCommand(ac, av, &r->options, gConfList);
-      break;
-
-    case SET_DISABLE:
-      DisableCommand(ac, av, &r->options, gConfList);
-      break;
-
-    case SET_YES:
-      YesCommand(ac, av, &r->options, gConfList);
-      break;
-
-    case SET_NO:
-      NoCommand(ac, av, &r->options, gConfList);
-      break;
-
-    default:
-      assert(0);
-  }
-  return(0);
 }
 

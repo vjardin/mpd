@@ -109,42 +109,6 @@ PhysInst(Link l, Link lt)
 }
 
 /*
- * PhysGetRep()
- */
-
-int
-PhysGetRep(Rep r)
-{
-    if (r->links[1])
-	return (1);
-    
-    if (r->linkt[0]) {
-	Link	l = LinkFind(r->linkt);
-	if (l) {
-	    if (l->tmpl) {
-		l = LinkInst(l, NULL, 0, 0);
-		if (!l) {
-		    Log(LG_REP, ("[%s] rep: Can't instantiate link \"%s\"", r->name, r->linkt));
-		    return (0);
-		}
-	    }
-	} else {
-	    Log(LG_REP, ("[%s] rep: Can't find link \"%s\"", r->name, r->linkt));
-	    return (0);
-	}
-	if (l) {
-	    r->links[1] = l;
-	    l->rep = r;
-	}
-    } else {
-	Log(LG_REP, ("[%s] rep: Link template not specified", r->name));
-	return (0);
-    }
-    
-    return (1);
-}
-
-/*
  * PhysOpenCmd()
  */
 
@@ -245,17 +209,11 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 void
 PhysIncoming(Link l)
 {
-    if (!l->rep && l->rept[0]!=0) {
-	Rep rt = RepFind(l->rept);
-	if (rt) {
-	    if (rt->tmpl)
-		l->rep = RepInst(rt, NULL, 0, 0);
-	    else
-		l->rep = rt;
-	    l->rep->links[0] = l;
-	} else {
-	    Log(LG_ERR, ("[%s] Repeater template '%s' not found", l->name, l->rept));
+    if (l->rept[0]!=0) {
+	if (RepCreate(l, l->rept)) {
+	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, l->rept));
 	    PhysClose(l);
+	    return;
 	}
     }
 

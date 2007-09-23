@@ -88,7 +88,6 @@
   extern int		PhysInit(Link l);
   extern int		PhysInst(Link l, Link lt);
   extern int		PhysGet(Link l);
-  extern int		PhysGetRep(Rep r);
   extern void		PhysShutdown(Link l);
   extern void		PhysSetDeviceType(Link l, char *typename);
   extern int		PhysGetOriginate(Link l);

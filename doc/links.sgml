@@ -19,11 +19,10 @@ after reaching NETWORK state if there is no multilink bundle ready for it.
 If the bundle template name specified new bundle will be created
 using it.
 
-<tag><tt>set link repeater <em>name</em></tt></tag><p>
+<tag><tt>set link repeat <em>name</em></tt></tag><p>
 
-This command specifies the name of repeater which link should join.
-If the repeater template name specified new repeater will be created
-using it.
+This command specifies the name the link where connection should be forwarded.
+If the link template name specified new link will be created using it.
 
 <tag><tt>set link latency <em>microseconds</em></tt></tag><p>
 <tag><tt>set link bandwidth <em>bits-per-second</em></tt></tag><p>

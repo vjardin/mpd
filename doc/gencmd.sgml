@@ -21,12 +21,6 @@ will be created, else if will be an instance. If 'static' option
 is specified, it will be a permanent bundle which will not disapear
 after operation.
 
-<tag><tt>create repeater [ template | static ] <em>name</em> [ <em>template</em> ] </tt>
-</tag>
-
-Create new repeater with specified name, optionally based on
-specified template.
-
 <tag><tt>create link [ template | static ] <em>name</em> ( <em>type</em> | <em>template</em> ) </tt>
 </tag>
 

@@ -111,8 +111,6 @@
 	LinkCreate, NULL, NULL },
     { "bundle [template|static] {name} {template}",	"Create bundle/template",
 	BundCreate, NULL, NULL },
-    { "repeater [template|static] {name} {template}",	"Create repeater/template",
-	RepCreate, NULL, NULL },
   };
 
   static const struct cmdtab ShowCommands[] = {
@@ -172,8 +170,6 @@
   static const struct cmdtab SetCommands[] = {
     { "bundle ...",			"Bundle specific stuff",
 	CMD_SUBMENU, AdmitBund, (void *) BundSetCmds },
-    { "repeater ...",			"Repeater specific stuff",
-	CMD_SUBMENU, AdmitRep, (void *) RepSetCmds },
     { "link ...",			"Link specific stuff",
 	CMD_SUBMENU, AdmitLink, (void *) LinkSetCmds },
     { "iface ...",			"Interface specific stuff",

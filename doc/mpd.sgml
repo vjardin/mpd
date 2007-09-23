@@ -24,7 +24,6 @@
 <!ENTITY console SYSTEM "console.sgml">
 <!ENTITY web SYSTEM "web.sgml">
 <!ENTITY bundle SYSTEM "bundle.sgml">
-<!ENTITY repeater SYSTEM "repeater.sgml">
 <!ENTITY interface SYSTEM "interface.sgml">
 <!ENTITY netflow SYSTEM "netflow.sgml">
 <!ENTITY ipcp SYSTEM "ipcp.sgml">
@@ -110,7 +109,6 @@ all mpd features.
 	&console;
 	&web;
 	&bundle;
-	&repeater;
 	&interface;
 	&ipcp;
 	&links;

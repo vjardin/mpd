@@ -20,7 +20,7 @@
 	<bf><ref id="links" name="Links"></bf>
 	
 	In "ppp repeater" mode such hierarchy used:
-	<bf><ref id="repeater" name="Repeater"></bf> -> 
+	<bf>Repeater</bf> -> 
 	<bf><ref id="links" name="Links"></bf>
 	
 	A <bf><ref id="links" name="link"></bf> is a single point-to-point
@@ -82,7 +82,7 @@
 	The type dictates how the device dependent part
 	is configured and what it's capabilities are.
 
-	A <bf><ref id="repeater" name="repeater"></bf> is a collection 
+	A <bf>repeater</bf> is a collection 
 	of two physical devices (links). It repeats all connections coming
 	from one physical device to another without any modification. 
 	This technology is also known as LAC (L2TP Access Concentrator) 

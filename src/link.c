@@ -34,7 +34,7 @@
   /* Set menu options */
   enum {
     SET_BUNDLE,
-    SET_REPEATER,
+    SET_REPEAT,
     SET_BANDWIDTH,
     SET_LATENCY,
     SET_ACCMAP,
@@ -70,8 +70,8 @@
 	LinkSetCommand, NULL, (void *) SET_BANDWIDTH },
     { "bundle {template}",		"Bundle template name",
 	LinkSetCommand, NULL, (void *) SET_BUNDLE },
-    { "repeater {template}",		"Repeater template name",
-	LinkSetCommand, NULL, (void *) SET_REPEATER },
+    { "repeat {template}",		"Repeat-to link template name",
+	LinkSetCommand, NULL, (void *) SET_REPEAT },
     { "latency {microsecs}",		"Link latency",
 	LinkSetCommand, NULL, (void *) SET_LATENCY },
     { "accmap {hex-value}",		"Accmap value",
@@ -1025,7 +1025,7 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 	snprintf(ctx->lnk->bundt, sizeof(ctx->lnk->bundt), "%s", av[0]);
         break;
 
-    case SET_REPEATER:
+    case SET_REPEAT:
 	if (ac != 1)
 	    return(-1);
 	snprintf(ctx->lnk->rept, sizeof(ctx->lnk->rept), "%s", av[0]);
