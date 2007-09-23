@@ -177,7 +177,7 @@ pptp_server:
 #
 
 # Define dynamic IP address pool.
-	set ippool add pool1 192.168.1.50 2.168.1.99
+	set ippool add pool1 192.168.1.50 192.168.1.99
 
 # Create clonable bundle template named B
 	create bundle template B
@@ -386,7 +386,7 @@ complete_lac:
 # assigning dynamic IP from specified pool.
 #
 
-	set ippool add pool1 192.168.1.50 2.168.1.99
+	set ippool add pool1 192.168.1.50 192.168.1.99
 
 	create link template L1 pppoe
 	set pppoe iface fxp0
@@ -407,5 +407,5 @@ complete_lac:
 	set l2tp peer 2.3.4.5
 	set l2tp secret corp2secret
 
-	create bundle templare B1
+	create bundle template B1
 	set ipcp ranges 192.168.1.1/32 127.0.0.2/32
