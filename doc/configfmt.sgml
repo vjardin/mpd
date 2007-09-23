@@ -55,10 +55,10 @@ client:
 	set modem var $Telephone "1234567"
 	set link no pap chap eap
 	set link accept pap
-	set link max-redial 0
-	set link bundle B1
 	set auth authname "MyLogin"
 	set auth password "MyPassword"
+	set link max-redial 0
+	set link action bundle B1
 	open
 </verb></tscreen>
 
