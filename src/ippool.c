@@ -29,6 +29,7 @@ struct ippool {
 typedef	struct ippool	*IPPool;
 
 SLIST_HEAD(, ippool)	gIPPools;
+pthread_mutex_t		gIPPoolMutex;
 
 static void	IPPoolAdd(char *pool, struct in_addr begin, struct in_addr end);
 static int	IPPoolSetCommand(Context ctx, int ac, char *av[], void *arg);
@@ -39,27 +40,43 @@ static int	IPPoolSetCommand(Context ctx, int ac, char *av[], void *arg);
     { NULL },
   };
 
+void
+IPPoolInit(void)
+{
+    int ret = pthread_mutex_init (&gGiantMutex, NULL);
+    if (ret != 0) {
+	Log(LG_ERR, ("Could not create IP pool mutex: %d", ret));
+	exit(EX_UNAVAILABLE);
+    }
+    SLIST_INIT(&gIPPools);
+}
+
 int IPPoolGet(char *pool, struct u_addr *ip)
 {
     IPPool	p;
     time_t	now = time(NULL);
     int		i;
 
+    MUTEX_LOCK(gIPPoolMutex);
     SLIST_FOREACH(p, &gIPPools, next) {
 	if (strcmp(p->name, pool) == 0)
 	    break;
     }
-    if (!p)
+    if (!p) {
+	MUTEX_UNLOCK(gIPPoolMutex);
 	return (-1);
+    }
     i = 0;
     while (i < p->size) {
 	if (p->pool[i].until < now) {
 	    p->pool[i].until = now + 30;
 	    in_addrtou_addr(&p->pool[i].ip, ip);
+	    MUTEX_UNLOCK(gIPPoolMutex);
 	    return (0);
 	}
 	i++;
     }
+    MUTEX_UNLOCK(gIPPoolMutex);
     return (-1);
 }
 
@@ -68,32 +85,38 @@ void IPPoolReserve(struct u_addr *ip) {
     time_t	now = time(NULL);
     int		i;
 
+    MUTEX_LOCK(gIPPoolMutex);
     SLIST_FOREACH(p, &gIPPools, next) {
 	i = 0;
 	while (i < p->size) {
 	    if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
 		p->pool[i].until = now + 3600*24*365*10;
+		MUTEX_UNLOCK(gIPPoolMutex);
 		return;
 	    }
 	    i++;
 	}
     }
+    MUTEX_UNLOCK(gIPPoolMutex);
     Log(LG_ERR, ("unable to reserve ip"));
 }
 void IPPoolFree(struct u_addr *ip) {
     IPPool	p;
     int		i;
 
+    MUTEX_LOCK(gIPPoolMutex);
     SLIST_FOREACH(p, &gIPPools, next) {
 	i = 0;
 	while (i < p->size) {
 	    if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
 		p->pool[i].until = 0;
+		MUTEX_UNLOCK(gIPPoolMutex);
 		return;
 	    }
 	    i++;
 	}
     }
+    MUTEX_UNLOCK(gIPPoolMutex);
     Log(LG_ERR, ("unable to free ip"));
 }
 
@@ -112,6 +135,7 @@ IPPoolAdd(char *pool, struct in_addr begin, struct in_addr end)
 	return;
     }
     
+    MUTEX_LOCK(gIPPoolMutex);
     SLIST_FOREACH(p, &gIPPools, next) {
 	if (strcmp(p->name, pool) == 0)
 	    break;
@@ -146,6 +170,7 @@ IPPoolAdd(char *pool, struct in_addr begin, struct in_addr end)
 	p->pool[k++].ip = ip;
     }
     p->size = k;
+    MUTEX_UNLOCK(gIPPoolMutex);
 }
 
 /*
@@ -159,6 +184,7 @@ IPPoolStat(Context ctx, int ac, char *av[], void *arg)
     time_t	now = time(NULL);
 
     Printf("Available IP pools:\r\n");
+    MUTEX_LOCK(gIPPoolMutex);
     SLIST_FOREACH(p, &gIPPools, next) {
 	int	i;
 	int	total = 0;
@@ -172,6 +198,7 @@ IPPoolStat(Context ctx, int ac, char *av[], void *arg)
 	}
 	Printf("\t%s:\tused %4d of %4d\r\n", p->name, used, total);
     }
+    MUTEX_UNLOCK(gIPPoolMutex);
     return(0);
 }
 
