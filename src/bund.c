@@ -286,6 +286,8 @@ BundJoin(Link l)
     l->joined_bund = 1;
     b->n_up++;
 
+    LinkResetStats(l);
+
     if (b->n_up == 1) {
 
 	/* Cancel re-open timer; we've come up somehow (eg, LCP renegotiation) */

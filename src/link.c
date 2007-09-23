@@ -228,8 +228,6 @@ LinkDown(Link l)
 	    l->die = 1;
         LcpDown(l);
     }
-    /* reset Link-stats */
-//    LinkResetStats(l);  /* XXX: I don't think this is a right place */
 }
 
 /*
@@ -948,10 +946,11 @@ LinkUpdateStats(Link l)
 void
 LinkResetStats(Link l)
 {
-  NgFuncClrStats(l->bund, l->bundleIndex);
-  memset(&l->stats, 0, sizeof(l->stats));
+    if (l->bund)
+	NgFuncClrStats(l->bund, l->bundleIndex);
+    memset(&l->stats, 0, sizeof(l->stats));
 #ifndef NG_PPP_STATS64
-  memset(&l->oldStats, 0, sizeof(l->oldStats));
+    memset(&l->oldStats, 0, sizeof(l->oldStats));
 #endif
 }
 
