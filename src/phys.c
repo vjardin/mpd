@@ -61,7 +61,6 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void	PhysOpenTimeout(void *arg);
   static void	PhysMsg(int type, void *arg);
 
 /*
@@ -210,7 +209,6 @@ void
 PhysDown(Link l, const char *reason, const char *details, ...)
 {
     Log(LG_PHYS2, ("[%s] device: DOWN event", l->name));
-    l->lastClose = time(NULL);
     if (!l->rep) {
 	if (details) {
 	    va_list	args;
@@ -495,7 +493,6 @@ static void
 PhysMsg(int type, void *arg)
 {
     Link	const l = (Link)arg;
-    time_t	const now = time(NULL);
 
     if (l->dead) {
 	UNREF(l);
@@ -507,45 +504,15 @@ PhysMsg(int type, void *arg)
     case MSG_OPEN:
         if (!l->rep)
     	    l->downReasonValid=0;
-        if (now - l->lastClose < l->type->minReopenDelay) {
-	    if (TimerRemain(&l->openTimer) < 0) {
-		int	delay = l->type->minReopenDelay - (now - l->lastClose);
-
-		if ((random() ^ gPid ^ time(NULL)) & 1)
-		    delay++;
-		Log(LG_PHYS, ("[%s] pausing %d seconds before open",
-		    l->name, delay));
-		TimerStop(&l->openTimer);
-		TimerInit(&l->openTimer, "PhysOpen",
-		    delay * SECONDS, PhysOpenTimeout, l);
-		TimerStart(&l->openTimer);
-	    }
-	    break;
-        }
-        TimerStop(&l->openTimer);
         (*l->type->open)(l);
         break;
     case MSG_CLOSE:
-        TimerStop(&l->openTimer);
         (*l->type->close)(l);
         break;
     default:
         assert(FALSE);
     }
     UNREF(l);
-}
-
-/*
- * PhysOpenTimeout()
- */
-
-static void
-PhysOpenTimeout(void *arg)
-{
-  Link	const l = (Link)arg;
-
-  TimerStop(&l->openTimer);
-  PhysOpen(l);
 }
 
 /*

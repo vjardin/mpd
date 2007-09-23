@@ -134,9 +134,7 @@
     u_char		state;			/* Device current state */
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
-    time_t		lastClose;		/* Time of last close */
     MsgHandler		pmsgs;			/* Message channel */
-    struct pppTimer	openTimer;		/* Open retry timer */
     Rep			rep;			/* Rep connected to the device */
     char		rept[LINK_MAX_NAME];	/* Repeater template for incomings */
   };
