@@ -550,34 +550,42 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
 void
 AuthFinish(Link l, int which, int ok)
 {
-  Auth		const a = &l->lcp.auth;
+    Auth	const a = &l->lcp.auth;
 
-  switch (which) {
-    case AUTH_SELF_TO_PEER:
-      a->self_to_peer = 0;
-      break;
-
-    case AUTH_PEER_TO_SELF:
-      a->peer_to_self = 0;
-      break;
-
-    default:
-      assert(0);
-  }
-
-  /* Did auth fail (in either direction)? */
-  if (!ok) {
-    AuthStop(l);
-    LcpAuthResult(l, FALSE);
-    return;
-  }
-
-  /* Did auth succeed (in both directions)? */
-  if (!a->peer_to_self && !a->self_to_peer) {
-    AuthStop(l);
-    LcpAuthResult(l, TRUE);
-    return;
-  }
+    if (which == AUTH_SELF_TO_PEER)
+        a->self_to_peer = 0;
+    else
+        a->peer_to_self = 0;
+    /* Did auth fail (in either direction)? */
+    if (!ok) {
+	AuthStop(l);
+	LcpAuthResult(l, FALSE);
+	return;
+    }
+    /* Get IP from pool if needed */
+    if (which == AUTH_PEER_TO_SELF &&
+      a->params.range_valid == 0 &&
+      a->conf.ippool[0]) {
+	if (IPPoolGet(a->conf.ippool, &a->params.range.addr)) {
+	    Log(LG_AUTH, ("[%s] AUTH: Can't get IP from pool \"%s\"",
+		l->name, a->conf.ippool));
+	} else {
+	    char buf[64];
+	    Log(LG_AUTH, ("[%s] AUTH: Got IP %s from pool \"%s\"",
+		l->name,
+		u_addrtoa(&a->params.range.addr, buf, sizeof(buf)),
+		a->conf.ippool));
+	    a->params.range.width = 32;
+	    a->params.range_valid = 1;
+	    a->params.ippool_used = 1;
+	}
+    }
+    /* Did auth succeed (in both directions)? */
+    if (!a->peer_to_self && !a->self_to_peer) {
+	AuthStop(l);
+	LcpAuthResult(l, TRUE);
+	return;
+    }
 }
 
 /*
@@ -1100,21 +1108,6 @@ AuthAsyncFinish(void *arg, int was_canceled)
     /* Replace modified data */
     authparamsDestroy(&l->lcp.auth.params);
     authparamsMove(&auth->params,&l->lcp.auth.params);
-    
-    if (auth->status != AUTH_STATUS_FAIL &&
-      l->lcp.auth.params.range_valid == 0 &&
-      l->lcp.auth.conf.ippool[0]) {
-	if (IPPoolGet(l->lcp.auth.conf.ippool, &l->lcp.auth.params.range.addr)) {
-	    Log(LG_AUTH, ("[%s] AUTH: Can't get IP from pool \"%s\"",
-		l->name, l->lcp.auth.conf.ippool));
-	} else {
-	    Log(LG_AUTH, ("[%s] AUTH: Using IP from pool \"%s\"",
-		l->name, l->lcp.auth.conf.ippool));
-	    l->lcp.auth.params.range.width = 32;
-	    l->lcp.auth.params.range_valid = 1;
-	    l->lcp.auth.params.ippool_used = 1;
-	}
-    }
   
     auth->finish(l, auth);
 }
