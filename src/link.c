@@ -431,10 +431,24 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
 {
     Link 	l;
     int		k;
+    struct linkaction	*a, *ap, *at;
 
     /* Create and initialize new link */
     l = Malloc(MB_LINK, sizeof(*l));
     memcpy(l, lt, sizeof(*l));
+    
+    ap = NULL;
+    SLIST_INIT(&l->actions);
+    SLIST_FOREACH(at, &lt->actions, next) {
+	a = Malloc(MB_AUTH, sizeof(*a));
+	memcpy(a, at, sizeof(*a));
+	regcomp(&a->regexp, a->regex, REG_EXTENDED);
+	if (!ap)
+	    SLIST_INSERT_HEAD(&l->actions, a, next);
+	else
+	    SLIST_INSERT_AFTER(ap, a, next);
+	ap = a;
+    }
     if (!tmpl)
 	l->msgs = MsgRegister(LinkMsg);
     l->tmpl = tmpl;
