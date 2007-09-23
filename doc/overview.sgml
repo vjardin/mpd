@@ -7,11 +7,11 @@
 
       <p>
 	Mpd is a netgraph(4) based implementation of the multi-link
-	PPP protocol for FreeBSD.  It is designed to be both fast
-	and flexible.  It handles configuration and negotiation in
+	PPP protocol for FreeBSD. It is designed to be both fast
+	and flexible. It handles configuration and negotiation in
 	user land, while routing all data packets strictly in the
-	kernel.  It supports several of the numerous PPP sub-protocols
-	and extensions, such as:
+	kernel. It supports numerous PPP sub-protocols and
+	extensions, such as:
 	<itemize>
         <item>Multi-link PPP capability 
         <item>PAP, CHAP, MS-CHAP and EAP authentication 
@@ -51,22 +51,21 @@
 	Mpd also includes many additional features: 
 	<itemize>
         <item>IPv4 and IPv6 support
+        <item>Telnet and HTTP control interfaces.
         <item>RADIUS authentication and accounting
         <item>NetFlow traffic accounting
         <item>Network address translation (NAT)
         <item>Dial-on-demand with idle timeout 
-        <item>Multiple active connections running simultaneously 
         <item>Dynamic demand based link management (also known as ``rubber bandwidth'') 
         <item>Powerful chat scripting language for asynchronous serial ports 
         <item>Pre-tested chat scripts for several common modems and ISDN TAs
         <item>Clean device-type independent design 
         <item>Comprehensive logging
-        <item>Telnet and HTTP control interfaces.
 	</itemize>
       <p>
 	Mpd was originally developed at Whistle Communications, Inc.
 	for use in the Whistle InterJet.
 	It is based on the original <tt>iij-ppp</tt> user-mode PPP code,
-	though it has pretty much been completely rewritten since then.
+	though it has been completely rewritten since then.
 	Mpd is now hosted on sourceforge.net
 	<htmlurl url="http://sourceforge.net/projects/mpd/" name="MPD Project Page">.
