@@ -10,7 +10,7 @@
   This chapter describes commands that configure the Authentication 
   subsystem of LCP layer. All of these commands apply to the currently
   active link. Mpd currently supports authentication against (tried 
-  in this order) external script, RADIUS, systems password database 
+  in this order) external script, RADIUS, PAM, systems password database 
   (<tt>master.passwd</tt>), OPIE and its internal <tt>mpd.secrets</tt> file.
 
 <descrip>
@@ -98,6 +98,19 @@ This method pretended to be a fullfeatured alternative to the
 
 Path to that script must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
 command.
+
+Default <tt><bf>disable</bf></tt>.
+
+<tag><tt>pam-auth</tt></tag>
+
+Enables authentication using PAM service "mpd".
+This options can only be used with PAP.
+
+Default <tt><bf>disable</bf></tt>.
+
+<tag><tt>pam-acct</tt></tag>
+
+Enable accounting using PAM service "mpd".
 
 Default <tt><bf>disable</bf></tt>.
 

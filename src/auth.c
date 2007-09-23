@@ -19,6 +19,7 @@
 #include "util.h"
 
 #include <libutil.h>
+#include <security/pam_appl.h>	
 
 /*
  * DEFINITIONS
@@ -42,6 +43,11 @@
   static void		AuthInternal(AuthData auth);
   static void		AuthExternal(AuthData auth);
   static void		AuthSystem(AuthData auth);
+  static void		AuthSystemAcct(AuthData auth);
+  static void		AuthPAM(AuthData auth);
+  static void		AuthPAMAcct(AuthData auth);
+  static int		pam_conv(int n, const struct pam_message **msg,
+			    struct pam_response **resp, void *data);
   static void		AuthOpie(AuthData auth);
   static const char	*AuthCode(int proto, u_char code, char *buf, size_t len);
   static int		AuthSetCommand(Context ctx, int ac, char *av[], void *arg);
@@ -117,6 +123,8 @@
     { 0,	AUTH_CONF_EXT_AUTH,	"ext-auth"	},
     { 0,	AUTH_CONF_SYSTEM_AUTH,	"system-auth"	},
     { 0,	AUTH_CONF_SYSTEM_ACCT,	"system-acct"	},
+    { 0,	AUTH_CONF_PAM_AUTH,	"pam-auth"	},
+    { 0,	AUTH_CONF_PAM_ACCT,	"pam-acct"	},
     { 0,	AUTH_CONF_OPIE,		"opie"		},
     { 0,	0,			NULL		},
   };
@@ -855,30 +863,11 @@ AuthAccount(void *arg)
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
 	RadiusAccount(auth);
 
-    if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_ACCT)) {
-	struct utmp	ut;
+    if (Enabled(&auth->conf.options, AUTH_CONF_PAM_ACCT))
+	AuthPAMAcct(auth);
 
-	memset(&ut, 0, sizeof(ut));
-	strlcpy(ut.ut_line, auth->info.lnkname, sizeof(ut.ut_line));
-
-	if (auth->acct_type == AUTH_ACCT_START) {
-    	    time_t	t;
-
-    	    strlcpy(ut.ut_host, auth->params.peeraddr, sizeof(ut.ut_host));
-    	    strlcpy(ut.ut_name, auth->params.authname, sizeof(ut.ut_name));
-    	    time(&t);
-    	    ut.ut_time = t;
-    	    login(&ut);
-    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
-    		ut.ut_name, ut.ut_host));
-	}
-  
-	if (auth->acct_type == AUTH_ACCT_STOP) {
-    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", auth->info.lnkname, ut.ut_line));
-    	    logout(ut.ut_line);
-    	    logwtmp(ut.ut_line, "", "");
-	}
-    }
+    if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_ACCT))
+	AuthSystemAcct(auth);
 }
 
 /*
@@ -1036,6 +1025,16 @@ AuthAsync(void *arg)
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS)
       return;
+  }
+  
+  if (Enabled(&auth->conf.options, AUTH_CONF_PAM_AUTH)) {
+    Log(LG_AUTH, ("[%s] AUTH: Trying PAM", auth->info.lnkname));
+    AuthPAM(auth);
+    Log(LG_AUTH, ("[%s] AUTH: PAM returned %s", 
+      auth->info.lnkname, AuthStatusText(auth->status)));
+    if (auth->status == AUTH_STATUS_SUCCESS 
+      || auth->status == AUTH_STATUS_UNDEF)
+        return;
   }
 
   if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_AUTH)) {
@@ -1209,6 +1208,168 @@ AuthSystem(AuthData auth)
     return;
   }
 
+}
+
+/*
+ * AuthSystemAcct()
+ * 
+ * Account with system
+ */
+
+static void
+AuthSystemAcct(AuthData auth)
+{
+	struct utmp	ut;
+
+	memset(&ut, 0, sizeof(ut));
+	strlcpy(ut.ut_line, auth->info.lnkname, sizeof(ut.ut_line));
+
+	if (auth->acct_type == AUTH_ACCT_START) {
+    	    time_t	t;
+
+    	    strlcpy(ut.ut_host, auth->params.peeraddr, sizeof(ut.ut_host));
+    	    strlcpy(ut.ut_name, auth->params.authname, sizeof(ut.ut_name));
+    	    time(&t);
+    	    ut.ut_time = t;
+    	    login(&ut);
+    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
+    		ut.ut_name, ut.ut_host));
+	} else if (auth->acct_type == AUTH_ACCT_STOP) {
+    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", auth->info.lnkname, ut.ut_line));
+    	    logout(ut.ut_line);
+    	    logwtmp(ut.ut_line, "", "");
+	}
+}
+
+/*
+ * AuthPAM()
+ * 
+ * Authenticate with PAM system
+ */
+
+static int
+pam_conv(int n, const struct pam_message **msg, struct pam_response **resp,
+  void *data)
+{
+    AuthData 	auth = (AuthData)data;
+    int		i;
+
+    for (i = 0; i < n; i++) {
+	Log(LG_AUTH, ("[%s] AUTH: PAM: %s",
+    	    auth->info.lnkname, msg[i]->msg));
+    }
+
+    /* We support only requests for password */
+    if (n != 1 || msg[0]->msg_style != PAM_PROMPT_ECHO_OFF)
+	return (PAM_CONV_ERR);
+
+    if ((*resp = malloc(sizeof(struct pam_response))) == NULL)
+	return (PAM_CONV_ERR);
+    (*resp)[0].resp = strdup(auth->params.pap.peer_pass);
+    (*resp)[0].resp_retcode = 0;
+
+    return ((*resp)[0].resp != NULL ? PAM_SUCCESS : PAM_CONV_ERR);
+}
+ 
+static void
+AuthPAM(AuthData auth)
+{
+    struct pam_conv pamc = {
+        &pam_conv,
+	auth
+    };
+    pam_handle_t *pamh;
+    int status;
+
+    if (auth->proto != PROTO_PAP) {
+	Log(LG_ERR, ("[%s] Using PAM only possible for PAP", auth->info.lnkname));
+	auth->status = AUTH_STATUS_FAIL;
+	auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+	return;
+    }
+    
+    if (pam_start("mpd", auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
+	Log(LG_ERR, ("[%s] PAM error", auth->info.lnkname));
+	auth->status = AUTH_STATUS_FAIL;
+	auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+	return;
+    }
+
+    if (auth->params.peeraddr[0] &&
+	pam_set_item(pamh, PAM_RHOST, auth->params.peeraddr) != PAM_SUCCESS) {
+	Log(LG_ERR, ("[%s] PAM set PAM_RHOST error", auth->info.lnkname));
+    }
+
+    if (pam_set_item(pamh, PAM_TTY, auth->info.lnkname) != PAM_SUCCESS) {
+	Log(LG_ERR, ("[%s] PAM set PAM_TTY error", auth->info.lnkname));
+    }
+
+    status = pam_authenticate(pamh, 0);
+
+    if (status == PAM_SUCCESS) {
+	status = pam_acct_mgmt(pamh, 0);
+    }
+
+    pam_end(pamh, status);
+
+    if (status == PAM_SUCCESS) {
+	auth->status = AUTH_STATUS_SUCCESS;
+    } else {
+        auth->status = AUTH_STATUS_FAIL;
+        auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+    }
+}
+
+/*
+ * AuthPAMAcct()
+ * 
+ * Account with system
+ */
+
+static void
+AuthPAMAcct(AuthData auth)
+{
+    pam_handle_t *pamh;
+    int status;
+    struct pam_conv pamc = {
+        &pam_conv,
+	auth
+    };
+    
+    if (auth->acct_type != AUTH_ACCT_START &&
+      auth->acct_type != AUTH_ACCT_STOP) {
+        return;
+    }
+
+    if (pam_start("mpd", auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
+	Log(LG_ERR, ("[%s] PAM error", auth->info.lnkname));
+	return;
+    }
+
+    if (auth->params.peeraddr[0] &&
+	pam_set_item(pamh, PAM_RHOST, auth->params.peeraddr) != PAM_SUCCESS) {
+	Log(LG_ERR, ("[%s] PAM set PAM_RHOST error", auth->info.lnkname));
+    }
+
+    if (pam_set_item(pamh, PAM_TTY, auth->info.lnkname) != PAM_SUCCESS) {
+	Log(LG_ERR, ("[%s] PAM set PAM_TTY error", auth->info.lnkname));
+    }
+
+    if (auth->acct_type == AUTH_ACCT_START) {
+    	    Log(LG_AUTH, ("[%s] AUTH: PAM open session \"%s\"",
+		auth->info.lnkname, auth->params.authname));
+	    status = pam_open_session(pamh, 0);
+    } else {
+    	    Log(LG_AUTH, ("[%s] AUTH: PAM close session \"%s\"",
+		auth->info.lnkname, auth->params.authname));
+	    status = pam_close_session(pamh, 0);
+    }
+    if (status != PAM_SUCCESS) {
+    	Log(LG_AUTH, ("[%s] AUTH: PAM session error",
+	    auth->info.lnkname));
+    }
+    
+    pam_end(pamh, status);
 }
 
 /*

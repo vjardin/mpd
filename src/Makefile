@@ -54,6 +54,8 @@ LDADD+=		-L/usr/lib -lradius
 DPADD+=		${LIBRADIUS}
 LDADD+=		-lpcap
 DPADD+=		${LIBPCAP}
+LDADD+=		-lpam
+DPADD+=		${LIBPAM}
 
 LDADD+=		-L${PREFIX}/lib -lpdel -lssl -lexpat
 

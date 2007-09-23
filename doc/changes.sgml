@@ -32,6 +32,14 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> New features:
+	<itemize>
+	  <item> Added PAM authentication and accounting.
+	  </item>
+	  <item> Added dynamic IP addresses pools support.
+	  </item>
+	</itemize>
+	</item>
 	<item> Changes:
 	<itemize>
 	  <item> Massive changes in configuration commands. You should read
