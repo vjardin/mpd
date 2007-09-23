@@ -23,7 +23,7 @@ CLEANFILES+=	version.sgml mpd.8 mpd.ps
 
 .in:
 	VERSION=`grep ^VERSION= ../src/Makefile | awk '{ print $$2 }'`; \
-	DATE=`date +'%B %e, %Y`; \
+	DATE=`date +'%Y-%m-%d`; \
 	sed \
 	  -e "s/@DATE@/$$DATE/g" \
 	  -e "s/@VERSION@/$$VERSION/g" \
