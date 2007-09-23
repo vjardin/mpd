@@ -8,21 +8,25 @@
   <p>
   This chapter describes commands that configure the link layer.
   All of these commands apply to the currently active link, i.e.,
-  the link, which physical device shown at the command line prompt.
+  the link shown at the command line prompt.
 
 <descrip>
 
-<tag><tt>set link bundle <em>name</em></tt></tag><p>
+<tag><tt>set link action (bundle|forward) <em>name</em> [ <em>regexp</em> ]</tt></tag><p>
 
-This command specifies the name of bundle which link should join
-after reaching NETWORK state if there is no multilink bundle ready for it.
-If the bundle template name specified new bundle will be created
-using it.
+List of such command describes how incoming calls should be processed.
+"bundle" means that connection should be processed locally with
+spefied bundle. "forward" means that connection should be forwarded
+using repeater to the specified link. Optional "regexp" parameneter
+defines regular expression which will be checked against peer auth name.
 
-<tag><tt>set link repeat <em>name</em></tt></tag><p>
-
-This command specifies the name the link where connection should be forwarded.
-If the link template name specified new link will be created using it.
+Actions from list are checked in order of definition until regexp
+match will be found. Actions processed at three points. First time
+they are checked just after connection acception, second time just 
+after receiving peer's auth during LCP negotiation and third time
+when link is authenticated. As during first check there is no peer
+auth name known yet, check will be skipped if there are more then 
+one action specified for link or if action has regexp specified.
 
 <tag><tt>set link latency <em>microseconds</em></tt></tag><p>
 <tag><tt>set link bandwidth <em>bits-per-second</em></tt></tag><p>

@@ -974,7 +974,19 @@ AuthGetData(char *authname, char *password, size_t passlen,
 void 
 AuthAsyncStart(Link l, AuthData auth)
 {
-  Auth	const a = &l->lcp.auth;
+    Auth	const a = &l->lcp.auth;
+    char	*rept;
+    
+    rept = LinkMatchAction(l, 2, auth->params.authname);
+    if (rept) {
+	if (RepCreate(l, rept)) {
+	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, rept));
+	    PhysClose(l);
+	    return;
+	}
+	RepIncoming(l);
+	return;
+    }
   
   /* perform pre authentication checks (single-login, etc.) */
   if (AuthPreChecks(auth) < 0) {

@@ -235,16 +235,18 @@ BundJoin(Link l)
 	    }
 	}
 	if (!b) {
-	    if (l->bundt[0]) {
-		if ((bt = BundFind(l->bundt))) {
+	    char	*bundt;
+	    bundt = LinkMatchAction(l, 3, l->lcp.auth.params.authname);
+	    if (bundt) {
+		if ((bt = BundFind(bundt))) {
 		    if (bt->tmpl) {
-    			Log(LG_BUND, ("[%s] Creating new bundle using template \"%s\".", l->name, l->bundt));
+    			Log(LG_BUND, ("[%s] Creating new bundle using template \"%s\".", l->name, bundt));
     			b = BundInst(bt, NULL, 0, 0);
 		    } else {
 			b = bt;
 		    }
 		} else {
-    		    Log(LG_BUND, ("[%s] Bundle \"%s\" not found.", l->name, l->bundt));
+    		    Log(LG_BUND, ("[%s] Bundle \"%s\" not found.", l->name, bundt));
 		    return (0);
 		}
 	    } else {

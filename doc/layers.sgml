@@ -10,6 +10,8 @@
 	to the layered nature of the PPP protocol. There are two
 	types of layers hierarchy connected with two different 
 	operation modes as "ppp terminator" and "ppp repeater".
+	Operation mode is getting chosen dynamically depending on link
+	configuration (see 'set link action ...' command).
 	
 	In "ppp terminator" mode such hierarchy used:
 	<bf><ref id="interface" name="Interface"></bf> ->
@@ -82,11 +84,11 @@
 	The type dictates how the device dependent part
 	is configured and what it's capabilities are.
 
-	A <bf>repeater</bf> is a collection 
-	of two physical devices (links). It repeats all connections coming
-	from one physical device to another without any modification. 
-	This technology is also known as LAC (L2TP Access Concentrator) 
-	or PAC (PPTP Access Concentrator).
+	A <bf>repeater</bf> is a collection of two physical devices 
+	(links). It is getting created when there is need to forward 
+	connection coming from one physical device to another without
+	modification. This technology is also known as LAC 
+	(L2TP Access Concentrator) and PAC (PPTP Access Concentrator).
 
 	While the combination of all the various layers presents
 	a large number of configuration options, mpd tries to

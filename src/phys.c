@@ -209,9 +209,12 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 void
 PhysIncoming(Link l)
 {
-    if (l->rept[0]!=0) {
-	if (RepCreate(l, l->rept)) {
-	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, l->rept));
+    char	*rept;
+    
+    rept = LinkMatchAction(l, 1, NULL);
+    if (rept) {
+	if (RepCreate(l, rept)) {
+	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, rept));
 	    PhysClose(l);
 	    return;
 	}
@@ -460,8 +463,13 @@ PhysMsg(int type, void *arg)
 	l->name, MsgName(type)));
     switch (type) {
     case MSG_OPEN:
-        if (!l->rep)
-    	    l->downReasonValid=0;
+    	l->downReasonValid=0;
+	/* XXX HACK XXX */
+        if (l->rep && l->lcp.fsm.state != ST_INITIAL) {
+	    LinkNgToRep(l);
+	    PhysUp(l);
+	    break;
+	}
         (*l->type->open)(l);
         break;
     case MSG_CLOSE:
@@ -484,7 +492,6 @@ PhysStat(Context ctx, int ac, char *av[], void *arg)
 
     Printf("Device '%s' (%s)\r\n", l->name, (l->tmpl)?"template":"instance");
     Printf("\tType         : %s\r\n", l->type->name);
-    Printf("\tRepeater temp: %s\r\n", l->rept);
 
     if (l->type->showstat)
 	(*l->type->showstat)(ctx);

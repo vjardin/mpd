@@ -89,7 +89,7 @@ dialin:
 
 	create link static L1 modem
 # Set bundle to use
-	set link bundle B1
+	set link action bundle B1
 # Authenticate peer with chap-md5
 	set link no chap pap eap
 	set link enable chap-md5
@@ -112,7 +112,7 @@ multi_dialup:
 	set iface route default
 	set iface idle 900
 
-# Instantiate links from template and open them
+# Create links and open them
 	create link static L1 modem
 	load common
 	set modem device /dev/cuad0
@@ -127,7 +127,7 @@ common:
 # Enable multilink protocol
 	set link enable multilimk
 # Set bundle template to use
-	set link bundle B
+	set link action bundle B
 # Allow peer to authenticate us
 	set link disable chap pap
 	set link accept chap pap
@@ -150,7 +150,7 @@ sync:
 	set ipcp ranges 192.168.1.153/32 192.168.2.1/24
 
 	create link static L1 ng
-	set link bundle B1
+	set link action bundle B1
 	set link max-redial 0
 	set link no chap pap
 	set ng node sr0:
@@ -243,7 +243,7 @@ pptp_vpn:
 	set iface route 192.168.2.0/24
 	
 	create link static L1 pptp
-	set link bundle B1
+	set link action bundle B1
 # Enable both sides to authenticat each other with CHAP
 	set link no pap
 	set link yes chap
@@ -277,7 +277,7 @@ pptp_client:
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	
 	create link static L1 pptp
-	set link bundle B1
+	set link action bundle B1
 	set auth authname MyLogin
 	set auth password MyPass
 	set link max-redial 0
@@ -302,7 +302,7 @@ pppoe_server:
 # Enable multilink protocol
 	set link enable multilimk
 # Set bundle template to use
-	set link bundle B
+	set link action bundle B
 # Allow peer to authenticate us
 	set link disable chap pap eap
 	set link enable pap
@@ -330,7 +330,7 @@ pppoe_client:
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 	
 	create link static L1 pppoe
-	set link bundle B1
+	set link action bundle B1
 	set auth authname MyLogin
 	set auth password MyPass
 	set link max-redial 0

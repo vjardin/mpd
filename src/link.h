@@ -26,6 +26,7 @@
 #else
 #include <netgraph/ng_ppp.h>
 #endif
+#include <regex.h>
 
 /*
  * DEFINITIONS
@@ -38,6 +39,19 @@
   /* Default latency and bandwidth */
   #define LINK_DEFAULT_BANDWIDTH	64000		/* 64k */
   #define LINK_DEFAULT_LATENCY		2000		/* 2ms */
+
+  enum {
+    LINK_ACTION_FORWARD,
+    LINK_ACTION_BUNDLE,
+  };
+
+  struct linkaction {
+    int 		action;
+    char		regex[128];
+    regex_t		regexp;
+    char		arg[LINK_MAX_NAME];	/* Link/Bundle template name */
+    SLIST_ENTRY(linkaction) next;
+  };
 
   /* Configuration options */
   enum {
@@ -93,14 +107,15 @@
     int			id;			/* Index of this link in gLinks */
     int			tmpl;			/* This is template, not an instance */
     int			stay;			/* Must not disappear */
-    char		bundt[LINK_MAX_NAME];	/* Bundle template name */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
+    Rep			rep;			/* Rep connected to the device */
     int			csock;			/* Socket node control socket */
     int			dsock;			/* Socket node data socket */
     EventRef		dataEvent;		/* Socket node data event */
     ng_ID_t		nodeID;			/* ID of ppp node */
     MsgHandler		msgs;			/* Link events */
+    SLIST_HEAD(, linkaction) actions;
     int			die;
     int			refs;			/* Number of references */
     int			dead;			/* Dead flag */
@@ -135,8 +150,6 @@
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
     MsgHandler		pmsgs;			/* Message channel */
-    Rep			rep;			/* Rep connected to the device */
-    char		rept[LINK_MAX_NAME];	/* Repeater template for incomings */
   };
 
   
@@ -162,6 +175,7 @@
   extern void	LinkShutdown(Link l);
   extern int	LinkNgInit(Link l);
   extern int	LinkNgJoin(Link l);
+  extern int	LinkNgToRep(Link l);
   extern int	LinkNgLeave(Link l);
   extern void	LinkNgShutdown(Link l, int tee);
   extern int	LinkNuke(Link link);
@@ -173,6 +187,8 @@
   extern int	SessionCommand(Context ctx, int ac, char *av[], void *arg);
   extern void	RecordLinkUpDownReason(Bund b, Link l, int up, const char *fmt,
 			  const char *arg, ...);
+
+  extern char	*LinkMatchAction(Link l, int stage, char *login);
 
 #endif
 

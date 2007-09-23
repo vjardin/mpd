@@ -34,7 +34,7 @@
   /* Set menu options */
   enum {
     SET_BUNDLE,
-    SET_REPEAT,
+    SET_FORWARD,
     SET_BANDWIDTH,
     SET_LATENCY,
     SET_ACCMAP,
@@ -65,13 +65,19 @@
  * GLOBAL VARIABLES
  */
 
+  const struct cmdtab LinkSetActionCmds[] = {
+    { "bundle {bundle} [{regex}]",	"Terminate incomings locally",
+	LinkSetCommand, NULL, (void *) SET_BUNDLE },
+    { "forward {link} [{regex}]",	"Forward incomings",
+	LinkSetCommand, NULL, (void *) SET_FORWARD },
+    { NULL },
+  };
+
   const struct cmdtab LinkSetCmds[] = {
+    { "action ...",			"Set action on incoming",
+	CMD_SUBMENU,	NULL, (void *) LinkSetActionCmds },
     { "bandwidth {bps}",		"Link bandwidth",
 	LinkSetCommand, NULL, (void *) SET_BANDWIDTH },
-    { "bundle {template}",		"Bundle template name",
-	LinkSetCommand, NULL, (void *) SET_BUNDLE },
-    { "repeat {template}",		"Repeat-to link template name",
-	LinkSetCommand, NULL, (void *) SET_REPEAT },
     { "latency {microsecs}",		"Link latency",
 	LinkSetCommand, NULL, (void *) SET_LATENCY },
     { "accmap {hex-value}",		"Accmap value",
@@ -347,6 +353,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	l->stay = stay;
 	l->csock = -1;
 	l->dsock = -1;
+	SLIST_INIT(&l->actions);
 
 	/* Initialize link configuration with defaults */
 	l->conf.mru = LCP_DEFAULT_MRU;
@@ -588,7 +595,7 @@ LinkNgJoin(Link l)
     	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 	return(-1);
     }
-
+    
     NgFuncDisconnect(l->csock, l->name, path, NG_TEE_HOOK_LEFT2RIGHT);
     return (0);
 }
@@ -609,12 +616,52 @@ LinkNgLeave(Link l)
     if (NgSendMsg(l->csock, ".",
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    l->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 	return(-1);
     }
 
     snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
     NgFuncDisconnect(l->csock, l->name, path, NG_TEE_HOOK_RIGHT);
+    return (0);
+}
+
+/*
+ * LinkNgToRep()
+ */
+
+int
+LinkNgToRep(Link l)
+{
+    char		path[NG_PATHLEN + 1];
+    struct ngm_connect	cn;
+
+    snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_RIGHT);
+    if (!PhysGetUpperHook(l, cn.path, cn.peerhook)) {
+        Log(LG_PHYS, ("[%s] Link: can't get repeater hook", l->name));
+        return (-1);
+    }
+    if (NgSendMsg(l->csock, path,
+      NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	return(-1);
+    }
+
+    NgFuncShutdownNode(l->csock, l->name, MPD_HOOK_PPP);
+
+//    EventUnRegister(&l->ctrlEvent);
+    close(l->csock);
+    l->csock = -1;
+    EventUnRegister(&l->dataEvent);
+    close(l->dsock);
+    l->dsock = -1;
+
+    TimerStop(&l->lcp.fsm.echoTimer);
+    TimerStop(&l->lcp.fsm.timer);
+    TimerStop(&l->lcp.auth.timer);
+    l->lcp.fsm.state = ST_INITIAL;
+    AuthCleanup(l);
     return (0);
 }
 
@@ -627,12 +674,12 @@ LinkNgShutdown(Link l, int tee)
 {
     if (tee)
 	NgFuncShutdownNode(l->csock, l->name, MPD_HOOK_PPP);
+//    EventUnRegister(&l->ctrlEvent);
     close(l->csock);
     l->csock = -1;
-//    EventUnRegister(&l->ctrlEvent);
+    EventUnRegister(&l->dataEvent);
     close(l->dsock);
     l->dsock = -1;
-    EventUnRegister(&l->dataEvent);
 }
 
 /*
@@ -652,7 +699,7 @@ LinkNgDataEvent(int type, void *cookie)
     if ((nread = recv(l->dsock, buf, sizeof(buf), 0)) < 0) {
 	if (errno == EAGAIN)
     	    return;
-	Log(LG_BUND, ("[%s] socket read: %s", l->name, strerror(errno)));
+	Log(LG_LINK, ("[%s] socket read: %s", l->name, strerror(errno)));
 	DoExit(EX_ERRDEAD);
     }
 
@@ -849,6 +896,41 @@ RecordLinkUpDownReason(Bund b, Link l, int up, const char *key, const char *fmt,
 
 }
 
+char *
+LinkMatchAction(Link l, int stage, char *login)
+{
+    struct linkaction *a;
+
+    a = SLIST_FIRST(&l->actions);
+    if (!a) {
+	Log(LG_LINK, ("[%s] No link actions defined", l->name));
+	return (NULL);
+    }
+    if (stage == 1) {
+	if (SLIST_NEXT(a, next) == NULL &&
+	  a->action == LINK_ACTION_FORWARD && !a->regex[0]) {
+	    Log(LG_LINK, ("[%s] Matched link action 'forward \"%s\"'",
+		l->name, a->arg));
+	    return (a->arg);
+	}
+	return (NULL);
+    }
+    SLIST_FOREACH(a, &l->actions, next) {
+	if (!a->regex[0] || !regexec(&a->regexp, login, 0, NULL, 0))
+	    break;
+    }
+    if (a) {
+	if ((stage == 2 && a->action == LINK_ACTION_FORWARD) ||
+	    (stage == 3 && a->action == LINK_ACTION_BUNDLE)) {
+	    Log(LG_LINK, ("[%s] Matched link action '%s \"%s\" \"%s\"'",
+		l->name, (a->action == LINK_ACTION_FORWARD)?"forward":"bundle",
+		a->arg, a->regex));
+	    return (a->arg);
+	}
+    }
+    return (NULL);
+}
+
 /*
  * LinkStat()
  */
@@ -857,6 +939,7 @@ int
 LinkStat(Context ctx, int ac, char *av[], void *arg)
 {
     Link 	l = ctx->lnk;
+    struct linkaction *a;
 
   Printf("Link %s%s:\r\n", l->name, l->tmpl?" (template)":(l->stay?" (static)":""));
 
@@ -882,7 +965,12 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
       l->lcp.fsm.conf.echo_int, l->lcp.fsm.conf.echo_max);
   Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
   Printf("\tSession-Id     : %s\r\n", l->session_id);
-  Printf("\tBundle template: %s\r\n", l->bundt);
+    Printf("Link incoming actions:\r\n");
+    SLIST_FOREACH(a, &l->actions, next) {
+	Printf("\t%s\t%s\t%s\r\n", 
+	    (a->action == LINK_ACTION_FORWARD)?"Forward":"Bundle",
+	    a->arg, a->regex);
+    }
   Printf("Link level options\r\n");
   OptStat(ctx, &l->conf.options, gConfList);
 
@@ -1020,16 +1108,36 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
 
     case SET_BUNDLE:
-	if (ac != 1)
-	    return(-1);
-	snprintf(ctx->lnk->bundt, sizeof(ctx->lnk->bundt), "%s", av[0]);
-        break;
+    case SET_FORWARD:
+	{
+	    struct linkaction	*n, *a;
+	    
+	    if (ac < 1 || ac > 2)
+		return(-1);
 
-    case SET_REPEAT:
-	if (ac != 1)
-	    return(-1);
-	snprintf(ctx->lnk->rept, sizeof(ctx->lnk->rept), "%s", av[0]);
-	break;
+	    n = Malloc(MB_LINK, sizeof(struct linkaction));
+	    n->action = ((intptr_t)arg == SET_BUNDLE)?
+		LINK_ACTION_BUNDLE:LINK_ACTION_FORWARD;
+	    strlcpy(n->arg, av[0], sizeof(n->arg));
+	    if (ac == 2 && av[1][0]) {
+		strlcpy(n->regex, av[1], sizeof(n->regex));
+		if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
+		    Log(LG_ERR, ("[%s] regexp \"%s\" compilation error", l->name, n->regex));
+		    Freee(MB_LINK, n);
+		    return (0);
+		}
+	    }
+	    
+	    a = SLIST_FIRST(&ctx->lnk->actions);
+	    if (a) {
+		while (SLIST_NEXT(a, next))
+		    a = SLIST_NEXT(a, next);
+		SLIST_INSERT_AFTER(a, n, next);
+	    } else {
+		SLIST_INSERT_HEAD(&ctx->lnk->actions, n, next);
+	    }
+	}
+        break;
 
     case SET_MRU:
     case SET_MTU:
