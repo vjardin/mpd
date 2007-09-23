@@ -1310,14 +1310,30 @@ AuthPAM(AuthData auth)
 	status = pam_acct_mgmt(pamh, 0);
     }
 
-    pam_end(pamh, status);
-
     if (status == PAM_SUCCESS) {
 	auth->status = AUTH_STATUS_SUCCESS;
     } else {
-        auth->status = AUTH_STATUS_FAIL;
-        auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+	Log(LG_AUTH, ("[%s] AUTH: PAM error: %s",
+	    auth->info.lnkname, pam_strerror(pamh, status)));
+	switch (status) {
+	case PAM_AUTH_ERR:
+	case PAM_USER_UNKNOWN:
+    	    auth->status = AUTH_STATUS_FAIL;
+    	    auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+	    break;
+	case PAM_ACCT_EXPIRED:
+	case PAM_AUTHTOK_EXPIRED:
+	case PAM_CRED_EXPIRED:
+    	    auth->status = AUTH_STATUS_FAIL;
+    	    auth->why_fail = AUTH_FAIL_ACCT_DISABLED;
+	    break;
+	default:
+    	    auth->status = AUTH_STATUS_FAIL;
+    	    auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+	}
     }
+
+    pam_end(pamh, status);
 }
 
 /*
