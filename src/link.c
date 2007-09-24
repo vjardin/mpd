@@ -1217,34 +1217,46 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
 
     case SET_ACCEPT:
-      AcceptCommand(ac, av, &l->conf.options, gConfList);
-      break;
+        AcceptCommand(ac, av, &l->conf.options, gConfList);
+	if (ctx->lnk->type->update) {
+	    (ctx->lnk->type->update)(ctx->lnk);
+	}
+        break;
 
     case SET_DENY:
-      DenyCommand(ac, av, &l->conf.options, gConfList);
-      break;
+        DenyCommand(ac, av, &l->conf.options, gConfList);
+	if (ctx->lnk->type->update) {
+	    (ctx->lnk->type->update)(ctx->lnk);
+	}
+        break;
 
     case SET_ENABLE:
-      EnableCommand(ac, av, &l->conf.options, gConfList);
+        EnableCommand(ac, av, &l->conf.options, gConfList);
 	if (ctx->lnk->type->update) {
 	    (ctx->lnk->type->update)(ctx->lnk);
 	}
-      break;
+        break;
 
     case SET_DISABLE:
-      DisableCommand(ac, av, &l->conf.options, gConfList);
-      break;
-
-    case SET_YES:
-      YesCommand(ac, av, &l->conf.options, gConfList);
+        DisableCommand(ac, av, &l->conf.options, gConfList);
 	if (ctx->lnk->type->update) {
 	    (ctx->lnk->type->update)(ctx->lnk);
 	}
-      break;
+        break;
+
+    case SET_YES:
+        YesCommand(ac, av, &l->conf.options, gConfList);
+	if (ctx->lnk->type->update) {
+	    (ctx->lnk->type->update)(ctx->lnk);
+	}
+        break;
 
     case SET_NO:
-      NoCommand(ac, av, &l->conf.options, gConfList);
-      break;
+        NoCommand(ac, av, &l->conf.options, gConfList);
+	if (ctx->lnk->type->update) {
+	    (ctx->lnk->type->update)(ctx->lnk);
+	}
+        break;
 
     default:
       assert(0);

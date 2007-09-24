@@ -104,6 +104,7 @@
   static int		ModemInit(Link l);
   static void		ModemOpen(Link l);
   static void		ModemClose(Link l);
+  static void		ModemUpdate(Link l);
   static int		ModemSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
   static void		ModemStat(Context ctx);
   static int		ModemOriginated(Link l);
@@ -145,6 +146,7 @@
     .init		= ModemInit,
     .open		= ModemOpen,
     .close		= ModemClose,
+    .update		= ModemUpdate,
     .showstat		= ModemStat,
     .originate		= ModemOriginated,
     .issync		= ModemIsSync,
@@ -216,19 +218,19 @@ ModemInit(Link l)
 static void
 ModemOpen(Link l)
 {
-  ModemInfo	const m = (ModemInfo) l->info;
+    ModemInfo	const m = (ModemInfo) l->info;
 
-  assert(!m->opened);
-  m->opened = TRUE;
-  if (m->fd >= 0) {			/* Device is already open.. */
-    if (m->answering) {			/* We just answered a call */
-      m->originated = FALSE;
-      m->answering = FALSE;
-      ModemChatConnectResult(l, TRUE, NULL);
+    assert(!m->opened);
+    m->opened = TRUE;
+    if (m->fd >= 0) {			/* Device is already open.. */
+	if (m->answering) {			/* We just answered a call */
+    	    m->originated = FALSE;
+    	    m->answering = FALSE;
+    	    ModemChatConnectResult(l, TRUE, NULL);
+	} else
+    	    ModemDoClose(l, TRUE);		/* Stop idle script then dial back */
     } else
-      ModemDoClose(l, TRUE);		/* Stop idle script then dial back */
-  } else
-    ModemStart(l);			/* Open device and try to dial */
+	ModemStart(l);			/* Open device and try to dial */
 }
 
 /*
@@ -238,48 +240,49 @@ ModemOpen(Link l)
 static void
 ModemStart(void *arg)
 {
-  Link			const l = (Link) arg;
-  ModemInfo		const m = (ModemInfo) l->info;
-  const time_t		now = time(NULL);
-  char			password[AUTH_MAX_PASSWORD];
-  FILE			*scriptfp;
+    Link		const l = (Link) arg;
+    ModemInfo		const m = (ModemInfo) l->info;
+    const time_t	now = time(NULL);
+    char		password[AUTH_MAX_PASSWORD];
+    FILE		*scriptfp;
 
-  /* If we're idle, and there's no idle script, there's nothing to do */
-  assert(!m->answering);
-  TimerStop(&m->startTimer);
-  if (!m->opened && !*m->idleScript)
-    return;
+    /* If we're idle, and there's no idle script, there's nothing to do */
+    assert(!m->answering);
+    TimerStop(&m->startTimer);
+    if (!m->opened &&
+      (!*m->idleScript || !Enabled(&l->conf.options, LINK_CONF_INCOMING)))
+	return;
 
-  /* Avoid brief hang from kernel enforcing minimum DTR hold time */
-  if (now - m->lastClosed < MODEM_MIN_CLOSE_TIME) {
-    TimerInit(&m->startTimer, "ModemStart",
-      (MODEM_MIN_CLOSE_TIME - (now - m->lastClosed)) * SECONDS, ModemStart, l);
-    TimerStart(&m->startTimer);
-    return;
-  }
+    /* Avoid brief hang from kernel enforcing minimum DTR hold time */
+    if (now - m->lastClosed < MODEM_MIN_CLOSE_TIME) {
+	TimerInit(&m->startTimer, "ModemStart",
+    	  (MODEM_MIN_CLOSE_TIME - (now - m->lastClosed)) * SECONDS, ModemStart, l);
+	TimerStart(&m->startTimer);
+	return;
+    }
 
-  /* Open and configure serial port */
-  if ((m->fd = OpenSerialDevice(l->name, m->device, m->speed)) < 0)
-    goto fail;
+    /* Open and configure serial port */
+    if ((m->fd = OpenSerialDevice(l->name, m->device, m->speed)) < 0)
+        goto fail;
 
-  /* If connecting, but no connect script, then skip chat altogether */
-  if (m->opened && !*m->connScript) {
-    ModemChatConnectResult(l, TRUE, NULL);
-    return;
-  }
+    /* If connecting, but no connect script, then skip chat altogether */
+    if (m->opened && !*m->connScript) {
+	ModemChatConnectResult(l, TRUE, NULL);
+	return;
+    }
 
-  /* Open chat script file */
-  if ((scriptfp = OpenConfFile(SCRIPT_FILE, NULL)) == NULL) {
-    Log(LG_ERR, ("[%s] MODEM: can't open chat script file", l->name));
-    ExclusiveCloseDevice(l->name, m->fd, m->device);
-    m->fd = -1;
+    /* Open chat script file */
+    if ((scriptfp = OpenConfFile(SCRIPT_FILE, NULL)) == NULL) {
+	Log(LG_ERR, ("[%s] MODEM: can't open chat script file", l->name));
+	ExclusiveCloseDevice(l->name, m->fd, m->device);
+	m->fd = -1;
 fail:
-    m->opened = FALSE;
-    m->lastClosed = time(NULL);
-    l->state = PHYS_STATE_DOWN;
-    PhysDown(l, STR_ERROR, STR_DEV_NOT_READY);
-    return;
-  }
+	m->opened = FALSE;
+	m->lastClosed = time(NULL);
+	l->state = PHYS_STATE_DOWN;
+	PhysDown(l, STR_ERROR, STR_DEV_NOT_READY);
+	return;
+    }
 
     /* Preset some special chat variables */
     ChatPresetVar(m->chat, CHAT_VAR_DEVICE, m->device);
@@ -291,15 +294,15 @@ fail:
     	    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, password);
     }
 
-  /* Run connect or idle script as appropriate */
-  if (!m->opened) {
-    ChatPresetVar(m->chat, CHAT_VAR_IDLE_RESULT, "<unknown>");
-    ChatStart(m->chat, m->fd, scriptfp, m->idleScript, ModemChatIdleResult);
-  } else {
-    m->originated = TRUE;
-    l->state = PHYS_STATE_CONNECTING;
-    ChatStart(m->chat, m->fd, scriptfp, m->connScript, ModemChatConnectResult);
-  }
+    /* Run connect or idle script as appropriate */
+    if (!m->opened) {
+	ChatPresetVar(m->chat, CHAT_VAR_IDLE_RESULT, "<unknown>");
+	ChatStart(m->chat, m->fd, scriptfp, m->idleScript, ModemChatIdleResult);
+    } else {
+	m->originated = TRUE;
+	l->state = PHYS_STATE_CONNECTING;
+	ChatStart(m->chat, m->fd, scriptfp, m->connScript, ModemChatConnectResult);
+    }
 }
 
 /*
@@ -309,13 +312,28 @@ fail:
 static void
 ModemClose(Link l)
 {
-  ModemInfo	const m = (ModemInfo) l->info;
+    ModemInfo	const m = (ModemInfo) l->info;
 
-  if (!m->opened)
-    return;
-  ModemDoClose(l, FALSE);
-  l->state = PHYS_STATE_DOWN;
-  PhysDown(l, 0, NULL);
+    if (!m->opened)
+	return;
+    ModemDoClose(l, FALSE);
+    l->state = PHYS_STATE_DOWN;
+    PhysDown(l, 0, NULL);
+}
+
+static void
+ModemUpdate(Link l)
+{
+    ModemInfo	const m = (ModemInfo) l->info;
+
+    if (m->opened || TimerRemain(&m->startTimer) >= 0)
+	return;		/* nothing needs to be done right now */
+    if (m->fd >= 0 &&
+      (!*m->idleScript || !Enabled(&l->conf.options, LINK_CONF_INCOMING)))
+        ModemDoClose(l, FALSE);
+    else if (m->fd < 0 &&
+      (*m->idleScript && Enabled(&l->conf.options, LINK_CONF_INCOMING)))
+        ModemStart(l);
 }
 
 /*
@@ -835,16 +853,16 @@ ModemSetCommand(Context ctx, int ac, char *av[], void *arg)
       snprintf(m->connScript, sizeof(m->connScript), "%s", av[0]);
       break;
     case SET_ISCRIPT:
-      if (ac != 1)
-	return(-1);
-      *m->idleScript = 0;
-      snprintf(m->idleScript, sizeof(m->idleScript), "%s", av[0]);
-      if (m->opened || TimerRemain(&m->startTimer) >= 0)
-	break;		/* nothing needs to be done right now */
-      if (m->fd >= 0 && !*m->idleScript)
-	ModemDoClose(l, FALSE);
-      else if (m->fd < 0 && *m->idleScript)
-	ModemStart(l);
+        if (ac != 1)
+	    return(-1);
+        *m->idleScript = 0;
+        snprintf(m->idleScript, sizeof(m->idleScript), "%s", av[0]);
+        if (m->opened || TimerRemain(&m->startTimer) >= 0)
+	    break;		/* nothing needs to be done right now */
+        if (m->fd >= 0 && !*m->idleScript)
+	    ModemDoClose(l, FALSE);
+        else if (m->fd < 0 && *m->idleScript)
+	    ModemStart(l);
       break;
     case SET_SCRIPT_VAR:
       if (ac != 2)
