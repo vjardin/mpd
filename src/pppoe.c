@@ -119,6 +119,8 @@ static int	PppoeIsSync(Link l);
 static void	PppoeNodeUpdate(Link l);
 static void	PppoeListenUpdate(void *arg);
 
+static void	PppoeDoClose(Link l);
+
 /*
  * GLOBAL VARIABLES
  */
@@ -353,7 +355,7 @@ PppoeConnectTimeout(void *arg)
 	/* Cancel connection. */
 	Log(LG_PHYS, ("[%s] PPPoE connection timeout after %d seconds",
 	    l->name, PPPOE_CONNECT_TIMEOUT));
-	PppoeShutdown(l);
+	PppoeDoClose(l);
 	PhysDown(l, STR_CON_FAILED0, NULL);
 }
 
@@ -368,7 +370,7 @@ PppoeClose(Link l)
 	pe->opened = 0;
 	if (l->state == PHYS_STATE_DOWN)
 		return;
-	PppoeShutdown(l);
+	PppoeDoClose(l);
 	PhysDown(l, 0, NULL);
 }
 
@@ -379,6 +381,18 @@ PppoeClose(Link l)
  */
 static void
 PppoeShutdown(Link l)
+{
+	PppoeDoClose(l);
+	Freee(MB_PHYS, l->info);
+}
+
+/*
+ * PppoeDoClose()
+ *
+ * Shut everything down and go to the PHYS_STATE_DOWN state.
+ */
+static void
+PppoeDoClose(Link l)
 {
 	const PppoeInfo pi = (PppoeInfo)l->info;
 	char path[NG_PATHLEN + 1];
@@ -479,12 +493,12 @@ PppoeCtrlReadEvent(int type, void *arg)
 		break;
 	    case NGM_PPPOE_FAIL:
 		Log(LG_PHYS, ("[%s] PPPoE: connection failed", l->name));
-		PppoeShutdown(l);
+		PppoeDoClose(l);
 		PhysDown(l, STR_CON_FAILED0, NULL);
 		break;
 	    case NGM_PPPOE_CLOSE:
 		Log(LG_PHYS, ("[%s] PPPoE: connection closed", l->name));
-		PppoeShutdown(l);
+		PppoeDoClose(l);
 		PhysDown(l, STR_DROPPED, NULL);
 		break;
 	    case NGM_PPPOE_ACNAME:

@@ -84,6 +84,7 @@
   static int	UdpCalledNum(Link l, void *buf, int buf_len);
 
   static void	UdpDoClose(Link l);
+  static void	UdpShutdown(Link l);
   static int	UdpSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	UdpNodeUpdate(Link l);
 
@@ -103,6 +104,7 @@
     .open		= UdpOpen,
     .close		= UdpClose,
     .update		= UdpNodeUpdate,
+    .shutdown		= UdpShutdown,
     .showstat		= UdpStat,
     .originate		= UdpOrigination,
     .issync		= UdpIsSync,
@@ -330,6 +332,17 @@ UdpClose(Link l)
     pi->peer_port=0;
     PhysDown(l, 0, NULL);
   }
+}
+
+/*
+ * UdpShutdown()
+ */
+
+static void
+UdpShutdown(Link l)
+{
+	UdpDoClose(l);
+	Freee(MB_PHYS, l->info);
 }
 
 /*

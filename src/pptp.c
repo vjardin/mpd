@@ -362,6 +362,7 @@ PptpShutdown(Link l)
 	pptp->listener = NULL;
     }
     PptpKillNode(l);
+    Freee(MB_PHYS, l->info);
 }
 
 /*

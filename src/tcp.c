@@ -546,6 +546,7 @@ static void
 TcpShutdown(Link l)
 {
 	TcpDoClose(l);
+	Freee(MB_PHYS, l->info);
 }
 
 /*

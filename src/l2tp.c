@@ -653,6 +653,7 @@ L2tpShutdown(Link l)
 	    }
 	}
     }
+    Freee(MB_PHYS, l->info);
 }
 
 /*

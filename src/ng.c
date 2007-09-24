@@ -49,6 +49,7 @@
   static int	NgInit(Link l);
   static void	NgOpen(Link l);
   static void	NgClose(Link l);
+  static void	NgShutdown(Link l);
   static void	NgStat(Context ctx);
   static int	NgSetCommand(Context ctx, int ac, char *av[], void *arg);
   static int	NgIsSync(Link l);
@@ -68,6 +69,7 @@
     .init		= NgInit,
     .open		= NgOpen,
     .close		= NgClose,
+    .shutdown		= NgShutdown,
     .showstat		= NgStat,
     .issync		= NgIsSync,
     .peeraddr		= NgPeerAddr,
@@ -174,6 +176,15 @@ NgClose(Link l)
 fail:
     l->state = PHYS_STATE_DOWN;
     PhysDown(l, 0, NULL);
+}
+
+/*
+ * NgShutdown()
+ */
+static void
+NgShutdown(Link l)
+{
+	Freee(MB_PHYS, l->info);
 }
 
 /*
