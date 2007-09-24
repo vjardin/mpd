@@ -503,6 +503,10 @@ LinkShutdown(Link l)
 	    regfree(&a->regexp);
 	Freee(MB_LINK, a);
     }
+    if (l->upReason)
+	Freee(MB_LINK, l->upReason);
+    if (l->downReason)
+	Freee(MB_LINK, l->downReason);
     UNREF(l);
 }
 
