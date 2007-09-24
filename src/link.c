@@ -499,6 +499,8 @@ LinkShutdown(Link l)
     l->dead = 1;
     while ((a = SLIST_FIRST(&l->actions)) != NULL) {
 	SLIST_REMOVE_HEAD(&l->actions, next);
+	if (a->regex[0])
+	    regfree(&a->regexp);
 	Freee(MB_LINK, a);
     }
     UNREF(l);
