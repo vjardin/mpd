@@ -393,8 +393,8 @@ complete_lac:
 # We must ask authentication to get peer login
 	set link no pap chap eap
 	set link enable pap
-	set link action forward L2 "@corp1.net$"
-	set link action forward L3 "@corp2.net$"
+	set link action forward L2 "@corp1\\.net$"
+	set link action forward L3 "@corp2\\.net$"
 	set link action bundle B1
 	set auth ippool pool1
 	set link enable incoming
