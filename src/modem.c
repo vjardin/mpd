@@ -155,15 +155,15 @@
   };
 
   const struct cmdtab ModemSetCmds[] = {
-    { "device name",			"Set modem device",
+    { "device {name}",			"Set modem device",
       ModemSetCommand, NULL, (void *) SET_DEVICE },
-    { "speed port-speed",		"Set modem speed",
+    { "speed {port-speed}",		"Set modem speed",
       ModemSetCommand, NULL, (void *) SET_SPEED },
-    { "script [label]",			"Set connect script",
+    { "script [{label}]",		"Set connect script",
       ModemSetCommand, NULL, (void *) SET_CSCRIPT },
-    { "idle-script [label]",		"Set idle script",
+    { "idle-script [{label}]",		"Set idle script",
       ModemSetCommand, NULL, (void *) SET_ISCRIPT },
-    { "var $var string",		"Set script variable",
+    { "var ${var} {string}",		"Set script variable",
       ModemSetCommand, NULL, (void *) SET_SCRIPT_VAR },
     { "watch [+|-cd] [+|-dsr]", 	"Set signals to monitor",
       ModemSetCommand, NULL, (void *) SET_WATCH },
@@ -188,21 +188,19 @@
 static int
 ModemInit(Link l)
 {
-  char		defSpeed[32];
-  ModemInfo	m;
+    char	defSpeed[32];
+    ModemInfo	m;
 
-  m = (ModemInfo) (l->info = Malloc(MB_PHYS, sizeof(*m)));
-  m->watch = TIOCM_CAR;
-  m->chat = ChatInit(l, ModemChatSetBaudrate,
+    m = (ModemInfo) (l->info = Malloc(MB_PHYS, sizeof(*m)));
+    m->watch = TIOCM_CAR;
+    m->chat = ChatInit(l, ModemChatSetBaudrate,
 		ModemChatLog, ModemChatMalloc, ModemChatFree);
-  m->fd = -1;
-  m->opened = FALSE;
+    m->fd = -1;
+    m->opened = FALSE;
 
-  if (l) {
     /* Set nominal link speed and bandwith for a modem connection */
     l->latency = MODEM_DEFAULT_LATENCY;
     l->bandwidth = MODEM_DEFAULT_BANDWIDTH;
-  }
 
     /* Set default speed */
     m->speed = MODEM_DEFAULT_SPEED;
@@ -285,14 +283,12 @@ fail:
 
     /* Preset some special chat variables */
     ChatPresetVar(m->chat, CHAT_VAR_DEVICE, m->device);
-    if (l) {
-	ChatPresetVar(m->chat, CHAT_VAR_LOGIN, l->lcp.auth.conf.authname);
-	if (l->lcp.auth.conf.password[0] != 0) {
-	    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, l->lcp.auth.conf.password);
-	} else if (AuthGetData(l->lcp.auth.conf.authname,
-	    password, sizeof(password), NULL, NULL) >= 0) {
-		ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, password);
-	}
+    ChatPresetVar(m->chat, CHAT_VAR_LOGIN, l->lcp.auth.conf.authname);
+    if (l->lcp.auth.conf.password[0] != 0) {
+	ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, l->lcp.auth.conf.password);
+    } else if (AuthGetData(l->lcp.auth.conf.authname,
+        password, sizeof(password), NULL, NULL) >= 0) {
+    	    ChatPresetVar(m->chat, CHAT_VAR_PASSWORD, password);
     }
 
   /* Run connect or idle script as appropriate */
@@ -474,22 +470,20 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
   else
   {
     if (strcasecmp(idleResult, MODEM_IDLE_RESULT_ANSWER) == 0) {
-      Log(LG_PHYS, ("[%s] MODEM: opening link in %s mode", l->name, "answer"));
-      if (l)
+        Log(LG_PHYS, ("[%s] MODEM: opening link in %s mode", l->name, "answer"));
         RecordLinkUpDownReason(NULL, l, 1, STR_INCOMING_CALL, msg ? "%s" : NULL, msg);
-      m->answering = TRUE;
-      l->state = PHYS_STATE_READY;
-      PhysIncoming(l);
+        m->answering = TRUE;
+        l->state = PHYS_STATE_READY;
+        PhysIncoming(l);
     } else if (strcasecmp(idleResult, MODEM_IDLE_RESULT_RINGBACK) == 0) {
-      Log(LG_PHYS, ("[%s] MODEM: opening link in %s mode", l->name, "ringback"));
-      if (l)
+        Log(LG_PHYS, ("[%s] MODEM: opening link in %s mode", l->name, "ringback"));
         RecordLinkUpDownReason(NULL, l, 1, STR_RINGBACK, msg ? "%s" : NULL, msg);
-      m->answering = FALSE;
-      PhysIncoming(l);
+        m->answering = FALSE;
+        PhysIncoming(l);
     } else {
-      Log(LG_ERR, ("[%s] MODEM: idle script succeeded, but action \"%s\" unknown",
-        l->name, idleResult));
-      ModemDoClose(l, FALSE);
+        Log(LG_ERR, ("[%s] MODEM: idle script succeeded, but action \"%s\" unknown",
+    	  l->name, idleResult));
+        ModemDoClose(l, FALSE);
     }
   }
   Freee(MB_CHAT, idleResult);
