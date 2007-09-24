@@ -250,7 +250,8 @@ ModemStart(void *arg)
     assert(!m->answering);
     TimerStop(&m->startTimer);
     if (!m->opened &&
-      (!*m->idleScript || !Enabled(&l->conf.options, LINK_CONF_INCOMING)))
+      (!*m->idleScript || !Enabled(&l->conf.options, LINK_CONF_INCOMING) ||
+       gShutdownInProgress))
 	return;
 
     /* Avoid brief hang from kernel enforcing minimum DTR hold time */
