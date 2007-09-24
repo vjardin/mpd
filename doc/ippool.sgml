@@ -1,0 +1,27 @@
+<!-- $Id$ -->
+<!-- mpd netgraph enabled user mode PPP daemon -->
+
+<!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
+
+  <sect><heading>IP pool commands<label id="ippool"></heading>
+
+<p>
+Mpd implementing dynamic IP addresses pool management. When user
+is authenticated and auth backend have not provided IP address,
+it can be taken from pool. To make work it you should create
+one or more address pools with 'set ippool add ...'
+commands and define which pool should be used for the link
+using 'set auth ippool ...' command.
+
+<descrip>
+
+<tag><tt>
+set ippool add <em>pool</em> <em>first</em> <em>last</em>
+</tt></tag>
+
+This command creates new IP address pool if it not exists and adds specified 
+address range to it.
+
+</descrip>
+
+</p>
