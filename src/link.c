@@ -791,13 +791,14 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
         for (k = 0; k < gNumLinks; k++) {
 	    if ((l = gLinks[k]) != NULL) {
 		if (l && l->bund)
-		    Printf("\t\"%s\" -> bundle \"%s\"\r\n", 
-			l->name, l->bund->name);
+		    Printf("\t\"%s\" (%s%s) -> bundle \"%s\"\r\n", 
+			l->name, l->type->name, l->tmpl?", template":(l->stay?", static":""), l->bund->name);
 		else if (l->rep)
-		    Printf("\t\"%s\" -> repeater \"%s\"\r\n",
-			 l->name, l->rep->name);
+		    Printf("\t\"%s\" (%s%s) -> repeater \"%s\"\r\n",
+			 l->name, l->type->name, l->tmpl?", template":(l->stay?", static":""), l->rep->name);
 		else
-		    Printf("\t\"%s\" -> unknown\r\n", l->name);
+		    Printf("\t\"%s\" (%s%s)\r\n", 
+			l->name, l->type->name, l->tmpl?", template":(l->stay?", static":""));
 	    }
 	}
       break;
