@@ -187,8 +187,10 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	}
 	l->upReasonValid=0;
 	LinkDown(l);
-	if (l->lcp.fsm.state == ST_INITIAL && l->die && !l->stay && l->state == PHYS_STATE_DOWN)
+	if (l->lcp.fsm.state == ST_INITIAL && l->die && !l->stay && l->state == PHYS_STATE_DOWN) {
+	    REF(l);
 	    MsgSend(l->msgs, MSG_SHUTDOWN, l);
+	}
 
     } else {
 	RepDown(l);
@@ -197,8 +199,10 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	else
 	    l->rep->links[1] = NULL;
 	l->rep = NULL;
-	if (!l->stay)
+	if (!l->stay) {
+	    REF(l);
 	    MsgSend(l->msgs, MSG_SHUTDOWN, l);
+	}
     }
 }
 

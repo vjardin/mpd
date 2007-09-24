@@ -726,7 +726,8 @@ LinkNgDataEvent(int type, void *cookie)
 	if (errno == EAGAIN)
     	    return;
 	Log(LG_LINK, ("[%s] socket read: %s", l->name, strerror(errno)));
-	DoExit(EX_ERRDEAD);
+	LinkClose(l);
+	return;
     }
 
     /* Extract protocol */
