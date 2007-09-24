@@ -1180,7 +1180,7 @@ ppp_l2tp_set_link_info_cb(struct ppp_l2tp_sess *sess,
 };
 
 /*
- * Read an incoming packet that might be a new L2TP connection.
+ * Connect L2TP and link hooks.
  */
  
 static void
@@ -1215,6 +1215,7 @@ L2tpHookUpIncoming(Link l)
     		    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 		goto fail;
 	}
+	ppp_l2tp_sess_hooked(pi->sess);
 	close(csock);
 	return;
 

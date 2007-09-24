@@ -387,6 +387,11 @@ extern void	ppp_l2tp_ctrl_get_hook(struct ppp_l2tp_ctrl *ctrl,
 extern void	ppp_l2tp_sess_get_hook(struct ppp_l2tp_sess *sess,
 			ng_ID_t *nodep, const char **hookp);
 
+/*
+ * Informs that hook has been connected and temporal tee can be shutted down.
+ */
+extern void	ppp_l2tp_sess_hooked(struct ppp_l2tp_sess *sess);
+
 __END_DECLS
 
 #endif /* _PPP_L2TP_PDEL_PPP_PPP_L2TP_CTRL_H_ */

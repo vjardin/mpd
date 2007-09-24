@@ -996,6 +996,19 @@ ppp_l2tp_sess_get_hook(struct ppp_l2tp_sess *sess,
 		*hookp = NG_TEE_HOOK_RIGHT;
 }
 
+/*
+ * Informs that hook has been connected and temporal tee can be shutted down.
+ */
+void
+ppp_l2tp_sess_hooked(struct ppp_l2tp_sess *sess) {
+	char path[32];
+
+	snprintf(path, sizeof(path), "[%lx]:", (u_long)sess->node_id);
+	(void)NgSendMsg(sess->ctrl->csock, path,
+	    NGM_GENERIC_COOKIE, NGM_SHUTDOWN, NULL, 0);
+	sess->node_id = 0;
+}
+
 /************************************************************************
 		INTERNAL FUNCTIONS: CONTROL CONNECTION
 ************************************************************************/
