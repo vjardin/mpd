@@ -483,6 +483,8 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
 void
 LinkShutdown(Link l)
 {
+    struct linkaction	*a;
+
     /* Late divorce for DoD case */
     if (l->bund) {
 	l->bund->links[l->bundleIndex] = NULL;
@@ -495,6 +497,10 @@ LinkShutdown(Link l)
 	LinkNgShutdown(l, 1);
     PhysShutdown(l);
     l->dead = 1;
+    while ((a = SLIST_FIRST(&l->actions)) != NULL) {
+	SLIST_REMOVE_HEAD(&l->actions, next);
+	Freee(MB_LINK, a);
+    }
     UNREF(l);
 }
 
