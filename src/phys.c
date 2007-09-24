@@ -405,6 +405,8 @@ PhysShutdown(Link l)
 {
     PhysType	const pt = l->type;
 
+    MsgUnRegister(&l->pmsgs);
+
     if (pt && pt->shutdown)
 	(*pt->shutdown)(l);
 }
