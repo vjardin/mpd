@@ -50,17 +50,20 @@ dialup:
 
 # Create static modem link named L1
 	create link static L1 modem
-# Configure the account name. Password will be taken from mpd.secret.
-	set auth authname MyLogin
-# We expect to be authenticated by peer using any protocol.
-	set link disable chap pap
-	set link accept chap pap
 # Configure modem
 	set modem device /dev/cuad0
 	set modem var $DialPrefix "DT"
 	set modem var $Telephone "1-415-555-1212"
 	set modem script DialPeer
 	set modem idle-script Ringback
+# We expect to be authenticated by peer using any protocol.
+	set link disable chap pap
+	set link accept chap pap
+# Configure the account name. Password will be taken from mpd.secret.
+	set auth authname MyLogin
+# To make Ringback work we should specify how to handle it's
+# link originated call.
+	set link action bundle B1
 
 # Create static bundle named B1
 	create bundle static B1
