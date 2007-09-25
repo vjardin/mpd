@@ -129,7 +129,7 @@ multi_dialup:
 
 common:
 # Enable multilink protocol
-	set link enable multilimk
+	set link enable multilink
 # Set bundle template to use
 	set link action bundle B
 # Allow peer to authenticate us
@@ -192,6 +192,13 @@ pptp_server:
 	set ipcp ranges 192.168.1.1/32 192.168.1.50/32
 	set ipcp dns 192.168.1.3
 	set ipcp nbns 192.168.1.4
+# The five lines below enable Microsoft Point-to-Point encryption
+# (MPPE) using the ng_mppc(8) netgraph node type.
+	set bundle enable compression
+	set ccp yes mppc
+	set ccp yes mpp-e40
+	set ccp yes mpp-e128
+	set ccp yes mpp-stateless
 
 # Create clonable link template named L
 	create link template L pptp
@@ -204,17 +211,10 @@ pptp_server:
 # another config section with label 'radius'.
 #	load radius
 # Specify IP address pool for dynamic assigment.
-	set link ippool pool1
+	set auth ippool pool1
 	set link keep-alive 10 60
 # We reducing link mtu to avoid GRE packet fragmentation.
 	set link mtu 1460
-# The five lines below enable Microsoft Point-to-Point encryption
-# (MPPE) using the ng_mppc(8) netgraph node type.
-	set bundle enable compression
-	set ccp yes mppc
-	set ccp yes mpp-e40
-	set ccp yes mpp-e128
-	set ccp yes mpp-stateless
 # Configure PPTP
         set pptp self 1.2.3.4
 # Allow to accept calls
@@ -245,6 +245,13 @@ pptp_vpn:
 	create bundle static B1
 	set ipcp ranges 192.168.1.1/32 192.168.2.1/32
 	set iface route 192.168.2.0/24
+# Enable Microsoft Point-to-Point encryption (MPPE)
+	set bundle enable compression
+	set ccp yes mppc
+	set ccp yes mpp-e40
+	set ccp yes mpp-e128
+	set bundle enable crypt-reqd
+	set ccp yes mpp-stateless
 	
 	create link static L1 pptp
 	set link action bundle B1
@@ -256,17 +263,10 @@ pptp_vpn:
 	set link mtu 1460
 	set link keep-alive 10 75
 	set link max-redial 0
-# Enable Microsoft Point-to-Point encryption (MPPE)
-	set bundle enable compression
-	set ccp yes mppc
-	set ccp yes mpp-e40
-	set ccp yes mpp-e128
-	set bundle enable crypt-reqd
-	set ccp yes mpp-stateless
 # Configure PPTP and open link
 	set pptp self 1.2.3.4
 	set pptp peer 2.3.4.5
-	set device enable incoming
+	set link enable incoming
 	open
 
 pptp_client:
@@ -304,7 +304,7 @@ pppoe_server:
 # Create link template with common info
 	create link template common pppoe
 # Enable multilink protocol
-	set link enable multilimk
+	set link enable multilink
 # Set bundle template to use
 	set link action bundle B
 # Allow peer to authenticate us
@@ -316,11 +316,11 @@ pppoe_server:
 # Create templates for ifaces to listen using 'common' template and let them go
 	create link template fxp0 common
 	set pppoe iface fxp0
-	set device enable incoming
+	set link enable incoming
 
 	create link template fxp1 common
 	set pppoe iface fxp1
-	set device enable incoming
+	set link enable incoming
 
 pppoe_client:
 #
