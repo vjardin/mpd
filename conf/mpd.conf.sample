@@ -360,10 +360,6 @@ radius:
 	set auth enable radius-auth
 # enable RADIUS accounting
 	set auth enable radius-acct
-# activate MPPE and let the RADIUS server assign MPPE-types and MPPE-policies
-	set bundle enable compression
-	set ccp yes mppc
-	set ccp enable mppe-policy
 # protect our requests with the message-authenticator
 	set radius enable message-authentic
 
