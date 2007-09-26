@@ -1776,10 +1776,10 @@ IfaceNgIpInit(Bund b, int ready)
 	if (b->iface.nfout_up)
 	    IfaceSetupNetflow(b, 1);
 #endif /* USE_NG_NETFLOW */
-
-	if (b->iface.mss_up)
-	    IfaceSetupMSS(b, MAXMSS(b->iface.mtu));
     }
+
+    if (b->iface.mss_up)
+        IfaceSetupMSS(b, MAXMSS(b->iface.mtu));
     
     IfaceSetupLimits(b);
 
