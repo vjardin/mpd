@@ -1113,15 +1113,15 @@ PppoeListenUpdate(void *arg)
 		l = gLinks[k];
 		pi = (PppoeInfo)l->info;
 
+		if (!Enabled(&l->conf.options, LINK_CONF_INCOMING))
+			continue;
+
 		if (!(strcmp(pi->path, "undefined:")
 		    &&strcmp(pi->session, "undefined:"))) {
 			Log(LG_ERR, ("PPPoE: Skipping link \"%s\" with undefined "
 			    "interface or session", l->name));
 			continue;
 		}
-
-		if (!Enabled(&l->conf.options, LINK_CONF_INCOMING))
-			continue;
 
 		for (i = 0; i < PppoeIfCount; i++)
 			if ((strcmp(PppoeIfs[i].ifnodepath, pi->path) == 0) &&
