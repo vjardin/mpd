@@ -149,7 +149,7 @@
     { "lcp",				"LCP status",
 	LcpStat, AdmitLink, NULL },
     { "nat",				"NAT status",
-	NatStat, AdmitLink, NULL },
+	NatStat, AdmitBund, NULL },
     { "mem",				"Memory map",
 	MemStat, NULL, NULL },
     { "console",			"Console status",
