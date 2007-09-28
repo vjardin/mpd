@@ -35,26 +35,4 @@ Sets the peer IP address and port for the TCP connection.
 Address and port fields are required for outgoing connections.
 For incoming connections it is not required, but can limit who can connect to us.
 
-<tag><tt>set tcp enable <em>option ...</em> </tt></tag><p>
-<tag><tt>set tcp disable <em>option ...</em> </tt></tag><p>
-
-Enable and disable TCP device type options for the link.
-
-</descrip>
-
-<p>
-The following options are supported:
-
-<descrip>
-
-<tag><tt>originate</tt></tag>
-
-This option enables the initiation of TCP connections to the peer.
-If this option is disabled, mpd will not initiate any TCP connections.
-
-<tag><tt>incoming</tt></tag>
-
-This option enables the acceptance of incoming TCP connections.
-If this option is disabled, mpd will not accept any incoming TCP connections.
-
 </descrip>

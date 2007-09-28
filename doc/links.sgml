@@ -234,6 +234,13 @@ Extensible Authentication Protocol.
 
 Default <tt><bf>disable</bf></tt> and <tt><bf>accept</bf></tt>.
 
+<tag><tt>incoming</tt></tag>
+
+This option enables the acceptance of incoming connections.
+If this option is disabled, mpd will not accept incoming connections
+using this link. To avoid races it is advised to enable it after
+all other link options are configured.
+
 <tag><tt>multilink</tt></tag>
 
 This command enables multi-link PPP on the link. This option is required

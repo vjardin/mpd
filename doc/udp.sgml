@@ -41,26 +41,4 @@ Sets the peer IP address and port for the UDP connection.
 Address and port specification is required for connection originating.
 For incoming connections it is not required, but can limit who can connect to us.
 
-<tag><tt>set udp enable <em>option ...</em> </tt></tag><p>
-<tag><tt>set udp disable <em>option ...</em> </tt></tag><p>
-
-Enable and disable UDP device type options for the link.
-
-</descrip>
-
-<p>
-The following options are supported:
-
-<descrip>
-
-<tag><tt>originate</tt></tag>
-
-This option enables the initiation of UDP connections to the peer.
-If this option is disabled, mpd will not initiate any UDP connections.
-
-<tag><tt>incoming</tt></tag>
-
-This option enables the acceptance of incoming UDP connections.
-If this option is disabled, mpd will not accept any incoming UDP connections.
-
 </descrip>

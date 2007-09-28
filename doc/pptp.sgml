@@ -89,18 +89,6 @@ The following options are supported:
 
 <descrip>
 
-<tag><tt>originate</tt></tag>
-
-This option enables the initiation of PPTP connections to the peer.
-If this option is disabled, mpd will not initiate any PPTP connections.
-You must configure the peer's IP address with the
-<tt><bf>set pptp peer</bf></tt> command.
-
-<tag><tt>incoming</tt></tag>
-
-This option enables the acceptance of incoming PPTP connections.
-If this option is disabled, mpd will not accept any incoming connections.
-
 <tag><tt>outcall</tt></tag>
 
 In PPTP, each individual PPP connection between two IP hosts (there

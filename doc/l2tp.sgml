@@ -115,18 +115,6 @@ The following options are supported:
 
 <descrip>
 
-<tag><tt>originate</tt></tag>
-
-This option enables the initiation of L2TP connections to the peer.
-If this option is disabled, mpd will not initiate any L2TP connections.
-You must configure the peer's IP address with the
-<tt><bf>set l2tp peer</bf></tt> command.
-
-<tag><tt>incoming</tt></tag>
-
-This option enables the acceptance of incoming L2TP connections.
-If this option is disabled, mpd will not accept any incoming connections.
-
 <tag><tt>outcall</tt></tag>
 
 Inside L2TP tunnel, each individual PPP connection (there may be several), 
