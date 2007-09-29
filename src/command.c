@@ -111,6 +111,7 @@
 	LinkCreate, NULL, NULL },
     { "bundle [template|static] {name} {template}",	"Create bundle/template",
 	BundCreate, NULL, NULL },
+    { NULL },
   };
 
   static const struct cmdtab ShowCommands[] = {
