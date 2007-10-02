@@ -130,69 +130,6 @@ Default is on.
 
 </descrip>
 
-  <sect1><heading>PPTP setup hints</heading>
-
-<p>
-
-If what you want to do is setup a PPTP server for remote clients
-to connect to your LAN, you would want something like this:
-<tscreen><verb>
-#
-# Act like a PPTP server allowing clients to connect
-#
-Pptp0:
-    set link type pptp
-    set pptp enable incoming
-    set pptp disable originate
-</verb></tscreen>
-You may also need to enable proxy-ARP on each interface if you're
-assigning local Ethernet LAN addresses, as well as configuring
-DNS and NBNS server information for client bundles using the
-<tt>set ipcp dns</tt> and <tt>set ipcp nbns</tt> commands.
-
-If you want multiple <em>simultaneous</em> clients to be able
-to connect, you should define (and load) multiple bundles, one
-for each potential client. Each bundle should negotiate a different
-peer proxy-ARP IP address to avoid conflicts. For example:
-<tscreen><verb>
-#
-# mpd.conf: allow up to 2 clients
-#
-default:
-    load Pptp1
-    load Pptp2
-
-Pptp1:
-    new -i ng0 Pptp1 Pptp1
-    ...
-    set ipcp ranges 1.1.1.1/32 1.1.1.101/32
-    ...
-
-Pptp2:
-    new -i ng1 Pptp2 Pptp2
-    ...
-    set ipcp ranges 1.1.1.1/32 1.1.1.102/32
-    ...
-</verb></tscreen>
-
-If instead you want to set up a peer-to-peer symmetrical
-tunnelling arrangement (i.e., normal IP routing using PPP over PPTP),
-you might want something like this (here <tt>1.1.1.1</tt>
-is the local IP address and <tt>2.2.2.2</tt> is the remote
-IP address):
-<tscreen><verb>
-#
-# Tunnelling PPP traffic over a PPTP connection with peer 2.2.2.2
-#
-Pptp1:
-    set link type pptp
-    set pptp self 1.1.1.1
-    set pptp peer 2.2.2.2
-    set pptp enable incoming originate
-</verb></tscreen>
-On the remote machine, you'd have the same entry with the
-<tt>self</tt> and <tt>peer</tt> addresses reversed.
-
 Note that if you are connecting to an NT server, your authentication
 name must include the NT domain name. For example:
 
