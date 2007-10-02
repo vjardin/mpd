@@ -71,7 +71,7 @@ DeflateInit(Bund b, int dir)
   DeflateInfo		const deflate = &b->ccp.deflate;
   struct ng_deflate_config	conf;
   struct ngm_mkpeer	mp;
-  char			path[NG_PATHLEN + 1];
+  char			path[NG_PATHSIZ];
   const char		*deflatehook, *ppphook;
   int			cmd;
 
@@ -165,7 +165,7 @@ void
 DeflateCleanup(Bund b, int dir)
 {
   const char	*ppphook;
-  char		path[NG_PATHLEN + 1];
+  char		path[NG_PATHSIZ];
 
   /* Remove node */
   switch (dir) {
@@ -190,7 +190,7 @@ DeflateCleanup(Bund b, int dir)
 static Mbuf
 DeflateRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
-  char	path[NG_PATHLEN + 1];
+  char	path[NG_PATHSIZ];
 
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
@@ -219,7 +219,7 @@ DeflateSendResetReq(Bund b)
 static void
 DeflateRecvResetAck(Bund b, int id, Mbuf bp)
 {
-  char	path[NG_PATHLEN + 1];
+  char	path[NG_PATHSIZ];
 
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_DECOMPRESS);
@@ -328,7 +328,7 @@ static int
 DeflateStat(Context ctx, int dir) 
 {
     Bund			b = ctx->bund;
-    char			path[NG_PATHLEN + 1];
+    char			path[NG_PATHSIZ];
     struct ng_deflate_stats	stats;
     union {
 	u_char			buf[sizeof(struct ng_mesg) + sizeof(stats)];

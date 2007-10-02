@@ -134,7 +134,7 @@ Pred1Init(Bund b, int directions)
   struct ngm_mkpeer	mp;
   struct ng_pred1_config conf;
   const char		*pred1hook, *ppphook;
-  char                  path[NG_PATHLEN + 1];
+  char                  path[NG_PATHSIZ];
 
   memset(&conf, 0, sizeof(conf));
   conf.enable = 1;
@@ -202,7 +202,7 @@ Pred1Cleanup(Bund b, int dir)
   }
 #else
   const char	*ppphook;
-  char		path[NG_PATHLEN + 1];
+  char		path[NG_PATHSIZ];
 
   /* Remove node */
   switch (dir) {
@@ -398,7 +398,7 @@ Pred1RecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
   Pred1Init(b, COMP_DIR_XMIT);
   p->xmit_stats.Errors++;
 #else
-  char	path[NG_PATHLEN + 1];
+  char	path[NG_PATHSIZ];
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
   if (NgSendMsg(b->csock, path,
@@ -433,7 +433,7 @@ Pred1RecvResetAck(Bund b, int id, Mbuf bp)
 #ifndef USE_NG_PRED1
   Pred1Init(b, COMP_DIR_RECV);
 #else
-  char	path[NG_PATHLEN + 1];
+  char	path[NG_PATHSIZ];
   /* Forward ResetReq to the DEFLATE compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_DECOMPRESS);
   if (NgSendMsg(b->csock, path,
@@ -537,7 +537,7 @@ Pred1Stat(Context ctx, int dir)
     return (0);
 #else
     Bund			b = ctx->bund;
-    char			path[NG_PATHLEN + 1];
+    char			path[NG_PATHSIZ];
     struct ng_pred1_stats	stats;
     union {
 	u_char			buf[sizeof(struct ng_mesg) + sizeof(stats)];

@@ -606,7 +606,7 @@ fail:
 int
 LinkNgJoin(Link l)
 {
-    char		path[NG_PATHLEN + 1];
+    char		path[NG_PATHSIZ];
     struct ngm_connect	cn;
 
     snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
@@ -633,7 +633,7 @@ LinkNgJoin(Link l)
 int
 LinkNgLeave(Link l)
 {
-    char		path[NG_PATHLEN + 1];
+    char		path[NG_PATHSIZ];
     struct ngm_connect	cn;
 
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->nodeID);
@@ -658,9 +658,10 @@ LinkNgLeave(Link l)
 int
 LinkNgToRep(Link l)
 {
-    char		path[NG_PATHLEN + 1];
+    char		path[NG_PATHSIZ];
     struct ngm_connect	cn;
 
+    /* Connect link to repeater */
     snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_RIGHT);
     if (!PhysGetUpperHook(l, cn.path, cn.peerhook)) {
@@ -674,20 +675,14 @@ LinkNgToRep(Link l)
 	return(-1);
     }
 
-    NgFuncShutdownNode(l->csock, l->name, MPD_HOOK_PPP);
+    /* Shutdown link tee node */
+    NgFuncShutdownNode(l->csock, l->name, path);
 
-//    EventUnRegister(&l->ctrlEvent);
     close(l->csock);
     l->csock = -1;
     EventUnRegister(&l->dataEvent);
     close(l->dsock);
     l->dsock = -1;
-
-    TimerStop(&l->lcp.fsm.echoTimer);
-    TimerStop(&l->lcp.fsm.timer);
-    TimerStop(&l->lcp.auth.timer);
-    l->lcp.fsm.state = ST_INITIAL;
-    AuthCleanup(l);
     return (0);
 }
 
@@ -700,7 +695,6 @@ LinkNgShutdown(Link l, int tee)
 {
     if (tee)
 	NgFuncShutdownNode(l->csock, l->name, MPD_HOOK_PPP);
-//    EventUnRegister(&l->ctrlEvent);
     close(l->csock);
     l->csock = -1;
     EventUnRegister(&l->dataEvent);

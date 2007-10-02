@@ -107,7 +107,7 @@ RepUp(Link l)
 	PhysOpen(r->links[1-n]);
 
     if (r->p_up == 3 && r->csock > 0 && r->node_id) {
-	char path[NG_PATHLEN + 1];
+	char path[NG_PATHSIZ];
 	
 	snprintf(path, sizeof(path), "[%x]:", r->node_id);
 	NgFuncShutdownNode(r->csock, r->name, path);
@@ -136,7 +136,7 @@ RepDown(Link l)
 	PhysClose(r->links[1-n]);
 
     if (r->csock > 0 && r->node_id) {
-	char path[NG_PATHLEN + 1];
+	char path[NG_PATHSIZ];
 	
 	snprintf(path, sizeof(path), "[%x]:", r->node_id);
 	NgFuncShutdownNode(r->csock, r->name, path);
@@ -189,11 +189,11 @@ RepGetHook(Link l, char *path, char *hook)
     if (r->node_id == 0)
 	return (0);
 
-    snprintf(path, NG_PATHLEN, "[%lx]:", (u_long)r->node_id);
+    snprintf(path, NG_PATHSIZ, "[%lx]:", (u_long)r->node_id);
     if (n == 0)
-	snprintf(hook, NG_HOOKLEN, NG_TEE_HOOK_LEFT);
+	snprintf(hook, NG_HOOKSIZ, NG_TEE_HOOK_LEFT);
     else
-	snprintf(hook, NG_HOOKLEN, NG_TEE_HOOK_RIGHT);
+	snprintf(hook, NG_HOOKSIZ, NG_TEE_HOOK_RIGHT);
     return (1);
 }
 
@@ -309,7 +309,7 @@ RepShutdown(Rep r)
     }
 
     if (r->csock > 0 && r->node_id) {
-	char path[NG_PATHLEN + 1];
+	char path[NG_PATHSIZ];
 	
 	snprintf(path, sizeof(path), "[%x]:", r->node_id);
 	NgFuncShutdownNode(r->csock, r->name, path);

@@ -172,7 +172,7 @@
 int
 IpcpStat(Context ctx, int ac, char *av[], void *arg)
 {
-  char			path[NG_PATHLEN + 1];
+  char			path[NG_PATHSIZ];
   IpcpState		const ipcp = &ctx->bund->ipcp;
   Fsm			fp = &ipcp->fsm;
   union {
@@ -406,7 +406,7 @@ IpcpLayerUp(Fsm fp)
     Bund 	b = (Bund)fp->arg;
   IpcpState		const ipcp = &b->ipcp;
   char			ipbuf[20];
-  char			path[NG_PATHLEN + 1];
+  char			path[NG_PATHSIZ];
   struct ngm_vjc_config	vjc;
   struct u_addr		tmp;
 
@@ -774,7 +774,7 @@ IpcpNgInitVJ(Bund b)
 {
   struct ngm_mkpeer	mp;
   struct ngm_connect	cn;
-  char path[NG_PATHLEN + 1];
+  char path[NG_PATHSIZ];
   struct ngm_name	nm;
 
   /* Add a VJ compression node */
@@ -833,7 +833,7 @@ fail:
 static void
 IpcpNgShutdownVJ(Bund b)
 {
-    char	path[NG_PATHLEN+1];
+    char	path[NG_PATHSIZ];
 
     snprintf(path, sizeof(path), ".:%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_VJC_IP);
     NgFuncShutdownNode(b->csock, b->name, path);

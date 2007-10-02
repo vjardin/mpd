@@ -39,10 +39,6 @@
   #define WAIT			"wait"
   #define NOTHING		"nop"
   #define CHAT_KEYWORD_ALL	"all"
-#ifdef LOCAT_SCRIPT_FILE
-  #define LCAT			"lcat"
-  #define LSET			"lset"
-#endif
 
 /* Special timer used when no label given */
 
@@ -77,10 +73,6 @@
     CMD_FAILURE,
     CMD_WAIT,
     CMD_NOTHING,
-#ifdef LOCAT_SCRIPT_FILE
-    CMD_LCAT,
-    CMD_LSET,
-#endif
   };
 
 /* Structures */
@@ -187,10 +179,6 @@
     { FAILURE,	CMD_FAILURE,	1, 1 },
     { WAIT,	CMD_WAIT,	1, 2 },
     { NOTHING,	CMD_NOTHING,	1, 1 },
-#ifdef LOCAT_SCRIPT_FILE
-    { LCAT,	CMD_LCAT,	2, 3 },
-    { LSET,	CMD_LSET,	3, 3 },
-#endif
   };
 
   #define CHAT_NUM_COMMANDS	(sizeof(gCmds) / sizeof(*gCmds))
@@ -645,26 +633,6 @@ ChatDoCmd(ChatInfo c, int ac, char *av[])
       }
       break;
 
-#ifdef LOCAT_SCRIPT_FILE
-    case CMD_LSET:
-      {
-	char	*value = "[ locat not found ]";
-
-	if (LocatPush(LOCAT_SCRIPT_FILE) >= 0)
-	{
-	  value = strtoul(av[2], NULL, 0);
-	  LocatPop();
-	}
-	if (ChatVarSet(c, av[1], value, 1, 0) < 0)
-	{
-	  (*c->log)(c->arg, CHAT_LG_ERROR,
-	    "line %d: %s: invalid variable \"%s\"", c->lineNum, LSET, av[1]);
-	  ChatFailure(c);
-	}
-      }
-      break;
-#endif
-
     case CMD_MATCH:
       switch (ac)
       {
@@ -770,31 +738,6 @@ ChatDoCmd(ChatInfo c, int ac, char *av[])
     case CMD_LOG:
       ChatLog(c, 0, av[1]);
       break;
-
-#ifdef LOCAT_SCRIPT_FILE
-    case CMD_LCAT:
-      {
-	char	*msg = "[ locat not found ]";
-	char	*lcat = av[1];
-	int	code = ADLG_WAN_MESSAGE;
-
-	if (ac > 2)		/* XXX kludge */
-	{
-	  lcat = av[2];
-	  if (!strcmp(av[1], "connecting"))
-	    code = ADLG_WAN_CONNECTING;
-	  else
-	    (*c->log)(c->arg, CHAT_LG_ERROR, "unknown %s code %s", LCAT, av[1]);
-	}
-	if (LocatPush(LOCAT_SCRIPT_FILE) >= 0)
-	{
-	  msg = strtoul(lcat, NULL, 0);
-	  LocatPop();
-	}
-	ChatLog(c, code, msg);
-      }
-      break;
-#endif
 
     case CMD_RETURN:
       ChatReturn(c, 1);

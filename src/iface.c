@@ -1692,8 +1692,8 @@ static int
 IfaceNgIpInit(Bund b, int ready)
 {
     struct ngm_connect	cn;
-    char		path[NG_PATHLEN + 1];
-    char		hook[NG_HOOKLEN + 1];
+    char		path[NG_PATHSIZ];
+    char		hook[NG_HOOKSIZ];
 
     if (!ready) {
 	/* Dial-on-Demand mode */
@@ -1797,7 +1797,7 @@ fail:
 static void
 IfaceNgIpShutdown(Bund b)
 {
-    char		path[NG_PATHLEN + 1];
+    char		path[NG_PATHSIZ];
 
 #ifdef USE_NG_NAT
     if (b->iface.nat_up)
@@ -1835,7 +1835,7 @@ static int
 IfaceNgIpv6Init(Bund b, int ready)
 {
     struct ngm_connect	cn;
-    char		path[NG_PATHLEN + 1];
+    char		path[NG_PATHSIZ];
 
     if (!ready) {
     } else {
@@ -1866,7 +1866,7 @@ fail:
 static void
 IfaceNgIpv6Shutdown(Bund b)
 {
-    char		path[NG_PATHLEN + 1];
+    char		path[NG_PATHSIZ];
 
     NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_IPV6);
 
@@ -1896,8 +1896,8 @@ IfaceInitNAT(Bund b, char *path, char *hook)
 	b->name, NG_NAT_NODE_TYPE, path, mp.ourhook, strerror(errno)));
       return(-1);
     }
-    strlcat(path, ".", NG_PATHLEN);
-    strlcat(path, hook, NG_PATHLEN);
+    strlcat(path, ".", NG_PATHSIZ);
+    strlcat(path, hook, NG_PATHSIZ);
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-nat", gPid, b->name);
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
@@ -1957,7 +1957,7 @@ static int
 IfaceSetupNAT(Bund b)
 {
     NatState	const nat = &b->iface.nat;
-    char	path[NG_PATHLEN+1];
+    char	path[NG_PATHSIZ];
 
     if (u_addrempty(&nat->alias_addr)) {
 	snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
@@ -1976,7 +1976,7 @@ IfaceSetupNAT(Bund b)
 static void
 IfaceShutdownNAT(Bund b)
 {
-    char	path[NG_PATHLEN+1];
+    char	path[NG_PATHSIZ];
 
     snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
     NgFuncShutdownNode(b->csock, b->name, path);
@@ -2000,8 +2000,8 @@ IfaceInitTee(Bund b, char *path, char *hook)
 	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook, strerror(errno)));
       return(-1);
     }
-    strlcat(path, ".", NG_PATHLEN);
-    strlcat(path, hook, NG_PATHLEN);
+    strlcat(path, ".", NG_PATHSIZ);
+    strlcat(path, hook, NG_PATHSIZ);
     snprintf(nm.name, sizeof(nm.name), "%s-tee", b->iface.ifname);
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
@@ -2017,7 +2017,7 @@ IfaceInitTee(Bund b, char *path, char *hook)
 static void
 IfaceShutdownTee(Bund b)
 {
-    char	path[NG_PATHLEN+1];
+    char	path[NG_PATHSIZ];
 
     snprintf(path, sizeof(path), "%s-tee:", b->iface.ifname);
     NgFuncShutdownNode(b->csock, b->name, path);
@@ -2030,7 +2030,7 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
     struct ngm_connect  cn;
-    char		path1[NG_PATHLEN+1];
+    char		path1[NG_PATHSIZ];
     struct {
 	struct ng_ipacct_mesg m;
 	int		data;
@@ -2047,8 +2047,8 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
 	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook, strerror(errno)));
       return(-1);
     }
-    strlcat(path, ".", NG_PATHLEN);
-    strlcat(path, hook, NG_PATHLEN);
+    strlcat(path, ".", NG_PATHSIZ);
+    strlcat(path, hook, NG_PATHSIZ);
     snprintf(nm.name, sizeof(nm.name), "%s_acct_tee", b->iface.ifname);
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
@@ -2123,7 +2123,7 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
 static void
 IfaceShutdownIpacct(Bund b)
 {
-    char	path[NG_PATHLEN+1];
+    char	path[NG_PATHSIZ];
 
     snprintf(path, sizeof(path), "%s_acct_tee:", b->iface.ifname);
     NgFuncShutdownNode(b->csock, b->name, path);
@@ -2160,13 +2160,13 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
         b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
       return (-1);
     }
-    strlcat(path, ".", NG_PATHLEN);
-    strlcat(path, hook, NG_PATHLEN);
+    strlcat(path, ".", NG_PATHSIZ);
+    strlcat(path, hook, NG_PATHSIZ);
     if (out) {
-	snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_DATA,
+	snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA,
 	    gNetflowIface + b->id*2 + out);
     } else {
-	snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_OUT,
+	snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_OUT,
 	    gNetflowIface + b->id*2 + out);
     }
     return (0);
@@ -2175,7 +2175,7 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
 static int
 IfaceSetupNetflow(Bund b, char out)
 {
-    char path[NG_PATHLEN + 1];
+    char path[NG_PATHSIZ];
     struct ng_netflow_setdlt	 nf_setdlt;
     struct ng_netflow_setifindex nf_setidx;
     
@@ -2208,14 +2208,14 @@ fail:
 static void
 IfaceShutdownNetflow(Bund b, char out)
 {
-    char	path[NG_PATHLEN+1];
-    char	hook[NG_HOOKLEN+1];
+    char	path[NG_PATHSIZ];
+    char	hook[NG_HOOKSIZ];
 
-    snprintf(path, NG_PATHLEN, "%s:", gNetflowNodeName);
-    snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_DATA,
+    snprintf(path, NG_PATHSIZ, "%s:", gNetflowNodeName);
+    snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA,
 	    gNetflowIface + b->id*2 + out);
     NgFuncDisconnect(b->csock, b->name, path, hook);
-    snprintf(hook, NG_HOOKLEN, "%s%d", NG_NETFLOW_HOOK_OUT,
+    snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_OUT,
 	    gNetflowIface + b->id*2 + out);
     NgFuncDisconnect(b->csock, b->name, path, hook);
 }
@@ -2244,9 +2244,9 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 	    goto fail;
 	}
 
-	strlcat(path, ".", NG_PATHLEN);
-	strlcat(path, hook, NG_PATHLEN);
-	snprintf(hook, NG_HOOKLEN, "out");
+	strlcat(path, ".", NG_PATHSIZ);
+	strlcat(path, hook, NG_PATHSIZ);
+	snprintf(hook, NG_HOOKSIZ, "out");
 
 	/* Set the new node's name. */
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-mss", gPid, b->name);
@@ -2269,8 +2269,8 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 	goto fail;
     }
 
-    strlcat(path, ".", NG_PATHLEN);
-    strlcat(path, hook, NG_PATHLEN);
+    strlcat(path, ".", NG_PATHSIZ);
+    strlcat(path, hook, NG_PATHSIZ);
     strcpy(hook, "iface");
 
     /* Set the new node's name. */
@@ -2320,7 +2320,7 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
 {
 #ifdef USE_NG_TCPMSS
   struct	ng_tcpmss_config tcpmsscfg;
-  char		path[NG_PATHLEN];
+  char		path[NG_PATHSIZ];
 
   snprintf(path, sizeof(path), "mpd%d-%s-mss:", gPid, b->name);
 
@@ -2413,7 +2413,7 @@ static void
 IfaceShutdownMSS(Bund b)
 {
 #ifdef USE_NG_TCPMSS
-	char	path[NG_PATHLEN+1];
+	char	path[NG_PATHSIZ];
 
 	snprintf(path, sizeof(path), "mpd%d-%s-mss:", gPid, b->name);
 	NgFuncShutdownNode(b->csock, b->name, path);
@@ -2443,8 +2443,8 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	    goto fail;
 	}
 
-	strlcat(path, ".", NG_PATHLEN);
-	strlcat(path, hook, NG_PATHLEN);
+	strlcat(path, ".", NG_PATHSIZ);
+	strlcat(path, hook, NG_PATHSIZ);
 	strcpy(hook, "iface");
 
 	/* Set the new node's name. */
@@ -2481,10 +2481,10 @@ IfaceSetupLimits(Bund b)
     
     struct ngm_connect  cn;
     
-    char		path[NG_PATHLEN + 1];
-    char		inhook[2][NG_HOOKLEN+1];
-    char		inhookn[2][NG_HOOKLEN+1];
-    char		outhook[NG_HOOKLEN+1];
+    char		path[NG_PATHSIZ];
+    char		inhook[2][NG_HOOKSIZ];
+    char		inhookn[2][NG_HOOKSIZ];
+    char		outhook[NG_HOOKSIZ];
     struct acl		*l;
     char		str[ACL_LEN];
 #define	ACL_MAX_PARAMS	5
@@ -2623,7 +2623,7 @@ IfaceSetupLimits(Bund b)
 			       (strcasecmp(av[p], "rate-limit") == 0)) {
 			struct ngm_mkpeer mp;
 			struct ng_car_bulkconf car;
-			char		tmppath[NG_PATHLEN + 1];
+			char		tmppath[NG_PATHSIZ];
 
 			union {
 			    u_char	buf[NG_BPF_HOOKPROG_SIZE(ACL_MAX_PROGLEN)];
@@ -2771,7 +2771,7 @@ IfaceSetupLimits(Bund b)
 static void
 IfaceShutdownLimits(Bund b)
 {
-    char path[NG_PATHLEN + 1];
+    char path[NG_PATHSIZ];
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 	snprintf(path, sizeof(path), "mpd%d-%s-lim:", gPid, b->name);

@@ -253,8 +253,8 @@ int
 PhysGetUpperHook(Link l, char *path, char *hook)
 {
     if (!l->rep) {
-	snprintf(path, NG_PATHLEN, "[%lx]:", (u_long)l->nodeID);
-	snprintf(hook, NG_HOOKLEN, "%s", NG_TEE_HOOK_LEFT);
+	snprintf(path, NG_PATHSIZ, "[%lx]:", (u_long)l->nodeID);
+	snprintf(hook, NG_HOOKSIZ, "%s", NG_TEE_HOOK_LEFT);
 	return 1;
     } else {
 	return RepGetHook(l, path, hook);
@@ -470,9 +470,7 @@ PhysMsg(int type, void *arg)
     switch (type) {
     case MSG_OPEN:
     	l->downReasonValid=0;
-	/* XXX HACK XXX */
-        if (l->rep && l->lcp.fsm.state != ST_INITIAL) {
-	    LinkNgToRep(l);
+        if (l->rep && l->state == PHYS_STATE_UP) {
 	    PhysUp(l);
 	    break;
 	}

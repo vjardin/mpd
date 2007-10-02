@@ -192,9 +192,6 @@ main(int ac, char *av[])
 
   /* Do some initialization */
   MpSetDiscrim();
-#ifdef LOCAT_MAIN_FILE
-  LocatPush(LOCAT_MAIN_FILE);
-#endif
   IPPoolInit();
 
   ret = pthread_mutex_init (&gGiantMutex, NULL);

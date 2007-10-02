@@ -304,7 +304,7 @@ L2tpOpen(Link l)
 	struct ngm_mkpeer mkpeer;
 	struct sockaddr_storage peer_sas;
 	struct sockaddr_storage sas;
-	char hook[NG_HOOKLEN + 1];
+	char hook[NG_HOOKSIZ];
 	char namebuf[64];
 	char hostname[MAXHOSTNAMELEN];
 	ng_ID_t node_id;
@@ -667,7 +667,7 @@ L2tpDoClose(Link l)
     L2tpInfo	const pi = (L2tpInfo) l->info;
     const char	*hook;
     ng_ID_t	node_id;
-    char	path[NG_PATHLEN + 1];
+    char	path[NG_PATHSIZ];
 	
     if (pi->sess) {		/* avoid double close */
 
@@ -1190,7 +1190,7 @@ L2tpHookUpIncoming(Link l)
 	L2tpInfo	pi = (L2tpInfo)l->info;
         const char 	*hook;
         ng_ID_t		node_id;
-	char		path[NG_PATHLEN + 1];
+	char		path[NG_PATHSIZ];
 	struct ngm_connect      cn;
 
 	/* Get a temporary netgraph socket node */
@@ -1251,7 +1251,7 @@ L2tpServerEvent(int type, void *arg)
 	struct sockaddr_storage sas;
 	const size_t bufsize = 8192;
 	u_int16_t *buf = NULL;
-	char hook[NG_HOOKLEN + 1];
+	char hook[NG_HOOKSIZ];
 	char hostname[MAXHOSTNAMELEN];
 	socklen_t sas_len;
 	char namebuf[64];

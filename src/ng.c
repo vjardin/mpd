@@ -31,8 +31,8 @@
   #define NG_REOPEN_PAUSE	5
 
   struct nginfo {
-    char	path[NG_PATHLEN + 1];	/* Node that takes PPP frames */
-    char	hook[NG_HOOKLEN + 1];	/* Hook on that node */
+    char	path[NG_PATHSIZ];	/* Node that takes PPP frames */
+    char	hook[NG_HOOKSIZ];	/* Hook on that node */
   };
   typedef struct nginfo	*NgInfo;
 
@@ -113,7 +113,7 @@ static void
 NgOpen(Link l)
 {
     NgInfo	const ng = (NgInfo) l->info;
-    char	path[NG_PATHLEN + 1];
+    char	path[NG_PATHSIZ];
     int		csock = -1;
     struct ngm_connect	cn;
 

@@ -206,7 +206,7 @@ struct ppp_l2tp_sess {
 	u_int16_t		session_id;		/* session id */
 	u_int16_t		peer_id;		/* peer session id */
 	ng_ID_t			node_id;		/* tee node id */
-	char			hook[NG_HOOKLEN + 1];	/* session hook name */
+	char			hook[NG_HOOKSIZ];	/* session hook name */
 	void			*link_cookie;		/* opaque link cookie */
 	u_int16_t		result;			/* close result code */
 	u_int16_t		error;			/* close error code */
@@ -612,7 +612,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 
 	/* Done */
 	*nodep = ctrl->node_id;
-	strlcpy(hook, NG_L2TP_HOOK_LOWER, NG_HOOKLEN + 1);
+	strlcpy(hook, NG_L2TP_HOOK_LOWER, NG_HOOKSIZ);
 	return (ctrl);
 
 fail:
@@ -1979,7 +1979,7 @@ ppp_l2tp_ctrl_event(void *arg)
 	    struct ng_mesg msg;
 	} buf;
 	struct ng_mesg *const msg = &buf.msg;
-	char raddr[NG_PATHLEN + 1];
+	char raddr[NG_PATHSIZ];
 	int len;
 
 	/* Read netgraph control message */

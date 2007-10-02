@@ -190,8 +190,8 @@ static void
 UdpOpen(Link l)
 {
 	UdpInfo			const pi = (UdpInfo) l->info;
-	char        		path[NG_PATHLEN+1];
-	char        		hook[NG_HOOKLEN+1];
+	char        		path[NG_PATHSIZ];
+	char        		hook[NG_HOOKSIZ];
 	struct ngm_mkpeer	mkp;
 	struct ngm_name         nm;
 	struct sockaddr_storage	addr;
@@ -353,7 +353,7 @@ static void
 UdpDoClose(Link l)
 {
 	UdpInfo	const pi = (UdpInfo) l->info;
-	char	path[NG_PATHLEN + 1];
+	char	path[NG_PATHSIZ];
 	int	csock;
 
 	if (pi->node_id == 0)

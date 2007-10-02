@@ -127,7 +127,7 @@
 int
 NgFuncInitGlobalNetflow(Bund b)
 {
-    char path[NG_PATHLEN + 1];
+    char path[NG_PATHSIZ];
 
       snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
 
@@ -248,7 +248,7 @@ NgFuncIfaceExists(Bund b, const char *ifname, char *buf, int max)
       u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
       struct ng_mesg	reply;
   }			u;
-  char		path[NG_PATHLEN + 1];
+  char		path[NG_PATHSIZ];
   char		*eptr;
   int		ifnum;
 
@@ -369,7 +369,7 @@ void
 NgFuncShutdownGlobal(void)
 {
 #ifdef USE_NG_NETFLOW
-    char	path[NG_PATHLEN + 1];
+    char	path[NG_PATHSIZ];
     int		csock;
 
     if (gNetflowNode == FALSE || gNetflowNodeShutdown==FALSE)
@@ -620,13 +620,13 @@ NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
 int
 NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 {
-  u_char		buf[sizeof(struct sockaddr_ng) + NG_HOOKLEN];
+  u_char		buf[sizeof(struct sockaddr_ng) + NG_HOOKSIZ];
   struct sockaddr_ng	*ng = (struct sockaddr_ng *)buf;
   int			rtn;
 
   /* Set dest address */
   memset(&buf, 0, sizeof(buf));
-  snprintf(ng->sg_data, NG_HOOKLEN + 1, "%s", hookname);
+  snprintf(ng->sg_data, NG_HOOKSIZ, "%s", hookname);
   ng->sg_family = AF_NETGRAPH;
   ng->sg_len = 3 + strlen(ng->sg_data);
 
@@ -656,7 +656,7 @@ NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 int
 NgFuncClrStats(Bund b, u_int16_t linkNum)
 {
-    char	path[NG_PATHLEN + 1];
+    char	path[NG_PATHSIZ];
 
     /* Get stats */
     snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
@@ -683,7 +683,7 @@ NgFuncGetStats(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat *statp)
 				  + sizeof(struct ng_ppp_link_stat)];
       struct ng_mesg		reply;
   }				u;
-  char                          path[NG_PATHLEN + 1];
+  char                          path[NG_PATHSIZ];
 
   /* Get stats */
   snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
@@ -713,7 +713,7 @@ NgFuncGetStats64(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat64 *statp)
 				  + sizeof(struct ng_ppp_link_stat64)];
       struct ng_mesg		reply;
   }				u;
-  char                          path[NG_PATHLEN + 1];
+  char                          path[NG_PATHSIZ];
 
   /* Get stats */
   snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);

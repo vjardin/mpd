@@ -196,8 +196,8 @@ TcpOpen(Link l)
 	struct ngm_mkpeer	mkp;
 	struct ngm_connect	cn;
 	struct ngm_name		nm;
-	char 			path[NG_PATHLEN + 1];
-	char 			hook[NG_HOOKLEN + 1];
+	char 			path[NG_PATHSIZ];
+	char 			hook[NG_HOOKSIZ];
 	struct sockaddr_storage addr;
 	struct ng_async_cfg	acfg;
 	int 			rval;
@@ -365,7 +365,7 @@ TcpConnectEvent(int type, void *cookie)
 	} cn;
 	Link		l;
 	TcpInfo		pi;
-	char path[NG_PATHLEN + 1];
+	char path[NG_PATHSIZ];
 
 	/* Restore context. */
 	l = (Link)cookie;
@@ -415,7 +415,7 @@ TcpAcceptEvent(int type, void *cookie)
 		struct sockaddr_storage sin;
 	} ac;
 	struct ngm_name         nm;
-	char path[NG_PATHLEN + 1];
+	char path[NG_PATHSIZ];
 	struct u_addr	addr;
 	in_port_t	port;
 	char		buf[64];
@@ -556,7 +556,7 @@ TcpShutdown(Link l)
 static void
 TcpDoClose(Link l)
 {
-	char path[NG_PATHLEN + 1];
+	char path[NG_PATHSIZ];
 	TcpInfo const pi = (TcpInfo) l->info;
 
 	EventUnRegister(&pi->ev_connect);

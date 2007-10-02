@@ -71,7 +71,7 @@
     int			speed;			/* Port speed */
     u_int		watch;			/* Signals to watch */
     char		device[20];		/* Serial device name */
-    char		ttynode[NG_NODELEN + 1];	/* TTY node name */
+    char		ttynode[NG_NODESIZ];	/* TTY node name */
     char		connScript[CHAT_MAX_LABEL];	/* Connect script */
     char		idleScript[CHAT_MAX_LABEL];	/* Idle script */
     struct pppTimer	checkTimer;		/* Timer to check pins */
@@ -345,7 +345,7 @@ static void
 ModemDoClose(Link l, int opened)
 {
   ModemInfo     const m = (ModemInfo) l->info;
-  char		path[NG_PATHLEN + 1];
+  char		path[NG_PATHSIZ];
   const char	ch = ' ';
 
   /* Shutdown everything */
@@ -381,7 +381,7 @@ static int
 ModemSetAccm(Link l, u_int32_t xmit, u_int32_t recv)
 {
   ModemInfo		const m = (ModemInfo) l->info;
-  char        		path[NG_PATHLEN+1];
+  char        		path[NG_PATHSIZ];
 
   /* Update async config */
   m->acfg.accm = xmit|recv;
@@ -519,7 +519,7 @@ ModemInstallNodes(Link l)
   struct nodeinfo	ngtty;
   struct ngm_mkpeer	ngm;
   struct ngm_connect	cn;
-  char        		path[NG_PATHLEN+1];
+  char        		path[NG_PATHSIZ];
   int			hotchar = PPP_FLAG;
   int			ldisc = NETGRAPHDISC;
 
@@ -765,7 +765,7 @@ ModemErrorCheck(void *arg)
 {
   Link			const l = (Link) arg;
   ModemInfo		const m = (ModemInfo) l->info;
-  char			path[NG_PATHLEN + 1];
+  char			path[NG_PATHSIZ];
   struct ng_async_stat	stats;
 
   /* Check for errors */
@@ -793,7 +793,7 @@ static int
 ModemGetNgStats(Link l, struct ng_async_stat *sp)
 {
   ModemInfo             const m = (ModemInfo) l->info;
-  char			path[NG_PATHLEN + 1];
+  char			path[NG_PATHSIZ];
   union {
     u_char		buf[sizeof(struct ng_mesg) + sizeof(*sp)];
     struct ng_mesg	resp;

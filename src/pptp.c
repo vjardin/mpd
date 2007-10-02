@@ -388,7 +388,7 @@ static void
 PptpKillNode(Link l)
 {
 	PptpInfo const	pptp = (PptpInfo) l->info;
-	char		path[NG_PATHLEN + 1];
+	char		path[NG_PATHSIZ];
 	int		csock = -1;
 
 	if (pptp->node_id == 0)
@@ -656,8 +656,8 @@ static int
 PptpHookUp(Link l)
 {
   const PptpInfo		pi = (PptpInfo)l->info;
-  char	        		ksockpath[NG_PATHLEN+1];
-  char	        		pptppath[NG_PATHLEN+1];
+  char	        		ksockpath[NG_PATHSIZ];
+  char	        		pptppath[NG_PATHSIZ];
   struct ngm_mkpeer		mkp;
   struct ng_pptpgre_conf	gc;
   struct sockaddr_storage	self_addr, peer_addr;
@@ -668,8 +668,8 @@ PptpHookUp(Link l)
   } u;
   struct ng_ksocket_sockopt *const ksso = &u.ksso;
   int		csock = -1;
-  char        	path[NG_PATHLEN + 1];
-  char		hook[NG_HOOKLEN + 1];
+  char        	path[NG_PATHSIZ];
+  char		hook[NG_HOOKSIZ];
     union {
         u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
         struct ng_mesg reply;

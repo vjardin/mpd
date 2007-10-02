@@ -1628,7 +1628,7 @@ fail:
 void
 BundNgShutdown(Bund b, int iface, int ppp)
 {
-    char	path[NG_PATHLEN + 1];
+    char	path[NG_PATHSIZ];
 
     if (iface) {
 	snprintf(path, sizeof(path), "%s:", b->iface.ifname);
@@ -1803,7 +1803,7 @@ BundNgCtrlEvent(int type, void *cookie)
       u_char		buf[8192];
       struct ng_mesg	msg;
   }			u;
-  char			raddr[NG_PATHLEN + 1];
+  char			raddr[NG_PATHSIZ];
   int			len;
 
   /* Read message */

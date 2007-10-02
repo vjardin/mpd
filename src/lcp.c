@@ -660,8 +660,10 @@ LcpLayerFinish(Fsm fp)
     Link	l = (Link)fp->arg;
 
     LcpStopActivity(l);
-    PhysClose(l);
-    LinkNgShutdown(l, 1);
+    if (!l->rep) {
+	PhysClose(l);
+	LinkNgShutdown(l, 1);
+    }
 }
 
 /*

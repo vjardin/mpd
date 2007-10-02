@@ -977,14 +977,22 @@ AuthAsyncStart(Link l, AuthData auth)
     Auth	const a = &l->lcp.auth;
     char	*rept;
     
+    /* Check link action */
     rept = LinkMatchAction(l, 2, auth->params.authname);
     if (rept) {
+	/* Action told we must forward this connection */
 	if (RepCreate(l, rept)) {
 	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, rept));
 	    PhysClose(l);
 	    return;
 	}
+	/* Create repeater */
 	RepIncoming(l);
+	/* Reconnect link netgraph hook to repeater */
+	LinkNgToRep(l);
+	/* Kill the LCP */
+	LcpDown(l);
+	LcpClose(l);
 	return;
     }
   

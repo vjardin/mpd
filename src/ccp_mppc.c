@@ -91,7 +91,7 @@ MppcInit(Bund b, int dir)
   MppcInfo		const mppc = &b->ccp.mppc;
   struct ng_mppc_config	conf;
   struct ngm_mkpeer	mp;
-  char			path[NG_PATHLEN + 1];
+  char			path[NG_PATHSIZ];
   const char		*mppchook, *ppphook;
   int			mschap;
   int			cmd;
@@ -240,7 +240,7 @@ static void
 MppcCleanup(Bund b, int dir)
 {
   const char	*ppphook;
-  char		path[NG_PATHLEN + 1];
+  char		path[NG_PATHSIZ];
 
   /* Remove node */
   switch (dir) {
@@ -421,7 +421,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 static Mbuf
 MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
-  char	path[NG_PATHLEN + 1];
+  char	path[NG_PATHSIZ];
 
   /* Forward ResetReq to the MPPC compression node */
   snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
