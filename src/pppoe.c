@@ -43,13 +43,13 @@
 
 #define PPPOE_MAXPARENTIFS	1024
 
-#define MAX_PATH		64	/* XXX should be NG_PATHLEN */
+#define MAX_PATH		64	/* XXX should be NG_PATHSIZ */
 #define MAX_SESSION		64	/* max length of PPPoE session name */
 
 /* Per link private info */
 struct pppoeinfo {
 	char		path[MAX_PATH];		/* PPPoE node path */
-	char		hook[NG_HOOKLEN + 1];	/* hook on that node */
+	char		hook[NG_HOOKSIZ];	/* hook on that node */
 	char		session[MAX_SESSION];	/* session name */
 	char		acname[PPPOE_SERVICE_NAME_SIZE];	/* AC name */
 	u_char		peeraddr[6];		/* Peer MAC address */
@@ -238,16 +238,16 @@ PppoeOpen(Link l)
 	    struct ngpppoe_init_data	poeid;
 	} u;
 	struct ngpppoe_init_data *const idata = &u.poeid;
-	char path[NG_PATHLEN + 1];
-	char session_hook[NG_HOOKLEN + 1];
+	char path[NG_PATHSIZ];
+	char session_hook[NG_HOOKSIZ];
 
 	pe->opened=1;
 
 	Disable(&l->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 	Deny(&l->conf.options, LINK_CONF_ACFCOMP);	/* RFC 2516 */
 
-	snprintf(session_hook, sizeof(session_hook), "mpd%d-%s", 
-	    gPid, l->name);
+	snprintf(session_hook, sizeof(session_hook), "mpd%d-%d", 
+	    gPid, l->id);
 	
 	if (pe->incoming == 1) {
 		Log(LG_PHYS2, ("[%s] PppoeOpen() on incoming call", l->name));
@@ -395,15 +395,15 @@ static void
 PppoeDoClose(Link l)
 {
 	const PppoeInfo pi = (PppoeInfo)l->info;
-	char path[NG_PATHLEN + 1];
-	char session_hook[NG_HOOKLEN + 1];
+	char path[NG_PATHSIZ];
+	char session_hook[NG_HOOKSIZ];
 
 	if (l->state == PHYS_STATE_DOWN)
 		return;
 
 	snprintf(path, sizeof(path), "%s%s", pi->path, pi->hook);
-	snprintf(session_hook, sizeof(session_hook), "mpd%d-%s",
-	    gPid, l->name);
+	snprintf(session_hook, sizeof(session_hook), "mpd%d-%d",
+	    gPid, l->id);
 	NgFuncDisconnect(pi->PIf->csock, l->name, path, session_hook);
 
 	TimerStop(&pi->connectTimer);
@@ -424,11 +424,9 @@ PppoeCtrlReadEvent(int type, void *arg)
 	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct ngpppoe_sts)];
 	    struct ng_mesg resp;
 	} u;
-	char path[NG_PATHLEN + 1];
+	char path[NG_PATHSIZ];
 	Link l = NULL;
 	PppoeInfo pi = NULL;
-	int k;
-	char ppphook[NG_HOOKLEN + 1];
 	
 	struct PppoeIf  *PIf=(struct PppoeIf*)arg;
 	
@@ -448,26 +446,32 @@ PppoeCtrlReadEvent(int type, void *arg)
 	    case NGM_PPPOE_SUCCESS:
 	    case NGM_PPPOE_FAIL:
 	    case NGM_PPPOE_CLOSE:
-		/* Restore context. */
-		for (k = 0; k < gNumLinks; k++) {
+	    {
+		char	ppphook[NG_HOOKSIZ];
+		char	*linkname, *rest;
+		int	id;
 
-		    if (!gLinks[k] || gLinks[k]->type != &gPppoePhysType)
-			continue;
-
-		    l = gLinks[k];
-		    pi = (PppoeInfo)l->info;
-		    
-		    snprintf(ppphook, NG_HOOKLEN, "mpd%d-%s", gPid, l->name);
-		
-		    if ((PIf==pi->PIf) &&
-			(strcmp(ppphook, ((struct ngpppoe_sts *)u.resp.data)->hook) == 0))
-			    break;
-		}
-		if (k == gNumLinks) {
+		/* Check hook name prefix */
+		snprintf(ppphook, NG_HOOKSIZ, "mpd%d-", gPid);
+		linkname = ((struct ngpppoe_sts *)u.resp.data)->hook;
+		if (strncmp(linkname, ppphook, strlen(ppphook))) {
 		    Log(LG_ERR, ("PPPoE: message from unknown hook \"%s\"",
 			((struct ngpppoe_sts *)u.resp.data)->hook));
 		    return;
 		}
+		linkname += strlen(ppphook);
+		id = strtol(linkname, &rest, 10);
+		if (rest[0] != 0 ||
+		  !gLinks[id] ||
+		  gLinks[id]->type != &gPppoePhysType ||
+		  PIf != ((PppoeInfo)gLinks[id]->info)->PIf) {
+		    Log(LG_ERR, ("PPPoE: message from unknown hook \"%s\"",
+			((struct ngpppoe_sts *)u.resp.data)->hook));
+		    return;
+		}
+		
+		l = gLinks[id];
+		pi = (PppoeInfo)l->info;
 
 		if (l->state == PHYS_STATE_DOWN) {
 		    if (u.resp.header.cmd != NGM_PPPOE_CLOSE) 
@@ -475,6 +479,7 @@ PppoeCtrlReadEvent(int type, void *arg)
 			    l->name, u.resp.header.cmd));
 		    return;
 		}
+	    }
 	}
 
 	/* Decode message. */
@@ -768,12 +773,12 @@ PppoeListenEvent(int type, void *arg)
 {
 	int			i,k,sz;
 	struct PppoeIf		*PIf=(struct PppoeIf *)(arg);
-	char			rhook[NG_HOOKLEN + 1];
+	char			rhook[NG_HOOKSIZ];
 	unsigned char		response[1024];
 
-	char			path[NG_PATHLEN + 1];
-	char			path1[NG_PATHLEN + 1];
-	char			session_hook[NG_HOOKLEN + 1];
+	char			path[NG_PATHSIZ];
+	char			path1[NG_PATHSIZ];
+	char			session_hook[NG_HOOKSIZ];
 	struct ngm_connect      cn;
 	struct ngm_mkpeer 	mp;
 	u_char 			*macaddr;
@@ -848,8 +853,8 @@ PppoeListenEvent(int type, void *arg)
 		snprintf(path, sizeof(path), "%s%s", pi->path, pi->hook);
 
 		/* Name of ng_pppoe session hook */
-		snprintf(session_hook, sizeof(session_hook), "mpd%d-%s",
-		    gPid, l->name);
+		snprintf(session_hook, sizeof(session_hook), "mpd%d-%d",
+		    gPid, l->id);
 		
 		/* Create ng_tee(4) node and connect it to ng_pppoe(4). */
 		snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
@@ -971,7 +976,7 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
 	    struct ngpppoe_init_data	poeid;
 	} u;
 	struct ngpppoe_init_data *const idata = &u.poeid;
-	char pat[NG_PATHLEN + 1];
+	char pat[NG_PATHSIZ];
 	struct ngm_connect	cn;
 	
 	if (n) {
