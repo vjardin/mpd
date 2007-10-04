@@ -189,7 +189,8 @@ pptp_server:
 	set iface idle 1800
 	set iface enable tcpmssfix
 	set ipcp yes vjcomp
-	set ipcp ranges 192.168.1.1/32 192.168.1.50/32
+# Specify IP address pool for dynamic assigment.
+	set ipcp ranges 192.168.1.1/32 ippool pool1
 	set ipcp dns 192.168.1.3
 	set ipcp nbns 192.168.1.4
 # The five lines below enable Microsoft Point-to-Point encryption
@@ -210,8 +211,6 @@ pptp_server:
 # We can use use RADIUS authentication/accounting by including
 # another config section with label 'radius'.
 #	load radius
-# Specify IP address pool for dynamic assigment.
-	set auth ippool pool1
 	set link keep-alive 10 60
 # We reducing link mtu to avoid GRE packet fragmentation.
 	set link mtu 1460
@@ -396,7 +395,6 @@ complete_lac:
 	set link action forward L2 "@corp1\\.net$"
 	set link action forward L3 "@corp2\\.net$"
 	set link action bundle B1
-	set auth ippool pool1
 	set link enable incoming
 
 	create link template L2 l2tp
@@ -408,4 +406,4 @@ complete_lac:
 	set l2tp secret corp2secret
 
 	create bundle template B1
-	set ipcp ranges 192.168.1.1/32 127.0.0.2/32
+	set ipcp ranges 192.168.1.1/32 ippool pool1

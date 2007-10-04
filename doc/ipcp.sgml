@@ -14,7 +14,7 @@
 <descrip>
 
 <tag><tt>
-set ipcp ranges <em>local/width</em> <em>remote/width</em>
+set ipcp ranges <em>local/width</em> (<em>remote/width</em>|ippool <em>pool</em>)
 </tt></tag>
 
 This command determines what IP addresses mpd will allow to be
@@ -37,6 +37,9 @@ The <tt><em>remote</em></tt> address should <em>not</em> be
 <tt>0.0.0.0</tt>. This is so if the peer requests <tt>0.0.0.0</tt>,
 we have some address to give him.  The <tt><em>width</em></tt> may
 of course be zero.
+
+It is also possible to specify ippool name to use for assigning remote ip.
+In such case width 32 is assumed.
 
 If the two sides cannot agree on the IP address assignments after
 repeated negotiation attempts, then the connection will fail. This

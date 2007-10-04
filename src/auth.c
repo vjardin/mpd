@@ -15,7 +15,6 @@
 #include "log.h"
 #include "ngfunc.h"
 #include "msoft.h"
-#include "ippool.h"
 #include "util.h"
 
 #include <libutil.h>
@@ -68,7 +67,6 @@
     SET_ACCT_UPDATE_LIMIT_IN,
     SET_ACCT_UPDATE_LIMIT_OUT,
     SET_TIMEOUT,
-    SET_IPPOOL,
   };
 
 /*
@@ -92,8 +90,6 @@
 	AuthSetCommand, NULL, (void *) SET_ACCT_UPDATE_LIMIT_OUT },
     { "timeout <seconds>",		"set auth timeout",
 	AuthSetCommand, NULL, (void *) SET_TIMEOUT },
-    { "ippool <name>",			"set IP pool to use",
-	AuthSetCommand, NULL, (void *) SET_IPPOOL },
     { "accept [opt ...]",		"Accept option",
 	AuthSetCommand, NULL, (void *) SET_ACCEPT },
     { "deny [opt ...]",			"Deny option",
@@ -355,8 +351,6 @@ AuthStart(Link l)
     /* remember called number */
     PhysGetCalledNum(l, a->params.callednum, sizeof(a->params.callednum));
     
-    strlcpy(a->params.ippool, a->conf.ippool, sizeof(a->params.ippool));
-  
   Log(LG_AUTH, ("[%s] %s: auth: peer wants %s, I want %s",
     Pref(&l->lcp.fsm), Fsm(&l->lcp.fsm),
     a->self_to_peer ? ProtoName(a->self_to_peer) : "nothing",
@@ -571,24 +565,6 @@ AuthFinish(Link l, int which, int ok)
 	AuthStop(l);
 	LcpAuthResult(l, FALSE);
 	return;
-    }
-    /* Get IP from pool if needed */
-    if (which == AUTH_PEER_TO_SELF &&
-      a->params.range_valid == 0 &&
-      a->params.ippool[0]) {
-	if (IPPoolGet(a->params.ippool, &a->params.range.addr)) {
-	    Log(LG_AUTH, ("[%s] AUTH: Can't get IP from pool \"%s\"",
-		l->name, a->conf.ippool));
-	} else {
-	    char buf[64];
-	    Log(LG_AUTH, ("[%s] AUTH: Got IP %s from pool \"%s\"",
-		l->name,
-		u_addrtoa(&a->params.range.addr, buf, sizeof(buf)),
-		a->conf.ippool));
-	    a->params.range.width = 32;
-	    a->params.range_valid = 1;
-	    a->params.ippool_used = 1;
-	}
     }
     /* Did auth succeed (in both directions)? */
     if (!a->peer_to_self && !a->self_to_peer) {
@@ -853,15 +829,6 @@ AuthAccount(void *arg)
   
     Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", auth->info.lnkname));
   
-    if (auth->params.ippool_used) {
-	struct u_addr ip;
-	in_addrtou_addr(&auth->info.peer_addr, &ip);
-	if (auth->acct_type == AUTH_ACCT_START)
-	    IPPoolReserve(auth->params.ippool, &ip);
-	else if (auth->acct_type == AUTH_ACCT_STOP)
-	    IPPoolFree(auth->params.ippool, &ip);
-    }
-
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
 	RadiusAccount(auth);
 
@@ -1789,10 +1756,6 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
 	Log(LG_ERR, ("Authorization timeout must be greater then 20."));
       else
 	autc->timeout = val;
-      break;
-      
-    case SET_IPPOOL:
-      strlcpy(autc->ippool, av[0], sizeof(autc->ippool));
       break;
       
     case SET_ACCEPT:

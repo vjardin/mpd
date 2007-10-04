@@ -10,8 +10,8 @@ Mpd implementing dynamic IP addresses pool management. When user
 is authenticated and auth backend have not provided IP address,
 it can be taken from pool. To make work it you should create
 one or more address pools with 'set ippool add ...'
-commands and define which pool should be used for the link
-using 'set auth ippool ...' command.
+commands and define which pool should be used with
+'set ipcp ranges ... ippool ...' command or RADIUS Framed-Pool attribute.
 
 <descrip>
 
