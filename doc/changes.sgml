@@ -14,8 +14,8 @@
 		 Links now choose their bundles using negotiated parameters
 		 when they reach NETWORK phase.
 		 
-		 The first received benefit of it is simple and complete
-		 client and server multilink configuration. Also it gives
+		 The first benefit of it is simple and complete client
+		 and server multilink configuration. Also it gives
 		 ability to implement more complicated LAC, PAC and TSA
 		 setups then it was possible before.
 	  </item>
@@ -23,7 +23,7 @@
 	         It allows significantly reduce amount of configuration
 		 required to operate big access servers.
 
-		 Links may be autocreated by incoming call request from device
+		 Link may be autocreated by incoming call request from device
 		 or by DoD/BoD request from bundle. Bundle may be autocreated
 		 by the link reached NETWORK phase.
 	  </item>
