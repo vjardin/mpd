@@ -16,7 +16,7 @@
 
 List of such command describes how incoming calls should be processed.
 "bundle" means that connection should be processed locally with
-spefied bundle. "forward" means that connection should be forwarded
+specified bundle. "forward" means that connection should be forwarded
 using repeater to the specified link. Optional "regexp" parameneter
 defines regular expression which will be checked against peer auth name.
 
