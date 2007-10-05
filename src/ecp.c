@@ -374,7 +374,11 @@ EcpClose(Bund b)
 void
 EcpOpenCmd(Context ctx)
 {
-  FsmOpen(&ctx->bund->ecp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] ECP: impossible to open template", ctx->bund->name));
+	return;
+    }
+    FsmOpen(&ctx->bund->ecp.fsm);
 }
 
 /*
@@ -384,7 +388,11 @@ EcpOpenCmd(Context ctx)
 void
 EcpCloseCmd(Context ctx)
 {
-  FsmClose(&ctx->bund->ecp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] ECP: impossible to close template", ctx->bund->name));
+	return;
+    }
+    FsmClose(&ctx->bund->ecp.fsm);
 }
 
 /*

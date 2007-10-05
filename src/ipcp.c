@@ -596,7 +596,11 @@ IpcpClose(Bund b)
 void
 IpcpOpenCmd(Context ctx)
 {
-  FsmOpen(&ctx->bund->ipcp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] IPCP: impossible to open template", ctx->bund->name));
+	return;
+    }
+    FsmOpen(&ctx->bund->ipcp.fsm);
 }
 
 /*
@@ -606,7 +610,11 @@ IpcpOpenCmd(Context ctx)
 void
 IpcpCloseCmd(Context ctx)
 {
-  FsmClose(&ctx->bund->ipcp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] IPCP: impossible to close template", ctx->bund->name));
+	return;
+    }
+    FsmClose(&ctx->bund->ipcp.fsm);
 }
 
 /*

@@ -381,7 +381,11 @@ CcpClose(Bund b)
 void
 CcpOpenCmd(Context ctx)
 {
-  FsmOpen(&ctx->bund->ccp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] CCP: impossible to open template", ctx->bund->name));
+	return;
+    }
+    FsmOpen(&ctx->bund->ccp.fsm);
 }
 
 /*
@@ -391,7 +395,11 @@ CcpOpenCmd(Context ctx)
 void
 CcpCloseCmd(Context ctx)
 {
-  FsmClose(&ctx->bund->ccp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] CCP: impossible to close template", ctx->bund->name));
+	return;
+    }
+    FsmClose(&ctx->bund->ccp.fsm);
 }
 
 /*

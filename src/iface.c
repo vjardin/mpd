@@ -309,6 +309,10 @@ IfaceClose(Bund b)
 void
 IfaceOpenCmd(Context ctx)
 {
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] IFACE: impossible to open template", ctx->bund->name));
+	return;
+    }
     IfaceOpen(ctx->bund);
 }
 
@@ -321,6 +325,10 @@ IfaceOpenCmd(Context ctx)
 void
 IfaceCloseCmd(Context ctx)
 {
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] IFACE: impossible to close template", ctx->bund->name));
+	return;
+    }
     IfaceClose(ctx->bund);
 }
 

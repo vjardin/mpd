@@ -364,7 +364,11 @@ Ipv6cpClose(Bund b)
 void
 Ipv6cpOpenCmd(Context ctx)
 {
-  FsmOpen(&ctx->bund->ipv6cp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] IPv6CP: impossible to open template", ctx->bund->name));
+	return;
+    }
+    FsmOpen(&ctx->bund->ipv6cp.fsm);
 }
 
 /*
@@ -374,7 +378,11 @@ Ipv6cpOpenCmd(Context ctx)
 void
 Ipv6cpCloseCmd(Context ctx)
 {
-  FsmClose(&ctx->bund->ipv6cp.fsm);
+    if (ctx->bund->tmpl) {
+	Log(LG_ERR, ("[%s] IPv6CP: impossible to close template", ctx->bund->name));
+	return;
+    }
+    FsmClose(&ctx->bund->ipv6cp.fsm);
 }
 
 /*
