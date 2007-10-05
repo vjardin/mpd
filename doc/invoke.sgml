@@ -12,13 +12,12 @@
 <tscreen><tt>
 <bf>mpd [ <em>options</em> ] [ <em>configuration</em> ] </bf>
 </tt></tscreen>
-	If <tt><em>configuration</em></tt> is supplied, then
+	On startup mpd run commands from the <tt>startup</tt> label.
+	Aftre that, if <tt><em>configuration</em></tt> is supplied,
 	mpd looks in <tt>mpd.conf</tt> for a matching label,
-	and runs the corresponding commands (up to the first
-	blank line). If <tt><em>configuration</em></tt> is
-	not supplied, mpd looks for the configuration named
-	<tt>default</tt>. If the configuration is not found,
-	no commands are executed from <tt>mpd.conf</tt>.
+	and runs the corresponding commands. If 
+	<tt><em>configuration</em></tt> is not supplied,
+	mpd looks for the configuration named <tt>default</tt>.
 
 	Mpd can either be run in interactive mode or in the
 	background as a daemon. In interactive mode mpd

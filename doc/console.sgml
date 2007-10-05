@@ -59,7 +59,7 @@ The options available for the console are:
 
 <tag><tt>logging</tt></tag>
 
-This options enables writing of logging messages to the console.
+This options enables writing of logging messages to the current console.
 
 </descrip>
 

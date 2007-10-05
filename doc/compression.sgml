@@ -44,8 +44,8 @@ The <bf><tt>no</tt></bf> command is the same as
 
 <p>
 The options available at the CCP layer are listed below. Note that
-the STAC and MPPC options require proprietary files
-that are not included with the normal mpd distribution.
+the MPPC options require proprietary files present in system
+that are not included with the normal distribution.
 
 <descrip>
 
@@ -56,10 +56,8 @@ Predictor-1 compression is much faster then Deflate.
 <P>
 This option require ng_pred1 Netgraph node type, which is present
 since FreeBSD 6.2-STABLE of 2007-01-28.
-If there no ng_pred1 in system, this algorithm is supported
-in user-level, but will consume more CPU power. To reduce packet 
-loss in user-level on fast links it is recommended to increase 
-values of net.graph.recvspace and net.graph.maxdgram sysctl variables.
+If there is no ng_pred1 in system, this algorithm is supported
+in user-level, but will consume more CPU power.
 
 <tag><tt>deflate</tt></tag>
 

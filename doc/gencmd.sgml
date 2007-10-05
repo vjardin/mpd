@@ -272,24 +272,21 @@ categories. Those with a * are turned on by default:
 <descrip>
 <tag>auth*</tag>	Link authentication events
 <tag>bund*</tag>	Bundle layer events
-<tag>ccp</tag>		Compression events and negotiation
-<tag>ccp2</tag>		Compression more verbosity
-<tag>ccp3</tag>		Compression even more verbosity
+<tag>ccp*</tag>		Compression events and negotiation
 <tag>chat*</tag>	Modem chat script
-<tag>chat2</tag>	Modem chat script more verbosity. Very useful when
-			debugging chat scripts.
 <tag>console*</tag>	Log to the console as well as the log file
 <tag>echo</tag>		Echo/reply packets for all FSM's
+<tag>ecp*</tag>		Encryption events and negotiation
 <tag>frame</tag>	Dump all frames transmitted and received
 <tag>fsm*</tag>		All FSM events (except echo and resets)
 <tag>iface*</tag>	Interface layer events
 <tag>ipcp*</tag>	IP control protocol events and negotiation
+<tag>ipv6cp*</tag>	IPv6 control protocol events and negotiation
 <tag>lcp*</tag>		Link control protocol events and negotiation
 <tag>link*</tag>	Link layer events
-<tag>mp</tag>		Multi-link events and negotiation
-<tag>mp2</tag>		Multi-link more verbosity
 <tag>phys*</tag>	Device layer events
 <tag>radius*</tag>	RADIUS authentication events
+<tag>rep*</tag>		Repeater layer events
 </descrip>
 
 <tag><tt>help [ <em>command</em> ] </tt>

@@ -19,7 +19,7 @@ response in same format on stdout.
 Currently supported request attributes:
 <verb>
 USER_NAME
-USER_PASSWORD - for PAP only
+USER_PASSWORD - present for PAP auth only
 NAS_PORT
 NAS_PORT_TYPE
 CALLING_STATION_ID
@@ -30,9 +30,9 @@ PEER_PORT
 
 Currently supported response attributes:
 <verb>
-RESULT - one of SUCCESS, UNDEF (if valid USER_PASSWORD returned) or FAIL
+RESULT - one of SUCCESS, UNDEF or FAIL
 USER_NAME
-USER_PASSWORD
+USER_PASSWORD - if RESULT=UNDEF this field should contain correct user password
 FRAMED_IP_ADDRESS
 FRAMED_ROUTE
 FRAMED_IPV6_ROUTE
@@ -51,6 +51,8 @@ MPD_FILTER
 MPD_LIMIT
 </verb>
 
-For description of most attributes look their RADIUS alternatives.
+Script may specify any combination of those attributes it needs. 
+The only mandatory attribute is RESULT. For description of most
+attributes look their RADIUS alternatives.
 
 </p>
