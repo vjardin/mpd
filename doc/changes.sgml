@@ -38,6 +38,8 @@
 	  </item>
 	  <item> Added dynamic IP addresses pools support.
 	  </item>
+	  <item> Added new 'ext-acct' backend as full-featured alternative to 'radius-acct'.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

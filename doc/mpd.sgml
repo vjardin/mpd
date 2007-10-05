@@ -21,20 +21,20 @@
 
 <!ENTITY gencmd SYSTEM "gencmd.sgml">
 <!ENTITY global SYSTEM "global.sgml">
-<!ENTITY console SYSTEM "console.sgml">
-<!ENTITY web SYSTEM "web.sgml">
-<!ENTITY bundle SYSTEM "bundle.sgml">
-<!ENTITY interface SYSTEM "interface.sgml">
-<!ENTITY netflow SYSTEM "netflow.sgml">
-<!ENTITY ipcp SYSTEM "ipcp.sgml">
 <!ENTITY links SYSTEM "links.sgml">
-<!ENTITY compression SYSTEM "compression.sgml">
-<!ENTITY encryption SYSTEM "encryption.sgml">
 <!ENTITY authentication SYSTEM "auth.sgml">
 <!ENTITY radius SYSTEM "radius.sgml">
 <!ENTITY eap SYSTEM "eap.sgml">
+<!ENTITY bundle SYSTEM "bundle.sgml">
+<!ENTITY ipcp SYSTEM "ipcp.sgml">
+<!ENTITY compression SYSTEM "compression.sgml">
+<!ENTITY encryption SYSTEM "encryption.sgml">
+<!ENTITY interface SYSTEM "interface.sgml">
+<!ENTITY netflow SYSTEM "netflow.sgml">
 <!ENTITY nat SYSTEM "nat.sgml">
 <!ENTITY ippool SYSTEM "ippool.sgml">
+<!ENTITY console SYSTEM "console.sgml">
+<!ENTITY web SYSTEM "web.sgml">
 
 <!ENTITY modem SYSTEM "modem.sgml">
 <!ENTITY netgraph SYSTEM "netgraph.sgml">
@@ -106,20 +106,20 @@ all mpd features.
 
 	&gencmd;
 	&global;
-	&console;
-	&web;
-	&bundle;
-	&interface;
-	&ipcp;
 	&links;
-	&compression;
-	&encryption;
 	&authentication;
-	&eap;
 	&radius;
+	&eap;
+	&bundle;
+	&encryption;
+	&compression;
+	&ipcp;
+	&ippool;
+	&interface;
 	&netflow;
 	&nat;
-	&ippool;
+	&console;
+	&web;
 
     <chapt><heading>Device Types</heading>
 

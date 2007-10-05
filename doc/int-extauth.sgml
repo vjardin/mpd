@@ -8,11 +8,11 @@
   <p>
   This chapter describes implementation specific details of MPD.
 
-Mpd supports authentication by calling external authentination script. 
-Path to that script must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
-command.
+Mpd supports authentication and accounting by calling external scripts. 
+Pathes to that scripts must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
+and <tt><bf>set auth extacct-script ...</bf></tt> commands.
 
-On invocation this script receives on stdin set of request 
+On invocation extauth script receives on stdin set of request 
 attribute:value pairs terminated by empty line and must generate
 response in same format on stdout.
 
@@ -26,6 +26,7 @@ CALLING_STATION_ID
 CALLED_STATION_ID
 PEER_ADDR
 PEER_PORT
+PEER_IDENT
 </verb>
 
 Currently supported response attributes:
@@ -49,6 +50,39 @@ MPD_TABLE
 MPD_TABLE_STATIC
 MPD_FILTER
 MPD_LIMIT
+</verb>
+
+On invocation extacct script receives on stdin set of request 
+attribute:value pairs terminated by empty line and must generate
+response in same format on stdout.
+
+Currently supported request attributes:
+<verb>
+ACCT_STATUS_TYPE
+ACCT_SESSION_ID
+ACCT_MULTI_SESSION_ID
+USER_NAME
+LINK
+NAS_PORT
+NAS_PORT_TYPE
+ACCT_LINK_COUNT
+CALLING_STATION_ID
+CALLED_STATION_ID
+PEER_ADDR
+PEER_PORT
+PEER_IDENT
+FRAMED_IP_ADDRESS
+ACCT_TERMINATE_CAUSE
+ACCT_SESSION_TIME
+ACCT_INPUT_OCTETS
+ACCT_INPUT_PACKETS
+ACCT_OUTPUT_OCTETS
+ACCT_OUTPUT_PACKETS
+</verb>
+
+Currently supported response attributes:
+<verb>
+MPD_DROP_USER - nonzero value means that link should be disconnected
 </verb>
 
 Script may specify any combination of those attributes it needs. 

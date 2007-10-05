@@ -71,6 +71,7 @@
     AUTH_CONF_RADIUS_ACCT,
     AUTH_CONF_INTERNAL,
     AUTH_CONF_EXT_AUTH,
+    AUTH_CONF_EXT_ACCT,
     AUTH_CONF_SYSTEM_AUTH,
     AUTH_CONF_SYSTEM_ACCT,
     AUTH_CONF_PAM_AUTH,
@@ -168,6 +169,7 @@
     int			timeout;	/* Authorization timeout in seconds */
     struct optinfo	options;	/* Configured options */
     char		extauth_script[AUTH_MAX_EXTCMD];/*  External auth script */
+    char		extacct_script[AUTH_MAX_EXTCMD];/*  External acct script */
     char		ippool[LINK_MAX_NAME];
   };
   typedef struct authconf	*AuthConf;

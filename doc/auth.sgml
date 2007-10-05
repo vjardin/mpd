@@ -56,6 +56,13 @@ depends on the authentication backend and protocol.
 E.g. when using EAP with a slow RADIUS server this value should be increased.
 
 <tag><tt>
+<newline>set auth extauth-script <em>script</em>
+<newline>set auth extacct-script <em>script</em>
+</tt></tag>
+
+Sets scripts names for external authentication and accounting.
+
+<tag><tt>
 <newline>set auth enable <em>option ...</em>
 <newline>set auth disable <em>option ...</em>
 </tt></tag>
@@ -91,8 +98,17 @@ Default <tt><bf>disable</bf></tt>.
 Enable authentication by calling external script.
 This method pretended to be a fullfeatured alternative to the 
 <tt><bf>radius-auth</bf></tt>.
-
 Path to that script must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
+command.
+
+Default <tt><bf>disable</bf></tt>.
+
+<tag><tt>ext-acct</tt></tag>
+
+Enable accounting by calling external script.
+This method pretended to be a fullfeatured alternative to the 
+<tt><bf>radius-acct</bf></tt>.
+Path to that script must be specified using <tt><bf>set auth extacct-script ...</bf></tt>
 command.
 
 Default <tt><bf>disable</bf></tt>.
