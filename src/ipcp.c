@@ -922,6 +922,7 @@ IpcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    if (!ParseRange(av[0], &self_new_allow, ALLOW_IPV4)
 	      || !ParseRange(av[1], &peer_new_allow, ALLOW_IPV4))
 	    return(-1);
+	    ipcp->conf.ippool[0] = 0;
 	} else if (ac == 3 && strcmp(av[1], "pool") == 0) {
 	    if (!ParseRange(av[0], &self_new_allow, ALLOW_IPV4))
 		return(-1);
