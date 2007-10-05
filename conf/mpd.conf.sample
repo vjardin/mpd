@@ -306,7 +306,7 @@ pppoe_server:
 	set link enable multilink
 # Set bundle template to use
 	set link action bundle B
-# Allow peer to authenticate us
+# Enable peer authentication
 	set link disable chap pap eap
 	set link enable pap
 	load radius
