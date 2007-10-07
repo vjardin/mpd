@@ -10,12 +10,12 @@
     <itemize>
 	<item> Design changes:
 	<itemize>
-	  <item> Removed static relations between links and bundles.
+	  <item> Removed static link - bundle relations.
 		 Links now choose their bundles using negotiated parameters
 		 when they reach NETWORK phase.
 		 
-		 The first benefit of it is simple and complete client
-		 and server multilink configuration. Also it gives
+		 The benefit of it is simple and complete client
+		 and server multilink operation. Also it gives
 		 ability to implement more complicated LAC, PAC and TSA
 		 setups then it was possible before.
 	  </item>
@@ -38,14 +38,15 @@
 	  </item>
 	  <item> Added dynamic IP addresses pools support.
 	  </item>
-	  <item> Added new 'ext-acct' backend as full-featured alternative to 'radius-acct'.
+	  <item> Added new 'ext-acct' accounting  backend as full-featured
+		 alternative to 'radius-acct'.
 	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
 	<itemize>
 	  <item> Massive changes in configuration commands. You should read
-		 the manual and examples for the new configuration technics.
+		 the manual and examples for the new configuration techniques.
 	  </item>
 	  <item> FreeBSD 4.x and old DragonFly releases are not supported anymore.
 	  </item>
