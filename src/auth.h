@@ -221,6 +221,8 @@
       short		n_links;	/* number of links in the bundle */
       char		msession_id[AUTH_MAX_SESSIONID]; /* multy-session-id */
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
+      char		ifname[IFNAMSIZ+1];	/* interface name */
+      char		bundname[LINK_MAX_NAME];/* name of the bundle */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
       struct ng_ppp_link_stat64	stats;		/* Current link statistics */
       char		*downReason;	/* Reason for link going down */

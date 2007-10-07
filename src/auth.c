@@ -616,6 +616,8 @@ AuthDataNew(Link l)
     strlcpy(auth->info.peer_ident, l->lcp.peer_ident, sizeof(l->lcp.peer_ident));
 
     if (l->bund) {
+	strlcpy(auth->info.ifname, l->bund->iface.ifname, sizeof(auth->info.ifname));
+	strlcpy(auth->info.bundname, l->bund->name, sizeof(auth->info.bundname));
         auth->info.n_links = l->bund->n_links;
 	auth->info.peer_addr = l->bund->ipcp.peer_addr;
     }
@@ -1836,6 +1838,7 @@ AuthExternal(AuthData auth)
     if (auth->proto == PROTO_PAP)
 	fprintf(fp, "USER_PASSWORD:%s\n", auth->params.pap.peer_pass);
 
+    fprintf(fp, "LINK:%s\n", auth->info.lnkname);
     fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);
     fprintf(fp, "NAS_PORT_TYPE:%s\n", auth->info.phys_type->name);
     if (strlen(auth->params.callingnum))
@@ -2093,14 +2096,14 @@ AuthExternalAcct(AuthData auth)
  
     if (strchr(auth->params.authname, '\'') ||
 	strchr(auth->params.authname, '\n')) {
-	    Log(LG_ERR, ("[%s] Ext-auth: Denied character in USER_NAME!", 
+	    Log(LG_ERR, ("[%s] Ext-acct: Denied character in USER_NAME!", 
 		auth->info.lnkname));
 	    auth->status = AUTH_STATUS_FAIL;
 	    return;
     }
     snprintf(line, sizeof(line), "%s '%s'", 
 	auth->conf.extacct_script, auth->params.authname);
-    Log(LG_AUTH, ("[%s] Ext-auth: Invoking auth program: '%s'", 
+    Log(LG_AUTH, ("[%s] Ext-acct: Invoking acct program: '%s'", 
 	auth->info.lnkname, line));
     if ((fp = popen(line, "r+")) == NULL) {
 	Perror("Popen");
@@ -2116,6 +2119,8 @@ AuthExternalAcct(AuthData auth)
     fprintf(fp, "ACCT_SESSION_ID:%s\n", auth->info.session_id);
     fprintf(fp, "ACCT_MULTI_SESSION_ID:%s\n", auth->info.msession_id);
     fprintf(fp, "USER_NAME:%s\n", auth->params.authname);
+    fprintf(fp, "IFACE:%s\n", auth->info.ifname);
+    fprintf(fp, "BUNDLE:%s\n", auth->info.bundname);
     fprintf(fp, "LINK:%s\n", auth->info.lnkname);
     fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);
     fprintf(fp, "NAS_PORT_TYPE:%s\n", auth->info.phys_type->name);
@@ -2172,14 +2177,14 @@ AuthExternalAcct(AuthData auth)
 	val = line;
 	attr = strsep(&val, ":");
 
-	Log(LG_AUTH, ("[%s] Ext-auth: attr:'%s', value:'%s'", 
+	Log(LG_AUTH, ("[%s] Ext-acct: attr:'%s', value:'%s'", 
 	    auth->info.lnkname, attr, val));
     
 	if (strcmp(attr, "MPD_DROP_USER") == 0) {
 	    auth->drop_user = atoi(val);
 
 	} else {
-	    Log(LG_ERR, ("[%s] Ext-auth: Unknown attr:'%s'", 
+	    Log(LG_ERR, ("[%s] Ext-acct: Unknown attr:'%s'", 
 		auth->info.lnkname, attr));
 	}
     }

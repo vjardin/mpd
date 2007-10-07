@@ -20,6 +20,7 @@ Currently supported request attributes:
 <verb>
 USER_NAME
 USER_PASSWORD - present for PAP auth only
+LINK
 NAS_PORT
 NAS_PORT_TYPE
 CALLING_STATION_ID
@@ -62,6 +63,8 @@ ACCT_STATUS_TYPE
 ACCT_SESSION_ID
 ACCT_MULTI_SESSION_ID
 USER_NAME
+IFACE
+BUNDLE
 LINK
 NAS_PORT
 NAS_PORT_TYPE
@@ -85,7 +88,7 @@ Currently supported response attributes:
 MPD_DROP_USER - nonzero value means that link should be disconnected
 </verb>
 
-Script may specify any combination of those attributes it needs. 
+Script may specify any combination of attributes it needs. 
 The only mandatory attribute is RESULT. For description of most
 attributes look their RADIUS alternatives.
 
