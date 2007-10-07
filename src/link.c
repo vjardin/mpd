@@ -423,6 +423,50 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
+ * LinkDestroy()
+ */
+
+int
+LinkDestroy(Context ctx, int ac, char *av[], void *arg)
+{
+    Link 	l;
+
+    if (ac > 1)
+	return(-1);
+
+    if (ac == 1) {
+	if ((l = LinkFind(av[0])) == NULL) {
+	    Log(LG_ERR, ("Link \"%s\" not found", av[0]));
+	    return (0);
+	}
+    } else {
+	if (ctx->lnk) {
+	    l = ctx->lnk;
+	} else {
+	    Log(LG_ERR, ("No link selected to destroy"));
+	    return (0);
+	}
+    }
+    
+    if (l->tmpl) {
+	l->tmpl = 0;
+	l->stay = 0;
+	LinkShutdown(l);
+    } else {
+	l->stay = 0;
+	if (l->rep) {
+	    PhysClose(l);
+	} else if (l->lcp.fsm.state != ST_INITIAL) {
+	    LcpClose(l);
+	} else {
+	    LinkShutdown(l);
+	}
+    }
+
+    return (0);
+}
+
+/*
  * LinkInst()
  */
 

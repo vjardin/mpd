@@ -114,6 +114,14 @@
     { NULL },
   };
 
+  static const struct cmdtab DestroyCommands[] = {
+    { "link [{name}]",			"Destroy link/template",
+	LinkDestroy, NULL, NULL },
+    { "bundle [{name}]",		"Destroy bundle/template",
+	BundDestroy, NULL, NULL },
+    { NULL },
+  };
+
   static const struct cmdtab ShowCommands[] = {
     { "bundle [{name}]",		"Bundle status",
 	BundStat, AdmitBund, NULL },
@@ -217,6 +225,8 @@
 	CloseCommand, NULL, NULL },
     { "create ...",			"Create new item",
     	CMD_SUBMENU, NULL, (void *) CreateCommands },
+    { "destroy ...",			"Destroy item",
+    	CMD_SUBMENU, NULL, (void *) DestroyCommands },
     { "exit",				"Exit console",
 	ExitCommand, NULL, NULL },
     { "help ...",			"Help on any command",

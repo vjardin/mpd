@@ -31,6 +31,16 @@ but will be used to create new links on demand.
 If 'static' option is specified, it will be a permanent link which will not
 disapear after operation complete.
 
+<tag><tt>
+<newline>destroy bundle [ <em>name</em> ]
+<newline>destroy link [ <em>name</em> ]
+</tt>
+</tag>
+
+Destroy existing link/bundle.
+Note, that if link is in use it may not disapear after command return,
+it may take some time to properly close it.
+
 <tag><tt>bundle [ <em>name</em> ] </tt>
 </tag>
 

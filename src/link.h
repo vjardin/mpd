@@ -171,6 +171,7 @@
   extern void	LinkCloseCmd(Context ctx);
 
   extern int	LinkCreate(Context ctx, int ac, char *av[], void *arg);
+  extern int	LinkDestroy(Context ctx, int ac, char *av[], void *arg);
   extern Link	LinkInst(Link lt, char *name, int tmpl, int stay);
   extern void	LinkShutdown(Link l);
   extern int	LinkNgInit(Link l);

@@ -1059,6 +1059,48 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
+ * BundDestroy()
+ */
+
+int
+BundDestroy(Context ctx, int ac, char *av[], void *arg)
+{
+    Bund 	b;
+
+    if (ac > 1)
+	return(-1);
+
+    if (ac == 1) {
+	if ((b = BundFind(av[0])) == NULL) {
+	    Log(LG_ERR, ("Bund \"%s\" not found", av[0]));
+	    return (0);
+	}
+    } else {
+	if (ctx->bund) {
+	    b = ctx->bund;
+	} else {
+	    Log(LG_ERR, ("No bundle selected to destroy"));
+	    return (0);
+	}
+    }
+    
+    if (b->tmpl) {
+	b->tmpl = 0;
+	b->stay = 0;
+	BundShutdown(b);
+    } else {
+	b->stay = 0;
+	if (b->n_up) {
+	    BundClose(b);
+	} else {
+	    BundShutdown(b);
+	}
+    }
+
+    return (0);
+}
+
+/*
  * BundInst()
  */
 
@@ -1128,7 +1170,7 @@ BundShutdown(Bund b)
 		LinkShutdown(l);
     }
 
-    if (!b->tmpl)
+    if (b->csock >= 0)
 	BundNgShutdown(b, 1, 1);
     gBundles[b->id] = NULL;
     b->dead = 1;
