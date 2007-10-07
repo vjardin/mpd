@@ -438,7 +438,7 @@ OpenCloseSignal(int sig)
     Link	l;
 
     for (k = 0;
-	k < gNumLinks && gLinks[k] == NULL;
+	k < gNumLinks && (gLinks[k] == NULL || gLinks[k]->tmpl);
 	k++);
     if (k == gNumLinks) {
 	Log(LG_ALWAYS, ("rec'd signal %s, no link defined, ignored", sys_signame[sig]));
