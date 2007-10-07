@@ -25,7 +25,7 @@
         <item><bf>l2tp</bf> to connect over the Internet using
 	    the Layer Two Tunnelling Protocol (L2TP).
 	    L2TP is a PPTP successor supported with modern clients and servers.
-        <item><bf>pppoe</bf> to connectt over an Ethernet port
+        <item><bf>pppoe</bf> to connect over an Ethernet port
 	    using the PPP-over-Ethernet (PPPoE) protocol.
 	    This protocol is often used by DSL providers.
 	<item><bf>tcp</bf> to tunnel PPP session over a TCP connection.
