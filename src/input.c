@@ -24,7 +24,7 @@
  */
 
   static int	InputLinkCheck(Link l, int proto);
-  static void	InputMPLinkCheck(Bund b, int proto, Mbuf pkt);
+  static void	InputMPLink(Bund b, int proto, Mbuf pkt);
   static int	InputDispatch(Bund b, Link l, int proto, Mbuf bp);
 
 /*
@@ -45,7 +45,7 @@ InputFrame(Bund b, Link l, int proto, Mbuf bp)
     if (l == NULL) {
 	/* Only limited link-layer stuff allowed over the MP bundle */
 	if (PROT_LINK_LAYER(proto)) {
-    	    InputMPLinkCheck(b, proto, bp);
+    	    InputMPLink(b, proto, bp);
     	    return;
 	}
     } else {
@@ -173,7 +173,6 @@ done:
  *
  * Make sure this protocol is acceptable and makes sense on this link.
  * Returns TRUE if so and the frame should be handled further.
- * The "linkNum" should be real and not equal to NG_PPP_BUNDLE_LINKNUM.
  */
 
 static int
@@ -217,7 +216,7 @@ InputLinkCheck(Link l, int proto)
 }
 
 /*
- * InputMPLinkCheck()
+ * InputMPLink()
  *
  * Deal with an incoming link-level packet on the virtual link (!)
  * Only certain link-level packets make sense coming over the bundle.
@@ -225,7 +224,7 @@ InputLinkCheck(Link l, int proto)
  */
 
 static void
-InputMPLinkCheck(Bund b, int proto, Mbuf pkt)
+InputMPLink(Bund b, int proto, Mbuf pkt)
 {
   struct fsmheader	hdr;	
 
@@ -240,8 +239,15 @@ InputMPLinkCheck(Bund b, int proto, Mbuf pkt)
 	  break;
 
 	case CODE_CODEREJ:		/* these two are OK */
-	case CODE_PROTOREJ: 
-	  InputFrame(b, b->links[0], proto, pkt);
+	case CODE_PROTOREJ:
+	  {
+	    int k;
+	    for (k = 0; k < NG_PPP_MAX_LINKS && !b->links[k]; k++)
+	    if (k < NG_PPP_MAX_LINKS)
+		InputFrame(b, b->links[k], proto, pkt);
+	    else
+		PFREE(pkt);
+	  }
 	  break;
 
 	case CODE_ECHOREQ:
