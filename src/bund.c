@@ -1111,8 +1111,7 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
     int	k;
 
     /* Create a new bundle structure */
-    b = Malloc(MB_BUND, sizeof(*b));
-    memcpy(b, bt, sizeof(*b));
+    b = Mdup(MB_BUND, bt, sizeof(*b));
     b->tmpl = tmpl;
     b->stay = stay;
     b->refs = 0;

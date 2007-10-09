@@ -526,11 +526,8 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  return(-1);
 	}
 
-	server->hostname = Malloc(MB_RADIUS, strlen(av[0]) + 1);
-	server->sharedsecret = Malloc(MB_RADIUS, strlen(av[1]) + 1);
-
-	sprintf(server->hostname, "%s" , av[0]);
-	sprintf(server->sharedsecret, "%s" , av[1]);
+	server->hostname = Mdup(MB_RADIUS, av[0], strlen(av[0]) + 1);
+	server->sharedsecret = Mdup(MB_RADIUS, av[1], strlen(av[1]) + 1);
 
 	if (conf->server != NULL)
 	  server->next = conf->server;
@@ -575,8 +572,7 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	} else {
 	  if (conf->file)
 		Freee(MB_RADIUS, conf->file);
-	  conf->file = Malloc(MB_RADIUS, strlen(av[0])+1);
-	  strcpy(conf->file, av[0]);
+	  conf->file = Mdup(MB_RADIUS, av[0], strlen(av[0])+1);
 	}
 	break;
 
@@ -1063,8 +1059,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	auth->params.state_len = len;
 	if (auth->params.state != NULL)
 	  Freee(MB_AUTH, auth->params.state);
-	auth->params.state = Malloc(MB_AUTH, len);
-	memcpy(auth->params.state, data, len);
+	auth->params.state = Mdup(MB_AUTH, data, len);
 	continue;
 
       case RAD_CLASS:
@@ -1074,8 +1069,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	auth->params.class_len = len;
 	if (auth->params.class != NULL)
 	  Freee(MB_AUTH, auth->params.class);
-	auth->params.class = Malloc(MB_AUTH, len);
-	memcpy(auth->params.class, data, len);
+	auth->params.class = Mdup(MB_AUTH, data, len);
 	continue;
 
 	/* libradius already checks the message-authenticator, so simply ignore it */
@@ -1098,8 +1092,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  auth->params.eapmsg = tbuf;
 	} else {
 	  Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE", auth->info.lnkname, __func__));
-	  auth->params.eapmsg = Malloc(MB_AUTH, len);
-	  memcpy(auth->params.eapmsg, data, len);
+	  auth->params.eapmsg = Mdup(MB_AUTH, data, len);
 	  auth->params.eapmsg_len = len;
 	}
 	continue;
@@ -1262,8 +1255,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	tmpval = rad_cvt_string(data, len);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_REPLY_MESSAGE: %s ",
 	  auth->info.lnkname, __func__, auth->reply_message));
-	auth->reply_message = Malloc(MB_AUTH, len + 1);
-	memcpy(auth->reply_message, tmpval, len + 1);
+	auth->reply_message = Mdup(MB_AUTH, tmpval, len + 1);
 	free(tmpval);
         break;
 
@@ -1302,8 +1294,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		  len--;
 		}
 		tmpval = rad_cvt_string(data, len);
-		auth->mschap_error = Malloc(MB_AUTH, len + 1);
-		memcpy(auth->mschap_error, tmpval, len + 1);
+		auth->mschap_error = Mdup(MB_AUTH, tmpval, len + 1);
 		free(tmpval);
 
 		Log(LG_RADIUS2, ("[%s] RADIUS: %s: MS-CHAP-Error: %s",
@@ -1334,8 +1325,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 			auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
 		    return RAD_NACK;
 		}
-		auth->mschapv2resp = Malloc(MB_AUTH, len + 1);
-		memcpy(auth->mschapv2resp, tmpval, len + 1);
+		auth->mschapv2resp = Mdup(MB_AUTH, tmpval, len + 1);
 		free(tmpval);
 		Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP2_SUCCESS: %s",
 		  auth->info.lnkname, __func__, auth->mschapv2resp));
@@ -1344,8 +1334,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      case RAD_MICROSOFT_MS_CHAP_DOMAIN:
 		Freee(MB_AUTH, auth->params.msdomain);
 		tmpval = rad_cvt_string(data, len);
-		auth->params.msdomain = Malloc(MB_AUTH, len + 1);
-		memcpy(auth->params.msdomain, tmpval, len + 1);
+		auth->params.msdomain = Mdup(MB_AUTH, tmpval, len + 1);
 		free(tmpval);
 		Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_MICROSOFT_MS_CHAP_DOMAIN: %s",
 		  auth->info.lnkname, __func__, auth->params.msdomain));

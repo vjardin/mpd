@@ -461,8 +461,7 @@ IfaceUp(Bund b, int ready)
   }
   acls = b->params.acl_table;
   while (acls != NULL) {
-    acl = Malloc(MB_IFACE, sizeof(struct acl));
-    memcpy(acl, acls, sizeof(struct acl));
+    acl = Mdup(MB_IFACE, acls, sizeof(struct acl));
     acl->next = iface->tables;
     iface->tables = acl;
     ExecCmd(LG_IFACE2, b->name, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);

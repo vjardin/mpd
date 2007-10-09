@@ -213,24 +213,17 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 
     memcpy(dst,src,sizeof(struct authparams));
   
-    if (src->eapmsg) {
-	dst->eapmsg = Malloc(MB_AUTH, src->eapmsg_len);
-	memcpy(dst->eapmsg, src->eapmsg, src->eapmsg_len);
-    }
-    if (src->state) {
-	dst->state = Malloc(MB_AUTH, src->state_len);
-	memcpy(dst->state, src->state, src->state_len);
-    }
-    if (src->class) {
-	dst->class = Malloc(MB_AUTH, src->class_len);
-	memcpy(dst->class, src->class, src->class_len);
-    }
+    if (src->eapmsg)
+	dst->eapmsg = Mdup(MB_AUTH, src->eapmsg, src->eapmsg_len);
+    if (src->state)
+	dst->state = Mdup(MB_AUTH, src->state, src->state_len);
+    if (src->class)
+	dst->class = Mdup(MB_AUTH, src->class, src->class_len);
 
     acls = src->acl_rule;
     pacl = &dst->acl_rule;
     while (acls != NULL) {
-	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
-	memcpy(*pacl, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -238,8 +231,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     acls = src->acl_pipe;
     pacl = &dst->acl_pipe;
     while (acls != NULL) {
-	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
-	memcpy(*pacl, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -247,8 +239,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     acls = src->acl_queue;
     pacl = &dst->acl_queue;
     while (acls != NULL) {
-	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
-	memcpy(*pacl, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -256,8 +247,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     acls = src->acl_table;
     pacl = &dst->acl_table;
     while (acls != NULL) {
-	*pacl = Malloc(MB_AUTH, sizeof(struct acl));
-	memcpy(*pacl, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -267,8 +257,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = src->acl_filters[i];
 	pacl = &dst->acl_filters[i];
 	while (acls != NULL) {
-	    *pacl = Malloc(MB_AUTH, sizeof(struct acl));
-	    memcpy(*pacl, acls, sizeof(struct acl));
+	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
 	    acls = acls->next;
 	    pacl = &((*pacl)->next);
 	};
@@ -279,8 +268,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = src->acl_limits[i];
 	pacl = &dst->acl_limits[i];
 	while (acls != NULL) {
-	    *pacl = Malloc(MB_AUTH, sizeof(struct acl));
-	    memcpy(*pacl, acls, sizeof(struct acl));
+	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
 	    acls = acls->next;
 	    pacl = &((*pacl)->next);
 	};
@@ -289,15 +277,12 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 
     SLIST_INIT(&dst->routes);
     SLIST_FOREACH(r, &src->routes, next) {
-	r1 = Malloc(MB_AUTH, sizeof(*r1));
-	memcpy(r1, r, sizeof(*r1));
+	r1 = Mdup(MB_AUTH, r, sizeof(*r1));
 	SLIST_INSERT_HEAD(&dst->routes, r1, next);
     }
 
-    if (src->msdomain) {
-	dst->msdomain = Malloc(MB_AUTH, strlen(src->msdomain)+1);
-	strcpy(dst->msdomain, src->msdomain);
-    }
+    if (src->msdomain)
+	dst->msdomain = Mdup(MB_AUTH, src->msdomain, strlen(src->msdomain)+1);
 };
 
 void	authparamsMove(struct authparams *src, struct authparams *dst)
@@ -625,10 +610,8 @@ AuthDataNew(Link l)
     /* Copy current link statistics */
     memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));
 
-    if (l->downReasonValid) {
-	auth->info.downReason = Malloc(MB_LINK, strlen(l->downReason) + 1);
-	strcpy(auth->info.downReason, l->downReason);
-    }
+    if (l->downReasonValid)
+	auth->info.downReason = Mdup(MB_LINK, l->downReason, strlen(l->downReason) + 1);
 
     auth->info.last_open = l->last_open;
     auth->info.phys_type = l->type;
@@ -1976,14 +1959,13 @@ AuthExternal(AuthData auth)
     } else if (strcmp(attr, "REPLY_MESSAGE") == 0) {
 	if (auth->reply_message)
 		Freee(MB_AUTH, auth->reply_message);
-	auth->reply_message = Malloc(MB_AUTH, strlen(val) + 1);
-	strcpy(auth->reply_message, val);
+	auth->reply_message = Mdup(MB_AUTH, val, strlen(val) + 1);
 
     } else if (strcmp(attr, "MS_CHAP_ERROR") == 0) {
 	if (auth->mschap_error)
 		Freee(MB_AUTH, auth->mschap_error);
-	auth->mschap_error = Malloc(MB_AUTH, strlen(val) + 1);
-	strcpy(auth->mschap_error, val); //"E=%d R=0 M=%s"
+	/* "E=%d R=0 M=%s" */
+	auth->mschap_error = Mdup(MB_AUTH, val, strlen(val) + 1);
 
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;

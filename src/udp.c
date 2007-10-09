@@ -174,8 +174,7 @@ UdpInit(Link l)
 static int
 UdpInst(Link l, Link lt)
 {
-    l->info = Malloc(MB_PHYS, sizeof(struct udpinfo));
-    memcpy(l->info, lt->info, sizeof(struct udpinfo));
+    l->info = Mdup(MB_PHYS, lt->info, sizeof(struct udpinfo));
 
     return(0);
 }

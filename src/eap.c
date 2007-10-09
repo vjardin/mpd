@@ -477,8 +477,7 @@ EapRadiusProxyFinish(Link l, AuthData auth)
     lh.id = auth->id;
     lh.length = htons(sizeof(lh));
 
-    a->params.eapmsg = Malloc(MB_AUTH, sizeof(lh));
-    memcpy(a->params.eapmsg, &lh, sizeof(lh));
+    a->params.eapmsg = Mdup(MB_AUTH, &lh, sizeof(lh));
     a->params.eapmsg_len = sizeof(lh);
   }
 

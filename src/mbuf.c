@@ -31,6 +31,23 @@ Malloc(const char *type, int size)
 }
 
 /*
+ * Mdup()
+ *
+ * Malloc() + memcpy()
+ */
+
+void *
+Mdup(const char *type, const void *src, int size)
+{
+  Mbuf	bp;
+
+  if ((bp = mballoc(type, size)) == NULL)
+    return (NULL);
+  memcpy(MBDATAU(bp), src, size);
+  return(MBDATAU(bp));
+}
+
+/*
  * Freee()
  *
  * Replacement for the ususal free()

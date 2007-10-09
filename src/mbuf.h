@@ -74,6 +74,7 @@
 /* Replacements for malloc() & free() */
 
   extern void	*Malloc(const char *type, int size);
+  extern void	*Mdup(const char *type, const void *src, int size);
   extern void	Freee(const char *type, const void *ptr);
 
 /* Mbuf manipulation */

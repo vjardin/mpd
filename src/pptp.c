@@ -232,8 +232,7 @@ PptpInst(Link l, Link lt)
     PptpInfo	pptp;
 
     /* Initialize this link */
-    pptp = (PptpInfo) (l->info = Malloc(MB_PHYS, sizeof(*pptp)));
-    memcpy(pptp, lt->info, sizeof(*pptp));
+    pptp = (PptpInfo) (l->info = Mdup(MB_PHYS, lt->info, sizeof(*pptp)));
     pptp->listener = NULL;
 
     return(0);

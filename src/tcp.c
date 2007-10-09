@@ -177,8 +177,7 @@ TcpInit(Link l)
 static int
 TcpInst(Link l, Link lt)
 {
-	l->info = Malloc(MB_PHYS, sizeof(struct tcpinfo));
-	memcpy(l->info, lt->info, sizeof(struct tcpinfo));
+	l->info = Mdup(MB_PHYS, lt->info, sizeof(struct tcpinfo));
 
 	return (0);
 }

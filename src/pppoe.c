@@ -215,8 +215,7 @@ PppoeInit(Link l)
 static int
 PppoeInst(Link l, Link lt)
 {
-	l->info = Malloc(MB_PHYS, sizeof(struct pppoeinfo));
-	memcpy(l->info, lt->info, sizeof(struct pppoeinfo));
+	l->info = Mdup(MB_PHYS, lt->info, sizeof(struct pppoeinfo));
 
 	/* Done */
 	return(0);
