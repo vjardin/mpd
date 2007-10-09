@@ -184,17 +184,17 @@
   };
 
   const struct cmdtab	L2tpSetCmds[] = {
-    { "self ip [port]",			"Set local IP address",
+    { "self {ip} [{port}]",		"Set local IP address",
 	L2tpSetCommand, NULL, (void *) SET_SELFADDR },
-    { "peer ip [port]",			"Set remote IP address",
+    { "peer {ip} [{port}]",		"Set remote IP address",
 	L2tpSetCommand, NULL, (void *) SET_PEERADDR },
-    { "callingnum number",		"Set calling L2TP telephone number",
+    { "callingnum {number}",		"Set calling L2TP telephone number",
 	L2tpSetCommand, NULL, (void *) SET_CALLINGNUM },
-    { "callednum number",		"Set called L2TP telephone number",
+    { "callednum {number}",		"Set called L2TP telephone number",
 	L2tpSetCommand, NULL, (void *) SET_CALLEDNUM },
-    { "hostname name",		"Set L2TP local hostname",
+    { "hostname {name}",		"Set L2TP local hostname",
 	L2tpSetCommand, NULL, (void *) SET_HOSTNAME },
-    { "secret sec",		"Set L2TP tunnel secret",
+    { "secret {sec}",			"Set L2TP tunnel secret",
 	L2tpSetCommand, NULL, (void *) SET_SECRET },
     { "enable [opt ...]",		"Enable option",
 	L2tpSetCommand, NULL, (void *) SET_ENABLE },

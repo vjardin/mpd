@@ -82,7 +82,7 @@
 
   const struct cmdtab EcpSetCmds[] =
   {
-    { "key string",			"Set encryption key",
+    { "key {string}",			"Set encryption key",
 	EcpSetCommand, NULL, (void *) SET_KEY },
     { "accept [opt ...]",		"Accept option",
 	EcpSetCommand, NULL, (void *) SET_ACCEPT },

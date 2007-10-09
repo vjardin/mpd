@@ -51,17 +51,17 @@
  */
 
   const struct cmdtab RadiusSetCmds[] = {
-    { "server <name> <secret> [auth port] [acct port]", "Set radius server parameters" ,
+    { "server {name} {secret} [{auth port}] [{acct port}]", "Set radius server parameters" ,
 	RadiusSetCommand, NULL, (void *) SET_SERVER },
-    { "me <ip>",			"Set NAS IP address" ,
+    { "me {ip}",			"Set NAS IP address" ,
 	RadiusSetCommand, NULL, (void *) SET_ME },
-    { "v6me <ip>",			"Set NAS IPv6 address" ,
+    { "v6me {ip}",			"Set NAS IPv6 address" ,
 	RadiusSetCommand, NULL, (void *) SET_MEV6 },
-    { "timeout <seconds>",		"Set timeout in seconds",
+    { "timeout {seconds}",		"Set timeout in seconds",
 	RadiusSetCommand, NULL, (void *) SET_TIMEOUT },
-    { "retries <# retries>",		"set number of retries",
+    { "retries {# retries}",		"set number of retries",
 	RadiusSetCommand, NULL, (void *) SET_RETRIES },
-    { "config <path to radius.conf>",	"set path to config file for libradius",
+    { "config {path to radius.conf}",	"set path to config file for libradius",
 	RadiusSetCommand, NULL, (void *) SET_CONFIG },
     { "enable [opt ...]",		"Enable option",
 	RadiusSetCommand, NULL, (void *) SET_ENABLE },

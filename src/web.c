@@ -49,11 +49,11 @@
  */
 
   const struct cmdtab WebSetCmds[] = {
-    { "open",		"Open the web" ,
+    { "open",			"Open the web" ,
   	WebSetCommand, NULL, (void *) SET_OPEN },
-    { "close",		"Close the web" ,
+    { "close",			"Close the web" ,
   	WebSetCommand, NULL, (void *) SET_CLOSE },
-    { "user <name> <password>", "Add a web user" ,
+    { "user {name} {password}", "Add a web user" ,
       	WebSetCommand, NULL, (void *) SET_USER },
     { "self {ip} [{port}]",	"Set web ip and port" ,
   	WebSetCommand, NULL, (void *) SET_SELF },

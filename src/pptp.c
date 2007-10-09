@@ -165,13 +165,13 @@
   };
 
   const struct cmdtab	PptpSetCmds[] = {
-    { "self ip [port]",			"Set local IP address",
+    { "self {ip} [{port}]",		"Set local IP address",
 	PptpSetCommand, NULL, (void *) SET_SELFADDR },
-    { "peer ip [port]",			"Set remote IP address",
+    { "peer {ip} [{port}]",		"Set remote IP address",
 	PptpSetCommand, NULL, (void *) SET_PEERADDR },
-    { "callingnum number",		"Set calling PPTP telephone number",
+    { "callingnum {number}",		"Set calling PPTP telephone number",
 	PptpSetCommand, NULL, (void *) SET_CALLINGNUM },
-    { "callednum number",		"Set called PPTP telephone number",
+    { "callednum {number}",		"Set called PPTP telephone number",
 	PptpSetCommand, NULL, (void *) SET_CALLEDNUM },
     { "enable [opt ...]",		"Enable option",
 	PptpSetCommand, NULL, (void *) SET_ENABLE },

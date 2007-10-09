@@ -115,9 +115,9 @@
   };
 
   const struct cmdtab UdpSetCmds[] = {
-    { "self ip [port]",			"Set local IP address",
+    { "self {ip} [{port}]",		"Set local IP address",
 	UdpSetCommand, NULL, (void *) SET_SELFADDR },
-    { "peer ip [port]",			"Set remote IP address",
+    { "peer {ip} [{port}]",		"Set remote IP address",
 	UdpSetCommand, NULL, (void *) SET_PEERADDR },
     { "enable [opt ...]",		"Enable option",
 	UdpSetCommand, NULL, (void *) SET_ENABLE },

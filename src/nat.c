@@ -35,9 +35,9 @@ static int	NatSetCommand(Context ctx, int ac, char *av[], void *arg);
  */
 
   const struct cmdtab NatSetCmds[] = {
-    { "address addr",		"Set alias address",
+    { "address {addr}",		"Set alias address",
 	NatSetCommand, NULL, (void *) SET_ADDR },
-    { "target addr",		"Set target address",
+    { "target {addr}",		"Set target address",
 	NatSetCommand, NULL, (void *) SET_TARGET },
     { "enable [opt ...]",		"Enable option",
 	NatSetCommand, NULL, (void *) SET_ENABLE },

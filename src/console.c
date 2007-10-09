@@ -67,11 +67,11 @@
  */
 
   const struct cmdtab ConsoleSetCmds[] = {
-    { "open",		"Open the console" ,
+    { "open",			"Open the console" ,
   	ConsoleSetCommand, NULL, (void *) SET_OPEN },
-    { "close",		"Close the console" ,
+    { "close",			"Close the console" ,
   	ConsoleSetCommand, NULL, (void *) SET_CLOSE },
-    { "user <name> <password>", "Add a console user" ,
+    { "user {name} {password}", "Add a console user" ,
       	ConsoleSetCommand, NULL, (void *) SET_USER },
     { "self {ip} [{port}]",	"Set console ip and port" ,
   	ConsoleSetCommand, NULL, (void *) SET_SELF },

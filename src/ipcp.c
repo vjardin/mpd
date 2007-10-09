@@ -95,7 +95,7 @@
  */
 
   const struct cmdtab IpcpSetCmds[] = {
-    { "ranges self/width peer/width",	"Allowed IP address ranges",
+    { "ranges {self}[/{width}] {peer}[/{width}]",	"Allowed IP address ranges",
 	IpcpSetCommand, NULL, (void *) SET_RANGES },
     { "enable [opt ...]",		"Enable option",
 	IpcpSetCommand, NULL, (void *) SET_ENABLE},

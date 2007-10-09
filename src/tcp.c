@@ -117,9 +117,9 @@ const struct phystype gTcpPhysType = {
 };
 
 const struct cmdtab TcpSetCmds[] = {
-    { "self ip [port]",			"Set local IP address",
+    { "self {ip} [{port}]",		"Set local IP address",
 	TcpSetCommand, NULL, (void *) SET_SELFADDR },
-    { "peer ip [port]",			"Set remote IP address",
+    { "peer {ip} [{port}]",		"Set remote IP address",
 	TcpSetCommand, NULL, (void *) SET_PEERADDR },
     { "enable [opt ...]",		"Enable option",
 	TcpSetCommand, NULL, (void *) SET_ENABLE },
