@@ -449,7 +449,6 @@ L2tpOpen(Link l)
 		    l->name, strerror(errno)));
 		return;
 	}
-	memset(tun, 0, sizeof(*tun));
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
 	u_addrcopy(&pi->conf.peer_addr.addr, &tun->peer_addr);
 	tun->peer_port = pi->conf.peer_port?pi->conf.peer_port:L2TP_PORT;
@@ -1288,7 +1287,6 @@ L2tpServerEvent(int type, void *arg)
 		Log(LG_ERR, ("L2TP: malloc: %s", strerror(errno)));
 		goto fail;
 	}
-	memset(tun, 0, sizeof(*tun));
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
 	u_addrcopy(&s->self_addr, &tun->self_addr);
 	tun->self_port = s->self_port;
@@ -1489,7 +1487,6 @@ L2tpServerCreate(L2tpInfo const p)
 	    return (NULL);
 	}
 	
-	memset(s, 0, sizeof(*s));
 	u_addrcopy(&p->conf.self_addr, &s->self_addr);
 	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
 	
