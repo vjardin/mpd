@@ -695,6 +695,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
   Printf("\tAuth timeout    : %d\r\n", conf->timeout);
   Printf("\tExtAuth script  : %s\r\n", conf->extauth_script);
+  Printf("\tExtAcct script  : %s\r\n", conf->extacct_script);
   
   Printf("Auth options\r\n");
   OptStat(ctx, &conf->options, gConfList);
@@ -1817,6 +1818,12 @@ AuthExternal(AuthData auth)
     char	*attr, *val;
     int		len;
  
+    if (!auth->conf.extauth_script[0]) {
+	    Log(LG_ERR, ("[%s] Ext-auth: Script not specified!", 
+		auth->info.lnkname));
+	    auth->status = AUTH_STATUS_FAIL;
+	    return;
+    }
     if (strchr(auth->params.authname, '\'') ||
 	strchr(auth->params.authname, '\n')) {
 	    Log(LG_ERR, ("[%s] Ext-auth: Denied character in USER_NAME!", 
@@ -2094,11 +2101,15 @@ AuthExternalAcct(AuthData auth)
     char	*attr, *val;
     int		len;
  
+    if (!auth->conf.extacct_script[0]) {
+	    Log(LG_ERR, ("[%s] Ext-acct: Script not specified!", 
+		auth->info.lnkname));
+	    return;
+    }
     if (strchr(auth->params.authname, '\'') ||
 	strchr(auth->params.authname, '\n')) {
 	    Log(LG_ERR, ("[%s] Ext-acct: Denied character in USER_NAME!", 
 		auth->info.lnkname));
-	    auth->status = AUTH_STATUS_FAIL;
 	    return;
     }
     snprintf(line, sizeof(line), "%s '%s'", 
