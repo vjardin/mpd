@@ -419,21 +419,26 @@ BundLeave(Link l)
 	/* try to open again later */
 	if (b->open && Enabled(&b->conf.options, BUND_CONF_BWMANAGE) &&
 	  !Enabled(&b->iface.options, IFACE_CONF_ONDEMAND) && !gShutdownInProgress) {
-	    /* wait BUND_REOPEN_DELAY to see if it comes back up */
-    	    int delay = BUND_REOPEN_DELAY;
-    	    delay += ((random() ^ gPid ^ time(NULL)) & 1);
-    	    Log(LG_BUND, ("[%s] Bundle: Last link has gone, reopening in %d seconds", 
-    		b->name, delay));
-    	    TimerStop(&b->reOpenTimer);
-    	    TimerInit(&b->reOpenTimer, "BundReOpen",
-		delay * SECONDS, BundReOpenLinks, b);
-    	    TimerStart(&b->reOpenTimer);
-	} else {
-	    if (b->open)
-		b->open = FALSE;
-	    if (!b->stay)
-		BundShutdown(b);
+	    if (b->n_links != 0 || b->conf.linkst[0][0]) {
+		/* wait BUND_REOPEN_DELAY to see if it comes back up */
+    	        int delay = BUND_REOPEN_DELAY;
+    		delay += ((random() ^ gPid ^ time(NULL)) & 1);
+    		Log(LG_BUND, ("[%s] Bundle: Last link has gone, reopening in %d seconds", 
+    		    b->name, delay));
+    	        TimerStop(&b->reOpenTimer);
+    		TimerInit(&b->reOpenTimer, "BundReOpen",
+		    delay * SECONDS, BundReOpenLinks, b);
+    		TimerStart(&b->reOpenTimer);
+		return;
+	    } else {
+    		Log(LG_BUND, ("[%s] Bundle: Last link has gone, no links for bw-manage defined", 
+    		    b->name));
+	    }
 	}
+	if (b->open)
+	    b->open = FALSE;
+	if (!b->stay)
+	    BundShutdown(b);
     }
 }
 
