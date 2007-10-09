@@ -38,8 +38,8 @@
   typedef struct web *Web;
 
   struct web_user {
-    char	*username;
-    char	*password;
+    char	username[32];
+    char	password[32];
   };
 
   typedef struct web_user *WebUser;

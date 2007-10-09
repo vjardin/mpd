@@ -644,8 +644,8 @@ WebSetCommand(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
 
       u = Malloc(MB_WEB, sizeof(*u));
-      u->username = typed_mem_strdup(MB_WEB, av[0]);
-      u->password = typed_mem_strdup(MB_WEB, av[1]);
+      strlcpy(u->username, av[0], sizeof(u->username));
+      strlcpy(u->password, av[1], sizeof(u->password));
       ghash_put(w->users, u);
       break;
 

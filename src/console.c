@@ -304,7 +304,7 @@ StdConsoleConnect(Console c)
     cs->prompt = ConsoleSessionShowPrompt;
     cs->state = STATE_AUTHENTIC;
     cs->context.cs = cs;
-    cs->user.username = (char *)"root";
+    strcpy(cs->user.username, "root");
     RWLOCK_WRLOCK(c->lock);
     SLIST_INSERT_HEAD(&c->sessions, cs, next);
     RWLOCK_UNLOCK(c->lock);
@@ -333,8 +333,6 @@ ConsoleSessionClose(ConsoleSession cs)
     SLIST_REMOVE(&cs->console->sessions, cs, console_session, next);
     RWLOCK_UNLOCK(cs->console->lock);
     close(cs->fd);
-    if (cs->user.username)
-	FREE(MB_CONS, cs->user.username);
     Freee(MB_CONS, cs);
     return;
 }
@@ -546,7 +544,7 @@ notfound:
       
       cs->telnet = FALSE;
       if (cs->state == STATE_USERNAME) {
-	cs->user.username = typed_mem_strdup(MB_CONS, cs->cmd);
+	strlcpy(cs->user.username, cs->cmd, sizeof(cs->user.username));
         memset(cs->cmd, 0, MAX_CONSOLE_LINE);
         cs->cmd_len = 0;
 	cs->state = STATE_PASSWORD;
@@ -574,8 +572,7 @@ failed:
 	cs->write(cs, "Login failed\r\n");
 	Log(LG_CONSOLE, ("CONSOLE: Failed login attempt from %s", 
 		u_addrtoa(&cs->peer_addr,addrstr,sizeof(addrstr))));
-	FREE(MB_CONS, cs->user.username);
-	cs->user.username=NULL;
+	cs->user.username[0] = 0;
 	cs->state = STATE_USERNAME;
 success:
 	memset(cs->cmd, 0, MAX_CONSOLE_LINE);
@@ -805,8 +802,8 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
 
       u = Malloc(MB_CONS, sizeof(*u));
-      u->username = typed_mem_strdup(MB_CONS, av[0]);
-      u->password = typed_mem_strdup(MB_CONS, av[1]);
+      strlcpy(u->username, av[0], sizeof(u->username));
+      strlcpy(u->password, av[1], sizeof(u->password));
       RWLOCK_WRLOCK(c->lock);
       ghash_put(c->users, u);
       RWLOCK_UNLOCK(c->lock);

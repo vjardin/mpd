@@ -58,8 +58,8 @@
   };
 
   struct console_user {
-    char	*username;
-    char	*password;
+    char	username[32];
+    char	password[32];
   };
 
   typedef struct console_user *ConsoleUser;
@@ -72,7 +72,7 @@
     void		*cookie;	/* device dependent cookie */
     EventRef		readEvent;
     struct context	context;
-    struct console_user	user;
+    struct console_user user;
     struct u_addr	peer_addr;
     in_port_t           peer_port;
     char		cmd[MAX_CONSOLE_LINE];
