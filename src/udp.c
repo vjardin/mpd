@@ -174,10 +174,8 @@ UdpInit(Link l)
 static int
 UdpInst(Link l, Link lt)
 {
-    UdpInfo	pi;
-
-    pi = (UdpInfo) (l->info = Malloc(MB_PHYS, sizeof(*pi)));
-    memcpy(pi, lt->info, sizeof(*pi));
+    l->info = Malloc(MB_PHYS, sizeof(struct udpinfo));
+    memcpy(l->info, lt->info, sizeof(struct udpinfo));
 
     return(0);
 }

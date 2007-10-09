@@ -215,11 +215,8 @@ PppoeInit(Link l)
 static int
 PppoeInst(Link l, Link lt)
 {
-	PppoeInfo pe;
-
-	/* Allocate private struct */
-	pe = (PppoeInfo)(l->info = Malloc(MB_PHYS, sizeof(*pe)));
-	memcpy(pe, lt->info, sizeof(*pe));
+	l->info = Malloc(MB_PHYS, sizeof(struct pppoeinfo));
+	memcpy(l->info, lt->info, sizeof(struct pppoeinfo));
 
 	/* Done */
 	return(0);

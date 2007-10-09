@@ -268,11 +268,8 @@ L2tpInit(Link l)
 static int
 L2tpInst(Link l, Link lt)
 {
-	L2tpInfo	l2tp;
-
-	/* Initialize this link */
-	l2tp = (L2tpInfo) (l->info = Malloc(MB_PHYS, sizeof(*l2tp)));
-	memcpy(l2tp, lt->info, sizeof(*l2tp));
+	l->info = Malloc(MB_PHYS, sizeof(struct l2tpinfo));
+	memcpy(l->info, lt->info, sizeof(struct l2tpinfo));
 	
 	gNumL2tpLinks++;
   
