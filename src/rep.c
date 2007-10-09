@@ -366,13 +366,8 @@ RepShowLinks(Context ctx, Rep r)
 
     for (j = 0; j < 2; j++) {
 	if (r->links[j]) {
-	    Printf("%s", r->links[j]->name);
-	    if (!r->links[j]->type)
-    		Printf("[no type/%s] ",
-      		    gPhysStateNames[r->links[j]->state]);
-	    else
-    		Printf("[%s/%s] ", r->links[j]->type->name,
-      		    gPhysStateNames[r->links[j]->state]);
+	    Printf("%s[%s/%s] ", r->links[j]->name, r->links[j]->type->name,
+      	        gPhysStateNames[r->links[j]->state]);
 	}
     }
     Printf("\r\n");
