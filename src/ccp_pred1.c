@@ -116,19 +116,13 @@ Pred1Init(Bund b, int directions)
 #ifndef USE_NG_PRED1
   Pred1Info	p = &b->ccp.pred1;
 
-  if (directions == COMP_DIR_RECV)
-  {
+  if (directions == COMP_DIR_RECV) {
     p->iHash = 0;
-    if (p->InputGuessTable == NULL)
-      p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
-    memset(p->InputGuessTable, 0, PRED1_TABLE_SIZE);
+    p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
   }
-  if (directions == COMP_DIR_XMIT)
-  {
+  if (directions == COMP_DIR_XMIT) {
     p->oHash = 0;
-    if (p->OutputGuessTable == NULL)
-      p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
-    memset(p->OutputGuessTable, 0, PRED1_TABLE_SIZE);
+    p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
   }
 #else
   struct ngm_mkpeer	mp;
