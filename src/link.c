@@ -1207,9 +1207,7 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_MTU:
       val = atoi(*av);
       name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
-      if (!l->type)
-	Log(LG_ERR, ("[%s] this link has no type set", l->name));
-      else if (val < LCP_MIN_MRU)
+      if (val < LCP_MIN_MRU)
 	Log(LG_ERR, ("[%s] the min %s is %d", l->name, name, LCP_MIN_MRU));
       else if (l->type && (val > l->type->mru))
 	Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
