@@ -545,11 +545,12 @@ static const char*
 WebAuth(void *arg, struct http_request *req, const char *username,
 		      const char *password) 
 {
-    Web	w = (Web)arg;
-    
-    WebUser u;
+    Web		w = (Web)arg;
+    WebUser	u;
+    struct web_user	iu;
 
-    u = ghash_get(w->users, &username);
+    strlcpy(iu.username, username, sizeof(iu.username));
+    u = ghash_get(w->users, &iu);
 
     if ((u == NULL) || strcmp(u->password, password)) 
       return "Access Denied";
