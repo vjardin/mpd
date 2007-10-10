@@ -1177,6 +1177,7 @@ BundShutdown(Bund b)
     if (b->csock >= 0)
 	BundNgShutdown(b, 1, 1);
     gBundles[b->id] = NULL;
+    MsgUnRegister(&b->msgs);
     b->dead = 1;
     UNREF(b);
 }

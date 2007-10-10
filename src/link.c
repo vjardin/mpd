@@ -549,6 +549,7 @@ LinkShutdown(Link l)
 	Freee(MB_LINK, l->upReason);
     if (l->downReason)
 	Freee(MB_LINK, l->downReason);
+    MsgUnRegister(&l->msgs);
     UNREF(l);
 }
 
@@ -926,7 +927,7 @@ RecordLinkUpDownReason2(Link l, int up, const char *key, const char *fmt, va_lis
 
   /* Allocate buffer if necessary */
   if (!*cpp)
-    *cpp = Malloc(MB_UTIL, RBUF_SIZE);
+    *cpp = Malloc(MB_LINK, RBUF_SIZE);
   buf = *cpp;
 
   /* Record reason */
