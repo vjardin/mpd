@@ -69,8 +69,6 @@ enum {
 	SET_IFACE,
 	SET_SESSION,
 	SET_ACNAME,
-	SET_ENABLE,
-	SET_DISABLE,
 };
 
 /*
@@ -155,10 +153,6 @@ const struct cmdtab PppoeSetCmds[] = {
 	  PppoeSetCommand, NULL, (void *)SET_SESSION },
       { "acname {name}",	"Set PPPoE access concentrator name",
 	  PppoeSetCommand, NULL, (void *)SET_ACNAME },
-      { "enable [opt ...]",		"Enable option",
-	  PppoeSetCommand, NULL, (void *)SET_ENABLE },
-      { "disable [opt ...]",		"Disable option",
-	  PppoeSetCommand, NULL, (void *)SET_DISABLE },
       { NULL },
 };
 
@@ -180,10 +174,6 @@ struct PppoeIf PppoeIfs[PPPOE_MAXPARENTIFS];
 
 int PppoeListenUpdateSheduled=0;
 struct pppTimer PppoeListenUpdateTimer;
-
-static struct confinfo	gConfList[] = {
-    { 0,	0,			NULL		},
-};
 
 /*
  * PppoeInit()
@@ -528,8 +518,6 @@ PppoeStat(Context ctx)
 	Printf("\tIface Node   : %s\r\n", pe->path);
 	Printf("\tIface Hook   : %s\r\n", pe->hook);
 	Printf("\tSession      : %s\r\n", pe->session);
-	Printf("PPPoE options:\r\n");
-	OptStat(ctx, &pe->options, gConfList);
 	Printf("PPPoE status:\r\n");
 	Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
@@ -1217,13 +1205,6 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 			return(-1);
 		snprintf(pi->acname, sizeof(pi->acname), "%s", av[0]);
 		break;
-	case SET_ENABLE:
-          EnableCommand(ac, av, &pi->options, gConfList);
-    	  PppoeNodeUpdate(ctx->lnk);
-          break;
-        case SET_DISABLE:
-          DisableCommand(ac, av, &pi->options, gConfList);
-          break;
 	default:
 		assert(0);
 	}
