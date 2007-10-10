@@ -659,7 +659,7 @@ NgFuncClrStats(Bund b, u_int16_t linkNum)
     char	path[NG_PATHSIZ];
 
     /* Get stats */
-    snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
     if (NgSendMsg(b->csock, path, 
 	NGM_PPP_COOKIE, NGM_PPP_CLR_LINK_STATS, &linkNum, sizeof(linkNum)) < 0) {
 	    Log(LG_ERR, ("[%s] can't clear stats, link=%d: %s",
@@ -678,24 +678,24 @@ NgFuncClrStats(Bund b, u_int16_t linkNum)
 int
 NgFuncGetStats(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat *statp)
 {
-  union {
-      u_char			buf[sizeof(struct ng_mesg)
+    union {
+        u_char			buf[sizeof(struct ng_mesg)
 				  + sizeof(struct ng_ppp_link_stat)];
-      struct ng_mesg		reply;
-  }				u;
-  char                          path[NG_PATHSIZ];
+        struct ng_mesg		reply;
+    }				u;
+    char			path[NG_PATHSIZ];
 
-  /* Get stats */
-  snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
-  if (NgFuncSendQuery(path, NGM_PPP_COOKIE, NGM_PPP_GET_LINK_STATS,
-       &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
-      b->name, linkNum, strerror(errno)));
-    return -1;
-  }
-  if (statp != NULL)
-    memcpy(statp, u.reply.data, sizeof(*statp));
-  return(0);
+    /* Get stats */
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
+    if (NgFuncSendQuery(path, NGM_PPP_COOKIE, NGM_PPP_GET_LINK_STATS,
+      &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
+	Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
+    	    b->name, linkNum, strerror(errno)));
+	return -1;
+    }
+    if (statp != NULL)
+	memcpy(statp, u.reply.data, sizeof(*statp));
+    return(0);
 }
 
 #ifdef NG_PPP_STATS64
@@ -708,24 +708,24 @@ NgFuncGetStats(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat *statp)
 int
 NgFuncGetStats64(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat64 *statp)
 {
-  union {
-      u_char			buf[sizeof(struct ng_mesg)
+    union {
+        u_char			buf[sizeof(struct ng_mesg)
 				  + sizeof(struct ng_ppp_link_stat64)];
-      struct ng_mesg		reply;
-  }				u;
-  char                          path[NG_PATHSIZ];
+        struct ng_mesg		reply;
+    }				u;
+    char			path[NG_PATHSIZ];
 
-  /* Get stats */
-  snprintf(path, sizeof(path), "mpd%d-%s:", gPid, b->name);
-  if (NgFuncSendQuery(path, NGM_PPP_COOKIE, NGM_PPP_GET_LINK_STATS64,
-       &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
-      b->name, linkNum, strerror(errno)));
-    return -1;
-  }
-  if (statp != NULL)
-    memcpy(statp, u.reply.data, sizeof(*statp));
-  return(0);
+    /* Get stats */
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
+    if (NgFuncSendQuery(path, NGM_PPP_COOKIE, NGM_PPP_GET_LINK_STATS64,
+      &linkNum, sizeof(linkNum), &u.reply, sizeof(u), NULL) < 0) {
+	Log(LG_ERR, ("[%s] can't get stats, link=%d: %s",
+    	    b->name, linkNum, strerror(errno)));
+	return -1;
+    }
+    if (statp != NULL)
+	memcpy(statp, u.reply.data, sizeof(*statp));
+    return(0);
 }
 #endif
 
