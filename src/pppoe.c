@@ -57,6 +57,7 @@ struct pppoeinfo {
 	u_char		opened;			/* PPPoE opened by phys */
 	struct optinfo	options;
 	struct PppoeIf  *PIf;			/* pointer on parent ng_pppoe info */
+	int		PIfID;			/* parrent ng_pppoe number */
 	struct pppTimer	connectTimer;		/* connection timeout timer */
 };
 typedef struct pppoeinfo	*PppoeInfo;
@@ -116,6 +117,7 @@ static void	PppoeStat(Context ctx);
 static int	PppoeSetCommand(Context ctx, int ac, char *av[], void *arg);
 static int	PppoeOriginated(Link l);
 static int	PppoeIsSync(Link l);
+static void	PppoeGetNode(Link l);
 static void	PppoeNodeUpdate(Link l);
 static void	PppoeListenUpdate(void *arg);
 
@@ -286,7 +288,7 @@ PppoeOpen(Link l)
 	};
 
 	/* Create PPPoE node if necessary. */
-	PppoeNodeUpdate(l);
+	PppoeGetNode(l);
 
 	if (!pe->PIf) {
 	    Log(LG_ERR, ("[%s] PPPoE node for link is not initialized",
@@ -424,7 +426,7 @@ PppoeCtrlReadEvent(int type, void *arg)
 	Link l = NULL;
 	PppoeInfo pi = NULL;
 	
-	struct PppoeIf  *PIf=(struct PppoeIf*)arg;
+	struct PppoeIf  *PIf = (struct PppoeIf*)arg;
 	
 	/* Read control message. */
 	if (NgRecvMsg(PIf->csock, &u.resp, sizeof(u), path) < 0) {
@@ -768,7 +770,7 @@ static void
 PppoeListenEvent(int type, void *arg)
 {
 	int			i,k,sz;
-	struct PppoeIf		*PIf=(struct PppoeIf *)(arg);
+	struct PppoeIf		*PIf = (struct PppoeIf *)(arg);
 	char			rhook[NG_HOOKSIZ];
 	unsigned char		response[1024];
 
@@ -1037,10 +1039,28 @@ ListenPppoeNode(const char *path, const char *hook, struct PppoeIf *PIf,
 static void
 PppoeNodeUpdate(Link l)
 {
-  int i, j = -1;
-  PppoeInfo pi = (PppoeInfo)l->info;
+    if (Enabled(&l->conf.options, LINK_CONF_INCOMING) &&
+        (!PppoeListenUpdateSheduled)) {
+    	    /* Set a timer to run PppoeListenUpdate(). */
+	    TimerInit(&PppoeListenUpdateTimer, "PppoeListenUpdate",
+		0, PppoeListenUpdate, NULL);
+	    TimerStart(&PppoeListenUpdateTimer);
+	    PppoeListenUpdateSheduled = 1;
+    }
+}
 
-  if (!pi->PIf) { // Do this only once for interface
+/*
+ * PppoeGetNode()
+ */
+
+static void
+PppoeGetNode(Link l)
+{
+    int i, j = -1;
+    PppoeInfo pi = (PppoeInfo)l->info;
+
+    if (pi->PIf) // Do this only once for interface
+	return;
 
     if (!(strcmp(pi->path, "undefined:")
         &&strcmp(pi->session, "undefined:"))) {
@@ -1068,7 +1088,8 @@ PppoeNodeUpdate(Link l)
 		    pi->session,
 		    sizeof(PppoeIfs[PppoeIfCount].session));
 		PppoeIfs[PppoeIfCount].listen = 0;
-		pi->PIf=&PppoeIfs[PppoeIfCount];
+		pi->PIf = &PppoeIfs[PppoeIfCount];
+		pi->PIfID = PppoeIfCount;
 		PppoeIfCount++;
 	} else {
 		Log(LG_ERR, ("[%s] PPPoE: Error creating ng_pppoe "
@@ -1076,18 +1097,9 @@ PppoeNodeUpdate(Link l)
 		return;
 	}
     } else {
-        pi->PIf=&PppoeIfs[j];
+        pi->PIf = &PppoeIfs[j];
+	pi->PIfID = j;
     }
-  }
-  
-  if (Enabled(&l->conf.options, LINK_CONF_INCOMING) &&
-        (!PppoeListenUpdateSheduled)) {
-    	    /* Set a timer to run PppoeListenUpdate(). */
-	    TimerInit(&PppoeListenUpdateTimer, "PppoeListenUpdate",
-		0, PppoeListenUpdate, NULL);
-	    TimerStart(&PppoeListenUpdateTimer);
-	    PppoeListenUpdateSheduled = 1;
-  }
 }
 
 /*
@@ -1124,12 +1136,19 @@ PppoeListenUpdate(void *arg)
 			continue;
 		}
 
-		for (i = 0; i < PppoeIfCount; i++)
+		PppoeGetNode(l);
+
+		if (strcmp(PppoeIfs[pi->PIfID].session, pi->session) == 0) {
+			j = pi->PIfID;
+		} else {
+		    for (i = 0; i < PppoeIfCount; i++) {
 			if ((strcmp(PppoeIfs[i].ifnodepath, pi->path) == 0) &&
 			    (strcmp(PppoeIfs[i].session, pi->session) == 0)) {
 				j = i;
 				break;
 			}
+		    }
+		}
 
 		if (j == -1) {
 			if (PppoeIfCount>=PPPOE_MAXPARENTIFS) {
@@ -1146,7 +1165,8 @@ PppoeListenUpdate(void *arg)
 				    pi->session,
 				    sizeof(PppoeIfs[PppoeIfCount].session));
 				PppoeIfs[PppoeIfCount].listen = 1;
-				pi->PIf=&PppoeIfs[PppoeIfCount];
+				pi->PIf = &PppoeIfs[PppoeIfCount];
+				pi->PIfID = PppoeIfCount;
 				PppoeIfCount++;
 			}
 		} else {
@@ -1155,7 +1175,8 @@ PppoeListenUpdate(void *arg)
 			    pi->session, 0))) {
 				PppoeIfs[j].listen=1;
 			}
-			pi->PIf=&PppoeIfs[j];
+			pi->PIf = &PppoeIfs[j];
+			pi->PIfID = j;
 		}
 	}
 }
