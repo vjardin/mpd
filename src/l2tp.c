@@ -231,34 +231,34 @@ int		one = 1;
 static int
 L2tpInit(Link l)
 {
-  L2tpInfo	l2tp;
+    L2tpInfo	l2tp;
 
-  if (!gInitialized) {
-    if ((gL2tpServers = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
-	== NULL)
+    if (!gInitialized) {
+	if ((gL2tpServers = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
+	  == NULL)
 	    return(-1);
-    if ((gL2tpTuns = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
-	== NULL)
+	if ((gL2tpTuns = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
+	  == NULL)
 	    return(-1);
-    gInitialized = 1;
-  }
+	gInitialized = 1;
+    }
 
-  /* Initialize this link */
-  l2tp = (L2tpInfo) (l->info = Malloc(MB_PHYS, sizeof(*l2tp)));
+    /* Initialize this link */
+    l2tp = (L2tpInfo) (l->info = Malloc(MB_PHYS, sizeof(*l2tp)));
   
-  u_addrclear(&l2tp->conf.self_addr);
-  l2tp->conf.self_addr.family = AF_INET;
-  l2tp->conf.self_port = 0;
-  u_rangeclear(&l2tp->conf.peer_addr);
-  l2tp->conf.peer_addr.addr.family = AF_INET;
-  l2tp->conf.peer_addr.width = 0;
-  l2tp->conf.peer_port = 0;
+    u_addrclear(&l2tp->conf.self_addr);
+    l2tp->conf.self_addr.family = AF_INET;
+    l2tp->conf.self_port = 0;
+    u_rangeclear(&l2tp->conf.peer_addr);
+    l2tp->conf.peer_addr.addr.family = AF_INET;
+    l2tp->conf.peer_addr.width = 0;
+    l2tp->conf.peer_port = 0;
 
-  Enable(&l2tp->conf.options, L2TP_CONF_DATASEQ);
+    Enable(&l2tp->conf.options, L2TP_CONF_DATASEQ);
   
-  gNumL2tpLinks++;
+    gNumL2tpLinks++;
   
-  return(0);
+    return(0);
 }
 
 /*
@@ -798,38 +798,38 @@ L2tpCalledNum(Link l, void *buf, int buf_len)
 void
 L2tpStat(Context ctx)
 {
-  L2tpInfo	const l2tp = (L2tpInfo) ctx->lnk->info;
-  char		buf[32];
+    L2tpInfo	const l2tp = (L2tpInfo) ctx->lnk->info;
+    char	buf[32];
 
-  Printf("L2TP configuration:\r\n");
-  Printf("\tSelf addr    : %s, port %u",
-    u_addrtoa(&l2tp->conf.self_addr, buf, sizeof(buf)), l2tp->conf.self_port);
-  Printf("\r\n");
-  Printf("\tPeer range   : %s",
-    u_rangetoa(&l2tp->conf.peer_addr, buf, sizeof(buf)));
-  if (l2tp->conf.peer_port)
-    Printf(", port %u", l2tp->conf.peer_port);
-  Printf("\r\n");
-  Printf("\tHostname     : %s\r\n", l2tp->conf.hostname);
-  Printf("\tSecret       : %s\r\n", (l2tp->conf.callingnum[0])?"******":"");
-  Printf("\tCalling number: %s\r\n", l2tp->conf.callingnum);
-  Printf("\tCalled number: %s\r\n", l2tp->conf.callednum);
-  Printf("L2TP options:\r\n");
-  OptStat(ctx, &l2tp->conf.options, gConfList);
-  Printf("L2TP status:\r\n");
-  Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
-  if (ctx->lnk->state != PHYS_STATE_DOWN) {
-    Printf("\tIncoming     : %s\r\n", (l2tp->incoming?"YES":"NO"));
-    if (l2tp->tun) {
-	Printf("\tCurrent self : %s, port %u\r\n",
-	    u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
-	Printf("\tCurrent peer : %s, port %u\r\n",
-	    u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
-	Printf("\tFraming      : %s\r\n", (l2tp->sync?"Sync":"Async"));
+    Printf("L2TP configuration:\r\n");
+    Printf("\tSelf addr    : %s, port %u",
+	u_addrtoa(&l2tp->conf.self_addr, buf, sizeof(buf)), l2tp->conf.self_port);
+    Printf("\r\n");
+    Printf("\tPeer range   : %s",
+	u_rangetoa(&l2tp->conf.peer_addr, buf, sizeof(buf)));
+    if (l2tp->conf.peer_port)
+	Printf(", port %u", l2tp->conf.peer_port);
+    Printf("\r\n");
+    Printf("\tHostname     : %s\r\n", l2tp->conf.hostname);
+    Printf("\tSecret       : %s\r\n", (l2tp->conf.callingnum[0])?"******":"");
+    Printf("\tCalling number: %s\r\n", l2tp->conf.callingnum);
+    Printf("\tCalled number: %s\r\n", l2tp->conf.callednum);
+    Printf("L2TP options:\r\n");
+    OptStat(ctx, &l2tp->conf.options, gConfList);
+    Printf("L2TP status:\r\n");
+    Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
+    if (ctx->lnk->state != PHYS_STATE_DOWN) {
+	Printf("\tIncoming     : %s\r\n", (l2tp->incoming?"YES":"NO"));
+	if (l2tp->tun) {
+	    Printf("\tCurrent self : %s, port %u\r\n",
+		u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
+	    Printf("\tCurrent peer : %s, port %u\r\n",
+		u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
+	    Printf("\tFraming      : %s\r\n", (l2tp->sync?"Sync":"Async"));
+	}
+	Printf("\tCalling number: %s\r\n", l2tp->callingnum);
+	Printf("\tCalled number: %s\r\n", l2tp->callednum);
     }
-    Printf("\tCalling number: %s\r\n", l2tp->callingnum);
-    Printf("\tCalled number: %s\r\n", l2tp->callednum);
-  }
 }
 
 /*
