@@ -568,78 +568,78 @@ LinkShutdown(Link l)
 int
 LinkNgInit(Link l)
 {
-  union {
-      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-      struct ng_mesg	reply;
-  }			u;
-  struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
-  struct ngm_mkpeer	mp;
-  struct ngm_name	nm;
-  int			newTee = 0;
+    union {
+        u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+        struct ng_mesg	reply;
+    }			u;
+    struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
+    struct ngm_mkpeer	mp;
+    struct ngm_name	nm;
+    int			newTee = 0;
 
-  /* Create a netgraph socket node */
-  if (NgMkSockNode(NULL, &l->csock, &l->dsock) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
-    return(-1);
-  }
-  (void) fcntl(l->csock, F_SETFD, 1);
-  (void) fcntl(l->dsock, F_SETFD, 1);
+    /* Create a netgraph socket node */
+    if (NgMkSockNode(NULL, &l->csock, &l->dsock) < 0) {
+	Log(LG_ERR, ("[%s] can't create %s node: %s",
+    	    l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
+	return(-1);
+    }
+    (void) fcntl(l->csock, F_SETFD, 1);
+    (void) fcntl(l->dsock, F_SETFD, 1);
 
-  /* Give it a name */
-  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lso", gPid, l->name);
-  if (NgSendMsg(l->csock, ".:",
+    /* Give it a name */
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lso", gPid, l->name);
+    if (NgSendMsg(l->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    Log(LG_ERR, ("[%s] can't name %s node: %s",
-      l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
-    goto fail;
-  }
+	Log(LG_ERR, ("[%s] can't name %s node: %s",
+    	    l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
+	goto fail;
+    }
 
-  /* Create TEE node */
-  snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
-  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
-  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
-  if (NgSendMsg(l->csock, ".:",
+    /* Create TEE node */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
+    if (NgSendMsg(l->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-      l->name, mp.type, ".:", mp.ourhook, strerror(errno)));
-    goto fail;
-  }
-  newTee = 1;
+	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
+    	    l->name, mp.type, ".:", mp.ourhook, strerror(errno)));
+	goto fail;
+    }
+    newTee = 1;
 
-  /* Give it a name */
-  snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lt", gPid, l->name);
-  if (NgSendMsg(l->csock, MPD_HOOK_PPP,
+    /* Give it a name */
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lt", gPid, l->name);
+    if (NgSendMsg(l->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
-      l->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
-    goto fail;
-  }
+	Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
+    	    l->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
+	goto fail;
+    }
 
-  /* Get PPP node ID */
-  if (NgSendMsg(l->csock, MPD_HOOK_PPP,
+    /* Get PPP node ID */
+    if (NgSendMsg(l->csock, MPD_HOOK_PPP,
       NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
-    Log(LG_ERR, ("[%s] ppp nodeinfo: %s", l->name, strerror(errno)));
-    goto fail;
-  }
-  if (NgRecvMsg(l->csock, &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
-      l->name, MPD_HOOK_PPP, strerror(errno)));
-    goto fail;
-  }
-  l->nodeID = ni->id;
+	Log(LG_ERR, ("[%s] ppp nodeinfo: %s", l->name, strerror(errno)));
+	goto fail;
+    }
+    if (NgRecvMsg(l->csock, &u.reply, sizeof(u), NULL) < 0) {
+	Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
+    	    l->name, MPD_HOOK_PPP, strerror(errno)));
+	goto fail;
+    }
+    l->nodeID = ni->id;
 
-  /* Listen for happenings on our node */
-  EventRegister(&l->dataEvent, EVENT_READ,
-    l->dsock, EVENT_RECURRING, LinkNgDataEvent, l);
-  /* Control events used only by CCP so Register events there */
+    /* Listen for happenings on our node */
+    EventRegister(&l->dataEvent, EVENT_READ,
+	l->dsock, EVENT_RECURRING, LinkNgDataEvent, l);
+    /* Control events used only by CCP so Register events there */
 
-  /* OK */
-  return(0);
+    /* OK */
+    return(0);
 
 fail:
-  LinkNgShutdown(l, newTee);
-  return(-1);
+    LinkNgShutdown(l, newTee);
+    return(-1);
 }
 
 /*
@@ -907,58 +907,57 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
 static void
 RecordLinkUpDownReason2(Link l, int up, const char *key, const char *fmt, va_list args)
 {
-  char	**const cpp = up ? &l->upReason : &l->downReason;
-  char	*buf;
+    char	**const cpp = up ? &l->upReason : &l->downReason;
+    char	*buf;
 
-  /* First reason overrides later ones */
-  if (up) {
-    if (l->upReasonValid) {
-	return;
+    /* First reason overrides later ones */
+    if (up) {
+	if (l->upReasonValid) {
+	    return;
+	} else {
+    	    l->upReasonValid = 1;
+	}
     } else {
-	l->upReasonValid = 1;
+	if (l->downReasonValid) {
+	    return;
+	} else {
+	    l->downReasonValid = 1;
+	}
     }
-  } else {
-    if (l->downReasonValid) {
-	return;
-    } else {
-	l->downReasonValid = 1;
-    }
-  }
 
-  /* Allocate buffer if necessary */
-  if (!*cpp)
-    *cpp = Malloc(MB_LINK, RBUF_SIZE);
-  buf = *cpp;
+    /* Allocate buffer if necessary */
+    if (!*cpp)
+	*cpp = Malloc(MB_LINK, RBUF_SIZE);
+    buf = *cpp;
 
-  /* Record reason */
-  if (fmt) {
-    snprintf(buf, RBUF_SIZE, "%s:", key);
-    vsnprintf(buf + strlen(buf), RBUF_SIZE - strlen(buf), fmt, args);
-  } else 
-    snprintf(buf, RBUF_SIZE, "%s", key);
+    /* Record reason */
+    if (fmt) {
+	snprintf(buf, RBUF_SIZE, "%s:", key);
+	vsnprintf(buf + strlen(buf), RBUF_SIZE - strlen(buf), fmt, args);
+    } else 
+	snprintf(buf, RBUF_SIZE, "%s", key);
 }
 
 void
 RecordLinkUpDownReason(Bund b, Link l, int up, const char *key, const char *fmt, ...)
 {
-  va_list	args;
-  int		k;
+    va_list	args;
+    int		k;
 
-  if (l != NULL) {
-    va_start(args, fmt);
-    RecordLinkUpDownReason2(l, up, key, fmt, args);
-    va_end(args);
-
-  } else if (b != NULL) {
-    for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
-      if (b->links[k]) {
+    if (l != NULL) {
 	va_start(args, fmt);
-	RecordLinkUpDownReason2(b->links[k], up, key, fmt, args);
+	RecordLinkUpDownReason2(l, up, key, fmt, args);
 	va_end(args);
-      }
-    }
-  }
 
+    } else if (b != NULL) {
+	for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
+    	    if (b->links[k]) {
+		va_start(args, fmt);
+		RecordLinkUpDownReason2(b->links[k], up, key, fmt, args);
+		va_end(args);
+    	    }
+	}
+    }
 }
 
 char *
@@ -1006,38 +1005,38 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
     Link 	l = ctx->lnk;
     struct linkaction *a;
 
-  Printf("Link %s%s:\r\n", l->name, l->tmpl?" (template)":(l->stay?" (static)":""));
+    Printf("Link %s%s:\r\n", l->name, l->tmpl?" (template)":(l->stay?" (static)":""));
 
-  Printf("Configuration\r\n");
-  Printf("\tMRU            : %d bytes\r\n", l->conf.mru);
-  Printf("\tMRRU           : %d bytes\r\n", l->conf.mrru);
-  Printf("\tCtrl char map  : 0x%08x bytes\r\n", l->conf.accmap);
-  Printf("\tRetry timeout  : %d seconds\r\n", l->conf.retry_timeout);
-  Printf("\tMax redial     : ");
-  if (l->conf.max_redial < 0)
-    Printf("no redial\r\n");
-  else if (l->conf.max_redial == 0) 
-    Printf("unlimited\r\n");
-  else
-    Printf("%d connect attempts\r\n", l->conf.max_redial);
-  Printf("\tBandwidth      : %d bits/sec\r\n", l->bandwidth);
-  Printf("\tLatency        : %d usec\r\n", l->latency);
-  Printf("\tKeep-alive     : ");
-  if (l->lcp.fsm.conf.echo_int == 0)
-    Printf("disabled\r\n");
-  else
-    Printf("every %d secs, timeout %d\r\n",
-      l->lcp.fsm.conf.echo_int, l->lcp.fsm.conf.echo_max);
-  Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
-  Printf("\tSession-Id     : %s\r\n", l->session_id);
+    Printf("Configuration\r\n");
+    Printf("\tMRU            : %d bytes\r\n", l->conf.mru);
+    Printf("\tMRRU           : %d bytes\r\n", l->conf.mrru);
+    Printf("\tCtrl char map  : 0x%08x bytes\r\n", l->conf.accmap);
+    Printf("\tRetry timeout  : %d seconds\r\n", l->conf.retry_timeout);
+    Printf("\tMax redial     : ");
+    if (l->conf.max_redial < 0)
+	Printf("no redial\r\n");
+    else if (l->conf.max_redial == 0) 
+	Printf("unlimited\r\n");
+    else
+	Printf("%d connect attempts\r\n", l->conf.max_redial);
+    Printf("\tBandwidth      : %d bits/sec\r\n", l->bandwidth);
+    Printf("\tLatency        : %d usec\r\n", l->latency);
+    Printf("\tKeep-alive     : ");
+    if (l->lcp.fsm.conf.echo_int == 0)
+	Printf("disabled\r\n");
+    else
+	Printf("every %d secs, timeout %d\r\n",
+    	    l->lcp.fsm.conf.echo_int, l->lcp.fsm.conf.echo_max);
+    Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
+    Printf("\tSession-Id     : %s\r\n", l->session_id);
     Printf("Link incoming actions:\r\n");
     SLIST_FOREACH(a, &l->actions, next) {
 	Printf("\t%s\t%s\t%s\r\n", 
 	    (a->action == LINK_ACTION_FORWARD)?"Forward":"Bundle",
 	    a->arg, a->regex);
     }
-  Printf("Link level options\r\n");
-  OptStat(ctx, &l->conf.options, gConfList);
+    Printf("Link level options\r\n");
+    OptStat(ctx, &l->conf.options, gConfList);
 
     if (!l->tmpl) {
 	Printf("Up/Down stats:\r\n");
@@ -1073,20 +1072,20 @@ void
 LinkUpdateStats(Link l)
 {
 #ifndef NG_PPP_STATS64
-  struct ng_ppp_link_stat	stats;
+    struct ng_ppp_link_stat	stats;
 
-  if (NgFuncGetStats(l->bund, l->bundleIndex, &stats) != -1) {
-    l->stats.xmitFrames += abs(stats.xmitFrames - l->oldStats.xmitFrames);
-    l->stats.xmitOctets += abs(stats.xmitOctets - l->oldStats.xmitOctets);
-    l->stats.recvFrames += abs(stats.recvFrames - l->oldStats.recvFrames);
-    l->stats.recvOctets += abs(stats.recvOctets - l->oldStats.recvOctets);
-    l->stats.badProtos  += abs(stats.badProtos - l->oldStats.badProtos);
-    l->stats.runts	  += abs(stats.runts - l->oldStats.runts);
-    l->stats.dupFragments += abs(stats.dupFragments - l->oldStats.dupFragments);
-    l->stats.dropFragments += abs(stats.dropFragments - l->oldStats.dropFragments);
-  }
+    if (NgFuncGetStats(l->bund, l->bundleIndex, &stats) != -1) {
+	l->stats.xmitFrames += abs(stats.xmitFrames - l->oldStats.xmitFrames);
+	l->stats.xmitOctets += abs(stats.xmitOctets - l->oldStats.xmitOctets);
+	l->stats.recvFrames += abs(stats.recvFrames - l->oldStats.recvFrames);
+	l->stats.recvOctets += abs(stats.recvOctets - l->oldStats.recvOctets);
+        l->stats.badProtos  += abs(stats.badProtos - l->oldStats.badProtos);
+        l->stats.runts	  += abs(stats.runts - l->oldStats.runts);
+        l->stats.dupFragments += abs(stats.dupFragments - l->oldStats.dupFragments);
+        l->stats.dropFragments += abs(stats.dropFragments - l->oldStats.dropFragments);
+    }
 
-  l->oldStats = stats;
+    l->oldStats = stats;
 #else
     NgFuncGetStats64(l->bund, l->bundleIndex, &l->stats);
 #endif
@@ -1115,189 +1114,182 @@ static int
 LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
     Link	l = ctx->lnk;
-  int		val, nac = 0;
-  const char	*name;
-  char		*nav[ac];
-  const char	*av2[] = { "chap-md5", "chap-msv1", "chap-msv2" };
+    int		val, nac = 0;
+    const char	*name;
+    char	*nav[ac];
+    const char	*av2[] = { "chap-md5", "chap-msv1", "chap-msv2" };
 
-  if (ac == 0)
-    return(-1);
+    if (ac == 0)
+	return(-1);
 
-  /* make "chap" as an alias for all chap-variants, this should keep BC */
-  switch ((intptr_t)arg) {
-    case SET_ACCEPT:
-    case SET_DENY:
-    case SET_ENABLE:
-    case SET_DISABLE:
-    case SET_YES:
-    case SET_NO:
-    {
-      int	i = 0;
-      for ( ; i < ac; i++)
-      {
-	if (strcasecmp(av[i], "chap") == 0) {
-	  LinkSetCommand(ctx, 3, (char **)av2, arg);
-	} else {
-	  nav[nac++] = av[i];
-	} 
-      }
-      av = nav;
-      ac = nac;
-      break;
+    /* make "chap" as an alias for all chap-variants, this should keep BC */
+    switch ((intptr_t)arg) {
+	case SET_ACCEPT:
+        case SET_DENY:
+        case SET_ENABLE:
+        case SET_DISABLE:
+        case SET_YES:
+        case SET_NO:
+        {
+	    int	i = 0;
+            for ( ; i < ac; i++) {
+    		if (strcasecmp(av[i], "chap") == 0) {
+    		    LinkSetCommand(ctx, 3, (char **)av2, arg);
+		} else {
+		    nav[nac++] = av[i];
+		} 
+    	    }
+    	    av = nav;
+    	    ac = nac;
+    	    break;
+	}
     }
-  }
 
-  switch ((intptr_t)arg) {
-    case SET_BANDWIDTH:
-      val = atoi(*av);
-      if (val <= 0)
-	Log(LG_ERR, ("[%s] Bandwidth must be positive", l->name));
-      else if (val > NG_PPP_MAX_BANDWIDTH * 10 * 8) {
-	l->bandwidth = NG_PPP_MAX_BANDWIDTH * 10 * 8;
-	Log(LG_ERR, ("[%s] Bandwidth truncated to %d bit/s", l->name, 
-	    l->bandwidth));
-      } else
-	l->bandwidth = val;
-      break;
+    switch ((intptr_t)arg) {
+	case SET_BANDWIDTH:
+    	    val = atoi(*av);
+    	    if (val <= 0)
+		Log(LG_ERR, ("[%s] Bandwidth must be positive", l->name));
+    	    else if (val > NG_PPP_MAX_BANDWIDTH * 10 * 8) {
+		l->bandwidth = NG_PPP_MAX_BANDWIDTH * 10 * 8;
+		Log(LG_ERR, ("[%s] Bandwidth truncated to %d bit/s", l->name, 
+		    l->bandwidth));
+    	    } else
+	    l->bandwidth = val;
+    	    break;
 
-    case SET_LATENCY:
-      val = atoi(*av);
-      if (val < 0)
-	Log(LG_ERR, ("[%s] Latency must be not negative", l->name));
-      else if (val > NG_PPP_MAX_LATENCY * 1000) {
-	Log(LG_ERR, ("[%s] Latency truncated to %d usec", l->name, 
-	    NG_PPP_MAX_LATENCY * 1000));
-	l->latency = NG_PPP_MAX_LATENCY * 1000;
-      } else
-        l->latency = val;
-      break;
+	case SET_LATENCY:
+    	    val = atoi(*av);
+    	    if (val < 0)
+		Log(LG_ERR, ("[%s] Latency must be not negative", l->name));
+    	    else if (val > NG_PPP_MAX_LATENCY * 1000) {
+		Log(LG_ERR, ("[%s] Latency truncated to %d usec", l->name, 
+		    NG_PPP_MAX_LATENCY * 1000));
+		l->latency = NG_PPP_MAX_LATENCY * 1000;
+    	    } else
+    		l->latency = val;
+    	    break;
 
-    case SET_BUNDLE:
-    case SET_FORWARD:
-	{
-	    struct linkaction	*n, *a;
+	case SET_BUNDLE:
+	case SET_FORWARD:
+	    {
+		struct linkaction	*n, *a;
 	    
-	    if (ac < 1 || ac > 2)
-		return(-1);
+		if (ac < 1 || ac > 2)
+		    return(-1);
 
-	    n = Malloc(MB_LINK, sizeof(struct linkaction));
-	    n->action = ((intptr_t)arg == SET_BUNDLE)?
-		LINK_ACTION_BUNDLE:LINK_ACTION_FORWARD;
-	    strlcpy(n->arg, av[0], sizeof(n->arg));
-	    if (ac == 2 && av[1][0]) {
-		strlcpy(n->regex, av[1], sizeof(n->regex));
-		if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
-		    Log(LG_ERR, ("[%s] regexp \"%s\" compilation error", l->name, n->regex));
-		    Freee(MB_LINK, n);
-		    return (0);
+		n = Malloc(MB_LINK, sizeof(struct linkaction));
+		n->action = ((intptr_t)arg == SET_BUNDLE)?
+		    LINK_ACTION_BUNDLE:LINK_ACTION_FORWARD;
+		strlcpy(n->arg, av[0], sizeof(n->arg));
+		if (ac == 2 && av[1][0]) {
+		    strlcpy(n->regex, av[1], sizeof(n->regex));
+		    if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
+			Log(LG_ERR, ("[%s] regexp \"%s\" compilation error", l->name, n->regex));
+			Freee(MB_LINK, n);
+			return (0);
+		    }
+		}
+	    
+		a = SLIST_FIRST(&ctx->lnk->actions);
+		if (a) {
+		    while (SLIST_NEXT(a, next))
+			a = SLIST_NEXT(a, next);
+		    SLIST_INSERT_AFTER(a, n, next);
+		} else {
+		    SLIST_INSERT_HEAD(&ctx->lnk->actions, n, next);
 		}
 	    }
-	    
-	    a = SLIST_FIRST(&ctx->lnk->actions);
-	    if (a) {
-		while (SLIST_NEXT(a, next))
-		    a = SLIST_NEXT(a, next);
-		SLIST_INSERT_AFTER(a, n, next);
-	    } else {
-		SLIST_INSERT_HEAD(&ctx->lnk->actions, n, next);
-	    }
-	}
-        break;
+    	    break;
 
-    case SET_MRU:
-    case SET_MTU:
-      val = atoi(*av);
-      name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
-      if (val < LCP_MIN_MRU)
-	Log(LG_ERR, ("[%s] the min %s is %d", l->name, name, LCP_MIN_MRU));
-      else if (l->type && (val > l->type->mru))
-	Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
-	  l->name, name, l->type->name, l->type->mru));
-      else if ((intptr_t)arg == SET_MTU)
-	l->conf.mtu = val;
-      else
-	l->conf.mru = val;
-      break;
+	case SET_MRU:
+	case SET_MTU:
+    	    val = atoi(*av);
+    	    name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
+    	    if (val < LCP_MIN_MRU)
+		Log(LG_ERR, ("[%s] the min %s is %d", l->name, name, LCP_MIN_MRU));
+    	    else if (l->type && (val > l->type->mru)) {
+		Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
+		    l->name, name, l->type->name, l->type->mru));
+    	    } else if ((intptr_t)arg == SET_MTU)
+		l->conf.mtu = val;
+    	    else
+		l->conf.mru = val;
+    	    break;
 
-    case SET_FSM_RETRY:
-      l->conf.retry_timeout = atoi(*av);
-      if (l->conf.retry_timeout < 1 || l->conf.retry_timeout > 10)
-	l->conf.retry_timeout = LINK_DEFAULT_RETRY;
-      break;
+	case SET_FSM_RETRY:
+    	    l->conf.retry_timeout = atoi(*av);
+    	    if (l->conf.retry_timeout < 1 || l->conf.retry_timeout > 10)
+		l->conf.retry_timeout = LINK_DEFAULT_RETRY;
+    	    break;
 
-    case SET_MAX_RETRY:
-      l->conf.max_redial = atoi(*av);
-      break;
+	case SET_MAX_RETRY:
+    	    l->conf.max_redial = atoi(*av);
+    	    break;
 
-    case SET_ACCMAP:
-      sscanf(*av, "%x", &val);
-      l->conf.accmap = val;
-      break;
+	case SET_ACCMAP:
+    	    sscanf(*av, "%x", &val);
+    	    l->conf.accmap = val;
+    	    break;
 
-    case SET_KEEPALIVE:
-      if (ac != 2)
-	return(-1);
-      l->lcp.fsm.conf.echo_int = atoi(av[0]);
-      l->lcp.fsm.conf.echo_max = atoi(av[1]);
-      break;
+	case SET_KEEPALIVE:
+    	    if (ac != 2)
+		return(-1);
+    	    l->lcp.fsm.conf.echo_int = atoi(av[0]);
+    	    l->lcp.fsm.conf.echo_max = atoi(av[1]);
+    	    break;
 
-    case SET_IDENT:
-      if (ac != 1)
-	return(-1);
-      if (l->conf.ident != NULL) {
-	Freee(MB_FSM, l->conf.ident);
-	l->conf.ident = NULL;
-      }
-      if (*av[0] != '\0')
-	strcpy(l->conf.ident = Malloc(MB_FSM, strlen(av[0]) + 1), av[0]);
-      break;
+	case SET_IDENT:
+    	    if (ac != 1)
+		return(-1);
+    	    if (l->conf.ident != NULL) {
+		Freee(MB_FSM, l->conf.ident);
+		l->conf.ident = NULL;
+    	    }
+    	    if (*av[0] != '\0')
+	    strcpy(l->conf.ident = Malloc(MB_FSM, strlen(av[0]) + 1), av[0]);
+    	    break;
 
-    case SET_ACCEPT:
-        AcceptCommand(ac, av, &l->conf.options, gConfList);
-	if (ctx->lnk->type->update) {
-	    (ctx->lnk->type->update)(ctx->lnk);
-	}
-        break;
+	case SET_ACCEPT:
+    	    AcceptCommand(ac, av, &l->conf.options, gConfList);
+	    if (ctx->lnk->type->update)
+		(ctx->lnk->type->update)(ctx->lnk);
+    	    break;
 
-    case SET_DENY:
-        DenyCommand(ac, av, &l->conf.options, gConfList);
-	if (ctx->lnk->type->update) {
-	    (ctx->lnk->type->update)(ctx->lnk);
-	}
-        break;
+	case SET_DENY:
+    	    DenyCommand(ac, av, &l->conf.options, gConfList);
+	    if (ctx->lnk->type->update)
+		(ctx->lnk->type->update)(ctx->lnk);
+    	    break;
 
-    case SET_ENABLE:
-        EnableCommand(ac, av, &l->conf.options, gConfList);
-	if (ctx->lnk->type->update) {
-	    (ctx->lnk->type->update)(ctx->lnk);
-	}
-        break;
+	case SET_ENABLE:
+    	    EnableCommand(ac, av, &l->conf.options, gConfList);
+	    if (ctx->lnk->type->update)
+		(ctx->lnk->type->update)(ctx->lnk);
+    	    break;
 
-    case SET_DISABLE:
-        DisableCommand(ac, av, &l->conf.options, gConfList);
-	if (ctx->lnk->type->update) {
-	    (ctx->lnk->type->update)(ctx->lnk);
-	}
-        break;
+	case SET_DISABLE:
+    	    DisableCommand(ac, av, &l->conf.options, gConfList);
+	    if (ctx->lnk->type->update)
+		(ctx->lnk->type->update)(ctx->lnk);
+    	    break;
 
-    case SET_YES:
-        YesCommand(ac, av, &l->conf.options, gConfList);
-	if (ctx->lnk->type->update) {
-	    (ctx->lnk->type->update)(ctx->lnk);
-	}
-        break;
+	case SET_YES:
+	    YesCommand(ac, av, &l->conf.options, gConfList);
+	    if (ctx->lnk->type->update)
+		(ctx->lnk->type->update)(ctx->lnk);
+    	    break;
 
-    case SET_NO:
-        NoCommand(ac, av, &l->conf.options, gConfList);
-	if (ctx->lnk->type->update) {
-	    (ctx->lnk->type->update)(ctx->lnk);
-	}
-        break;
+	case SET_NO:
+    	    NoCommand(ac, av, &l->conf.options, gConfList);
+	    if (ctx->lnk->type->update)
+		(ctx->lnk->type->update)(ctx->lnk);
+    	    break;
 
-    default:
-      assert(0);
-  }
+	default:
+    	    assert(0);
+    }
 
-  return(0);
+    return(0);
 }
 
