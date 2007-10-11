@@ -166,23 +166,23 @@
 int
 LogOpen(void)
 {
-  memset(&gLogConf, 0, sizeof(gLogConf));
-  if (!*gSysLogIdent)
-    strcpy(gSysLogIdent, "mpd");
+    memset(&gLogConf, 0, sizeof(gLogConf));
+    if (!*gSysLogIdent)
+	strcpy(gSysLogIdent, "mpd");
 #ifdef SYSLOG_FACILITY
-  gLogConf.name = gSysLogIdent;
-  gLogConf.facility = alog_facility_name(SYSLOG_FACILITY);
-  gLogConf.min_severity = LOG_INFO;
+    gLogConf.name = gSysLogIdent;
+    gLogConf.facility = alog_facility_name(SYSLOG_FACILITY);
+    gLogConf.min_severity = LOG_INFO;
 #else
-  gLogConf.path = LG_FILE;
+    gLogConf.path = LG_FILE;
 #endif
 
-  if (alog_configure(0, &gLogConf) == -1) {
-    warn("alog_configure failed");
-    return(-1);
-  }
-  alog_set_channel(0);
-  return(0);
+    if (alog_configure(0, &gLogConf) == -1) {
+	warn("alog_configure failed");
+	return(-1);
+    }
+    alog_set_channel(0);
+    return(0);
 }
 
 /*
@@ -192,7 +192,7 @@ LogOpen(void)
 void
 LogClose(void)
 {
-  alog_shutdown(0);
+    alog_shutdown(0);
 }
 
 /*
@@ -202,67 +202,59 @@ LogClose(void)
 int
 LogCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  int	k, bits, add;
+    int	k, bits, add;
 
-  if (ac == 0)
-  {
-    #define LG_FMT	"    %-12s  %-10s  %s\r\n"
+    if (ac == 0) {
+#define LG_FMT	"    %-12s  %-10s  %s\r\n"
 
-    Printf(LG_FMT, "Log Option", "Enabled", "Description\r\n");
-    Printf(LG_FMT, "----------", "-------", "-----------\r\n");
-    for (k = 0; k < NUM_LOG_LEVELS; k++)
-    {
-      int	j;
-      char	buf[100];
+	Printf(LG_FMT, "Log Option", "Enabled", "Description\r\n");
+	Printf(LG_FMT, "----------", "-------", "-----------\r\n");
+	for (k = 0; k < NUM_LOG_LEVELS; k++) {
+    	    int	j;
+    	    char	buf[100];
 
-      snprintf(buf, sizeof(buf), "%s", LogOptionList[k].desc);
-      for (j = 0; buf[j]; j++)
-	buf[j] = tolower(buf[j]);
-      Printf("  " LG_FMT, LogOptionList[k].name,
-	(gLogOptions & LogOptionList[k].mask) ? "Yes" : "No", buf);
+    	    snprintf(buf, sizeof(buf), "%s", LogOptionList[k].desc);
+    	    for (j = 0; buf[j]; j++)
+		buf[j] = tolower(buf[j]);
+    	    Printf("  " LG_FMT, LogOptionList[k].name,
+		(gLogOptions & LogOptionList[k].mask) ? "Yes" : "No", buf);
+	}
+	return(0);
+    }
+
+    while (ac--) {
+	switch (**av) {
+    	    case '+':
+		(*av)++;
+    	    default:
+		add = TRUE;
+		break;
+    	    case '-':
+		add = FALSE;
+		(*av)++;
+	    break;
+	}
+	for (k = 0;
+    	    k < NUM_LOG_LEVELS && strcasecmp(*av, LogOptionList[k].name);
+    	    k++);
+	if (k < NUM_LOG_LEVELS)
+    	    bits = LogOptionList[k].mask;
+	else {
+    	    if (!strcasecmp(*av, "all")) {
+		for (bits = k = 0; k < NUM_LOG_LEVELS; k++)
+		    bits |= LogOptionList[k].mask;
+    	    } else {
+		Printf("\"%s\" is unknown. Enter \"log\" for list.\r\n", *av);
+		bits = 0;
+    	    }
+	}
+	if (add)
+    	    gLogOptions |= bits;
+	else
+    	    gLogOptions &= ~bits;
+	av++;
     }
     return(0);
-  }
-
-  while (ac--)
-  {
-    switch (**av)
-    {
-      case '+':
-	(*av)++;
-      default:
-	add = TRUE;
-	break;
-      case '-':
-	add = FALSE;
-	(*av)++;
-	break;
-    }
-    for (k = 0;
-      k < NUM_LOG_LEVELS && strcasecmp(*av, LogOptionList[k].name);
-      k++);
-    if (k < NUM_LOG_LEVELS)
-      bits = LogOptionList[k].mask;
-    else
-    {
-      if (!strcasecmp(*av, "all"))
-      {
-	for (bits = k = 0; k < NUM_LOG_LEVELS; k++)
-	  bits |= LogOptionList[k].mask;
-      }
-      else
-      {
-	Printf("\"%s\" is unknown. Enter \"log\" for list.\r\n", *av);
-	bits = 0;
-      }
-    }
-    if (add)
-      gLogOptions |= bits;
-    else
-      gLogOptions &= ~bits;
-    av++;
-  }
-  return(0);
 }
 
 /*
@@ -274,11 +266,11 @@ LogCommand(Context ctx, int ac, char *av[], void *arg)
 void
 LogPrintf(const char *fmt, ...)
 {
-  va_list       args;
+    va_list       args;
 
-  va_start(args, fmt);
-  vLogPrintf(fmt, args);
-  va_end(args);
+    va_start(args, fmt);
+    vLogPrintf(fmt, args);
+    va_end(args);
 }
 
 void
@@ -324,67 +316,60 @@ vLogPrintf(const char *fmt, va_list args)
 void
 LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
 {
-  int		k, total;
-  u_char	bytes[DUMP_BYTES_PER_LINE];
-  char		line[256];
-  int		linelen;
-  va_list	ap;
+    int		k, total;
+    u_char	bytes[DUMP_BYTES_PER_LINE];
+    char	line[256];
+    int		linelen;
+    va_list	ap;
 
-  if (level & gLogOptions) {
-/* Do header */
+    if (level & gLogOptions) {
+	/* Do header */
+	va_start(ap, fmt);
+	vLogPrintf(fmt, ap);
+	va_end(ap);
 
-    va_start(ap, fmt);
-    vLogPrintf(fmt, ap);
-    va_end(ap);
-
-/* Do data */
-
-    line[0]=' ';
-    line[1]=' ';
-    line[2]=' ';
-    line[3]=0;
-    linelen=3;
+	/* Do data */
+	line[0]=' ';
+	line[1]=' ';
+        line[2]=' ';
+        line[3]=0;
+        linelen=3;
   
-    for (total = 0; bp; bp = bp->next)
-    {
-      int	start, stop, last = 0;
+        for (total = 0; bp; bp = bp->next) {
+    	    int	start, stop, last = 0;
 
-      stop = bp->next ? total + bp->cnt :
+    	    stop = bp->next ? total + bp->cnt :
 		ROUNDUP(total + bp->cnt, DUMP_BYTES_PER_LINE);
-      for (start = total; total < stop; )
-      {
-        u_int	const byte = (MBDATAU(bp))[total - start];
+    	    for (start = total; total < stop; ) {
+    		u_int	const byte = (MBDATAU(bp))[total - start];
 
-        if (total < start + bp->cnt)
-        {
-	  sprintf(line+linelen, " %02x", byte);
-	  last = total % DUMP_BYTES_PER_LINE;
-        }
-        else
-	  sprintf(line+linelen, "   ");
-        linelen+=3;
+    		if (total < start + bp->cnt) {
+		    sprintf(line+linelen, " %02x", byte);
+		    last = total % DUMP_BYTES_PER_LINE;
+    		} else
+		    sprintf(line+linelen, "   ");
+    		linelen+=3;
       
-        bytes[total % DUMP_BYTES_PER_LINE] = byte;
-        total++;
+    		bytes[total % DUMP_BYTES_PER_LINE] = byte;
+    		total++;
       
-        if (total % DUMP_BYTES_PER_LINE == 0)
-        {
-	  snprintf(line+linelen, sizeof(line), "  ");
-          linelen+=2;
-	  for (k = 0; k <= last; k++) {
-	    line[linelen++] = isgraph(bytes[k]) ? bytes[k] : '.';
-	    line[linelen] = 0;
-	  }
-	  LogPrintf("%s",line);
-	  line[0]=' ';
-	  line[1]=' ';
-	  line[2]=' ';
-	  line[3]=0;
-	  linelen=3;
-        }
-      }
+    		if (total % DUMP_BYTES_PER_LINE == 0) {
+		    snprintf(line+linelen, sizeof(line), "  ");
+        	    linelen+=2;
+		    for (k = 0; k <= last; k++) {
+			line[linelen++] = isgraph(bytes[k]) ? bytes[k] : '.';
+			line[linelen] = 0;
+		    }
+		    LogPrintf("%s",line);
+		    line[0]=' ';
+		    line[1]=' ';
+		    line[2]=' ';
+		    line[3]=0;
+		    linelen=3;
+    		}
+    	    }
+	}
     }
-  }
 }
 
 /*
@@ -396,52 +381,48 @@ LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
 void
 LogDumpBuf(int level, const u_char *buf, int count, const char *fmt, ...)
 {
-  int		k, stop, total;
-  char		line[256];
-  int		linelen;
-  va_list	ap;
+    int		k, stop, total;
+    char	line[256];
+    int		linelen;
+    va_list	ap;
 
-  if (level & gLogOptions) {
-/* Do header */
+    if (level & gLogOptions) {
+	/* Do header */
+	va_start(ap, fmt);
+        vLogPrintf(fmt, ap);
+        va_end(ap);
 
-    va_start(ap, fmt);
-    vLogPrintf(fmt, ap);
-    va_end(ap);
+	/* Do data */
+        line[0]=' ';
+        line[1]=' ';
+        line[2]=' ';
+        line[3]=0;
+        linelen=3;
 
-/* Do data */
-
-    line[0]=' ';
-    line[1]=' ';
-    line[2]=' ';
-    line[3]=0;
-    linelen=3;
-
-    stop = ROUNDUP(count, DUMP_BYTES_PER_LINE);
-    for (total = 0; total < stop; )
-    {
-	if (total < count)
-	    sprintf(line+linelen, " %02x", buf[total]);
-	else
-	    sprintf(line+linelen, "   ");
-        linelen+=3;
-	total++;
-	if (total % DUMP_BYTES_PER_LINE == 0)
-	{
-	    snprintf(line+linelen, sizeof(line), "  ");
-    	    linelen+=2;
-    	    for (k = total - DUMP_BYTES_PER_LINE; k < total && k < count; k++) {
-		line[linelen++] = isgraph(buf[k]) ? buf[k] : '.';
-		line[linelen] = 0;
+        stop = ROUNDUP(count, DUMP_BYTES_PER_LINE);
+        for (total = 0; total < stop; ) {
+	    if (total < count)
+		sprintf(line+linelen, " %02x", buf[total]);
+	    else
+		sprintf(line+linelen, "   ");
+            linelen+=3;
+    	    total++;
+	    if (total % DUMP_BYTES_PER_LINE == 0) {
+		snprintf(line+linelen, sizeof(line), "  ");
+    		linelen+=2;
+    		for (k = total - DUMP_BYTES_PER_LINE; k < total && k < count; k++) {
+		    line[linelen++] = isgraph(buf[k]) ? buf[k] : '.';
+		    line[linelen] = 0;
+		}
+		LogPrintf("%s",line);
+		line[0]=' ';
+		line[1]=' ';
+		line[2]=' ';
+		line[3]=0;
+		linelen=3;
 	    }
-	    LogPrintf("%s",line);
-	    line[0]=' ';
-	    line[1]=' ';
-	    line[2]=' ';
-	    line[3]=0;
-	    linelen=3;
 	}
     }
-  }
 }
 
 #ifndef SYSLOG_FACILITY
@@ -455,14 +436,14 @@ LogDumpBuf(int level, const u_char *buf, int count, const char *fmt, ...)
 static void
 LogTimeStamp(int (*func)(const char *fmt, ...))
 {
-  struct tm	*ptm;
-  time_t	now;
+    struct tm	*ptm;
+    time_t	now;
 
-  now = time(NULL);
-  ptm = localtime(&now);
-  (*func)("%02d-%02d %02d:%02d:%02d ",
-    ptm->tm_mon + 1, ptm->tm_mday,
-    ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
+    now = time(NULL);
+    ptm = localtime(&now);
+    (*func)("%02d-%02d %02d:%02d:%02d ",
+	ptm->tm_mon + 1, ptm->tm_mday,
+	ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
 }
 
 #endif
@@ -474,13 +455,13 @@ LogTimeStamp(int (*func)(const char *fmt, ...))
 void
 Perror(const char *fmt, ...)
 {
-  va_list	args;
-  char		buf[200];
+    va_list	args;
+    char	buf[200];
 
-  va_start(args, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, args);
-  va_end(args);
-  snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-    ": %s", strerror(errno));
-  Log(LG_ERR, ("%s", buf));
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
+	": %s", strerror(errno));
+    Log(LG_ERR, ("%s", buf));
 }
