@@ -106,10 +106,10 @@
  * INTERNAL VARIABLES
  */
 
-  #ifdef USE_NG_TCPMSS
+#ifdef USE_NG_TCPMSS
   u_char gTcpMSSNode = FALSE;
-  #endif
-  #ifdef USE_NG_NETFLOW
+#endif
+#ifdef USE_NG_NETFLOW
   u_char gNetflowNode = FALSE;
   u_char gNetflowNodeShutdown = TRUE;
   char gNetflowNodeName[64] = "mpd-nf";
@@ -118,7 +118,7 @@
   struct sockaddr_storage gNetflowSource;
   uint32_t gNetflowInactive = 0;
   uint32_t gNetflowActive = 0;
-  #endif
+#endif
   
   static int	gNgStatSock=0;
 
@@ -129,150 +129,106 @@ NgFuncInitGlobalNetflow(Bund b)
 {
     char path[NG_PATHSIZ];
 
-      snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
+    snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
 
-      struct ngm_mkpeer	mp;
-      struct ngm_rmhook	rm;
-      struct ngm_name	nm;
+    struct ngm_mkpeer	mp;
+    struct ngm_rmhook	rm;
+    struct ngm_name	nm;
 
-      /* Create a global netflow node. */
-      snprintf(mp.type, sizeof(mp.type), "%s", NG_NETFLOW_NODE_TYPE);
-      snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
-      snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
-      if (NgSendMsg(b->csock, ".:",
-	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    /* Create a global netflow node. */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_NETFLOW_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
+    if (NgSendMsg(b->csock, ".:",
+      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-	  NG_NETFLOW_NODE_TYPE, ".:", mp.ourhook, strerror(errno)));
+	    NG_NETFLOW_NODE_TYPE, ".:", mp.ourhook, strerror(errno)));
 	goto fail;
-      }
+    }
 
-      /* Set the new node's name. */
-      strcpy(nm.name, gNetflowNodeName);
-      if (NgSendMsg(b->csock, TEMPHOOK,
-          NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    /* Set the new node's name. */
+    strcpy(nm.name, gNetflowNodeName);
+    if (NgSendMsg(b->csock, TEMPHOOK,
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("can't name %s node: %s", NG_NETFLOW_NODE_TYPE,
-          strerror(errno)));
+            strerror(errno)));
 	goto fail;
-      }
-//      Log(LG_ALWAYS, ("%s node is \"%s\"", NG_NETFLOW_NODE_TYPE, nm.name));
+    }
 
-      /* Connect ng_ksocket(4) node for export. */
-      snprintf(mp.type, sizeof(mp.type), "%s", NG_KSOCKET_NODE_TYPE);
-      snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_NETFLOW_HOOK_EXPORT);
-      if (gNetflowExport.ss_family==AF_INET6) {
+    /* Connect ng_ksocket(4) node for export. */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_KSOCKET_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_NETFLOW_HOOK_EXPORT);
+    if (gNetflowExport.ss_family==AF_INET6) {
 	snprintf(mp.peerhook, sizeof(mp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-      } else {
+    } else {
         snprintf(mp.peerhook, sizeof(mp.peerhook), "inet/dgram/udp");
-      }
-      snprintf(path, sizeof(path), "%s:", nm.name);
-      if (NgSendMsg(b->csock, path,
-	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+    }
+    snprintf(path, sizeof(path), "%s:", nm.name);
+    if (NgSendMsg(b->csock, path,
+      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-	  NG_KSOCKET_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+	    NG_KSOCKET_NODE_TYPE, path, mp.ourhook, strerror(errno)));
 	goto fail;
-      }
+    }
 
-      /* Configure timeouts for ng_netflow(4). */
-      if (gNetflowInactive != 0 && gNetflowActive != 0) {
+    /* Configure timeouts for ng_netflow(4). */
+    if (gNetflowInactive != 0 && gNetflowActive != 0) {
 	struct ng_netflow_settimeouts nf_settime;
 
 	nf_settime.inactive_timeout = gNetflowInactive;
 	nf_settime.active_timeout = gNetflowActive;
 
 	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE,
-	    NGM_NETFLOW_SETTIMEOUTS, &nf_settime, sizeof(nf_settime)) < 0) {
-	  Log(LG_ERR, ("[%s] can't set timeouts on netflow %s node: %s",
-	    b->name, NG_NETFLOW_NODE_TYPE, strerror(errno)));
-	  goto fail;
+	  NGM_NETFLOW_SETTIMEOUTS, &nf_settime, sizeof(nf_settime)) < 0) {
+	    Log(LG_ERR, ("[%s] can't set timeouts on netflow %s node: %s",
+		b->name, NG_NETFLOW_NODE_TYPE, strerror(errno)));
+	    goto fail;
 	}
-      }
+    }
 
-      /* Configure export destination and source on ng_ksocket(4). */
-      snprintf(path, sizeof(path), "%s:%s", gNetflowNodeName,
-	    NG_NETFLOW_HOOK_EXPORT);
-      if (gNetflowSource.ss_len != 0) {
+    /* Configure export destination and source on ng_ksocket(4). */
+    snprintf(path, sizeof(path), "%s:%s", gNetflowNodeName,
+        NG_NETFLOW_HOOK_EXPORT);
+    if (gNetflowSource.ss_len != 0) {
 	if (NgSendMsg(b->csock, path, NGM_KSOCKET_COOKIE,
-	    NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
-	  Log(LG_ERR, ("[%s] can't bind export %s node: %s",
-	    b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-	  goto fail;
+	  NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
+	    Log(LG_ERR, ("[%s] can't bind export %s node: %s",
+		b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	    goto fail;
 	}
-      }
-      if (gNetflowExport.ss_len != 0) {
+    }
+    if (gNetflowExport.ss_len != 0) {
 	if (NgSendMsg(b->csock, path, NGM_KSOCKET_COOKIE,
-	    NGM_KSOCKET_CONNECT, &gNetflowExport, sizeof(gNetflowExport)) < 0) {
-	  Log(LG_ERR, ("[%s] can't connect export %s node: %s",
-	    b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-	  goto fail;
+	  NGM_KSOCKET_CONNECT, &gNetflowExport, sizeof(gNetflowExport)) < 0) {
+	    Log(LG_ERR, ("[%s] can't connect export %s node: %s",
+		b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	    goto fail;
 	}
-      }
+    }
 
-      /* Set the new node's name. */
-      snprintf(nm.name, sizeof(nm.name), "mpd%d-nfso", gPid);
-      if (NgSendMsg(b->csock, path,
-          NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+    /* Set the new node's name. */
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-nfso", gPid);
+    if (NgSendMsg(b->csock, path,
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("can't name %s node: %s", NG_KSOCKET_NODE_TYPE,
-          strerror(errno)));
+            strerror(errno)));
 	goto fail;
-      }
+    }
 
-      /* Disconnect temporary hook. */
-      snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
-      if (NgSendMsg(b->csock, ".:",
-	  NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+    /* Disconnect temporary hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
+    if (NgSendMsg(b->csock, ".:",
+      NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", TEMPHOOK, strerror(errno)));
 	goto fail;
-      }
-      gNetflowNode = TRUE;
+    }
+    gNetflowNode = TRUE;
 
-      return 0;
+    return 0;
 fail:
     return -1;
 }
 #endif
-
-/*
- * NgFuncIfaceExists()
- *
- * Test if a netgraph interface exists. Returns:
- *
- *	0	Netgraph interface does not exist
- *	1	Netgraph interface exists
- *     -1	Interface is not a netgraph interface
- */
-
-int
-NgFuncIfaceExists(Bund b, const char *ifname, char *buf, int max)
-{
-  union {
-      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-      struct ng_mesg	reply;
-  }			u;
-  char		path[NG_PATHSIZ];
-  char		*eptr;
-  int		ifnum;
-
-  /* Check interface name */
-  if (strncmp(ifname, NG_IFACE_IFACE_NAME, strlen(NG_IFACE_IFACE_NAME)) != 0)
-    return(-1);
-  ifnum = (int)strtoul(ifname + strlen(NG_IFACE_IFACE_NAME), &eptr, 10);
-  if (ifnum < 0 || *eptr != '\0')
-    return(-1);
-
-  /* See if interface exists */
-  snprintf(path, sizeof(path), "%s%d:", NG_IFACE_IFACE_NAME, ifnum);
-  if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0)
-    return(0);
-  if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] node \"%s\" reply: %s", b->name, path, strerror(errno)));
-    return(-1);
-  }
-
-  /* It exists */
-  if (buf != NULL)
-    snprintf(buf, max, "%s%d", NG_IFACE_IFACE_NAME, ifnum);
-  return(1);
-}
 
 /*
  * NgFuncCreateIface()
@@ -285,77 +241,55 @@ NgFuncIfaceExists(Bund b, const char *ifname, char *buf, int max)
  */
 
 int
-NgFuncCreateIface(Bund b, const char *ifname, char *buf, int max)
+NgFuncCreateIface(Bund b, char *buf, int max)
 {
-  union {
-      u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-      struct ng_mesg	reply;
-  }			u;
-  struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
-  struct ngm_rmhook	rm;
-  struct ngm_mkpeer	mp;
-  int			rtn = 0;
+    union {
+        u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+        struct ng_mesg	reply;
+    }			u;
+    struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
+    struct ngm_rmhook	rm;
+    struct ngm_mkpeer	mp;
+    int			rtn = 0;
 
-  /* If ifname is not null, create interfaces until it gets created */
-  if (ifname != NULL) {
-    int count;
-
-    for (count = 0; count < MAX_IFACE_CREATE; count++) {
-      switch (NgFuncIfaceExists(b, ifname, buf, max)) {
-      case 1:				/* ok now it exists */
-	return(0);
-      case 0:				/* nope, create another one */
-	NgFuncCreateIface(b, NULL, NULL, 0);
-	break;
-      case -1:				/* something weird happened */
-	return(-1);
-      default:
-	assert(0);
-      }
-    }
-    Log(LG_ERR, ("[%s] created %d interfaces, that's too many!",
-      b->name, count));
-    return(-1);
-  }
-
-  /* Create iface node (as a temporary peer of the socket node) */
-  snprintf(mp.type, sizeof(mp.type), "%s", NG_IFACE_NODE_TYPE);
-  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
-  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_IFACE_HOOK_INET);
-  if (NgSendMsg(b->csock, ".:",
+    /* Create iface node (as a temporary peer of the socket node) */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_IFACE_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_IFACE_HOOK_INET);
+    if (NgSendMsg(b->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s %d",
-      b->name, NG_IFACE_NODE_TYPE, ".:", mp.ourhook, strerror(errno), b->csock));
-    return(-1);
-  }
+	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s %d",
+    	    b->name, NG_IFACE_NODE_TYPE, ".:", mp.ourhook, strerror(errno), b->csock));
+	return(-1);
+    }
 
-  /* Get the new node's name */
-  if (NgSendMsg(b->csock, TEMPHOOK,
+    /* Get the new node's name */
+    if (NgSendMsg(b->csock, TEMPHOOK,
       NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
-    Log(LG_ERR, ("[%s] %s: %s", b->name, "NGM_NODEINFO", strerror(errno)));
-    rtn = -1;
-    goto done;
-  }
-  if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
-    Log(LG_ERR, ("[%s] reply from %s: %s",
-      b->name, NG_IFACE_NODE_TYPE, strerror(errno)));
-    rtn = -1;
-    goto done;
-  }
-  snprintf(buf, max, "%s", ni->name);
+	Log(LG_ERR, ("[%s] %s: %s", b->name, "NGM_NODEINFO", strerror(errno)));
+	rtn = -1;
+	goto done;
+    }
+    if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
+	Log(LG_ERR, ("[%s] reply from %s: %s",
+    	    b->name, NG_IFACE_NODE_TYPE, strerror(errno)));
+	rtn = -1;
+	goto done;
+    }
+    snprintf(buf, max, "%s", ni->name);
 
 done:
-  /* Disconnect temporary hook */
-  snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
-  if (NgSendMsg(b->csock, ".:",
+    /* Disconnect temporary hook */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
+    if (NgSendMsg(b->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
-    Log(LG_ERR, ("[%s] can't remove hook %s: %s",
-      b->name, TEMPHOOK, strerror(errno)));
-    rtn = -1;
-  }
+	Log(LG_ERR, ("[%s] can't remove hook %s: %s",
+    	    b->name, TEMPHOOK, strerror(errno)));
+	rtn = -1;
+    }
 
-  /* Done */
-  return(rtn);
+    /* Done */
+    return(rtn);
 }
 
 /*
@@ -441,7 +375,6 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
 	size_t arglen, struct ng_mesg *rbuf, size_t replen, char *raddr)
 {
     int 	token, len;
-    int 	ret = 0;
 
     if (!gNgStatSock) {
 	struct ngm_name       nm;
@@ -450,7 +383,7 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
 	if (NgMkSockNode(NULL, &gNgStatSock, NULL) < 0) {
     	    Log(LG_ERR, ("NgFuncSendQuery: can't create %s node: %s",
     		NG_SOCKET_NODE_TYPE, strerror(errno)));
-        return(0);
+    	    return(-1);
 	}
 	(void) fcntl(gNgStatSock, F_SETFD, 1);
 
@@ -461,26 +394,20 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
 	    Log(LG_ERR, ("NgFuncSendQuery: can't name %s node: %s",
     		NG_PPP_NODE_TYPE, strerror(errno)));
 	}
-  }
+    }
 
-  /* Send message */
-  if ((token = NgSendMsg(gNgStatSock, path, cookie, cmd, args, arglen)) < 0)
-    goto fail;
+    /* Send message */
+    if ((token = NgSendMsg(gNgStatSock, path, cookie, cmd, args, arglen)) < 0)
+	return (-1);
 
-  /* Read message */
-  if ((len = NgRecvMsg(gNgStatSock, rbuf, replen, raddr)) < 0) {
-    Log(LG_ERR, ("NgFuncSendQuery: can't read unexpected message: %s",
-      strerror(errno)));
-    goto fail;
-  }
+    /* Read message */
+    if ((len = NgRecvMsg(gNgStatSock, rbuf, replen, raddr)) < 0) {
+	Log(LG_ERR, ("NgFuncSendQuery: can't read unexpected message: %s",
+    	    strerror(errno)));
+	return (-1);
+    }
 
- goto done;
-
-fail:
-  ret = -1;
-done:
-  return ret;
-
+    return (0);
 }
 
 /*
@@ -491,18 +418,18 @@ int
 NgFuncConnect(int csock, char *label, const char *path, const char *hook,
 	const char *path2, const char *hook2)
 {
-  struct ngm_connect	cn;
+    struct ngm_connect	cn;
 
-  snprintf(cn.path, sizeof(cn.path), "%s", path2);
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", hook);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", hook2);
-  if (NgSendMsg(csock, path,
+    snprintf(cn.path, sizeof(cn.path), "%s", path2);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", hook);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", hook2);
+    if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-      label, path, hook, path2, hook2, strerror(errno)));
-    return(-1);
-  }
-  return(0);
+        Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    	    label, path, hook, path2, hook2, strerror(errno)));
+	return(-1);
+    }
+    return(0);
 }
 
 /*
@@ -512,13 +439,13 @@ NgFuncConnect(int csock, char *label, const char *path, const char *hook,
 int
 NgFuncDisconnect(int csock, char *label, const char *path, const char *hook)
 {
-  struct ngm_rmhook	rm;
-  int	retry = 10, delay = 1000;
+    struct ngm_rmhook	rm;
+    int		retry = 10, delay = 1000;
 
-  /* Disconnect hook */
-  snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", hook);
+    /* Disconnect hook */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", hook);
 retry:
-  if (NgSendMsg(csock, path,
+    if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	if (errno == ENOBUFS && retry > 0) {
     	    Log(LG_ERR, ("[%s] remove hook %s from node \"%s\": %s, retrying...",
@@ -531,8 +458,8 @@ retry:
 	Log(LG_ERR, ("[%s] can't remove hook %s from node \"%s\": %s",
     	  label, hook, path, strerror(errno)));
 	return(-1);
-  }
-  return(0);
+    }
+    return(0);
 }
 
 /*
@@ -544,31 +471,31 @@ retry:
 int
 NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
 {
-  Mbuf		hdr;
-  u_int16_t	temp;
+    Mbuf	hdr;
+    u_int16_t	temp;
 
-  /* Prepend ppp node bypass header */
-  hdr = mballoc(bp->type, 4);
-  if (hdr == NULL) {
-    Log(LG_ERR, ("[%s] NgFuncWritePppFrame: mballoc() error", b->name));
-    PFREE(bp);
-    return (-1);
-  }
+    /* Prepend ppp node bypass header */
+    hdr = mballoc(bp->type, 4);
+    if (hdr == NULL) {
+	Log(LG_ERR, ("[%s] NgFuncWritePppFrame: mballoc() error", b->name));
+	PFREE(bp);
+	return (-1);
+    }
 
-  temp = htons(linkNum);
-  memcpy(MBDATAU(hdr), &temp, 2);
-  temp = htons(proto);
-  memcpy(MBDATAU(hdr) + 2, &temp, 2);
-  hdr->next = bp;
-  bp = hdr;
+    temp = htons(linkNum);
+    memcpy(MBDATAU(hdr), &temp, 2);
+    temp = htons(proto);
+    memcpy(MBDATAU(hdr) + 2, &temp, 2);
+    hdr->next = bp;
+    bp = hdr;
 
-  /* Debugging */
-  LogDumpBp(LG_FRAME, bp,
-    "[%s] xmit bypass frame link=%d proto=0x%04x",
-    b->name, (int16_t)linkNum, proto);
+    /* Debugging */
+    LogDumpBp(LG_FRAME, bp,
+	"[%s] xmit bypass frame link=%d proto=0x%04x",
+	b->name, (int16_t)linkNum, proto);
 
-  /* Write frame */
-  return NgFuncWriteFrame(b->dsock, MPD_HOOK_PPP, b->name, bp);
+    /* Write frame */
+    return NgFuncWriteFrame(b->dsock, MPD_HOOK_PPP, b->name, bp);
 }
 
 /*
@@ -620,31 +547,31 @@ NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
 int
 NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 {
-  u_char		buf[sizeof(struct sockaddr_ng) + NG_HOOKSIZ];
-  struct sockaddr_ng	*ng = (struct sockaddr_ng *)buf;
-  int			rtn;
+    u_char		buf[sizeof(struct sockaddr_ng) + NG_HOOKSIZ];
+    struct sockaddr_ng	*ng = (struct sockaddr_ng *)buf;
+    int			rtn;
 
-  /* Set dest address */
-  memset(&buf, 0, sizeof(buf));
-  snprintf(ng->sg_data, NG_HOOKSIZ, "%s", hookname);
-  ng->sg_family = AF_NETGRAPH;
-  ng->sg_len = 3 + strlen(ng->sg_data);
+    /* Set dest address */
+    memset(&buf, 0, sizeof(buf));
+    snprintf(ng->sg_data, NG_HOOKSIZ, "%s", hookname);
+    ng->sg_family = AF_NETGRAPH;
+    ng->sg_len = 3 + strlen(ng->sg_data);
 
-  /* Write frame */
-  bp = mbunify(bp);
-  if (bp == NULL)  
-    return (-1);
+    /* Write frame */
+    bp = mbunify(bp);
+    if (bp == NULL)  
+	return (-1);
 
-  rtn = sendto(dsock, MBDATAU(bp), MBLEN(bp),
-    0, (struct sockaddr *)ng, ng->sg_len);
+    rtn = sendto(dsock, MBDATAU(bp), MBLEN(bp),
+	0, (struct sockaddr *)ng, ng->sg_len);
 
-  /* ENOBUFS can be expected on some links, e.g., ng_pptpgre(4) */
-  if (rtn < 0 && errno != ENOBUFS) {
-    Log(LG_ERR, ("[%s] error writing len %d frame to %s: %s",
-      label, MBLEN(bp), hookname, strerror(errno)));
-  }
-  PFREE(bp);
-  return (rtn);
+    /* ENOBUFS can be expected on some links, e.g., ng_pptpgre(4) */
+    if (rtn < 0 && errno != ENOBUFS) {
+	Log(LG_ERR, ("[%s] error writing len %d frame to %s: %s",
+    	    label, MBLEN(bp), hookname, strerror(errno)));
+    }
+    PFREE(bp);
+    return (rtn);
 }
 
 /*
@@ -736,13 +663,13 @@ NgFuncGetStats64(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat64 *statp)
 void
 NgFuncErrx(const char *fmt, ...)
 {
-  char		buf[1024];
-  va_list	args;
+    char	buf[1024];
+    va_list	args;
 
-  va_start(args, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, args);
-  va_end(args);
-  Log(LG_ERR, ("netgraph: %s", buf));
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    Log(LG_ERR, ("netgraph: %s", buf));
 }
 
 /*
@@ -752,13 +679,13 @@ NgFuncErrx(const char *fmt, ...)
 void
 NgFuncErr(const char *fmt, ...)
 {
-  char		buf[100];
-  va_list	args;
+    char	buf[100];
+    va_list	args;
 
-  va_start(args, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, args);
-  va_end(args);
-  Log(LG_ERR, ("netgraph: %s: %s", buf, strerror(errno)));
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    Log(LG_ERR, ("netgraph: %s: %s", buf, strerror(errno)));
 }
 
 #ifdef USE_NG_NETFLOW
@@ -769,54 +696,54 @@ NgFuncErr(const char *fmt, ...)
 static int
 NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  struct sockaddr_storage *sin;
+    struct sockaddr_storage *sin;
 
-  switch ((intptr_t)arg) {
-    case SET_PEER: 
-      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
-	return (-1);
-      gNetflowExport = *sin;
-      break;
-    case SET_SELF:
-      if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
-	return (-1);
-      gNetflowSource = *sin;
-      break;
-    case SET_TIMEOUTS:
-      if (ac != 2)
-	return (-1);
-      if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0) {
-	Log(LG_ERR, ("Bad netflow timeouts \"%s %s\"", av[0], av[1]));
-	return (-1);
-      }
-      gNetflowInactive = atoi(av[0]);
-      gNetflowActive = atoi(av[1]);
-      break;
-    case SET_NODE:
-      if (ac != 1)
-	return (-1);
-      if (strlen(av[0]) == 0 || strlen(av[0]) > 63) {
-	Log(LG_ERR, ("Bad netflow node name \"%s\"", av[0]));
-	return (-1);
-      }
-      strncpy(gNetflowNodeName,av[0],63);
-      gNetflowNode=TRUE;
-      gNetflowNodeShutdown=FALSE;
-      break;
-    case SET_HOOK:
-      if (ac != 1)
-	return (-1);
-      if (atoi(av[0]) <= 0) {
-	Log(LG_ERR, ("Bad netflow hook number \"%s\"", av[0]));
-	return (-1);
-      }
-      gNetflowIface = atoi(av[0])-1;
-      break;
+    switch ((intptr_t)arg) {
+	case SET_PEER: 
+    	    if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
+		return (-1);
+    	    gNetflowExport = *sin;
+    	    break;
+	case SET_SELF:
+    	    if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
+		return (-1);
+    	    gNetflowSource = *sin;
+    	    break;
+	case SET_TIMEOUTS:
+    	    if (ac != 2)
+		return (-1);
+    	    if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0) {
+		Log(LG_ERR, ("Bad netflow timeouts \"%s %s\"", av[0], av[1]));
+		return (-1);
+    	    }
+    	    gNetflowInactive = atoi(av[0]);
+    	    gNetflowActive = atoi(av[1]);
+    	    break;
+	case SET_NODE:
+    	    if (ac != 1)
+		return (-1);
+    	    if (strlen(av[0]) == 0 || strlen(av[0]) > 63) {
+		Log(LG_ERR, ("Bad netflow node name \"%s\"", av[0]));
+		return (-1);
+    	    }
+    	    strncpy(gNetflowNodeName,av[0],63);
+    	    gNetflowNode=TRUE;
+    	    gNetflowNodeShutdown=FALSE;
+    	    break;
+	case SET_HOOK:
+    	    if (ac != 1)
+		return (-1);
+    	    if (atoi(av[0]) <= 0) {
+		Log(LG_ERR, ("Bad netflow hook number \"%s\"", av[0]));
+		return (-1);
+    	    }
+    	    gNetflowIface = atoi(av[0])-1;
+    	    break;
 
-    default:
-	return (-1);
-  }
+	default:
+	    return (-1);
+    }
 
-  return (0);
+    return (0);
 }
 #endif /* USE_NG_NETFLOW */
