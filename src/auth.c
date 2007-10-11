@@ -666,41 +666,88 @@ AuthStop(Link l)
 int
 AuthStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Auth		const a = &ctx->lnk->lcp.auth;
-  AuthConf	const conf = &a->conf;
-  char		buf[64];
+    Auth	const au = &ctx->lnk->lcp.auth;
+    AuthConf	const conf = &au->conf;
+    char	buf[64];
+    struct acl	*a;
+    IfaceRoute	r;
+    int		k;
 
-  Printf("Configuration:\r\n");
-  Printf("\tMy authname     : %s\r\n", conf->authname);
-  Printf("\tMax-Logins      : %d\r\n", gMaxLogins);
-  Printf("\tAcct Update     : %d\r\n", conf->acct_update);
-  Printf("\t   Limit In     : %d\r\n", conf->acct_update_lim_recv);
-  Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
-  Printf("\tAuth timeout    : %d\r\n", conf->timeout);
-  Printf("\tExtAuth script  : %s\r\n", conf->extauth_script);
-  Printf("\tExtAcct script  : %s\r\n", conf->extacct_script);
+    Printf("Configuration:\r\n");
+    Printf("\tMy authname     : %s\r\n", conf->authname);
+    Printf("\tMax-Logins      : %d\r\n", gMaxLogins);
+    Printf("\tAcct Update     : %d\r\n", conf->acct_update);
+    Printf("\t   Limit In     : %d\r\n", conf->acct_update_lim_recv);
+    Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
+    Printf("\tAuth timeout    : %d\r\n", conf->timeout);
+    Printf("\tExtAuth script  : %s\r\n", conf->extauth_script);
+    Printf("\tExtAcct script  : %s\r\n", conf->extacct_script);
   
-  Printf("Auth options\r\n");
-  OptStat(ctx, &conf->options, gConfList);
+    Printf("Auth options\r\n");
+    OptStat(ctx, &conf->options, gConfList);
 
-  Printf("Auth Data\r\n");
-  Printf("\tPeer authname   : %s\r\n", a->params.authname);
-  Printf("\tMTU             : %u\r\n", a->params.mtu);
-  Printf("\tSession-Timeout : %u\r\n", a->params.session_timeout);
-  Printf("\tIdle-Timeout    : %u\r\n", a->params.idle_timeout);
-  Printf("\tAcct-Update     : %u\r\n", a->params.acct_update);
-  Printf("\tRoutes          : %s\r\n", SLIST_EMPTY(&a->params.routes) ? "no" : "yes");
-  Printf("\tACL Rules       : %s\r\n", a->params.acl_rule ? "yes" : "no");
-  Printf("\tACL Pipes       : %s\r\n", a->params.acl_pipe ? "yes" : "no");
-  Printf("\tACL Queues      : %s\r\n", a->params.acl_queue ? "yes" : "no");
-  Printf("\tACL Tables      : %s\r\n", a->params.acl_table ? "yes" : "no");
-  Printf("\tTraffic Limits  : %s\r\n", (a->params.acl_limits[0] || a->params.acl_limits[1]) ? "yes" : "no");
-  Printf("\tMS-Domain       : %s\r\n", a->params.msdomain);  
-  Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(a->params.msoft.policy));
-  Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(a->params.msoft.types, buf, sizeof(buf)));
-  Printf("\tMPPE Keys       : %s\r\n", a->params.msoft.has_keys ? "yes" : "no");
+    Printf("Auth Data\r\n");
+    Printf("\tPeer authname   : %s\r\n", au->params.authname);
+    Printf("\tIP range        : %s\r\n", (au->params.range_valid)?
+	u_rangetoa(&au->params.range,buf,sizeof(buf)):"");
+    Printf("\tIP pool         : %s\r\n", au->params.ippool);
+    Printf("\tMTU             : %u\r\n", au->params.mtu);
+    Printf("\tSession-Timeout : %u\r\n", au->params.session_timeout);
+    Printf("\tIdle-Timeout    : %u\r\n", au->params.idle_timeout);
+    Printf("\tAcct-Update     : %u\r\n", au->params.acct_update);
+    Printf("\tRoutes          :\r\n");
+    SLIST_FOREACH(r, &au->params.routes, next) {
+        Printf("\t\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
+    }
+    Printf("\tIPFW rules      :\r\n");
+    a = au->params.acl_rule;
+    while (a) {
+        Printf("\t\t%d\t: '%s'\r\n", a->number, a->rule);
+        a = a->next;
+    }
+    Printf("\tIPFW pipes      :\r\n");
+    a = au->params.acl_pipe;
+    while (a) {
+        Printf("\t\t%d\t: '%s'\r\n", a->number, a->rule);
+        a = a->next;
+    }
+    Printf("\tIPFW queues     :\r\n");
+    a = au->params.acl_queue;
+    while (a) {
+        Printf("\t\t%d\t: '%s'\r\n", a->number, a->rule);
+        a = a->next;
+    }
+    Printf("\tIPFW tables     :\r\n");
+    a = au->params.acl_table;
+    while (a) {
+        if (a->number != 0)
+    	    Printf("\t\t%d\t: '%s'\r\n", a->number, a->rule);
+        else
+    	    Printf("\t\t#%d\t: '%s'\r\n", a->real_number, a->rule);
+        a = a->next;
+    }
+    Printf("\tTraffic filters :\r\n");
+    for (k = 0; k < ACL_FILTERS; k++) {
+        a = au->params.acl_filters[k];
+        while (a) {
+    	    Printf("\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
+    	    a = a->next;
+	}
+    }
+    Printf("\tTraffic limits  :\r\n");
+    for (k = 0; k < 2; k++) {
+        a = au->params.acl_limits[k];
+	while (a) {
+	    Printf("\t\t%s#%d\t: '%s'\r\n", (k?"out":"in"), a->number, a->rule);
+	    a = a->next;
+	}
+    }
+    Printf("\tMS-Domain       : %s\r\n", au->params.msdomain);  
+    Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(au->params.msoft.policy));
+    Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(au->params.msoft.types, buf, sizeof(buf)));
+    Printf("\tMPPE Keys       : %s\r\n", au->params.msoft.has_keys ? "yes" : "no");
 
-  return (0);
+    return (0);
 }
 
 

@@ -1325,69 +1325,94 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 int
 IfaceStat(Context ctx, int ac, char *av[], void *arg)
 {
-  IfaceState	const iface = &ctx->bund->iface;
-  IfaceRoute	r;
-  int		k;
-  char          buf[64];
-
-  Printf("Interface configuration:\r\n");
-  Printf("\tName            : %s\r\n", iface->ifname);
-  Printf("\tMaximum MTU     : %d bytes\r\n", iface->max_mtu);
-  Printf("\tIdle timeout    : %d seconds\r\n", iface->idle_timeout);
-  Printf("\tSession timeout : %d seconds\r\n", iface->session_timeout);
-  Printf("\tEvent scripts\r\n");
-  Printf("\t  up-script     : \"%s\"\r\n",
-    *iface->up_script ? iface->up_script : "<none>");
-  Printf("\t  down-script   : \"%s\"\r\n",
-    *iface->down_script ? iface->down_script : "<none>");
-  Printf("Interface options:\r\n");
-  OptStat(ctx, &iface->options, gConfList);
-  if (!SLIST_EMPTY(&iface->routes)) {
-    Printf("Static routes via peer:\r\n");
-    SLIST_FOREACH(r, &iface->routes, next) {
-	Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
-    }
-  }
-  Printf("Interface status:\r\n");
-  Printf("\tAdmin status    : %s\r\n", iface->open ? "OPEN" : "CLOSED");
-  Printf("\tStatus          : %s\r\n", iface->up ? "UP" : "DOWN");
-  if (iface->up)
-    Printf("\tMTU             : %d bytes\r\n", iface->mtu);
-  if (iface->ip_up && !u_rangeempty(&iface->self_addr)) {
-    Printf("\tIP Addresses    : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
-    Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));
-  }
-  if (iface->ipv6_up && !u_addrempty(&iface->self_ipv6_addr)) {
-    Printf("\tIPv6 Addresses  : %s%%%s -> ", 
-	u_addrtoa(&iface->self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
-    Printf("%s%%%s\r\n", u_addrtoa(&iface->peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
-  }
-  if (iface->up && !SLIST_EMPTY(&ctx->bund->params.routes)) {
-    Printf("Dynamic routes via peer:\r\n");
-    SLIST_FOREACH(r, &ctx->bund->params.routes, next) {
-	Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
-    }
-  }
-  if (iface->up && (ctx->bund->params.acl_limits[0] || ctx->bund->params.acl_limits[1])) {
+    IfaceState	const iface = &ctx->bund->iface;
+    IfaceRoute	r;
+    int		k;
+    char	buf[64];
     struct acl	*a;
-    Printf("Traffic filters:\r\n");
-    for (k = 0; k < ACL_FILTERS; k++) {
-	a = ctx->bund->params.acl_filters[k];
-	while (a) {
-	    Printf("\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
-	    a = a->next;
+
+    Printf("Interface configuration:\r\n");
+    Printf("\tName            : %s\r\n", iface->ifname);
+    Printf("\tMaximum MTU     : %d bytes\r\n", iface->max_mtu);
+    Printf("\tIdle timeout    : %d seconds\r\n", iface->idle_timeout);
+    Printf("\tSession timeout : %d seconds\r\n", iface->session_timeout);
+    Printf("\tEvent scripts\r\n");
+    Printf("\t  up-script     : \"%s\"\r\n",
+	*iface->up_script ? iface->up_script : "<none>");
+    Printf("\t  down-script   : \"%s\"\r\n",
+	*iface->down_script ? iface->down_script : "<none>");
+    Printf("Interface options:\r\n");
+    OptStat(ctx, &iface->options, gConfList);
+    if (!SLIST_EMPTY(&iface->routes)) {
+	Printf("Static routes via peer:\r\n");
+	SLIST_FOREACH(r, &iface->routes, next) {
+	    Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
 	}
     }
-    Printf("Traffic limits:\r\n");
-    for (k = 0; k < 2; k++) {
-	a = ctx->bund->params.acl_limits[k];
+    Printf("Interface status:\r\n");
+    Printf("\tAdmin status    : %s\r\n", iface->open ? "OPEN" : "CLOSED");
+    Printf("\tStatus          : %s\r\n", iface->up ? "UP" : "DOWN");
+    if (iface->up)
+	Printf("\tMTU             : %d bytes\r\n", iface->mtu);
+    if (iface->ip_up && !u_rangeempty(&iface->self_addr)) {
+	Printf("\tIP Addresses    : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
+	Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));
+    }
+    if (iface->ipv6_up && !u_addrempty(&iface->self_ipv6_addr)) {
+	Printf("\tIPv6 Addresses  : %s%%%s -> ", 
+	    u_addrtoa(&iface->self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+	Printf("%s%%%s\r\n", u_addrtoa(&iface->peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+    }
+    if (iface->up) {
+        Printf("Dynamic routes via peer:\r\n");
+	SLIST_FOREACH(r, &ctx->bund->params.routes, next) {
+	    Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
+	}
+	Printf("IPFW rules:\r\n");
+	a = ctx->bund->params.acl_rule;
 	while (a) {
-	    Printf("\t%s#%d\t: '%s'\r\n", (k?"out":"in"), a->number, a->rule);
+	    Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
 	    a = a->next;
 	}
+	Printf("IPFW pipes:\r\n");
+	a = ctx->bund->params.acl_pipe;
+	while (a) {
+	    Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
+	    a = a->next;
+	}
+	Printf("IPFW queues:\r\n");
+	a = ctx->bund->params.acl_queue;
+	while (a) {
+	    Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
+	    a = a->next;
+	}
+	Printf("IPFW tables:\r\n");
+	a = ctx->bund->params.acl_table;
+	while (a) {
+	    if (a->number != 0)
+		Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
+	    else
+		Printf("\t#%d\t: '%s'\r\n", a->real_number, a->rule);
+	    a = a->next;
+	}
+	Printf("Traffic filters:\r\n");
+	for (k = 0; k < ACL_FILTERS; k++) {
+	    a = ctx->bund->params.acl_filters[k];
+	    while (a) {
+		Printf("\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
+		a = a->next;
+	    }
+	}
+	Printf("Traffic limits:\r\n");
+	for (k = 0; k < 2; k++) {
+	    a = ctx->bund->params.acl_limits[k];
+	    while (a) {
+		Printf("\t%s#%d\t: '%s'\r\n", (k?"out":"in"), a->number, a->rule);
+		a = a->next;
+	    }
+	}
     }
-  }
-  return(0);
+    return(0);
 }
 
 /*
