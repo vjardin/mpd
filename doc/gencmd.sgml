@@ -91,7 +91,6 @@ This command causes mpd to read the entry for
 <tt><em>configuration</em></tt> out of <tt>mpd.conf</tt> and
 execute the corresponding commands, just
 as if <tt><em>configuration</em></tt> had been specified on the command line.
-Execution stops at the first blank line.
 
 <tag><tt>show [ <em>item</em> ] </tt>
 </tag>
