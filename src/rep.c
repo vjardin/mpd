@@ -206,36 +206,34 @@ RepGetHook(Link l, char *path, char *hook)
 int
 RepCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  Rep	r;
-  int	k;
+    Rep	r;
+    int	k;
 
-  switch (ac) {
-    case 0:
+    switch (ac) {
+	case 0:
+    	    Printf("Defined repeaters:\r\n");
+    	    for (k = 0; k < gNumReps; k++) {
+		if ((r = gReps[k]) != NULL) {
+		    Printf("\t%-15s", r->name);
+		    RepShowLinks(ctx, r);
+		}
+	    }
+    	    break;
 
-      Printf("Defined repeaters:\r\n");
+	case 1:
+    	    /* Change bundle, and link also if needed */
+	    if ((r = RepFind(av[0])) != NULL) {
+    		RESETREF(ctx->rep, r);
+    		RESETREF(ctx->bund, NULL);
+    		RESETREF(ctx->lnk, r->links[0]);
+    	    } else
+		Printf("Repeater \"%s\" not defined.\r\n", av[0]);
+    	    break;
 
-      for (k = 0; k < gNumReps; k++)
-	if ((r = gReps[k]) != NULL) {
-	  Printf("\t%-15s", r->name);
-	  RepShowLinks(ctx, r);
-	}
-      break;
-
-    case 1:
-
-      /* Change bundle, and link also if needed */
-      if ((r = RepFind(av[0])) != NULL) {
-        RESETREF(ctx->rep, r);
-        RESETREF(ctx->bund, NULL);
-        RESETREF(ctx->lnk, r->links[0]);
-      } else
-	Printf("Repeater \"%s\" not defined.\r\n", av[0]);
-      break;
-
-    default:
-      return(-1);
-  }
-  return(0);
+	default:
+    	    return(-1);
+    }
+    return(0);
 }
 
 /*
@@ -330,29 +328,29 @@ RepShutdown(Rep r)
 int
 RepStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Rep	r;
+    Rep	r;
 
-  /* Find repeater they're talking about */
-  switch (ac) {
-    case 0:
-      r = ctx->rep;
-      break;
-    case 1:
-      if ((r = RepFind(av[0])) == NULL) {
-	Printf("Repeater \"%s\" not defined.\r\n", av[0]);
-	return(0);
-      }
-      break;
-    default:
-      return(-1);
-  }
+    /* Find repeater they're talking about */
+    switch (ac) {
+	case 0:
+    	    r = ctx->rep;
+    	    break;
+	case 1:
+    	    if ((r = RepFind(av[0])) == NULL) {
+		Printf("Repeater \"%s\" not defined.\r\n", av[0]);
+		return(0);
+    	    }
+    	    break;
+	default:
+    	    return(-1);
+    }
 
-  /* Show stuff about the repeater */
-  Printf("Repeater %s:\r\n", r->name);
-  Printf("\tLinks           : ");
-  RepShowLinks(ctx, r);
+    /* Show stuff about the repeater */
+    Printf("Repeater %s:\r\n", r->name);
+    Printf("\tLinks           : ");
+    RepShowLinks(ctx, r);
 
-  return(0);
+    return(0);
 }
 
 /*
@@ -382,11 +380,11 @@ RepShowLinks(Context ctx, Rep r)
 Rep
 RepFind(char *name)
 {
-  int	k;
+    int	k;
 
-  for (k = 0;
-    k < gNumReps && (!gReps[k] || strcmp(gReps[k]->name, name));
-    k++);
-  return((k < gNumReps) ? gReps[k] : NULL);
+    for (k = 0;
+	k < gNumReps && (!gReps[k] || strcmp(gReps[k]->name, name));
+	k++);
+    return((k < gNumReps) ? gReps[k] : NULL);
 }
 
