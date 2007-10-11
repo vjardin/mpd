@@ -1603,7 +1603,7 @@ BundNgInit(Bund b)
 
     /* Give it a name */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, b->name);
-    if (NgSendMsg(b->csock, ".",
+    if (NgSendMsg(b->csock, ".:",
     	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("[%s] can't name %s node: %s",
     	    b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
@@ -1625,10 +1625,10 @@ BundNgInit(Bund b)
     snprintf(mp.type, sizeof(mp.type), "%s", NG_PPP_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_PPP_HOOK_BYPASS);
-    if (NgSendMsg(b->csock, ".",
+    if (NgSendMsg(b->csock, ".:",
     	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-    	    b->name, mp.type, ".", mp.ourhook, strerror(errno)));
+    	    b->name, mp.type, ".:", mp.ourhook, strerror(errno)));
 	goto fail;
     }
     newPpp = 1;

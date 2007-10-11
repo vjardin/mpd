@@ -588,7 +588,7 @@ LinkNgInit(Link l)
 
   /* Give it a name */
   snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lso", gPid, l->name);
-  if (NgSendMsg(l->csock, ".",
+  if (NgSendMsg(l->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
     Log(LG_ERR, ("[%s] can't name %s node: %s",
       l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
@@ -599,10 +599,10 @@ LinkNgInit(Link l)
   snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
   snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
-  if (NgSendMsg(l->csock, ".",
+  if (NgSendMsg(l->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-      l->name, mp.type, ".", mp.ourhook, strerror(errno)));
+      l->name, mp.type, ".:", mp.ourhook, strerror(errno)));
     goto fail;
   }
   newTee = 1;
@@ -682,10 +682,10 @@ LinkNgLeave(Link l)
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->nodeID);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_PPP);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
-    if (NgSendMsg(l->csock, ".",
+    if (NgSendMsg(l->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    l->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    l->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 	return(-1);
     }
 

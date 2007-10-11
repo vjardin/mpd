@@ -517,7 +517,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	strlcpy(mkpeer.type, NG_L2TP_NODE_TYPE, sizeof(mkpeer.type));
 	strlcpy(mkpeer.ourhook, NG_L2TP_HOOK_CTRL, sizeof(mkpeer.ourhook));
 	strlcpy(mkpeer.peerhook, NG_L2TP_HOOK_CTRL, sizeof(mkpeer.peerhook));
-	if (NgSendMsg(ctrl->csock, ".", NGM_GENERIC_COOKIE,
+	if (NgSendMsg(ctrl->csock, ".:", NGM_GENERIC_COOKIE,
 	    NGM_MKPEER, &mkpeer, sizeof(mkpeer)) == -1)
 		goto fail;
 

@@ -139,10 +139,10 @@ NgFuncInitGlobalNetflow(Bund b)
       snprintf(mp.type, sizeof(mp.type), "%s", NG_NETFLOW_NODE_TYPE);
       snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
       snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
-      if (NgSendMsg(b->csock, ".",
+      if (NgSendMsg(b->csock, ".:",
 	  NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-	  NG_NETFLOW_NODE_TYPE, ".", mp.ourhook, strerror(errno)));
+	  NG_NETFLOW_NODE_TYPE, ".:", mp.ourhook, strerror(errno)));
 	goto fail;
       }
 
@@ -218,7 +218,7 @@ NgFuncInitGlobalNetflow(Bund b)
 
       /* Disconnect temporary hook. */
       snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
-      if (NgSendMsg(b->csock, ".",
+      if (NgSendMsg(b->csock, ".:",
 	  NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", TEMPHOOK, strerror(errno)));
 	goto fail;
@@ -322,10 +322,10 @@ NgFuncCreateIface(Bund b, const char *ifname, char *buf, int max)
   snprintf(mp.type, sizeof(mp.type), "%s", NG_IFACE_NODE_TYPE);
   snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
   snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_IFACE_HOOK_INET);
-  if (NgSendMsg(b->csock, ".",
+  if (NgSendMsg(b->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s %d",
-      b->name, NG_IFACE_NODE_TYPE, ".", mp.ourhook, strerror(errno), b->csock));
+      b->name, NG_IFACE_NODE_TYPE, ".:", mp.ourhook, strerror(errno), b->csock));
     return(-1);
   }
 
@@ -347,7 +347,7 @@ NgFuncCreateIface(Bund b, const char *ifname, char *buf, int max)
 done:
   /* Disconnect temporary hook */
   snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
-  if (NgSendMsg(b->csock, ".",
+  if (NgSendMsg(b->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
     Log(LG_ERR, ("[%s] can't remove hook %s: %s",
       b->name, TEMPHOOK, strerror(errno)));

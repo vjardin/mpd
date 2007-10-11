@@ -536,7 +536,7 @@ ModemInstallNodes(Link l)
        The 'mkpeer' below will fail, because you can only create a ng_tty
        node via TIOCSETD; however, this will force a load of the node type. */
     if (errno == ENODEV) {
-      (void)NgSendAsciiMsg(m->csock, ".",
+      (void)NgSendAsciiMsg(m->csock, ".:",
 	"mkpeer { type=\"%s\" ourhook=\"dummy\" peerhook=\"%s\" }",
 	NG_TTY_NODE_TYPE, NG_TTY_HOOK);
     }

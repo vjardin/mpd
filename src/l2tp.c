@@ -1368,7 +1368,7 @@ L2tpServerEvent(int type, void *arg)
 	strlcpy(connect.path, namebuf, sizeof(connect.path));
 	strlcpy(connect.ourhook, hook, sizeof(connect.ourhook));
 	strlcpy(connect.peerhook, hook, sizeof(connect.peerhook));
-	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE,
+	if (NgSendMsg(csock, ".:", NGM_GENERIC_COOKIE,
 	    NGM_CONNECT, &connect, sizeof(connect)) == -1) {
 		Log(LG_ERR, ("L2TP: %s: %s", "connect", strerror(errno)));
 		goto fail;
@@ -1383,7 +1383,7 @@ L2tpServerEvent(int type, void *arg)
 	/* Disconnect from netgraph node "lower" hook */
 	memset(&rmhook, 0, sizeof(rmhook));
 	strlcpy(rmhook.ourhook, hook, sizeof(rmhook.ourhook));
-	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE,
+	if (NgSendMsg(csock, ".:", NGM_GENERIC_COOKIE,
 	    NGM_RMHOOK, &rmhook, sizeof(rmhook)) == -1) {
 		Log(LG_ERR, ("L2TP: %s: %s", "rmhook", strerror(errno)));
 		goto fail;

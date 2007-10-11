@@ -716,7 +716,7 @@ ListenTcpNode(struct TcpIf *If)
 	} else {
 	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
 	}
-	if (NgSendMsg(If->csock, ".", NGM_GENERIC_COOKIE, NGM_MKPEER,
+	if (NgSendMsg(If->csock, ".:", NGM_GENERIC_COOKIE, NGM_MKPEER,
 	    &mkp, sizeof(mkp)) < 0) {
 		Log(LG_ERR, ("TCP: can't attach %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));

@@ -659,10 +659,10 @@ CcpLayerUp(Fsm fp)
     snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
-    if (NgSendMsg(b->csock, ".",
+    if (NgSendMsg(b->csock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        b->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+        b->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
@@ -671,10 +671,10 @@ CcpLayerUp(Fsm fp)
     snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    if (NgSendMsg(b->csock, ".",
+    if (NgSendMsg(b->csock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        b->name, ".", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+        b->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
