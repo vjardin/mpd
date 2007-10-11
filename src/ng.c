@@ -94,15 +94,15 @@
 static int
 NgInit(Link l)
 {
-  NgInfo	ng;
+    NgInfo	ng;
 
-  /* Allocate private struct */
-  ng = (NgInfo) (l->info = Malloc(MB_PHYS, sizeof(*ng)));
-  snprintf(ng->path, sizeof(ng->path), "undefined:");
-  snprintf(ng->hook, sizeof(ng->hook), "undefined");
+    /* Allocate private struct */
+    ng = (NgInfo) (l->info = Malloc(MB_PHYS, sizeof(*ng)));
+    snprintf(ng->path, sizeof(ng->path), "undefined:");
+    snprintf(ng->hook, sizeof(ng->hook), "undefined");
 
-  /* Done */
-  return(0);
+    /* Done */
+    return(0);
 }
 
 /*
@@ -184,7 +184,7 @@ fail:
 static void
 NgShutdown(Link l)
 {
-	Freee(MB_PHYS, l->info);
+    Freee(MB_PHYS, l->info);
 }
 
 /*
@@ -194,11 +194,11 @@ NgShutdown(Link l)
 void
 NgStat(Context ctx)
 {
-  NgInfo	const ng = (NgInfo) ctx->lnk->info;
+    NgInfo	const ng = (NgInfo) ctx->lnk->info;
 
-  Printf("Netgraph node configuration:\r\n");
-  Printf("\tNode : %s\r\n", ng->path);
-  Printf("\tHook : %s\r\n", ng->hook);
+    Printf("Netgraph node configuration:\r\n");
+    Printf("\tNode : %s\r\n", ng->path);
+    Printf("\tHook : %s\r\n", ng->hook);
 }
 
 /*
@@ -208,23 +208,23 @@ NgStat(Context ctx)
 static int
 NgSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  NgInfo	const ng = (NgInfo) ctx->lnk->info;
+    NgInfo	const ng = (NgInfo) ctx->lnk->info;
 
-  switch ((intptr_t)arg) {
-    case SET_NODE:
-      if (ac != 1)
-	return(-1);
-      snprintf(ng->path, sizeof(ng->path), "%s", av[0]);
-      break;
-    case SET_HOOK:
-      if (ac != 1)
-	return(-1);
-      snprintf(ng->hook, sizeof(ng->hook), "%s", av[0]);
-      break;
-    default:
-      assert(0);
-  }
-  return(0);
+    switch ((intptr_t)arg) {
+	case SET_NODE:
+    	    if (ac != 1)
+		return(-1);
+    	    snprintf(ng->path, sizeof(ng->path), "%s", av[0]);
+    	    break;
+	case SET_HOOK:
+    	    if (ac != 1)
+		return(-1);
+    	    snprintf(ng->hook, sizeof(ng->hook), "%s", av[0]);
+    	    break;
+	default:
+    	    assert(0);
+    }
+    return(0);
 }
 
 /*
@@ -234,7 +234,7 @@ NgSetCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 NgIsSync(Link l)
 {
-	return (1);
+    return (1);
 }
 
 /*
@@ -244,12 +244,12 @@ NgIsSync(Link l)
 static int
 NgPeerAddr(Link l, void *buf, int buf_len)
 {
-  NgInfo	const ng = (NgInfo) l->info;
+    NgInfo	const ng = (NgInfo) l->info;
 
-  if (buf_len < sizeof(ng->path))
-    return(-1);
+    if (buf_len < sizeof(ng->path))
+	return(-1);
 
-  memcpy(buf, ng->path, sizeof(ng->path));
+    memcpy(buf, ng->path, sizeof(ng->path));
 
-  return(0);
+    return(0);
 }

@@ -199,12 +199,12 @@ TcpOpen(Link l)
 	struct ng_async_cfg	acfg;
 	int 			rval;
 	char 			buf[64];
-    union {
-        u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-        struct ng_mesg reply;
-    } repbuf;
-    struct ng_mesg *const reply = &repbuf.reply;
-    struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
+	union {
+    	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+    	    struct ng_mesg reply;
+	} repbuf;
+	struct ng_mesg *const reply = &repbuf.reply;
+	struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
 
 	/* Create a new netgraph node to control TCP ksocket node. */
 	if (NgMkSockNode(NULL, &pi->csock, NULL) < 0) {

@@ -1612,7 +1612,7 @@ BundNgInit(Bund b)
 
     /* Create new iface node */
     if (NgFuncCreateIface(b,
-	NULL, b->iface.ifname, sizeof(b->iface.ifname)) < 0) {
+	b->iface.ifname, sizeof(b->iface.ifname)) < 0) {
       Log(LG_ERR, ("[%s] can't create netgraph interface", b->name));
       goto fail;
     }

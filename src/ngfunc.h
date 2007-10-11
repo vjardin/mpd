@@ -102,10 +102,7 @@
   extern int	NgFuncInitGlobalNetflow(Bund b);
   #endif
   
-  extern int	NgFuncCreateIface(Bund b,
-			const char *ifname, char *buf, int max);
-  extern int	NgFuncIfaceExists(Bund b,
-			const char *ifname, char *buf, int max);
+  extern int	NgFuncCreateIface(Bund b, char *buf, int max);
 
 #endif
 
