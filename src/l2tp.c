@@ -693,9 +693,9 @@ L2tpDoClose(Link l)
 static int
 L2tpOriginated(Link l)
 {
-  L2tpInfo	const l2tp = (L2tpInfo) l->info;
+    L2tpInfo	const l2tp = (L2tpInfo) l->info;
 
-  return(l2tp->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
+    return(l2tp->incoming ? LINK_ORIGINATE_REMOTE : LINK_ORIGINATE_LOCAL);
 }
 
 /*
@@ -1550,36 +1550,36 @@ L2tpNodeUpdate(Link l)
 static void
 L2tpListenUpdate(void *arg)
 {
-  int	k;
+    int	k;
 
-  /* Examine all L2TP links */
-  for (k = 0; k < gNumLinks; k++) {
-    if (gLinks[k] && gLinks[k]->type == &gL2tpPhysType) {
-        L2tpInfo	const p = (L2tpInfo)gLinks[k]->info;
+    /* Examine all L2TP links */
+    for (k = 0; k < gNumLinks; k++) {
+	if (gLinks[k] && gLinks[k]->type == &gL2tpPhysType) {
+    	    L2tpInfo	const p = (L2tpInfo)gLinks[k]->info;
 
-        if (Enabled(&gLinks[k]->conf.options, LINK_CONF_INCOMING)) {
-	    struct ghash_walk walk;
-	    struct l2tp_server *srv;
+    	    if (Enabled(&gLinks[k]->conf.options, LINK_CONF_INCOMING)) {
+		struct ghash_walk walk;
+		struct l2tp_server *srv;
 
-	    ghash_walk_init(gL2tpServers, &walk);
-	    while ((srv = ghash_walk_next(gL2tpServers, &walk)) != NULL) {
-		if ((u_addrcompare(&srv->self_addr, &p->conf.self_addr) == 0) && 
-		    srv->self_port == (p->conf.self_port?p->conf.self_port:L2TP_PORT)) {
-			p->server = srv;
-			break;
+		ghash_walk_init(gL2tpServers, &walk);
+		while ((srv = ghash_walk_next(gL2tpServers, &walk)) != NULL) {
+		    if ((u_addrcompare(&srv->self_addr, &p->conf.self_addr) == 0) && 
+			srv->self_port == (p->conf.self_port?p->conf.self_port:L2TP_PORT)) {
+			    p->server = srv;
+			    break;
+		    }
 		}
-	    }
-	    if (srv == NULL) {
-		if ((srv = L2tpServerCreate(p)) == NULL) {
-		    Log(LG_ERR, ("L2tpServerCreate error"));
-		    continue;
+		if (srv == NULL) {
+		    if ((srv = L2tpServerCreate(p)) == NULL) {
+			Log(LG_ERR, ("L2tpServerCreate error"));
+			continue;
+		    }
+		    p->server = srv;
+		    ghash_put(gL2tpServers, srv);
 		}
-		p->server = srv;
-		ghash_put(gL2tpServers, srv);
-	    }
-        }
+    	    }
+	}
     }
-  }
 }
 
 /*
@@ -1589,60 +1589,64 @@ L2tpListenUpdate(void *arg)
 static int
 L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-	L2tpInfo	const l2tp = (L2tpInfo) ctx->lnk->info;
-	struct u_range	rng;
-	int		port;
+    L2tpInfo		const l2tp = (L2tpInfo) ctx->lnk->info;
+    struct u_range	rng;
+    int			port;
 
-  switch ((intptr_t)arg) {
-    case SET_SELFADDR:
-    case SET_PEERADDR:
-      if (ac < 1 || ac > 2 || !ParseRange(av[0], &rng, ALLOW_IPV4|ALLOW_IPV6))
-	return(-1);
-      if (ac > 1) {
-	if ((port = atoi(av[1])) < 0 || port > 0xffff)
-	  return(-1);
-      } else {
-	port = 0;
-      }
-      if ((intptr_t)arg == SET_SELFADDR) {
-	l2tp->conf.self_addr = rng.addr;
-	l2tp->conf.self_port = port;
-      } else {
-	l2tp->conf.peer_addr = rng;
-	l2tp->conf.peer_port = port;
-      }
-      break;
-    case SET_CALLINGNUM:
-      if (ac != 1)
-	return(-1);
-      snprintf(l2tp->conf.callingnum, sizeof(l2tp->conf.callingnum), "%s", av[0]);
-      break;
-    case SET_CALLEDNUM:
-      if (ac != 1)
-	return(-1);
-      snprintf(l2tp->conf.callednum, sizeof(l2tp->conf.callednum), "%s", av[0]);
-      break;
-    case SET_HOSTNAME:
-      if (ac != 1)
-	return(-1);
-      snprintf(l2tp->conf.hostname, sizeof(l2tp->conf.hostname), "%s", av[0]);
-      break;
-    case SET_SECRET:
-      if (ac != 1)
-	return(-1);
-      snprintf(l2tp->conf.secret, sizeof(l2tp->conf.secret), "%s", av[0]);
-      break;
-    case SET_ENABLE:
-      EnableCommand(ac, av, &l2tp->conf.options, gConfList);
-      L2tpNodeUpdate(ctx->lnk);
-      break;
-    case SET_DISABLE:
-      DisableCommand(ac, av, &l2tp->conf.options, gConfList);
-      L2tpNodeUpdate(ctx->lnk);
-      break;
-    default:
-      assert(0);
-  }
-  return(0);
+    switch ((intptr_t)arg) {
+	case SET_SELFADDR:
+	case SET_PEERADDR:
+    	    if (ac < 1 || ac > 2 || !ParseRange(av[0], &rng, ALLOW_IPV4|ALLOW_IPV6))
+		return(-1);
+    	    if (ac > 1) {
+		if ((port = atoi(av[1])) < 0 || port > 0xffff)
+		    return(-1);
+    	    } else {
+		port = 0;
+    	    }
+    	    if ((intptr_t)arg == SET_SELFADDR) {
+		l2tp->conf.self_addr = rng.addr;
+		l2tp->conf.self_port = port;
+    	    } else {
+		l2tp->conf.peer_addr = rng;
+		l2tp->conf.peer_port = port;
+    	    }
+    	    break;
+	case SET_CALLINGNUM:
+    	    if (ac != 1)
+		return(-1);
+    	    snprintf(l2tp->conf.callingnum, sizeof(l2tp->conf.callingnum),
+		"%s", av[0]);
+    	    break;
+	case SET_CALLEDNUM:
+    	    if (ac != 1)
+		return(-1);
+    	    snprintf(l2tp->conf.callednum, sizeof(l2tp->conf.callednum),
+		"%s", av[0]);
+    	    break;
+	case SET_HOSTNAME:
+    	    if (ac != 1)
+		return(-1);
+    	    snprintf(l2tp->conf.hostname, sizeof(l2tp->conf.hostname),
+		"%s", av[0]);
+    	    break;
+	case SET_SECRET:
+    	    if (ac != 1)
+		return(-1);
+    	    snprintf(l2tp->conf.secret, sizeof(l2tp->conf.secret),
+		"%s", av[0]);
+    	    break;
+	case SET_ENABLE:
+    	    EnableCommand(ac, av, &l2tp->conf.options, gConfList);
+    	    L2tpNodeUpdate(ctx->lnk);
+    	    break;
+	case SET_DISABLE:
+    	    DisableCommand(ac, av, &l2tp->conf.options, gConfList);
+    	    L2tpNodeUpdate(ctx->lnk);
+    	    break;
+	default:
+    	    assert(0);
+    }
+    return(0);
 }
 
