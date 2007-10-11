@@ -233,11 +233,7 @@ fail:
 /*
  * NgFuncCreateIface()
  *
- * Create a new netgraph interface, optionally with a specific name.
- * If "ifname" is not NULL, then create interfaces until "ifname" is
- * created.  Interfaces are consecutively numbered when created, so
- * we have no other choice but to create all lower numbered interfaces
- * in order to create one with a given index.
+ * Create a new netgraph interface.
  */
 
 int
@@ -296,7 +292,6 @@ done:
  * NgFuncShutdownGlobal()
  *
  * Shutdown nodes, that are shared between bundles.
- *
  */
 
 void
