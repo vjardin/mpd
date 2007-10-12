@@ -62,8 +62,6 @@ typedef struct tcpinfo	*TcpInfo;
 enum {
 	SET_PEERADDR,
 	SET_SELFADDR,
-	SET_ENABLE,
-	SET_DISABLE,
 };
 
 /*
@@ -121,15 +119,7 @@ const struct cmdtab TcpSetCmds[] = {
 	TcpSetCommand, NULL, (void *) SET_SELFADDR },
     { "peer {ip} [{port}]",		"Set remote IP address",
 	TcpSetCommand, NULL, (void *) SET_PEERADDR },
-    { "enable [opt ...]",		"Enable option",
-	TcpSetCommand, NULL, (void *) SET_ENABLE },
-    { "disable [opt ...]",		"Disable option",
-	TcpSetCommand, NULL, (void *) SET_DISABLE },
     { NULL },
-};
-
-static struct confinfo	gConfList[] = {
-    { 0,	0,			NULL		},
 };
 
 struct TcpIf {
@@ -674,8 +664,6 @@ TcpStat(Context ctx)
 	    u_addrtoa(&pi->conf.self_addr, buf, sizeof(buf)), pi->conf.self_port);
 	Printf("\tPeer address : %s, port %u\r\n",
 	    u_rangetoa(&pi->conf.peer_addr, buf, sizeof(buf)), pi->conf.peer_port);
-	Printf("TCP options:\r\n");
-	OptStat(ctx, &pi->conf.options, gConfList);
 	Printf("TCP state:\r\n");
 	Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
@@ -881,14 +869,6 @@ TcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 			pi->conf.peer_port = port;
     		}
 		break;
-	case SET_ENABLE:
-		EnableCommand(ac, av, &pi->conf.options, gConfList);
-    	    	TcpNodeUpdate(ctx->lnk);
-        	break;
-        case SET_DISABLE:
-    		DisableCommand(ac, av, &pi->conf.options, gConfList);
-    		break;
-
 	default:
 		assert(0);
 	}
