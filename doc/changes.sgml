@@ -10,7 +10,7 @@
     <itemize>
 	<item> Bugfixes:
 	<itemize>
-	  <item> Rewritten PPPoE link type to fulfill new dynamic design.
+	  <item> Rewritten PPPoE and UDP link types to fulfill new dynamic design.
 	  </item>
 	  <item> Fixed memory leak on link/bundle shutdown.
 	  </item>

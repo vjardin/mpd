@@ -85,6 +85,8 @@
   static void	UdpShutdown(Link l);
   static int	UdpSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	UdpNodeUpdate(Link l);
+  static int	UdpListen(Link l);
+  static int	UdpUnListen(Link l);
 
 /*
  * GLOBAL VARIABLES
@@ -123,10 +125,10 @@
 struct UdpIf {
     struct u_addr	self_addr;
     in_port_t	self_port;
+    int		refs;
     int		csock;                  /* netgraph Control socket */
     EventRef	ctrlEvent;		/* listen for ctrl messages */
 };
-int UdpIfCount=0;
 struct UdpIf UdpIfs[UDP_MAXPARENTIFS];
 
 int UdpListenUpdateSheduled=0;
@@ -329,6 +331,7 @@ static void
 UdpShutdown(Link l)
 {
 	UdpDoClose(l);
+	UdpUnListen(l);
 	Freee(MB_PHYS, l->info);
 }
 
@@ -561,24 +564,55 @@ failed:
 }
 
 static int 
-ListenUdpNode(struct UdpIf *If)
+UdpListen(Link l)
 {
+	UdpInfo const pi = (UdpInfo) l->info;
 	struct sockaddr_storage addr;
 	int error;
 	char buf[64];
-	int opt;
+	int opt, i, j = -1, free = -1;
+	
+	if (pi->If)
+	    return(1);
+
+	for (i = 0; i < UDP_MAXPARENTIFS; i++) {
+	    if (UdpIfs[i].self_port == 0)
+	        free = i;
+	    else if ((u_addrcompare(&UdpIfs[i].self_addr, &pi->conf.self_addr) == 0) &&
+	        (UdpIfs[i].self_port == pi->conf.self_port)) {
+	            j = i;
+	    	    break;
+	    }
+	}
+
+	if (j >= 0) {
+	    pi->If=&UdpIfs[j];
+	    return(1);
+	}
+
+	if (free < 0) {
+	    Log(LG_ERR, ("[%s] UDP: Too many different listening ports! ", 
+		l->name));
+	    return (0);
+	}
+
+	UdpIfs[free].refs = 1;
+	pi->If=&UdpIfs[free];
+	
+	u_addrcopy(&pi->conf.self_addr,&pi->If->self_addr);
+	pi->If->self_port=pi->conf.self_port;
 	
 	/* Make listening UDP socket. */
-	if (If->self_addr.family==AF_INET6) {
-	    If->csock = socket(PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	if (pi->If->self_addr.family==AF_INET6) {
+	    pi->If->csock = socket(PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	} else {
-	    If->csock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	    pi->If->csock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	}
-	(void)fcntl(If->csock, F_SETFD, 1);
+	(void)fcntl(pi->If->csock, F_SETFD, 1);
 
 	/* Setsockopt socket. */
 	opt = 1;
-	if (setsockopt(If->csock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))) {
+	if (setsockopt(pi->If->csock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))) {
 		Log(LG_ERR, ("UDP: can't setsockopt socket: %s",
 		    strerror(errno)));
 		error = errno;
@@ -586,8 +620,8 @@ ListenUdpNode(struct UdpIf *If)
 	};
 
 	/* Bind socket. */
-	u_addrtosockaddr(&If->self_addr, If->self_port, &addr);
-	if (bind(If->csock, (struct sockaddr *)(&addr), addr.ss_len)) {
+	u_addrtosockaddr(&pi->If->self_addr, pi->If->self_port, &addr);
+	if (bind(pi->If->csock, (struct sockaddr *)(&addr), addr.ss_len)) {
 		Log(LG_ERR, ("UDP: can't bind socket: %s",
 		    strerror(errno)));
 		error = errno;
@@ -595,74 +629,42 @@ ListenUdpNode(struct UdpIf *If)
 	}
 
 	Log(LG_PHYS, ("UDP: waiting for connection on %s %u",
-	    u_addrtoa(&If->self_addr, buf, sizeof(buf)), If->self_port));
-	EventRegister(&If->ctrlEvent, EVENT_READ, If->csock,
-	    0, UdpAcceptEvent, If);
+	    u_addrtoa(&pi->If->self_addr, buf, sizeof(buf)), pi->If->self_port));
+	EventRegister(&pi->If->ctrlEvent, EVENT_READ, pi->If->csock,
+	    0, UdpAcceptEvent, pi->If);
 
 	return (1);
 fail2:
-	close(If->csock);
-	If->csock = -1;
+	close(pi->If->csock);
+	pi->If->csock = -1;
+	pi->If->self_port = 0;
+	pi->If = NULL;
 	return (0);
 };
 
-/*
- * UdpListenUpdate()
- */
 
-static void
-UdpListenUpdate(void *arg)
+static int 
+UdpUnListen(Link l)
 {
-	int k;
+	UdpInfo const pi = (UdpInfo) l->info;
+	char buf[64];
+	
+	if (!pi->If)
+	    return(1);
 
-	UdpListenUpdateSheduled = 0;
-
-	/* Examine all UDP links. */
-	for (k = 0; k < gNumLinks; k++) {
-        	Link l;
-        	UdpInfo pi;
-		int i, j = -1;
-
-		if (gLinks[k] == NULL ||
-		    gLinks[k]->type != &gUdpPhysType)
-			continue;
-
-		l = gLinks[k];
-		pi = (UdpInfo)l->info;
-
-		if (!Enabled(&l->conf.options, LINK_CONF_INCOMING))
-			continue;
-
-		if (!pi->conf.self_port) {
-			Log(LG_ERR, ("UDP: Skipping link \"%s\" with undefined "
-			    "port number", l->name));
-			continue;
-		}
-
-		for (i = 0; i < UdpIfCount; i++)
-			if ((u_addrcompare(&UdpIfs[i].self_addr, &pi->conf.self_addr) == 0) &&
-			    (UdpIfs[i].self_port == pi->conf.self_port))
-				j = i;
-
-		if (j == -1) {
-			if (UdpIfCount>=UDP_MAXPARENTIFS) {
-			    Log(LG_ERR, ("[%s] UDP: Too many different listening ports! ", 
-				l->name));
-			    continue;
-			}
-			u_addrcopy(&pi->conf.self_addr,&UdpIfs[UdpIfCount].self_addr);
-			UdpIfs[UdpIfCount].self_port=pi->conf.self_port;
-
-			if (ListenUdpNode(&(UdpIfs[UdpIfCount]))) {
-
-				pi->If=&UdpIfs[UdpIfCount];
-				UdpIfCount++;
-			}
-		} else {
-			pi->If=&UdpIfs[j];
-		}
+	pi->If->refs--;
+	if (pi->If->refs == 0) {
+	    Log(LG_PHYS, ("UDP: stop waiting for connection on %s %u",
+		u_addrtoa(&pi->If->self_addr, buf, sizeof(buf)), pi->If->self_port));
+	    EventUnRegister(&pi->If->ctrlEvent);
+	    close(pi->If->csock);
+	    pi->If->csock = -1;
+	    pi->If->self_port = 0;
+	    pi->If = NULL;
 	}
-}
+
+	return (1);
+};
 
 /*
  * UdpNodeUpdate()
@@ -671,13 +673,13 @@ UdpListenUpdate(void *arg)
 static void
 UdpNodeUpdate(Link l)
 {
-    if (Enabled(&l->conf.options, LINK_CONF_INCOMING) &&
-        (!UdpListenUpdateSheduled)) {
-    	    /* Set a timer to run UdpListenUpdate(). */
-	    TimerInit(&UdpListenUpdateTimer, "UdpListenUpdate",
-		0, UdpListenUpdate, NULL);
-	    TimerStart(&UdpListenUpdateTimer);
-	    UdpListenUpdateSheduled = 1;
+    UdpInfo const pi = (UdpInfo) l->info;
+    if (!pi->If) {
+	if (Enabled(&l->conf.options, LINK_CONF_INCOMING))
+	    UdpListen(l);
+    } else {
+	if (!Enabled(&l->conf.options, LINK_CONF_INCOMING))
+	    UdpUnListen(l);
     }
 }
 
@@ -710,6 +712,10 @@ UdpSetCommand(Context ctx, int ac, char *av[], void *arg)
 		pi->conf.peer_addr = rng;
 		pi->conf.peer_port = port;
     	    }
+	    if (pi->If) {
+		UdpUnListen(ctx->lnk);
+		UdpListen(ctx->lnk);
+	    }
     	    break;
 	default:
     	    assert(0);
