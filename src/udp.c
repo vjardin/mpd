@@ -166,7 +166,12 @@ UdpInit(Link l)
 static int
 UdpInst(Link l, Link lt)
 {
+    UdpInfo	pi;
     l->info = Mdup(MB_PHYS, lt->info, sizeof(struct udpinfo));
+    pi = (UdpInfo) l->info;
+    
+    if (pi->If)
+	pi->If->refs++;
 
     return(0);
 }
