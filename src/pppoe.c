@@ -117,8 +117,8 @@ static int	PppoeOriginated(Link l);
 static int	PppoeIsSync(Link l);
 static void	PppoeGetNode(Link l);
 static void	PppoeReleaseNode(Link l);
-static int 	PppoeListenNode(Link l);
-static int 	PppoeUnListenNode(Link l);
+static int 	PppoeListen(Link l);
+static int 	PppoeUnListen(Link l);
 static void	PppoeNodeUpdate(Link l);
 static void	PppoeListenEvent(int type, void *arg);
 static int 	CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook);
@@ -386,7 +386,7 @@ static void
 PppoeShutdown(Link l)
 {
 	PppoeDoClose(l);
-	PppoeUnListenNode(l);
+	PppoeUnListen(l);
 	PppoeReleaseNode(l);
 	Freee(MB_PHYS, l->info);
 }
@@ -1082,7 +1082,7 @@ PppoeReleaseNode(Link l)
 }
 
 static int 
-PppoeListenNode(Link l)
+PppoeListen(Link l)
 {
 	PppoeInfo pi = (PppoeInfo)l->info;
 	struct PppoeIf *PIf = pi->PIf;
@@ -1149,7 +1149,7 @@ PppoeListenNode(Link l)
 };
 
 static int 
-PppoeUnListenNode(Link l)
+PppoeUnListen(Link l)
 {
 	PppoeInfo pi = (PppoeInfo)l->info;
 	struct PppoeIf *PIf = pi->PIf;
@@ -1189,11 +1189,11 @@ PppoeNodeUpdate(Link l)
     if (!pi->list) {
 	if (Enabled(&l->conf.options, LINK_CONF_INCOMING)) {
 	    PppoeGetNode(l);
-	    PppoeListenNode(l);
+	    PppoeListen(l);
 	}
     } else {
 	if (!Enabled(&l->conf.options, LINK_CONF_INCOMING)) {
-	    PppoeUnListenNode(l);
+	    PppoeUnListen(l);
 	    if (l->state == PHYS_STATE_DOWN)
 		PppoeReleaseNode(l);
 	}
@@ -1228,10 +1228,10 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 			return(-1);
 		}
 		if (pi->list) {
-		    PppoeUnListenNode(ctx->lnk);
+		    PppoeUnListen(ctx->lnk);
 		    PppoeReleaseNode(ctx->lnk);
 		    PppoeGetNode(ctx->lnk);
-		    PppoeListenNode(ctx->lnk);
+		    PppoeListen(ctx->lnk);
 		}
 		break;
 	case SET_SESSION:
@@ -1239,8 +1239,8 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 			return(-1);
 		snprintf(pi->session, sizeof(pi->session), "%s", av[0]);
 		if (pi->list) {
-		    PppoeUnListenNode(ctx->lnk);
-		    PppoeListenNode(ctx->lnk);
+		    PppoeUnListen(ctx->lnk);
+		    PppoeListen(ctx->lnk);
 		}
 		break;
 	case SET_ACNAME:
