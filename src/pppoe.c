@@ -1227,6 +1227,12 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 		default:
 			return(-1);
 		}
+		if (pi->list) {
+		    PppoeUnListenNode(ctx->lnk);
+		    PppoeReleaseNode(ctx->lnk);
+		    PppoeGetNode(ctx->lnk);
+		    PppoeListenNode(ctx->lnk);
+		}
 		break;
 	case SET_SESSION:
 		if (ac != 1)
