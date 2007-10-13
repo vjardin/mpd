@@ -87,6 +87,8 @@ static void	TcpConnectEvent(int type, void *cookie);
 
 static int	TcpSetCommand(Context ctx, int ac, char *av[], void *arg);
 static void	TcpNodeUpdate(Link l);
+static int 	TcpListen(Link l);
+static void	TcpUnListen(Link l);
 
 /*
  * GLOBAL VARIABLES
@@ -125,14 +127,11 @@ const struct cmdtab TcpSetCmds[] = {
 struct TcpIf {
     struct u_addr	self_addr;
     in_port_t	self_port;
+    int		refs;
     int		csock;                  /* netgraph Control socket */
     EventRef	ctrlEvent;		/* listen for ctrl messages */
 };
-int TcpIfCount=0;
 struct TcpIf TcpIfs[TCP_MAXPARENTIFS];
-
-int TcpListenUpdateSheduled=0;
-struct pppTimer TcpListenUpdateTimer;
 
 /*
  * TcpInit()
@@ -167,7 +166,12 @@ TcpInit(Link l)
 static int
 TcpInst(Link l, Link lt)
 {
+	TcpInfo pi;
 	l->info = Mdup(MB_PHYS, lt->info, sizeof(struct tcpinfo));
+	pi = (TcpInfo) l->info;
+    
+	if (pi->If)
+	    pi->If->refs++;
 
 	return (0);
 }
@@ -533,6 +537,7 @@ static void
 TcpShutdown(Link l)
 {
 	TcpDoClose(l);
+	TcpUnListen(l);
 	Freee(MB_PHYS, l->info);
 }
 
@@ -674,8 +679,9 @@ TcpStat(Context ctx)
 }
 
 static int 
-ListenTcpNode(struct TcpIf *If)
+TcpListen(Link l)
 {
+	TcpInfo const pi = (TcpInfo) l->info;
 	struct ngm_mkpeer mkp;
 	struct sockaddr_storage addr;
 	int32_t backlog = 1;
@@ -686,25 +692,56 @@ ListenTcpNode(struct TcpIf *If)
 	    struct ng_ksocket_sockopt ksso;
 	} u;
 	struct ng_ksocket_sockopt *const ksso = &u.ksso;
+	int i, j = -1, free = -1;
+	
+	if (pi->If)
+	    return(1);
+
+	for (i = 0; i < TCP_MAXPARENTIFS; i++) {
+	    if (TcpIfs[i].self_port == 0)
+	        free = i;
+	    else if ((u_addrcompare(&TcpIfs[i].self_addr, &pi->conf.self_addr) == 0) &&
+	        (TcpIfs[i].self_port == pi->conf.self_port)) {
+	            j = i;
+	    	    break;
+	    }
+	}
+
+	if (j >= 0) {
+	    pi->If=&TcpIfs[j];
+	    return(1);
+	}
+
+	if (free < 0) {
+	    Log(LG_ERR, ("[%s] TCP: Too many different listening ports! ", 
+		l->name));
+	    return (0);
+	}
+
+	TcpIfs[free].refs = 1;
+	pi->If=&TcpIfs[free];
+	
+	u_addrcopy(&pi->conf.self_addr,&pi->If->self_addr);
+	pi->If->self_port=pi->conf.self_port;
 	
 	/* Create a new netgraph node */
-	if (NgMkSockNode(NULL, &If->csock, NULL) < 0) {
+	if (NgMkSockNode(NULL, &pi->If->csock, NULL) < 0) {
 	    Log(LG_ERR, ("TCP: can't create ctrl socket: %s",
 	        strerror(errno)));
 	    return(0);
 	}
-	(void)fcntl(If->csock, F_SETFD, 1);
+	(void)fcntl(pi->If->csock, F_SETFD, 1);
 
 	/* Make listening TCP ksocket node. */
 	snprintf(mkp.type, sizeof(mkp.type), "%s",
 	    NG_KSOCKET_NODE_TYPE);
 	snprintf(mkp.ourhook, sizeof(mkp.ourhook), LISTENHOOK);
-	if (If->self_addr.family==AF_INET6) {
+	if (pi->If->self_addr.family==AF_INET6) {
 	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_STREAM, IPPROTO_TCP);
 	} else {
 	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/stream/tcp");
 	}
-	if (NgSendMsg(If->csock, ".:", NGM_GENERIC_COOKIE, NGM_MKPEER,
+	if (NgSendMsg(pi->If->csock, ".:", NGM_GENERIC_COOKIE, NGM_MKPEER,
 	    &mkp, sizeof(mkp)) < 0) {
 		Log(LG_ERR, ("TCP: can't attach %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -716,7 +753,7 @@ ListenTcpNode(struct TcpIf *If)
 	ksso->level=SOL_SOCKET;
 	ksso->name=SO_REUSEPORT;
 	((int *)(ksso->value))[0]=1;
-	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
+	if (NgSendMsg(pi->If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
 		Log(LG_ERR, ("TCP: can't setsockopt() %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -725,8 +762,8 @@ ListenTcpNode(struct TcpIf *If)
 	}
 
 	/* Bind socket. */
-	u_addrtosockaddr(&If->self_addr, If->self_port, &addr);
-	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
+	u_addrtosockaddr(&pi->If->self_addr, pi->If->self_port, &addr);
+	if (NgSendMsg(pi->If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
 		Log(LG_ERR, ("TCP: can't bind() %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -735,7 +772,7 @@ ListenTcpNode(struct TcpIf *If)
 	}
 
 	/* Listen. */
-	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
+	if (NgSendMsg(pi->If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_LISTEN, &backlog, sizeof(backlog)) < 0) {
 		Log(LG_ERR, ("TCP: can't listen() on %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -744,7 +781,7 @@ ListenTcpNode(struct TcpIf *If)
 	}
 
 	/* Tell that we are willing to receive accept message. */
-	if (NgSendMsg(If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
+	if (NgSendMsg(pi->If->csock, LISTENHOOK, NGM_KSOCKET_COOKIE,
 	    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
 		Log(LG_ERR, ("TCP: can't accept() on %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
@@ -753,74 +790,37 @@ ListenTcpNode(struct TcpIf *If)
 	}
 
 	Log(LG_PHYS, ("TCP: waiting for connection on %s %u",
-	    u_addrtoa(&If->self_addr, buf, sizeof(buf)), If->self_port));
-	EventRegister(&If->ctrlEvent, EVENT_READ, If->csock,
-	    0, TcpAcceptEvent, If);
+	    u_addrtoa(&pi->If->self_addr, buf, sizeof(buf)), pi->If->self_port));
+	EventRegister(&pi->If->ctrlEvent, EVENT_READ, pi->If->csock,
+	    0, TcpAcceptEvent, pi->If);
 
 	return (1);
 fail2:
-	NgSendMsg(If->csock, LISTENHOOK, NGM_GENERIC_COOKIE, NGM_SHUTDOWN,
+	NgSendMsg(pi->If->csock, LISTENHOOK, NGM_GENERIC_COOKIE, NGM_SHUTDOWN,
 	    NULL, 0);
 	return (0);
 };
 
-/*
- * TcpListenUpdate()
- */
-
 static void
-TcpListenUpdate(void *arg)
+TcpUnListen(Link l)
 {
-	int k;
+	TcpInfo const pi = (TcpInfo) l->info;
+	char buf[64];
+	
+	if (!pi->If)
+	    return;
 
-	TcpListenUpdateSheduled = 0;
-
-	/* Examine all PPPoE links. */
-	for (k = 0; k < gNumLinks; k++) {
-        	Link l;
-        	TcpInfo pi;
-		int i, j = -1;
-
-		if (gLinks[k] == NULL ||
-		    gLinks[k]->type != &gTcpPhysType)
-			continue;
-
-		l = gLinks[k];
-		pi = (TcpInfo)l->info;
-
-		if (!Enabled(&l->conf.options, LINK_CONF_INCOMING))
-			continue;
-
-		if (!pi->conf.self_port) {
-			Log(LG_ERR, ("Tcp: Skipping link \"%s\" with undefined "
-			    "port number", l->name));
-			continue;
-		}
-
-		for (i = 0; i < TcpIfCount; i++)
-			if ((u_addrcompare(&TcpIfs[i].self_addr, &pi->conf.self_addr) == 0) &&
-			    (TcpIfs[i].self_port == pi->conf.self_port))
-				j = i;
-
-		if (j == -1) {
-			if (TcpIfCount>=TCP_MAXPARENTIFS) {
-			    Log(LG_ERR, ("[%s] TCP: Too many different parent interfaces! ", 
-				l->name));
-			    continue;
-			}
-			u_addrcopy(&pi->conf.self_addr,&TcpIfs[TcpIfCount].self_addr);
-			TcpIfs[TcpIfCount].self_port=pi->conf.self_port;
-
-			if (ListenTcpNode(&(TcpIfs[TcpIfCount]))) {
-
-				pi->If=&TcpIfs[TcpIfCount];
-				TcpIfCount++;
-			}
-		} else {
-			pi->If=&TcpIfs[j];
-		}
+	pi->If->refs--;
+	if (pi->If->refs == 0) {
+	    Log(LG_PHYS, ("TCP: stop waiting for connection on %s %u",
+		u_addrtoa(&pi->If->self_addr, buf, sizeof(buf)), pi->If->self_port));
+	    EventUnRegister(&pi->If->ctrlEvent);
+	    close(pi->If->csock);
+	    pi->If->csock = -1;
+	    pi->If->self_port = 0;
+	    pi->If = NULL;
 	}
-}
+};
 
 /*
  * TcpNodeUpdate()
@@ -829,13 +829,13 @@ TcpListenUpdate(void *arg)
 static void
 TcpNodeUpdate(Link l)
 {
-    if (Enabled(&l->conf.options, LINK_CONF_INCOMING) &&
-        (!TcpListenUpdateSheduled)) {
-    	    /* Set a timer to run TcpListenUpdate(). */
-	    TimerInit(&TcpListenUpdateTimer, "TcpListenUpdate",
-		0, TcpListenUpdate, NULL);
-	    TimerStart(&TcpListenUpdateTimer);
-	    TcpListenUpdateSheduled = 1;
+    TcpInfo const pi = (TcpInfo) l->info;
+    if (!pi->If) {
+	if (Enabled(&l->conf.options, LINK_CONF_INCOMING))
+	    TcpListen(l);
+    } else {
+	if (!Enabled(&l->conf.options, LINK_CONF_INCOMING))
+	    TcpUnListen(l);
     }
 }
 
@@ -846,32 +846,36 @@ TcpNodeUpdate(Link l)
 static int
 TcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
-	TcpInfo	const pi = (TcpInfo) ctx->lnk->info;
-	struct u_range	rng;
-	int		port;
+    TcpInfo		const pi = (TcpInfo) ctx->lnk->info;
+    struct u_range	rng;
+    int			port;
 
-	switch ((intptr_t)arg) {
+    switch ((intptr_t)arg) {
 	case SET_PEERADDR:
 	case SET_SELFADDR:
-    		if (ac < 1 || ac > 2 || !ParseRange(av[0], &rng, ALLOW_IPV4|ALLOW_IPV6))
-			return(-1);
-	        if (ac > 1) {
-	    		if ((port = atoi(av[1])) < 0 || port > 0xffff)
-				return(-1);
-    		} else {
-			port = 0;
-    		}
-    		if ((intptr_t)arg == SET_SELFADDR) {
-			pi->conf.self_addr = rng.addr;
-			pi->conf.self_port = port;
-    		} else {
-			pi->conf.peer_addr = rng;
-			pi->conf.peer_port = port;
-    		}
-		break;
+    	    if (ac < 1 || ac > 2 || !ParseRange(av[0], &rng, ALLOW_IPV4|ALLOW_IPV6))
+		return(-1);
+	    if (ac > 1) {
+		if ((port = atoi(av[1])) < 0 || port > 0xffff)
+		    return(-1);
+    	    } else {
+	        port = 0;
+    	    }
+    	    if ((intptr_t)arg == SET_SELFADDR) {
+	    	pi->conf.self_addr = rng.addr;
+		pi->conf.self_port = port;
+    	    } else {
+		pi->conf.peer_addr = rng;
+		pi->conf.peer_port = port;
+    	    }
+	    if (pi->If) {
+		TcpUnListen(ctx->lnk);
+		TcpListen(ctx->lnk);
+	    }
+	    break;
 	default:
 		assert(0);
-	}
+    }
 
-	return (0);
+    return (0);
 }
