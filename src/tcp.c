@@ -708,6 +708,7 @@ TcpListen(Link l)
 	}
 
 	if (j >= 0) {
+	    TcpIfs[j].refs++;
 	    pi->If=&TcpIfs[j];
 	    return(1);
 	}

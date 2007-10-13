@@ -591,6 +591,7 @@ UdpListen(Link l)
 	}
 
 	if (j >= 0) {
+	    UdpIfs[j].refs++;
 	    pi->If=&UdpIfs[j];
 	    return(1);
 	}
