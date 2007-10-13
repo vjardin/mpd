@@ -49,6 +49,7 @@
   struct l2tp_server {
     struct u_addr	self_addr;	/* self IP address */
     in_port_t		self_port;	/* self port */
+    int			refs;
     int			sock;		/* server listen socket */
     EventRef		event;		/* listen for data messages */
   };
@@ -131,7 +132,8 @@
   static void	L2tpHookUpIncoming(Link l);
 
   static void	L2tpNodeUpdate(Link l);
-  static void	L2tpListenUpdate(void *arg);
+  static int	L2tpListen(Link l);
+  static void	L2tpUnListen(Link l);
   static int	L2tpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   /* L2TP control callbacks */
@@ -268,7 +270,12 @@ L2tpInit(Link l)
 static int
 L2tpInst(Link l, Link lt)
 {
+	L2tpInfo pi;
 	l->info = Mdup(MB_PHYS, lt->info, sizeof(struct l2tpinfo));
+	pi = (L2tpInfo) l->info;
+    
+	if (pi->server)
+	    pi->server->refs++;
 	
 	gNumL2tpLinks++;
   
@@ -648,6 +655,7 @@ L2tpShutdown(Link l)
 	    }
 	}
     }
+    L2tpUnListen(l);
     Freee(MB_PHYS, l->info);
 }
 
@@ -1469,20 +1477,35 @@ fail:
 
 
 /*
- * L2tpServerCreate()
+ * L2tpListen()
  */
 
-static struct l2tp_server *
-L2tpServerCreate(L2tpInfo const p)
+static int
+L2tpListen(Link l)
 {
+	L2tpInfo	p = (L2tpInfo)l->info;
 	struct l2tp_server *s;
 	struct sockaddr_storage sa;
 	char buf[64];
+	struct ghash_walk walk;
 
-	if ((s = Malloc(MB_PHYS, sizeof(struct l2tp_server))) == NULL) {
-	    return (NULL);
+	if (p->server)
+	    return(1);
+
+	ghash_walk_init(gL2tpServers, &walk);
+	while ((s = ghash_walk_next(gL2tpServers, &walk)) != NULL) {
+	    if ((u_addrcompare(&s->self_addr, &p->conf.self_addr) == 0) && 
+		s->self_port == (p->conf.self_port?p->conf.self_port:L2TP_PORT)) {
+		    s->refs++;
+		    p->server = s;
+		    return(1);
+	    }
 	}
+
+	if ((s = Malloc(MB_PHYS, sizeof(struct l2tp_server))) == NULL)
+	    return (0);
 	
+	s->refs = 1;
 	u_addrcopy(&p->conf.self_addr, &s->self_addr);
 	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
 	
@@ -1518,12 +1541,43 @@ L2tpServerCreate(L2tpInfo const p)
 	Log(LG_PHYS, ("L2TP: waiting for connection on %s %u",
 	    u_addrtoa(&s->self_addr, buf, sizeof(buf)), s->self_port));
 	
-	return (s);
+	p->server = s;
+	ghash_put(gL2tpServers, s);
+	return (1);
 fail:
 	if (s->sock)
 	    close(s->sock);
 	Freee(MB_PHYS, s);
-	return (NULL);
+	return (0);
+}
+
+/*
+ * L2tpUnListen()
+ */
+
+static void
+L2tpUnListen(Link l)
+{
+	L2tpInfo	p = (L2tpInfo)l->info;
+	struct l2tp_server *s = p->server;
+	char buf[64];
+
+	if (!s)
+	    return;
+
+	s->refs--;
+	if (s->refs == 0) {
+	    Log(LG_PHYS, ("L2TP: stop waiting for connection on %s %u",
+		u_addrtoa(&s->self_addr, buf, sizeof(buf)), s->self_port));
+	
+	    ghash_remove(gL2tpServers, s);
+	    EventUnRegister(&s->event);
+	    if (s->sock)
+		close(s->sock);
+	    Freee(MB_PHYS, s);
+	    p->server = NULL;
+	}
+	return;
 }
 
 /*
@@ -1533,52 +1587,13 @@ fail:
 static void
 L2tpNodeUpdate(Link l)
 {
-    if (Enabled(&l->conf.options, LINK_CONF_INCOMING) &&
-        (!L2tpListenUpdateSheduled)) {
-    	    /* Set a timer to run PppoeListenUpdate(). */
-	    TimerInit(&L2tpListenUpdateTimer, "L2tpListenUpdate",
-		0, L2tpListenUpdate, NULL);
-	    TimerStart(&L2tpListenUpdateTimer);
-	    L2tpListenUpdateSheduled = 1;
-    }
-}
-
-/*
- * L2tpListenUpdate()
- */
-
-static void
-L2tpListenUpdate(void *arg)
-{
-    int	k;
-
-    /* Examine all L2TP links */
-    for (k = 0; k < gNumLinks; k++) {
-	if (gLinks[k] && gLinks[k]->type == &gL2tpPhysType) {
-    	    L2tpInfo	const p = (L2tpInfo)gLinks[k]->info;
-
-    	    if (Enabled(&gLinks[k]->conf.options, LINK_CONF_INCOMING)) {
-		struct ghash_walk walk;
-		struct l2tp_server *srv;
-
-		ghash_walk_init(gL2tpServers, &walk);
-		while ((srv = ghash_walk_next(gL2tpServers, &walk)) != NULL) {
-		    if ((u_addrcompare(&srv->self_addr, &p->conf.self_addr) == 0) && 
-			srv->self_port == (p->conf.self_port?p->conf.self_port:L2TP_PORT)) {
-			    p->server = srv;
-			    break;
-		    }
-		}
-		if (srv == NULL) {
-		    if ((srv = L2tpServerCreate(p)) == NULL) {
-			Log(LG_ERR, ("L2tpServerCreate error"));
-			continue;
-		    }
-		    p->server = srv;
-		    ghash_put(gL2tpServers, srv);
-		}
-    	    }
-	}
+    L2tpInfo const pi = (L2tpInfo) l->info;
+    if (!pi->server) {
+	if (Enabled(&l->conf.options, LINK_CONF_INCOMING))
+	    L2tpListen(l);
+    } else {
+	if (!Enabled(&l->conf.options, LINK_CONF_INCOMING))
+	    L2tpUnListen(l);
     }
 }
 
@@ -1607,6 +1622,10 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    if ((intptr_t)arg == SET_SELFADDR) {
 		l2tp->conf.self_addr = rng.addr;
 		l2tp->conf.self_port = port;
+		if (l2tp->server) {
+		    L2tpUnListen(ctx->lnk);
+		    L2tpListen(ctx->lnk);
+		}
     	    } else {
 		l2tp->conf.peer_addr = rng;
 		l2tp->conf.peer_port = port;
@@ -1638,11 +1657,9 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 	case SET_ENABLE:
     	    EnableCommand(ac, av, &l2tp->conf.options, gConfList);
-    	    L2tpNodeUpdate(ctx->lnk);
     	    break;
 	case SET_DISABLE:
     	    DisableCommand(ac, av, &l2tp->conf.options, gConfList);
-    	    L2tpNodeUpdate(ctx->lnk);
     	    break;
 	default:
     	    assert(0);
