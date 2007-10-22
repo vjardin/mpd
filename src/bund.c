@@ -681,25 +681,37 @@ BundNcpsJoin(Bund b, int proto)
 	case NCP_IPCP:
 		if (!iface->ip_up) {
 			iface->ip_up = 1;
-			IfaceIpIfaceUp(b, 1);
+			if (IfaceIpIfaceUp(b, 1)) {
+			    iface->ip_up = 0;
+			    return;
+			};
 		}
 		break;
 	case NCP_IPV6CP:
 		if (!iface->ipv6_up) {
 			iface->ipv6_up = 1;
-			IfaceIpv6IfaceUp(b, 1);
+			if (IfaceIpv6IfaceUp(b, 1)) {
+			    iface->ip_up = 0;
+			    return;
+			};
 		}
 		break;
 	case NCP_NONE: /* Manual call by 'open iface' */
 		if (Enabled(&b->conf.options, BUND_CONF_IPCP) &&
 		    !iface->ip_up) {
 			iface->ip_up = 1;
-			IfaceIpIfaceUp(b, 0);
+			if (IfaceIpIfaceUp(b, 0)) {
+			    iface->ip_up = 0;
+			    return;
+			};
 		}
 		if (Enabled(&b->conf.options, BUND_CONF_IPV6CP) &&
 		    !iface->ipv6_up) {
 			iface->ipv6_up = 1;
-			IfaceIpv6IfaceUp(b, 0);
+			if (IfaceIpv6IfaceUp(b, 0)) {
+			    iface->ip_up = 0;
+			    return;
+			};
 		}
 		break;
 	}
@@ -751,15 +763,19 @@ BundNcpsLeave(Bund b, int proto)
     		if (iface->open) {
 			if (Enabled(&b->conf.options, BUND_CONF_IPCP)) {
 				iface->ip_up=1;
-				IfaceIpIfaceUp(b, 0);
+				if (IfaceIpIfaceUp(b, 0))
+				    iface->ip_up = 0;
 			}
 			if (Enabled(&b->conf.options, BUND_CONF_IPV6CP)) {
 				iface->ipv6_up=1;
-				IfaceIpv6IfaceUp(b, 0);
+				if (IfaceIpv6IfaceUp(b, 0))
+				    iface->ipv6_up = 0;
 			}
-			iface->dod=1;
-			iface->up=1;
-			IfaceUp(b, 0);
+			if (iface->ip_up || iface->ipv6_up) {
+			    iface->dod=1;
+			    iface->up=1;
+			    IfaceUp(b, 0);
+			}
 		}
 	}
 }

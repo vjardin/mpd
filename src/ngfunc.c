@@ -182,7 +182,7 @@ NgFuncInitGlobalNetflow(Bund b)
 	  NGM_NETFLOW_SETTIMEOUTS, &nf_settime, sizeof(nf_settime)) < 0) {
 	    Log(LG_ERR, ("[%s] can't set timeouts on netflow %s node: %s",
 		b->name, NG_NETFLOW_NODE_TYPE, strerror(errno)));
-	    goto fail;
+	    goto fail2;
 	}
     }
 
@@ -194,7 +194,7 @@ NgFuncInitGlobalNetflow(Bund b)
 	  NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
 	    Log(LG_ERR, ("[%s] can't bind export %s node: %s",
 		b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-	    goto fail;
+	    goto fail2;
 	}
     }
     if (gNetflowExport.ss_len != 0) {
@@ -202,7 +202,7 @@ NgFuncInitGlobalNetflow(Bund b)
 	  NGM_KSOCKET_CONNECT, &gNetflowExport, sizeof(gNetflowExport)) < 0) {
 	    Log(LG_ERR, ("[%s] can't connect export %s node: %s",
 		b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-	    goto fail;
+	    goto fail2;
 	}
     }
 
@@ -212,7 +212,7 @@ NgFuncInitGlobalNetflow(Bund b)
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("can't name %s node: %s", NG_KSOCKET_NODE_TYPE,
             strerror(errno)));
-	goto fail;
+	goto fail2;
     }
 
     /* Disconnect temporary hook. */
@@ -220,11 +220,14 @@ NgFuncInitGlobalNetflow(Bund b)
     if (NgSendMsg(b->csock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", TEMPHOOK, strerror(errno)));
-	goto fail;
+	goto fail2;
     }
     gNetflowNode = TRUE;
 
     return 0;
+fail2:
+    snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+    NgFuncShutdownNode(b->csock, "netflow", path);
 fail:
     return -1;
 }

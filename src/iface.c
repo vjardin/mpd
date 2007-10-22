@@ -747,50 +747,50 @@ IFaceParseACL (char * src, char * ifname)
  * IPCP is also up and we can deliver packets immediately.
  */
 
-void
+int
 IfaceIpIfaceUp(Bund b, int ready)
 {
-  IfaceState		const iface = &b->iface;
-  struct sockaddr_dl	hwa;
-  char			hisaddr[20];
-  IfaceRoute		r;
-  u_char		*ether;
+    IfaceState		const iface = &b->iface;
+    struct sockaddr_dl	hwa;
+    char		hisaddr[20];
+    IfaceRoute		r;
+    u_char		*ether;
 
-  if (ready) {
-    in_addrtou_range(&b->ipcp.want_addr, 32, &iface->self_addr);
-    in_addrtou_addr(&b->ipcp.peer_addr, &iface->peer_addr);
-  }
-
-  if (IfaceNgIpInit(b, ready)) {
-    Log(LG_ERR, ("[%s] IfaceNgIpInit() error, closing IPCP", b->name));
-    FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
-    return;
-  };
-
-  /* Set addresses */
-  IfaceChangeAddr(b, 1, &iface->self_addr, &iface->peer_addr);
-
-  /* Proxy ARP for peer if desired and peer's address is known */
-  u_addrclear(&iface->proxy_addr);
-  if (Enabled(&iface->options, IFACE_CONF_PROXY)) {
-    if (u_addrempty(&iface->peer_addr)) {
-      Log(LG_IFACE,
-	("[%s] can't proxy arp for %s",
-	b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
-    } else if (GetEther(&iface->peer_addr, &hwa) < 0) {
-      Log(LG_IFACE,
-	("[%s] no interface to proxy arp on for %s",
-	b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
-    } else {
-      ether = (u_char *) LLADDR(&hwa);
-      if (ExecCmdNosh(LG_IFACE2, b->name, 
-	  "%s -S %s %x:%x:%x:%x:%x:%x pub",
-	  PATH_ARP, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)),
-	  ether[0], ether[1], ether[2],
-	  ether[3], ether[4], ether[5]) == 0)
-	iface->proxy_addr = iface->peer_addr;
+    if (ready) {
+	in_addrtou_range(&b->ipcp.want_addr, 32, &iface->self_addr);
+	in_addrtou_addr(&b->ipcp.peer_addr, &iface->peer_addr);
     }
-  }
+
+    if (IfaceNgIpInit(b, ready)) {
+	Log(LG_ERR, ("[%s] IfaceNgIpInit() error, closing IPCP", b->name));
+	FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
+	return (-1);
+    };
+
+    /* Set addresses */
+    IfaceChangeAddr(b, 1, &iface->self_addr, &iface->peer_addr);
+
+    /* Proxy ARP for peer if desired and peer's address is known */
+    u_addrclear(&iface->proxy_addr);
+    if (Enabled(&iface->options, IFACE_CONF_PROXY)) {
+	if (u_addrempty(&iface->peer_addr)) {
+    	    Log(LG_IFACE,
+		("[%s] can't proxy arp for %s",
+		b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
+	} else if (GetEther(&iface->peer_addr, &hwa) < 0) {
+    	    Log(LG_IFACE,
+		("[%s] no interface to proxy arp on for %s",
+		b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
+	} else {
+    	    ether = (u_char *) LLADDR(&hwa);
+    	    if (ExecCmdNosh(LG_IFACE2, b->name, 
+		"%s -S %s %x:%x:%x:%x:%x:%x pub",
+		PATH_ARP, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)),
+		ether[0], ether[1], ether[2],
+		ether[3], ether[4], ether[5]) == 0)
+	    iface->proxy_addr = iface->peer_addr;
+	}
+    }
   
     /* Add static routes */
     SLIST_FOREACH(r, &iface->routes, next) {
@@ -806,33 +806,32 @@ IfaceIpIfaceUp(Bund b, int ready)
     }
 
 #ifdef USE_NG_NAT
-  /* Set NAT IP */
-  if (iface->nat_up) {
-    IfaceSetupNAT(b);
-  }
+    /* Set NAT IP */
+    if (iface->nat_up)
+	IfaceSetupNAT(b);
 #endif
 
-  /* Call "up" script */
-  if (*iface->up_script) {
-    char	selfbuf[40],peerbuf[40];
-    char	ns1buf[21], ns2buf[21];
+    /* Call "up" script */
+    if (*iface->up_script) {
+	char	selfbuf[40],peerbuf[40];
+	char	ns1buf[21], ns2buf[21];
 
-    if(b->ipcp.want_dns[0].s_addr != 0)
-      snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(b->ipcp.want_dns[0]));
-    else
-      ns1buf[0] = '\0';
-    if(b->ipcp.want_dns[1].s_addr != 0)
-      snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(b->ipcp.want_dns[1]));
-    else
-      ns2buf[0] = '\0';
+	if(b->ipcp.want_dns[0].s_addr != 0)
+    	    snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(b->ipcp.want_dns[0]));
+	else
+    	    ns1buf[0] = '\0';
+	if(b->ipcp.want_dns[1].s_addr != 0)
+    	    snprintf(ns2buf, sizeof(ns2buf), "dns2 %s", inet_ntoa(b->ipcp.want_dns[1]));
+	else
+    	    ns2buf[0] = '\0';
 
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s",
-      iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
-      u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
-      *b->params.authname ? b->params.authname : "-", 
-      ns1buf, ns2buf);
-  }
-
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s",
+	    iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
+    	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
+    	    *b->params.authname ? b->params.authname : "-", 
+    	    ns1buf, ns2buf);
+    }
+    return (0);
 }
 
 /*
@@ -844,19 +843,19 @@ IfaceIpIfaceUp(Bund b, int ready)
 void
 IfaceIpIfaceDown(Bund b)
 {
-  IfaceState	const iface = &b->iface;
-  IfaceRoute	r;
-  char          buf[64];
+    IfaceState	const iface = &b->iface;
+    IfaceRoute	r;
+    char	buf[64];
 
-  /* Call "down" script */
-  if (*iface->down_script) {
-    char	selfbuf[40],peerbuf[40];
+    /* Call "down" script */
+    if (*iface->down_script) {
+	char	selfbuf[40],peerbuf[40];
 
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s'",
-      iface->down_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
-      u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
-      *b->params.authname ? b->params.authname : "-");
-  }
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s'",
+    	    iface->down_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
+    	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
+    	    *b->params.authname ? b->params.authname : "-");
+    }
 
     /* Delete dynamic routes */
     SLIST_FOREACH(r, &b->params.routes, next) {
@@ -877,15 +876,15 @@ IfaceIpIfaceDown(Bund b)
 	}
     }
 
-  /* Delete any proxy arp entry */
-  if (!u_addrempty(&iface->proxy_addr))
-    ExecCmdNosh(LG_IFACE2, b->name, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
-  u_addrclear(&iface->proxy_addr);
+    /* Delete any proxy arp entry */
+    if (!u_addrempty(&iface->proxy_addr))
+	ExecCmdNosh(LG_IFACE2, b->name, "%s -d %s", PATH_ARP, u_addrtoa(&iface->proxy_addr, buf, sizeof(buf)));
+    u_addrclear(&iface->proxy_addr);
 
-  /* Remove address from interface */
-  IfaceChangeAddr(b, 0, &iface->self_addr, &iface->peer_addr);
+    /* Remove address from interface */
+    IfaceChangeAddr(b, 0, &iface->self_addr, &iface->peer_addr);
     
-  IfaceNgIpShutdown(b);
+    IfaceNgIpShutdown(b);
 }
 
 /*
@@ -895,41 +894,40 @@ IfaceIpIfaceDown(Bund b)
  * IPv6CP is also up and we can deliver packets immediately.
  */
 
-void
+int
 IfaceIpv6IfaceUp(Bund b, int ready)
 {
-  IfaceState		const iface = &b->iface;
-  IfaceRoute		r;
-  struct u_range	rng;
+    IfaceState		const iface = &b->iface;
+    IfaceRoute		r;
+    struct u_range	rng;
 
-  if (ready) {
+    if (ready) {
+        iface->self_ipv6_addr.family = AF_INET6;
+        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
+        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
+        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
+        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
+        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.myintid)[0];
+        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.myintid)[1];
+        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.myintid)[2];
+	iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.myintid)[3];
 
-    iface->self_ipv6_addr.family = AF_INET6;
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.myintid)[0];
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.myintid)[1];
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.myintid)[2];
-    iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.myintid)[3];
+        iface->peer_ipv6_addr.family = AF_INET6;
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.hisintid)[0];
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.hisintid)[1];
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
+        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
+    }
 
-    iface->peer_ipv6_addr.family = AF_INET6;
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.hisintid)[0];
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.hisintid)[1];
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
-    iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
-  }
-
-  if (IfaceNgIpv6Init(b, ready)) {
-    Log(LG_ERR, ("[%s] IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
-    FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
-    return;
-  };
+    if (IfaceNgIpv6Init(b, ready)) {
+        Log(LG_ERR, ("[%s] IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
+        FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
+        return (-1);
+    };
   
     /* Set addresses */
     rng.addr = iface->self_ipv6_addr;
@@ -949,16 +947,17 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 	}
     }
 
-  /* Call "up" script */
-  if (*iface->up_script) {
-    char	selfbuf[64],peerbuf[64];
+    /* Call "up" script */
+    if (*iface->up_script) {
+	char	selfbuf[64],peerbuf[64];
 
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
-      iface->up_script, iface->ifname, 
-      u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
-      u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
-      *b->params.authname ? b->params.authname : "-");
-  }
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
+    	    iface->up_script, iface->ifname, 
+    	    u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
+    	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
+    	    *b->params.authname ? b->params.authname : "-");
+    }
+    return (0);
 
 }
 
@@ -971,20 +970,20 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 void
 IfaceIpv6IfaceDown(Bund b)
 {
-  IfaceState		const iface = &b->iface;
-  IfaceRoute		r;
-  struct u_range        rng;
+    IfaceState		const iface = &b->iface;
+    IfaceRoute		r;
+    struct u_range	rng;
 
-  /* Call "down" script */
-  if (*iface->down_script) {
-    char	selfbuf[64],peerbuf[64];
+    /* Call "down" script */
+    if (*iface->down_script) {
+	char	selfbuf[64],peerbuf[64];
 
-    ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
-      iface->down_script, iface->ifname, 
-      u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
-      u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
-      *b->params.authname ? b->params.authname : "-");
-  }
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
+    	    iface->down_script, iface->ifname, 
+    	    u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
+    	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
+    	    *b->params.authname ? b->params.authname : "-");
+    }
 
     /* Delete dynamic routes */
     SLIST_FOREACH(r, &b->params.routes, next) {
@@ -1005,14 +1004,14 @@ IfaceIpv6IfaceDown(Bund b)
 	}
     }
 
-  if (!u_addrempty(&iface->self_ipv6_addr)) {
-    /* Remove address from interface */
-    rng.addr = iface->self_ipv6_addr;
-    rng.width = 64;
-    IfaceChangeAddr(b, 0, &rng, &iface->peer_ipv6_addr);
-  }
+    if (!u_addrempty(&iface->self_ipv6_addr)) {
+	/* Remove address from interface */
+	rng.addr = iface->self_ipv6_addr;
+	rng.width = 64;
+	IfaceChangeAddr(b, 0, &rng, &iface->peer_ipv6_addr);
+    }
 
-  IfaceNgIpv6Shutdown(b);
+    IfaceNgIpv6Shutdown(b);
 }
 
 /*
