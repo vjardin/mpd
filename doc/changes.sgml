@@ -15,6 +15,10 @@
 	  </item>
 	  <item> Fixed memory leak on link/bundle shutdown.
 	  </item>
+	  <item> Fixed netflow setup errors handeling.
+	  </item>
+	  <item> Improved IfaceIp[v6]IfaceUp() errors handeling.
+	  </item>
 	  <item> Many small fixes.
 	  </item>
 	</itemize>
