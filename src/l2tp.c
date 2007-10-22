@@ -1056,11 +1056,11 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 			}
 		}
 	}
-	if (l != NULL && l->tmpl) {
+	if (l != NULL && l->tmpl)
     		l = LinkInst(l, NULL, 0, 0);
+
+	if (l != NULL) {
     		pi = (L2tpInfo)l->info;
-	}
-	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p accepted", 
 		    l->name, (out?"Outgoing":"Incoming"), 
 		    ppp_l2tp_sess_get_serial(sess), ctrl));

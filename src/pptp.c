@@ -888,10 +888,8 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	}
     }
 
-    if (l != NULL && l->tmpl) {
+    if (l != NULL && l->tmpl)
         l = LinkInst(l, NULL, 0, 0);
-        pi = (PptpInfo)l->info;
-    }
 
     /* If no link is suitable, can't take the call */
     if (l == NULL) {
@@ -899,6 +897,7 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
 	    "was found"));
 	return(linfo);
     }
+    pi = (PptpInfo)l->info;
 
     Log(LG_PHYS, ("[%s] Accepting PPTP connection", l->name));
     PhysIncoming(l);

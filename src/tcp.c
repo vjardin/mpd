@@ -464,11 +464,11 @@ TcpAcceptEvent(int type, void *cookie)
 			}
 		}
 	}
-	if (l != NULL && l->tmpl) {
+	if (l != NULL && l->tmpl)
     		l = LinkInst(l, NULL, 0, 0);
+
+	if (l != NULL) {
     		pi = (TcpInfo)l->info;
-	}
-	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] Accepting TCP connection from %s %u",
 		    l->name, u_addrtoa(&addr, buf, sizeof(buf)), port));
 

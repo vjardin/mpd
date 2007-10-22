@@ -543,11 +543,11 @@ UdpAcceptEvent(int type, void *cookie)
 			}
 		}
 	}
-	if (l != NULL && l->tmpl) {
+	if (l != NULL && l->tmpl)
     		l = LinkInst(l, NULL, 0, 0);
+
+	if (l != NULL) {
     		pi = (UdpInfo)l->info;
-	}
-	if (pi != NULL) {
 		Log(LG_PHYS, ("[%s] Accepting UDP connection from %s %u to %s %u",
 		    l->name, u_addrtoa(&addr, buf, sizeof(buf)), port,
 		    u_addrtoa(&If->self_addr, buf1, sizeof(buf1)), If->self_port));

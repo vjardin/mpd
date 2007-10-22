@@ -554,6 +554,10 @@ BundCreateOpenLink(Bund b, int n)
 		l = LinkInst(lt, NULL, 0, 0);
 	    } else
 		l = lt;
+	    if (!l) {
+		Log(LG_BUND, ("[%s] Bund: Link \"%s\" creation error", b->name, b->conf.linkst[n]));
+		return (-1);
+	    }
 	    b->links[n] = l;
 	    b->n_links++;
 	    l->bund = b;

@@ -880,16 +880,15 @@ PppoeListenEvent(int type, void *arg)
 		}
 	}
 	
-	if (l != NULL && l->tmpl) {
+	if (l != NULL && l->tmpl)
 	    l = LinkInst(l, NULL, 0, 0);
-	    pi = (PppoeInfo)l->info;
-	}
 
-	if (pi == NULL) {
+	if (l == NULL) {
 		Log(LG_PHYS, ("No free PPPoE link with requested parameters "
 		    "was found"));
 		return;
 	}
+	pi = (PppoeInfo)l->info;
 	
 	Log(LG_PHYS, ("[%s] Accepting PPPoE connection", l->name));
 
