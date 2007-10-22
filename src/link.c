@@ -42,6 +42,7 @@
     SET_MTU,
     SET_FSM_RETRY,
     SET_MAX_RETRY,
+    SET_MAX_CHILDREN,
     SET_KEEPALIVE,
     SET_IDENT,
     SET_ACCEPT,
@@ -90,6 +91,8 @@
 	LinkSetCommand, NULL, (void *) SET_FSM_RETRY },
     { "max-redial {num}",		"Max connect attempts",
 	LinkSetCommand, NULL, (void *) SET_MAX_RETRY },
+    { "max-children {num}",		"Max number of template children",
+	LinkSetCommand, NULL, (void *) SET_MAX_CHILDREN },
     { "keep-alive {secs} {max}",	"LCP echo keep-alives",
 	LinkSetCommand, NULL, (void *) SET_KEEPALIVE },
     { "ident {string}",			"LCP ident string",
@@ -351,6 +354,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	l->type = pt;
 	l->tmpl = tmpl;
 	l->stay = stay;
+	l->parent = -1;
 	l->csock = -1;
 	l->dsock = -1;
 	SLIST_INIT(&l->actions);
@@ -362,6 +366,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
         l->conf.accmap = 0x000a0000;
         l->conf.max_redial = -1;
         l->conf.retry_timeout = LINK_DEFAULT_RETRY;
+	l->conf.max_children = 10000;
         l->bandwidth = LINK_DEFAULT_BANDWIDTH;
         l->latency = LINK_DEFAULT_LATENCY;
         l->upReason = NULL;
@@ -495,6 +500,10 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
 	l->msgs = MsgRegister(LinkMsg);
     l->tmpl = tmpl;
     l->stay = stay;
+    /* Count link as one more child of parent. */
+    lt->children++;
+    l->parent = lt->id;
+    l->children = 0;
     l->refs = 0;
 
     /* Find a free link pointer */
@@ -534,6 +543,17 @@ LinkShutdown(Link l)
 	l->bund = NULL;
     }
     gLinks[l->id] = NULL;
+    /* Our parent lost one children */
+    if (l->parent >= 0)
+	gLinks[l->parent]->children--;
+    /* Our children are orphans */
+    if (l->children) {
+	int k;
+	for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++) {
+	    if (gLinks[k]->parent == l->id)
+		gLinks[k]->parent = 0;
+	}
+    }
     MsgUnRegister(&l->msgs);
     if (l->csock >= 0)
 	LinkNgShutdown(l, 1);
@@ -1007,7 +1027,7 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 
     Printf("Link %s%s:\r\n", l->name, l->tmpl?" (template)":(l->stay?" (static)":""));
 
-    Printf("Configuration\r\n");
+    Printf("Configuration:\r\n");
     Printf("\tMRU            : %d bytes\r\n", l->conf.mru);
     Printf("\tMRRU           : %d bytes\r\n", l->conf.mrru);
     Printf("\tCtrl char map  : 0x%08x bytes\r\n", l->conf.accmap);
@@ -1028,16 +1048,21 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 	Printf("every %d secs, timeout %d\r\n",
     	    l->lcp.fsm.conf.echo_int, l->lcp.fsm.conf.echo_max);
     Printf("\tIdent string   : \"%s\"\r\n", l->conf.ident ? l->conf.ident : "");
-    Printf("\tSession-Id     : %s\r\n", l->session_id);
+    if (l->tmpl)
+	Printf("\tMax children   : %d\r\n", l->conf.max_children);
     Printf("Link incoming actions:\r\n");
     SLIST_FOREACH(a, &l->actions, next) {
 	Printf("\t%s\t%s\t%s\r\n", 
 	    (a->action == LINK_ACTION_FORWARD)?"Forward":"Bundle",
 	    a->arg, a->regex);
     }
-    Printf("Link level options\r\n");
+    Printf("Link level options:\r\n");
     OptStat(ctx, &l->conf.options, gConfList);
 
+    Printf("Link state:\r\n");
+    if (l->tmpl)
+	Printf("\tChildren       : %d\r\n", l->children);
+    Printf("\tSession-Id     : %s\r\n", l->session_id);
     if (!l->tmpl) {
 	Printf("Up/Down stats:\r\n");
 	if (l->downReason && (!l->downReasonValid))
@@ -1225,6 +1250,19 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 
 	case SET_MAX_RETRY:
     	    l->conf.max_redial = atoi(*av);
+    	    break;
+
+	case SET_MAX_CHILDREN:
+	    if (!l->tmpl) {
+		Log(LG_ERR, ("[%s] max-children applicable only to templates", l->name));
+		break;
+	    }
+	    val = atoi(*av);
+	    if (val < 0 || val > 100000) {
+		Log(LG_ERR, ("[%s] incorrect max-children value %d", l->name, val));
+		break;
+	    }
+    	    l->conf.max_children = val;
     	    break;
 
 	case SET_ACCMAP:

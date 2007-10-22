@@ -314,10 +314,12 @@ pppoe_server:
 
 # Create templates for ifaces to listen using 'common' template and let them go
 	create link template fxp0 common
+	set link max-children 1000
 	set pppoe iface fxp0
 	set link enable incoming
 
 	create link template fxp1 common
+	set link max-children 500
 	set pppoe iface fxp1
 	set link enable incoming
 

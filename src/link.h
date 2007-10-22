@@ -84,6 +84,7 @@
     short		max_redial;	/* Max failed connect attempts */
     char		*ident;		/* LCP ident string */
     struct optinfo	options;	/* Configured options */
+    int			max_children;	/* Maximal number of children */
   };
 
   struct linkbm {
@@ -107,6 +108,8 @@
     int			id;			/* Index of this link in gLinks */
     int			tmpl;			/* This is template, not an instance */
     int			stay;			/* Must not disappear */
+    int			parent;			/* Index of the parent in gLinks */
+    int			children;		/* Number of children */
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
     Rep			rep;			/* Rep connected to the device */

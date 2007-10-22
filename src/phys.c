@@ -397,7 +397,9 @@ PhysGetCalledNum(Link l, char *buf, int buf_len)
 int
 PhysIsBusy(Link l)
 {
-    return (l->die || l->rep || l->state != PHYS_STATE_DOWN || l->lcp.fsm.state != ST_INITIAL);
+    return (l->die || l->rep || l->state != PHYS_STATE_DOWN ||
+	l->lcp.fsm.state != ST_INITIAL ||
+	(l->tmpl && l->children >= l->conf.max_children));
 }
 
 /*

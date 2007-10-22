@@ -8,6 +8,12 @@
   <p>
     Changes since version 5.0b1:
     <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added 'set link max-children ...' command.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Rewritten PPPoE, L2TP, TCP and UDP link types to fulfill new
