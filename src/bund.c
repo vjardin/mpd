@@ -386,6 +386,7 @@ BundLeave(Link l)
 
     /* Disable link */
     b->pppConfig.links[l->bundleIndex].enableLink = 0;
+    b->pppConfig.links[l->bundleIndex].mru = LCP_DEFAULT_MRU;
     NgFuncSetConfig(b);
 
     LinkNgLeave(l);
