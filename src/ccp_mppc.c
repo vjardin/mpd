@@ -558,7 +558,7 @@ MppeInitKey(Bund b, MppcInfo mppc, int dir)
 			mppc->xmit_bits : mppc->recv_bits;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_key0 : mppc->recv_key0;
-  u_char	hash[16];
+  u_char	hash[MPPE_KEY_LEN];
   u_char	*chal;
 
   /* The secret comes from the originating caller's credentials */
@@ -605,7 +605,7 @@ MppeInitKeyv2(Bund b, MppcInfo mppc, int dir)
   CcpState	const ccp = &b->ccp;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_key0 : mppc->recv_key0;
-  u_char	hash[16];
+  u_char	hash[MPPE_KEY_LEN];
   u_char	*resp;
 
   if (b->params.msoft.has_keys)
