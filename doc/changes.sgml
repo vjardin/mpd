@@ -25,6 +25,9 @@
 	  </item>
 	  <item> Improved IfaceIp[v6]IfaceUp() errors handeling.
 	  </item>
+	  <item> Restore link MRU to default after use.
+		 Should help with some EAP-TLS cases.
+	  </item>
 	  <item> Many small fixes.
 	  </item>
 	</itemize>
