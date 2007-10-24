@@ -92,7 +92,7 @@
 
   /* max. number of acl_filters */
   #define ACL_FILTERS	16
-  /* max. number of acl_filters */
+  /* There are two directions for acl_limits */
   #define ACL_DIRS	2
 
   struct authparams {
