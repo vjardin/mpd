@@ -37,7 +37,7 @@ Similarly, mpd will not open a link unless previous was opened at least
 help prevent oscillations, but cause slower response time.
 
 <tag><tt>
-set bundle retry <em>seconds</em>
+set bundle fsm-timeout <em>seconds</em>
 </tt></tag>
 
 This sets the finite state machine (FSM) retry interval for all

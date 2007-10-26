@@ -32,6 +32,12 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> Changes:
+	<itemize>
+	  <item> 'set bundle retry' commend renamed to 'set bundle fsm-timeout'.
+	  </item>
+	</itemize>
+	</item>
     </itemize>
     Changes since version 4:
     <itemize>

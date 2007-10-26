@@ -108,7 +108,7 @@
 	BundSetCommand, NULL, (void *) SET_MIN_DISCONNECT },
     { "links {link list ...}",		"Links list for BoD/DoD",
 	BundSetCommand, NULL, (void *) SET_LINKS },
-    { "retry {seconds}",		"FSM retry timeout",
+    { "fsm-timeout {seconds}",		"FSM retry timeout",
 	BundSetCommand, NULL, (void *) SET_RETRY },
     { "accept {opt ...}",		"Accept option",
 	BundSetCommand, NULL, (void *) SET_ACCEPT },
@@ -1912,68 +1912,71 @@ static int
 BundSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
     Bund	b = ctx->bund;
-    int		i;
+    int		i, val;
 
-  if (ac == 0)
-    return(-1);
-  switch ((intptr_t)arg) {
-    case SET_PERIOD:
-      b->conf.bm_S = atoi(*av);
-      break;
-    case SET_LOW_WATER:
-      b->conf.bm_Lo = atoi(*av);
-      break;
-    case SET_HIGH_WATER:
-      b->conf.bm_Hi = atoi(*av);
-      break;
-    case SET_MIN_CONNECT:
-      b->conf.bm_Mc = atoi(*av);
-      break;
-    case SET_MIN_DISCONNECT:
-      b->conf.bm_Md = atoi(*av);
-      break;
-    case SET_LINKS:
-	if (ac > NG_PPP_MAX_LINKS)
-	    return (-1);
-        for (i = 0; i < ac; i++)
-	    strncpy(b->conf.linkst[i], av[i], LINK_MAX_NAME);
-        for (; i < NG_PPP_MAX_LINKS; i++)
-	    b->conf.linkst[i][0] = 0;
-        break;
+    if (ac == 0)
+	return(-1);
+    switch ((intptr_t)arg) {
+	case SET_PERIOD:
+    	    b->conf.bm_S = atoi(*av);
+    	    break;
+	case SET_LOW_WATER:
+    	    b->conf.bm_Lo = atoi(*av);
+    	    break;
+	case SET_HIGH_WATER:
+    	    b->conf.bm_Hi = atoi(*av);
+    	    break;
+	case SET_MIN_CONNECT:
+    	    b->conf.bm_Mc = atoi(*av);
+    	    break;
+	case SET_MIN_DISCONNECT:
+    	    b->conf.bm_Md = atoi(*av);
+    	    break;
+	case SET_LINKS:
+	    if (ac > NG_PPP_MAX_LINKS)
+		return (-1);
+    	    for (i = 0; i < ac; i++)
+		strncpy(b->conf.linkst[i], av[i], LINK_MAX_NAME);
+    	    for (; i < NG_PPP_MAX_LINKS; i++)
+	        b->conf.linkst[i][0] = 0;
+    	    break;
 
-    case SET_RETRY:
-      b->conf.retry_timeout = atoi(*av);
-      if (b->conf.retry_timeout < 1 || b->conf.retry_timeout > 10)
-	b->conf.retry_timeout = BUND_DEFAULT_RETRY;
-      break;
+	case SET_RETRY:
+    	    val = atoi(*av);
+    	    if (val < 1 || val > 10) {
+		Log(LG_ERR, ("[%s] incorrect fsm-timeout value %d", b->name, val));
+	    } else {
+		b->conf.retry_timeout = val;
+	    }
+    	    break;
 
-    case SET_ACCEPT:
-      AcceptCommand(ac, av, &b->conf.options, gConfList);
-      break;
+	case SET_ACCEPT:
+    	    AcceptCommand(ac, av, &b->conf.options, gConfList);
+    	    break;
 
-    case SET_DENY:
-      DenyCommand(ac, av, &b->conf.options, gConfList);
-      break;
+	case SET_DENY:
+    	    DenyCommand(ac, av, &b->conf.options, gConfList);
+    	    break;
 
-    case SET_ENABLE:
-      EnableCommand(ac, av, &b->conf.options, gConfList);
-      break;
+	case SET_ENABLE:
+    	    EnableCommand(ac, av, &b->conf.options, gConfList);
+    	    break;
 
-    case SET_DISABLE:
-      DisableCommand(ac, av, &b->conf.options, gConfList);
-      break;
+	case SET_DISABLE:
+    	    DisableCommand(ac, av, &b->conf.options, gConfList);
+    	    break;
 
-    case SET_YES:
-      YesCommand(ac, av, &b->conf.options, gConfList);
-      break;
+	case SET_YES:
+    	    YesCommand(ac, av, &b->conf.options, gConfList);
+    	    break;
 
-    case SET_NO:
-      NoCommand(ac, av, &b->conf.options, gConfList);
-      break;
+	case SET_NO:
+    	    NoCommand(ac, av, &b->conf.options, gConfList);
+    	    break;
 
-    default:
-      assert(0);
-  }
-  return(0);
+	default:
+    	    assert(0);
+    }
+    return(0);
 }
 

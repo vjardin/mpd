@@ -1243,9 +1243,12 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 
 	case SET_FSM_RETRY:
-    	    l->conf.retry_timeout = atoi(*av);
-    	    if (l->conf.retry_timeout < 1 || l->conf.retry_timeout > 10)
-		l->conf.retry_timeout = LINK_DEFAULT_RETRY;
+    	    val = atoi(*av);
+    	    if (val < 1 || val > 10) {
+		Log(LG_ERR, ("[%s] incorrect fsm-timeout value %d", l->name, val));
+	    } else {
+		l->conf.retry_timeout = val;
+	    }
     	    break;
 
 	case SET_MAX_RETRY:
