@@ -213,9 +213,13 @@ MppcInit(Bund b, int dir)
 static int
 MppcConfigure(Bund b)
 {
-    CcpState	const ccp = &b->ccp;
+    MppcInfo	const mppc = &b->ccp.mppc;
 
-    if (Enabled(&ccp->mppc.options, MPPC_CONF_COMPRESS)
+    mppc->peer_reject = 0;
+    mppc->recv_bits = 0;
+    mppc->xmit_bits = 0;
+
+    if (Enabled(&mppc->options, MPPC_CONF_COMPRESS)
       && MPPCPresent)
 	return (0);
 
@@ -335,30 +339,29 @@ MppcCleanup(Bund b, int dir)
 static u_char *
 MppcBuildConfigReq(Bund b, u_char *cp, int *ok)
 {
-  CcpState	const ccp = &b->ccp;
-  MppcInfo	const mppc = &ccp->mppc;
+  MppcInfo	const mppc = &b->ccp.mppc;
   u_int32_t	bits = 0;
 
   /* Compression */
-  if (Enabled(&ccp->mppc.options, MPPC_CONF_COMPRESS)
-      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_COMPRESS)
+  if (Enabled(&mppc->options, MPPC_CONF_COMPRESS)
+      && !MPPC_PEER_REJECTED(mppc, MPPC_CONF_COMPRESS)
       && MPPCPresent)
     bits |= MPPC_BIT;
 
   /* Encryption */
   if (MppcEnabledMppeType(b, 40)
-      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_40)) 
+      && !MPPC_PEER_REJECTED(mppc, MPPC_CONF_40)) 
     bits |= MPPE_40;
   if (MppcEnabledMppeType(b, 56)
-      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_56)) 
+      && !MPPC_PEER_REJECTED(mppc, MPPC_CONF_56)) 
     bits |= MPPE_56;
   if (MppcEnabledMppeType(b, 128)
-      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_128)) 
+      && !MPPC_PEER_REJECTED(mppc, MPPC_CONF_128)) 
     bits |= MPPE_128;
 
   /* Stateless mode */
-  if (Enabled(&ccp->mppc.options, MPPC_CONF_STATELESS)
-      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_STATELESS)
+  if (Enabled(&mppc->options, MPPC_CONF_STATELESS)
+      && !MPPC_PEER_REJECTED(mppc, MPPC_CONF_STATELESS)
       && bits != 0)
     bits |= MPPE_STATELESS;
 
@@ -381,8 +384,7 @@ static void
 MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 {
     Bund 	b = (Bund)fp->arg;
-  CcpState	const ccp = &b->ccp;
-  MppcInfo	const mppc = &ccp->mppc;
+  MppcInfo	const mppc = &b->ccp.mppc;
   u_int32_t	orig_bits;
   u_int32_t	bits;
   char		buf[64];
@@ -414,7 +416,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
       }
 
       /* Check compression */
-      if (!Acceptable(&ccp->mppc.options, MPPC_CONF_COMPRESS) || !MPPCPresent)
+      if (!Acceptable(&mppc->options, MPPC_CONF_COMPRESS) || !MPPCPresent)
 	bits &= ~MPPC_BIT;
 
       /* Check encryption */
@@ -443,7 +445,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
       /* Stateless mode */
       if ((bits & MPPE_STATELESS) && 
-    	  (!Acceptable(&ccp->mppc.options, MPPC_CONF_STATELESS)
+    	  (!Acceptable(&mppc->options, MPPC_CONF_STATELESS)
 	    || (bits & (MPPE_BITS|MPPC_BIT)) == 0))
 	bits &= ~MPPE_STATELESS;
 
@@ -464,15 +466,15 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
     case MODE_NAK:
       if (!(bits & MPPC_BIT))
-	CCP_PEER_REJ(ccp, MPPC_CONF_COMPRESS);
+	MPPC_PEER_REJ(mppc, MPPC_CONF_COMPRESS);
       if (!(bits & MPPE_40))
-	CCP_PEER_REJ(ccp, MPPC_CONF_40);
+	MPPC_PEER_REJ(mppc, MPPC_CONF_40);
       if (!(bits & MPPE_56))
-	CCP_PEER_REJ(ccp, MPPC_CONF_56);
+	MPPC_PEER_REJ(mppc, MPPC_CONF_56);
       if (!(bits & MPPE_128))
-	CCP_PEER_REJ(ccp, MPPC_CONF_128);
+	MPPC_PEER_REJ(mppc, MPPC_CONF_128);
       if (!(bits & MPPE_STATELESS))
-	CCP_PEER_REJ(ccp, MPPC_CONF_STATELESS);
+	MPPC_PEER_REJ(mppc, MPPC_CONF_STATELESS);
       break;
   }
 }
@@ -534,7 +536,7 @@ MppcDescribeBits(u_int32_t bits, char *buf, size_t len)
 static short
 MppcEnabledMppeType(Bund b, short type)
 {
-    CcpState	const ccp = &b->ccp;
+    MppcInfo	const mppc = &b->ccp.mppc;
     short	ret;
 
     /* Check if we have kernel support */
@@ -547,33 +549,33 @@ MppcEnabledMppeType(Bund b, short type)
 
     switch (type) {
     case 40:
-	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+	if (Enabled(&mppc->options, MPPC_CONF_POLICY)) {
     	    ret = (b->params.msoft.types & MPPE_TYPE_40BIT) &&
-		!CCP_PEER_REJECTED(ccp, MPPC_CONF_40);
+		!MPPC_PEER_REJECTED(mppc, MPPC_CONF_40);
 	} else {
-    	    ret = Enabled(&ccp->mppc.options, MPPC_CONF_40) &&
-		!CCP_PEER_REJECTED(ccp, MPPC_CONF_40);
+    	    ret = Enabled(&mppc->options, MPPC_CONF_40) &&
+		!MPPC_PEER_REJECTED(mppc, MPPC_CONF_40);
 	}
 	break;
 
     case 56:
-	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+	if (Enabled(&mppc->options, MPPC_CONF_POLICY)) {
     	    ret = (b->params.msoft.types & MPPE_TYPE_56BIT) &&
-		!CCP_PEER_REJECTED(ccp, MPPC_CONF_56);
+		!MPPC_PEER_REJECTED(mppc, MPPC_CONF_56);
 	} else {
-    	    ret = Enabled(&ccp->mppc.options, MPPC_CONF_56) &&
-		!CCP_PEER_REJECTED(ccp, MPPC_CONF_56);
+    	    ret = Enabled(&mppc->options, MPPC_CONF_56) &&
+		!MPPC_PEER_REJECTED(mppc, MPPC_CONF_56);
 	}
 	break;
       
     case 128:
     default:
-	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+	if (Enabled(&mppc->options, MPPC_CONF_POLICY)) {
     	    ret = (b->params.msoft.types & MPPE_TYPE_128BIT) &&
-		!CCP_PEER_REJECTED(ccp, MPPC_CONF_128);
+		!MPPC_PEER_REJECTED(mppc, MPPC_CONF_128);
 	} else {
-    	    ret = Enabled(&ccp->mppc.options, MPPC_CONF_128) &&
-		!CCP_PEER_REJECTED(ccp, MPPC_CONF_128);
+    	    ret = Enabled(&mppc->options, MPPC_CONF_128) &&
+		!MPPC_PEER_REJECTED(mppc, MPPC_CONF_128);
 	}
     }
 
@@ -583,7 +585,7 @@ MppcEnabledMppeType(Bund b, short type)
 static short
 MppcAcceptableMppeType(Bund b, short type)
 {
-    CcpState	const ccp = &b->ccp;
+    MppcInfo	const mppc = &b->ccp.mppc;
     short	ret;
   
     /* Check if we have kernel support */
@@ -596,27 +598,27 @@ MppcAcceptableMppeType(Bund b, short type)
 
     switch (type) {
     case 40:
-	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+	if (Enabled(&mppc->options, MPPC_CONF_POLICY)) {
     	    ret = b->params.msoft.types & MPPE_TYPE_40BIT;
 	} else {
-    	    ret = Acceptable(&ccp->mppc.options, MPPC_CONF_40);
+    	    ret = Acceptable(&mppc->options, MPPC_CONF_40);
 	}
 	break;
 
     case 56:
-	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+	if (Enabled(&mppc->options, MPPC_CONF_POLICY)) {
     	    ret = b->params.msoft.types & MPPE_TYPE_56BIT;
 	} else {
-    	    ret = Acceptable(&ccp->mppc.options, MPPC_CONF_56);
+    	    ret = Acceptable(&mppc->options, MPPC_CONF_56);
 	}
 	break;
       
     case 128:
     default:
-	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+	if (Enabled(&mppc->options, MPPC_CONF_POLICY)) {
     	    ret = b->params.msoft.types & MPPE_TYPE_128BIT;
 	} else {
-    	    ret = Acceptable(&ccp->mppc.options, MPPC_CONF_128);
+    	    ret = Acceptable(&mppc->options, MPPC_CONF_128);
 	}
     }
 
