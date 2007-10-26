@@ -25,7 +25,7 @@
  * DEFINITIONS
  */
 
-  #define AUTH_RETRIES		3
+  #define AUTH_RETRIES		5
 
   #define AUTH_MSG_WELCOME	"Welcome"
   #define AUTH_MSG_INVALID	"Login incorrect"
