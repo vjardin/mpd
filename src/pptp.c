@@ -210,9 +210,6 @@ PptpInit(Link l)
     pptp->conf.self_addr.family = AF_INET;
     Enable(&pptp->conf.options, PPTP_CONF_OUTCALL);
     Enable(&pptp->conf.options, PPTP_CONF_DELAYED_ACK);
-#if NGM_PPTPGRE_COOKIE >= 1082548365
-    Enable(&pptp->conf.options, PPTP_CONF_WINDOWING);
-#endif
 
     /* Initialize first time */
     if (!gInitialized)

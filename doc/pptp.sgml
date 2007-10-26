@@ -121,12 +121,11 @@ on unreliable links. Default is off.
 <tag><tt>windowing</tt></tag>
 
 Enables the windowing mechanism specified by the protocol. Disabling 
-this will cause Mpd to violate the protocol, possibly confusing other 
-PPTP peers, but often results in better performance. The windowing 
+this will cause Mpd to violate the protocol, possibly confusing some 
+PPTP peers, but usually results in better performance. The windowing 
 mechanism is a design error in the PPTP protocol; L2TP, the successor 
-to PPTP, removes it. You need a recent version of FreeBSD 
-(NGM_PPTPGRE_COOKIE &gt;= 1082548365) in order to get this feature.
-Default is on.
+to PPTP, removes it.
+Default is off.
 
 </descrip>
 

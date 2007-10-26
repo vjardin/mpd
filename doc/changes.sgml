@@ -36,6 +36,10 @@
 	<itemize>
 	  <item> 'set bundle retry' commend renamed to 'set bundle fsm-timeout'.
 	  </item>
+	  <item> Increased number of auth retries to 5.
+	  </item>
+	  <item> PPTP windowing is disabled by default.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
