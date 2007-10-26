@@ -34,6 +34,7 @@
  */
 
   static int	MppcInit(Bund b, int dir);
+  static int	MppcConfigure(Bund b);
   static char	*MppcDescribe(Bund b, int xmit, char *buf, size_t len);
   static int	MppcSubtractBloat(Bund b, int size);
   static void	MppcCleanup(Bund b, int dir);
@@ -48,6 +49,7 @@
   static void	MppeInitKeyv2(Bund b, MppcInfo mppc, int dir);
   static short	MppcEnabledMppeType(Bund b, short type);
   static short	MppcAcceptableMppeType(Bund b, short type);
+  static int	MppcKeyAvailable(Bund b, short type);
 
 #ifdef DEBUG_KEYS
   static void	KeyDebug(const u_char *data, int len, const char *fmt, ...);
@@ -65,7 +67,7 @@
     CCP_TY_MPPC,
     1,
     MppcInit,
-    NULL,
+    MppcConfigure,
     NULL,
     MppcDescribe,
     MppcSubtractBloat,
@@ -80,6 +82,8 @@
     NULL,
     NULL,
   };
+  int	MPPCPresent = 0;
+  int	MPPEPresent = 0;
 
 /*
  * MppcInit()
@@ -157,6 +161,30 @@ MppcInit(Bund b, int dir)
 
   /* Done */
   return(0);
+}
+
+static int
+MppcConfigure(Bund b)
+{
+    CcpState	const ccp = &b->ccp;
+
+    if (Enabled(&ccp->options, gMppcCompress)
+      && MPPCPresent)
+	return (0);
+
+    if ((MppcEnabledMppeType(b, 40) || MppcAcceptableMppeType(b, 40))
+      && MPPEPresent) 
+	return (0);
+#ifndef MPPE_56_UNSUPPORTED
+    if ((MppcEnabledMppeType(b, 56) || MppcAcceptableMppeType(b, 40))
+      && MPPEPresent) 
+	return (0);
+#endif
+    if ((MppcEnabledMppeType(b, 128) || MppcAcceptableMppeType(b, 40))
+      && MPPEPresent) 
+	return (0);
+    
+    return (-1);
 }
 
 /*
@@ -271,20 +299,24 @@ MppcBuildConfigReq(Bund b, u_char *cp, int *ok)
 
   /* Compression */
   if (Enabled(&ccp->options, gMppcCompress)
-      && !CCP_PEER_REJECTED(ccp, gMppcCompress))
+      && !CCP_PEER_REJECTED(ccp, gMppcCompress)
+      && MPPCPresent)
     bits |= MPPC_BIT;
 
   /* Encryption */
   if (MppcEnabledMppeType(b, 40)
-      && !CCP_PEER_REJECTED(ccp, gMppe40)) 
+      && !CCP_PEER_REJECTED(ccp, gMppe40)
+      && MPPEPresent) 
     bits |= MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
   if (MppcEnabledMppeType(b, 56)
-      && !CCP_PEER_REJECTED(ccp, gMppe56)) 
+      && !CCP_PEER_REJECTED(ccp, gMppe56)
+      && MPPEPresent) 
     bits |= MPPE_56;
 #endif
   if (MppcEnabledMppeType(b, 128)
-      && !CCP_PEER_REJECTED(ccp, gMppe128)) 
+      && !CCP_PEER_REJECTED(ccp, gMppe128)
+      && MPPEPresent) 
     bits |= MPPE_128;
 
   /* Stateless mode */
@@ -345,26 +377,24 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
       }
 
       /* Check compression */
-      if ((bits & MPPC_BIT) && !Acceptable(&ccp->options, gMppcCompress))
+      if (!Acceptable(&ccp->options, gMppcCompress) || !MPPCPresent)
 	bits &= ~MPPC_BIT;
 
       /* Check encryption */
-      if ((bits & MPPE_40) && !MppcAcceptableMppeType(b, 40))
+      if (!MppcAcceptableMppeType(b, 40) || !MPPEPresent)
 	bits &= ~MPPE_40;
 #ifndef MPPE_56_UNSUPPORTED
-      if ((bits & MPPE_56) && !MppcAcceptableMppeType(b, 56))
+      if (!MppcAcceptableMppeType(b, 56) || !MPPEPresent)
 #endif
 	bits &= ~MPPE_56;
-      if ((bits & MPPE_128) && !MppcAcceptableMppeType(b, 128))
+      if (!MppcAcceptableMppeType(b, 128) || !MPPEPresent)
 	bits &= ~MPPE_128;
 
       /* Choose the strongest encryption available */
       if (bits & MPPE_128)
 	bits &= ~(MPPE_40|MPPE_56);
       else if (bits & MPPE_56)
-	bits &= ~(MPPE_40|MPPE_128);
-      else if (bits & MPPE_40)
-	bits &= ~(MPPE_56|MPPE_128);
+	bits &= ~MPPE_40;
 
       /* It doesn't really make sense to encrypt in only one direction.
 	 Also, Win95/98 PPTP can't handle uni-directional encryption. So
@@ -471,9 +501,13 @@ MppcDescribeBits(u_int32_t bits, char *buf, size_t len)
 static short
 MppcEnabledMppeType(Bund b, short type)
 {
-  CcpState	const ccp = &b->ccp;
-  short		ret;
- 
+    CcpState	const ccp = &b->ccp;
+    short	ret;
+
+    /* Check if we are able to calculate key */
+    if (!MppcKeyAvailable(b, type))
+	return (0);
+
   switch (type) {
   case 40:
     if (Enabled(&ccp->options, gMppePolicy)) {
@@ -509,9 +543,13 @@ MppcEnabledMppeType(Bund b, short type)
 static short
 MppcAcceptableMppeType(Bund b, short type)
 {
-  CcpState	const ccp = &b->ccp;
-  short		ret;
+    CcpState	const ccp = &b->ccp;
+    short	ret;
   
+    /* Check if we are able to calculate key */
+    if (!MppcKeyAvailable(b, type))
+	return (0);
+
   switch (type) {
   case 40:
     if (Enabled(&ccp->options, gMppePolicy)) {
@@ -668,4 +706,84 @@ KeyDebug(const u_char *data, int len, const char *fmt, ...)
 }
 
 #endif	/* DEBUG_KEYS */
+
+static int
+MppcKeyAvailable(Bund b, short type) {
+
+    if (b->params.msoft.chap_alg == CHAP_ALG_MSOFT) {
+	if (((type == 128) && (!b->params.msoft.has_nt_hash)) ||
+	    ((type != 128) && (!b->params.msoft.has_lm_hash))) {
+		return (0);
+	}
+    } else {
+	if (!b->params.msoft.has_keys && !b->params.msoft.has_nt_hash) {
+	    return (0);
+	}
+    }
+    return (1);
+}
+
+/*
+ * MppcTestCap()
+ */
+
+int
+MppcTestCap(void)
+{
+    struct ng_mppc_config	conf;
+    struct ngm_mkpeer		mp;
+    char			path[NG_PATHSIZ];
+    int				cs, ds;
+
+    /* Create a netgraph socket node */
+    if (NgMkSockNode(NULL, &cs, &ds) < 0) {
+	Log(LG_ERR, ("MppcTestCap: can't create socket node: %s",
+    	    strerror(errno)));
+    	return(-1);
+    }
+
+    /* Attach a new MPPC node */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_MPPC_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "mppc");
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_MPPC_HOOK_COMP);
+    if (NgSendMsg(cs, ".",
+      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+	Log(LG_ERR, ("MppcTestCap: can't create %s node: %s",
+    	    mp.type, strerror(errno)));
+	goto done;
+    }
+
+    /* Initialize configuration structure */
+    memset(&conf, 0, sizeof(conf));
+    conf.enable = 1;
+    conf.bits = MPPC_BIT;
+
+    /* Configure MPPC node */
+    if (NgSendMsg(cs, "mppc",
+      NGM_MPPC_COOKIE, NGM_MPPC_CONFIG_COMP, &conf, sizeof(conf)) < 0) {
+        if (errno != EPROTONOSUPPORT) {
+	    Log(LG_ERR, ("MppcTestCap: can't config %s node at %s: %s",
+    		NG_MPPC_NODE_TYPE, path, strerror(errno)));
+	}
+    } else 
+	MPPCPresent = 1;
+
+    conf.bits = MPPE_128;
+
+    /* Configure MPPC node */
+    if (NgSendMsg(cs, "mppc",
+      NGM_MPPC_COOKIE, NGM_MPPC_CONFIG_COMP, &conf, sizeof(conf)) < 0) {
+        if (errno != EPROTONOSUPPORT) {
+	    Log(LG_ERR, ("MppcTestCap: can't config %s node at %s: %s",
+    		NG_MPPC_NODE_TYPE, path, strerror(errno)));
+	}
+    } else 
+	MPPEPresent = 1;
+
+    /* Done */
+done:
+    close(cs);
+    close(ds);
+    return(0);
+}
 

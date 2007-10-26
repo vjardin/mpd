@@ -28,6 +28,7 @@
 #include "devices.h"
 #include "netgraph.h"
 #include "ngfunc.h"
+#include "ccp_mppc.h"
 #include "util.h"
 
 /*
@@ -575,7 +576,7 @@ static int
 ShowVersion(Context ctx, int ac, char *av[], void *arg)
 {
   Printf("MPD version: %s\r\n", gVersion);
-  Printf("  Compiled-in system features:\r\n");
+  Printf("  Available features:\r\n");
 #ifdef	USE_NG_CAR
   Printf("	ng_car		: yes\r\n");
 #else
@@ -591,6 +592,8 @@ ShowVersion(Context ctx, int ac, char *av[], void *arg)
 #else
   Printf("	ng_ipacct	: no\r\n");
 #endif
+  Printf("	ng_mppc (MPPC)	: %s\r\n", MPPCPresent?"yes":"no");
+  Printf("	ng_mppc (MPPE)	: %s\r\n", MPPEPresent?"yes":"no");
 #ifdef	USE_NG_NAT
   Printf("	ng_nat		: yes\r\n");
 #else

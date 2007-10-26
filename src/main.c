@@ -19,6 +19,7 @@
 #include "ngfunc.h"
 #include "util.h"
 #include "ippool.h"
+#include "ccp_mppc.h"
 
 #include <netgraph.h>
 
@@ -193,6 +194,7 @@ main(int ac, char *av[])
     /* Do some initialization */
     MpSetDiscrim();
     IPPoolInit();
+    MppcTestCap();
 
     ret = pthread_mutex_init (&gGiantMutex, NULL);
     if (ret != 0) {

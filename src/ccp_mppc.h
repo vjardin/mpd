@@ -46,6 +46,10 @@
  */
 
   extern const struct comptype	gCompMppcInfo;
+  extern int   MPPCPresent;
+  extern int   MPPEPresent;
+
+int MppcTestCap(void);
 
 #endif
 

@@ -32,7 +32,7 @@
     /*
      * Reset any type-specific configuration options to their defaults.
      */
-    void	(*Configure)(Bund b);
+    int		(*Configure)(Bund b);
     /*
      * Do the opposite of Configure
      */

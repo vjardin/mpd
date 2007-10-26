@@ -238,21 +238,29 @@ static void
 CcpConfigure(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
-  CcpState	const ccp = &b->ccp;
-  int		k;
+    CcpState	const ccp = &b->ccp;
+    int		k;
 
-  /* Reset state */
-  ccp->self_reject = 0;
-  ccp->peer_reject = 0;
-  ccp->crypt_check = 0;
-  ccp->xmit = NULL;
-  ccp->recv = NULL;
-  for (k = 0; k < CCP_NUM_PROTOS; k++) {
-    CompType	const ct = gCompTypes[k];
+    /* Reset state */
+    ccp->self_reject = 0;
+    ccp->peer_reject = 0;
+    ccp->crypt_check = 0;
+    ccp->xmit = NULL;
+    ccp->recv = NULL;
+    for (k = 0; k < CCP_NUM_PROTOS; k++) {
+	CompType	const ct = gCompTypes[k];
 
-    if (ct->Configure)
-      (*ct->Configure)(b);
-  }
+	if (ct->Configure) {
+    	    if ((*ct->Configure)(b)) {
+		if (Enabled(&ccp->options, k)) {
+		    Log(LG_CCP, ("[%s] CCP: Protocol %s disabled "
+			"as useless for this setup",
+			b->name, ct->name));
+		}
+		CCP_SELF_REJ(ccp, k);
+	    };
+	}
+    }
 }
 
 /*

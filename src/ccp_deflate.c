@@ -22,7 +22,7 @@
  */
 
   static int	DeflateInit(Bund b, int direction);
-  static void   DeflateConfigure(Bund b);
+  static int	DeflateConfigure(Bund b);
   static char   *DeflateDescribe(Bund b, int xmit, char *buf, size_t len);
   static void	DeflateCleanup(Bund b, int direction);
 
@@ -123,14 +123,16 @@ DeflateInit(Bund b, int dir)
  * DeflateConfigure()
  */
 
-static void
+static int
 DeflateConfigure(Bund b)
 {
-  CcpState	const ccp = &b->ccp;
-  DeflateInfo	const deflate = &ccp->deflate;
+    CcpState	const ccp = &b->ccp;
+    DeflateInfo	const deflate = &ccp->deflate;
   
-  deflate->xmit_windowBits=15;
-  deflate->recv_windowBits=0;
+    deflate->xmit_windowBits=15;
+    deflate->recv_windowBits=0;
+  
+    return(0);
 }
 
 /*

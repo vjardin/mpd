@@ -28,6 +28,10 @@
 	  <item> Restore link MRU to default after use.
 		 Should help with some EAP-TLS cases.
 	  </item>
+	  <item> MPPC now automaically disables unusable subprotocols.
+		 For example, it is impossible to use MPPE encryption
+		 without MSCHAP.
+	  </item>
 	  <item> Many small fixes.
 	  </item>
 	</itemize>
