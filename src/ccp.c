@@ -599,7 +599,7 @@ CcpBuildConfigReq(Fsm fp, u_char *cp)
     int		ok;
 
     /* Put in all options that peer hasn't rejected in preferred order */
-    ccp->xmit = NULL
+    ccp->xmit = NULL;
     for (type = 0; type < CCP_NUM_PROTOS; type++) {
 	CompType	const ct = gCompTypes[type];
 
