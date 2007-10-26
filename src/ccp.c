@@ -594,21 +594,22 @@ static u_char *
 CcpBuildConfigReq(Fsm fp, u_char *cp)
 {
     Bund 	b = (Bund)fp->arg;
-  CcpState	const ccp = &b->ccp;
-  int		type;
-  int		ok;
+    CcpState	const ccp = &b->ccp;
+    int		type;
+    int		ok;
 
-  /* Put in all options that peer hasn't rejected in preferred order */
-  for (ccp->xmit = NULL, type = 0; type < CCP_NUM_PROTOS; type++) {
-    CompType	const ct = gCompTypes[type];
+    /* Put in all options that peer hasn't rejected in preferred order */
+    ccp->xmit = NULL
+    for (type = 0; type < CCP_NUM_PROTOS; type++) {
+	CompType	const ct = gCompTypes[type];
 
-    if (Enabled(&ccp->options, type) && !CCP_PEER_REJECTED(ccp, type)) {
-      cp = (*ct->BuildConfigReq)(b, cp, &ok);
-      if (ok && (!ccp->xmit))
-	ccp->xmit = ct;
+	if (Enabled(&ccp->options, type) && !CCP_PEER_REJECTED(ccp, type)) {
+    	    cp = (*ct->BuildConfigReq)(b, cp, &ok);
+    	    if (ok && (!ccp->xmit))
+		ccp->xmit = ct;
+	}
     }
-  }
-  return(cp);
+    return(cp);
 }
 
 /*
