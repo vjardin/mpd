@@ -1344,38 +1344,43 @@ FsmEchoTimeout(void *arg)
 	b = (Bund)fp->arg;
 	l = NULL;
     }
+    
+    if (!b) {
+	/* We can't get link stat without bundle present */
+	return;
+    }
 
-  /* See if there was any traffic since last time */
-  oldStats = fp->idleStats;
-  NgFuncGetStats(b, fp->type->link_layer ?
-    l->bundleIndex : NG_PPP_BUNDLE_LINKNUM, &fp->idleStats);
-  if (fp->idleStats.recvFrames > oldStats.recvFrames)
-    fp->quietCount = 0;
-  else
-    fp->quietCount++;
+    /* See if there was any traffic since last time */
+    oldStats = fp->idleStats;
+    NgFuncGetStats(b, fp->type->link_layer ?
+	l->bundleIndex : NG_PPP_BUNDLE_LINKNUM, &fp->idleStats);
+    if (fp->idleStats.recvFrames > oldStats.recvFrames)
+	fp->quietCount = 0;
+    else
+	fp->quietCount++;
 
-  /* See if peer hasn't responded for too many requests */
-  switch (fp->quietCount) {
+    /* See if peer hasn't responded for too many requests */
+    switch (fp->quietCount) {
 
-      /* Peer failed to reply to previous echo request */
+    /* Peer failed to reply to previous echo request */
     default:
-      Log(LG_ECHO|fp->log,
-	("[%s] %s: no reply to %d echo request(s)",
-	Pref(fp), Fsm(fp), fp->quietCount - 1));
+        Log(LG_ECHO|fp->log,
+	    ("[%s] %s: no reply to %d echo request(s)",
+	    Pref(fp), Fsm(fp), fp->quietCount - 1));
 
-      /* Has peer failed to reply for maximum allowable interval? */
-      if (fp->quietCount * fp->conf.echo_int >= fp->conf.echo_max) {
-	TimerStop(&fp->echoTimer);
-	FsmFailure(fp, FAIL_ECHO_TIMEOUT);
-	break;
-      }
-      /* fall through */
+        /* Has peer failed to reply for maximum allowable interval? */
+        if (fp->quietCount * fp->conf.echo_int >= fp->conf.echo_max) {
+	    TimerStop(&fp->echoTimer);
+	    FsmFailure(fp, FAIL_ECHO_TIMEOUT);
+	    break;
+        }
+        /* fall through */
     case 1:	/* one interval of silence elapsed; send first echo request */
-      FsmSendEchoReq(fp, NULL);
-      /* fall through */
+        FsmSendEchoReq(fp, NULL);
+        /* fall through */
     case 0:
-      break;
-  }
+        break;
+    }
 }
 
 /*
