@@ -86,33 +86,9 @@
     { NULL },
   };
 
-  /* MPPE option indicies */
-  int		gMppcCompress;
-  int		gMppe40;
-  int		gMppe56;
-  int		gMppe128;
-  int		gMppcStateless;
-  int		gMppePolicy;
-  
-
 /*
  * INTERNAL VARIABLES
  */
-
-  /* MPPE options */
-  static const struct {
-    const char	*name;
-    int		*indexp;
-    u_char	peered;
-  } gMppcOptions[] = {
-    { "mpp-compress",	&gMppcCompress,	1 },
-    { "mpp-e40",	&gMppe40,	1 },
-    { "mpp-e56",	&gMppe56,	1 },
-    { "mpp-e128",	&gMppe128,	1 },
-    { "mpp-stateless",	&gMppcStateless,1 },
-    { "mppe-policy",	&gMppePolicy,	0 },
-  };
-  #define CCP_NUM_MPPC_OPT	(sizeof(gMppcOptions) / sizeof(*gMppcOptions))
 
   /* These should be listed in order of preference */
   static const CompType		gCompTypes[] = {
@@ -193,21 +169,13 @@ CcpInit(Bund b)
   /* Construct options list if we haven't done so already */
   if (gConfList == NULL) {
     struct confinfo	*ci;
-    int			j, k;
+    int			k;
 
-    ci = Malloc(MB_COMP, (CCP_NUM_PROTOS + CCP_NUM_MPPC_OPT + 1) * sizeof(*ci));
+    ci = Malloc(MB_COMP, (CCP_NUM_PROTOS + 1) * sizeof(*ci));
     for (k = 0; k < CCP_NUM_PROTOS; k++) {
       ci[k].option = k;
       ci[k].peered = TRUE;
       ci[k].name = gCompTypes[k]->name;
-    }
-
-    /* Add MPPE options (YAMCH: yet another microsoft compatibility hack) */
-    for (j = 0; j < CCP_NUM_MPPC_OPT; j++, k++) {
-      ci[k].option = k;
-      ci[k].peered = gMppcOptions[j].peered;
-      ci[k].name = gMppcOptions[j].name;
-      *gMppcOptions[j].indexp = k;
     }
 
     /* Terminate list */
@@ -439,6 +407,7 @@ CcpStat(Context ctx, int ac, char *av[], void *arg)
   Printf("Enabled protocols:\r\n");
   OptStat(ctx, &ccp->options, gConfList);
 
+  MppcStat(ctx, ac, av, arg);
   Printf("Outgoing compression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(ctx->bund, COMP_DIR_XMIT, buf, sizeof(buf)) : "");
@@ -844,6 +813,7 @@ CcpSubtractBloat(Bund b, int size)
 static int
 CcpCheckEncryption(Bund b)
 {
+#if 0
   CcpState	const ccp = &b->ccp;
 
   /* Already checked? */
@@ -885,6 +855,8 @@ fail:
   FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
   FsmFailure(&b->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
   return(-1);
+#endif
+    return (0);
 }
 
 /*

@@ -29,6 +29,25 @@
 
 #define MPPC_SUPPORTED	(MPPC_BIT | MPPE_BITS | MPPE_STATELESS)
 
+  /* Set menu options */
+  enum {
+    SET_ACCEPT,
+    SET_DENY,
+    SET_ENABLE,
+    SET_DISABLE,
+    SET_YES,
+    SET_NO,
+  };
+
+  enum {
+    MPPC_CONF_COMPRESS,
+    MPPC_CONF_40,
+    MPPC_CONF_56,
+    MPPC_CONF_128,
+    MPPC_CONF_STATELESS,
+    MPPC_CONF_POLICY,
+  };
+
 /*
  * INTERNAL FUNCTIONS
  */
@@ -43,6 +62,7 @@
   static Mbuf	MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck);
   static char	*MppcDescribeBits(u_int32_t bits, char *buf, size_t len);
   static int	MppcNegotiated(Bund b, int xmit);
+  static int	MppcSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   /* Encryption stuff */
   static void	MppeInitKey(Bund b, MppcInfo mppc, int dir);
@@ -61,6 +81,16 @@
 /*
  * GLOBAL VARIABLES
  */
+
+  static const struct confinfo gConfList[] = {
+    { 1,	MPPC_CONF_COMPRESS,	"compress"	},
+    { 1,	MPPC_CONF_40,		"e40"		},
+    { 1,	MPPC_CONF_56,		"e56"		},
+    { 1,	MPPC_CONF_128,		"e128"		},
+    { 1,	MPPC_CONF_STATELESS,	"stateless"	},
+    { 0,	MPPC_CONF_POLICY,	"policy"	},
+    { 0,	0,			NULL		},
+  };
 
   const struct comptype	gCompMppcInfo = {
     "mppc",
@@ -82,6 +112,23 @@
     NULL,
     NULL,
   };
+
+  const struct cmdtab MppcSetCmds[] = {
+    { "accept [opt ...]",		"Accept option",
+	MppcSetCommand, NULL, (void *) SET_ACCEPT },
+    { "deny [opt ...]",			"Deny option",
+	MppcSetCommand, NULL, (void *) SET_DENY },
+    { "enable [opt ...]",		"Enable option",
+	MppcSetCommand, NULL, (void *) SET_ENABLE },
+    { "disable [opt ...]",		"Disable option",
+	MppcSetCommand, NULL, (void *) SET_DISABLE },
+    { "yes [opt ...]",			"Enable and accept option",
+	MppcSetCommand, NULL, (void *) SET_YES },
+    { "no [opt ...]",			"Disable and deny option",
+	MppcSetCommand, NULL, (void *) SET_NO },
+    { NULL },
+  };
+
   int	MPPCPresent = 0;
   int	MPPEPresent = 0;
 
@@ -168,20 +215,15 @@ MppcConfigure(Bund b)
 {
     CcpState	const ccp = &b->ccp;
 
-    if (Enabled(&ccp->options, gMppcCompress)
+    if (Enabled(&ccp->mppc.options, MPPC_CONF_COMPRESS)
       && MPPCPresent)
 	return (0);
 
-    if ((MppcEnabledMppeType(b, 40) || MppcAcceptableMppeType(b, 40))
-      && MPPEPresent) 
+    if (MppcEnabledMppeType(b, 40) || MppcAcceptableMppeType(b, 40)) 
 	return (0);
-#ifndef MPPE_56_UNSUPPORTED
-    if ((MppcEnabledMppeType(b, 56) || MppcAcceptableMppeType(b, 40))
-      && MPPEPresent) 
+    if (MppcEnabledMppeType(b, 56) || MppcAcceptableMppeType(b, 56)) 
 	return (0);
-#endif
-    if ((MppcEnabledMppeType(b, 128) || MppcAcceptableMppeType(b, 40))
-      && MPPEPresent) 
+    if (MppcEnabledMppeType(b, 128) || MppcAcceptableMppeType(b, 128)) 
 	return (0);
     
     return (-1);
@@ -298,30 +340,25 @@ MppcBuildConfigReq(Bund b, u_char *cp, int *ok)
   u_int32_t	bits = 0;
 
   /* Compression */
-  if (Enabled(&ccp->options, gMppcCompress)
-      && !CCP_PEER_REJECTED(ccp, gMppcCompress)
+  if (Enabled(&ccp->mppc.options, MPPC_CONF_COMPRESS)
+      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_COMPRESS)
       && MPPCPresent)
     bits |= MPPC_BIT;
 
   /* Encryption */
   if (MppcEnabledMppeType(b, 40)
-      && !CCP_PEER_REJECTED(ccp, gMppe40)
-      && MPPEPresent) 
+      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_40)) 
     bits |= MPPE_40;
-#ifndef MPPE_56_UNSUPPORTED
   if (MppcEnabledMppeType(b, 56)
-      && !CCP_PEER_REJECTED(ccp, gMppe56)
-      && MPPEPresent) 
+      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_56)) 
     bits |= MPPE_56;
-#endif
   if (MppcEnabledMppeType(b, 128)
-      && !CCP_PEER_REJECTED(ccp, gMppe128)
-      && MPPEPresent) 
+      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_128)) 
     bits |= MPPE_128;
 
   /* Stateless mode */
-  if (Enabled(&ccp->options, gMppcStateless)
-      && !CCP_PEER_REJECTED(ccp, gMppcStateless)
+  if (Enabled(&ccp->mppc.options, MPPC_CONF_STATELESS)
+      && !CCP_PEER_REJECTED(ccp, MPPC_CONF_STATELESS)
       && bits != 0)
     bits |= MPPE_STATELESS;
 
@@ -377,17 +414,15 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
       }
 
       /* Check compression */
-      if (!Acceptable(&ccp->options, gMppcCompress) || !MPPCPresent)
+      if (!Acceptable(&ccp->mppc.options, MPPC_CONF_COMPRESS) || !MPPCPresent)
 	bits &= ~MPPC_BIT;
 
       /* Check encryption */
-      if (!MppcAcceptableMppeType(b, 40) || !MPPEPresent)
+      if (!MppcAcceptableMppeType(b, 40))
 	bits &= ~MPPE_40;
-#ifndef MPPE_56_UNSUPPORTED
-      if (!MppcAcceptableMppeType(b, 56) || !MPPEPresent)
-#endif
+      if (!MppcAcceptableMppeType(b, 56))
 	bits &= ~MPPE_56;
-      if (!MppcAcceptableMppeType(b, 128) || !MPPEPresent)
+      if (!MppcAcceptableMppeType(b, 128))
 	bits &= ~MPPE_128;
 
       /* Choose the strongest encryption available */
@@ -402,15 +437,13 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 	 This is broken wrt. normal PPP negotiation: typical Microsoft. */
       if ((bits & MPPE_BITS) == 0) {
 	if (MppcAcceptableMppeType(b, 40)) bits |= MPPE_40;
-#ifndef MPPE_56_UNSUPPORTED
 	if (MppcAcceptableMppeType(b, 56)) bits |= MPPE_56;
-#endif
 	if (MppcAcceptableMppeType(b, 128)) bits |= MPPE_128;
       }
 
       /* Stateless mode */
       if ((bits & MPPE_STATELESS) && 
-    	  (!Acceptable(&ccp->options, gMppcStateless)
+    	  (!Acceptable(&ccp->mppc.options, MPPC_CONF_STATELESS)
 	    || (bits & (MPPE_BITS|MPPC_BIT)) == 0))
 	bits &= ~MPPE_STATELESS;
 
@@ -431,15 +464,15 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
     case MODE_NAK:
       if (!(bits & MPPC_BIT))
-	CCP_PEER_REJ(ccp, gMppcCompress);
+	CCP_PEER_REJ(ccp, MPPC_CONF_COMPRESS);
       if (!(bits & MPPE_40))
-	CCP_PEER_REJ(ccp, gMppe40);
+	CCP_PEER_REJ(ccp, MPPC_CONF_40);
       if (!(bits & MPPE_56))
-	CCP_PEER_REJ(ccp, gMppe56);
+	CCP_PEER_REJ(ccp, MPPC_CONF_56);
       if (!(bits & MPPE_128))
-	CCP_PEER_REJ(ccp, gMppe128);
+	CCP_PEER_REJ(ccp, MPPC_CONF_128);
       if (!(bits & MPPE_STATELESS))
-	CCP_PEER_REJ(ccp, gMppcStateless);
+	CCP_PEER_REJ(ccp, MPPC_CONF_STATELESS);
       break;
   }
 }
@@ -504,40 +537,47 @@ MppcEnabledMppeType(Bund b, short type)
     CcpState	const ccp = &b->ccp;
     short	ret;
 
+    /* Check if we have kernel support */
+    if (!MPPEPresent)
+	return (0);
+    
     /* Check if we are able to calculate key */
     if (!MppcKeyAvailable(b, type))
 	return (0);
 
-  switch (type) {
-  case 40:
-    if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (b->params.msoft.types & MPPE_TYPE_40BIT) && !CCP_PEER_REJECTED(ccp, gMppe40);
-    } else {
-      ret = Enabled(&ccp->options, gMppe40) && !CCP_PEER_REJECTED(ccp, gMppe40);
-    }
-    break;
+    switch (type) {
+    case 40:
+	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+    	    ret = (b->params.msoft.types & MPPE_TYPE_40BIT) &&
+		!CCP_PEER_REJECTED(ccp, MPPC_CONF_40);
+	} else {
+    	    ret = Enabled(&ccp->mppc.options, MPPC_CONF_40) &&
+		!CCP_PEER_REJECTED(ccp, MPPC_CONF_40);
+	}
+	break;
 
-#ifndef MPPE_56_UNSUPPORTED
-  case 56:
-    if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (b->params.msoft.types & MPPE_TYPE_56BIT) && !CCP_PEER_REJECTED(ccp, gMppe56);
-    } else {
-      ret = Enabled(&ccp->options, gMppe56) && !CCP_PEER_REJECTED(ccp, gMppe56);
-    }
-
-    break;
-#endif
+    case 56:
+	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+    	    ret = (b->params.msoft.types & MPPE_TYPE_56BIT) &&
+		!CCP_PEER_REJECTED(ccp, MPPC_CONF_56);
+	} else {
+    	    ret = Enabled(&ccp->mppc.options, MPPC_CONF_56) &&
+		!CCP_PEER_REJECTED(ccp, MPPC_CONF_56);
+	}
+	break;
       
-  case 128:
-  default:
-    if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = (b->params.msoft.types & MPPE_TYPE_128BIT) && !CCP_PEER_REJECTED(ccp, gMppe128);
-    } else {
-      ret = Enabled(&ccp->options, gMppe128) && !CCP_PEER_REJECTED(ccp, gMppe128);
+    case 128:
+    default:
+	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+    	    ret = (b->params.msoft.types & MPPE_TYPE_128BIT) &&
+		!CCP_PEER_REJECTED(ccp, MPPC_CONF_128);
+	} else {
+    	    ret = Enabled(&ccp->mppc.options, MPPC_CONF_128) &&
+		!CCP_PEER_REJECTED(ccp, MPPC_CONF_128);
+	}
     }
-  }
 
-  return ret;
+    return ret;
 }
 
 static short
@@ -546,40 +586,41 @@ MppcAcceptableMppeType(Bund b, short type)
     CcpState	const ccp = &b->ccp;
     short	ret;
   
+    /* Check if we have kernel support */
+    if (!MPPEPresent)
+	return (0);
+    
     /* Check if we are able to calculate key */
     if (!MppcKeyAvailable(b, type))
 	return (0);
 
-  switch (type) {
-  case 40:
-    if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = b->params.msoft.types & MPPE_TYPE_40BIT;
-    } else {
-      ret = Acceptable(&ccp->options, gMppe40);
-    }
-    break;
+    switch (type) {
+    case 40:
+	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+    	    ret = b->params.msoft.types & MPPE_TYPE_40BIT;
+	} else {
+    	    ret = Acceptable(&ccp->mppc.options, MPPC_CONF_40);
+	}
+	break;
 
-#ifndef MPPE_56_UNSUPPORTED
-  case 56:
-    if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = b->params.msoft.types & MPPE_TYPE_56BIT;
-    } else {
-      ret = Acceptable(&ccp->options, gMppe56);
-    }
-
-    break;
-#endif
+    case 56:
+	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+    	    ret = b->params.msoft.types & MPPE_TYPE_56BIT;
+	} else {
+    	    ret = Acceptable(&ccp->mppc.options, MPPC_CONF_56);
+	}
+	break;
       
-  case 128:
-  default:
-    if (Enabled(&ccp->options, gMppePolicy)) {
-      ret = b->params.msoft.types & MPPE_TYPE_128BIT;
-    } else {
-      ret = Acceptable(&ccp->options, gMppe128);
+    case 128:
+    default:
+	if (Enabled(&ccp->mppc.options, MPPC_CONF_POLICY)) {
+    	    ret = b->params.msoft.types & MPPE_TYPE_128BIT;
+	} else {
+    	    ret = Acceptable(&ccp->mppc.options, MPPC_CONF_128);
+	}
     }
-  }
 
-  return ret;
+    return ret;
 }
 
 #define KEYLEN(b)	(((b) & MPPE_128) ? 16 : 8)
@@ -591,7 +632,6 @@ MppcAcceptableMppeType(Bund b, short type)
 static void
 MppeInitKey(Bund b, MppcInfo mppc, int dir)
 {
-  CcpState	const ccp = &b->ccp;
   u_int32_t	const bits = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_bits : mppc->recv_bits;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
@@ -604,33 +644,18 @@ MppeInitKey(Bund b, MppcInfo mppc, int dir)
 
   /* Compute basis for the session key (ie, "start key" or key0) */
   if (bits & MPPE_128) {
-    if (!b->params.msoft.has_nt_hash) {
-      Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv1 and MPPE 128", 
-        b->name));
-      goto fail;
-    }
     memcpy(hash, b->params.msoft.nt_hash_hash, sizeof(hash));
     KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
     KEYDEBUG((chal, CHAP_MSOFT_CHAL_LEN, "Challenge"));
     MsoftGetStartKey(chal, hash);
     KEYDEBUG((hash, sizeof(hash), "NT StartKey"));
   } else {
-    if (!b->params.msoft.has_lm_hash) {
-      Log(LG_ERR, ("[%s] The LM-Hash is not set, but needed for MS-CHAPv1 and MPPE 40, 56", 
-        b->name));
-      goto fail;
-    }
-
     memcpy(hash, b->params.msoft.lm_hash, 8);
     KEYDEBUG((hash, sizeof(hash), "LM StartKey"));
   }
   memcpy(key0, hash, MPPE_KEY_LEN);
   KEYDEBUG((key0, (bits & MPPE_128) ? 16 : 8, "InitialKey"));
   return;
-
-fail:
-  FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
-  FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
 }
 
 /*
@@ -640,7 +665,6 @@ fail:
 static void
 MppeInitKeyv2(Bund b, MppcInfo mppc, int dir)
 {
-  CcpState	const ccp = &b->ccp;
   u_char	*const key0 = (dir == COMP_DIR_XMIT) ?
 			mppc->xmit_key0 : mppc->recv_key0;
   u_char	hash[MPPE_KEY_LEN];
@@ -656,12 +680,6 @@ MppeInitKeyv2(Bund b, MppcInfo mppc, int dir)
   /* The secret comes from the originating caller's credentials */
   resp = b->params.msoft.ntResp;
 
-  if (!b->params.msoft.has_nt_hash) {
-    Log(LG_ERR, ("[%s] The NT-Hash is not set, but needed for MS-CHAPv2 and MPPE", 
-      b->name));
-    goto fail;
-  }
-
   /* Compute basis for the session key (ie, "start key" or key0) */
   memcpy(hash, b->params.msoft.nt_hash_hash, sizeof(hash));
   KEYDEBUG((hash, sizeof(hash), "NT Password Hash Hash"));
@@ -675,10 +693,6 @@ MppeInitKeyv2(Bund b, MppcInfo mppc, int dir)
   memcpy(key0, hash, MPPE_KEY_LEN);
   KEYDEBUG((key0, MPPE_KEY_LEN, "InitialKey"));
   return;
-
-fail:
-  FsmFailure(&ccp->fsm, FAIL_CANT_ENCRYPT);
-  FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
 }
 
 #ifdef DEBUG_KEYS
@@ -787,3 +801,59 @@ done:
     return(0);
 }
 
+/*
+ * MppcStat()
+ */
+
+int
+MppcStat(Context ctx, int ac, char *av[], void *arg)
+{
+  MppcInfo	const mppc = &ctx->bund->ccp.mppc;
+
+  Printf("MPPC options:\r\n");
+  OptStat(ctx, &mppc->options, gConfList);
+
+  return(0);
+}
+
+/*
+ * MppcSetCommand()
+ */
+
+static int
+MppcSetCommand(Context ctx, int ac, char *av[], void *arg)
+{
+  MppcInfo	const mppc = &ctx->bund->ccp.mppc;
+
+  if (ac == 0)
+    return(-1);
+  switch ((intptr_t)arg) {
+    case SET_ACCEPT:
+      AcceptCommand(ac, av, &mppc->options, gConfList);
+      break;
+
+    case SET_DENY:
+      DenyCommand(ac, av, &mppc->options, gConfList);
+      break;
+
+    case SET_ENABLE:
+      EnableCommand(ac, av, &mppc->options, gConfList);
+      break;
+
+    case SET_DISABLE:
+      DisableCommand(ac, av, &mppc->options, gConfList);
+      break;
+
+    case SET_YES:
+      YesCommand(ac, av, &mppc->options, gConfList);
+      break;
+
+    case SET_NO:
+      NoCommand(ac, av, &mppc->options, gConfList);
+      break;
+
+    default:
+      assert(0);
+  }
+  return(0);
+}

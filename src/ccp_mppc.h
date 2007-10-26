@@ -21,19 +21,12 @@
 #include <netgraph/ng_mppc.h>
 #endif
 
-/* 56 bit MPPE support was only added in FreeBSD 4.5 */
-#ifndef MPPE_56
-#define MPPE_56_UNSUPPORTED
-#define MPPE_56		0x00000080
-#undef MPPE_BITS
-#define MPPE_BITS	0x000000e0
-#endif
-
 /*
  * DEFINITIONS
  */
 
   struct mppcinfo {
+    struct optinfo	options;	/* configured protocols */
     u_int32_t	recv_bits;		/* recv config bits */
     u_int32_t	xmit_bits;		/* xmit config bits */
     u_char	xmit_key0[MPPE_KEY_LEN];/* xmit start key */
@@ -46,10 +39,12 @@
  */
 
   extern const struct comptype	gCompMppcInfo;
-  extern int   MPPCPresent;
-  extern int   MPPEPresent;
+  extern const struct cmdtab    MppcSetCmds[];
+  extern int	MPPCPresent;
+  extern int	MPPEPresent;
 
-int MppcTestCap(void);
+  extern int	MppcStat(Context ctx, int ac, char *av[], void *arg);
+  extern int 	MppcTestCap(void);
 
 #endif
 

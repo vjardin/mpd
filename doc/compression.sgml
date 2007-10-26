@@ -82,7 +82,20 @@ Note: in order for MPPE to work, MS-CHAPv1 or MS-CHAPv2 is
 mandatory, because the MPPE keys are generated using the results
 from authentication.
 
-<tag><tt>mpp-compress</tt></tag>
+</descrip>
+
+<descrip>
+
+<tag><tt>set mppc accept <em>option ...</em> </tt></tag><p>
+<tag><tt>set mppc deny <em>option ...</em> </tt></tag><p>
+<tag><tt>set mppc enable <em>option ...</em> </tt></tag><p>
+<tag><tt>set mppc disable <em>option ...</em> </tt></tag><p>
+<tag><tt>set mppc yes <em>option ...</em> </tt></tag><p>
+<tag><tt>set mppc no <em>option ...</em> </tt></tag><p>
+
+These commands configure various MPPC options.
+
+<tag><tt>compress</tt></tag>
 
 Enables MPPC compression. This is the only compression method supported by 
 Microsoft Windows RAS.
@@ -90,26 +103,26 @@ Microsoft Windows RAS.
 This option requires compression support from ng_mppc node which is 
 usually disabled as it require some Hi/Fn proprietary files.
 
-<tag><tt>mpp-e40</tt></tag>
+<tag><tt>e40</tt></tag>
 
 Enables 40-bit MPPE encryption.
 
-<tag><tt>mpp-e56</tt></tag>
+<tag><tt>e56</tt></tag>
 
 Enables 56-bit MPPE encryption.
 Note: 56 bit MPPE encryption is only supported in FreeBSD 4.5 or later.
 
-<tag><tt>mpp-e128</tt></tag>
+<tag><tt>e128</tt></tag>
 
 Enables 128-bit MPPE encryption.
 
-<tag><tt>mpp-stateless</tt></tag>
+<tag><tt>stateless</tt></tag>
 
 Enables stateless mode. This mode requires slightly more CPU time
 and is somewhat less secure, but allows faster recovery in the face
 of dropped packets.
 
-<tag><tt>mppe-policy</tt></tag>
+<tag><tt>policy</tt></tag>
 
 If enabled, Mpd uses the MPPE-Types and MPPE-Policy info from the authentication 
 backend.

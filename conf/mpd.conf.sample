@@ -197,9 +197,9 @@ pptp_server:
 # (MPPE) using the ng_mppc(8) netgraph node type.
 	set bundle enable compression
 	set ccp yes mppc
-	set ccp yes mpp-e40
-	set ccp yes mpp-e128
-	set ccp yes mpp-stateless
+	set mppc yes e40
+	set mppc yes e128
+	set mppc yes stateless
 
 # Create clonable link template named L
 	create link template L pptp
@@ -247,10 +247,10 @@ pptp_vpn:
 # Enable Microsoft Point-to-Point encryption (MPPE)
 	set bundle enable compression
 	set ccp yes mppc
-	set ccp yes mpp-e40
-	set ccp yes mpp-e128
+	set mppc yes e40
+	set mppc yes e128
 	set bundle enable crypt-reqd
-	set ccp yes mpp-stateless
+	set mppc yes stateless
 	
 	create link static L1 pptp
 	set link action bundle B1
