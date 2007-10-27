@@ -512,7 +512,7 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
 	  errfmt = "%sAmbiguous command: '%s'";
 	  break;
 	default:
-	  errfmt = "%sUnknown error: '%s'";
+	  errfmt = "%sUnknown error in: '%s'";
       }
       if (arg) {
         Log(LG_ERR, (errfmt, (char*)arg, buf));
@@ -683,7 +683,7 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 	if (ctx->depth > 20) {
     	    Log(LG_ERR, ("Recursion depth limit was reached while loading '%s'!", *av));
     	    Log(LG_ERR, ("There is a configuration loop!"));
-    	    return(-2);
+    	    return(-3);
 	}
 	ctx->depth++;
 	ReadFile(gConfigFile, *av, DoCommand, ctx);
