@@ -163,10 +163,8 @@ into the bundle graph, right after the interface node. The tee node
 can be useful for debugging or traffic accounting.
 
 <tag><tt>nat</tt></tag>
-If enabled, a ng_nat(4) node will be inserted
-into the bundle graph. The ng_nat(4) node
-performs network address translation (NAT) of packets passing through it.
-ng_nat(4) node type exists since FreeBSD 6.0.
+Enable NAT for this bundle.
+See <ref id="nat" name="the NAT chapter"> for more information.
 
 <tag><tt>netflow-in</tt></tag><P>
 <tag><tt>netflow-out</tt></tag>
