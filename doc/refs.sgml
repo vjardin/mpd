@@ -72,7 +72,13 @@
   <p>
   <itemize>
   <item>
-EAP, RADIUS enhancements, basework for Mpd-4 was sponsored by SURFnet <htmlurl url="http://www.surfnet.nl/" name="SURFnet">.
+EAP, RADIUS enhancements, basework for Mpd-4 was sponsored by <htmlurl url="http://www.surfnet.nl/" name="SURFnet">.
+  </item>
+  <item>
+L2TP enhancements were sponsored by <htmlurl url="http://www.scom.ca/" name="Scom.ca Internet Services Inc">.
+  </item>
+  <item>
+Special thanks to <htmlurl url="http://optima.ua/" name="Optima-Telecom"> for a long-time support and production testing.
   </item>
   </itemize>
   <p>
