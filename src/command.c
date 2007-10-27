@@ -241,7 +241,7 @@
 	LoadCommand, NULL, NULL },
     { "log [+/-{opt} ...]",		"Set/view log options",
 	LogCommand, NULL, NULL },
-    { "msession {msesid}",		"Choose link by multy-session-id",
+    { "msession {msesid}",		"Choose bundle by msession-id",
 	MSessionCommand, NULL, NULL },
     { "open [{layer}]",			"Open a layer",
 	OpenCommand, NULL, NULL },
