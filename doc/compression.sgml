@@ -43,9 +43,7 @@ The <bf><tt>no</tt></bf> command is the same as
 </descrip>
 
 <p>
-The options available at the CCP layer are listed below. Note that
-the MPPC options require proprietary files present in system
-that are not included with the normal distribution.
+The options available at the CCP layer are listed below.
 
 <descrip>
 

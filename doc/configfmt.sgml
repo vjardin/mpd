@@ -63,12 +63,11 @@ client:
 </verb></tscreen>
 
 Commands are independant and executed one by one as if they were
-entered using console. Operation of the most of commands related
-to the active context, which incudes currently active link, bundle
-and repeater. Information about active context is shown at the 
-console command prompt. Some commands, like <tt>link</tt>, 
-<tt>bundle</tt>, <tt>repeater</tt> and <tt>create</tt> can modify
-this context.
+entered using console. Most command operation depends on the active
+context, which includes currently active link, bundle and repeater.
+Information about active context is shown at the console command prompt.
+Some commands, like <tt>link</tt>, <tt>bundle</tt>, <tt>repeater</tt>
+and <tt>create</tt> can change this context.
 
 <sect1><heading><tt>mpd.secret</tt></heading>
 

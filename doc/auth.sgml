@@ -428,8 +428,6 @@ and 11.0.0.0/8 will be passed, all other will be limited to 1024Kbit/s.
   <sect1><heading>External authentication<label id="extauth"></heading>
 
   <p>
-  This chapter describes implementation specific details of MPD.
-
 Mpd supports authentication and accounting by calling external scripts. 
 Pathes to that scripts must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
 and <tt><bf>set auth extacct-script ...</bf></tt> commands.
