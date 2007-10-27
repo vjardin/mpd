@@ -84,6 +84,7 @@
     int			state;
     int			telnet;
     int			escaped;
+    int			exit;
     char		history[MAX_CONSOLE_HIST][MAX_CONSOLE_LINE];	/* last command */
     int			currhist;
     SLIST_ENTRY(console_session)	next;

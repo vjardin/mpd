@@ -84,8 +84,6 @@
  * INTERNAL VARIABLES
  */
 
-  static int	exitflag;
-
   const struct cmdtab GlobalSetCmds[] = {
     { "enable {opt ...}", 		"Enable option" ,
        	GlobalSetCommand, NULL, (void *) SET_ENABLE },
@@ -330,7 +328,6 @@ DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
   int	rtn;
   char	filebuf[100];
   
-  exitflag = FALSE;
   rtn = DoCommandTab(ctx, gCommands, ac, av);
 
   /* Bad usage? */
@@ -343,7 +340,7 @@ DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
     }
   }
   
-  return(exitflag);
+  return(rtn);
 }
 
 /*
@@ -655,8 +652,9 @@ ShowGlobal(Context ctx, int ac, char *av[], void *arg)
 static int
 ExitCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  exitflag = TRUE;
-  return(0);
+    if (ctx->cs)
+	ctx->cs->exit = TRUE;
+    return(0);
 }
 
 /*
@@ -666,9 +664,10 @@ ExitCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 QuitCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  SendSignal(SIGTERM);
-  exitflag = TRUE;
-  return(0);
+    if (ctx->cs)
+	ctx->cs->exit = TRUE;
+    SendSignal(SIGTERM);
+    return(0);
 }
 
 /*

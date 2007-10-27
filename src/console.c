@@ -363,7 +363,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
 {
   ConsoleSession	cs = cookie;
   CmdTab		cmd, tab;
-  int			n, ac, ac2, exitflag, i;
+  int			n, ac, ac2, i;
   u_char		c;
   char			compl[MAX_CONSOLE_LINE], line[MAX_CONSOLE_LINE];
   char			*av[MAX_CONSOLE_ARGS], *av2[MAX_CONSOLE_ARGS];
@@ -589,14 +589,13 @@ success:
 	    cs->context.lnk ? cs->context.lnk->name : "", 
 	    cs->user.username, cs->cmd));
 	cs->active = 1;
-        exitflag = DoCommand(&cs->context, ac, av, NULL, 0);
+        DoCommand(&cs->context, ac, av, NULL, 0);
 	cs->active = 0;
       } else {
         HelpCommand(&cs->context, ac, av, NULL);
-	exitflag = 0;
       }
       FreeArgs(ac, av_copy);
-      if (exitflag)
+      if (cs->exit)
 	goto abort;
       cs->prompt(cs);
       if (c != '?') {
