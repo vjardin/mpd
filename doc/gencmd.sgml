@@ -161,6 +161,37 @@ The valid completions for <tt>set</tt> are:
 
 <descrip>
 
+<tag><tt>
+set global startrule <em>num</em>
+<newline>set global startpipe <em>num</em>
+<newline>set global startqueue <em>num</em>
+<newline>set global starttable <em>num</em>
+</tt></tag>
+
+These commands define initial values for autonumeration of ipfw
+rules, pipes, queues and tables. 
+Defaults are 10000, 10000, 10000 and 32 accordingly.
+
+<tag><tt>
+set global enable <em>option ...</em>
+<newline>set global disable <em>option ...</em>
+</tt></tag>
+
+These commands configure various global options.
+
+<p>
+The <tt><bf>enable</bf></tt> and <tt><bf>disable</bf></tt> commands
+determine whether or not we want the corresponding option.
+
+The options available are:
+
+<tag><tt>tcp-wrapper</tt></tag>
+
+With this option mpd uses <tt>/etc/hosts.allow</tt> everytime a
+connection is made from the client. This is useful if you would
+like to restrict access to mpd. This option affects all TCP
+connections, including PPTP and the TCP device layer.
+
 <tag><tt>set bundle ...</tt></tag>
 Set bundle layer configuration parameters for the currently active bundle.
 <tag><tt>set link ...</tt></tag>
@@ -208,7 +239,6 @@ for the currently active link, which must have type <bf>pppoe</bf>.
 Sets console specific configuration parameters
 <tag><tt>set web ...</tt></tag>
 Sets web server specific configuration parameters
-
 </descrip>
 
 <tag><tt>open [ <em>layer</em> ] </tt>

@@ -10,12 +10,15 @@
     <itemize>
 	<item> New features:
 	<itemize>
-	  <item> Added 'set link max-children ...' command.
+	  <item> Added 'set link max-children ...' command for DoS protection.
 	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
 	<itemize>
+	  <item> Rewritten PPPoE, L2TP, TCP and UDP link types to fulfill new
+		 dynamic design.
+	  </item>
 	  <item> MPPC related options moved from 'set ccp' to the new 'set mppc' command.
 	  </item>
 	  <item> 'set bundle retry' commend renamed to 'set bundle fsm-timeout'.
@@ -28,9 +31,6 @@
 	</item>
 	<item> Bugfixes:
 	<itemize>
-	  <item> Rewritten PPPoE, L2TP, TCP and UDP link types to fulfill new
-		 dynamic design.
-	  </item>
 	  <item> Fixed memory leak on link/bundle shutdown.
 	  </item>
 	  <item> Fixed netflow setup errors handeling.
@@ -49,6 +49,8 @@
 	</itemize>
 	</item>
     </itemize>
+  </p>
+  <p>
     Changes since version 4:
     <itemize>
 	<item> Design changes:

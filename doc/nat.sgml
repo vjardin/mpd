@@ -3,7 +3,7 @@
 
 <!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
 
-  <sect><heading>NAT commands<label id="nat"></heading>
+  <sect><heading>Network Address Translation (NAT)<label id="nat"></heading>
 
 <p>
 

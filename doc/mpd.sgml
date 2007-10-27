@@ -20,17 +20,15 @@
 <!ENTITY cli SYSTEM "cli.sgml">
 
 <!ENTITY gencmd SYSTEM "gencmd.sgml">
-<!ENTITY global SYSTEM "global.sgml">
 <!ENTITY links SYSTEM "links.sgml">
 <!ENTITY authentication SYSTEM "auth.sgml">
-<!ENTITY radius SYSTEM "radius.sgml">
-<!ENTITY eap SYSTEM "eap.sgml">
 <!ENTITY bundle SYSTEM "bundle.sgml">
 <!ENTITY ipcp SYSTEM "ipcp.sgml">
+<!ENTITY ipv6cp SYSTEM "ipv6cp.sgml">
 <!ENTITY compression SYSTEM "compression.sgml">
 <!ENTITY encryption SYSTEM "encryption.sgml">
 <!ENTITY interface SYSTEM "interface.sgml">
-<!ENTITY netflow SYSTEM "netflow.sgml">
+<!ENTITY trafacct SYSTEM "trafacct.sgml">
 <!ENTITY nat SYSTEM "nat.sgml">
 <!ENTITY ippool SYSTEM "ippool.sgml">
 <!ENTITY console SYSTEM "console.sgml">
@@ -49,8 +47,6 @@
 <!ENTITY trouble SYSTEM "trouble.sgml">
 <!ENTITY todo SYSTEM "todo.sgml">
 <!ENTITY internalsauth SYSTEM "int-auth.sgml">
-<!ENTITY internalsextauth SYSTEM "int-extauth.sgml">
-<!ENTITY internalsradius SYSTEM "int-radius.sgml">
 <!ENTITY developer SYSTEM "developer.sgml">
 
 <!ENTITY refs SYSTEM "refs.sgml">
@@ -86,7 +82,6 @@ all mpd features.
     <chapt><heading>Introduction</heading>
 
 	&overview;
-	&layers;
 	&manorg;
 	&changes;
 
@@ -105,18 +100,17 @@ all mpd features.
     <chapt><heading>Configuring Mpd</heading>
 
 	&gencmd;
-	&global;
+	&layers;
 	&links;
-	&authentication;
-	&radius;
-	&eap;
 	&bundle;
 	&encryption;
 	&compression;
 	&ipcp;
-	&ippool;
+	&ipv6cp;
 	&interface;
-	&netflow;
+	&authentication;
+	&trafacct;
+	&ippool;
 	&nat;
 	&console;
 	&web;
@@ -141,8 +135,6 @@ all mpd features.
 
 	&todo;
 	&internalsauth;
-	&internalsradius;
-	&internalsextauth;
 	&developer;
 
     <chapt><heading>References</heading>

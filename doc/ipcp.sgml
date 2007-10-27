@@ -3,12 +3,13 @@
 
 <!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
 
-  <sect><heading>IPCP layer commands<label id="ipcp"></heading>
+  <sect><heading>IPCP layer<label id="ipcp"></heading>
 
 <p>
 
   This chapter describes commands that configure the IP Control
-  Protocol (IPCP) layer. All of these commands apply to the currently
+  Protocol (IPCP) layer. To enable IPCP, <tt>ipcp</tt> option should be
+  enabled at the bundle layer. All of these commands apply to the currently
   active bundle.
 
 <descrip>

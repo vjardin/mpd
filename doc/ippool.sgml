@@ -3,7 +3,7 @@
 
 <!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
 
-  <sect><heading>IP pool commands<label id="ippool"></heading>
+  <sect><heading>IP address pools<label id="ippool"></heading>
 
 <p>
 Mpd implementing dynamic IP addresses pool management. When user

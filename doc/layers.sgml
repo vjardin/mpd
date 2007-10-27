@@ -71,15 +71,15 @@
 
 	Each bundle has several corresponding NCP layers as
 	<bf><ref id="ipcp" name="IP Control Protocol (IPCP)"></bf> and
-	<bf>IPv6 Control Protocol (IPv6CP)</bf>,
+	<bf><ref id="ipv6cp" name="IPv6 Control Protocol (IPv6CP)"></bf>,
 	which manages the protocol specific configuration of the interface.
 	This layers handle the negotiation of local and remote addresses
 	and TCP header compression, as well as other optional 
 	IP related information such as DNS servers and NBNS servers.
 
 	Each bundle also has corresponding
-	<bf><ref id="compression" name="compression (ccp)"></bf> and
-	<bf><ref id="encryption" name="encryption (ecp)"></bf> layers, which
+	<bf><ref id="compression" name="compression (CCP)"></bf> and
+	<bf><ref id="encryption" name="encryption (ECP)"></bf> layers, which
 	allow you to enable and configure compression and encryption
 	for data sent and received over the bundle.
 

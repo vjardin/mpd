@@ -3,7 +3,7 @@
 
 <!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
 
-  <sect><heading>Bundle layer commands<label id="bundle"></heading>
+  <sect><heading>Bundle layer<label id="bundle"></heading>
 
 <p>
 
@@ -114,7 +114,8 @@ saving two bytes on every frame. It defaults to
 
 <tag><tt>ipcp</tt></tag>
 
-Enable/Disable IPCP negotiation. Default is enabled.
+Enable/Disable IPCP negotiation. For details see
+<ref id="ipcp" name="the IPCP layer chapter">. Default is enabled.
 
 <tag><tt>ipv6cp</tt></tag>
 
@@ -122,11 +123,13 @@ Enable/Disable IPV6CP negotiation. Default is disabled.
 
 <tag><tt>compression</tt></tag>
 
-Enable/Disable CCP (Compression Control Protocol) negotiation. Default is disabled.
+Enable/Disable CCP (Compression Control Protocol) negotiation. For details see
+<ref id="compression" name="the compression layer chapter">. Default is disabled.
 
 <tag><tt>encryption</tt></tag>
 
-Enable/Disable ECP (Encryption Control Protocol) negotiation. Default is disabled.
+Enable/Disable ECP (Encryption Control Protocol) negotiation. For details see
+<ref id="encryption" name="the encryption layer chapter">. Default is disabled.
 
 <tag><tt>crypt-reqd</tt></tag>
 

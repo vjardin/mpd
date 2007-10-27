@@ -3,7 +3,7 @@
 
 <!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
 
-  <sect><heading>Encryption layer commands<label id="encryption"></heading>
+  <sect><heading>Encryption (ECP) layer<label id="encryption"></heading>
 
   <p>
   This chapter describes commands that configure the Encryption Control

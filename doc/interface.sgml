@@ -3,7 +3,7 @@
 
 <!-- <!DOCTYPE linuxdoc PUBLIC '-//FreeBSD//DTD linuxdoc//EN'> -->
 
-  <sect><heading>Interface layer commands<label id="interface"></heading>
+  <sect><heading>Interface layer<label id="interface"></heading>
 
 <p>
 
@@ -177,6 +177,7 @@ generates NetFlow data for outgoing packets instead of incoming.
 
 <tag><tt>ipacct</tt></tag>
 If enabled, the bundle will participate in IP accounting with ng_ipacct node.
+See <ref id="ipacct" name="the IP Accounting chapter"> for more information.
 
 </descrip>
 
