@@ -10,21 +10,11 @@
   These commands apply to the currently active link, and are only
   valid if the currently active link has type <bf>pppoe</bf>.
 
-  Your kernel must be compiled with ``options NETGRAPH'' to
-  netgraph-enable the Ethernet interfaces (if your system is new enough
-  to have the <tt>/modules/ng_ether.ko</tt> KLD installed, then
-  this is no longer true; you only need load this KLD).
-
   PPPoE requires two pieces of configuration information: the name
   of the Ethernet interface to use, and a service name, which should
   be supplied by your ISP. If you do not have a service name, then
   the empty string (the default) often suffices.
 
-  <p>
-  <bf>Note:</bf> There is a bug in Windows 2000 PPPoE implementation
-  which makes connection impossible due to LCP mru negotiation failure.
-  Other Windows version have no this bug.
-  
 <descrip>
 
 <tag><tt>
