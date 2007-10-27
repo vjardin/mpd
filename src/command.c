@@ -681,7 +681,7 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
     else {
 	if (ctx->depth > 20) {
-    	    Log(LG_ERR, ("Recurstion depth limit was reached while loading '%s'!", *av));
+    	    Log(LG_ERR, ("Recursion depth limit was reached while loading '%s'!", *av));
     	    Log(LG_ERR, ("There is a configuration loop!"));
     	    return(-2);
 	}
