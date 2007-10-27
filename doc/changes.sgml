@@ -27,6 +27,8 @@
 	  </item>
 	  <item> PPTP windowing is disabled by default.
 	  </item>
+	  <item> Improved unified command error reporting.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
