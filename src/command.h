@@ -16,7 +16,6 @@
  * DEFINITIONS
  */
 
-  #define CMD_UNIMPL	((int (*)(Context ctx, int ac, char *av[], void *arg)) 0)
   #define CMD_SUBMENU	((int (*)(Context ctx, int ac, char *av[], void *arg)) 1)
 
   /* Configuration options */

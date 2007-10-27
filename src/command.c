@@ -373,8 +373,6 @@ DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
   /* Find command and either execute or recurse into a submenu */
   if (cmd->func == CMD_SUBMENU)
     rtn = DoCommandTab(ctx, (CmdTab) cmd->arg, ac - 1, av + 1);
-  else if (cmd->func == CMD_UNIMPL)
-    Log(LG_ERR, ("command '%s' is not implemented", av[0]));
   else
     rtn = (cmd->func)(ctx, ac - 1, av + 1, cmd->arg);
 
