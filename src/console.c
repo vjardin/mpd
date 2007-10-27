@@ -586,11 +586,10 @@ success:
       memcpy(av_copy, av, sizeof(av));
       if (c != '?') {
         Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
-	    cs->context.lnk ? cs->context.lnk->name : "", 
+	    cs->context.lnk ? cs->context.lnk->name :
+		(cs->context.bund? cs->context.bund->name : ""), 
 	    cs->user.username, cs->cmd));
-	cs->active = 1;
         DoCommand(&cs->context, ac, av, NULL, 0);
-	cs->active = 0;
       } else {
         HelpCommand(&cs->context, ac, av, NULL);
       }
@@ -813,17 +812,12 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
 
       if (!ParseAddr(av[0], &c->addr, ALLOW_IPV4|ALLOW_IPV6)) 
-      {
-	Log(LG_ERR, ("CONSOLE: Bogus IP address given %s", av[0]));
-	return(-1);
-      }
+	Error("CONSOLE: Bogus IP address given %s", av[0]);
 
       if (ac == 2) {
         port =  strtol(av[1], NULL, 10);
-        if (port < 1 || port > 65535) {
-	    Log(LG_ERR, ("CONSOLE: Bogus port given %s", av[1]));
-	    return(-1);
-        }
+        if (port < 1 || port > 65535)
+	    Error("CONSOLE: Bogus port given %s", av[1]);
         c->port=port;
       }
       break;

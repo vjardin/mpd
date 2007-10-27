@@ -950,15 +950,11 @@ IpcpSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_NBNS:
       ips = ipcp->conf.peer_nbns;
 getPrimSec:
-      if (!inet_aton(av[0], &ips[0])) {
-	Log(LG_ERR, ("[%s] %s: invalid IP address", ctx->bund->name, av[0]));
-	return(0);
-      }
+      if (!inet_aton(av[0], &ips[0]))
+	Error("invalid IP address: \'%s\'", av[0]);
       ips[1].s_addr = 0;
-      if (ac > 1 && !inet_aton(av[1], &ips[1])) {
-	Log(LG_ERR, ("[%s] %s: invalid IP address", ctx->bund->name, av[1]));
-	return(0);
-      }
+      if (ac > 1 && !inet_aton(av[1], &ips[1]))
+	Error("invalid IP address: \'%s\'", av[1]);
       break;
 
     case SET_ACCEPT:

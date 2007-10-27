@@ -91,8 +91,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
   switch ((intptr_t)arg) {
     case SET_TARGET:
 #ifndef NG_NAT_LOG
-	Log(LG_ERR, ("Target address setting is unsupported by current kernel"));
-	return (-1);
+	Error("Target address setting is unsupported by current kernel");
 #endif
     /* FALL */
     case SET_ADDR:
@@ -102,10 +101,8 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	/* Parse */
 	if (ac != 1)
 	  return(-1);
-	if (!ParseAddr(av[0], &addr, ALLOW_IPV4)) {
-	  Log(LG_ERR, ("bad IP address \"%s\"", av[0]));
-	  break;
-	}
+	if (!ParseAddr(av[0], &addr, ALLOW_IPV4))
+	  Error("bad IP address \"%s\"", av[0]);
 
 	/* OK */
 	if ((intptr_t)arg == SET_ADDR) {

@@ -829,7 +829,7 @@ ModemSetCommand(Context ctx, int ac, char *av[], void *arg)
 		baud = atoi(*av);
 		for (k = 0; gSpeedList[k] != -1 && baud != gSpeedList[k]; k++);
 		if (gSpeedList[k] == -1)
-		    Log(LG_ERR, ("[%s] %s: invalid speed", l->name, *av));
+		    Error("invalid speed \'%s\'", *av);
 		else {
 		    char	buf[32];
 

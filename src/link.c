@@ -302,22 +302,16 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
     if (ac - stay < 1 || ac - stay > 2)
 	return(-1);
 
-    if (strlen(av[0 + stay])>16) {
-	Log(LG_ERR, ("Link name \"%s\" is too long", av[0 + stay]));
-	return(0);
-    }
+    if (strlen(av[0 + stay])>16)
+	Error("Link name \"%s\" is too long", av[0 + stay]);
 
     /* See if link name already taken */
-    if ((l = LinkFind(av[0 + stay])) != NULL) {
-	Log(LG_ERR, ("Link \"%s\" already exists", av[0 + stay]));
-	return (0);
-    }
+    if ((l = LinkFind(av[0 + stay])) != NULL)
+	Error("Link \"%s\" already exists", av[0 + stay]);
 
     for (k = 0; (pt = gPhysTypes[k]); k++) {
-        if (!strcmp(pt->name, av[0 + stay])) {
-	    Log(LG_ERR, ("Name \"%s\" is reserved by device type", av[0 + stay]));
-	    return (0);
-	}
+        if (!strcmp(pt->name, av[0 + stay]))
+	    Error("Name \"%s\" is reserved by device type", av[0 + stay]);
     }
 
     if (ac - stay == 2) {
@@ -327,21 +321,15 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
     		break;
 	}
 	if (pt != NULL) {
-	    if (!pt->tmpl && tmpl) {
-		Log(LG_ERR, ("Link type \"%s\" does not support templating", av[1 + stay]));
-		return (0);
-	    }
+	    if (!pt->tmpl && tmpl)
+		Error("Link type \"%s\" does not support templating", av[1 + stay]);
 
 	} else {
 	    /* See if template name specified */
-	    if ((lt = LinkFind(av[1 + stay])) == NULL) {
-		Log(LG_ERR, ("Link template \"%s\" not found", av[2 + tmpl]));
-		return (0);
-	    }
-	    if (!lt->tmpl) {
-		Log(LG_ERR, ("Link \"%s\" is not a template", av[2 + stay]));
-		return (0);
-	    }
+	    if ((lt = LinkFind(av[1 + stay])) == NULL)
+		Error("Link template \"%s\" not found", av[2 + tmpl]);
+	    if (!lt->tmpl)
+		Error("Link \"%s\" is not a template", av[2 + stay]);
 	}
     }
 
@@ -440,17 +428,13 @@ LinkDestroy(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
 
     if (ac == 1) {
-	if ((l = LinkFind(av[0])) == NULL) {
-	    Log(LG_ERR, ("Link \"%s\" not found", av[0]));
-	    return (0);
-	}
+	if ((l = LinkFind(av[0])) == NULL)
+	    Error("Link \"%s\" not found", av[0]);
     } else {
 	if (ctx->lnk) {
 	    l = ctx->lnk;
-	} else {
-	    Log(LG_ERR, ("No link selected to destroy"));
-	    return (0);
-	}
+	} else
+	    Error("No link selected to destroy");
     }
     
     if (l->tmpl) {
@@ -863,11 +847,10 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
 
     case 1:
         if ((l = LinkFind(av[0])) == NULL) {
-    	    Printf("Link \"%s\" is not defined\r\n", av[0]);
 	    RESETREF(ctx->lnk, NULL);
 	    RESETREF(ctx->bund, NULL);
 	    RESETREF(ctx->rep, NULL);
-	    return(0);
+    	    Error("Link \"%s\" is not defined\r\n", av[0]);
 	}
 
 	/* Change default link and bundle */
@@ -899,11 +882,11 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
 	    strcmp(gLinks[k]->session_id, av[0]));
 	k++);
     if (k == gNumLinks) {
-	Printf("Session \"%s\" is not found\r\n", av[0]);
 	/* Change default link and bundle */
 	RESETREF(ctx->lnk, NULL);
 	RESETREF(ctx->bund, NULL);
 	RESETREF(ctx->rep, NULL);
+	Error("Session \"%s\" is not found\r\n", av[0]);
     } else {
 	/* Change default link and bundle */
 	RESETREF(ctx->lnk, gLinks[k]);
@@ -1174,19 +1157,19 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_BANDWIDTH:
     	    val = atoi(*av);
     	    if (val <= 0)
-		Log(LG_ERR, ("[%s] Bandwidth must be positive", l->name));
+		Error("[%s] Bandwidth must be positive", l->name);
     	    else if (val > NG_PPP_MAX_BANDWIDTH * 10 * 8) {
 		l->bandwidth = NG_PPP_MAX_BANDWIDTH * 10 * 8;
 		Log(LG_ERR, ("[%s] Bandwidth truncated to %d bit/s", l->name, 
 		    l->bandwidth));
     	    } else
-	    l->bandwidth = val;
+		l->bandwidth = val;
     	    break;
 
 	case SET_LATENCY:
     	    val = atoi(*av);
     	    if (val < 0)
-		Log(LG_ERR, ("[%s] Latency must be not negative", l->name));
+		Error("[%s] Latency must be not negative", l->name);
     	    else if (val > NG_PPP_MAX_LATENCY * 1000) {
 		Log(LG_ERR, ("[%s] Latency truncated to %d usec", l->name, 
 		    NG_PPP_MAX_LATENCY * 1000));
@@ -1210,9 +1193,8 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 		if (ac == 2 && av[1][0]) {
 		    strlcpy(n->regex, av[1], sizeof(n->regex));
 		    if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
-			Log(LG_ERR, ("[%s] regexp \"%s\" compilation error", l->name, n->regex));
 			Freee(MB_LINK, n);
-			return (0);
+			Error("regexp \"%s\" compilation error", av[0]);
 		    }
 		}
 	    
@@ -1232,10 +1214,10 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    val = atoi(*av);
     	    name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
     	    if (val < LCP_MIN_MRU)
-		Log(LG_ERR, ("[%s] the min %s is %d", l->name, name, LCP_MIN_MRU));
+		Error("min %s is %d", name, LCP_MIN_MRU);
     	    else if (l->type && (val > l->type->mru)) {
-		Log(LG_ERR, ("[%s] the max %s on type \"%s\" links is %d",
-		    l->name, name, l->type->name, l->type->mru));
+		Error("max %s on type \"%s\" links is %d",
+		    name, l->type->name, l->type->mru);
     	    } else if ((intptr_t)arg == SET_MTU)
 		l->conf.mtu = val;
     	    else
@@ -1245,7 +1227,7 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_FSM_RETRY:
     	    val = atoi(*av);
     	    if (val < 1 || val > 10) {
-		Log(LG_ERR, ("[%s] incorrect fsm-timeout value %d", l->name, val));
+		Error("incorrect fsm-timeout value %d", val);
 	    } else {
 		l->conf.retry_timeout = val;
 	    }
@@ -1256,15 +1238,11 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 
 	case SET_MAX_CHILDREN:
-	    if (!l->tmpl) {
-		Log(LG_ERR, ("[%s] max-children applicable only to templates", l->name));
-		break;
-	    }
+	    if (!l->tmpl)
+		Error("applicable only to templates");
 	    val = atoi(*av);
-	    if (val < 0 || val > 100000) {
-		Log(LG_ERR, ("[%s] incorrect max-children value %d", l->name, val));
-		break;
-	    }
+	    if (val < 0 || val > 100000)
+		Error("incorrect value %d", val);
     	    l->conf.max_children = val;
     	    break;
 

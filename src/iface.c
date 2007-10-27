@@ -1222,14 +1222,10 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	/* Parse */
 	if (ac != 2)
 	  return(-1);
-	if (!ParseRange(av[0], &self_addr, ALLOW_IPV4)) {
-	  Log(LG_ERR, ("[%s] IFACE: Bad IP address \"%s\"", ctx->bund->name, av[0]));
-	  return(-1);
-	}
-	if (!ParseAddr(av[1], &peer_addr, ALLOW_IPV4)) {
-	  Log(LG_ERR, ("[%s] IFACE: Bad IP address \"%s\"", ctx->bund->name, av[1]));
-	  return(-1);
-	}
+	if (!ParseRange(av[0], &self_addr, ALLOW_IPV4))
+	  Error("Bad IP address \"%s\"", av[0]);
+	if (!ParseAddr(av[1], &peer_addr, ALLOW_IPV4))
+	  Error("Bad IP address \"%s\"", av[1]);
 
 	/* OK */
 	iface->self_addr = self_addr;
@@ -1251,10 +1247,8 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  u_rangeclear(&range);
 	  range.addr.family=AF_INET;
 	}
-	else if (!ParseRange(av[0], &range, ALLOW_IPV4|ALLOW_IPV6)) {
-	  Log(LG_ERR, ("[%s] IFACE: Bad route dest address \"%s\"", ctx->bund->name, av[0]));
-	  return(-1);
-	}
+	else if (!ParseRange(av[0], &range, ALLOW_IPV4|ALLOW_IPV6))
+	  Error("Bad route dest address \"%s\"", av[0]);
 	r = Malloc(MB_IFACE, sizeof(struct ifaceroute));
 	r->dest = range;
 	r->ok = 0;
@@ -1267,10 +1261,8 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	int	max_mtu;
 
 	max_mtu = atoi(av[0]);
-	if (max_mtu < IFACE_MIN_MTU || max_mtu > IFACE_MAX_MTU) {
-	  Log(LG_ERR, ("[%s] IFACE: Invalid interface mtu %d", ctx->bund->name, max_mtu));
-	  return(-1);
-	}
+	if (max_mtu < IFACE_MIN_MTU || max_mtu > IFACE_MAX_MTU)
+	  Error("Invalid interface mtu %d", max_mtu);
 	iface->max_mtu = max_mtu;
       }
       break;

@@ -710,20 +710,16 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_TIMEOUTS:
     	    if (ac != 2)
 		return (-1);
-    	    if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0) {
-		Log(LG_ERR, ("Bad netflow timeouts \"%s %s\"", av[0], av[1]));
-		return (-1);
-    	    }
+    	    if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0)
+		Error("Bad netflow timeouts \"%s %s\"", av[0], av[1]);
     	    gNetflowInactive = atoi(av[0]);
     	    gNetflowActive = atoi(av[1]);
     	    break;
 	case SET_NODE:
     	    if (ac != 1)
 		return (-1);
-    	    if (strlen(av[0]) == 0 || strlen(av[0]) > 63) {
-		Log(LG_ERR, ("Bad netflow node name \"%s\"", av[0]));
-		return (-1);
-    	    }
+    	    if (strlen(av[0]) == 0 || strlen(av[0]) > 63)
+		Error("Bad netflow node name \"%s\"", av[0]);
     	    strncpy(gNetflowNodeName,av[0],63);
     	    gNetflowNode=TRUE;
     	    gNetflowNodeShutdown=FALSE;
@@ -731,10 +727,8 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_HOOK:
     	    if (ac != 1)
 		return (-1);
-    	    if (atoi(av[0]) <= 0) {
-		Log(LG_ERR, ("Bad netflow hook number \"%s\"", av[0]));
-		return (-1);
-    	    }
+    	    if (atoi(av[0]) <= 0)
+		Error("Bad netflow hook number \"%s\"", av[0]);
     	    gNetflowIface = atoi(av[0])-1;
     	    break;
 

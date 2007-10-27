@@ -491,9 +491,8 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  count++;
 	}
 	if (count > RADIUS_MAX_SERVERS) {
-	  Log(LG_RADIUS, ("[%s] %s: cannot configure more than %d servers",
-	    ctx->lnk->name, __func__, RADIUS_MAX_SERVERS));
-	  return (-1);
+	  Error("cannot configure more than %d servers",
+	    RADIUS_MAX_SERVERS);
 	}
 
 	server = Malloc(MB_RADIUS, sizeof(*server));
@@ -501,30 +500,22 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	server->acct_port = 1813;
 	server->next = NULL;
 
-	if (strlen(av[0]) > 255) {
-	  Log(LG_ERR, ("RADIUS: Hostname too long. > 255 char."));
-	  return(-1);
-	}
+	if (strlen(av[0]) > 255)
+	  Error("Hostname too long. > 255 char.");
 
-	if (strlen(av[1]) > 127) {
-	  Log(LG_ERR, ("RADIUS: Shared Secret too long. > 127 char."));
-	  return(-1);
-	}
+	if (strlen(av[1]) > 127)
+	  Error("Shared Secret too long. > 127 char.");
 
 	if (ac > 2 && atoi(av[2]) < 65535 && atoi(av[2]) > 1) {
 	  server->auth_port = atoi (av[2]);
 
-	} else if ( ac > 2 ) {
-	  Log(LG_ERR, ("RADIUS: Auth Port number too high. > 65535"));
-	  return(-1);
-	}
+	} else if ( ac > 2 )
+	  Error("Auth Port number too high. > 65535");
 
 	if (ac > 3 && atoi(av[3]) < 65535 && atoi(av[3]) > 1) {
 	  server->acct_port = atoi (av[3]);
-	} else if ( ac > 3 ) {
-	  Log(LG_ERR, ("RADIUS: Acct Port number too high > 65535"));
-	  return(-1);
-	}
+	} else if ( ac > 3 )
+	  Error("Acct Port number too high > 65535");
 
 	server->hostname = Mdup(MB_RADIUS, av[0], strlen(av[0]) + 1);
 	server->sharedsecret = Mdup(MB_RADIUS, av[1], strlen(av[1]) + 1);
@@ -539,21 +530,19 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
       case SET_ME:
         if (ParseAddr(*av, &t, ALLOW_IPV4)) {
 	    u_addrtoin_addr(&t,&conf->radius_me);
-	} else {
-	    Log(LG_ERR, ("RADIUS: Bad NAS address '%s'.", *av));
-	}
+	} else
+	    Error("Bad NAS address '%s'.", *av);
 	break;
 
       case SET_MEV6:
-        if (!ParseAddr(*av, &conf->radius_mev6, ALLOW_IPV6)) {
-	    Log(LG_ERR, ("RADIUS: Bad NAS address '%s'.", *av));
-	}
+        if (!ParseAddr(*av, &conf->radius_mev6, ALLOW_IPV6))
+	    Error("Bad NAS address '%s'.", *av);
 	break;
 
       case SET_TIMEOUT:
 	val = atoi(*av);
 	  if (val <= 0)
-	    Log(LG_ERR, ("RADIUS: Timeout must be positive."));
+	    Error("Timeout must be positive.");
 	  else
 	    conf->radius_timeout = val;
 	break;
@@ -561,14 +550,14 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
       case SET_RETRIES:
 	val = atoi(*av);
 	if (val <= 0)
-	  Log(LG_ERR, ("RADIUS: Retries must be positive."));
+	  Error("Retries must be positive.");
 	else
 	  conf->radius_retries = val;
 	break;
 
       case SET_CONFIG:
 	if (strlen(av[0]) > PATH_MAX) {
-	  Log(LG_ERR, ("RADIUS: Config file name too long."));
+	  Error("RADIUS: Config file name too long.");
 	} else {
 	  if (conf->file)
 		Freee(MB_RADIUS, conf->file);

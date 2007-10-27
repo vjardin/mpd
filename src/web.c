@@ -655,17 +655,12 @@ WebSetCommand(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
 
       if (!ParseAddr(av[0],&w->addr, ALLOW_IPV4)) 
-      {
-	Log(LG_ERR, ("web: Bogus IP address given %s", av[0]));
-	return(-1);
-      }
+	Error("Bogus IP address given %s", av[0]);
 
       if (ac == 2) {
         port =  strtol(av[1], NULL, 10);
-        if (port < 1 || port > 65535) {
-	    Log(LG_ERR, ("web: Bogus port given %s", av[1]));
-	    return(-1);
-        }
+        if (port < 1 || port > 65535)
+	    Error("Bogus port given %s", av[1]);
         w->port=port;
       }
       break;

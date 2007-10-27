@@ -17,6 +17,14 @@
  */
 
   #define CMD_SUBMENU	((int (*)(Context ctx, int ac, char *av[], void *arg)) 1)
+  
+  #define CMD_ERR_USAGE	-1
+  #define CMD_ERR_UNDEF	-2
+  #define CMD_ERR_AMBIG	-3
+  #define CMD_ERR_RECUR	-4
+  #define CMD_ERR_UNFIN	-5
+  #define CMD_ERR_NOCTX	-6
+  #define CMD_ERR_OTHER	-7
 
   /* Configuration options */
   enum {

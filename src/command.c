@@ -30,6 +30,7 @@
 #include "ngfunc.h"
 #include "ccp_mppc.h"
 #include "util.h"
+#include <pdel/sys/alog.h>
 
 /*
  * DEFINITIONS
@@ -325,19 +326,57 @@
 int
 DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
 {
-  int	rtn;
-  char	filebuf[100];
-  
-  rtn = DoCommandTab(ctx, gCommands, ac, av);
+    int		rtn, i;
+    char	filebuf[100], cmd[100];
 
-  /* Bad usage? */
-  if (rtn < 0) {
-    if (file) {
-	snprintf(filebuf,sizeof(filebuf),"%s:%d: ", file, line);
-	HelpCommand(ctx, ac, av, filebuf);
-    } else {
-	HelpCommand(ctx, ac, av, NULL);
+    ctx->errmsg[0] = 0;
+    rtn = DoCommandTab(ctx, gCommands, ac, av);
+
+    if (rtn) {
+	if (file) {
+	    snprintf(filebuf,sizeof(filebuf),"%s:%d: ", file, line);
+	} else {
+	    filebuf[0] = 0;
+	}
+	cmd[0] = 0;
+	for (i = 0; i < ac; i++) {
+	    if (i)
+		strlcat(cmd, " ", sizeof(cmd));
+	    strlcat(cmd, av[i], sizeof(cmd));
+	}
     }
+
+    /* Bad usage? */
+    switch (rtn) {
+	case 0:
+	    break;
+    
+	case CMD_ERR_USAGE:
+	case CMD_ERR_UNFIN:
+	    HelpCommand(ctx, ac, av, filebuf);
+	    alog(gLogInfo, "%sError in '%s'", filebuf, cmd);
+	    break;
+	case CMD_ERR_UNDEF:
+    	    Printf("%sUnknown command: '%s'. Try \"help\".\r\n", filebuf, cmd);
+	    alog(gLogInfo, "%sUnknown command: '%s'. Try \"help\".", filebuf, cmd);
+	    break;
+	case CMD_ERR_AMBIG:
+    	    Printf("%sAmbiguous command: '%s'. Try \"help\".\r\n", filebuf, cmd);
+	    alog(gLogInfo, "%sAmbiguous command: '%s'. Try \"help\".", filebuf, cmd);
+	    break;
+	case CMD_ERR_RECUR:
+    	    Printf("%sRecursion detected for: '%s'!\r\n", filebuf, cmd);
+	    alog(gLogInfo, "%sRecursion detected for: '%s'!", filebuf, cmd);
+	    break;
+	case CMD_ERR_NOCTX:
+    	    Printf("%sIncorrect context for: '%s'\r\n", filebuf, cmd);
+	    alog(gLogInfo, "%sIncorrect context for: '%s'", filebuf, cmd);
+	    break;
+	case CMD_ERR_OTHER:
+    	    Printf("%sError in '%s': %s\r\n", filebuf, cmd, ctx->errmsg);
+	    alog(gLogInfo, "%sError in '%s': %s", filebuf, cmd, ctx->errmsg);
+	    break;
+	
   }
   
   return(rtn);
@@ -352,28 +391,28 @@ DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
 static int
 DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
 {
-  CmdTab	cmd;
-  int		rtn = 0;
+    CmdTab	cmd;
+    int		rtn = 0;
 
-  /* Huh? */
-  if (ac <= 0)
-    return(-1);
+    /* Huh? */
+    if (ac <= 0)
+	return(CMD_ERR_UNFIN);
 
-  /* Find command */
-  if (FindCommand(cmdlist, av[0], &cmd))
-    return(-1);
+    /* Find command */
+    if ((rtn = FindCommand(cmdlist, av[0], &cmd)))
+	return(rtn);
 
-  /* Check command admissibility */
-  if (cmd->admit && !(cmd->admit)(ctx, cmd))
-    return(0);
+    /* Check command admissibility */
+    if (cmd->admit && !(cmd->admit)(ctx, cmd))
+	return(CMD_ERR_NOCTX);
 
-  /* Find command and either execute or recurse into a submenu */
-  if (cmd->func == CMD_SUBMENU)
-    rtn = DoCommandTab(ctx, (CmdTab) cmd->arg, ac - 1, av + 1);
-  else
-    rtn = (cmd->func)(ctx, ac - 1, av + 1, cmd->arg);
+    /* Find command and either execute or recurse into a submenu */
+    if (cmd->func == CMD_SUBMENU)
+	rtn = DoCommandTab(ctx, (CmdTab) cmd->arg, ac - 1, av + 1);
+    else
+	rtn = (cmd->func)(ctx, ac - 1, av + 1, cmd->arg);
 
-  return(rtn);
+    return(rtn);
 }
 
 /*
@@ -383,23 +422,23 @@ DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
 int
 FindCommand(CmdTab cmds, char *str, CmdTab *cmdp)
 {
-  int		nmatch;
-  int		len = strlen(str);
+    int		nmatch;
+    int		len = strlen(str);
 
-  for (nmatch = 0; cmds->name; cmds++) {
-    if (cmds->name && !strncmp(str, cmds->name, len)) {
-      *cmdp = cmds;
-      nmatch++;
+    for (nmatch = 0; cmds->name; cmds++) {
+	if (cmds->name && !strncmp(str, cmds->name, len)) {
+	    *cmdp = cmds;
+    	    nmatch++;
+	}
     }
-  }
-  switch (nmatch) {
-    case 0:
-      return(-1);
-    case 1:
-      return(0);
-    default:
-      return(-2);
-  }
+    switch (nmatch) {
+	case 0:
+    	    return(CMD_ERR_UNDEF);
+	case 1:
+    	    return(0);
+	default:
+    	    return(CMD_ERR_AMBIG);
+    }
 }
 
 /********** COMMANDS **********/
@@ -428,7 +467,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_RULE:
 	if (rule_pool) 
-	    Log(LG_ERR, ("Rule pool is not empty. Impossible to set initial number"));
+	    Error("Rule pool is not empty. Impossible to set initial number");
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>=65535)
@@ -440,7 +479,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_QUEUE:
 	if (queue_pool) 
-	    Log(LG_ERR, ("Queue pool is not empty. Impossible to set initial number"));
+	    Error("Queue pool is not empty. Impossible to set initial number");
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>=65535)
@@ -452,7 +491,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_PIPE:
 	if (rule_pool) 
-	    Log(LG_ERR, ("Pipe pool is not empty. Impossible to set initial number"));
+	    Error("Pipe pool is not empty. Impossible to set initial number");
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>=65535)
@@ -464,7 +503,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_TABLE:
 	if (rule_pool) 
-	    Log(LG_ERR, ("Table pool is not empty. Impossible to set initial number"));
+	    Error("Table pool is not empty. Impossible to set initial number");
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>127) /* table 0 is usually possible but we deny it */
@@ -504,16 +543,10 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
       for (*buf = k = 0; k <= depth; k++)
 	snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s%c",
 	  av[k], k == depth ? '\0' : ' ');
-      switch (err) {
-        case -1:
-          errfmt = "%sUnknown command: '%s'. Try \"help\".";
-	  break;
-        case -2:
-	  errfmt = "%sAmbiguous command: '%s'";
-	  break;
-	default:
-	  errfmt = "%sUnknown error in: '%s'";
-      }
+      if (err == CMD_ERR_AMBIG)
+	  errfmt = "%sAmbiguous command: '%s'.";
+      else 
+          errfmt = "%sUnknown command: '%s'.";
       if (arg) {
         Log(LG_ERR, (errfmt, (char*)arg, buf));
       } else {
@@ -680,11 +713,8 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
     if (ac != 1)
 	return(-1);
     else {
-	if (ctx->depth > 20) {
-    	    Log(LG_ERR, ("Recursion depth limit was reached while loading '%s'!", *av));
-    	    Log(LG_ERR, ("There is a configuration loop!"));
-    	    return(-3);
-	}
+	if (ctx->depth > 20)
+    	    return(CMD_ERR_RECUR);
 	ctx->depth++;
 	ReadFile(gConfigFile, *av, DoCommand, ctx);
 	ctx->depth--;
@@ -716,6 +746,8 @@ OpenCommand(Context ctx, int ac, char *av[], void *arg)
 	/* Check command admissibility */
 	if (!layer->admit || (layer->admit)(ctx, NULL))
 	    (*layer->opener)(ctx);
+	else
+	    return (CMD_ERR_NOCTX);
     }
     return(0);
 }
@@ -744,6 +776,8 @@ CloseCommand(Context ctx, int ac, char *av[], void *arg)
 	/* Check command admissibility */
 	if (!layer->admit || (layer->admit)(ctx, NULL))
 	    (*layer->closer)(ctx);
+	else
+	    return (CMD_ERR_NOCTX);
     }
     return(0);
 }
@@ -906,7 +940,6 @@ AdmitBund(Context ctx, CmdTab cmd)
     else
 	c = "";
     if (!ctx->bund) {
-        Log(LG_ERR, ("No bundle selected for '%s' command", c));
 	return(FALSE);
     }
     return(TRUE);
@@ -925,7 +958,6 @@ AdmitLink(Context ctx, CmdTab cmd)
     else
 	c = "";
     if (!ctx->lnk) {
-	Log(LG_ERR, ("No link selected for '%s' command", c));
 	return(FALSE);
     }
     return(TRUE);
@@ -944,7 +976,6 @@ AdmitRep(Context ctx, CmdTab cmd)
     else
 	c = "";
     if (!ctx->rep) {
-	Log(LG_ERR, ("No repeater selected for '%s' command", c));
 	return(FALSE);
     }
     return(TRUE);
@@ -963,12 +994,9 @@ AdmitDev(Context ctx, CmdTab cmd)
     else
 	c = "";
     if (!ctx->lnk) {
-	Log(LG_ERR, ("No device selected for '%s' command", c));
 	return(FALSE);
     }
     if (strncmp(cmd->name, ctx->lnk->type->name, strlen(ctx->lnk->type->name))) {
-	Log(LG_ERR, ("[%s] device type is %s, '%s' command isn't allowed here!",
-    	    ctx->lnk->name, ctx->lnk->type->name, c));
 	return(FALSE);
     }
     return(TRUE);

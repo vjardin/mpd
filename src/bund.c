@@ -924,10 +924,10 @@ BundCommand(Context ctx, int ac, char *av[], void *arg)
 	    }
 	    RESETREF(ctx->rep, NULL);
         } else {
-	    Printf("Bundle \"%s\" not defined.\r\n", av[0]);
 	    RESETREF(ctx->lnk, NULL);
 	    RESETREF(ctx->bund, NULL);
 	    RESETREF(ctx->rep, NULL);
+	    Error("Bundle \"%s\" not defined.\r\n", av[0]);
         }
         break;
 
@@ -955,11 +955,11 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 	    strcmp(gBundles[k]->msession_id, av[0]));
 	k++);
     if (k == gNumBundles) {
-	Printf("MultySession \"%s\" is not found\r\n", av[0]);
 	/* Change default link and bundle */
 	RESETREF(ctx->lnk, NULL);
 	RESETREF(ctx->bund, NULL);
 	RESETREF(ctx->rep, NULL);
+	Error("MultySession \"%s\" is not found\r\n", av[0]);
     } else {
 	/* Change default link and bundle */
 	RESETREF(ctx->bund, gBundles[k]);
@@ -1000,27 +1000,19 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
     if (ac - stay < 1 || ac - stay > 2)
 	return(-1);
 
-    if (strlen(av[0 + stay]) > 16) {
-	Log(LG_ERR, ("Bundle name \"%s\" is too long", av[0 + stay]));
-	return(0);
-    }
+    if (strlen(av[0 + stay]) > 16)
+	Error("Bundle name \"%s\" is too long", av[0 + stay]);
 
     /* See if bundle name already taken */
-    if ((b = BundFind(av[0 + stay])) != NULL) {
-	Log(LG_ERR, ("Bundle \"%s\" already exists", av[0 + stay]));
-	return(0);
-    }
+    if ((b = BundFind(av[0 + stay])) != NULL)
+	Error("Bundle \"%s\" already exists", av[0 + stay]);
 
     if (ac - stay == 2) {
 	/* See if template name specified */
-	if ((bt = BundFind(av[1 + stay])) == NULL) {
-	    Log(LG_ERR, ("Bundle template \"%s\" not found", av[1 + stay]));
-	    return (0);
-	}
-	if (!bt->tmpl) {
-	    Log(LG_ERR, ("Bundle \"%s\" is not a template", av[1 + stay]));
-	    return (0);
-	}
+	if ((bt = BundFind(av[1 + stay])) == NULL)
+	    Error("Bundle template \"%s\" not found", av[1 + stay]);
+	if (!bt->tmpl)
+	    Error("Bundle \"%s\" is not a template", av[1 + stay]);
     }
 
     if (bt) {
@@ -1071,9 +1063,8 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	if (!tmpl) {
 	    /* Setup netgraph stuff */
 	    if (BundNgInit(b) < 0) {
-		Log(LG_ERR, ("[%s] Bundle netgraph initialization failed", b->name));
 		Freee(MB_BUND, b);
-		return(0);
+		Error("Bundle netgraph initialization failed");
 	    }
 	}
     }
@@ -1097,17 +1088,13 @@ BundDestroy(Context ctx, int ac, char *av[], void *arg)
 	return(-1);
 
     if (ac == 1) {
-	if ((b = BundFind(av[0])) == NULL) {
-	    Log(LG_ERR, ("Bund \"%s\" not found", av[0]));
-	    return (0);
-	}
+	if ((b = BundFind(av[0])) == NULL)
+	    Error("Bund \"%s\" not found", av[0]);
     } else {
 	if (ctx->bund) {
 	    b = ctx->bund;
-	} else {
-	    Log(LG_ERR, ("No bundle selected to destroy"));
-	    return (0);
-	}
+	} else
+	    Error("No bundle selected to destroy");
     }
     
     if (b->tmpl) {
@@ -1222,10 +1209,8 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
       sb = ctx->bund;
       break;
     case 1:
-      if ((sb = BundFind(av[0])) == NULL) {
-	Printf("Bundle \"%s\" not defined.\r\n", av[0]);
-	return(0);
-      }
+      if ((sb = BundFind(av[0])) == NULL)
+	Error("Bundle \"%s\" not defined.\r\n", av[0]);
       break;
     default:
       return(-1);
@@ -1943,11 +1928,10 @@ BundSetCommand(Context ctx, int ac, char *av[], void *arg)
 
 	case SET_RETRY:
     	    val = atoi(*av);
-    	    if (val < 1 || val > 10) {
-		Log(LG_ERR, ("[%s] incorrect fsm-timeout value %d", b->name, val));
-	    } else {
+    	    if (val < 1 || val > 10)
+		Error("[%s] incorrect fsm-timeout value %d", b->name, val);
+	    else
 		b->conf.retry_timeout = val;
-	    }
     	    break;
 
 	case SET_ACCEPT:

@@ -226,8 +226,12 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
     		RESETREF(ctx->rep, r);
     		RESETREF(ctx->bund, NULL);
     		RESETREF(ctx->lnk, r->links[0]);
-    	    } else
-		Printf("Repeater \"%s\" not defined.\r\n", av[0]);
+    	    } else {
+    		RESETREF(ctx->rep, NULL);
+    		RESETREF(ctx->bund, NULL);
+    		RESETREF(ctx->lnk, NULL);
+		Error("Repeater \"%s\" not defined.", av[0]);
+	    }
     	    break;
 
 	default:
@@ -336,10 +340,8 @@ RepStat(Context ctx, int ac, char *av[], void *arg)
     	    r = ctx->rep;
     	    break;
 	case 1:
-    	    if ((r = RepFind(av[0])) == NULL) {
-		Printf("Repeater \"%s\" not defined.\r\n", av[0]);
-		return(0);
-    	    }
+    	    if ((r = RepFind(av[0])) == NULL)
+		Error("Repeater \"%s\" not defined.", av[0]);
     	    break;
 	default:
     	    return(-1);

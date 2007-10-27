@@ -1777,7 +1777,7 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_ACCT_UPDATE:
       val = atoi(*av);
       if (val < 0)
-	Log(LG_ERR, ("Update interval must be positive."));
+	Error("Update interval must be positive.");
       else
 	autc->acct_update = val;
       break;
@@ -1786,7 +1786,7 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_ACCT_UPDATE_LIMIT_OUT:
       val = atoi(*av);
       if (val < 0)
-	Log(LG_ERR, ("Update suppression limit must be positive."));
+	Error("Update suppression limit must be positive.");
       else {
 	if ((intptr_t)arg == SET_ACCT_UPDATE_LIMIT_IN)
 	  autc->acct_update_lim_recv = val;
@@ -1798,7 +1798,7 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_TIMEOUT:
       val = atoi(*av);
       if (val <= 20)
-	Log(LG_ERR, ("Authorization timeout must be greater then 20."));
+	Error("Authorization timeout must be greater then 20.");
       else
 	autc->timeout = val;
       break;

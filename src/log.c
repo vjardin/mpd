@@ -15,7 +15,6 @@
 #ifdef SYSLOG_FACILITY
 #include <syslog.h>
 #endif
-
 #include <pdel/sys/alog.h>
 
 /*
@@ -45,6 +44,7 @@
 #ifdef SYSLOG_FACILITY
   char	gSysLogIdent[32];
 #endif
+  int	gLogInfo;
 
 /*
  * INTERNAL VARIABLES
@@ -169,10 +169,11 @@ LogOpen(void)
     memset(&gLogConf, 0, sizeof(gLogConf));
     if (!*gSysLogIdent)
 	strcpy(gSysLogIdent, "mpd");
+    gLogInfo = alog_severity("info");
 #ifdef SYSLOG_FACILITY
     gLogConf.name = gSysLogIdent;
     gLogConf.facility = alog_facility_name(SYSLOG_FACILITY);
-    gLogConf.min_severity = LOG_INFO;
+    gLogConf.min_severity = gLogInfo;
 #else
     gLogConf.path = LG_FILE;
 #endif
@@ -286,7 +287,7 @@ vLogPrintf(const char *fmt, va_list args)
 #if (__FreeBSD_version >= 500000)
     va_copy(args2, args);
 #endif
-    valog(LOG_INFO, fmt, args);
+    valog(gLogInfo, fmt, args);
 
     if (!SLIST_EMPTY(&gConsole.sessions)) {
 #if (__FreeBSD_version >= 500000)
@@ -297,7 +298,7 @@ vLogPrintf(const char *fmt, va_list args)
 
 	RWLOCK_RDLOCK(gConsole.lock);
 	SLIST_FOREACH(s, &gConsole.sessions, next) {
-	    if (s->active || Enabled(&s->options, CONSOLE_LOGGING))
+	    if (Enabled(&s->options, CONSOLE_LOGGING))
 		s->write(s, "%s\r\n", buf);
 	}
 	RWLOCK_UNLOCK(gConsole.lock);

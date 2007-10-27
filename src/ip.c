@@ -25,7 +25,7 @@ IpShowRoutes(Context ctx, int ac, char *av[], void *arg)
   if ((fp = popen(PATH_NETSTAT " -nr -f inet", "r")) == NULL)
   {
     Perror("popen");
-    return(0);
+    return(CMD_ERR_OTHER);
   }
   while (fgets(buf,sizeof(buf)-1,fp)) {
     if ((c=strrchr(buf,'\n')))

@@ -22,11 +22,14 @@
   #define MAX_CONSOLE_BUF_LEN	4096
 
   #define Printf(fmt, args...)	({ 						\
-	  			  if (ctx->cs) { 				\
+	  			  if (ctx->cs)	 				\
 	  			    ctx->cs->write(ctx->cs, fmt, ## args);	\
-	  			  } else {					\
-				    printf(fmt, ## args);			\
-				  } 						\
+  				})
+
+  #define Error(fmt, args...)	({ 						\
+				  snprintf(ctx->errmsg, sizeof(ctx->errmsg),	\
+				    fmt, ## args);				\
+				  return(CMD_ERR_OTHER);			\
   				})
 
   /* Configuration options */
@@ -56,6 +59,7 @@
 	Rep		rep;
 	ConsoleSession	cs;
 	int		depth;		/* Number recursive 'load' calls */
+	char		errmsg[256];	/* Error message of the last command */
   };
 
   struct console_user {
@@ -68,7 +72,6 @@
   struct console_session {
     Console		console;
     struct optinfo	options;	/* Configured options */
-    char		active;		/* console active at this moment */
     int			fd;		/* connection fd */
     void		*cookie;	/* device dependent cookie */
     EventRef		readEvent;
