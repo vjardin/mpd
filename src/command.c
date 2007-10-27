@@ -677,21 +677,19 @@ QuitCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 LoadCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  static int depth=0;
-  
-  if (ac != 1)
-    return(-1);
-  else {
-    if (depth>20) {
-      Log(LG_ERR, ("Depth limit was reached while loading '%s'!", *av));
-      Log(LG_ERR, ("There is a configuration loop!"));
-      return(-2);
+    if (ac != 1)
+	return(-1);
+    else {
+	if (ctx->depth > 20) {
+    	    Log(LG_ERR, ("Recirstion depth limit was reached while loading '%s'!", *av));
+    	    Log(LG_ERR, ("There is a configuration loop!"));
+    	    return(-2);
+	}
+	ctx->depth++;
+	ReadFile(gConfigFile, *av, DoCommand, ctx);
+	ctx->depth--;
     }
-    depth++;
-    ReadFile(gConfigFile, *av, DoCommand, ctx);
-    depth--;
-  }
-  return(0);
+    return(0);
 }
 
 /*

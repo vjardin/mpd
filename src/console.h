@@ -55,6 +55,7 @@
 	Link		lnk;
 	Rep		rep;
 	ConsoleSession	cs;
+	int		depth;		/* Number recursive 'load' calls */
   };
 
   struct console_user {
