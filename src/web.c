@@ -432,18 +432,16 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
     	    if (++argc >= MAX_CONSOLE_ARGS)
         	break;
 
-    if (argc == 0) {
-	fprintf(f, "No command cpecified!\n");
-	return;
-    }
-
     for (k = 0; k < argc; k++) {
-	int	ac;
+	int	ac, rtn;
 	char	*av[MAX_CONSOLE_ARGS];
 
 	http_request_url_decode(argv[k], buf1);
 	ac = ParseLine(buf1, av, sizeof(av) / sizeof(*av), 0);
-	if (DoCommand(&cs->context, ac, av, NULL, 0))
+	cs->context.errmsg[0] = 0;
+	rtn = DoCommandTab(&cs->context, gCommands, ac, av);
+	fprintf(f, "###RESULT###: %d %s\n", rtn, cs->context.errmsg);
+	if (rtn)
 	    break;
     }
 }

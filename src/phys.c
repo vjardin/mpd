@@ -112,10 +112,11 @@ PhysInst(Link l, Link lt)
  * PhysOpenCmd()
  */
 
-void
+int
 PhysOpenCmd(Context ctx)
 {
     PhysOpen(ctx->lnk);
+    return (0);
 }
 
 /*
@@ -133,10 +134,11 @@ PhysOpen(Link l)
  * PhysCloseCmd()
  */
 
-void
+int
 PhysCloseCmd(Context ctx)
 {
     PhysClose(ctx->lnk);
+    return (0);
 }
 
 /*

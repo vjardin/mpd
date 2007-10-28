@@ -143,6 +143,9 @@ Show all pending events (for debugging mpd).
 Show distribution of dynamically allocated memory (for debugging mpd).
 <tag>version</tag>
 Show running mpd version and supported features.
+<tag>sessions [ <em>param</em> <em>value</em> ]</tag>
+Show active sessions conforming specified param/value.
+Available params: iface, ip, bundle, msession, link, session, user, peer.
 <tag>summary</tag>
 Show status summary
 <tag>console</tag>

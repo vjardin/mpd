@@ -67,9 +67,9 @@
  * FUNCTIONS
  */
 
-  extern void		PhysOpenCmd(Context ctx);
+  extern int		PhysOpenCmd(Context ctx);
   extern void		PhysOpen(Link l);
-  extern void		PhysCloseCmd(Context ctx);
+  extern int		PhysCloseCmd(Context ctx);
   extern void		PhysClose(Link l);
   extern void		PhysUp(Link l);
   extern void		PhysDown(Link l, const char *reason, const char *details, ...);

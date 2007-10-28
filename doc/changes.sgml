@@ -17,6 +17,8 @@
 	  <item> Web console rewritten and allows now execute any commands
 		 allowed by privileges. Added plain-text command interface.
 	  </item>
+	  <item> New 'show sessions' command added.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

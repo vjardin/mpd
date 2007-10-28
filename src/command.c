@@ -67,6 +67,7 @@
   static int	ShowLayers(Context ctx, int ac, char *av[], void *arg);
   static int	ShowTypes(Context ctx, int ac, char *av[], void *arg);
   static int	ShowSummary(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowSessions(Context ctx, int ac, char *av[], void *arg);
   static int	ShowEvents(Context ctx, int ac, char *av[], void *arg);
   static int	ShowGlobal(Context ctx, int ac, char *av[], void *arg);
   static int	OpenCommand(Context ctx, int ac, char *av[], void *arg);
@@ -78,7 +79,6 @@
   static int	SetDebugCommand(Context ctx, int ac, char *av[], void *arg);
 
   /* Other stuff */
-  static int	DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[]);
   static Layer	GetLayer(const char *name);
 
 /*
@@ -175,6 +175,8 @@
 	ShowTypes, NULL, 0, NULL },
     { "version",			"Version string",
 	ShowVersion, NULL, 0, NULL },
+    { "sessions [ {param} {value} ]",	"Active sessions",
+	ShowSessions, NULL, 0, NULL },
     { "summary",			"Daemon status summary",
 	ShowSummary, NULL, 0, NULL },
     { NULL },
@@ -391,7 +393,7 @@ DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
  * Execute command from given command menu
  */
 
-static int
+int
 DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
 {
     CmdTab	cmd;
@@ -933,6 +935,79 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
     }
   }
   return(0);
+}
+
+/*
+ * ShowSessions()
+ */
+
+static int
+ShowSessions(Context ctx, int ac, char *av[], void *arg)
+{
+    int		l;
+    Bund	B;
+    Link  	L;
+    char	peer[64], addr[64];
+
+    if (ac != 0 && ac != 2)
+	return (-1);
+
+    for (l = 0; l < gNumLinks; l++) {
+	if ((L=gLinks[l]) != NULL && L->session_id[0]) {
+	    B = L->bund;
+	    u_addrtoa(&B->iface.peer_addr, addr, sizeof(addr));
+	    PhysGetPeerAddr(L, peer, sizeof(peer));
+	    if (ac == 2) {
+		if (!strcmp(av[0], "iface")) {
+		    if (strcmp(av[1], B->iface.ifname))
+			continue;
+		} else if (!strcmp(av[0], "ip")) {
+		    if (strcmp(av[1], addr))
+			continue;
+		} else if (!strcmp(av[0], "user")) {
+		    if (strcmp(av[1], L->lcp.auth.params.authname))
+			continue;
+		} else if (!strcmp(av[0], "msession")) {
+		    if (strcmp(av[1], B->msession_id))
+			continue;
+		} else if (!strcmp(av[0], "session")) {
+		    if (strcmp(av[1], L->session_id))
+			continue;
+		} else if (!strcmp(av[0], "bundle")) {
+		    if (strcmp(av[1], B->name))
+			continue;
+		} else if (!strcmp(av[0], "link")) {
+		    if (av[1][0] == '[') {
+			int k;
+			if (sscanf(av[1], "[%x]", &k) != 1)
+			    return (-1);
+			else {
+			    if (L->id != k)
+				continue;
+			}
+		    } else {
+			if (strcmp(av[1], L->name))
+			    continue;
+		    }
+		} else if (!strcmp(av[0], "peer")) {
+		    if (strcmp(av[1], peer))
+			continue;
+		} else
+		    return (-1);
+	    }
+	    Printf("%s\t%s\t%s\t%s\t", B->iface.ifname,
+		addr, B->name, B->msession_id);
+	    Printf("%s\t[%x]\t%s\t%s\t%s", 
+		L->name,
+		L->id,
+		L->session_id,
+		L->lcp.auth.params.authname,
+		peer
+	    );
+	    Printf("\r\n");
+	}
+    }
+    return(0);
 }
 
 /*

@@ -967,7 +967,7 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 	RESETREF(ctx->lnk, NULL);
 	RESETREF(ctx->bund, NULL);
 	RESETREF(ctx->rep, NULL);
-	Error("MultySession \"%s\" is not found", av[0]);
+	Error("msession \"%s\" is not found", av[0]);
     }
 
     /* Change default link and bundle */
