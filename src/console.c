@@ -11,7 +11,6 @@
 #include "console.h"
 #include "util.h"
 #include <termios.h>
-#include <pdel/sys/alog.h>
 
 /*
  * DEFINITIONS
@@ -585,10 +584,10 @@ success:
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
       if (c != '?') {
-        alog(gLogInfo, "[%s] CONSOLE: %s: %s", 
+        Log2(LG_ERR, ("[%s] CONSOLE: %s: %s", 
 	    cs->context.lnk ? cs->context.lnk->name :
 		(cs->context.bund? cs->context.bund->name : ""), 
-	    cs->user.username, cs->cmd);
+	    cs->user.username, cs->cmd));
         DoCommand(&cs->context, ac, av, NULL, 0);
       } else {
         HelpCommand(&cs->context, ac, av, NULL);

@@ -30,7 +30,6 @@
 #include "ngfunc.h"
 #include "ccp_mppc.h"
 #include "util.h"
-#include <pdel/sys/alog.h>
 
 /*
  * DEFINITIONS
@@ -360,27 +359,27 @@ DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
 	case CMD_ERR_USAGE:
 	case CMD_ERR_UNFIN:
 	    HelpCommand(ctx, ac, av, filebuf);
-	    alog(gLogInfo, "%sError in '%s'", filebuf, cmd);
+	    Log2(LG_ERR, ("%sError in '%s'", filebuf, cmd));
 	    break;
 	case CMD_ERR_UNDEF:
     	    Printf("%sUnknown command: '%s'. Try \"help\".\r\n", filebuf, cmd);
-	    alog(gLogInfo, "%sUnknown command: '%s'. Try \"help\".", filebuf, cmd);
+	    Log2(LG_ERR, ("%sUnknown command: '%s'. Try \"help\".", filebuf, cmd));
 	    break;
 	case CMD_ERR_AMBIG:
     	    Printf("%sAmbiguous command: '%s'. Try \"help\".\r\n", filebuf, cmd);
-	    alog(gLogInfo, "%sAmbiguous command: '%s'. Try \"help\".", filebuf, cmd);
+	    Log2(LG_ERR, ("%sAmbiguous command: '%s'. Try \"help\".", filebuf, cmd));
 	    break;
 	case CMD_ERR_RECUR:
     	    Printf("%sRecursion detected for: '%s'!\r\n", filebuf, cmd);
-	    alog(gLogInfo, "%sRecursion detected for: '%s'!", filebuf, cmd);
+	    Log2(LG_ERR, ("%sRecursion detected for: '%s'!", filebuf, cmd));
 	    break;
 	case CMD_ERR_NOCTX:
     	    Printf("%sIncorrect context for: '%s'\r\n", filebuf, cmd);
-	    alog(gLogInfo, "%sIncorrect context for: '%s'", filebuf, cmd);
+	    Log2(LG_ERR, ("%sIncorrect context for: '%s'", filebuf, cmd));
 	    break;
 	case CMD_ERR_OTHER:
     	    Printf("%sError in '%s': %s\r\n", filebuf, cmd, ctx->errmsg);
-	    alog(gLogInfo, "%sError in '%s': %s", filebuf, cmd, ctx->errmsg);
+	    Log2(LG_ERR, ("%sError in '%s': %s", filebuf, cmd, ctx->errmsg));
 	    break;
     }
   

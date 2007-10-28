@@ -309,6 +309,29 @@ vLogPrintf(const char *fmt, va_list args)
 }
 
 /*
+ * LogPrintf2()
+ *
+ * The way to print something to the log
+ */
+
+void
+LogPrintf2(const char *fmt, ...)
+{
+    va_list       args;
+
+    va_start(args, fmt);
+    vLogPrintf2(fmt, args);
+    va_end(args);
+}
+
+void
+vLogPrintf2(const char *fmt, va_list args)
+{
+    LogTimeStamp(logprintf);
+    valog(gLogInfo, fmt, args);
+}
+
+/*
  * LogDumpBp()
  *
  * Dump the contents of an Mbuf to the log
