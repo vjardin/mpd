@@ -346,11 +346,11 @@ DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
 	}
     }
 
-    /* Bad usage? */
     switch (rtn) {
 	case 0:
 	    break;
     
+	default:
 	case CMD_ERR_USAGE:
 	case CMD_ERR_UNFIN:
 	    HelpCommand(ctx, ac, av, filebuf);
@@ -376,10 +376,9 @@ DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
     	    Printf("%sError in '%s': %s\r\n", filebuf, cmd, ctx->errmsg);
 	    alog(gLogInfo, "%sError in '%s': %s", filebuf, cmd, ctx->errmsg);
 	    break;
-	
-  }
+    }
   
-  return(rtn);
+    return(rtn);
 }
 
 /*
