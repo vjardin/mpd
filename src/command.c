@@ -828,8 +828,7 @@ ShowLayers(Context ctx, int ac, char *av[], void *arg)
 {
   int	k;
 
-  Printf("\tName\t\tDescription\r\n"
-	 "\t----\t\t-----------\r\n");
+  Printf("\tName\t\tDescription\r\n");
   for (k = 0; k < NUM_LAYERS; k++)
     Printf("\t%s\t\t%s\r\n", gLayers[k].name, gLayers[k].desc);
   return(0);
@@ -845,9 +844,9 @@ ShowTypes(Context ctx, int ac, char *av[], void *arg)
   PhysType	pt;
   int		k;
 
-  Printf("Supported device types:\r\n");
+  Printf("\tName\t\tDescription\r\n");
   for (k = 0; (pt = gPhysTypes[k]); k++)
-    Printf("\t%s\t%s\r\n", pt->name, pt->descr);
+    Printf("\t%s\t\t%s\r\n", pt->name, pt->descr);
   return(0);
 }
 

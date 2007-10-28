@@ -11,6 +11,7 @@
 #include "console.h"
 #include "util.h"
 #include <termios.h>
+#include <pdel/sys/alog.h>
 
 /*
  * DEFINITIONS
@@ -477,7 +478,6 @@ notfound:
       if (cs->telnet)
 	break;
       cs->write(cs, "\r\n");
-      Log(LG_CONSOLE, ("CONSOLE: CTRL-C"));
       memset(cs->cmd, 0, MAX_CONSOLE_LINE);
       cs->cmd_len = 0;
       cs->prompt(cs);
@@ -585,10 +585,10 @@ success:
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
       if (c != '?') {
-        Log(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
+        alog(gLogInfo, "[%s] CONSOLE: %s: %s", 
 	    cs->context.lnk ? cs->context.lnk->name :
 		(cs->context.bund? cs->context.bund->name : ""), 
-	    cs->user.username, cs->cmd));
+	    cs->user.username, cs->cmd);
         DoCommand(&cs->context, ac, av, NULL, 0);
       } else {
         HelpCommand(&cs->context, ac, av, NULL);
