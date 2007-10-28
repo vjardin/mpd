@@ -209,34 +209,32 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
     Rep	r;
     int	k;
 
-    switch (ac) {
-	case 0:
-    	    Printf("Defined repeaters:\r\n");
-    	    for (k = 0; k < gNumReps; k++) {
-		if ((r = gReps[k]) != NULL) {
-		    Printf("\t%-15s", r->name);
-		    RepShowLinks(ctx, r);
-		}
-	    }
-    	    break;
+    if (ac > 1)
+	return (-1);
 
-	case 1:
-    	    /* Change bundle, and link also if needed */
-	    if ((r = RepFind(av[0])) != NULL) {
-    		RESETREF(ctx->rep, r);
-    		RESETREF(ctx->bund, NULL);
-    		RESETREF(ctx->lnk, r->links[0]);
-    	    } else {
-    		RESETREF(ctx->rep, NULL);
-    		RESETREF(ctx->bund, NULL);
-    		RESETREF(ctx->lnk, NULL);
-		Error("Repeater \"%s\" not defined.", av[0]);
+    if (ac == 0) {
+	Printf("Defined repeaters:\r\n");
+    	for (k = 0; k < gNumReps; k++) {
+	    if ((r = gReps[k]) != NULL) {
+	        Printf("\t%-15s%s %s\n",
+		    r->name, r->links[0]->name, r->links[1]->name);
 	    }
-    	    break;
-
-	default:
-    	    return(-1);
+	}
+	return (0);
     }
+
+    if ((r = RepFind(av[0])) == NULL) {
+	RESETREF(ctx->rep, NULL);
+	RESETREF(ctx->bund, NULL);
+	RESETREF(ctx->lnk, NULL);
+	Error("Repeater \"%s\" not defined.", av[0]);
+    }
+
+    /* Change repeater, and link also if needed */
+    RESETREF(ctx->rep, r);
+    RESETREF(ctx->bund, NULL);
+    RESETREF(ctx->lnk, r->links[0]);
+
     return(0);
 }
 

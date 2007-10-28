@@ -329,7 +329,7 @@ BundJoin(Link l)
 	b->pppConfig.bund.enableRoundRobin =
     	    Enabled(&b->conf.options, BUND_CONF_ROUNDROBIN);
 
-	/* generate a uniq session id */
+	/* generate a uniq msession_id */
 	snprintf(b->msession_id, AUTH_MAX_SESSIONID, "%d-%s",
     	    (int)(time(NULL) % 10000000), b->name);
       
@@ -339,7 +339,7 @@ BundJoin(Link l)
     /* Update PPP node configuration */
     NgFuncSetConfig(b);
 
-    /* copy multysession-id to link */
+    /* copy msession_id to link */
     strncpy(l->msession_id, b->msession_id,
 	sizeof(l->msession_id));
 
@@ -399,6 +399,10 @@ BundLeave(Link l)
     l->bund = NULL;
 
     BundReasses(b);
+    
+    /* Forget session_ids */
+    l->msession_id[0] = 0;
+    l->session_id[0] = 0;
   
     /* Special stuff when last link goes down... */
     if (b->n_up == 0) {
@@ -416,6 +420,8 @@ BundLeave(Link l)
 
 	authparamsDestroy(&b->params);
 	memset(&b->ccp.mppc, 0, sizeof(b->ccp.mppc));
+
+	b->msession_id[0] = 0;
  
 	/* try to open again later */
 	if (b->open && Enabled(&b->conf.options, BUND_CONF_BWMANAGE) &&
@@ -895,46 +901,41 @@ BundUpdateParams(Bund b)
 int
 BundCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  Bund	sb;
-  int	k;
+    Bund	sb;
+    int		j, k;
 
-  switch (ac) {
-    case 0:
+    if (ac > 1)
+	return (-1);
 
-      #define BUND_FMT "\t%-15s"
-
-      Printf("Defined bundles:\r\n");
-      Printf(BUND_FMT "Links\r\n", "Bundle");
-      Printf(BUND_FMT "-----\r\n", "------");
-
-      for (k = 0; k < gNumBundles; k++)
-	if ((sb = gBundles[k]) != NULL) {
-	  Printf(BUND_FMT, sb->name);
-	  BundShowLinks(ctx, sb);
-	}
-      break;
-
-    case 1:
-
-      /* Change bundle, and link also if needed */
-	if ((sb = BundFind(av[0])) != NULL) {
-	    RESETREF(ctx->bund, sb);
-	    if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
-		RESETREF(ctx->lnk, ctx->bund->links[0]);
+    if (ac == 0) {
+    	Printf("Defined bundles:\r\n");
+    	for (k = 0; k < gNumBundles; k++) {
+	    if ((sb = gBundles[k]) != NULL) {
+	        Printf("\t%-15s", sb->name);
+	        for (j = 0; j < NG_PPP_MAX_LINKS; j++) {
+		    if (sb->links[j])
+		        Printf("%s ", sb->links[j]->name);
+		}
+		Printf("\r\n");
 	    }
-	    RESETREF(ctx->rep, NULL);
-        } else {
-	    RESETREF(ctx->lnk, NULL);
-	    RESETREF(ctx->bund, NULL);
-	    RESETREF(ctx->rep, NULL);
-	    Error("Bundle \"%s\" not defined.\r\n", av[0]);
-        }
-        break;
+    	}
+	return (0);
+    }
 
-    default:
-      return(-1);
-  }
-  return(0);
+    if ((sb = BundFind(av[0])) == NULL) {
+        RESETREF(ctx->lnk, NULL);
+	RESETREF(ctx->bund, NULL);
+	RESETREF(ctx->rep, NULL);
+        Error("Bundle \"%s\" not defined.", av[0]);
+    }
+
+    /* Change bundle, and link also if needed */
+    RESETREF(ctx->bund, sb);
+    if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
+        RESETREF(ctx->lnk, ctx->bund->links[0]);
+    }
+    RESETREF(ctx->rep, NULL);
+    return(0);
 }
 
 /*
@@ -946,8 +947,17 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 {
     int		k;
 
-    if (ac != 1)
-	return(-1);
+    if (ac > 1)
+	return (-1);
+
+    if (ac == 0) {
+    	Printf("Present msessions:\r\n");
+	for (k = 0; k < gNumBundles; k++) {
+	    if (gBundles[k]->msession_id[0])
+    		Printf("\t%s\r\n", gBundles[k]->msession_id);
+	}
+	return (0);
+    }
 
     /* Find link */
     for (k = 0;
@@ -959,15 +969,15 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 	RESETREF(ctx->lnk, NULL);
 	RESETREF(ctx->bund, NULL);
 	RESETREF(ctx->rep, NULL);
-	Error("MultySession \"%s\" is not found\r\n", av[0]);
-    } else {
-	/* Change default link and bundle */
-	RESETREF(ctx->bund, gBundles[k]);
-	if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
-	    RESETREF(ctx->lnk, ctx->bund->links[0]);
-	}
-	RESETREF(ctx->rep, NULL);
+	Error("MultySession \"%s\" is not found", av[0]);
     }
+
+    /* Change default link and bundle */
+    RESETREF(ctx->bund, gBundles[k]);
+    if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
+        RESETREF(ctx->lnk, ctx->bund->links[0]);
+    }
+    RESETREF(ctx->rep, NULL);
 
     return(0);
 }
@@ -1210,7 +1220,7 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
       break;
     case 1:
       if ((sb = BundFind(av[0])) == NULL)
-	Error("Bundle \"%s\" not defined.\r\n", av[0]);
+	Error("Bundle \"%s\" not defined", av[0]);
       break;
     default:
       return(-1);
@@ -1356,17 +1366,14 @@ BundShowLinks(Context ctx, Bund sb)
 {
     int		j;
 
-  for (j = 0; j < NG_PPP_MAX_LINKS; j++) {
-    if (sb->links[j]) {
-	Printf("%s", sb->links[j]->name);
-	if (!sb->links[j]->type)
-    	    Printf("[no type] ");
-	else
-    	    Printf("[%s/%s] ", FsmStateName(sb->links[j]->lcp.fsm.state),
+    for (j = 0; j < NG_PPP_MAX_LINKS; j++) {
+	if (sb->links[j]) {
+	    Printf("%s[%s/%s] ", sb->links[j]->name,
+		FsmStateName(sb->links[j]->lcp.fsm.state),
 		gPhysStateNames[sb->links[j]->state]);
+	}
     }
-  }
-  Printf("\r\n");
+    Printf("\r\n");
 }
 
 /*

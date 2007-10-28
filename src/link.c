@@ -825,42 +825,39 @@ LinkCommand(Context ctx, int ac, char *av[], void *arg)
     Link	l;
     int		k;
 
-    switch (ac) {
-    case 0:
+    if (ac > 1)
+	return (-1);
 
+    if (ac == 0) {
         Printf("Defined links:\r\n");
-
         for (k = 0; k < gNumLinks; k++) {
 	    if ((l = gLinks[k]) != NULL) {
 		if (l && l->bund)
-		    Printf("\t\"%s\" (%s%s) -> bundle \"%s\"\r\n", 
-			l->name, l->type->name, l->tmpl?", template":(l->stay?", static":""), l->bund->name);
+		    Printf("\t%-15s%s\r\n", 
+			l->name, l->bund->name);
 		else if (l->rep)
-		    Printf("\t\"%s\" (%s%s) -> repeater \"%s\"\r\n",
-			 l->name, l->type->name, l->tmpl?", template":(l->stay?", static":""), l->rep->name);
+		    Printf("\t%-15s%s\r\n",
+			 l->name, l->rep->name);
 		else
-		    Printf("\t\"%s\" (%s%s)\r\n", 
-			l->name, l->type->name, l->tmpl?", template":(l->stay?", static":""));
+		    Printf("\t%s\r\n", 
+			l->name);
 	    }
 	}
-      break;
-
-    case 1:
-        if ((l = LinkFind(av[0])) == NULL) {
-	    RESETREF(ctx->lnk, NULL);
-	    RESETREF(ctx->bund, NULL);
-	    RESETREF(ctx->rep, NULL);
-    	    Error("Link \"%s\" is not defined\r\n", av[0]);
-	}
-
-	/* Change default link and bundle */
-	RESETREF(ctx->lnk, l);
-	RESETREF(ctx->bund, l->bund);
-	RESETREF(ctx->rep, NULL);
-	break;
-    default:
-	return (-1);
+	return (0);
     }
+
+    if ((l = LinkFind(av[0])) == NULL) {
+        RESETREF(ctx->lnk, NULL);
+        RESETREF(ctx->bund, NULL);
+        RESETREF(ctx->rep, NULL);
+	Error("Link \"%s\" is not defined", av[0]);
+    }
+
+    /* Change default link and bundle */
+    RESETREF(ctx->lnk, l);
+    RESETREF(ctx->bund, l->bund);
+    RESETREF(ctx->rep, NULL);
+
     return(0);
 }
 
@@ -873,8 +870,17 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
 {
     int		k;
 
-    if (ac != 1)
-	return(-1);
+    if (ac > 1)
+	return (-1);
+
+    if (ac == 0) {
+    	Printf("Present sessions:\r\n");
+	for (k = 0; k < gNumLinks; k++) {
+	    if (gLinks[k]->session_id[0])
+    		Printf("\t%s\r\n", gLinks[k]->session_id);
+	}
+	return (0);
+    }
 
     /* Find link */
     for (k = 0;
@@ -886,13 +892,13 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
 	RESETREF(ctx->lnk, NULL);
 	RESETREF(ctx->bund, NULL);
 	RESETREF(ctx->rep, NULL);
-	Error("Session \"%s\" is not found\r\n", av[0]);
-    } else {
-	/* Change default link and bundle */
-	RESETREF(ctx->lnk, gLinks[k]);
-	RESETREF(ctx->bund, ctx->lnk->bund);
-	RESETREF(ctx->rep, NULL);
+	Error("Session \"%s\" is not found", av[0]);
     }
+
+    /* Change default link and bundle */
+    RESETREF(ctx->lnk, gLinks[k]);
+    RESETREF(ctx->bund, ctx->lnk->bund);
+    RESETREF(ctx->rep, NULL);
 
     return(0);
 }
