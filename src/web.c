@@ -240,7 +240,8 @@ WebShowSummary(FILE *f, int priv)
   fprintf(f, "<H2>Current status summary</H2>\n");
   fprintf(f, "<table>\n");
   fprintf(f, "<TR><TH>Bund</TH><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>ECP</TH>"
-	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=3>Device</TH><TH>Peer</TH><TH colspan=3></TH><TH></TH></TR>");
+	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=3>Device</TH><TH>Peer</TH><TH colspan=3></TH>%s</TR>",
+	     priv?"<TH></TH>":"");
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
     for (b = 0; b<gNumLinks; b++) {
@@ -275,8 +276,10 @@ WebShowSummary(FILE *f, int priv)
 	    	fprintf(f, "<TD></TD>\n");
 	    	fprintf(f, "<TD colspan=3></TD>\n");
 	    }
-	    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a><A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
-	        L->name, L->name);
+	    if (priv) {
+		fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a><A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
+	    	    L->name, L->name);
+	    }
 	    fprintf(f, "</TR>\n");
 	}
     }
@@ -336,8 +339,10 @@ WebShowSummary(FILE *f, int priv)
 			fprintf(f, "<TD></TD>\n");
 			fprintf(f, "<TD colspan=3></TD>\n");
 		}
-		fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a><A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
-		    L->name, L->name);
+		if (priv) {
+		    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a><A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
+			L->name, L->name);
+		}
 		fprintf(f, "</TR>\n");
 	    }
 	}
