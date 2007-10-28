@@ -440,7 +440,7 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
 	ac = ParseLine(buf1, av, sizeof(av) / sizeof(*av), 0);
 	cs->context.errmsg[0] = 0;
 	rtn = DoCommandTab(&cs->context, gCommands, ac, av);
-	fprintf(f, "###RESULT###: %d %s\n", rtn, cs->context.errmsg);
+	fprintf(f, "RESULT: %d %s\n", rtn, cs->context.errmsg);
 	if (rtn)
 	    break;
     }
