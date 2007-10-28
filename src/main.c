@@ -274,6 +274,8 @@ ConfigRead(int type, void *arg)
 	    DoExit(EX_CONFIG);
 	}
     }
+    if (c->cs)
+	c->cs->prompt(c->cs);
 }
 
 /*
