@@ -36,7 +36,7 @@ static int	IPPoolSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   const struct cmdtab IPPoolSetCmds[] = {
     { "add {pool} {start} {end}",	"Add IP range to the pool",
-	IPPoolSetCommand, NULL, (void *) SET_ADD },
+	IPPoolSetCommand, NULL, 2, (void *) SET_ADD },
     { NULL },
   };
 

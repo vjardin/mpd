@@ -41,7 +41,6 @@
     int			fd;		/* listener */
     struct u_addr 	addr;
     in_port_t		port;
-    struct ghash	*users;		/* allowed users */
     SLIST_HEAD(, console_session) sessions;	/* active sessions */
     EventRef		event;		/* connect-event */
     pthread_rwlock_t	lock;
@@ -60,11 +59,13 @@
 	ConsoleSession	cs;
 	int		depth;		/* Number recursive 'load' calls */
 	char		errmsg[256];	/* Error message of the last command */
+	int		priv;
   };
 
   struct console_user {
-    char	username[32];
-    char	password[32];
+	char		username[32];
+	char		password[32];
+	int		priv;
   };
 
   typedef struct console_user *ConsoleUser;
@@ -99,6 +100,8 @@
  */
 
   extern const struct cmdtab ConsoleSetCmds[];
+  extern struct ghash		*gUsers;		/* allowed users */
+  extern pthread_rwlock_t	gUsersLock;
 
 
 /*
@@ -110,6 +113,9 @@
   extern int	ConsoleClose(Console c);
   extern int	ConsoleStat(Context ctx, int ac, char *av[], void *arg);
   extern Context	StdConsoleConnect(Console c);
+
+  extern int	UserCommand(Context ctx, int ac, char *av[], void *arg);
+  extern int	UserStat(Context ctx, int ac, char *av[], void *arg);
 
 #endif
 

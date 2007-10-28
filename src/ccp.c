@@ -72,17 +72,17 @@
 
   const struct cmdtab CcpSetCmds[] = {
     { "accept [opt ...]",		"Accept option",
-	CcpSetCommand, NULL, (void *) SET_ACCEPT },
+	CcpSetCommand, NULL, 2, (void *) SET_ACCEPT },
     { "deny [opt ...]",			"Deny option",
-	CcpSetCommand, NULL, (void *) SET_DENY },
+	CcpSetCommand, NULL, 2, (void *) SET_DENY },
     { "enable [opt ...]",		"Enable option",
-	CcpSetCommand, NULL, (void *) SET_ENABLE },
+	CcpSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
-	CcpSetCommand, NULL, (void *) SET_DISABLE },
+	CcpSetCommand, NULL, 2, (void *) SET_DISABLE },
     { "yes [opt ...]",			"Enable and accept option",
-	CcpSetCommand, NULL, (void *) SET_YES },
+	CcpSetCommand, NULL, 2, (void *) SET_YES },
     { "no [opt ...]",			"Disable and deny option",
-	CcpSetCommand, NULL, (void *) SET_NO },
+	CcpSetCommand, NULL, 2, (void *) SET_NO },
     { NULL },
   };
 
@@ -354,28 +354,26 @@ CcpClose(Bund b)
  * CcpOpenCmd()
  */
 
-void
+int
 CcpOpenCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] CCP: impossible to open template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to open template");
     FsmOpen(&ctx->bund->ccp.fsm);
+    return (0);
 }
 
 /*
  * CcpCloseCmd()
  */
 
-void
+int
 CcpCloseCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] CCP: impossible to close template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to close template");
     FsmClose(&ctx->bund->ccp.fsm);
+    return (0);
 }
 
 /*

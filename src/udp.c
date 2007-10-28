@@ -116,9 +116,9 @@
 
   const struct cmdtab UdpSetCmds[] = {
     { "self {ip} [{port}]",		"Set local IP address",
-	UdpSetCommand, NULL, (void *) SET_SELFADDR },
+	UdpSetCommand, NULL, 2, (void *) SET_SELFADDR },
     { "peer {ip} [{port}]",		"Set remote IP address",
-	UdpSetCommand, NULL, (void *) SET_PEERADDR },
+	UdpSetCommand, NULL, 2, (void *) SET_PEERADDR },
     { NULL },
   };
 

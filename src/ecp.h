@@ -75,8 +75,8 @@
   extern void	EcpDown(Bund b);
   extern void	EcpOpen(Bund b);
   extern void	EcpClose(Bund b);
-  extern void	EcpOpenCmd(Context ctx);
-  extern void	EcpCloseCmd(Context ctx);
+  extern int	EcpOpenCmd(Context ctx);
+  extern int	EcpCloseCmd(Context ctx);
   extern int	EcpSubtractBloat(Bund b, int size);
   extern void	EcpInput(Bund b, Mbuf bp);
   extern Mbuf	EcpDataInput(Bund b, Mbuf bp);

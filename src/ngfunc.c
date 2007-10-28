@@ -89,15 +89,15 @@
 #ifdef USE_NG_NETFLOW
   const struct cmdtab NetflowSetCmds[] = {
     { "peer {ip} {port}",	"Set export destination" ,
-        NetflowSetCommand, NULL, (void *) SET_PEER },
+        NetflowSetCommand, NULL, 2, (void *) SET_PEER },
     { "self {ip} {port}",	"Set export source" ,
-        NetflowSetCommand, NULL, (void *) SET_SELF },
+        NetflowSetCommand, NULL, 2, (void *) SET_SELF },
     { "timeouts {inactive} {active}", "Set NetFlow timeouts" ,
-        NetflowSetCommand, NULL, (void *) SET_TIMEOUTS },
+        NetflowSetCommand, NULL, 2, (void *) SET_TIMEOUTS },
     { "node {name}", "Set node name to use" ,
-        NetflowSetCommand, NULL, (void *) SET_NODE },
+        NetflowSetCommand, NULL, 2, (void *) SET_NODE },
     { "hook {number}", "Set initial hook number" ,
-        NetflowSetCommand, NULL, (void *) SET_HOOK },
+        NetflowSetCommand, NULL, 2, (void *) SET_HOOK },
     { NULL },
   };
 #endif

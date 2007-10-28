@@ -166,17 +166,17 @@
 
   const struct cmdtab	PptpSetCmds[] = {
     { "self {ip} [{port}]",		"Set local IP address",
-	PptpSetCommand, NULL, (void *) SET_SELFADDR },
+	PptpSetCommand, NULL, 2, (void *) SET_SELFADDR },
     { "peer {ip} [{port}]",		"Set remote IP address",
-	PptpSetCommand, NULL, (void *) SET_PEERADDR },
+	PptpSetCommand, NULL, 2, (void *) SET_PEERADDR },
     { "callingnum {number}",		"Set calling PPTP telephone number",
-	PptpSetCommand, NULL, (void *) SET_CALLINGNUM },
+	PptpSetCommand, NULL, 2, (void *) SET_CALLINGNUM },
     { "callednum {number}",		"Set called PPTP telephone number",
-	PptpSetCommand, NULL, (void *) SET_CALLEDNUM },
+	PptpSetCommand, NULL, 2, (void *) SET_CALLEDNUM },
     { "enable [opt ...]",		"Enable option",
-	PptpSetCommand, NULL, (void *) SET_ENABLE },
+	PptpSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
-	PptpSetCommand, NULL, (void *) SET_DISABLE },
+	PptpSetCommand, NULL, 2, (void *) SET_DISABLE },
     { NULL },
   };
 

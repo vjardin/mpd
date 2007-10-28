@@ -158,17 +158,17 @@
 
   const struct cmdtab ModemSetCmds[] = {
     { "device {name}",			"Set modem device",
-      ModemSetCommand, NULL, (void *) SET_DEVICE },
+      ModemSetCommand, NULL, 2, (void *) SET_DEVICE },
     { "speed {port-speed}",		"Set modem speed",
-      ModemSetCommand, NULL, (void *) SET_SPEED },
+      ModemSetCommand, NULL, 2, (void *) SET_SPEED },
     { "script [{label}]",		"Set connect script",
-      ModemSetCommand, NULL, (void *) SET_CSCRIPT },
+      ModemSetCommand, NULL, 2, (void *) SET_CSCRIPT },
     { "idle-script [{label}]",		"Set idle script",
-      ModemSetCommand, NULL, (void *) SET_ISCRIPT },
+      ModemSetCommand, NULL, 2, (void *) SET_ISCRIPT },
     { "var ${var} {string}",		"Set script variable",
-      ModemSetCommand, NULL, (void *) SET_SCRIPT_VAR },
+      ModemSetCommand, NULL, 2, (void *) SET_SCRIPT_VAR },
     { "watch [+|-cd] [+|-dsr]", 	"Set signals to monitor",
-      ModemSetCommand, NULL, (void *) SET_WATCH },
+      ModemSetCommand, NULL, 2, (void *) SET_WATCH },
     { NULL },
   };
 

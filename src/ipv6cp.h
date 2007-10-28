@@ -54,8 +54,8 @@
   extern void	Ipv6cpDown(Bund b);
   extern void	Ipv6cpOpen(Bund b);
   extern void	Ipv6cpClose(Bund b);
-  extern void	Ipv6cpOpenCmd(Context ctx);
-  extern void	Ipv6cpCloseCmd(Context ctx);
+  extern int	Ipv6cpOpenCmd(Context ctx);
+  extern int	Ipv6cpCloseCmd(Context ctx);
   extern void	Ipv6cpInput(Bund b, Mbuf bp);
   extern void	Ipv6cpDefAddress(void);
   extern int	Ipv6cpStat(Context ctx, int ac, char *av[], void *arg);

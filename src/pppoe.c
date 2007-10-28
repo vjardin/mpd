@@ -152,11 +152,11 @@ const struct phystype gPppoePhysType = {
 
 const struct cmdtab PppoeSetCmds[] = {
       { "iface {name}",		"Set ethernet interface to use",
-	  PppoeSetCommand, NULL, (void *)SET_IFACE },
+	  PppoeSetCommand, NULL, 2, (void *)SET_IFACE },
       { "service {name}",	"Set PPPoE session name",
-	  PppoeSetCommand, NULL, (void *)SET_SESSION },
+	  PppoeSetCommand, NULL, 2, (void *)SET_SESSION },
       { "acname {name}",	"Set PPPoE access concentrator name",
-	  PppoeSetCommand, NULL, (void *)SET_ACNAME },
+	  PppoeSetCommand, NULL, 2, (void *)SET_ACNAME },
       { NULL },
 };
 

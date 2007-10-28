@@ -170,8 +170,8 @@
   extern void	LinkDown(Link l);
   extern void	LinkOpen(Link l);
   extern void	LinkClose(Link l);
-  extern void	LinkOpenCmd(Context ctx);
-  extern void	LinkCloseCmd(Context ctx);
+  extern int	LinkOpenCmd(Context ctx);
+  extern int	LinkCloseCmd(Context ctx);
 
   extern int	LinkCreate(Context ctx, int ac, char *av[], void *arg);
   extern int	LinkDestroy(Context ctx, int ac, char *av[], void *arg);

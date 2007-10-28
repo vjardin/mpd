@@ -34,31 +34,31 @@
 #ifdef _WANT_DEVICE_CMDS
 #ifdef PHYSTYPE_MODEM
     { "modem ...",			"Modem specific stuff",
-	CMD_SUBMENU, AdmitDev, (void *) ModemSetCmds },
+	CMD_SUBMENU, AdmitDev, 2, (void *) ModemSetCmds },
 #endif
 #ifdef PHYSTYPE_NG_SOCKET
     { "ng ...",				"Netgraph specific stuff",
-	CMD_SUBMENU, AdmitDev, (void *) NgSetCmds },
+	CMD_SUBMENU, AdmitDev, 2, (void *) NgSetCmds },
 #endif
 #ifdef PHYSTYPE_TCP
     { "tcp ...",			"TCP specific stuff",
-	CMD_SUBMENU, AdmitDev, (void *) TcpSetCmds },
+	CMD_SUBMENU, AdmitDev, 2, (void *) TcpSetCmds },
 #endif
 #ifdef PHYSTYPE_UDP
     { "udp ...",			"UDP specific stuff",
-	CMD_SUBMENU, AdmitDev, (void *) UdpSetCmds },
+	CMD_SUBMENU, AdmitDev, 2, (void *) UdpSetCmds },
 #endif
 #ifdef PHYSTYPE_PPTP
     { "pptp ...",			"PPTP specific stuff",
-	CMD_SUBMENU, AdmitDev, (void *) PptpSetCmds },
+	CMD_SUBMENU, AdmitDev, 2, (void *) PptpSetCmds },
 #endif
 #ifdef PHYSTYPE_L2TP
     { "l2tp ...",			"L2TP specific stuff",
-	CMD_SUBMENU, AdmitDev, (void *) L2tpSetCmds },
+	CMD_SUBMENU, AdmitDev, 2, (void *) L2tpSetCmds },
 #endif
 #ifdef PHYSTYPE_PPPOE
     { "pppoe ...",			"PPPoE specific stuff",
-	CMD_SUBMENU, AdmitDev, (void *) PppoeSetCmds },
+	CMD_SUBMENU, AdmitDev, 2, (void *) PppoeSetCmds },
 #endif
 #endif
 

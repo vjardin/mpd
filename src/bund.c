@@ -97,31 +97,31 @@
 
   const struct cmdtab BundSetCmds[] = {
     { "period {seconds}",		"BoD sampling period",
-	BundSetCommand, NULL, (void *) SET_PERIOD },
+	BundSetCommand, NULL, 2, (void *) SET_PERIOD },
     { "lowat {percent}",		"BoD low water mark",
-	BundSetCommand, NULL, (void *) SET_LOW_WATER },
+	BundSetCommand, NULL, 2, (void *) SET_LOW_WATER },
     { "hiwat {percent}",		"BoD high water mark",
-	BundSetCommand, NULL, (void *) SET_HIGH_WATER },
+	BundSetCommand, NULL, 2, (void *) SET_HIGH_WATER },
     { "min-con {seconds}",		"BoD min connected time",
-	BundSetCommand, NULL, (void *) SET_MIN_CONNECT },
+	BundSetCommand, NULL, 2, (void *) SET_MIN_CONNECT },
     { "min-dis {seconds}",		"BoD min disconnected time",
-	BundSetCommand, NULL, (void *) SET_MIN_DISCONNECT },
+	BundSetCommand, NULL, 2, (void *) SET_MIN_DISCONNECT },
     { "links {link list ...}",		"Links list for BoD/DoD",
-	BundSetCommand, NULL, (void *) SET_LINKS },
+	BundSetCommand, NULL, 2, (void *) SET_LINKS },
     { "fsm-timeout {seconds}",		"FSM retry timeout",
-	BundSetCommand, NULL, (void *) SET_RETRY },
+	BundSetCommand, NULL, 2, (void *) SET_RETRY },
     { "accept {opt ...}",		"Accept option",
-	BundSetCommand, NULL, (void *) SET_ACCEPT },
+	BundSetCommand, NULL, 2, (void *) SET_ACCEPT },
     { "deny {opt ...}",			"Deny option",
-	BundSetCommand, NULL, (void *) SET_DENY },
+	BundSetCommand, NULL, 2, (void *) SET_DENY },
     { "enable {opt ...}",		"Enable option",
-	BundSetCommand, NULL, (void *) SET_ENABLE },
+	BundSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable {opt ...}",		"Disable option",
-	BundSetCommand, NULL, (void *) SET_DISABLE },
+	BundSetCommand, NULL, 2, (void *) SET_DISABLE },
     { "yes {opt ...}",			"Enable and accept option",
-	BundSetCommand, NULL, (void *) SET_YES },
+	BundSetCommand, NULL, 2, (void *) SET_YES },
     { "no {opt ...}",			"Disable and deny option",
-	BundSetCommand, NULL, (void *) SET_NO },
+	BundSetCommand, NULL, 2, (void *) SET_NO },
     { NULL },
   };
 
@@ -166,28 +166,26 @@ BundClose(Bund b)
  * BundOpenCmd()
  */
 
-void
+int
 BundOpenCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] bundle: impossible to open template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to open template");
     BundOpen(ctx->bund);
+    return (0);
 }
 
 /*
  * BundCloseCmd()
  */
 
-void
+int
 BundCloseCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] bundle: impossible to close template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to close template");
     BundClose(ctx->bund);
+    return (0);
 }
 
 /*

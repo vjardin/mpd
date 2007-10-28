@@ -79,9 +79,9 @@
 
   const struct cmdtab NgSetCmds[] = {
     { "node {path}",		"Set node to attach to",
-	NgSetCommand, NULL, (void *) SET_NODE },
+	NgSetCommand, NULL, 2, (void *) SET_NODE },
     { "hook {hook}",		"Set hook to attach to",
-	NgSetCommand, NULL, (void *) SET_HOOK },
+	NgSetCommand, NULL, 2, (void *) SET_HOOK },
     { NULL },
   };
 

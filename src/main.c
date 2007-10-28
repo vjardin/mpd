@@ -151,6 +151,7 @@ main(int ac, char *av[])
     ConsoleInit(&gConsole);
 
     memset(&gCtx, 0, sizeof(gCtx));
+    gCtx.priv = 2;
     if (gBackground) {
 	c = &gCtx;
     } else {

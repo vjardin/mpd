@@ -83,19 +83,19 @@
   const struct cmdtab EcpSetCmds[] =
   {
     { "key {string}",			"Set encryption key",
-	EcpSetCommand, NULL, (void *) SET_KEY },
+	EcpSetCommand, NULL, 2, (void *) SET_KEY },
     { "accept [opt ...]",		"Accept option",
-	EcpSetCommand, NULL, (void *) SET_ACCEPT },
+	EcpSetCommand, NULL, 2, (void *) SET_ACCEPT },
     { "deny [opt ...]",			"Deny option",
-	EcpSetCommand, NULL, (void *) SET_DENY },
+	EcpSetCommand, NULL, 2, (void *) SET_DENY },
     { "enable [opt ...]",		"Enable option",
-	EcpSetCommand, NULL, (void *) SET_ENABLE },
+	EcpSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
-	EcpSetCommand, NULL, (void *) SET_DISABLE },
+	EcpSetCommand, NULL, 2, (void *) SET_DISABLE },
     { "yes [opt ...]",			"Enable and accept option",
-	EcpSetCommand, NULL, (void *) SET_YES },
+	EcpSetCommand, NULL, 2, (void *) SET_YES },
     { "no [opt ...]",			"Disable and deny option",
-	EcpSetCommand, NULL, (void *) SET_NO },
+	EcpSetCommand, NULL, 2, (void *) SET_NO },
     { NULL },
   };
 
@@ -371,28 +371,26 @@ EcpClose(Bund b)
  * EcpOpenCmd()
  */
 
-void
+int
 EcpOpenCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] ECP: impossible to open template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to open template");
     FsmOpen(&ctx->bund->ecp.fsm);
+    return (0);
 }
 
 /*
  * EcpCloseCmd()
  */
 
-void
+int
 EcpCloseCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] ECP: impossible to close template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to close template");
     FsmClose(&ctx->bund->ecp.fsm);
+    return (0);
 }
 
 /*

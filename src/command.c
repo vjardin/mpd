@@ -38,8 +38,8 @@
 
   struct layer {
     const char	*name;
-    void	(*opener)(Context ctx);
-    void	(*closer)(Context ctx);
+    int		(*opener)(Context ctx);
+    int		(*closer)(Context ctx);
     int		(*admit)(Context ctx, CmdTab cmd);
     const char	*desc;
   };
@@ -87,17 +87,17 @@
 
   const struct cmdtab GlobalSetCmds[] = {
     { "enable {opt ...}", 		"Enable option" ,
-       	GlobalSetCommand, NULL, (void *) SET_ENABLE },
+       	GlobalSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable {opt ...}", 		"Disable option" ,
-       	GlobalSetCommand, NULL, (void *) SET_DISABLE },
+       	GlobalSetCommand, NULL, 2, (void *) SET_DISABLE },
     { "startrule {num}",		"Initial ipfw rule number" ,
-       	GlobalSetCommand, NULL, (void *) SET_RULE },
+       	GlobalSetCommand, NULL, 2, (void *) SET_RULE },
     { "startqueue {num}", 		"Initial ipfw queue number" ,
-       	GlobalSetCommand, NULL, (void *) SET_QUEUE },
+       	GlobalSetCommand, NULL, 2, (void *) SET_QUEUE },
     { "startpipe {num}",		"Initial ipfw pipe number" ,
-       	GlobalSetCommand, NULL, (void *) SET_PIPE },
+       	GlobalSetCommand, NULL, 2, (void *) SET_PIPE },
     { "starttable {num}", 		"Initial ipfw table number" ,
-       	GlobalSetCommand, NULL, (void *) SET_TABLE },
+       	GlobalSetCommand, NULL, 2, (void *) SET_TABLE },
     { NULL },
   };
 
@@ -108,115 +108,119 @@
 
   static const struct cmdtab CreateCommands[] = {
     { "link [template|static] {name} {template|type}",	"Create link/template",
-	LinkCreate, NULL, NULL },
+	LinkCreate, NULL, 2, NULL },
     { "bundle [template|static] {name} {template}",	"Create bundle/template",
-	BundCreate, NULL, NULL },
+	BundCreate, NULL, 2, NULL },
     { NULL },
   };
 
   static const struct cmdtab DestroyCommands[] = {
     { "link [{name}]",			"Destroy link/template",
-	LinkDestroy, NULL, NULL },
+	LinkDestroy, NULL, 2, NULL },
     { "bundle [{name}]",		"Destroy bundle/template",
-	BundDestroy, NULL, NULL },
+	BundDestroy, NULL, 2, NULL },
     { NULL },
   };
 
   static const struct cmdtab ShowCommands[] = {
     { "bundle [{name}]",		"Bundle status",
-	BundStat, AdmitBund, NULL },
+	BundStat, AdmitBund, 0, NULL },
     { "repeater [{name}]",		"Repeater status",
-	RepStat, AdmitRep, NULL },
+	RepStat, AdmitRep, 0, NULL },
     { "ccp",				"CCP status",
-	CcpStat, AdmitBund, NULL },
+	CcpStat, AdmitBund, 0, NULL },
     { "mppc",				"MPPC status",
-	MppcStat, AdmitBund, NULL },
+	MppcStat, AdmitBund, 0, NULL },
     { "ecp",				"ECP status",
-	EcpStat, AdmitBund, NULL },
+	EcpStat, AdmitBund, 0, NULL },
     { "eap",				"EAP status",
-	EapStat, AdmitBund, NULL },
+	EapStat, AdmitBund, 0, NULL },
     { "events",				"Current events",
-	ShowEvents, NULL, NULL },
+	ShowEvents, NULL, 0, NULL },
     { "ipcp",				"IPCP status",
-	IpcpStat, AdmitBund, NULL },
+	IpcpStat, AdmitBund, 0, NULL },
     { "ipv6cp",				"IPV6CP status",
-	Ipv6cpStat, AdmitBund, NULL },
+	Ipv6cpStat, AdmitBund, 0, NULL },
     { "ippool",				"IP pool status",
-	IPPoolStat, NULL, NULL },
+	IPPoolStat, NULL, 0, NULL },
     { "iface",				"Interface status",
-	IfaceStat, AdmitBund, NULL },
+	IfaceStat, AdmitBund, 0, NULL },
     { "routes",				"IP routing table",
-	IpShowRoutes, NULL, NULL },
+	IpShowRoutes, NULL, 0, NULL },
     { "layers",				"Layers to open/close",
-	ShowLayers, NULL, NULL },
+	ShowLayers, NULL, 0, NULL },
     { "device",				"Physical device status",
-	PhysStat, AdmitLink, NULL },
+	PhysStat, AdmitLink, 0, NULL },
     { "link",				"Link status",
-	LinkStat, AdmitLink, NULL },
+	LinkStat, AdmitLink, 0, NULL },
     { "auth",				"Auth status",
-	AuthStat, AdmitLink, NULL },
+	AuthStat, AdmitLink, 0, NULL },
     { "radius",				"RADIUS status",
-	RadStat, AdmitLink, NULL },
+	RadStat, AdmitLink, 0, NULL },
     { "lcp",				"LCP status",
-	LcpStat, AdmitLink, NULL },
+	LcpStat, AdmitLink, 0, NULL },
     { "nat",				"NAT status",
-	NatStat, AdmitBund, NULL },
+	NatStat, AdmitBund, 0, NULL },
     { "mem",				"Memory map",
-	MemStat, NULL, NULL },
+	MemStat, NULL, 0, NULL },
     { "console",			"Console status",
-	ConsoleStat, NULL, NULL },
+	ConsoleStat, NULL, 0, NULL },
     { "web",				"Web status",
-	WebStat, NULL, NULL },
+	WebStat, NULL, 0, NULL },
+    { "user",				"Add console user" ,
+      	UserStat, NULL, 0, NULL },
     { "global",				"Global settings",
-	ShowGlobal, NULL, NULL },
+	ShowGlobal, NULL, 0, NULL },
     { "types",				"Supported device types",
-	ShowTypes, NULL, NULL },
+	ShowTypes, NULL, 0, NULL },
     { "version",			"Version string",
-	ShowVersion, NULL, NULL },
+	ShowVersion, NULL, 0, NULL },
     { "summary",			"Daemon status summary",
-	ShowSummary, NULL, NULL },
+	ShowSummary, NULL, 0, NULL },
     { NULL },
   };
 
   static const struct cmdtab SetCommands[] = {
     { "bundle ...",			"Bundle specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) BundSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) BundSetCmds },
     { "link ...",			"Link specific stuff",
-	CMD_SUBMENU, AdmitLink, (void *) LinkSetCmds },
+	CMD_SUBMENU, AdmitLink, 2, (void *) LinkSetCmds },
     { "iface ...",			"Interface specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) IfaceSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) IfaceSetCmds },
     { "ipcp ...",			"IPCP specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) IpcpSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) IpcpSetCmds },
     { "ipv6cp ...",			"IPV6CP specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) Ipv6cpSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) Ipv6cpSetCmds },
     { "ippool ...",			"IP pool specific stuff",
-	CMD_SUBMENU, NULL, (void *) IPPoolSetCmds },
+	CMD_SUBMENU, NULL, 2, (void *) IPPoolSetCmds },
     { "ccp ...",			"CCP specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) CcpSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) CcpSetCmds },
     { "mppc ...",			"MPPC specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) MppcSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) MppcSetCmds },
     { "ecp ...",			"ECP specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) EcpSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) EcpSetCmds },
     { "eap ...",			"EAP specific stuff",
-	CMD_SUBMENU, AdmitBund, (void *) EapSetCmds },
+	CMD_SUBMENU, AdmitBund, 2, (void *) EapSetCmds },
     { "auth ...",			"Auth specific stuff",
-	CMD_SUBMENU, AdmitLink, (void *) AuthSetCmds },
+	CMD_SUBMENU, AdmitLink, 2, (void *) AuthSetCmds },
     { "radius ...",			"RADIUS specific stuff",
-	CMD_SUBMENU, AdmitLink, (void *) RadiusSetCmds },
+	CMD_SUBMENU, AdmitLink, 2, (void *) RadiusSetCmds },
     { "console ...",			"Console specific stuff",
-	CMD_SUBMENU, NULL, (void *) ConsoleSetCmds },
+	CMD_SUBMENU, NULL, 0, (void *) ConsoleSetCmds },
     { "web ...",			"Web specific stuff",
-	CMD_SUBMENU, NULL, (void *) WebSetCmds },
+	CMD_SUBMENU, NULL, 2, (void *) WebSetCmds },
+    { "user {name} {password} [{priv}]",	"Add console user" ,
+      	UserCommand, NULL, 2, NULL },
     { "global ...",			"Global settings",
-	CMD_SUBMENU, NULL, (void *) GlobalSetCmds },
+	CMD_SUBMENU, NULL, 2, (void *) GlobalSetCmds },
 #ifdef USE_NG_NETFLOW
     { "netflow ...", 			"NetFlow settings",
-	CMD_SUBMENU, NULL, (void *) NetflowSetCmds },
+	CMD_SUBMENU, NULL, 2, (void *) NetflowSetCmds },
 #endif
     { "nat ...", 			"Nat settings",
-	CMD_SUBMENU, NULL, (void *) NatSetCmds },
+	CMD_SUBMENU, NULL, 2, (void *) NatSetCmds },
     { "debug level",			"Set netgraph debug level",
-	SetDebugCommand, NULL, NULL },
+	SetDebugCommand, NULL, 2, NULL },
 #define _WANT_DEVICE_CMDS
 #include "devices.h"
     { NULL },
@@ -224,37 +228,37 @@
 
   const struct cmdtab gCommands[] = {
     { "bundle [{name}]",		"Choose/list bundles",
-	BundCommand, NULL, NULL },
+	BundCommand, NULL, 0, NULL },
     { "close [{layer}]",		"Close a layer",
-	CloseCommand, NULL, NULL },
+	CloseCommand, NULL, 1, NULL },
     { "create ...",			"Create new item",
-    	CMD_SUBMENU, NULL, (void *) CreateCommands },
+    	CMD_SUBMENU, NULL, 2, (void *) CreateCommands },
     { "destroy ...",			"Destroy item",
-    	CMD_SUBMENU, NULL, (void *) DestroyCommands },
+    	CMD_SUBMENU, NULL, 2, (void *) DestroyCommands },
     { "exit",				"Exit console",
-	ExitCommand, NULL, NULL },
+	ExitCommand, NULL, 0, NULL },
     { "help ...",			"Help on any command",
-	HelpCommand, NULL, NULL },
+	HelpCommand, NULL, 0, NULL },
     { "link {name}",			"Choose link",
-	LinkCommand, NULL, NULL },
+	LinkCommand, NULL, 0, NULL },
     { "load {label}",			"Read from config file",
-	LoadCommand, NULL, NULL },
+	LoadCommand, NULL, 0, NULL },
     { "log [+/-{opt} ...]",		"Set/view log options",
-	LogCommand, NULL, NULL },
+	LogCommand, NULL, 2, NULL },
     { "msession {msesid}",		"Choose bundle by msession-id",
-	MSessionCommand, NULL, NULL },
+	MSessionCommand, NULL, 0, NULL },
     { "open [{layer}]",			"Open a layer",
-	OpenCommand, NULL, NULL },
+	OpenCommand, NULL, 1, NULL },
     { "quit",				"Quit program",
-	QuitCommand, NULL, NULL },
+	QuitCommand, NULL, 2, NULL },
     { "repeater [{name}]",		"Choose/list repeaters",
-	RepCommand, NULL, NULL },
+	RepCommand, NULL, 0, NULL },
     { "session {sesid}",		"Choose link by session-id",
-	SessionCommand, NULL, NULL },
+	SessionCommand, NULL, 0, NULL },
     { "set ...",			"Set parameters",
-	CMD_SUBMENU, NULL, (void *) SetCommands },
+	CMD_SUBMENU, NULL, 0, (void *) SetCommands },
     { "show ...",			"Show status",
-	CMD_SUBMENU, NULL, (void *) ShowCommands },
+	CMD_SUBMENU, NULL, 0, (void *) ShowCommands },
     { NULL },
   };
 
@@ -398,7 +402,7 @@ DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
 	return(CMD_ERR_UNFIN);
 
     /* Find command */
-    if ((rtn = FindCommand(cmdlist, av[0], &cmd)))
+    if ((rtn = FindCommand(ctx, cmdlist, av[0], &cmd)))
 	return(rtn);
 
     /* Check command admissibility */
@@ -419,13 +423,14 @@ DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
  */
 
 int
-FindCommand(CmdTab cmds, char *str, CmdTab *cmdp)
+FindCommand(Context ctx, CmdTab cmds, char *str, CmdTab *cmdp)
 {
     int		nmatch;
     int		len = strlen(str);
 
     for (nmatch = 0; cmds->name; cmds++) {
-	if (cmds->name && !strncmp(str, cmds->name, len)) {
+	if (cmds->name && !strncmp(str, cmds->name, len) &&
+	  cmds->priv <= ctx->priv) {
 	    *cmdp = cmds;
     	    nmatch++;
 	}
@@ -526,7 +531,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 int
 HelpCommand(Context ctx, int ac, char *av[], void *arg)
 {
-  int		depth;
+  int		depth, i;
   CmdTab	menu, cmd;
   char		*mark, *mark_save;
   const char	*errfmt;
@@ -536,7 +541,7 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
   for (mark = buf, depth = *buf = 0, menu = gCommands;
       depth < ac;
       depth++, menu = (CmdTab) cmd->arg) {
-    if ((err = FindCommand(menu, av[depth], &cmd))) {
+    if ((err = FindCommand(ctx, menu, av[depth], &cmd))) {
       int k;
 
       for (*buf = k = 0; k <= depth; k++)
@@ -547,9 +552,9 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
       else 
           errfmt = "%sUnknown command: '%s'.";
       if (arg) {
-        Log(LG_ERR, (errfmt, (char*)arg, buf));
+        Printf(errfmt, (char*)arg, buf);
       } else {
-        Log(LG_ERR, (errfmt, "", buf));
+        Printf(errfmt, "", buf);
       }
       return(0);
     }
@@ -564,22 +569,26 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
     }
   }
 
-  /* Show list of available commands in this submenu */
-  *mark = 0;
-  if (!*buf)
-    Printf("Available commands:\r\n");
-  else
-    Printf("Commands available under \"%s\":\r\n", buf);
-  for (cmd = menu; cmd->name; cmd++) {
-    snprintf(buf, sizeof(buf), "%s", cmd->name);
-    if ((mark = strchr(buf, ' ')))
-      *mark = 0;
-    Printf(" %-9s: %-20s%s", buf, cmd->desc,
-      ((cmd - menu) & 1)? "\r\n" : "\t");
-  }
-  if ((cmd - menu) & 1)
-    Printf("\r\n");
-  return(0);
+    /* Show list of available commands in this submenu */
+    *mark = 0;
+    if (!*buf)
+	Printf("Available commands:\r\n");
+    else
+	Printf("Commands available under \"%s\":\r\n", buf);
+    i = 0;
+    for (cmd = menu; cmd->name; cmd++) {
+	if (cmd->priv > ctx->priv)
+	    continue;
+	snprintf(buf, sizeof(buf), "%s", cmd->name);
+	if ((mark = strchr(buf, ' ')))
+    	    *mark = 0;
+	Printf(" %-9s: %-20s%s", buf, cmd->desc,
+    	    (i & 1)? "\r\n" : "\t");
+	i++;
+    }
+    if (i & 1)
+	Printf("\r\n");
+    return(0);
 }
 
 /*
@@ -744,11 +753,11 @@ OpenCommand(Context ctx, int ac, char *av[], void *arg)
     if ((layer = GetLayer(name)) != NULL) {
 	/* Check command admissibility */
 	if (!layer->admit || (layer->admit)(ctx, NULL))
-	    (*layer->opener)(ctx);
+	    return (*layer->opener)(ctx);
 	else
 	    return (CMD_ERR_NOCTX);
     }
-    return(0);
+    return(-1);
 }
 
 /*
@@ -774,11 +783,11 @@ CloseCommand(Context ctx, int ac, char *av[], void *arg)
     if ((layer = GetLayer(name)) != NULL) {
 	/* Check command admissibility */
 	if (!layer->admit || (layer->admit)(ctx, NULL))
-	    (*layer->closer)(ctx);
+	    return (*layer->closer)(ctx);
 	else
 	    return (CMD_ERR_NOCTX);
     }
-    return(0);
+    return(-1);
 }
 
 /*

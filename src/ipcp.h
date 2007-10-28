@@ -94,8 +94,8 @@
   extern void	IpcpDown(Bund b);
   extern void	IpcpOpen(Bund b);
   extern void	IpcpClose(Bund b);
-  extern void	IpcpOpenCmd(Context ctx);
-  extern void	IpcpCloseCmd(Context ctx);
+  extern int	IpcpOpenCmd(Context ctx);
+  extern int	IpcpCloseCmd(Context ctx);
   extern void	IpcpInput(Bund b, Mbuf bp);
   extern void	IpcpDefAddress(void);
   extern int	IpcpStat(Context ctx, int ac, char *av[], void *arg);

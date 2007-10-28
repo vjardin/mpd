@@ -147,8 +147,8 @@
   extern void	IfaceInst(Bund b, Bund bt);
   extern void	IfaceOpen(Bund b);
   extern void	IfaceClose(Bund b);
-  extern void	IfaceOpenCmd(Context ctx);
-  extern void	IfaceCloseCmd(Context ctx);
+  extern int	IfaceOpenCmd(Context ctx);
+  extern int	IfaceCloseCmd(Context ctx);
   extern int	IfaceIpIfaceUp(Bund b, int ready);
   extern void	IfaceIpIfaceDown(Bund b);
   extern int	IfaceIpv6IfaceUp(Bund b, int ready);

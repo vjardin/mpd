@@ -139,23 +139,23 @@
 
   const struct cmdtab IfaceSetCmds[] = {
     { "addrs {self} {peer}",		"Set interface addresses",
-	IfaceSetCommand, NULL, (void *) SET_ADDRS },
+	IfaceSetCommand, NULL, 2, (void *) SET_ADDRS },
     { "route {dest}[/{width}]",		"Add IP route",
-	IfaceSetCommand, NULL, (void *) SET_ROUTE },
+	IfaceSetCommand, NULL, 2, (void *) SET_ROUTE },
     { "mtu {size}",			"Set max allowed interface MTU",
-	IfaceSetCommand, NULL, (void *) SET_MTU },
+	IfaceSetCommand, NULL, 2, (void *) SET_MTU },
     { "up-script [{progname}]",		"Interface up script",
-	IfaceSetCommand, NULL, (void *) SET_UP_SCRIPT },
+	IfaceSetCommand, NULL, 2, (void *) SET_UP_SCRIPT },
     { "down-script [{progname}]",	"Interface down script",
-	IfaceSetCommand, NULL, (void *) SET_DOWN_SCRIPT },
+	IfaceSetCommand, NULL, 2, (void *) SET_DOWN_SCRIPT },
     { "idle {seconds}",			"Idle timeout",
-	IfaceSetCommand, NULL, (void *) SET_IDLE },
+	IfaceSetCommand, NULL, 2, (void *) SET_IDLE },
     { "session {seconds}",		"Session timeout",
-	IfaceSetCommand, NULL, (void *) SET_SESSION },
+	IfaceSetCommand, NULL, 2, (void *) SET_SESSION },
     { "enable [opt ...]",		"Enable option",
-	IfaceSetCommand, NULL, (void *) SET_ENABLE },
+	IfaceSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
-	IfaceSetCommand, NULL, (void *) SET_DISABLE },
+	IfaceSetCommand, NULL, 2, (void *) SET_DISABLE },
     { NULL },
   };
 
@@ -306,14 +306,13 @@ IfaceClose(Bund b)
  * Open the interface layer
  */
 
-void
+int
 IfaceOpenCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] IFACE: impossible to open template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to open template");
     IfaceOpen(ctx->bund);
+    return (0);
 }
 
 /*
@@ -322,14 +321,13 @@ IfaceOpenCmd(Context ctx)
  * Close the interface layer
  */
 
-void
+int
 IfaceCloseCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] IFACE: impossible to close template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to close template");
     IfaceClose(ctx->bund);
+    return (0);
 }
 
 /*

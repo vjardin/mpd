@@ -90,8 +90,8 @@
   extern void	CcpDown(Bund b);
   extern void	CcpOpen(Bund b);
   extern void	CcpClose(Bund b);
-  extern void	CcpOpenCmd(Context ctx);
-  extern void	CcpCloseCmd(Context ctx);
+  extern int	CcpOpenCmd(Context ctx);
+  extern int	CcpCloseCmd(Context ctx);
   extern void	CcpInput(Bund b, Mbuf bp);
   extern Mbuf	CcpDataInput(Bund b, Mbuf bp);
   extern Mbuf	CcpDataOutput(Bund b, Mbuf bp);

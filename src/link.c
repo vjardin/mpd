@@ -68,47 +68,47 @@
 
   const struct cmdtab LinkSetActionCmds[] = {
     { "bundle {bundle} [{regex}]",	"Terminate incomings locally",
-	LinkSetCommand, NULL, (void *) SET_BUNDLE },
+	LinkSetCommand, NULL, 2, (void *) SET_BUNDLE },
     { "forward {link} [{regex}]",	"Forward incomings",
-	LinkSetCommand, NULL, (void *) SET_FORWARD },
+	LinkSetCommand, NULL, 2, (void *) SET_FORWARD },
     { NULL },
   };
 
   const struct cmdtab LinkSetCmds[] = {
     { "action ...",			"Set action on incoming",
-	CMD_SUBMENU,	NULL, (void *) LinkSetActionCmds },
+	CMD_SUBMENU,	NULL, 2, (void *) LinkSetActionCmds },
     { "bandwidth {bps}",		"Link bandwidth",
-	LinkSetCommand, NULL, (void *) SET_BANDWIDTH },
+	LinkSetCommand, NULL, 2, (void *) SET_BANDWIDTH },
     { "latency {microsecs}",		"Link latency",
-	LinkSetCommand, NULL, (void *) SET_LATENCY },
+	LinkSetCommand, NULL, 2, (void *) SET_LATENCY },
     { "accmap {hex-value}",		"Accmap value",
-	LinkSetCommand, NULL, (void *) SET_ACCMAP },
+	LinkSetCommand, NULL, 2, (void *) SET_ACCMAP },
     { "mru {value}",			"Link MRU value",
-	LinkSetCommand, NULL, (void *) SET_MRU },
+	LinkSetCommand, NULL, 2, (void *) SET_MRU },
     { "mtu {value}",			"Link MTU value",
-	LinkSetCommand, NULL, (void *) SET_MTU },
+	LinkSetCommand, NULL, 2, (void *) SET_MTU },
     { "fsm-timeout {seconds}",		"FSM retry timeout",
-	LinkSetCommand, NULL, (void *) SET_FSM_RETRY },
+	LinkSetCommand, NULL, 2, (void *) SET_FSM_RETRY },
     { "max-redial {num}",		"Max connect attempts",
-	LinkSetCommand, NULL, (void *) SET_MAX_RETRY },
-    { "max-children {num}",		"Max number of template children",
-	LinkSetCommand, NULL, (void *) SET_MAX_CHILDREN },
+	LinkSetCommand, NULL, 2, (void *) SET_MAX_RETRY },
+    { "max-children {num}",		"Max number of children",
+	LinkSetCommand, NULL, 2, (void *) SET_MAX_CHILDREN },
     { "keep-alive {secs} {max}",	"LCP echo keep-alives",
-	LinkSetCommand, NULL, (void *) SET_KEEPALIVE },
+	LinkSetCommand, NULL, 2, (void *) SET_KEEPALIVE },
     { "ident {string}",			"LCP ident string",
-	LinkSetCommand, NULL, (void *) SET_IDENT },
+	LinkSetCommand, NULL, 2, (void *) SET_IDENT },
     { "accept {opt ...}",		"Accept option",
-	LinkSetCommand, NULL, (void *) SET_ACCEPT },
+	LinkSetCommand, NULL, 2, (void *) SET_ACCEPT },
     { "deny {opt ...}",			"Deny option",
-	LinkSetCommand, NULL, (void *) SET_DENY },
+	LinkSetCommand, NULL, 2, (void *) SET_DENY },
     { "enable {opt ...}",		"Enable option",
-	LinkSetCommand, NULL, (void *) SET_ENABLE },
+	LinkSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable {opt ...}",		"Disable option",
-	LinkSetCommand, NULL, (void *) SET_DISABLE },
+	LinkSetCommand, NULL, 2, (void *) SET_DISABLE },
     { "yes {opt ...}",			"Enable and accept option",
-	LinkSetCommand, NULL, (void *) SET_YES },
+	LinkSetCommand, NULL, 2, (void *) SET_YES },
     { "no {opt ...}",			"Disable and deny option",
-	LinkSetCommand, NULL, (void *) SET_NO },
+	LinkSetCommand, NULL, 2, (void *) SET_NO },
     { NULL },
   };
 
@@ -140,30 +140,28 @@
  * LinkOpenCmd()
  */
 
-void
+int
 LinkOpenCmd(Context ctx)
 {
-    if (ctx->lnk->tmpl) {
-	Log(LG_ERR, ("[%s] link: impossible to open template", ctx->lnk->name));
-	return;
-    }
+    if (ctx->lnk->tmpl)
+	Error("impossible to open template");
     RecordLinkUpDownReason(NULL, ctx->lnk, 1, STR_MANUALLY, NULL);
     LinkOpen(ctx->lnk);
+    return (0);
 }
 
 /*
  * LinkCloseCmd()
  */
 
-void
+int
 LinkCloseCmd(Context ctx)
 {
-    if (ctx->lnk->tmpl) {
-	Log(LG_ERR, ("[%s] link: impossible to close template", ctx->lnk->name));
-	return;
-    }
+    if (ctx->lnk->tmpl)
+	Error("impossible to close template");
     RecordLinkUpDownReason(NULL, ctx->lnk, 0, STR_MANUALLY, NULL);
     LinkClose(ctx->lnk);
+    return (0);
 }
 
 /*

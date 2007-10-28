@@ -31,13 +31,6 @@ Sets the credentials for the web-listener. After changing one of these
 options, the web must be closed and re-opened for the changes to
 take effect.
 
-<tag><tt>
-set web user <em>username</em> <em>password</em>
-</tt></tag>
-
-This configures which users are allowed to connect to the web server.
-This command may be invoked multiple times with different usernames.
-
 </descrip>
 
 <p>

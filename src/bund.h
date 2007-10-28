@@ -177,8 +177,8 @@
 
   extern void	BundOpen(Bund b);
   extern void	BundClose(Bund b);
-  extern void	BundOpenCmd(Context ctx);
-  extern void	BundCloseCmd(Context ctx);
+  extern int	BundOpenCmd(Context ctx);
+  extern int	BundCloseCmd(Context ctx);
   extern int	BundStat(Context ctx, int ac, char *av[], void *arg);
   extern void	BundUpdateParams(Bund b);
   extern int	BundCommand(Context ctx, int ac, char *av[], void *arg);

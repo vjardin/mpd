@@ -96,23 +96,23 @@
 
   const struct cmdtab IpcpSetCmds[] = {
     { "ranges {self}[/{width}] {peer}[/{width}]",	"Allowed IP address ranges",
-	IpcpSetCommand, NULL, (void *) SET_RANGES },
+	IpcpSetCommand, NULL, 2, (void *) SET_RANGES },
     { "enable [opt ...]",		"Enable option",
-	IpcpSetCommand, NULL, (void *) SET_ENABLE},
+	IpcpSetCommand, NULL, 2, (void *) SET_ENABLE},
     { "dns primary [secondary]",	"Set peer DNS servers",
-	IpcpSetCommand, NULL, (void *) SET_DNS},
+	IpcpSetCommand, NULL, 2, (void *) SET_DNS},
     { "nbns primary [secondary]",	"Set peer NBNS servers",
-	IpcpSetCommand, NULL, (void *) SET_NBNS},
+	IpcpSetCommand, NULL, 2, (void *) SET_NBNS},
     { "disable [opt ...]",		"Disable option",
-	IpcpSetCommand, NULL, (void *) SET_DISABLE},
+	IpcpSetCommand, NULL, 2, (void *) SET_DISABLE},
     { "accept [opt ...]",		"Accept option",
-	IpcpSetCommand, NULL, (void *) SET_ACCEPT},
+	IpcpSetCommand, NULL, 2, (void *) SET_ACCEPT},
     { "deny [opt ...]",			"Deny option",
-	IpcpSetCommand, NULL, (void *) SET_DENY},
+	IpcpSetCommand, NULL, 2, (void *) SET_DENY},
     { "yes [opt ...]",			"Enable and accept option",
-	IpcpSetCommand, NULL, (void *) SET_YES},
+	IpcpSetCommand, NULL, 2, (void *) SET_YES},
     { "no [opt ...]",			"Disable and deny option",
-	IpcpSetCommand, NULL, (void *) SET_NO},
+	IpcpSetCommand, NULL, 2, (void *) SET_NO},
     { NULL },
   };
 
@@ -593,28 +593,26 @@ IpcpClose(Bund b)
  * IpcpOpenCmd()
  */
 
-void
+int
 IpcpOpenCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] IPCP: impossible to open template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to open template");
     FsmOpen(&ctx->bund->ipcp.fsm);
+    return (0);
 }
 
 /*
  * IpcpCloseCmd()
  */
 
-void
+int
 IpcpCloseCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] IPCP: impossible to close template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to close template");
     FsmClose(&ctx->bund->ipcp.fsm);
+    return (0);
 }
 
 /*

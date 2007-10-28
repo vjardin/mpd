@@ -73,17 +73,17 @@
 
   const struct cmdtab Ipv6cpSetCmds[] = {
     { "enable [opt ...]",		"Enable option",
-	Ipv6cpSetCommand, NULL, (void *) SET_ENABLE},
+	Ipv6cpSetCommand, NULL, 2, (void *) SET_ENABLE},
     { "disable [opt ...]",		"Disable option",
-	Ipv6cpSetCommand, NULL, (void *) SET_DISABLE},
+	Ipv6cpSetCommand, NULL, 2, (void *) SET_DISABLE},
     { "accept [opt ...]",		"Accept option",
-	Ipv6cpSetCommand, NULL, (void *) SET_ACCEPT},
+	Ipv6cpSetCommand, NULL, 2, (void *) SET_ACCEPT},
     { "deny [opt ...]",			"Deny option",
-	Ipv6cpSetCommand, NULL, (void *) SET_DENY},
+	Ipv6cpSetCommand, NULL, 2, (void *) SET_DENY},
     { "yes [opt ...]",			"Enable and accept option",
-	Ipv6cpSetCommand, NULL, (void *) SET_YES},
+	Ipv6cpSetCommand, NULL, 2, (void *) SET_YES},
     { "no [opt ...]",			"Disable and deny option",
-	Ipv6cpSetCommand, NULL, (void *) SET_NO},
+	Ipv6cpSetCommand, NULL, 2, (void *) SET_NO},
     { NULL },
   };
 
@@ -361,28 +361,26 @@ Ipv6cpClose(Bund b)
  * Ipv6cpOpenCmd()
  */
 
-void
+int
 Ipv6cpOpenCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] IPv6CP: impossible to open template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to open template");
     FsmOpen(&ctx->bund->ipv6cp.fsm);
+    return (0);
 }
 
 /*
  * Ipv6cpCloseCmd()
  */
 
-void
+int
 Ipv6cpCloseCmd(Context ctx)
 {
-    if (ctx->bund->tmpl) {
-	Log(LG_ERR, ("[%s] IPv6CP: impossible to close template", ctx->bund->name));
-	return;
-    }
+    if (ctx->bund->tmpl)
+	Error("impossible to close template");
     FsmClose(&ctx->bund->ipv6cp.fsm);
+    return (0);
 }
 
 /*

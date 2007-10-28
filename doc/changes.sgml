@@ -12,6 +12,11 @@
 	<itemize>
 	  <item> Added 'set link max-children ...' command for DoS protection.
 	  </item>
+	  <item> Implemented user privilege levels "admin"/"operator"/"user".
+	  </item>
+	  <item> Web console rewritten and allows now execute any commands
+		 allowed by privileges. Added plain-text command interface.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
@@ -23,11 +28,13 @@
 	  </item>
 	  <item> 'set bundle retry' commend renamed to 'set bundle fsm-timeout'.
 	  </item>
-	  <item> Increased number of auth retries to 5.
+	  <item> Number of auth retries increased to 5.
 	  </item>
 	  <item> PPTP windowing is disabled by default.
 	  </item>
 	  <item> Improved unified command error reporting.
+	  </item>
+	  <item> Users list is now global and the same for console and web.
 	  </item>
 	</itemize>
 	</item>

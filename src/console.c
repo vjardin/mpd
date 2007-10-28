@@ -34,7 +34,6 @@
   enum {
     SET_OPEN,
     SET_CLOSE,
-    SET_USER,
     SET_SELF,
     SET_DISABLE,
     SET_ENABLE,
@@ -68,20 +67,20 @@
 
   const struct cmdtab ConsoleSetCmds[] = {
     { "open",			"Open the console" ,
-  	ConsoleSetCommand, NULL, (void *) SET_OPEN },
+  	ConsoleSetCommand, NULL, 2, (void *) SET_OPEN },
     { "close",			"Close the console" ,
-  	ConsoleSetCommand, NULL, (void *) SET_CLOSE },
-    { "user {name} {password}", "Add a console user" ,
-      	ConsoleSetCommand, NULL, (void *) SET_USER },
+  	ConsoleSetCommand, NULL, 2, (void *) SET_CLOSE },
     { "self {ip} [{port}]",	"Set console ip and port" ,
-  	ConsoleSetCommand, NULL, (void *) SET_SELF },
+  	ConsoleSetCommand, NULL, 2, (void *) SET_SELF },
     { "enable [opt ...]",	"Enable this console option" ,
-  	ConsoleSetCommand, NULL, (void *) SET_ENABLE },
+  	ConsoleSetCommand, NULL, 0, (void *) SET_ENABLE },
     { "disable [opt ...]",	"Disable this console option" ,
-  	ConsoleSetCommand, NULL, (void *) SET_DISABLE },
+  	ConsoleSetCommand, NULL, 0, (void *) SET_DISABLE },
     { NULL },
   };
 
+  struct ghash		*gUsers;		/* allowed users */
+  pthread_rwlock_t	gUsersLock;
 
 /*
  * INTERNAL VARIABLES
@@ -110,9 +109,14 @@ ConsoleInit(Console c)
   c->port = DEFAULT_CONSOLE_PORT;
 
   SLIST_INIT(&c->sessions);
-  c->users = ghash_create(c, 0, 0, MB_CONS, ConsoleUserHash, ConsoleUserHashEqual, NULL, NULL);
   
   if ((ret = pthread_rwlock_init (&c->lock, NULL)) != 0) {
+    Log(LG_ERR, ("Could not create rwlock %d", ret));
+    return (-1);
+  }
+
+  gUsers = ghash_create(c, 0, 0, MB_CONS, ConsoleUserHash, ConsoleUserHashEqual, NULL, NULL);
+  if ((ret = pthread_rwlock_init (&gUsersLock, NULL)) != 0) {
     Log(LG_ERR, ("Could not create rwlock %d", ret));
     return (-1);
   }
@@ -173,10 +177,8 @@ int
 ConsoleStat(Context ctx, int ac, char *av[], void *arg)
 {
   Console		c = &gConsole;
-  ConsoleUser		u;
   ConsoleSession	s;
   ConsoleSession	cs = ctx->cs;
-  struct ghash_walk	walk;
   char       		addrstr[INET6_ADDRSTRLEN];
 
   Printf("Configuration:\r\n");
@@ -184,12 +186,7 @@ ConsoleStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tIP-Address    : %s\r\n", u_addrtoa(&c->addr,addrstr,sizeof(addrstr)));
   Printf("\tPort          : %d\r\n", c->port);
 
-  Printf("Configured users:\r\n");
   RWLOCK_RDLOCK(c->lock);
-  ghash_walk_init(c->users, &walk);
-  while ((u = ghash_walk_next(c->users, &walk)) !=  NULL)
-    Printf("\tUsername: %s\r\n", u->username);
-
   Printf("Active sessions:\r\n");
   SLIST_FOREACH(s, &c->sessions, next) {
     Printf("\tUsername: %s\tFrom: %s\r\n",
@@ -305,6 +302,7 @@ StdConsoleConnect(Console c)
     cs->state = STATE_AUTHENTIC;
     cs->context.cs = cs;
     strcpy(cs->user.username, "root");
+    cs->context.priv = 2;
     RWLOCK_WRLOCK(c->lock);
     SLIST_INSERT_HEAD(&c->sessions, cs, next);
     RWLOCK_UNLOCK(c->lock);
@@ -443,7 +441,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
       tab = gCommands;
       for (i = 0; i < ac; i++) {
 
-        if (FindCommand(tab, av[i], &cmd)) {
+        if (FindCommand(&cs->context, tab, av[i], &cmd)) {
 	    cs->write(cs, "\a");
 	    goto notfound;
 	}
@@ -553,9 +551,9 @@ notfound:
       } else if (cs->state == STATE_PASSWORD) {
 	ConsoleUser u;
 
-	RWLOCK_RDLOCK(cs->console->lock);
-	u = ghash_get(cs->console->users, &cs->user);
-	RWLOCK_UNLOCK(cs->console->lock);
+	RWLOCK_RDLOCK(gUsersLock);
+	u = ghash_get(gUsers, &cs->user);
+	RWLOCK_UNLOCK(gUsersLock);
 
 	if (!u) 
 	  goto failed;
@@ -564,6 +562,8 @@ notfound:
 	  goto failed;
 
 	cs->state = STATE_AUTHENTIC;
+	cs->user.priv = u->priv;
+	cs->context.priv = u->priv;
 	cs->write(cs, "\r\nWelcome!\r\nMpd pid %lu, version %s\r\n", 
 		(u_long) gPid, gVersion);
 	goto success;
@@ -772,7 +772,6 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
   Console	 	c = &gConsole;
   ConsoleSession	cs = ctx->cs;
-  ConsoleUser		u;
   int			port;
 
   switch ((intptr_t)arg) {
@@ -793,18 +792,6 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_DISABLE:
       if (cs)
 	DisableCommand(ac, av, &cs->options, gConfList);
-      break;
-
-    case SET_USER:
-      if (ac != 2) 
-	return(-1);
-
-      u = Malloc(MB_CONS, sizeof(*u));
-      strlcpy(u->username, av[0], sizeof(u->username));
-      strlcpy(u->password, av[1], sizeof(u->password));
-      RWLOCK_WRLOCK(c->lock);
-      ghash_put(c->users, u);
-      RWLOCK_UNLOCK(c->lock);
       break;
 
     case SET_SELF:
@@ -828,4 +815,60 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
   }
 
   return 0;
+}
+
+/*
+ * UserCommand()
+ */
+
+int
+UserCommand(Context ctx, int ac, char *av[], void *arg) 
+{
+    ConsoleUser		u;
+
+    if (ac < 2 || ac > 3) 
+	return(-1);
+
+    u = Malloc(MB_CONS, sizeof(*u));
+    strlcpy(u->username, av[0], sizeof(u->username));
+    strlcpy(u->password, av[1], sizeof(u->password));
+    if (ac == 3) {
+	if (!strcmp(av[2],"admin"))
+	    u->priv = 2;
+	else if (!strcmp(av[2],"operator"))
+	    u->priv = 1;
+	else if (!strcmp(av[2],"user"))
+	    u->priv = 0;
+	else {
+	    Freee(MB_CONS, u);
+	    return (-1);
+	}
+    }
+    RWLOCK_WRLOCK(gUsersLock);
+    ghash_put(gUsers, u);
+    RWLOCK_UNLOCK(gUsersLock);
+
+    return (0);
+}
+
+/*
+ * UserStat()
+ */
+
+int
+UserStat(Context ctx, int ac, char *av[], void *arg)
+{
+    struct ghash_walk	walk;
+    ConsoleUser		u;
+
+    Printf("Configured users:\r\n");
+    RWLOCK_RDLOCK(gUsersLock);
+    ghash_walk_init(gUsers, &walk);
+    while ((u = ghash_walk_next(gUsers, &walk)) !=  NULL) {
+	Printf("\tUsername: %-15s Priv:%s\r\n", u->username,
+	    ((u->priv == 2)?"admin":((u->priv == 1)?"operator":"user")));
+    }
+    RWLOCK_UNLOCK(gUsersLock);
+
+    return 0;
 }

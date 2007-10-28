@@ -115,17 +115,17 @@
 
   const struct cmdtab MppcSetCmds[] = {
     { "accept [opt ...]",		"Accept option",
-	MppcSetCommand, NULL, (void *) SET_ACCEPT },
+	MppcSetCommand, NULL, 2, (void *) SET_ACCEPT },
     { "deny [opt ...]",			"Deny option",
-	MppcSetCommand, NULL, (void *) SET_DENY },
+	MppcSetCommand, NULL, 2, (void *) SET_DENY },
     { "enable [opt ...]",		"Enable option",
-	MppcSetCommand, NULL, (void *) SET_ENABLE },
+	MppcSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
-	MppcSetCommand, NULL, (void *) SET_DISABLE },
+	MppcSetCommand, NULL, 2, (void *) SET_DISABLE },
     { "yes [opt ...]",			"Enable and accept option",
-	MppcSetCommand, NULL, (void *) SET_YES },
+	MppcSetCommand, NULL, 2, (void *) SET_YES },
     { "no [opt ...]",			"Disable and deny option",
-	MppcSetCommand, NULL, (void *) SET_NO },
+	MppcSetCommand, NULL, 2, (void *) SET_NO },
     { NULL },
   };
 

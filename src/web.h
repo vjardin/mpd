@@ -30,19 +30,10 @@
     in_port_t		port;
     struct http_server *srv;
     struct http_servlet srvlet;
-    struct http_servlet *srvlet_auth;
-    struct ghash	*users;		/* allowed users */
     EventRef		event;		/* connect-event */
   };
 
   typedef struct web *Web;
-
-  struct web_user {
-    char	username[32];
-    char	password[32];
-  };
-
-  typedef struct web_user *WebUser;
 
 /*
  * VARIABLES
