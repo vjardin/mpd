@@ -178,6 +178,7 @@
  */
 
   extern void		FsmInit(Fsm f, FsmType t, void *arg);
+  extern void		FsmInst(Fsm fp, Fsm fpt, void *arg);
   extern void		FsmOpen(Fsm f);
   extern void		FsmClose(Fsm f);
   extern void		FsmUp(Fsm f);

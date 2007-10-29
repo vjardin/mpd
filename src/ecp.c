@@ -206,7 +206,7 @@ EcpInst(Bund b, Bund bt)
 
 /* Init ECP state for this bundle */
   memcpy(ecp, &bt->ecp, sizeof(*ecp));
-  FsmInit(&ecp->fsm, &gEcpFsmType, b);
+  FsmInst(&ecp->fsm, &bt->ecp.fsm, b);
 }
 
 /*

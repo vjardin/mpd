@@ -196,7 +196,7 @@ LcpInst(Link l, Link lt)
   LcpState	const lcp = &l->lcp;
 
   memcpy(lcp, &lt->lcp, sizeof(*lcp));
-  FsmInit(&lcp->fsm, &gLcpFsmType, l);
+  FsmInst(&lcp->fsm, &lt->lcp.fsm, l);
   
 //  AuthInit(l);
 }

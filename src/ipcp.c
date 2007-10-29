@@ -276,7 +276,7 @@ IpcpInst(Bund b, Bund bt)
 
   /* Init state machine */
   memcpy(ipcp, &bt->ipcp, sizeof(*ipcp));
-  FsmInit(&ipcp->fsm, &gIpcpFsmType, b);
+  FsmInst(&ipcp->fsm, &bt->ipcp.fsm, b);
 }
 
 /*

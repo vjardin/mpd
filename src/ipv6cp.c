@@ -207,7 +207,7 @@ Ipv6cpInst(Bund b, Bund bt)
 
   /* Init state machine */
   memcpy(ipv6cp, &bt->ipv6cp, sizeof(*ipv6cp));
-  FsmInit(&ipv6cp->fsm, &gIpv6cpFsmType, b);
+  FsmInst(&ipv6cp->fsm, &bt->ipv6cp.fsm, b);
 }
 
 /*

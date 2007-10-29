@@ -153,6 +153,19 @@ FsmInit(Fsm fp, FsmType type, void *arg)
 }
 
 /*
+ * FsmInst()
+ *
+ * Instantiate FSM structure from template
+ */
+
+void
+FsmInst(Fsm fp, Fsm fpt, void *arg)
+{
+    memcpy(fp, fpt, sizeof(*fp));
+    fp->arg = arg;
+}
+
+/*
  * FsmNewState()
  *
  * Change state of a FSM. Also, call the configuration routine
