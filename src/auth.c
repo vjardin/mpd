@@ -1928,10 +1928,10 @@ AuthExternal(AuthData auth)
 	    auth->status = AUTH_STATUS_FAIL;
 
     } else if (strcmp(attr, "USER_NAME") == 0) {
-	strncpy(auth->params.authname, val, sizeof(auth->params.authname));
+	strlcpy(auth->params.authname, val, sizeof(auth->params.authname));
 
     } else if (strcmp(attr, "USER_PASSWORD") == 0) {
-	strncpy(auth->params.password, val, sizeof(auth->params.password));
+	strlcpy(auth->params.password, val, sizeof(auth->params.password));
 
     } else if (strcmp(attr, "FRAMED_IP_ADDRESS") == 0) {
         auth->params.range_valid = 
@@ -2089,7 +2089,7 @@ AuthExternal(AuthData auth)
 		    acls1->number = 0;
 		    acls1->real_number = i;
 	    }
-	    strncpy(acls1->rule, acl2, ACL_LEN);
+	    strlcpy(acls1->rule, acl2, ACL_LEN);
 	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
 	      acls = &((*acls)->next);
 

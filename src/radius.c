@@ -1506,7 +1506,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    acls1->number = 0;
 		    acls1->real_number = i;
 	    }
-	    strncpy(acls1->rule, acl2, ACL_LEN);
+	    strlcpy(acls1->rule, acl2, ACL_LEN);
 	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
 	      acls = &((*acls)->next);
 
