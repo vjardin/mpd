@@ -2478,6 +2478,12 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	strlcat(path, hook, NG_PATHSIZ);
 	strcpy(hook, "iface");
 
+	b->iface.limitID = NgGetNodeID(b->csock, path);
+	if (b->iface.limitID == 0) {
+    	    Log(LG_ERR, ("can't get limits %s node ID: %s", NG_BPF_NODE_TYPE,
+    		strerror(errno)));
+	}
+
 	/* Set the new node's name. */
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lim", gPid, b->name);
 	if (NgSendMsg(b->csock, path,
@@ -2819,7 +2825,7 @@ IfaceShutdownLimits(Bund b)
     char path[NG_PATHSIZ];
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
-	snprintf(path, sizeof(path), "mpd%d-%s-lim:", gPid, b->name);
+	snprintf(path, sizeof(path), "[%x]:", b->iface.limitID);
 	NgFuncShutdownNode(b->csock, b->name, path);
     }
 }

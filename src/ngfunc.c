@@ -739,3 +739,22 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
     return (0);
 }
 #endif /* USE_NG_NETFLOW */
+
+ng_ID_t
+NgGetNodeID(int csock, char *path)
+{
+    union {
+        u_char          buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+	struct ng_mesg  reply;
+    }                   u;
+    struct nodeinfo     *const ni = (struct nodeinfo *)(void *)u.reply.data;
+    
+    if (NgSendMsg(csock, path,
+      NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0)
+        return (0);
+    if (NgRecvMsg(csock, &u.reply, sizeof(u), NULL) < 0)
+	return (0);
+    
+    return (ni->id);
+}
+

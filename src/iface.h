@@ -97,6 +97,7 @@
     struct pppTimer	sessionTimer;		/* Session timer */
     char		up_script[IFACE_MAX_SCRIPT];
     char		down_script[IFACE_MAX_SCRIPT];
+    ng_ID_t		limitID;		/* ID of limit (bpf) node */
     u_char		open:1;			/* In an open state */
     u_char		up:1;			/* interface is up */
     u_char		ip_up:1;		/* IP interface is up */
