@@ -14,14 +14,14 @@
 #################################################################
 
 startup:
+	# configure mpd users
+	set user foo bar admin
+	set user foo1 bar1
 	# configure the console
 	set console self 127.0.0.1 5005
-	set console user foo bar
-	set console user foo1 bar1
 	set console open
 	# configure the web server
 	set web self 0.0.0.0 5006
-	set web user foo bar
 	set web open
 
 #
