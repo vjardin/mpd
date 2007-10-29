@@ -2077,7 +2077,7 @@ AuthExternal(AuthData auth)
 		auth->info.lnkname, i));
 	      continue;
 	    }
-	    if ((acl2 == NULL) && (acl2[0] == 0)) {
+	    if ((acl2 == NULL) || (acl2[0] == 0)) {
 	      Log(LG_ERR, ("[%s] Ext-auth: wrong acl", auth->info.lnkname));
 	      continue;
 	    }
