@@ -1022,7 +1022,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   size_t	len;
   const void	*data;
   u_int32_t	vendor;
-  char		*route, *acl, *acl1, *acl2;
+  char		*route, *acl, *acl1, *acl2, *acl3;
   char		*tmpval;
   short		got_mppe_keys = FALSE;
   struct in_addr	ip;
@@ -1484,8 +1484,10 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      break;
 	    }
 	    
+	    acl3 = acl1;
+	    strsep(&acl3, "=");
 	    acl2 = acl1;
-	    acl1 = strsep(&acl2, "=");
+	    strsep(&acl2, "#");
 	    i = atol(acl1);
 	    if (i <= 0) {
 	      Log(LG_ERR, ("[%s] RADIUS: %s: wrong acl number: %i",
@@ -1506,7 +1508,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    acls1->number = 0;
 		    acls1->real_number = i;
 	    }
-	    strlcpy(acls1->rule, acl2, ACL_LEN);
+	    if (acl2)
+		strlcpy(acls1->name, acl2, sizeof(acls1->name));
+	    strlcpy(acls1->rule, acl3, sizeof(acls1->rule));
 	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
 	      acls = &((*acls)->next);
 

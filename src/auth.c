@@ -738,7 +738,8 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     for (k = 0; k < 2; k++) {
         a = au->params.acl_limits[k];
 	while (a) {
-	    Printf("\t\t%s#%d\t: '%s'\r\n", (k?"out":"in"), a->number, a->rule);
+	    Printf("\t\t%s#%d%s%s\t: '%s'\r\n", (k?"out":"in"), a->number,
+		((a->name[0])?"#":""), a->name, a->rule);
 	    a = a->next;
 	}
     }
@@ -2016,7 +2017,7 @@ AuthExternal(AuthData auth)
 
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;
-	char		*acl, *acl1, *acl2;
+	char		*acl, *acl1, *acl2, *acl3;
 	int		i;
 	
 	    if (strcmp(attr, "MPD_RULE") == 0) {
@@ -2069,15 +2070,17 @@ AuthExternal(AuthData auth)
 	      continue;
 	    }
 	    
+	    acl3 = acl1;
+	    strsep(&acl3, "=");
 	    acl2 = acl1;
-	    acl1 = strsep(&acl2, "=");
+	    strsep(&acl2, "#");
 	    i = atol(acl1);
 	    if (i <= 0) {
 	      Log(LG_ERR, ("[%s] Ext-auth: wrong acl number: %i",
 		auth->info.lnkname, i));
 	      continue;
 	    }
-	    if ((acl2 == NULL) || (acl2[0] == 0)) {
+	    if ((acl3 == NULL) || (acl3[0] == 0)) {
 	      Log(LG_ERR, ("[%s] Ext-auth: wrong acl", auth->info.lnkname));
 	      continue;
 	    }
@@ -2089,7 +2092,9 @@ AuthExternal(AuthData auth)
 		    acls1->number = 0;
 		    acls1->real_number = i;
 	    }
-	    strlcpy(acls1->rule, acl2, ACL_LEN);
+	    if (acl2)
+		strlcpy(acls1->name, acl2, sizeof(acls1->name));
+	    strlcpy(acls1->rule, acl3, sizeof(acls1->rule));
 	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
 	      acls = &((*acls)->next);
 

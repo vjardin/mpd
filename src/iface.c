@@ -1396,7 +1396,8 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 	for (k = 0; k < 2; k++) {
 	    a = ctx->bund->params.acl_limits[k];
 	    while (a) {
-		Printf("\t%s#%d\t: '%s'\r\n", (k?"out":"in"), a->number, a->rule);
+		Printf("\t%s#%d%s%s\t: '%s'\r\n", (k?"out":"in"), a->number,
+		    ((a->name[0])?"#":""), a->name, a->rule);
 		a = a->next;
 	    }
 	}
@@ -2540,8 +2541,9 @@ IfaceSetupLimits(Bund b)
 	        char		*av[ACL_MAX_PARAMS];
 		int		p;
 
-		Log(LG_IFACE2, ("[%s] IFACE: limit %s#%d: '%s'",
-        	    b->name, (dir?"out":"in"), l->number, l->rule));
+		Log(LG_IFACE2, ("[%s] IFACE: limit %s#%d%s%s: '%s'",
+        	    b->name, (dir?"out":"in"), l->number,
+		    ((l->name[0])?"#":""), l->name, l->rule));
 		strncpy(str, l->rule, sizeof(str));
     		ac = ParseLine(str, av, ACL_MAX_PARAMS, 0);
 	        if (ac < 2 || ac >= ACL_MAX_PARAMS) {

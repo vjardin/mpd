@@ -82,11 +82,13 @@
 
   /* max. length of acl rule */
   #define ACL_LEN	256
+  #define ACL_NAME_LEN	16
 
   struct acl {			/* List of ACLs received from auth */
     u_short number;		/* ACL number given by auth server */
     u_short real_number;	/* ACL number allocated my mpd */
     struct acl *next;
+    char name[ACL_NAME_LEN]; 	/* Name of ACL */
     char rule[ACL_LEN]; 	/* Text of ACL */
   };
 
