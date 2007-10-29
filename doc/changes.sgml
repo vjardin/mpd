@@ -55,6 +55,8 @@
 		 For example, it is impossible to use MPPE encryption
 		 without MSCHAP.
 	  </item>
+	  <item> Fixed FSM instantiation to fix LCP keep-alives.
+	  </item>
 	  <item> Many small fixes.
 	  </item>
 	</itemize>
