@@ -59,6 +59,8 @@
 	  </item>
 	  <item> Fixed FSM instantiation to fix LCP keep-alives.
 	  </item>
+	  <item> Fixed 'set eap ...' context.
+	  </item>
 	  <item> Many small fixes.
 	  </item>
 	</itemize>

@@ -201,7 +201,7 @@
     { "ecp ...",			"ECP specific stuff",
 	CMD_SUBMENU, AdmitBund, 2, (void *) EcpSetCmds },
     { "eap ...",			"EAP specific stuff",
-	CMD_SUBMENU, AdmitBund, 2, (void *) EapSetCmds },
+	CMD_SUBMENU, AdmitLink, 2, (void *) EapSetCmds },
     { "auth ...",			"Auth specific stuff",
 	CMD_SUBMENU, AdmitLink, 2, (void *) AuthSetCmds },
     { "radius ...",			"RADIUS specific stuff",
