@@ -405,44 +405,44 @@ LcpNewState(Fsm fp, int old, int new)
 static void
 LcpNewPhase(Link l, int new)
 {
-  LcpState	const lcp = &l->lcp;
-  int		old;
+    LcpState	const lcp = &l->lcp;
+    int		old = lcp->phase;
 
-  /* Logit */
-  Log(LG_LCP2, ("[%s] %s: phase shift %s --> %s",
-    Pref(&lcp->fsm), Fsm(&lcp->fsm), PhaseNames[lcp->phase], PhaseNames[new]));
+    /* Logit */
+    Log(LG_LCP2, ("[%s] %s: phase shift %s --> %s",
+	Pref(&lcp->fsm), Fsm(&lcp->fsm), PhaseNames[old], PhaseNames[new]));
 
-  /* Sanity check transition (The picture on RFC 1661 p. 6 is incomplete) */
-  switch ((old = lcp->phase)) {
-    case PHASE_DEAD:
-      assert(new == PHASE_ESTABLISH);
-      break;
+    /* Sanity check transition (The picture on RFC 1661 p. 6 is incomplete) */
+    switch (old) {
+	case PHASE_DEAD:
+    	    assert(new == PHASE_ESTABLISH);
+    	    break;
     case PHASE_ESTABLISH:
-      assert(new == PHASE_DEAD
+        assert(new == PHASE_DEAD
 	  || new == PHASE_TERMINATE
 	  || new == PHASE_AUTHENTICATE);
-      break;
+        break;
     case PHASE_AUTHENTICATE:
-      assert(new == PHASE_TERMINATE
+        assert(new == PHASE_TERMINATE
 	  || new == PHASE_ESTABLISH
 	  || new == PHASE_NETWORK
 	  || new == PHASE_DEAD);
-      break;
+        break;
     case PHASE_NETWORK:
-      assert(new == PHASE_TERMINATE
+        assert(new == PHASE_TERMINATE
 	  || new == PHASE_ESTABLISH
 	  || new == PHASE_DEAD);
-      break;
+        break;
     case PHASE_TERMINATE:
-      assert(new == PHASE_ESTABLISH
+        assert(new == PHASE_ESTABLISH
 	  || new == PHASE_DEAD);
-      break;
+        break;
     default:
-      assert(0);
-  }
+        assert(0);
+    }
 
-  /* Change phase now */
-  lcp->phase = new;
+    /* Change phase now */
+    lcp->phase = new;
 
     /* Do whatever for leaving old phase */
     switch (old) {
