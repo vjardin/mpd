@@ -19,6 +19,8 @@
 	  </item>
 	  <item> New 'show sessions' command added.
 	  </item>
+	  <item> Acct-Session-Id attribute now present in auth request.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

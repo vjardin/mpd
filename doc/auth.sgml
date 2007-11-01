@@ -261,7 +261,7 @@ N   Name                       	   Access	 Accounting
 40  Acct-Status-Type		-	-	+	-
 42  Acct-Input-Octets		-	-	+	-
 43  Acct-Output-Octets		-	-	+	-
-44  Acct-Session-Id		-	-	+	-
+44  Acct-Session-Id		+	-	+	-
 45  Acct-Authentic		-	-	+	-
 46  Acct-Session-Time		-	-	+	-
 47  Acct-Input-Packets		-	-	+	-
@@ -441,6 +441,7 @@ Currently supported request attributes:
 USER_NAME
 USER_PASSWORD - present for PAP auth only
 LINK
+ACCT_SESSION_ID
 NAS_PORT
 NAS_PORT_TYPE
 CALLING_STATION_ID

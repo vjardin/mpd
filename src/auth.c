@@ -323,6 +323,10 @@ AuthStart(Link l)
 {
     Auth	a = &l->lcp.auth;
 
+    /* generate a uniq session id */
+    snprintf(l->session_id, AUTH_MAX_SESSIONID, "%d-%s",
+	(int)(time(NULL) % 10000000), l->name);
+
     authparamsInit(&a->params);
 
     /* What auth protocols were negotiated by LCP? */
@@ -573,11 +577,13 @@ AuthFinish(Link l, int which, int ok)
 void
 AuthCleanup(Link l)
 {
-  Auth			a = &l->lcp.auth;
+    Auth	a = &l->lcp.auth;
 
-  Log(LG_AUTH, ("[%s] AUTH: Cleanup", l->name));
+    Log(LG_AUTH, ("[%s] AUTH: Cleanup", l->name));
 
-  authparamsDestroy(&a->params);
+    authparamsDestroy(&a->params);
+
+    l->session_id[0] = 0;
 }
 
 /* 
@@ -1876,6 +1882,7 @@ AuthExternal(AuthData auth)
     if (auth->proto == PROTO_PAP)
 	fprintf(fp, "USER_PASSWORD:%s\n", auth->params.pap.peer_pass);
 
+    fprintf(fp, "ACCT_SESSION_ID:%s\n", auth->info.session_id);
     fprintf(fp, "LINK:%s\n", auth->info.lnkname);
     fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);
     fprintf(fp, "NAS_PORT_TYPE:%s\n", auth->info.phys_type->name);

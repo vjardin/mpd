@@ -240,13 +240,10 @@ RadiusAccount(AuthData auth)
     return;
   }
 
-  Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_ACCT_SESSION_ID): %s", 
-    auth->info.lnkname, __func__, auth->info.session_id));
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_ACCT_MULTI_SESSION_ID): %s", 
     auth->info.lnkname, __func__, auth->info.msession_id));
-  if (rad_put_string(auth->radius.handle, RAD_ACCT_SESSION_ID, auth->info.session_id) != 0 ||
-      rad_put_string(auth->radius.handle, RAD_ACCT_MULTI_SESSION_ID, auth->info.msession_id) != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: %s: put (SESSION_ID, MULTI_SESSION_ID): %s", 
+  if (rad_put_string(auth->radius.handle, RAD_ACCT_MULTI_SESSION_ID, auth->info.msession_id) != 0) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: put (RAD_ACCT_MULTI_SESSION_ID): %s", 
       auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
     return;
   }
@@ -686,6 +683,14 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 #endif
+
+  Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_ACCT_SESSION_ID): %s", 
+    auth->info.lnkname, __func__, auth->info.session_id));
+  if (rad_put_string(auth->radius.handle, RAD_ACCT_SESSION_ID, auth->info.session_id) != 0) {
+    Log(LG_RADIUS, ("[%s] RADIUS: %s: put (RAD_ACCT_SESSION_ID): %s", 
+      auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
+    return (RAD_NACK);
+  }
 
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_int(RAD_NAS_PORT): %d", 
     auth->info.lnkname, __func__, auth->info.linkID));

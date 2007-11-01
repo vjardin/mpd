@@ -341,10 +341,6 @@ BundJoin(Link l)
     strncpy(l->msession_id, b->msession_id,
 	sizeof(l->msession_id));
 
-    /* generate a uniq session id */
-    snprintf(l->session_id, AUTH_MAX_SESSIONID, "%d-%s",
-	(int)(time(NULL) % 10000000), l->name);
-
     /* What to do when the first link comes up */
     if (b->n_up == 1) {
 
@@ -400,7 +396,6 @@ BundLeave(Link l)
     
     /* Forget session_ids */
     l->msession_id[0] = 0;
-    l->session_id[0] = 0;
   
     /* Special stuff when last link goes down... */
     if (b->n_up == 0) {
