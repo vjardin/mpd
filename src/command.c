@@ -995,7 +995,7 @@ ShowSessions(Context ctx, int ac, char *av[], void *arg)
 	    }
 	    Printf("%s\t%s\t%s\t%s\t", B->iface.ifname,
 		addr, B->name, B->msession_id);
-	    Printf("%s\t[%x]\t%s\t%s\t%s", 
+	    Printf("%s\t%d\t%s\t%s\t%s", 
 		L->name,
 		L->id,
 		L->session_id,
