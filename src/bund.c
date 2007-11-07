@@ -410,6 +410,8 @@ BundLeave(Link l)
 
 	BundNcpsClose(b);
 	BundNcpsDown(b);
+	
+	IfaceFreeStats(&b->iface.prevstats);
 
 	authparamsDestroy(&b->params);
 	memset(&b->ccp.mppc, 0, sizeof(b->ccp.mppc));
