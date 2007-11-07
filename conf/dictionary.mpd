@@ -10,4 +10,8 @@ ATTRIBUTE	mpd-table	4	string		mpd
 ATTRIBUTE	mpd-table-static	5	string		mpd
 ATTRIBUTE	mpd-filter	6	string		mpd
 ATTRIBUTE	mpd-limit	7	string		mpd
+ATTRIBUTE	mpd-input-octets	8	string		mpd 
+ATTRIBUTE	mpd-input-packets	9	string		mpd 
+ATTRIBUTE	mpd-output-octets	10	string		mpd 
+ATTRIBUTE	mpd-output-packets	11	string		mpd 
 ATTRIBUTE	mpd-drop-user	154	integer		mpd
