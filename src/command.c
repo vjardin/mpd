@@ -951,7 +951,7 @@ ShowSessions(Context ctx, int ac, char *av[], void *arg)
 	return (-1);
 
     for (l = 0; l < gNumLinks; l++) {
-	if ((L=gLinks[l]) != NULL && L->session_id[0]) {
+	if ((L=gLinks[l]) != NULL && L->session_id[0] && L->bund) {
 	    B = L->bund;
 	    u_addrtoa(&B->iface.peer_addr, addr, sizeof(addr));
 	    PhysGetPeerAddr(L, peer, sizeof(peer));
