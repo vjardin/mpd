@@ -234,6 +234,8 @@ IfaceInit(Bund b)
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
   NatInit(b);
+  SLIST_INIT(&iface->ss[0]);
+  SLIST_INIT(&iface->ss[1]);
 }
 
 /*
@@ -2546,6 +2548,9 @@ IfaceSetupLimits(Bund b)
 	        int		ac;
 	        char		*av[ACL_MAX_PARAMS];
 		int		p;
+		char		stathook[NG_HOOKSIZ];
+		struct svcs	*ss = NULL;
+		struct svcssrc	*sss = NULL;
 
 		Log(LG_IFACE2, ("[%s] IFACE: limit %s#%d%s%s: '%s'",
         	    b->name, (dir?"out":"in"), l->number,
@@ -2557,28 +2562,9 @@ IfaceSetupLimits(Bund b)
     			b->name, l->rule));
 		    continue;
 		}
-	    	memset(&hpu, 0, sizeof(hpu));
-		/* Prepare nomatch */
-		if (l->next) {
-		    /* If there is next limit, then pass nomatch there. */
-		    sprintf(hp->ifNotMatch, "%d-%d-n", dir, num);
-		    sprintf(inhookn[1], "%d-%d-ni", dir, num);
-
-		    /* Connect nomatch hook to bpf itself. */
-		    strcpy(cn.ourhook, hp->ifNotMatch);
-		    strcpy(cn.path, path);
-		    strcpy(cn.peerhook, inhookn[1]);
-		    if (NgSendMsg(b->csock, path,
-		            NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-		        Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-			    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
-		    }
-		} else {
-		    /* There is no next limit, pass nomatch. */
-		    strcpy(hp->ifNotMatch, outhook);
-		    strcpy(inhookn[1], "");
-		}
 		
+		stathook[0] = 0;
+	    	memset(&hpu, 0, sizeof(hpu));
 		/* Prepare filter */
 		if (strcasecmp(av[0], "all") == 0) {
 		    hp->bpf_prog_len = MATCH_PROG_LEN;
@@ -2682,8 +2668,6 @@ IfaceSetupLimits(Bund b)
 
 		    sprintf(hp->ifMatch, "%d-%d-m", dir, num);
 
-		    snprintf(tmppath, sizeof(tmppath), "%s%d-%d-m", path, dir, num);
-
 		    /* Create a car node for traffic shaping. */
 		    snprintf(mp.type, sizeof(mp.type), "%s", NG_CAR_NODE_TYPE);
 		    snprintf(mp.ourhook, sizeof(mp.ourhook), "%d-%d-m", dir, num);
@@ -2693,6 +2677,8 @@ IfaceSetupLimits(Bund b)
 		    	Log(LG_ERR, ("[%s] IFACE: can't create %s node at \"%s\"->\"%s\": %s", 
 		    	    b->name, NG_CAR_NODE_TYPE, path, mp.ourhook, strerror(errno)));
 		    }
+
+		    snprintf(tmppath, sizeof(tmppath), "%s%d-%d-m", path, dir, num);
 
 		    /* Connect car to bpf. */
 		    snprintf(cn.ourhook, sizeof(cn.ourhook), "%d-%d-mi", dir, num);
@@ -2767,6 +2753,7 @@ IfaceSetupLimits(Bund b)
 	    			    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
 			    }
 			    			    
+			    strcpy(stathook, hp1->thisHook);
 			    strcpy(inhookn[0], "");
 			} else {
 			    Log(LG_ERR, ("[%s] IFACE: unknown action: '%s'",
@@ -2775,6 +2762,7 @@ IfaceSetupLimits(Bund b)
 			}
 		    } else {
 			sprintf(inhookn[0], "%d-%d-mi", dir, num);
+			strcpy(stathook, inhookn[0]);
 		    }
 #endif /* USE_NG_CAR */
 	        } else {
@@ -2782,9 +2770,58 @@ IfaceSetupLimits(Bund b)
     		        b->name, av[1]));
 		    strcpy(inhookn[0], "");
 		}
+		
+		/* Prepare nomatch */
+		if (l->next && strcasecmp(av[0], "all")) {
+		    /* If there is next limit and there is possible nomatch,
+		     * then pass nomatch there. */
+		    sprintf(hp->ifNotMatch, "%d-%d-n", dir, num);
+		    sprintf(inhookn[1], "%d-%d-ni", dir, num);
 
+		    /* Connect nomatch hook to bpf itself. */
+		    strcpy(cn.ourhook, hp->ifNotMatch);
+		    strcpy(cn.path, path);
+		    strcpy(cn.peerhook, inhookn[1]);
+		    if (NgSendMsg(b->csock, path,
+		            NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+		        Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+			    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+		    }
+		} else {
+		    /* There is no next limit, pass nomatch. */
+		    strcpy(hp->ifNotMatch, outhook);
+		    strcpy(inhookn[1], "");
+		}
+		
+		/* Remember how to collect stats for this limit */
+		if (l->name[0]) {
+		    SLIST_FOREACH(ss, &b->iface.ss[dir], next) {
+			if (strcmp(ss->name, l->name) == 0)
+			    break;
+		    }
+		    if (ss == NULL) {
+			ss = Malloc(MB_IFACE, sizeof(*ss));
+			strlcpy(ss->name, l->name, sizeof(ss->name));
+			SLIST_INIT(&ss->src);
+			SLIST_INSERT_HEAD(&b->iface.ss[dir], ss, next);
+		    }
+		    if (stathook[0]) {
+			sss = Malloc(MB_IFACE, sizeof(*sss));
+			strlcpy(sss->hook, stathook, sizeof(sss->hook));
+			sss->type = SSSS_IN;
+			SLIST_INSERT_HEAD(&ss->src, sss, next);
+		    }
+		}
+		
 		for (i = 0; i < 2; i++) {
 		    if (inhook[i][0] != 0) {
+			if (l->name[0] && !stathook[0]) {
+			    sss = Malloc(MB_IFACE, sizeof(*sss));
+			    strlcpy(sss->hook, inhook[i], sizeof(sss->hook));
+			    sss->type = SSSS_MATCH;
+			    SLIST_INSERT_HEAD(&ss->src, sss, next);
+			}
+		
 		        strcpy(hp->thisHook, inhook[i]);
 		        if (NgSendMsg(b->csock, path, NGM_BPF_COOKIE, NGM_BPF_SET_PROGRAM,
 		    		hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
@@ -2823,9 +2860,132 @@ static void
 IfaceShutdownLimits(Bund b)
 {
     char path[NG_PATHSIZ];
+    struct svcs *ss;
+    struct svcssrc *sss;
+
+    IfaceGetStats(b, &b->iface.prevstats);
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 	snprintf(path, sizeof(path), "[%x]:", b->iface.limitID);
 	NgFuncShutdownNode(b->csock, b->name, path);
+    }
+
+    while ((ss = SLIST_FIRST(&b->iface.ss[0])) != NULL) {
+	while ((sss = SLIST_FIRST(&ss->src)) != NULL) {
+    	    SLIST_REMOVE_HEAD(&ss->src, next);
+	    Freee(MB_IFACE, sss);
+	}
+	SLIST_REMOVE_HEAD(&b->iface.ss[0], next);
+	Freee(MB_IFACE, ss);
+    }
+    while ((ss = SLIST_FIRST(&b->iface.ss[1])) != NULL) {
+	while ((sss = SLIST_FIRST(&ss->src)) != NULL) {
+    	    SLIST_REMOVE_HEAD(&ss->src, next);
+	    Freee(MB_IFACE, sss);
+	}
+	SLIST_REMOVE_HEAD(&b->iface.ss[1], next);
+	Freee(MB_IFACE, ss);
+    }
+}
+
+void
+IfaceGetStats(Bund b, struct svcstat *stat)
+{
+    char path[NG_PATHSIZ];
+    struct svcs 	*ss;
+    struct svcssrc	*sss;
+    int	dir;
+
+    union {
+        u_char          buf[sizeof(struct ng_mesg) + sizeof(struct ng_bpf_hookstat)];
+	struct ng_mesg  reply;
+    }                   u;
+    struct ng_bpf_hookstat     *const hs = (struct ng_bpf_hookstat *)(void *)u.reply.data;
+
+    snprintf(path, sizeof(path), "[%x]:", b->iface.limitID);
+    for (dir = 0; dir < ACL_DIRS; dir++) {
+	SLIST_FOREACH(ss, &b->iface.ss[dir], next) {
+	    struct svcstatrec *ssr;
+	
+	    Log(LG_ERR, ("[%s] IFACE: '%s'/%d", b->name, ss->name, dir));
+
+	    SLIST_FOREACH(ssr, &stat->stat[dir], next) {
+		if (strcmp(ssr->name, ss->name) == 0)
+		    break;
+	    }
+	    if (!ssr) {
+		ssr = Malloc(MB_IFACE, sizeof(*ssr));
+		strlcpy(ssr->name, ss->name, sizeof(ssr->name));
+		SLIST_INSERT_HEAD(&stat->stat[dir], ssr, next);
+	    }
+    
+	    SLIST_FOREACH(sss, &ss->src, next) {
+		Log(LG_ERR, ("[%s] IFACE: '%s'/%d => '%s'-%d", b->name, ss->name, dir,
+		    sss->hook, sss->type));
+
+		if (NgSendMsg(b->csock, path,
+    		    NGM_BPF_COOKIE, NGM_BPF_GET_STATS, sss->hook, strlen(sss->hook)+1) < 0)
+    		    continue;
+		if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0)
+    		    continue;
+		
+		switch(sss->type) {
+		case SSSS_IN:
+		    ssr->Packets += hs->recvFrames;
+		    ssr->Octets += hs->recvOctets;
+		    break;
+		case SSSS_MATCH:
+		    ssr->Packets += hs->recvMatchFrames;
+		    ssr->Octets += hs->recvMatchOctets;
+		    break;
+		case SSSS_NOMATCH:
+		    ssr->Packets += hs->recvFrames - hs->recvMatchFrames;
+		    ssr->Octets += hs->recvOctets - hs->recvMatchOctets;
+		    break;
+		case SSSS_OUT:
+		    ssr->Packets += hs->xmitFrames;
+		    ssr->Octets += hs->xmitOctets;
+		    break;
+		}
+	    }
+	    Log(LG_ERR, ("[%s] IFACE: %lld/%lld", b->name, ssr->Octets, ssr->Packets));
+	}
+    }
+}
+
+void
+IfaceAddStats(struct svcstat *stat1, struct svcstat *stat2)
+{
+    struct svcstatrec   *ssr1, *ssr2;
+    int                 dir;
+
+    for (dir = 0; dir < ACL_DIRS; dir++) {
+	SLIST_FOREACH(ssr2, &stat2->stat[dir], next) {
+	    SLIST_FOREACH(ssr1, &stat1->stat[dir], next)
+		if (strcmp(ssr1->name, ssr2->name) == 0) {
+		    break;
+	    }
+	    if (!ssr1) {
+		ssr1 = Malloc(MB_IFACE, sizeof(*ssr1));
+		strlcpy(ssr1->name, ssr2->name, sizeof(ssr1->name));
+		SLIST_INSERT_HEAD(&stat1->stat[dir], ssr1, next);
+	    }
+	    ssr1->Packets += ssr2->Packets;
+	    ssr1->Octets += ssr2->Octets;
+	}
+    }
+}
+
+void
+IfaceFreeStats(struct svcstat *stat)
+{
+    struct svcstatrec   *ssr;
+    int                 i;
+
+    for (i = 0; i < ACL_DIRS; i++) {
+	while ((ssr = SLIST_FIRST(&stat->stat[i])) != NULL) {
+    	    SLIST_REMOVE_HEAD(&stat->stat[i], next);
+	    Freee(MB_IFACE, ssr);
+	}
     }
 }

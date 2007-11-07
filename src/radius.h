@@ -75,6 +75,10 @@
   #define RAD_MPD_TABLE_STATIC	5
   #define RAD_MPD_FILTER	6
   #define RAD_MPD_LIMIT		7
+  #define RAD_MPD_INPUT_OCTETS	8
+  #define RAD_MPD_INPUT_PACKETS	9
+  #define RAD_MPD_OUTPUT_OCTETS	10
+  #define RAD_MPD_OUTPUT_PACKETS	11
   #define RAD_MPD_DROP_USER	154
 
   /* Configuration options */

@@ -50,6 +50,7 @@
 #include <pdel/util/paction.h>
 #include <pdel/util/ghash.h>
 
+#include <netgraph/ng_message.h>
 #ifdef __DragonFly__
 #include <netgraph/ppp/ng_ppp.h>
 #else
@@ -128,6 +129,41 @@
 	u_int64_t	dropFragments;	/* MP fragments we had to drop */
   };
 #endif
+
+  /* max. length of acl rule */
+  #define ACL_LEN	256
+  #define ACL_NAME_LEN	16
+  /* max. number of acl_filters */
+  #define ACL_FILTERS	16
+  /* There are two directions for acl_limits */
+  #define ACL_DIRS	2
+
+  struct svcssrc {
+    int				type;
+  #define SSSS_IN	1
+  #define SSSS_MATCH	2
+  #define SSSS_NOMATCH	3
+  #define SSSS_OUT	4
+    char			hook[NG_HOOKSIZ];
+    SLIST_ENTRY(svcssrc)	next;
+  };
+
+  struct svcs {
+    char 			name[ACL_NAME_LEN]; 	/* Name of ACL */
+    SLIST_HEAD(, svcssrc)	src;
+    SLIST_ENTRY(svcs)		next;
+  };
+
+  struct svcstatrec {
+    char			name[ACL_NAME_LEN]; 	/* Name of ACL */
+    u_int64_t			Packets;
+    u_int64_t			Octets;
+    SLIST_ENTRY(svcstatrec)	next;
+  };
+  
+  struct svcstat {
+    SLIST_HEAD(, svcstatrec)	stat[ACL_DIRS];
+  };
 
 #include "bund.h"
 #include "link.h"

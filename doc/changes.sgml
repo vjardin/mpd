@@ -10,6 +10,9 @@
     <itemize>
 	<item> New features:
 	<itemize>
+	  <item> Implemented type-differentiated traffic accounting
+		 based on mpd-limit traffic filters.
+	  </item>
 	  <item> Added 'set link max-children ...' command for DoS protection.
 	  </item>
 	  <item> Implemented user privilege levels "admin"/"operator"/"user".

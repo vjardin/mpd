@@ -76,7 +76,7 @@
     SLIST_ENTRY(ifaceroute)	next;
   };
   typedef struct ifaceroute	*IfaceRoute;
-
+  
   struct ifacestate {
     char		ifname[IFNAMSIZ+1];	/* Name of my interface */
     uint		ifindex;		/* System interface index */
@@ -98,6 +98,8 @@
     char		up_script[IFACE_MAX_SCRIPT];
     char		down_script[IFACE_MAX_SCRIPT];
     ng_ID_t		limitID;		/* ID of limit (bpf) node */
+    SLIST_HEAD(, svcs)	ss[ACL_DIRS];		/* Where to get service stats */
+    struct svcstat	prevstats;		/* Stats from gone layers */
     u_char		open:1;			/* In an open state */
     u_char		up:1;			/* interface is up */
     u_char		ip_up:1;		/* IP interface is up */
@@ -166,6 +168,10 @@
   extern void	IfaceChangeFlags(Bund b, int clear, int set);
   extern void	IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer);
   extern int	IfaceSetRoute(Bund b, int cmd, struct u_range *dst, struct u_addr *gw);
+
+  extern void	IfaceGetStats(Bund b, struct svcstat *stat);
+  extern void	IfaceAddStats(struct svcstat *stat1, struct svcstat *stat2);
+  extern void	IfaceFreeStats(struct svcstat *stat);
 
 #endif
 

@@ -299,6 +299,10 @@ N   Name                       	   Access	 Accounting
 5   mpd-table-static		-	+	-	-
 6   mpd-filter			-	+	-	-
 7   mpd-limit			-	+	-	-
+8   mpd-input-octets		-	-	+	-
+9   mpd-input-packets		-	-	+	-
+10  mpd-output-octets		-	-	+	-
+11  mpd-output-packets		-	-	+	-
 154 mpd-drop-user		-	-	-	+
 </VERB>
 
@@ -325,9 +329,13 @@ ATTRIBUTE       mpd-rule        1       string          mpd
 ATTRIBUTE       mpd-pipe        2       string          mpd                                        
 ATTRIBUTE       mpd-queue       3       string          mpd 
 ATTRIBUTE       mpd-table       4       string          mpd 
-ATTRIBUTE       mpd-table-static       5       string          mpd 
+ATTRIBUTE       mpd-table-static	5       string          mpd 
 ATTRIBUTE       mpd-filter      6       string          mpd 
 ATTRIBUTE       mpd-limit       7       string          mpd 
+ATTRIBUTE       mpd-input-octets	8	string          mpd 
+ATTRIBUTE       mpd-input-packets	9	string          mpd 
+ATTRIBUTE       mpd-output-octets	10	string          mpd 
+ATTRIBUTE       mpd-output-packets	11	string          mpd 
 ATTRIBUTE	mpd-drop-user	154	integer		mpd
 #----------------------------------------------------------
 </verb>
@@ -401,24 +409,24 @@ action: <em>pass</em> | <em>deny</em> |
 
 As example you can write in your RADIUS configuration something like:
 <verb>
-mpd-filter += "1#1=nomatch src net 10.0.0.0/24",
-mpd-filter += "1#2=match src net 10.0.0.0/10",
-mpd-filter += "2#1=match dst net 10.0.0.0/16",
-mpd-filter += "2#2=match dst net 11.0.0.0/8",
+mpd-filter += "1#1=nomatch dst net 10.0.0.0/24",
+mpd-filter += "1#2=match dst net 10.0.0.0/8",
+mpd-filter += "2#1=nomatch src net 10.0.0.0/24",
+mpd-filter += "2#2=match src net 11.0.0.0/8",
 mpd-limit += "in#1=flt1 pass",
-mpd-limit += "in#2=flt2 shape 64000 4000 pass",
-mpd-limit += "in#3=all deny",
+mpd-limit += "in#2#Biz=all shape 64000 4000",
 mpd-limit += "out#1=flt2 pass",
-mpd-limit += "out#2=all rate-limit 1024000 150000 300000",
-mpd-limit += "out#3=all pass",
+mpd-limit += "out#2#Biz=all rate-limit 1024000 150000 300000",
 </verb>
 
 As result, one ng_bpf node will be created to implement traffic filters 
 and several (two for this example) ng_car nodes for traffic shaping 
-and rate-limiting. Incoming traffic from 10.0.0.0/10 except 10.0.0.0/24
-will be passed, traffic to 10.0.0.0/16 and 11.0.0.0/8 will be shaped 
-to 64Kbits/s, all other will be denied. Outgoing traffic to 10.0.0.0/16
-and 11.0.0.0/8 will be passed, all other will be limited to 1024Kbit/s.
+and rate-limiting. Incoming traffic from 10.0.0.0/8 except 10.0.0.0/24
+will be passed, other traffic will be shaped to 64Kbits/s. Outgoing
+traffic to 10.0.0.0/8 except 10.0.0.0/24 will be passed, all other
+will be limited to 1024Kbit/s. Also traffic that passed mpd-limit rules
+marked "Biz" will be accordingly accounted and present with that name
+in AAA accounting requests.
 
 </p>
 
@@ -502,6 +510,10 @@ ACCT_INPUT_OCTETS
 ACCT_INPUT_PACKETS
 ACCT_OUTPUT_OCTETS
 ACCT_OUTPUT_PACKETS
+MPD_INPUT_OCTETS
+MPD_INPUT_PACKETS
+MPD_OUTPUT_OCTETS
+MPD_OUTPUT_PACKETS
 </verb>
 
 Currently supported response attributes:

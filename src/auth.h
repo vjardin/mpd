@@ -80,10 +80,6 @@
     AUTH_CONF_MAX_LOGINS,
   };  
 
-  /* max. length of acl rule */
-  #define ACL_LEN	256
-  #define ACL_NAME_LEN	16
-
   struct acl {			/* List of ACLs received from auth */
     u_short number;		/* ACL number given by auth server */
     u_short real_number;	/* ACL number allocated my mpd */
@@ -91,11 +87,6 @@
     char name[ACL_NAME_LEN]; 	/* Name of ACL */
     char rule[ACL_LEN]; 	/* Text of ACL */
   };
-
-  /* max. number of acl_filters */
-  #define ACL_FILTERS	16
-  /* There are two directions for acl_limits */
-  #define ACL_DIRS	2
 
   struct authparams {
     char		authname[AUTH_MAX_AUTHNAME];
@@ -227,6 +218,7 @@
       char		bundname[LINK_MAX_NAME];/* name of the bundle */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
       struct ng_ppp_link_stat64	stats;		/* Current link statistics */
+      struct svcstat	ss;
       char		*downReason;	/* Reason for link going down */
       time_t		last_open;	/* Time this link last was opened */
       PhysType		phys_type;	/* Device type descriptor */

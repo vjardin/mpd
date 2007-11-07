@@ -266,6 +266,7 @@ RadiusAccount(AuthData auth)
 
   if (auth->acct_type == AUTH_ACCT_STOP 
       || auth->acct_type == AUTH_ACCT_UPDATE) {
+    struct svcstatrec *ssr;
 
     if (auth->acct_type == AUTH_ACCT_STOP) {
         int	termCause = RAD_TERM_PORT_ERROR;
@@ -351,6 +352,45 @@ RadiusAccount(AuthData auth)
 	rad_strerror(auth->radius.handle)));
       return;
     }
+    SLIST_FOREACH(ssr, &auth->info.ss.stat[0], next) {
+	char str[64];
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Octets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_MPD_INPUT_OCTETS): %s", 
+    	    auth->info.lnkname, __func__, str));
+	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_OCTETS, str, strlen(str)) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", auth->info.lnkname, __func__,
+		rad_strerror(auth->radius.handle)));
+	}
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Packets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_MPD_INPUT_PACKETS): %s", 
+    	    auth->info.lnkname, __func__, str));
+	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_PACKETS, str, strlen(str)) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", auth->info.lnkname, __func__,
+		rad_strerror(auth->radius.handle)));
+	}
+    }
+    SLIST_FOREACH(ssr, &auth->info.ss.stat[1], next) {
+	char str[64];
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Octets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_MPD_OUTPUT_OCTETS): %s", 
+    	    auth->info.lnkname, __func__, str));
+	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_OCTETS, str, strlen(str)) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", auth->info.lnkname, __func__,
+		rad_strerror(auth->radius.handle)));
+	}
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Packets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_MPD_OUTPUT_PACKETS): %s", 
+    	    auth->info.lnkname, __func__, str));
+	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_PACKETS, str, strlen(str)) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: %s: put stats: %s", auth->info.lnkname, __func__,
+		rad_strerror(auth->radius.handle)));
+	}
+    }
+
   }
 
   Log(LG_RADIUS2, ("[%s] RADIUS: %s: Sending accounting data (Type: %d)",

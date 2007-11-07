@@ -615,6 +615,12 @@ AuthDataNew(Link l)
 
     /* Copy current link statistics */
     memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));
+    
+    /* If it is present copy services statistics */
+    if (l->bund) {
+	IfaceGetStats(l->bund, &auth->info.ss);
+	IfaceAddStats(&auth->info.ss, &l->bund->iface.prevstats);
+    }
 
     if (l->downReasonValid)
 	auth->info.downReason = Mdup(MB_LINK, l->downReason, strlen(l->downReason) + 1);
@@ -637,12 +643,13 @@ AuthDataNew(Link l)
 void
 AuthDataDestroy(AuthData auth)
 {
-  authparamsDestroy(&auth->params);
-  Freee(MB_AUTH, auth->info.downReason);
-  Freee(MB_AUTH, auth->reply_message);
-  Freee(MB_AUTH, auth->mschap_error);
-  Freee(MB_AUTH, auth->mschapv2resp);
-  Freee(MB_AUTH, auth);
+    authparamsDestroy(&auth->params);
+    Freee(MB_AUTH, auth->info.downReason);
+    Freee(MB_AUTH, auth->reply_message);
+    Freee(MB_AUTH, auth->mschap_error);
+    Freee(MB_AUTH, auth->mschapv2resp);
+    IfaceFreeStats(&auth->info.ss);
+    Freee(MB_AUTH, auth);
 }
 
 /*
@@ -2196,6 +2203,7 @@ AuthExternalAcct(AuthData auth)
     }
 
     if (auth->acct_type != AUTH_ACCT_START) {
+	struct svcstatrec *ssr;
 	fprintf(fp, "ACCT_SESSION_TIME:%ld\n", 
 	    (long int)(time(NULL) - auth->info.last_open));
 	fprintf(fp, "ACCT_INPUT_OCTETS:%llu\n", 
@@ -2206,8 +2214,19 @@ AuthExternalAcct(AuthData auth)
 	    (long long unsigned)auth->info.stats.xmitOctets);
 	fprintf(fp, "ACCT_OUTPUT_PACKETS:%llu\n", 
 	    (long long unsigned)auth->info.stats.xmitFrames);
+	SLIST_FOREACH(ssr, &auth->info.ss.stat[0], next) {
+	    fprintf(fp, "MPD_INPUT_OCTETS:%s:%llu\n",
+		ssr->name, (long long unsigned)ssr->Octets);
+	    fprintf(fp, "MPD_INPUT_PACKETS:%s:%llu\n",
+		ssr->name, (long long unsigned)ssr->Packets);
+	}
+	SLIST_FOREACH(ssr, &auth->info.ss.stat[1], next) {
+	    fprintf(fp, "MPD_OUTPUT_OCTETS:%s:%llu\n",
+		ssr->name, (long long unsigned)ssr->Octets);
+	    fprintf(fp, "MPD_OUTPUT_PACKETS:%s:%llu\n",
+		ssr->name, (long long unsigned)ssr->Packets);
+	}
     }
-	
 
     /* REQUEST DONE */
     fprintf(fp, "\n");
