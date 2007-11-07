@@ -95,7 +95,7 @@
  */
 
   const struct cmdtab IpcpSetCmds[] = {
-    { "ranges {self}[/{width}] {peer}[/{width}]",	"Allowed IP address ranges",
+    { "ranges {self}[/{width}] {peer}[/{width}]|ippool {pool}",	"Allowed IP address ranges",
 	IpcpSetCommand, NULL, 2, (void *) SET_RANGES },
     { "enable [opt ...]",		"Enable option",
 	IpcpSetCommand, NULL, 2, (void *) SET_ENABLE},
@@ -929,7 +929,7 @@ IpcpSetCommand(Context ctx, int ac, char *av[], void *arg)
 	      || !ParseRange(av[1], &peer_new_allow, ALLOW_IPV4))
 	    return(-1);
 	    ipcp->conf.ippool[0] = 0;
-	} else if (ac == 3 && strcmp(av[1], "pool") == 0) {
+	} else if (ac == 3 && strcmp(av[1], "ippool") == 0) {
 	    if (!ParseRange(av[0], &self_new_allow, ALLOW_IPV4))
 		return(-1);
 	    strlcpy(ipcp->conf.ippool, av[2], sizeof(ipcp->conf.ippool));
