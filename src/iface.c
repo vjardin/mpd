@@ -2863,7 +2863,8 @@ IfaceShutdownLimits(Bund b)
     struct svcs *ss;
     struct svcssrc *sss;
 
-    IfaceGetStats(b, &b->iface.prevstats);
+    if (b->n_up > 0)
+	IfaceGetStats(b, &b->iface.prevstats);
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 	snprintf(path, sizeof(path), "[%x]:", b->iface.limitID);
@@ -2907,8 +2908,6 @@ IfaceGetStats(Bund b, struct svcstat *stat)
 	SLIST_FOREACH(ss, &b->iface.ss[dir], next) {
 	    struct svcstatrec *ssr;
 	
-	    Log(LG_ERR, ("[%s] IFACE: '%s'/%d", b->name, ss->name, dir));
-
 	    SLIST_FOREACH(ssr, &stat->stat[dir], next) {
 		if (strcmp(ssr->name, ss->name) == 0)
 		    break;
@@ -2920,9 +2919,6 @@ IfaceGetStats(Bund b, struct svcstat *stat)
 	    }
     
 	    SLIST_FOREACH(sss, &ss->src, next) {
-		Log(LG_ERR, ("[%s] IFACE: '%s'/%d => '%s'-%d", b->name, ss->name, dir,
-		    sss->hook, sss->type));
-
 		if (NgSendMsg(b->csock, path,
     		    NGM_BPF_COOKIE, NGM_BPF_GET_STATS, sss->hook, strlen(sss->hook)+1) < 0)
     		    continue;
@@ -2948,7 +2944,6 @@ IfaceGetStats(Bund b, struct svcstat *stat)
 		    break;
 		}
 	    }
-	    Log(LG_ERR, ("[%s] IFACE: %lld/%lld", b->name, ssr->Octets, ssr->Packets));
 	}
     }
 }
