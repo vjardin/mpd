@@ -553,8 +553,8 @@ LinkShutdown(Link l)
     /* Our children are orphans */
     if (l->children) {
 	int k;
-	for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++) {
-	    if (gLinks[k]->parent == l->id)
+	for (k = 0; k < gNumLinks; k++) {
+	    if (gLinks[k] && gLinks[k]->parent == l->id)
 		gLinks[k]->parent = -1;
 	}
     }
