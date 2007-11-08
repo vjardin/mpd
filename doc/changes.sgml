@@ -64,6 +64,8 @@
 	  </item>
 	  <item> Fixed 'set eap ...' context.
 	  </item>
+	  <item> Implemented PAP-ACK packet retransmit.
+	  </item>
 	  <item> Many small fixes.
 	  </item>
 	</itemize>
