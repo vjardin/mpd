@@ -153,6 +153,7 @@
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
     MsgHandler		pmsgs;			/* Message channel */
+    struct pppTimer	openTimer;		/* Open retry timer */
   };
 
   

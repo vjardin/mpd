@@ -62,6 +62,8 @@
   static int	LinkSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	LinkMsg(int type, void *cookie);
   static void	LinkNgDataEvent(int type, void *cookie);
+  static void	LinkReopenTimeout(void *arg);
+
 /*
  * GLOBAL VARIABLES
  */
@@ -211,7 +213,8 @@ LinkDown(Link l)
     Log(LG_LINK, ("[%s] link: DOWN event", l->name));
 
     if (OPEN_STATE(l->lcp.fsm.state)) {
-	if ((l->conf.max_redial != 0) && (l->num_redial >= l->conf.max_redial)) {
+	if (((l->conf.max_redial != 0) && (l->num_redial >= l->conf.max_redial)) ||
+	    gShutdownInProgress) {
 	    if (l->conf.max_redial >= 0) {
 		Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
 		  l->name, l->num_redial));
@@ -221,20 +224,38 @@ LinkDown(Link l)
 	    LcpClose(l);
             LcpDown(l);
 	} else {
-	    l->num_redial++;
-	    Log(LG_LINK, ("[%s] link: reconnection attempt %d",
-	      l->name, l->num_redial));
-	    RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
+	    int delay;
+
     	    LcpDown(l);
-	    if (!gShutdownInProgress) {	/* Giveup on shutdown */
-		PhysOpen(l);		/* Try again */
-	    };
+
+	    l->num_redial++;
+	    delay = 1 + ((random() ^ l->id ^ gPid) & 3);
+	    Log(LG_LINK, ("[%s] link: reconnection attempt %d in %d seconds",
+	      l->name, l->num_redial, delay));
+	    TimerStop(&l->openTimer);
+	    TimerInit(&l->openTimer, "PhysOpen",
+	        delay * SECONDS, LinkReopenTimeout, l);
+	    TimerStart(&l->openTimer);
 	}
     } else {
 	if (!l->stay)
 	    l->die = 1;
         LcpDown(l);
     }
+}
+
+/*
+ * LinkReopenTimeout()
+ */
+
+static void
+LinkReopenTimeout(void *arg)
+{
+    Link	const l = (Link)arg;
+
+    TimerStop(&l->openTimer);
+    RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
+    PhysOpen(l);
 }
 
 /*
@@ -260,6 +281,7 @@ LinkMsg(int type, void *arg)
     	    LcpOpen(l);
     	    break;
 	case MSG_CLOSE:
+	    TimerStop(&l->openTimer);
     	    LcpClose(l);
     	    break;
 	case MSG_SHUTDOWN:
