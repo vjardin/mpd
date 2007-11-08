@@ -584,7 +584,7 @@ success:
       ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
       memcpy(av_copy, av, sizeof(av));
       if (c != '?') {
-        Log2(LG_ERR, ("[%s] CONSOLE: %s: %s", 
+        Log2(LG_CONSOLE, ("[%s] CONSOLE: %s: %s", 
 	    cs->context.lnk ? cs->context.lnk->name :
 		(cs->context.bund? cs->context.bund->name : ""), 
 	    cs->user.username, cs->cmd));
