@@ -240,7 +240,7 @@ WebShowSummary(FILE *f, int priv)
   fprintf(f, "<H2>Current status summary</H2>\n");
   fprintf(f, "<table>\n");
   fprintf(f, "<TR><TH>Bund</TH><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>ECP</TH>"
-	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=3>Device</TH><TH>Peer</TH><TH colspan=3></TH>%s</TR>",
+	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=2>Device</TH><TH>Peer</TH><TH colspan=3></TH>%s</TR>",
 	     priv?"<TH></TH>":"");
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
@@ -254,8 +254,6 @@ WebShowSummary(FILE *f, int priv)
 	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
 	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20auth\">%s</a></TD>\n", 
 	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
-	    fprintf(f, "<TD class=\"L=%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
-	        L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->name);
 	    fprintf(f, "<TD class=\"L=%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
 	        L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
 	    fprintf(f, "<TD class=\"L=%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
@@ -303,7 +301,7 @@ WebShowSummary(FILE *f, int priv)
 	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20ecp\">%s</a></TD>\n", 
 	    rows, B->tmpl?"d":FSM_COLOR(B->ecp.fsm.state), B->name,FsmStateName(B->ecp.fsm.state));
 	if (B->n_links == 0) {
-	    fprintf(f, "<TD colspan=\"11\">&nbsp;</a></TD>\n</TR>\n");
+	    fprintf(f, "<TD colspan=\"10\">&nbsp;</a></TD>\n</TR>\n");
 	}
 	for (l = 0; l < NG_PPP_MAX_LINKS; l++) {
 	    if ((L=B->links[l]) != NULL) {
@@ -317,8 +315,6 @@ WebShowSummary(FILE *f, int priv)
 		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20auth\">%s</a></TD>\n", 
 		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
-		    L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->name);
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
 		    L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
@@ -364,9 +360,9 @@ WebShowSummary(FILE *f, int priv)
 	    if ((L=R->links[l]) != NULL) {
 		if (shown)
 		    fprintf(f, "<TR>\n");
-		fprintf(f, "<TD colspan=3></TD>\n");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->state), L->name, L->name);
+		fprintf(f, "<TD colspan=2></TD>\n");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
 		    PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
 		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
@@ -394,7 +390,7 @@ WebShowSummary(FILE *f, int priv)
 	    }
 	}
 	if (!shown) {
-	    fprintf(f, "<TD colspan = \"11\"></TD>\n");
+	    fprintf(f, "<TD colspan = \"10\"></TD>\n");
 	    fprintf(f, "</TR>\n");
 	}
     }
