@@ -555,7 +555,7 @@ LinkShutdown(Link l)
 	int k;
 	for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++) {
 	    if (gLinks[k]->parent == l->id)
-		gLinks[k]->parent = 0;
+		gLinks[k]->parent = -1;
 	}
     }
     MsgUnRegister(&l->msgs);
