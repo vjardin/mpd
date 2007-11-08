@@ -132,11 +132,19 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 
 	/* Is this appropriate? */
 	if (a->peer_to_self != PROTO_PAP) {
-	  Log(LG_AUTH, ("[%s] PAP: %s not expected",
-	    l->name, PapCode(auth->code, buf, sizeof(buf))));
-	  auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
-	  PapInputFinish(l, auth);
-	  break;
+	    if (l->lcp.want_auth == PROTO_PAP && a->peer_to_self == 0) {
+		Log(LG_AUTH, ("[%s] PAP: retransmitting ACK",
+		    l->name));
+		AuthOutput(l, PROTO_PAP, PAP_ACK, auth->id,
+		    (u_char *) AUTH_MSG_WELCOME, strlen(AUTH_MSG_WELCOME), 1, 0);
+		AuthDataDestroy(auth);
+		break;
+	    }
+	    Log(LG_AUTH, ("[%s] PAP: %s not expected",
+		l->name, PapCode(auth->code, buf, sizeof(buf))));
+	    auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+	    PapInputFinish(l, auth);
+	    break;
 	}
 
 	name_len = pkt[0];
