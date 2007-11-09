@@ -1359,31 +1359,31 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 	SLIST_FOREACH(r, &ctx->bund->params.routes, next) {
 	    Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
 	}
-	Printf("IPFW rules:\r\n");
-	a = ctx->bund->params.acl_rule;
-	while (a) {
-	    Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
-	    a = a->next;
-	}
 	Printf("IPFW pipes:\r\n");
 	a = ctx->bund->params.acl_pipe;
 	while (a) {
-	    Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
+	    Printf("\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 	    a = a->next;
 	}
 	Printf("IPFW queues:\r\n");
 	a = ctx->bund->params.acl_queue;
 	while (a) {
-	    Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
+	    Printf("\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 	    a = a->next;
 	}
 	Printf("IPFW tables:\r\n");
 	a = ctx->bund->params.acl_table;
 	while (a) {
 	    if (a->number != 0)
-		Printf("\t%d\t: '%s'\r\n", a->number, a->rule);
+		Printf("\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 	    else
-		Printf("\t#%d\t: '%s'\r\n", a->real_number, a->rule);
+		Printf("\t(%d)\t: '%s'\r\n", a->real_number, a->rule);
+	    a = a->next;
+	}
+	Printf("IPFW rules:\r\n");
+	a = ctx->bund->params.acl_rule;
+	while (a) {
+	    Printf("\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 	    a = a->next;
 	}
 	Printf("Traffic filters:\r\n");

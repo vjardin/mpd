@@ -67,6 +67,7 @@
   static int	ShowTypes(Context ctx, int ac, char *av[], void *arg);
   static int	ShowSummary(Context ctx, int ac, char *av[], void *arg);
   static int	ShowSessions(Context ctx, int ac, char *av[], void *arg);
+  static int	ShowCustomer(Context ctx, int ac, char *av[], void *arg);
   static int	ShowEvents(Context ctx, int ac, char *av[], void *arg);
   static int	ShowGlobal(Context ctx, int ac, char *av[], void *arg);
   static int	OpenCommand(Context ctx, int ac, char *av[], void *arg);
@@ -124,6 +125,8 @@
   static const struct cmdtab ShowCommands[] = {
     { "bundle [{name}]",		"Bundle status",
 	BundStat, AdmitBund, 0, NULL },
+    { "customer",			"Customer summary",
+	ShowCustomer, NULL, 0, NULL },
     { "repeater [{name}]",		"Repeater status",
 	RepStat, AdmitRep, 0, NULL },
     { "ccp",				"CCP status",
@@ -1005,6 +1008,167 @@ ShowSessions(Context ctx, int ac, char *av[], void *arg)
 	    Printf("\r\n");
 	}
     }
+    return(0);
+}
+
+/*
+ * ShowCustomer()
+ */
+
+static int
+ShowCustomer(Context ctx, int ac, char *av[], void *arg)
+{
+    Link	l = ctx->lnk;
+    Bund	b = ctx->bund;
+    IfaceState	iface;
+    IfaceRoute	r;
+    int		k, j;
+    char	buf[64];
+    struct acl	*a;
+
+    if (b && b->iface.ifname[0]) {
+	iface = &b->iface;
+	Printf("Interface:\r\n");
+	Printf("\tName            : %s\r\n", iface->ifname);
+	Printf("\tStatus          : %s\r\n", iface->up ? "UP" : "DOWN");
+	if (iface->up) {
+	    Printf("\tMTU             : %d bytes\r\n", iface->mtu);
+	    if (b->params.idle_timeout || iface->idle_timeout)
+		Printf("\tIdle timeout    : %d seconds\r\n", b->params.idle_timeout?b->params.idle_timeout:iface->idle_timeout);
+	    if (b->params.session_timeout || iface->session_timeout)
+	    Printf("\tSession timeout : %d seconds\r\n", b->params.session_timeout?b->params.session_timeout:iface->session_timeout);
+	}
+	if (iface->ip_up && !u_rangeempty(&iface->self_addr)) {
+	    Printf("\tIP Addresses    : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
+	    Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));
+	}
+	if (iface->ipv6_up && !u_addrempty(&iface->self_ipv6_addr)) {
+	    Printf("\tIPv6 Addresses  : %s%%%s -> ", 
+		u_addrtoa(&iface->self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+	    Printf("%s%%%s\r\n", u_addrtoa(&iface->peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+	}
+	if (iface->up) {
+	    if (!SLIST_EMPTY(&iface->routes) || !SLIST_EMPTY(&b->params.routes)) {
+    		Printf("\tRoutes via peer :\r\n");
+		SLIST_FOREACH(r, &iface->routes, next)
+		    Printf("\t\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
+		SLIST_FOREACH(r, &b->params.routes, next)
+		    Printf("\t\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
+	    }
+	    if (b->params.acl_pipe) {
+		Printf("\tIPFW pipes      :\r\n");
+		a = b->params.acl_pipe;
+		while (a) {
+		    Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+		    a = a->next;
+		}
+	    }
+	    if (b->params.acl_queue) {
+		Printf("\tIPFW queues     :\r\n");
+		a = b->params.acl_queue;
+		while (a) {
+		    Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+	    	    a = a->next;
+		}
+	    }
+	    if (b->params.acl_table) {
+		Printf("\tIPFW tables     :\r\n");
+		a = b->params.acl_table;
+		while (a) {
+		    if (a->number != 0)
+			Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+		    else
+			Printf("\t\t(%d)\t'%s'\r\n", a->real_number, a->rule);
+		    a = a->next;
+		}
+	    }
+	    if (b->params.acl_rule) {
+		Printf("\tIPFW rules      :\r\n");
+		a = b->params.acl_rule;
+		while (a) {
+	    	    Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+	    	    a = a->next;
+		}
+	    }
+	    if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
+		Printf("\tTraffic filters :\r\n");
+		for (k = 0; k < ACL_FILTERS; k++) {
+		    a = b->params.acl_filters[k];
+		    while (a) {
+			Printf("\t\t%d#%d\t'%s'\r\n", (k + 1), a->number, a->rule);
+			a = a->next;
+		    }
+		}
+		Printf("\tTraffic limits  :\r\n");
+		for (k = 0; k < 2; k++) {
+		    a = b->params.acl_limits[k];
+		    while (a) {
+			Printf("\t\t%s#%d%s%s\t'%s'\r\n", (k?"out":"in"), a->number,
+			    ((a->name[0])?"#":""), a->name, a->rule);
+			a = a->next;
+		    }
+		}
+	    }
+	}
+    }
+    if (b) {
+	Printf("Bundle %s%s:\r\n", b->name, b->tmpl?" (template)":(b->stay?" (static)":""));
+	Printf("\tStatus          : %s\r\n", b->open ? "OPEN" : "CLOSED");
+	Printf("\tM-Session-Id    : %s\r\n", b->msession_id);
+	Printf("\tPeer authname   : \"%s\"\r\n", b->params.authname);
+
+	if (b->multilink) {
+	    Printf("\tMultilink PPP:\r\n");
+    	    Printf("\t\tPeer auth name : \"%s\"\r\n", b->params.authname);
+    	    Printf("\t\tPeer discrimin.: %s\r\n", MpDiscrimText(&b->peer_discrim, buf, sizeof(buf)));
+	}
+
+	if (!b->tmpl) {
+	    /* Show stats */
+	    BundUpdateStats(b);
+	    Printf("\tTraffic stats:\r\n");
+
+	    Printf("\t\tInput octets   : %llu\r\n", (unsigned long long)b->stats.recvOctets);
+	    Printf("\t\tInput frames   : %llu\r\n", (unsigned long long)b->stats.recvFrames);
+	    Printf("\t\tOutput octets  : %llu\r\n", (unsigned long long)b->stats.xmitOctets);
+	    Printf("\t\tOutput frames  : %llu\r\n", (unsigned long long)b->stats.xmitFrames);
+	    Printf("\t\tBad protocols  : %llu\r\n", (unsigned long long)b->stats.badProtos);
+	    Printf("\t\tRunts          : %llu\r\n", (unsigned long long)b->stats.runts);
+	}
+    }
+    for (j = 0; j < NG_PPP_MAX_LINKS; j++) {
+	if (b)
+	    l = b->links[j];
+	else if (j != 0)
+	    l = NULL;
+	if (l) {
+	    char	buf[64];
+	    Printf("Link %s:\r\n", l->name);
+	    Printf("\tStatus          : %s/%s\r\n",
+		FsmStateName(l->lcp.fsm.state),
+		gPhysStateNames[l->state]);
+	    Printf("\tSession-Id      : %s\r\n", l->session_id);
+
+	    PhysGetPeerAddr(l, buf, sizeof(buf));
+	    Printf("\tPeer address    : %s\r\n", buf);
+	    PhysGetCallingNum(l, buf, sizeof(buf));
+	    Printf("\tCalling         : %s\r\n", buf);
+	    PhysGetCalledNum(l, buf, sizeof(buf));
+	    Printf("\tCalled          : %s\r\n", buf);
+
+	    if (l->bund) {
+		LinkUpdateStats(l);
+		Printf("\tTraffic stats:\r\n");
+		Printf("\t\tInput octets   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
+		Printf("\t\tInput frames   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
+		Printf("\t\tOutput octets  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
+	        Printf("\t\tOutput frames  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
+	        Printf("\t\tBad protocols  : %llu\r\n", (unsigned long long)l->stats.badProtos);
+	        Printf("\t\tRunts          : %llu\r\n", (unsigned long long)l->stats.runts);
+	    }
+	}
+    }
+
     return(0);
 }
 

@@ -146,6 +146,8 @@ Show running mpd version and supported features.
 <tag>sessions [ <em>param</em> <em>value</em> ]</tag>
 Show active sessions conforming specified param/value.
 Available params: iface, ip, bundle, msession, link, session, user, peer.
+<tag>customer</tag>
+Show active customer details.
 <tag>summary</tag>
 Show status summary
 <tag>console</tag>

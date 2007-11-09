@@ -79,7 +79,6 @@
 
   static void	BundReasses(Bund b);
   static int	BundSetCommand(Context ctx, int ac, char *av[], void *arg);
-  static void	BundShowLinks(Context ctx, Bund sb);
 
   static void	BundNcpsUp(Bund b);
   static void	BundNcpsDown(Bund b);
@@ -1272,10 +1271,10 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
 	BundUpdateStats(sb);
 	Printf("Traffic stats:\r\n");
 
-	Printf("\tOctets input   : %llu\r\n", (unsigned long long)sb->stats.recvOctets);
-	Printf("\tFrames input   : %llu\r\n", (unsigned long long)sb->stats.recvFrames);
-	Printf("\tOctets output  : %llu\r\n", (unsigned long long)sb->stats.xmitOctets);
-	Printf("\tFrames output  : %llu\r\n", (unsigned long long)sb->stats.xmitFrames);
+	Printf("\tInput octets   : %llu\r\n", (unsigned long long)sb->stats.recvOctets);
+	Printf("\tInput frames   : %llu\r\n", (unsigned long long)sb->stats.recvFrames);
+	Printf("\tOutput octets  : %llu\r\n", (unsigned long long)sb->stats.xmitOctets);
+	Printf("\tOutput frames  : %llu\r\n", (unsigned long long)sb->stats.xmitFrames);
 	Printf("\tBad protocols  : %llu\r\n", (unsigned long long)sb->stats.badProtos);
 	Printf("\tRunts          : %llu\r\n", (unsigned long long)sb->stats.runts);
 	Printf("\tDup fragments  : %llu\r\n", (unsigned long long)sb->stats.dupFragments);
@@ -1356,7 +1355,7 @@ BundResetStats(Bund b)
  * BundShowLinks()
  */
 
-static void
+void
 BundShowLinks(Context ctx, Bund sb)
 {
     int		j;

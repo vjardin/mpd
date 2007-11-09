@@ -1085,10 +1085,10 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 	    LinkUpdateStats(l);
 	    Printf("Traffic stats:\r\n");
 
-	    Printf("\tOctets input   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
-	    Printf("\tFrames input   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
-	    Printf("\tOctets output  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
-	    Printf("\tFrames output  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
+	    Printf("\tInput octets   : %llu\r\n", (unsigned long long)l->stats.recvOctets);
+	    Printf("\tInput frames   : %llu\r\n", (unsigned long long)l->stats.recvFrames);
+	    Printf("\tOutput octets  : %llu\r\n", (unsigned long long)l->stats.xmitOctets);
+	    Printf("\tOutput frames  : %llu\r\n", (unsigned long long)l->stats.xmitFrames);
 	    Printf("\tBad protocols  : %llu\r\n", (unsigned long long)l->stats.badProtos);
 	    Printf("\tRunts          : %llu\r\n", (unsigned long long)l->stats.runts);
 	    Printf("\tDup fragments  : %llu\r\n", (unsigned long long)l->stats.dupFragments);
