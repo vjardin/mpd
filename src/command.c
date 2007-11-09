@@ -166,7 +166,7 @@
 	ConsoleStat, NULL, 0, NULL },
     { "web",				"Web status",
 	WebStat, NULL, 0, NULL },
-    { "user",				"Add console user" ,
+    { "user",				"Console users" ,
       	UserStat, NULL, 0, NULL },
     { "global",				"Global settings",
 	ShowGlobal, NULL, 0, NULL },
