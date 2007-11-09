@@ -896,7 +896,7 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
     if (ac == 0) {
     	Printf("Present sessions:\r\n");
 	for (k = 0; k < gNumLinks; k++) {
-	    if (gLinks[k]->session_id[0])
+	    if (gLinks[k] && gLinks[k]->session_id[0])
     		Printf("\t%s\r\n", gLinks[k]->session_id);
 	}
 	return (0);

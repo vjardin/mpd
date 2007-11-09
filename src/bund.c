@@ -948,7 +948,7 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
     if (ac == 0) {
     	Printf("Present msessions:\r\n");
 	for (k = 0; k < gNumBundles; k++) {
-	    if (gBundles[k]->msession_id[0])
+	    if (gBundles[k] && gBundles[k]->msession_id[0])
     		Printf("\t%s\r\n", gBundles[k]->msession_id);
 	}
 	return (0);
