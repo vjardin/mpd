@@ -433,6 +433,10 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
 	char	*av[MAX_CONSOLE_ARGS];
 
 	http_request_url_decode(argv[k], buf1);
+        Log2(LG_CONSOLE, ("[%s] WEB: %s", 
+	    cs->context.lnk ? cs->context.lnk->name :
+		(cs->context.bund? cs->context.bund->name : ""), 
+	    buf1));
 	ac = ParseLine(buf1, av, sizeof(av) / sizeof(*av), 0);
 	cs->context.errmsg[0] = 0;
 	rtn = DoCommandTab(&cs->context, gCommands, ac, av);
@@ -485,6 +489,10 @@ WebRunCmd(FILE *f, const char *query, int priv)
 	char	*av[MAX_CONSOLE_ARGS];
 
 	http_request_url_decode(argv[k], buf1);
+        Log2(LG_CONSOLE, ("[%s] WEB: %s", 
+	    cs->context.lnk ? cs->context.lnk->name :
+		(cs->context.bund? cs->context.bund->name : ""), 
+	    buf1));
 
 	cs->prompt(cs);
 	cs->write(cs, "%s\n", buf1);
