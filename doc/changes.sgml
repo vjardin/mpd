@@ -27,6 +27,8 @@
 	  </item>
 	  <item> Acct-Session-Id attribute now present in auth request.
 	  </item>
+	  <item> Show to auth real PPPoE session name received from peer.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
