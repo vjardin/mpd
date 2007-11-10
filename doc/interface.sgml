@@ -58,7 +58,8 @@ Even if a higher bundle MTU is negotiated, this limit will still apply.
 
 This command is useful when you want to manually restrict the MTU
 of the interface for other reasons, e.g., if you're also doing IPSec.
-The default value is 1500.
+
+The default is 1500.
 
 <tag><tt>
 set iface idle <em>seconds</em>
@@ -73,11 +74,16 @@ When the idle timeout occurs, if the dial-on-demand option is
 enabled, mpd goes back into dial-on-demand mode. Otherwise, the
 interface is brought down and all associated routes removed.
 
+The default is 0.
+
 <tag><tt>
 set iface session <em>seconds</em>
 </tt></tag>
 
-Sets the session timeout value for the bundle.
+Sets the session timeout value for the bundle. An session timeout of
+zero disables this feature.
+
+The default is 0.
 
 <tag><tt>set iface up-script <em>script</em> </tt></tag><p>
 <tag><tt>set iface down-script <em>script</em> </tt></tag><p>
@@ -119,6 +125,8 @@ connection of the link is delayed until qualifying outgoing traffic
 is detected. Moreover, after an idle timeout, the interface is not
 brought down; further traffic will bring the link back up again.
 
+The default is disable.
+
 <tag><tt>proxy-arp</tt></tag>
 
 When this option is enabled, if after link negotiation the peer's
@@ -134,6 +142,8 @@ set up proxy ARP for the remote machine:
 set iface enable proxy-arp
 <newline>set ipcp ranges 192.168.1.10/32 192.168.1.20/32
 </tt></tscreen>
+
+The default is disable.
 
 <tag><tt>tcpmssfix</tt></tag>
 This option causes mpd to adjust incoming and outgoing TCP SYN
@@ -155,16 +165,20 @@ The code is based on tcpmssd wich was written by Ruslan Ermilov
  based on work done by Patrick Bihan-Faou
 <htmlurl url='mailto:<patrick@mindstep.com>' name='&lt;patrick@mindstep.com&gt;'>.
 
-This option is disabled by default.
+The default is disable.
 
 <tag><tt>tee</tt></tag>
 If enabled, a ng_tee(4) node will be inserted
 into the bundle graph, right after the interface node. The tee node
 can be useful for debugging or traffic accounting.
 
+The default is disable.
+
 <tag><tt>nat</tt></tag>
 Enable NAT for this bundle.
 See <ref id="nat" name="the NAT chapter"> for more information.
+
+The default is disable.
 
 <tag><tt>netflow-in</tt></tag><P>
 <tag><tt>netflow-out</tt></tag>
@@ -173,13 +187,15 @@ NetFlow generation. See <ref id="netflow" name="the NetFlow chapter">
 for more information. The netflow-out option is like netflow-in, but 
 generates NetFlow data for outgoing packets instead of incoming.
 
+The default is disable.
+
 <tag><tt>ipacct</tt></tag>
 If enabled, the bundle will participate in IP accounting with ng_ipacct node.
 See <ref id="ipacct" name="the IP Accounting chapter"> for more information.
 
+The default is disable.
+
 </descrip>
-
-
 </p>
 
 

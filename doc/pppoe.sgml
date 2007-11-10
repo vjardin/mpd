@@ -32,6 +32,8 @@ Sets the requested PPPoE service name. Setting service name to "*"
 on link with allowed incoming connections allows to accept incoming 
 connection requests with any service name specified.
 
+The default is "*".
+
 <tag><tt>
 set pppoe acname <em>name</em>
 </tt></tag>

@@ -251,6 +251,8 @@ If this option is disabled, mpd will not accept incoming connections
 using this link. To avoid races it is advised to enable it after
 all other link options are configured.
 
+The default is disable.
+
 <tag><tt>multilink</tt></tag>
 
 This command enables multi-link PPP on the link. This option is required
@@ -259,7 +261,7 @@ multi-link PPP is sometimes useful on single links when the link MTU is
 low; multi-link PPP allows arbitrarily long packets to go over a link
 in fragments.
 
-This option defaults to <tt>disable</tt> and <tt>deny</tt>
+The default is <tt>disable</tt> and <tt>deny</tt>
 (i.e., normal non-multilink PPP).
 
 <tag><tt>acfcomp</tt></tag>
@@ -267,14 +269,14 @@ This option defaults to <tt>disable</tt> and <tt>deny</tt>
 Address and control field compression. This option only applies
 to asynchronous link types. It saves two bytes per frame.
 
-Default <tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
+The default is <tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
 
 <tag><tt>protocomp</tt></tag>
 
 Protocol field compression. This option saves one byte per frame
 for most frames.
 
-Default <tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
+The default is <tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
 
 <tag><tt>magicnum</tt></tag><p>
 <tag><tt>check-magic</tt></tag>
@@ -363,8 +365,12 @@ enabled and disabled in each direction.
 
 EAP-Type MD5. It's the same as CHAP-MD5, except that is framed inside EAP packets.
 
+The default is disable and accept.
+
 <tag><tt>radius-proxy</tt></tag>
 
 Causes Mpd to proxy all EAP requests to the RADIUS server.
+
+The default is disable.
 
 </descrip>

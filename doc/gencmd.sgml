@@ -197,12 +197,16 @@ The options available are:
 This option forces mpd terminate itself after the last link disappear.
 Link templates are not counted as links.
 
+The default is disable.
+
 <tag><tt>tcp-wrapper</tt></tag>
 
 With this option mpd uses <tt>/etc/hosts.allow</tt> everytime a
 connection is made from the client. This is useful if you would
 like to restrict access to mpd. This option affects all TCP
 connections, including PPTP and the TCP device layer.
+
+The default is disable.
 
 <tag><tt>
 set user <em>username</em> <em>password</em>

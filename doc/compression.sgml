@@ -57,6 +57,8 @@ since FreeBSD 6.2-STABLE of 2007-01-28.
 If there is no ng_pred1 in system, this algorithm is supported
 in user-level, but will consume more CPU power.
 
+The default is disable.
+
 <tag><tt>deflate</tt></tag>
 
 This option enables Deflate (RFC 1979) compression.
@@ -65,10 +67,14 @@ Deflate compression usually gives better compression ratio then Predictor-1.
 This option requires ng_deflate Netgraph node type, which is present
 since FreeBSD 6.2-STABLE of 2007-01-28.
 
+The default is disable.
+
 <tag><tt>mppc</tt></tag>
 
 This option enables MPPC compression/encryption subprotocol.
 For details see <ref id="mppc" name="the MPPC protocol chapter">.
+
+The default is disable.
 
 </descrip>
 </p>
@@ -103,13 +109,19 @@ by default as it requires some Hi/Fn proprietary files. If support is not
 detected, compression will not be negotiated. Use 'show version' command
 to get actual status.
 
+The default is disable.
+
 <tag><tt>e40</tt></tag>
 
 Enables 40-bit MPPE encryption.
 
+The default is disable.
+
 <tag><tt>e56</tt></tag>
 
 Enables 56-bit MPPE encryption.
+
+The default is disable.
 
 <tag><tt>e128</tt></tag>
 
@@ -119,20 +131,23 @@ Note: in order for MPPE encryption to work, MS-CHAPv1 or MS-CHAPv2 auth
 is mandatory, because the MPPE keys are generated using the authentication
 results. If MS-CHAP auth is not used by link, encryption will not be negotiated.
 
+The default is disable.
+
 <tag><tt>stateless</tt></tag>
 
 Enables stateless mode. This mode requires slightly more CPU time
 and is somewhat less secure, but allows faster recovery in the face
 of lost packets.
 
+The default is disable.
+
 <tag><tt>policy</tt></tag>
 
 If enabled, Mpd uses the MPPE-Types and MPPE-Policy info from the authentication 
 backend.
 
-Default <tt><bf>disable</bf></tt>.
+The default is disable.
 
 </descrip>
-
 </p>
 

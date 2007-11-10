@@ -35,6 +35,8 @@ Sets the credentials for the console-listener. After changing one of these
 options, the console must be closed and re-opened for the changes to
 take effect.
 
+The default is '127.0.0.1 5005'.
+
 </descrip>
 
 <p>
@@ -53,6 +55,8 @@ The options available for the console are:
 <tag><tt>logging</tt></tag>
 
 This options enables writing of logging messages to the current console.
+
+The default is enable for stdout and disable for the rest.
 
 </descrip>
 

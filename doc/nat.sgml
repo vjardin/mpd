@@ -47,25 +47,25 @@ The following options are supported:
 
 Enable statistics logging.
 
-Default is disabled.
+Default is disable.
 
 <tag><tt>incoming</tt></tag>
 
 Allow unknown incoming packets to pass.
 
-Default is enabled.
+Default is enable.
 
 <tag><tt>same-ports</tt></tag>
 
 Try to use same ports while aliasing.
 
-Default is enabled.
+Default is enable.
 
 <tag><tt>unreg-only</tt></tag>
 
 Enables aliasing only for unregistered networks.
 
-Default is disabled.
+Default is disable.
 
 </descrip>
 

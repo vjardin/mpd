@@ -41,9 +41,9 @@ set bundle fsm-timeout <em>seconds</em>
 </tt></tag>
 
 This sets the finite state machine (FSM) retry interval for all
-FSM's on this bundle. The default is 2 seconds. This command
-should only be used in exceptional situations, such as doing
-PPP over high-latency satellite links.
+FSM's on this bundle. This command should only be used in exceptional
+situations, such as doing PPP over high-latency satellite links.
+The default is 2 seconds. 
 
 <tag><tt>
 set bundle accept <em>option ...</em>
@@ -105,31 +105,42 @@ possible delays due to TCP packets being received out of order;
 however, it may help in certain situations of high packet
 loss or broken peer equipment.
 
+The default is disable.
+
 <tag><tt>shortseq</tt></tag>
 
 This option is only meaningful if multi-link PPP is negotiated.
 It proscribes shorter multi-link fragment headers,
-saving two bytes on every frame. It defaults to
-<tt>enable</tt> and <tt>accept</tt>.
+saving two bytes on every frame.
+
+The default id enable and accept.
 
 <tag><tt>ipcp</tt></tag>
 
 Enable/Disable IPCP negotiation. For details see
-<ref id="ipcp" name="the IPCP layer chapter">. Default is enabled.
+<ref id="ipcp" name="the IPCP layer chapter">.
+
+The default is enable.
 
 <tag><tt>ipv6cp</tt></tag>
 
-Enable/Disable IPV6CP negotiation. Default is disabled.
+Enable/Disable IPV6CP negotiation.
+
+The default is disable.
 
 <tag><tt>compression</tt></tag>
 
 Enable/Disable CCP (Compression Control Protocol) negotiation. For details see
-<ref id="compression" name="the compression layer chapter">. Default is disabled.
+<ref id="compression" name="the compression layer chapter">.
+
+The default is disable.
 
 <tag><tt>encryption</tt></tag>
 
 Enable/Disable ECP (Encryption Control Protocol) negotiation. For details see
-<ref id="encryption" name="the encryption layer chapter">. Default is disabled.
+<ref id="encryption" name="the encryption layer chapter">.
+
+The default is disable.
 
 <tag><tt>crypt-reqd</tt></tag>
 
@@ -139,10 +150,8 @@ causes mpd to drop the link if encryption cannot be succesfully
 negotiated in both directions. This means in effect, ``use encryption
 or don't connect at all.''
 
-The default for this option is off.
+The default is disable.
 
 </descrip>
-
-
 </p>
 

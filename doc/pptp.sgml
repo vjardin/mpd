@@ -111,12 +111,15 @@ Mpd will accept either type of call on an incoming PPTP connection.
 <tag><tt>delayed-ack</tt></tag>
 
 Enable delayed ACK's. This can improve throughput on reliable links.
-Default is on.
+
+The default is enable.
 
 <tag><tt>always-ack</tt></tag>
 
 Always include ACK even if already sent. This can improve throughput
-on unreliable links. Default is off.
+on unreliable links.
+
+The default is disable.
 
 <tag><tt>windowing</tt></tag>
 
@@ -125,7 +128,8 @@ this will cause Mpd to violate the protocol, possibly confusing some
 PPTP peers, but usually results in better performance. The windowing 
 mechanism is a design error in the PPTP protocol; L2TP, the successor 
 to PPTP, removes it.
-Default is off.
+
+the default is disable.
 
 </descrip>
 

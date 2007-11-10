@@ -60,6 +60,8 @@ This option enables DESE-bis (rfc 2419) encryption.
 This algorithm implemented in user-level, so require much CPU power
 on fast (>10Mbit/s) links.
 
+The default is disable.
+
 <tag><tt>dese-old</tt></tag>
 
 This option enables DESE (rfc 1969) encryption.
@@ -71,6 +73,8 @@ to the next 8 octets boundary, required by block nature of DES encryption,
 dese-old option can have interoperability issues with other protocols 
 which work over it. As example, it is incompatible with Predictor-1 and 
 Deflate compressions.
+
+The default is disable.
 
 </descrip>
 

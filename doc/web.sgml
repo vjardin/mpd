@@ -31,6 +31,8 @@ Sets the credentials for the web-listener. After changing one of these
 options, the web must be closed and re-opened for the changes to
 take effect.
 
+The default is '127.0.0.1 5006'.
+
 </descrip>
 
 <p>
@@ -53,7 +55,8 @@ The options available for the web are:
 <tag><tt>auth</tt></tag>
 
 This option enables basic authorisation on web server.
-Default is enabled.
+
+The default is enable.
 
 </descrip>
 
