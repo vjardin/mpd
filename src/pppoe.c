@@ -847,7 +847,7 @@ PppoeListenEvent(int type, void *arg)
 	char			path1[NG_PATHSIZ];
 	char			session_hook[NG_HOOKSIZ];
 	char			*session;
-	char			real_session[256];
+	char			real_session[MAX_SESSION];
 	struct ngm_connect      cn;
 	struct ngm_mkpeer 	mp;
 	Link 			l = NULL;
