@@ -53,6 +53,7 @@ struct pppoeinfo {
 	char		session[MAX_SESSION];	/* session name */
 	char		acname[PPPOE_SERVICE_NAME_SIZE];	/* AC name */
 	u_char		peeraddr[6];		/* Peer MAC address */
+	char		real_session[MAX_SESSION]; /* real session name */
 	u_char		incoming;		/* incoming vs. outgoing */
 	u_char		opened;			/* PPPoE opened by phys */
 	struct optinfo	options;
@@ -202,6 +203,7 @@ PppoeInit(Link l)
 	snprintf(pe->hook, sizeof(pe->hook), "undefined");
 	snprintf(pe->session, sizeof(pe->session), "*");
 	memset(pe->peeraddr, 0x00, ETHER_ADDR_LEN);
+	strlcpy(pe->real_session, pe->session, sizeof(pe->real_session));
 	pe->PIf = NULL;
 
 	/* Done */
@@ -338,6 +340,7 @@ PppoeOpen(Link l)
 
 	/* OK */
 	l->state = PHYS_STATE_CONNECTING;
+	strlcpy(pe->real_session, pe->session, sizeof(pe->real_session));
 	return;
 
 fail2:
@@ -415,6 +418,7 @@ PppoeDoClose(Link l)
 	l->state = PHYS_STATE_DOWN;
 	pi->incoming = 0;
 	memset(pi->peeraddr, 0x00, ETHER_ADDR_LEN);
+	pi->real_session[0] = 0;
 }
 
 /*
@@ -605,7 +609,7 @@ PppoeCalledNum(Link l, void *buf, int buf_len)
 		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
 		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
 	} else {
-	    strlcpy(buf, pppoe->session, buf_len);
+	    strlcpy(buf, pppoe->real_session, buf_len);
 	}
 
 	return (0);
@@ -798,6 +802,38 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	return (1);
 };
 
+/*
+ * Look for a tag of a specific type.
+ * Don't trust any length the other end says,
+ * but assume we already sanity checked ph->length.
+ */
+static const struct pppoe_tag*
+get_tag(const struct pppoe_hdr* ph, uint16_t idx)
+{
+	const char *const end = ((const char*)&ph->tag[0])
+	            + ntohs(ph->length);
+	const struct pppoe_tag *pt = &ph->tag[0];
+	const char *ptn;
+
+	/*
+	 * Keep processing tags while a tag header will still fit.
+	 */
+	while((const char*)(pt + 1) <= end) {
+		/*
+		 * If the tag data would go past the end of the packet, abort.
+		 */
+		ptn = (((const char *)(pt + 1)) + ntohs(pt->tag_len));
+		if (ptn > end)
+			return (NULL);
+		if (pt->tag_type == idx)
+			return (pt);
+
+		pt = (const struct pppoe_tag*)ptn;
+	}
+
+	return (NULL);
+}
+
 static void
 PppoeListenEvent(int type, void *arg)
 {
@@ -810,11 +846,14 @@ PppoeListenEvent(int type, void *arg)
 	char			path1[NG_PATHSIZ];
 	char			session_hook[NG_HOOKSIZ];
 	char			*session;
+	char			real_session[256];
 	struct ngm_connect      cn;
 	struct ngm_mkpeer 	mp;
-	u_char 			*macaddr;
 	Link 			l = NULL;
 	PppoeInfo		pi = NULL;
+	const struct pppoe_full_hdr	*wh;
+	const struct pppoe_hdr	*ph;
+	const struct pppoe_tag  *tag;
 
 	union {
 	    u_char buf[sizeof(struct ngpppoe_init_data) + MAX_SESSION];
@@ -838,16 +877,26 @@ PppoeListenEvent(int type, void *arg)
 
 	session = rhook + 7;
 
-	if (sz >= sizeof(struct ether_header)) {
-		macaddr = ((struct ether_header *)response)->ether_shost;
-		Log(LG_PHYS, ("Incoming PPPoE connection request via %s for "
-		    "service \"%s\" from %s", PIf->ifnodepath, session,
-		    ether_ntoa((const struct ether_addr *)macaddr)));
-	} else {
-		macaddr = NULL;
-		Log(LG_PHYS, ("Incoming PPPoE connection request via %s for "
+	if (sz < sizeof(struct pppoe_full_hdr)) {
+		Log(LG_PHYS, ("Incoming truncated PPPoE connection request via %s for "
 		    "service \"%s\"", PIf->ifnodepath, session));
+		return;
 	}
+
+	wh = (struct pppoe_full_hdr *)response;
+	ph = &wh->ph;
+	if ((tag = get_tag(ph, PTT_SRV_NAME))) {
+	    int len = tag->tag_len;
+	    if (len >= sizeof(real_session))
+		len = sizeof(real_session)-1;
+	    memcpy(real_session, tag->tag_data, len);
+	    real_session[len] = 0;
+	} else {
+	    strlcpy(real_session, session, sizeof(real_session));
+	}
+	Log(LG_PHYS, ("Incoming PPPoE connection request via %s for "
+	    "service \"%s\" from %s", PIf->ifnodepath, real_session,
+	    ether_ntoa((struct  ether_addr *)&wh->eh.ether_shost)));
 
 	if (gShutdownInProgress) {
 		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring request."));
@@ -979,8 +1028,8 @@ PppoeListenEvent(int type, void *arg)
 	l->state = PHYS_STATE_CONNECTING;
 	pi->incoming = 1;
 	/* Record the peer's MAC address */
-	if (macaddr)
-		memcpy(pi->peeraddr, macaddr, 6);
+	memcpy(pi->peeraddr, wh->eh.ether_shost, 6);
+	strlcpy(pi->real_session, real_session, sizeof(pi->real_session));
 
 	Log(LG_PHYS2, ("[%s] PPPoE response sent", l->name));
 
