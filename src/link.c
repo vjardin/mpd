@@ -575,6 +575,7 @@ LinkShutdown(Link l)
 	Freee(MB_LINK, l->downReason);
     MsgUnRegister(&l->msgs);
     UNREF(l);
+    CheckOneShot();
 }
 
 /*

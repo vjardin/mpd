@@ -22,6 +22,9 @@
 	  </item>
 	  <item> New 'show sessions' and 'show customer' commands added.
 	  </item>
+	  <item> Implemented one-shot operation mode to allow mpd to be used
+		 in complicated dial setups.
+	  </item>
 	  <item> Acct-Session-Id attribute now present in auth request.
 	  </item>
 	</itemize>

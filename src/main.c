@@ -52,6 +52,8 @@
 				"Kill running mpd process before start"	},
     { 1, 'f',	"file",		"config-file",
 				"Set configuration file"	},
+    { 0, 'o',	"one-shot",	"",
+				"Terminate daemon after last link shutdown"	},
     { 1, 'p',	"pidfile",	"filename",
 				"Set PID filename"		},
 #ifdef SYSLOG_FACILITY
@@ -141,6 +143,9 @@ main(int ac, char *av[])
     /* enable libpdel typed_mem */
     typed_mem_enable();
 
+    /* init global-config */
+    memset(&gGlobalConf, 0, sizeof(gGlobalConf));
+
     /* Read and parse command line */
     if (ac > MAX_ARGS)
 	ac = MAX_ARGS;
@@ -165,10 +170,6 @@ main(int ac, char *av[])
 
     /* Set up libnetgraph logging */
     NgSetErrLog(NgFuncErr, NgFuncErrx);
-
-    /* init global-config */
-    memset(&gGlobalConf, 0, sizeof(gGlobalConf));
-    Disable(&gGlobalConf.options, GLOBAL_CONF_TCPWRAPPER);
 
     /* Background mode? */
     if (gBackground) {
@@ -274,6 +275,7 @@ ConfigRead(int type, void *arg)
 	    DoExit(EX_CONFIG);
 	}
     }
+    CheckOneShot();
     if (c->cs)
 	c->cs->prompt(c->cs);
 }
@@ -467,6 +469,20 @@ OpenCloseSignal(int sig)
 	Log(LG_ALWAYS, ("rec'd signal %s, ignored", sys_signame[sig]));
 }
 
+void
+CheckOneShot(void)
+{
+    int	i;
+    if (!Enabled(&gGlobalConf.options, GLOBAL_CONF_ONESHOT))
+	return;
+    for (i = 0; i < gNumLinks; i++) {
+	if (gLinks[i] && !gLinks[i]->tmpl)
+	    return;
+    }
+    Log(LG_ALWAYS, ("One-shot mode enabled and no links found. Terminating daemon."));
+    SendSignal(SIGTERM);
+}
+
 /*
  * EventWarnx()
  *
@@ -549,6 +565,9 @@ OptApply(Option opt, int ac, char *av[])
 	case 'f':
     	    gConfigFile = *av;
     	    return(1);
+	case 'o':
+	    Enable(&gGlobalConf.options, GLOBAL_CONF_ONESHOT);
+    	    return(0);
 	case 'p':
     	    gPidFile = *av;
     	    return(1);

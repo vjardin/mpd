@@ -192,6 +192,11 @@ determine whether or not we want the corresponding option.
 
 The options available are:
 
+<tag><tt>one-shot</tt></tag>
+
+This option forces mpd terminate itself after the last link disappear.
+Link templates are not counted as links.
+
 <tag><tt>tcp-wrapper</tt></tag>
 
 With this option mpd uses <tt>/etc/hosts.allow</tt> everytime a

@@ -103,6 +103,7 @@
 
   static const struct confinfo	gGlobalConfList[] = {
     { 0,	GLOBAL_CONF_TCPWRAPPER,	"tcp-wrapper"	},
+    { 0,	GLOBAL_CONF_ONESHOT,	"one-shot"	},
     { 0,	0,			NULL		},
   };
 

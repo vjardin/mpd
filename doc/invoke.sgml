@@ -51,6 +51,13 @@
 	<tt>mpd.conf</tt>.
 
 	<tag><tt>
+	-o  --one-shot
+	</tt></tag>
+
+	This option forces mpd terminate itself after the last link disappear.
+	Link templates are not counted as links.
+
+	<tag><tt>
 	-p  --pidfile <em>filename</em>
 	</tt></tag>
 
