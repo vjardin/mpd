@@ -548,6 +548,7 @@ PppoeStat(Context ctx)
 	    Printf("\tIncoming     : %s\r\n", (pe->incoming?"YES":"NO"));
 	    PppoePeerAddr(ctx->lnk, buf, sizeof(buf));
 	    Printf("\tCurrent peer : %s\r\n", buf);
+	    Printf("\tSession      : %s\r\n", pe->real_session);
 	}
 }
 
