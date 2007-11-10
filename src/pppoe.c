@@ -593,7 +593,7 @@ PppoeCallingNum(Link l, void *buf, int buf_len)
 		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
 		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
 	} else {
-	    ((char*)buf)[0] = 0;
+	    strlcpy(buf, pppoe->real_session, buf_len);
 	}
 
 	return (0);
