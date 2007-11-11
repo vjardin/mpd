@@ -2557,7 +2557,7 @@ IfaceSetupLimits(Bund b)
 		    ((l->name[0])?"#":""), l->name, l->rule));
 		strncpy(str, l->rule, sizeof(str));
     		ac = ParseLine(str, av, ACL_MAX_PARAMS, 0);
-	        if (ac < 2 || ac >= ACL_MAX_PARAMS) {
+	        if (ac < 1 || ac >= ACL_MAX_PARAMS) {
 		    Log(LG_ERR, ("[%s] IFACE: incorrect limit: '%s'",
     			b->name, l->rule));
 		    continue;
@@ -2653,7 +2653,26 @@ IfaceSetupLimits(Bund b)
 		
 		/* Prepare action */
 		p = 1;
-		if (strcasecmp(av[p], "pass") == 0) {
+		if (ac == 1) {
+		    if (!l->next) {
+			strcpy(hp->ifMatch, outhook);
+			strcpy(inhookn[0], "");
+		    } else {
+			sprintf(hp->ifMatch, "%d-%d-m", dir, num);
+			sprintf(inhookn[0], "%d-%d-mi", dir, num);
+
+			/* Connect nomatch hook to bpf itself. */
+			strcpy(cn.ourhook, hp->ifMatch);
+			strcpy(cn.path, path);
+			strcpy(cn.peerhook, inhookn[1]);
+			if (NgSendMsg(b->csock, path,
+		        	NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+		    	    Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+			        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+			}
+			strcpy(stathook, inhookn[0]);
+		    }
+		} else if (strcasecmp(av[p], "pass") == 0) {
 		    strcpy(hp->ifMatch, outhook);
 		    strcpy(inhookn[0], "");
 		} else if (strcasecmp(av[p], "deny") == 0) {
