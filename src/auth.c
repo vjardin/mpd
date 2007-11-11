@@ -778,6 +778,17 @@ AuthAccountStart(Link l, int type)
   AuthData	auth;
   u_long	updateInterval = 0;
       
+  /* maybe an outstanding thread is running */
+  if (a->acct_thread) {
+    if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
+	paction_cancel(&a->acct_thread);
+    } else {
+	Log(LG_AUTH, ("[%s] AUTH: Accounting thread is already running", 
+    	    l->name));
+	return;
+    }
+  }
+
   LinkUpdateStats(l);
   if (type == AUTH_ACCT_STOP) {
     Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
@@ -785,11 +796,6 @@ AuthAccountStart(Link l, int type)
       (unsigned long) (time(NULL) - l->last_open),
       (unsigned long long)l->stats.recvOctets,
       (unsigned long long)l->stats.xmitOctets));
-  }
-
-  if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
-    /* maybe an outstanding thread is running */
-    paction_cancel(&a->acct_thread);
   }
 
   if (type == AUTH_ACCT_START) {
