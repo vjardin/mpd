@@ -441,89 +441,67 @@ Mpd supports authentication and accounting by calling external scripts.
 Pathes to that scripts must be specified using <tt><bf>set auth extauth-script ...</bf></tt>
 and <tt><bf>set auth extacct-script ...</bf></tt> commands.
 
-On invocation extauth script receives on stdin set of request 
+On invocation extauth/extacct scripts receive on stdin set of request 
 attribute:value pairs terminated by empty line and must generate
 response in same format on stdout.
 
-Currently supported request attributes:
+Supported attributes:
 <verb>
-USER_NAME
-USER_PASSWORD - present for PAP auth only
-LINK
-ACCT_SESSION_ID
-NAS_PORT
-NAS_PORT_TYPE
-CALLING_STATION_ID
-CALLED_STATION_ID
-PEER_ADDR
-PEER_PORT
-PEER_IDENT
+Name                       	   Access	 Accounting
+	                	Req	Resp	Req	Resp
+USER_NAME			+	+	+	+
+USER_PASSWORD			+	+	-	-
+LINK				+	-	+	-
+NAS_PORT			+	-	+	-
+NAS_PORT_TYPE			+	-	+	-
+CALLING_STATION_ID		+	-	+	-
+CALLED_STATION_ID		+	-	+	-
+PEER_ADDR			+	-	+	-
+PEER_PORT			+	-	+	-
+PEER_IDENT			+	-	+	-
+RESULT				-	+	-	-
+FRAMED_IP_ADDRESS		-	+	+	-
+FRAMED_ROUTE			-	+	-	-
+FRAMED_IPV6_ROUTE		-	+	-	-
+FRAMED_MTU			-	+	-	-
+FRAMED_POOL			-	+	-	-
+SESSION_TIMEOUT			-	+	-	-
+IDLE_TIMEOUT			-	+	-	-
+REPLY_MESSAGE			-	+	-	-
+MS_CHAP_ERROR			-	+	-	-
+IFACE				-	-	+	-
+BUNDLE				-	-	+	-
+ACCT_STATUS_TYPE		-	-	+	-
+ACCT_SESSION_ID			+	-	+	-
+ACCT_MULTI_SESSION_ID		-	-	+	-
+ACCT_LINK_COUNT			-	-	+	-
+ACCT_TERMINATE_CAUSE		-	-	+	-
+ACCT_SESSION_TIME		-	-	+	-
+ACCT_INPUT_OCTETS		-	-	+	-
+ACCT_INPUT_PACKETS		-	-	+	-
+ACCT_OUTPUT_OCTETS		-	-	+	-
+ACCT_OUTPUT_PACKETS		-	-	+	-
+MPD_RULE			-	+	-	-
+MPD_PIPE			-	+	-	-
+MPD_QUEUE			-	+	-	-
+MPD_TABLE			-	+	-	-
+MPD_TABLE_STATIC		-	+	-	-
+MPD_FILTER			-	+	-	-
+MPD_LIMIT			-	+	-	-
+MPD_INPUT_OCTETS		-	-	+	-
+MPD_INPUT_PACKETS		-	-	+	-
+MPD_OUTPUT_OCTETS		-	-	+	-
+MPD_OUTPUT_PACKETS		-	-	+	-
+MPD_DROP_USER			-	-	-	+
 </verb>
 
-Currently supported response attributes:
-<verb>
-RESULT - one of SUCCESS, UNDEF or FAIL
-USER_NAME
-USER_PASSWORD - if RESULT=UNDEF this field should contain correct user password
-FRAMED_IP_ADDRESS
-FRAMED_ROUTE
-FRAMED_IPV6_ROUTE
-FRAMED_MTU
-FRAMED_POOL
-SESSION_TIMEOUT
-IDLE_TIMEOUT
-REPLY_MESSAGE
-MS_CHAP_ERROR
-MPD_RULE
-MPD_PIPE
-MPD_QUEUE
-MPD_TABLE
-MPD_TABLE_STATIC
-MPD_FILTER
-MPD_LIMIT
-</verb>
+Attribute USER_PASSWORD provided in Access-Request only for PAP auth.
 
-On invocation extacct script receives on stdin set of request 
-attribute:value pairs terminated by empty line and must generate
-response in same format on stdout.
+In reply script may specify any combination of attributes it needs. 
+The only mandatory attribute in Access-Response is RESULT. RESULT must
+be one of SUCCESS, UNDEF or FAIL. RESULT UNDEF means that mpd should
+authenticate user itself using USER_PASSWORD attribute supplied by script.
 
-Currently supported request attributes:
-<verb>
-ACCT_STATUS_TYPE
-ACCT_SESSION_ID
-ACCT_MULTI_SESSION_ID
-USER_NAME
-IFACE
-BUNDLE
-LINK
-NAS_PORT
-NAS_PORT_TYPE
-ACCT_LINK_COUNT
-CALLING_STATION_ID
-CALLED_STATION_ID
-PEER_ADDR
-PEER_PORT
-PEER_IDENT
-FRAMED_IP_ADDRESS
-ACCT_TERMINATE_CAUSE
-ACCT_SESSION_TIME
-ACCT_INPUT_OCTETS
-ACCT_INPUT_PACKETS
-ACCT_OUTPUT_OCTETS
-ACCT_OUTPUT_PACKETS
-MPD_INPUT_OCTETS
-MPD_INPUT_PACKETS
-MPD_OUTPUT_OCTETS
-MPD_OUTPUT_PACKETS
-</verb>
-
-Currently supported response attributes:
-<verb>
-MPD_DROP_USER - nonzero value means that link should be disconnected
-</verb>
-
-Script may specify any combination of attributes it needs. 
-The only mandatory attribute is RESULT. For description of most
-attributes look their RADIUS alternatives.
+For description of most attributes look their RADIUS alternatives.
 
 </p>
