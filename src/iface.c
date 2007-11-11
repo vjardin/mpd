@@ -2664,7 +2664,7 @@ IfaceSetupLimits(Bund b)
 			/* Connect nomatch hook to bpf itself. */
 			strcpy(cn.ourhook, hp->ifMatch);
 			strcpy(cn.path, path);
-			strcpy(cn.peerhook, inhookn[1]);
+			strcpy(cn.peerhook, inhookn[0]);
 			if (NgSendMsg(b->csock, path,
 		        	NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 		    	    Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
