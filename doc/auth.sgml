@@ -467,6 +467,7 @@ FRAMED_MTU			-	+	-	-
 FRAMED_POOL			-	+	-	-
 SESSION_TIMEOUT			-	+	-	-
 IDLE_TIMEOUT			-	+	-	-
+ACCT_INTERIM_INTERVAL		-	+	-	-
 REPLY_MESSAGE			-	+	-	-
 MS_CHAP_ERROR			-	+	-	-
 IFACE				-	-	+	-

@@ -2015,6 +2015,9 @@ AuthExternal(AuthData auth)
     } else if (strcmp(attr, "IDLE_TIMEOUT") == 0) {
 	auth->params.idle_timeout = atoi(val);
 
+    } else if (strcmp(attr, "ACCT_INTERIM_INTERVAL") == 0) {
+	auth->params.acct_update = atoi(val);
+
     } else if (strcmp(attr, "FRAMED_MTU") == 0) {
 	auth->params.mtu = atoi(val);
 
