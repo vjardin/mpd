@@ -1899,16 +1899,11 @@ AuthExternal(AuthData auth)
     fprintf(fp, "LINK:%s\n", auth->info.lnkname);
     fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);
     fprintf(fp, "NAS_PORT_TYPE:%s\n", auth->info.phys_type->name);
-    if (strlen(auth->params.callingnum))
-	fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
-    if (strlen(auth->params.callednum))
-	fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
-    if (strlen(auth->params.peeraddr))
-	fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
-    if (strlen(auth->params.peerport))
-	fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
-    if (strlen(auth->info.peer_ident))
-	fprintf(fp, "PEER_IDENT:%s\n", auth->info.peer_ident);
+    fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
+    fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
+    fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
+    fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
+    fprintf(fp, "PEER_IDENT:%s\n", auth->info.peer_ident);
  
 
     /* REQUEST DONE */
@@ -2190,16 +2185,11 @@ AuthExternalAcct(AuthData auth)
     fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);
     fprintf(fp, "NAS_PORT_TYPE:%s\n", auth->info.phys_type->name);
     fprintf(fp, "ACCT_LINK_COUNT:%d\n", auth->info.n_links);
-    if (strlen(auth->params.callingnum))
-	fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
-    if (strlen(auth->params.callednum))
-	fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
-    if (strlen(auth->params.peeraddr))
-	fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
-    if (strlen(auth->params.peerport))
-	fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
-    if (strlen(auth->info.peer_ident))
-	fprintf(fp, "PEER_IDENT:%s\n", auth->info.peer_ident);
+    fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
+    fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
+    fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
+    fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
+    fprintf(fp, "PEER_IDENT:%s\n", auth->info.peer_ident);
 
     fprintf(fp, "FRAMED_IP_ADDRESS:%s\n",
 	inet_ntoa(auth->info.peer_addr));
