@@ -1057,6 +1057,7 @@ AuthAsync(void *arg)
   Log(LG_AUTH, ("[%s] AUTH: Auth-Thread started", auth->info.lnkname));
 
   if (Enabled(&auth->conf.options, AUTH_CONF_EXT_AUTH)) {
+    auth->params.authentic = AUTH_CONF_EXT_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying EXTERNAL", auth->info.lnkname));
     AuthExternal(auth);
     Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned %s", auth->info.lnkname, AuthStatusText(auth->status)));
@@ -1066,9 +1067,11 @@ AuthAsync(void *arg)
   }
 
   if (auth->proto == PROTO_EAP && auth->eap_radius) {
+    auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
     RadiusEapProxy(auth);
     return;
   } else if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_AUTH)) {
+    auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", auth->info.lnkname));
     RadiusAuthenticate(auth);
     Log(LG_AUTH, ("[%s] AUTH: RADIUS returned %s", 
@@ -1078,6 +1081,7 @@ AuthAsync(void *arg)
   }
   
   if (Enabled(&auth->conf.options, AUTH_CONF_PAM_AUTH)) {
+    auth->params.authentic = AUTH_CONF_PAM_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying PAM", auth->info.lnkname));
     AuthPAM(auth);
     Log(LG_AUTH, ("[%s] AUTH: PAM returned %s", 
@@ -1088,6 +1092,7 @@ AuthAsync(void *arg)
   }
 
   if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_AUTH)) {
+    auth->params.authentic = AUTH_CONF_SYSTEM_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying SYSTEM", auth->info.lnkname));
     AuthSystem(auth);
     Log(LG_AUTH, ("[%s] AUTH: SYSTEM returned %s", 
@@ -1098,6 +1103,7 @@ AuthAsync(void *arg)
   }
   
   if (Enabled(&auth->conf.options, AUTH_CONF_OPIE)) {
+    auth->params.authentic = AUTH_CONF_OPIE;
     Log(LG_AUTH, ("[%s] AUTH: Trying OPIE", auth->info.lnkname));
     AuthOpie(auth);
     Log(LG_AUTH, ("[%s] AUTH: OPIE returned %s", 
@@ -1224,7 +1230,6 @@ AuthSystem(AuthData auth)
     GIANT_MUTEX_LOCK();
     if (strcmp(crypt(pp->peer_pass, pwc.pw_passwd), pwc.pw_passwd) == 0) {
       auth->status = AUTH_STATUS_SUCCESS;
-      auth->params.authentic = AUTH_CONF_OPIE;      
     } else {
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -1248,7 +1253,6 @@ AuthSystem(AuthData auth)
     NTPasswordHashHash(auth->params.msoft.nt_hash, auth->params.msoft.nt_hash_hash);
     auth->params.msoft.has_nt_hash = TRUE;
     auth->status = AUTH_STATUS_UNDEF;
-    auth->params.authentic = AUTH_CONF_OPIE;
     return;
 
   } else {
@@ -1479,7 +1483,6 @@ AuthOpie(AuthData auth)
 
   if (auth->proto == PROTO_PAP ) {
     if (!opieverify(&auth->opie.data, pp->peer_pass)) {
-      auth->params.authentic = AUTH_CONF_OPIE;
       auth->status = AUTH_STATUS_SUCCESS;
     } else {
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -1502,7 +1505,6 @@ AuthOpie(AuthData auth)
 
   opiebtoe(english, &key);
   strlcpy(auth->params.password, english, sizeof(auth->params.password));
-  auth->params.authentic = AUTH_CONF_OPIE;
 }
 
 /*

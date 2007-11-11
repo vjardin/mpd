@@ -1019,7 +1019,6 @@ RadiusSendRequest(AuthData auth)
       Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_ACCEPT for user %s", 
         auth->info.lnkname, auth->params.authname));
       auth->status = AUTH_STATUS_SUCCESS;
-      auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
       break;
 
     case RAD_ACCESS_CHALLENGE:
