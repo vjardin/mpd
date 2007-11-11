@@ -357,7 +357,7 @@ PhysGetPeerPort(Link l, char *buf, int buf_len)
 }
 
 /*
- * PhysGetCalledNum()
+ * PhysGetCallingNum()
  */
 
 int
