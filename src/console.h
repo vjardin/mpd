@@ -19,7 +19,6 @@
   #define MAX_CONSOLE_ARGS	50
   #define MAX_CONSOLE_LINE	400
   #define MAX_CONSOLE_HIST	10
-  #define MAX_CONSOLE_BUF_LEN	4096
 
   #define Printf(fmt, args...)	({ 						\
 	  			  if (ctx->cs)	 				\
