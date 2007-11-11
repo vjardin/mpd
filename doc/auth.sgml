@@ -395,7 +395,8 @@ Filter can be or "all" (any packet) or "fltX"
 
 filter: <em>any</em>|<em>fltX</em>
 
-Action can be: "pass" (stop processing and pass packet), 
+Action can be: "" (do nothing, just account),
+"pass" (stop processing and pass packet), 
 "deny" (stop processing and drop packet), 
 "rate-limit" (do Cisco-like rate-limit), 
 "shape" (do simple RED aware traffic shaping). 
@@ -403,7 +404,7 @@ Action can be: "pass" (stop processing and pass packet),
 Actions "rate-limit" and "shape" can have optional "pass" suffix
 to stop processing after doing this action.
 
-action: <em>pass</em> | <em>deny</em> | 
+action: <em></em> | <em>pass</em> | <em>deny</em> | 
 <em>rate-limit</em> <em>{rate(bits/s)}</em> [<em>{normal burst(bytes)}</em> [<em>{extended burst(bytes)}</em>]] [<em>pass</em>] |
 <em>shape</em> <em>{rate(bits/s)}</em> [<em>{burst(bytes)}</em>] [<em>pass</em>]
 
