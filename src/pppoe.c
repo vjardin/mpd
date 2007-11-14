@@ -887,7 +887,7 @@ PppoeListenEvent(int type, void *arg)
 	wh = (struct pppoe_full_hdr *)response;
 	ph = &wh->ph;
 	if ((tag = get_tag(ph, PTT_SRV_NAME))) {
-	    int len = tag->tag_len;
+	    int len = ntohs(tag->tag_len);
 	    if (len >= sizeof(real_session))
 		len = sizeof(real_session)-1;
 	    memcpy(real_session, tag->tag_data, len);
