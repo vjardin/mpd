@@ -24,12 +24,14 @@
     int		type;
     void	(*func)(int type, void *arg);
     void	*arg;
+    const char	*dbg;
   };
   typedef struct mpmsg	*Msg;
 
   struct msghandler
   {
     void	(*func)(int type, void *arg);
+    const char	*dbg;
   };
 
   int		msgpipe[2];
@@ -47,12 +49,13 @@
  */
 
 MsgHandler
-MsgRegister(void (*func)(int type, void *arg))
+MsgRegister2(void (*func)(int type, void *arg), const char *dbg)
 {
   MsgHandler	m;
   
   m = Malloc(MB_UTIL, sizeof(*m));
   m->func = func;
+  m->dbg = dbg;
 
   if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
     if (pipe(msgpipe) < 0)
@@ -113,7 +116,9 @@ MsgEvent(int type, void *cookie)
 
     SETOVERLOAD(--pipelen);
 
+    Log(LG_EVENTS, ("EVENT: Message %d to %s received", msg.type, msg.dbg));
     (*msg.func)(msg.type, msg.arg);
+    Log(LG_EVENTS, ("EVENT: Message %d to %s processed", msg.type, msg.dbg));
 }
 
 /*
@@ -134,6 +139,7 @@ MsgSend(MsgHandler m, int type, void *arg)
     msg.type = type;
     msg.func = m->func;
     msg.arg = arg;
+    msg.dbg = m->dbg;
     for (nwrote = 0, retry = 10; nwrote < sizeof(msg) && retry > 0; nwrote += nw, retry--) {
 	if ((nw = write(msgpipe[PIPE_WRITE],
     	  ((u_char *) &msg) + nwrote, sizeof(msg) - nwrote)) < 0) {
@@ -146,6 +152,7 @@ MsgSend(MsgHandler m, int type, void *arg)
 	  __FUNCTION__));
         DoExit(EX_ERRDEAD);
     }
+    Log(LG_EVENTS, ("EVENT: Message %d to %s sent", type, m->dbg));
 }
 
 /*

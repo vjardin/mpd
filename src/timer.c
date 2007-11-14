@@ -20,13 +20,15 @@
  */
 
 void
-TimerInit(PppTimer timer, const char *desc,
-  int load, void (*handler)(void *), void *arg)
+TimerInit2(PppTimer timer, const char *desc,
+  int load, void (*handler)(void *), void *arg, const char *dbg)
 {
   memset(timer, 0, sizeof(*timer));
   timer->load	= (load >= 0) ? load : 0;
   timer->func	= handler;
   timer->arg	= arg;
+  timer->desc	= desc;
+  timer->dbg	= dbg;
 }
 
 /*
@@ -34,17 +36,18 @@ TimerInit(PppTimer timer, const char *desc,
  */
 
 void
-TimerStart(PppTimer timer)
+TimerStart2(PppTimer timer, const char *file, int line)
 {
+    /* Stop timer if running */
+    assert(timer->func);
+    if (timer->event != NULL)
+	EventUnRegister(&timer->event);
 
-  /* Stop timer if running */
-  assert(timer->func);
-  if (timer->event != NULL)
-    EventUnRegister(&timer->event);
-
-  /* Register timeout event */
-  EventRegister(&timer->event, EVENT_TIMEOUT,
-    timer->load, 0, TimerExpires, timer);
+    Log(LG_EVENTS, ("EVENT: Starting timer \"%s\" %s() for %d ms at %s:%d",
+	timer->desc, timer->dbg, timer->load, file, line));
+    /* Register timeout event */
+    EventRegister(&timer->event, EVENT_TIMEOUT,
+	timer->load, 0, TimerExpires, timer);
 }
 
 /*
@@ -52,17 +55,32 @@ TimerStart(PppTimer timer)
  */
 
 void
-TimerStartRecurring(PppTimer timer)
+TimerStartRecurring2(PppTimer timer, const char *file, int line)
 {
+    /* Stop timer if running */
+    assert(timer->func);
+    Log(LG_EVENTS, ("EVENT: Starting recurring timer \"%s\" %s() for %d ms at %s:%d",
+	timer->desc, timer->dbg, timer->load, file, line));
+    if (timer->event != NULL)
+	EventUnRegister(&timer->event);
 
-  /* Stop timer if running */
-  assert(timer->func);
-  if (timer->event != NULL)
-    EventUnRegister(&timer->event);
+    /* Register timeout event */
+    EventRegister(&timer->event, EVENT_TIMEOUT,
+	timer->load, EVENT_RECURRING, TimerExpires, timer);
+}
 
-  /* Register timeout event */
-  EventRegister(&timer->event, EVENT_TIMEOUT,
-    timer->load, EVENT_RECURRING, TimerExpires, timer);
+/*
+ * TimerStop()
+ */
+
+void
+TimerStop2(PppTimer timer, const char *file, int line)
+{
+    /* Stop timer if running */
+    Log(LG_EVENTS, ("EVENT: Stopping timer \"%s\" %s() at %s:%d",
+	timer->desc, timer->dbg, file, line));
+    if (timer->event != NULL)
+	EventUnRegister(&timer->event);
 }
 
 /*
@@ -72,9 +90,11 @@ TimerStartRecurring(PppTimer timer)
 static void
 TimerExpires(int type, void *cookie)
 {
-  PppTimer	const timer = (PppTimer) cookie;
+    PppTimer	const timer = (PppTimer) cookie;
 
-  (*timer->func)(timer->arg);
+    Log(LG_EVENTS, ("EVENT: Processing timer \"%s\" %s()", timer->desc, timer->dbg));
+    (*timer->func)(timer->arg);
+    Log(LG_EVENTS, ("EVENT: Processing timer \"%s\" %s() done", timer->desc, timer->dbg));
 }
 
 /*

@@ -126,35 +126,39 @@ EventDump(Context ctx, const char *msg)
  */
 
 int
-EventRegister(EventRef *refp, int type, int val, int flags,
-	void (*action)(int type, void *cookie), void *cookie)
+EventRegister2(EventRef *refp, int type, int val, int flags,
+	void (*action)(int type, void *cookie), void *cookie, const char *dbg,
+	const char *file, int line)
 {
-  EventRef	ev;
+    EventRef	ev;
 
-  if (!gPeventCtx)
-    EventInit();
+    Log(LG_EVENTS, ("EVENT: Registering event %s at %s:%d", dbg, file, line));
+    if (!gPeventCtx)
+	EventInit();
 
-  if (*refp != NULL)
-    FREE(MB_EVENT, *refp);
+    if (*refp != NULL)
+	FREE(MB_EVENT, *refp);
 
-  if ((ev = MALLOC(MB_EVENT, sizeof(struct event_ref))) == NULL) {
-    MyWarn("%s: malloc", __FUNCTION__);
-    return(-1);
-  }
+    if ((ev = MALLOC(MB_EVENT, sizeof(struct event_ref))) == NULL) {
+	MyWarn("%s: malloc", __FUNCTION__);
+	return(-1);
+    }
 
-  ev->arg = cookie;
-  ev->handler = action;
-  ev->type = type;
-  ev->pe = NULL;
+    ev->arg = cookie;
+    ev->handler = action;
+    ev->type = type;
+    ev->pe = NULL;
+    ev->dbg = dbg;
 
-  if (pevent_register(gPeventCtx, &ev->pe, flags, &gGiantMutex, EventHandler,
-      ev, type, val) == -1) {
-      MyWarnx("%s: error pevent_register: %s", __FUNCTION__, strerror(errno));
-      return(-1);
-  }
+    if (pevent_register(gPeventCtx, &ev->pe, flags, &gGiantMutex, EventHandler,
+	    ev, type, val) == -1) {
+        MyWarnx("%s: error pevent_register: %s", __FUNCTION__, strerror(errno));
+        return(-1);
+    }
   
-  *refp = ev;
-  return(0);
+    *refp = ev;
+    Log(LG_EVENTS, ("EVENT: Registering event %s done at %s:%d", dbg, file, line));
+    return(0);
 }
 
 /*
@@ -162,17 +166,19 @@ EventRegister(EventRef *refp, int type, int val, int flags,
  */
 
 int
-EventUnRegister(EventRef *refp)
+EventUnRegister2(EventRef *refp, const char *file, int line)
 {
-  const EventRef	ev = *refp;
+    const EventRef	ev = *refp;
 
-  if (ev == NULL)
+    if (ev == NULL)
+	return(0);
+
+    Log(LG_EVENTS, ("EVENT: Unregistering event %s at %s:%d", ev->dbg, file, line));
+    pevent_unregister(&ev->pe);
+    Log(LG_EVENTS, ("EVENT: Unregistering event %s done at %s:%d", ev->dbg, file, line));
+    FREE(MB_EVENT, ev);
+    *refp = NULL;
     return(0);
-
-  pevent_unregister(&ev->pe);
-  FREE(MB_EVENT, ev);
-  *refp = NULL;
-  return(0);
 }
 
 /*
@@ -216,7 +222,9 @@ EventTimerRemain(EventRef *refp)
 static void
 EventHandler(void *arg)
 {
-  EventRef	ev = (EventRef) arg;
+    EventRef	ev = (EventRef) arg;
 
-  (ev->handler)(ev->type, ev->arg);
+    Log(LG_EVENTS, ("EVENT: Processing event %s", ev->dbg));
+    (ev->handler)(ev->type, ev->arg);
+    Log(LG_EVENTS, ("EVENT: Processing event %s done", ev->dbg));
 }

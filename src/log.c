@@ -145,6 +145,9 @@
 #ifdef LG_CONSOLE
     ADD_OPT(CONSOLE,	"Console events")
 #endif
+#ifdef LG_EVENTS
+    ADD_OPT(EVENTS,	"Daemon events debug")
+#endif
   };
 
   #define NUM_LOG_LEVELS (sizeof(LogOptionList) / sizeof(*LogOptionList))

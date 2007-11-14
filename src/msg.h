@@ -31,7 +31,9 @@
  * FUNCTIONS
  */
 
-  extern MsgHandler	MsgRegister(void (*func)(int typ, void *arg));
+#define	MsgRegister(func)	\
+	    MsgRegister2(func, #func "()")
+  extern MsgHandler	MsgRegister2(void (*func)(int typ, void *arg), const char *dbg);
   extern void		MsgUnRegister(MsgHandler *m);
   extern void		MsgSend(MsgHandler m, int type, void *arg);
   extern const char	*MsgName(int msg);

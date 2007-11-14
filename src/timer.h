@@ -29,18 +29,27 @@
     u_int	load;			/* Initial load value */
     void	(*func)(void *arg);	/* Called when timer expires */
     void	*arg;			/* Arg passed to timeout function */
+    const char	*desc;
+    const char	*dbg;
   };
-
-  #define TimerStop(t)	EventUnRegister(&(t)->event)
 
 /*
  * FUNCTIONS
  */
 
-  extern void	TimerInit(PppTimer timer, const char *desc,
-		  int load, void (*handler)(void *), void *arg);
-  extern void	TimerStart(PppTimer t);
-  extern void	TimerStartRecurring(PppTimer t);
+#define	TimerInit(timer, desc, load, handler, arg)				\
+	    TimerInit2(timer, desc, load, handler, arg, #handler)
+  extern void	TimerInit2(PppTimer timer, const char *desc,
+		  int load, void (*handler)(void *), void *arg, const char *dbg);
+#define	TimerStart(t)	\
+	    TimerStart2(t, __FILE__, __LINE__)
+  extern void	TimerStart2(PppTimer t, const char *file, int line);
+#define	TimerStartRecurring(t)	\
+	    TimerStartRecurring2(t, __FILE__, __LINE__)
+  extern void	TimerStartRecurring2(PppTimer t, const char *file, int line);
+#define	TimerStop(t)	\
+	    TimerStop2(t, __FILE__, __LINE__)
+  extern void	TimerStop2(PppTimer t, const char *file, int line);
   extern int	TimerRemain(PppTimer t);
 
 #endif

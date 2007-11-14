@@ -49,7 +49,8 @@
     LG_I_FRAME,
     LG_I_RADIUS,
     LG_I_RADIUS2,
-    LG_I_CONSOLE
+    LG_I_CONSOLE,
+    LG_I_EVENTS
   };
 
 /* Definition of log options */
@@ -84,6 +85,7 @@
   #define LG_RADIUS2		(1 << LG_I_RADIUS2)
   #define LG_CONSOLE		(1 << LG_I_CONSOLE)
   #define LG_ALWAYS		(1 << LG_I_ALWAYS)
+  #define LG_EVENTS		(1 << LG_I_EVENTS)
 
   #define LG_ERR		(LG_ALWAYS)
 
