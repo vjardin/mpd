@@ -223,8 +223,9 @@ static void
 EventHandler(void *arg)
 {
     EventRef	ev = (EventRef) arg;
+    const char	*dbg = ev->dbg;
 
-    Log(LG_EVENTS, ("EVENT: Processing event %s", ev->dbg));
+    Log(LG_EVENTS, ("EVENT: Processing event %s", dbg));
     (ev->handler)(ev->type, ev->arg);
-    Log(LG_EVENTS, ("EVENT: Processing event %s done", ev->dbg));
+    Log(LG_EVENTS, ("EVENT: Processing event %s done", dbg));
 }

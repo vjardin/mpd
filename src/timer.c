@@ -91,10 +91,12 @@ static void
 TimerExpires(int type, void *cookie)
 {
     PppTimer	const timer = (PppTimer) cookie;
+    const char	*desc = timer->desc;
+    const char	*dbg = timer->dbg;
 
-    Log(LG_EVENTS, ("EVENT: Processing timer \"%s\" %s()", timer->desc, timer->dbg));
+    Log(LG_EVENTS, ("EVENT: Processing timer \"%s\" %s()", desc, dbg));
     (*timer->func)(timer->arg);
-    Log(LG_EVENTS, ("EVENT: Processing timer \"%s\" %s() done", timer->desc, timer->dbg));
+    Log(LG_EVENTS, ("EVENT: Processing timer \"%s\" %s() done", desc, dbg));
 }
 
 /*
