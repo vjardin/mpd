@@ -283,7 +283,6 @@ PapTimeout(void *ptr)
   Link		const l = (Link) ptr;
   PapInfo	const pap = &l->lcp.auth.pap;
 
-  TimerStop(&pap->timer);
   if (--pap->retry > 0) {
     TimerStart(&pap->timer);
     PapSendRequest(l);

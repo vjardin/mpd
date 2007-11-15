@@ -234,7 +234,6 @@ ChapChalTimeout(void *ptr)
   Link		const l = (Link) ptr;
   ChapInfo	const chap = &l->lcp.auth.chap;
 
-  TimerStop(&chap->chalTimer);
   if (--chap->retry > 0) {
     TimerStart(&chap->chalTimer);
     ChapSendChallenge(l);

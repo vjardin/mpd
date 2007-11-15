@@ -542,13 +542,12 @@ static void
 EapRadiusSendMsgTimeout(void *ptr)
 {
     Link	l = (Link)ptr;
-  EapInfo	const eap = &l->lcp.auth.eap;
+    EapInfo	const eap = &l->lcp.auth.eap;
 
-  TimerStop(&eap->reqTimer);
-  if (--eap->retry > 0) {
-    TimerStart(&eap->reqTimer);
-    EapRadiusSendMsg(l);
-  }
+    if (--eap->retry > 0) {
+	TimerStart(&eap->reqTimer);
+	EapRadiusSendMsg(l);
+    }
 }
 
 /*
@@ -563,11 +562,10 @@ EapIdentTimeout(void *ptr)
     Link	l = (Link)ptr;
     EapInfo	const eap = &l->lcp.auth.eap;
 
-  TimerStop(&eap->identTimer);
-  if (--eap->retry > 0) {
-    TimerStart(&eap->identTimer);
-    EapSendIdentRequest(l);
-  }
+    if (--eap->retry > 0) {
+	TimerStart(&eap->identTimer);
+	EapSendIdentRequest(l);
+    }
 }
 
 /*
