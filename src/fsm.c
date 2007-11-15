@@ -190,7 +190,8 @@ FsmNewState(Fsm fp, int new)
     TimerStop(&fp->timer);
 
   /* Turn on/off keep-alive echo packets (if so configured) */
-  TimerStop(&fp->echoTimer);
+  if (old == ST_OPENED)
+    TimerStop(&fp->echoTimer);
   if (new == ST_OPENED && fp->conf.echo_int != 0) {
     fp->quietCount = 0;
     memset(&fp->idleStats, 0, sizeof(fp->idleStats));
