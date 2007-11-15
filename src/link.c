@@ -253,7 +253,6 @@ LinkReopenTimeout(void *arg)
 {
     Link	const l = (Link)arg;
 
-    TimerStop(&l->openTimer);
     RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
     PhysOpen(l);
 }
