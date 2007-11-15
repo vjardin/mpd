@@ -494,7 +494,6 @@ FsmTimeout(void *arg)
 	FsmSendConfigReq(fp);
 	break;
     }
-    TimerStart(&fp->timer);
   } else {				/* TO- */
     switch (fp->state) {
       case ST_CLOSING:
