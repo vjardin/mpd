@@ -98,6 +98,7 @@
     struct u_range	range;		/* IP range allowed to user */
     u_char		range_valid;	/* range is valid */
     u_char		netmask;	/* IP Netmask */
+    u_char		vjc_enable;	/* VJC requested by AAA */
 
     char		ippool[LINK_MAX_NAME];
     u_char		ippool_used;

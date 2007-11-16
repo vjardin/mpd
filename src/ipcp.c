@@ -337,7 +337,8 @@ IpcpConfigure(Fsm fp)
   ipcp->peer_comp.compcid = 0;
 
   ipcp->want_comp.proto =
-    Enabled(&ipcp->conf.options, IPCP_CONF_VJCOMP) ? htons(PROTO_VJCOMP) : 0;
+    (b->params.vjc_enable || Enabled(&ipcp->conf.options, IPCP_CONF_VJCOMP)) ?
+	htons(PROTO_VJCOMP) : 0;
   ipcp->want_comp.maxchan = IPCP_VJCOMP_MAX_MAXCHAN;
 
   /* DNS and NBNS servers */

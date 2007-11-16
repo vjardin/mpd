@@ -2021,6 +2021,10 @@ AuthExternal(AuthData auth)
     } else if (strcmp(attr, "FRAMED_MTU") == 0) {
 	auth->params.mtu = atoi(val);
 
+    } else if (strcmp(attr, "FRAMED_COMPRESSION") == 0) {
+	if (atoi(val) == 1)
+	    auth->params.vjc_enable = 1;
+
     } else if (strcmp(attr, "FRAMED_POOL") == 0) {
 	strlcpy(auth->params.ippool, val, sizeof(auth->params.ippool));
 

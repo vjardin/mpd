@@ -249,6 +249,7 @@ N   Name                       	   Access	 Accounting
 8   Framed-IP-Address		-	+	+	-
 9   Framed-IP-Netmask		-	+	+	-
 12  Framed-MTU			-	+	-	-
+13  Framed-Compression		-	+	-	-
 18  Reply-Message		-	+	-	-
 22  Framed-Route		-	+	-	-
 24  State			+	+	+	-
@@ -464,6 +465,7 @@ FRAMED_IP_ADDRESS		-	+	+	-
 FRAMED_ROUTE			-	+	-	-
 FRAMED_IPV6_ROUTE		-	+	-	-
 FRAMED_MTU			-	+	-	-
+FRAMED_COMPRESSION		-	+	-	-
 FRAMED_POOL			-	+	-	-
 SESSION_TIMEOUT			-	+	-	-
 IDLE_TIMEOUT			-	+	-	-
