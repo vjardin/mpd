@@ -728,7 +728,8 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	    vj.maxchan + 1, vj.compcid ? "allow" : "no"));
 	  switch (mode) {
 	    case MODE_REQ:
-	      if (!Acceptable(&ipcp->conf.options, IPCP_CONF_VJCOMP)) {
+	      if (!Acceptable(&ipcp->conf.options, IPCP_CONF_VJCOMP) && 
+	    	  !b->params.vjc_enable) {
 		FsmRej(fp, opt);
 		break;
 	      }
