@@ -197,8 +197,6 @@ LcpInst(Link l, Link lt)
 
   memcpy(lcp, &lt->lcp, sizeof(*lcp));
   FsmInst(&lcp->fsm, &lt->lcp.fsm, l);
-  
-//  AuthInit(l);
 }
 
 /*
