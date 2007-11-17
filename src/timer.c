@@ -40,7 +40,7 @@ TimerStart2(PppTimer timer, const char *file, int line)
 {
     /* Stop timer if running */
     assert(timer->func);
-    if (timer->event != NULL)
+    if (EventIsRegistered(&timer->event))
 	EventUnRegister(&timer->event);
 
     Log(LG_EVENTS, ("EVENT: Starting timer \"%s\" %s() for %d ms at %s:%d",
@@ -61,7 +61,7 @@ TimerStartRecurring2(PppTimer timer, const char *file, int line)
     assert(timer->func);
     Log(LG_EVENTS, ("EVENT: Starting recurring timer \"%s\" %s() for %d ms at %s:%d",
 	timer->desc, timer->dbg, timer->load, file, line));
-    if (timer->event != NULL)
+    if (EventIsRegistered(&timer->event))
 	EventUnRegister(&timer->event);
 
     /* Register timeout event */
@@ -79,7 +79,7 @@ TimerStop2(PppTimer timer, const char *file, int line)
     /* Stop timer if running */
     Log(LG_EVENTS, ("EVENT: Stopping timer \"%s\" %s() at %s:%d",
 	timer->desc, timer->dbg, file, line));
-    if (timer->event != NULL)
+    if (EventIsRegistered(&timer->event))
 	EventUnRegister(&timer->event);
 }
 
