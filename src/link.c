@@ -414,7 +414,6 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 
         PhysInit(l);
         LcpInit(l);
-        EapInit(l);
 	
 	if (!tmpl)
 	    l->msgs = MsgRegister(LinkMsg);

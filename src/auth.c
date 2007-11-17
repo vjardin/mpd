@@ -298,18 +298,20 @@ void	authparamsMove(struct authparams *src, struct authparams *dst)
 void
 AuthInit(Link l)
 {
-  AuthConf	const ac = &l->lcp.auth.conf;
+    AuthConf	const ac = &l->lcp.auth.conf;
   
-  RadiusInit(l);
+    RadiusInit(l);
 
-  Disable(&ac->options, AUTH_CONF_RADIUS_AUTH);
-  Disable(&ac->options, AUTH_CONF_RADIUS_ACCT);
+    Disable(&ac->options, AUTH_CONF_RADIUS_AUTH);
+    Disable(&ac->options, AUTH_CONF_RADIUS_ACCT);
   
-  Enable(&ac->options, AUTH_CONF_INTERNAL);
-  Disable(&ac->options, AUTH_CONF_EXT_AUTH);
+    Enable(&ac->options, AUTH_CONF_INTERNAL);
+    Disable(&ac->options, AUTH_CONF_EXT_AUTH);
 
-  /* default auth timeout */
-  ac->timeout = 40;
+    /* default auth timeout */
+    ac->timeout = 40;
+
+    EapInit(l);
 }
 
 /*
