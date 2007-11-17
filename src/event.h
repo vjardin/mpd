@@ -30,7 +30,7 @@
     void		*arg;
     const char		*dbg;
   };
-  typedef struct event_ref	*EventRef;
+  typedef struct event_ref	EventRef;
 
 /*
  * FUNCTIONS
