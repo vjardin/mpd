@@ -860,12 +860,6 @@ PptpCtrlInitCtrl(PptpCtrl c, int orig)
 
   /* Good time for a sanity check */
   assert(c->state == PPTP_CTRL_ST_IDLE);
-  if (c->connEvent != NULL)
-    assert(!(*c->connEvent).pe);
-
-  if (c->ctrlEvent != NULL)
-    assert(!(*c->ctrlEvent).pe);
-
   assert(!c->reps);
   for (k = 0; k < c->numChannels; k++) {
     PptpChan	const ch = c->channels[k];
