@@ -243,6 +243,7 @@
  */
 
   extern void		AuthInit(Link l);
+  extern void		AuthShutdown(Link l);
   extern void		AuthStart(Link l);
   extern void		AuthStop(Link l);
   extern void		AuthInput(Link l, int proto, Mbuf bp);

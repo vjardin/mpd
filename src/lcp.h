@@ -124,6 +124,7 @@
 
   extern void	LcpInit(Link l);
   extern void	LcpInst(Link l, Link lt);
+  extern void	LcpShutdown(Link l);
   extern void	LcpInput(Link l, Mbuf bp);
   extern void	LcpUp(Link l);
   extern void	LcpOpen(Link l);

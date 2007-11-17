@@ -202,6 +202,16 @@ LcpInst(Link l, Link lt)
 }
 
 /*
+ * LcpShutdown()
+ */
+
+void
+LcpShutdown(Link l)
+{
+    AuthShutdown(l);
+}
+
+/*
  * LcpConfigure()
  */
 

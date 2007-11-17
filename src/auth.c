@@ -313,6 +313,21 @@ AuthInit(Link l)
 }
 
 /*
+ * AuthShutdown()
+ */
+
+void
+AuthShutdown(Link l)
+{
+    Auth	a = &l->lcp.auth;
+  
+    if (a->thread)
+	paction_cancel(&a->thread);
+    if (a->acct_thread)
+	paction_cancel(&a->acct_thread);
+}
+
+/*
  * AuthStart()
  *
  * Initialize authorization info for a link

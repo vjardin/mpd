@@ -572,6 +572,7 @@ LinkShutdown(Link l)
     if (l->csock >= 0)
 	LinkNgShutdown(l, 1);
     PhysShutdown(l);
+    LcpShutdown(l);
     l->dead = 1;
     while ((a = SLIST_FIRST(&l->actions)) != NULL) {
 	SLIST_REMOVE_HEAD(&l->actions, next);
