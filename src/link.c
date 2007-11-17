@@ -464,10 +464,11 @@ LinkDestroy(Context ctx, int ac, char *av[], void *arg)
 	l->stay = 0;
 	if (l->rep) {
 	    PhysClose(l);
-	} else if (l->lcp.fsm.state != ST_INITIAL) {
+	} else if (OPEN_STATE(l->lcp.fsm.state)) {
 	    LcpClose(l);
 	} else {
-	    LinkShutdown(l);
+	    l->die = 1; /* Hack! We should do it as we changed l->stay */
+	    LinkShutdownCheck(l, l->lcp.fsm.state);
 	}
     }
 
@@ -527,6 +528,16 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
     LcpInst(l, lt);
 
     return (l);
+}
+
+void
+LinkShutdownCheck(Link l, short state)
+{
+    if (state == ST_INITIAL && l->lcp.auth.acct_thread == NULL &&
+	    l->die && !l->stay && l->state == PHYS_STATE_DOWN) {
+	REF(l);
+	MsgSend(l->msgs, MSG_SHUTDOWN, l);
+    }
 }
 
 /*

@@ -910,6 +910,7 @@ static void
 AuthAccountFinish(void *arg, int was_canceled)
 {
     AuthData		auth = (AuthData)arg;
+    Link 		l;
 
     if (was_canceled) {
 	Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
@@ -921,18 +922,26 @@ AuthAccountFinish(void *arg, int was_canceled)
     
     /* Cleanup */
     RadiusClose(auth);
+
+    if (was_canceled) {
+	AuthDataDestroy(auth);
+	return;
+    }  
     
-    if (!was_canceled && auth->drop_user && auth->acct_type != AUTH_ACCT_STOP) {
-	Link 		l = gLinks[auth->info.linkID];
-	if (l != NULL) {
-    	    Log(LG_AUTH, ("[%s] AUTH: Link close requested at the accounting reply", 
-		l->name));
-	    RecordLinkUpDownReason(NULL, l, 0, STR_MANUALLY, NULL);
-	    LinkClose(l);
-	}
+    l = gLinks[auth->info.linkID];
+    if (l == NULL) {
+	AuthDataDestroy(auth);
+	return;
+    }    
+
+    if (auth->drop_user && auth->acct_type != AUTH_ACCT_STOP) {
+	Log(LG_AUTH, ("[%s] AUTH: Link close requested at the accounting reply", 
+	    l->name));
+	RecordLinkUpDownReason(NULL, l, 0, STR_MANUALLY, NULL);
+	LinkClose(l);
     }
-    
     AuthDataDestroy(auth);
+    LinkShutdownCheck(l, l->lcp.fsm.state);
 }
 
 /*

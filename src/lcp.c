@@ -392,10 +392,7 @@ LcpNewState(Fsm fp, int old, int new)
       assert(0);
   }
 
-    if (new == ST_INITIAL && l->die && !l->stay && l->state == PHYS_STATE_DOWN) {
-	REF(l);
-	MsgSend(l->msgs, MSG_SHUTDOWN, l);
-    }
+    LinkShutdownCheck(l, new);
 }
 
 /*

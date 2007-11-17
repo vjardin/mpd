@@ -189,10 +189,7 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	}
 	l->upReasonValid=0;
 	LinkDown(l);
-	if (l->lcp.fsm.state == ST_INITIAL && l->die && !l->stay && l->state == PHYS_STATE_DOWN) {
-	    REF(l);
-	    MsgSend(l->msgs, MSG_SHUTDOWN, l);
-	}
+	LinkShutdownCheck(l, l->lcp.fsm.state);
 
     } else {
 	RepDown(l);
@@ -400,7 +397,7 @@ int
 PhysIsBusy(Link l)
 {
     return (l->die || l->rep || l->state != PHYS_STATE_DOWN ||
-	l->lcp.fsm.state != ST_INITIAL ||
+	l->lcp.fsm.state != ST_INITIAL || l->lcp.auth.acct_thread != NULL ||
 	(l->tmpl && l->children >= l->conf.max_children));
 }
 
