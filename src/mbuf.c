@@ -360,20 +360,20 @@ MemStat(Context ctx, int ac, char *av[], void *arg)
 	Error("typed_mem_usage() error");
     
     /* Print header */
-    Printf("   %-28s %10s %10s\n", "Type", "Count", "Total");
-    Printf("   %-28s %10s %10s\n", "----", "-----", "-----");
+    Printf("   %-28s %10s %10s\r\n", "Type", "Count", "Total");
+    Printf("   %-28s %10s %10s\r\n", "----", "-----", "-----");
 
     for (i = 0; i < stats.length; i++) {
 	struct typed_mem_typestats *type = &stats.elems[i];
 
-	Printf("   %-28s %10u %10lu\n",
+	Printf("   %-28s %10u %10lu\r\n",
 	    type->type, (int)type->allocs, (u_long)type->bytes);
 	total_allocs += type->allocs;
 	total_bytes += type->bytes;
     }
     /* Print totals */
-    Printf("   %-28s %10s %10s\n", "", "-----", "-----");
-    Printf("   %-28s %10lu %10lu\n",
+    Printf("   %-28s %10s %10s\r\n", "", "-----", "-----");
+    Printf("   %-28s %10lu %10lu\r\n",
         "Totals", total_allocs, total_bytes);
 
     structs_free(&typed_mem_stats_type, NULL, &stats);
