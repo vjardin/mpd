@@ -174,7 +174,7 @@ void
 LinkOpen(Link l)
 {
     REF(l);
-    MsgSend(l->msgs, MSG_OPEN, l);
+    MsgSend(&l->msgs, MSG_OPEN, l);
 }
 
 /*
@@ -185,7 +185,7 @@ void
 LinkClose(Link l)
 {
     REF(l);
-    MsgSend(l->msgs, MSG_CLOSE, l);
+    MsgSend(&l->msgs, MSG_CLOSE, l);
 }
 
 /*
@@ -415,8 +415,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
         PhysInit(l);
         LcpInit(l);
 	
-	if (!tmpl)
-	    l->msgs = MsgRegister(LinkMsg);
+	MsgRegister(&l->msgs, LinkMsg);
 
 	/* Find a free link pointer */
         for (k = 0; k < gNumLinks && gLinks[k] != NULL; k++);
@@ -499,8 +498,6 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
 	    SLIST_INSERT_AFTER(ap, a, next);
 	ap = a;
     }
-    if (!tmpl)
-	l->msgs = MsgRegister(LinkMsg);
     l->tmpl = tmpl;
     l->stay = stay;
     /* Count link as one more child of parent. */
@@ -535,7 +532,7 @@ LinkShutdownCheck(Link l, short state)
     if (state == ST_INITIAL && l->lcp.auth.acct_thread == NULL &&
 	    l->die && !l->stay && l->state == PHYS_STATE_DOWN) {
 	REF(l);
-	MsgSend(l->msgs, MSG_SHUTDOWN, l);
+	MsgSend(&l->msgs, MSG_SHUTDOWN, l);
     }
 }
 

@@ -83,7 +83,7 @@
 int
 PhysInit(Link l)
 {
-    l->pmsgs = MsgRegister(PhysMsg);
+    MsgRegister(&l->pmsgs, PhysMsg);
 
     /* Initialize type specific stuff */
     if ((l->type->init)(l) < 0) {
@@ -103,8 +103,6 @@ PhysInit(Link l)
 int
 PhysInst(Link l, Link lt)
 {
-    l->pmsgs = MsgRegister(PhysMsg);
-
     return ((l->type->inst)(l, lt));
 }
 
@@ -127,7 +125,7 @@ void
 PhysOpen(Link l)
 {
     REF(l);
-    MsgSend(l->pmsgs, MSG_OPEN, l);
+    MsgSend(&l->pmsgs, MSG_OPEN, l);
 }
 
 /*
@@ -149,7 +147,7 @@ void
 PhysClose(Link l)
 {
     REF(l);
-    MsgSend(l->pmsgs, MSG_CLOSE, l);
+    MsgSend(&l->pmsgs, MSG_CLOSE, l);
 }
 
 /*
@@ -200,7 +198,7 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 	l->rep = NULL;
 	if (!l->stay) {
 	    REF(l);
-	    MsgSend(l->msgs, MSG_SHUTDOWN, l);
+	    MsgSend(&l->msgs, MSG_SHUTDOWN, l);
 	}
     }
 }

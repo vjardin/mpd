@@ -28,12 +28,6 @@
   };
   typedef struct mpmsg	*Msg;
 
-  struct msghandler
-  {
-    void	(*func)(int type, void *arg);
-    const char	*dbg;
-  };
-
   int		msgpipe[2];
   EventRef	msgevent;
   int		pipelen = 0;
@@ -48,37 +42,30 @@
  * MsgRegister()
  */
 
-MsgHandler
-MsgRegister2(void (*func)(int type, void *arg), const char *dbg)
+void
+MsgRegister2(MsgHandler *m, void (*func)(int type, void *arg), const char *dbg)
 {
-  MsgHandler	m;
-  
-  m = Malloc(MB_UTIL, sizeof(*m));
-  m->func = func;
-  m->dbg = dbg;
+    if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
+	if (pipe(msgpipe) < 0) {
+	    Perror("%s: Can't create message pipe", 
+		__FUNCTION__);
+	    DoExit(EX_ERRDEAD);
+	}
+	fcntl(msgpipe[PIPE_READ], F_SETFD, 1);
+	fcntl(msgpipe[PIPE_WRITE], F_SETFD, 1);
 
-  if ((msgpipe[0]==0) || (msgpipe[1]==0)) {
-    if (pipe(msgpipe) < 0)
-    {
-	Perror("%s: Can't create message pipe", 
-	    __FUNCTION__);
-	DoExit(EX_ERRDEAD);
-    }
-    fcntl(msgpipe[PIPE_READ], F_SETFD, 1);
-    fcntl(msgpipe[PIPE_WRITE], F_SETFD, 1);
+	if (fcntl(msgpipe[PIPE_WRITE], F_SETFL, O_NONBLOCK) < 0)
+    	    Perror("%s: fcntl", __FUNCTION__);
 
-    if (fcntl(msgpipe[PIPE_WRITE], F_SETFL, O_NONBLOCK) < 0) {
-        Perror("%s: fcntl", __FUNCTION__);
+	if (EventRegister(&msgevent, EVENT_READ,
+		msgpipe[PIPE_READ], EVENT_RECURRING, MsgEvent, NULL) < 0) {
+	    Perror("%s: Can't register event!", __FUNCTION__);
+	    DoExit(EX_ERRDEAD);
+        }
     }
 
-    if (EventRegister(&msgevent, EVENT_READ,
-	msgpipe[PIPE_READ], EVENT_RECURRING, MsgEvent, NULL) < 0)
-    {
-	Perror("%s: Can't register event!", __FUNCTION__);
-	DoExit(EX_ERRDEAD);
-    }
-  }
-  return(m);
+    m->func = func;
+    m->dbg = dbg;
 }
 
 /*
@@ -88,8 +75,8 @@ MsgRegister2(void (*func)(int type, void *arg), const char *dbg)
 void
 MsgUnRegister(MsgHandler *m)
 {
-  Freee(MB_UTIL, *m);
-  *m = NULL;
+    m->func = NULL;
+    m->dbg = NULL;
 }
 
 /*
@@ -126,7 +113,7 @@ MsgEvent(int type, void *cookie)
  */
 
 void
-MsgSend(MsgHandler m, int type, void *arg)
+MsgSend(MsgHandler *m, int type, void *arg)
 {
     struct mpmsg	msg;
     int			nw, nwrote, retry;

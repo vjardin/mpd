@@ -51,7 +51,5 @@
   extern int	EventTimerRemain(EventRef *ref);
   extern void	EventDump(Context ctx, const char *msg);
 
-  extern void	EventSetLog(int sanity, void (*warnx)(const char *fmt, ...));
-
 #endif
 

@@ -20,63 +20,10 @@
   struct pevent_ctx	*gPeventCtx = NULL;
 
 /*
- * INTERNAL VARIABLES
- */
-
-  static void   (*gWarnx)(const char *fmt, ...) = warnx;
-
-/*
  * INTERNAL FUNCTIONS
  */
 
   static void		EventHandler(void *arg);
-
-  static void		MyWarn(const char *fmt, ...) __printflike(1, 2);
-  static void		MyWarnx(const char *fmt, ...) __printflike(1, 2);
-
-/*
- * MyWarn()
- */
-
-static void
-MyWarn(const char *fmt, ...)
-{
-  va_list	args;
-  char		buf[100];
-
-  va_start(args, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, args);
-  snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-    ": %s", sys_errlist[errno]);
-  (*gWarnx)("%s", buf);
-  va_end(args);
-}
-
-/*
- * MyWarnx()
- */
-
-static void
-MyWarnx(const char *fmt, ...)
-{
-  va_list	args;
-  char		buf[100];
-
-  va_start(args, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, args);
-  (*gWarnx)("%s", buf);
-  va_end(args);
-}
-
-/*
- * EventSetLog()
- */
-
-void
-EventSetLog(int sanity, void (*warnx)(const char *fmt, ...))
-{
-  if (warnx) gWarnx = warnx;
-}
 
 /*
  * EventInit()
@@ -89,7 +36,7 @@ EventInit(void)
 
   gPeventCtx = pevent_ctx_create(MB_EVENT, NULL);
   if (!gPeventCtx) {
-    MyWarnx("%s: error pevent_ctx_create: %d", __FUNCTION__, errno);
+    Log(LG_ERR, ("%s: error pevent_ctx_create: %d", __FUNCTION__, errno));
     return(-1);
   }
 
@@ -142,7 +89,7 @@ EventRegister2(EventRef *refp, int type, int val, int flags,
 
     if (pevent_register(gPeventCtx, &refp->pe, flags, &gGiantMutex, EventHandler,
 	    refp, type, val) == -1) {
-        MyWarnx("%s: error pevent_register: %s", __FUNCTION__, strerror(errno));
+        Log(LG_ERR, ("%s: error pevent_register: %s", __FUNCTION__, strerror(errno)));
         return(-1);
     }
   

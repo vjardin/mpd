@@ -147,7 +147,7 @@ void
 BundOpen(Bund b)
 {
     REF(b);
-    MsgSend(b->msgs, MSG_OPEN, b);
+    MsgSend(&b->msgs, MSG_OPEN, b);
 }
 
 /*
@@ -158,7 +158,7 @@ void
 BundClose(Bund b)
 {
     REF(b);
-    MsgSend(b->msgs, MSG_CLOSE, b);
+    MsgSend(&b->msgs, MSG_CLOSE, b);
 }
 
 /*
@@ -1039,7 +1039,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	REF(b);
 
 	/* Get message channel */
-	b->msgs = MsgRegister(BundMsg);
+	MsgRegister(&b->msgs, BundMsg);
 
 	/* Initialize bundle configuration */
 	b->conf.retry_timeout = BUND_DEFAULT_RETRY;
@@ -1161,9 +1161,6 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
 	return(0);
     }
 
-    /* Get message channel */
-    b->msgs = MsgRegister(BundMsg);
-  
     return (b);
 }
 

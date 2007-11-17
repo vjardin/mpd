@@ -24,18 +24,23 @@
 
 /* Forward decl */
 
-  struct msghandler;
-  typedef struct msghandler	*MsgHandler;
+  struct msghandler
+  {
+    void	(*func)(int type, void *arg);
+    const char	*dbg;
+  };
+
+  typedef struct msghandler	MsgHandler;
 
 /*
  * FUNCTIONS
  */
 
-#define	MsgRegister(func)	\
-	    MsgRegister2(func, #func "()")
-  extern MsgHandler	MsgRegister2(void (*func)(int typ, void *arg), const char *dbg);
+#define	MsgRegister(m, func)	\
+	    MsgRegister2(m, func, #func "()")
+  extern void		MsgRegister2(MsgHandler *m, void (*func)(int typ, void *arg), const char *dbg);
   extern void		MsgUnRegister(MsgHandler *m);
-  extern void		MsgSend(MsgHandler m, int type, void *arg);
+  extern void		MsgSend(MsgHandler *m, int type, void *arg);
   extern const char	*MsgName(int msg);
 
 #endif

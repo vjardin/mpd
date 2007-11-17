@@ -106,7 +106,6 @@
   static void		OptParse(int ac, char *av[]);
   static int		OptApply(Option opt, int ac, char *av[]);
   static Option		OptDecode(char *arg, int longform);
-  static void		EventWarnx(const char *fmt, ...);
 
   static void		ConfigRead(int type, void *arg);
   static void		OpenCloseSignal(int sig);
@@ -203,8 +202,6 @@ main(int ac, char *av[])
 	Log(LG_ERR, ("Could not create giant mutex %d", ret));
 	exit(EX_UNAVAILABLE);
     }
-
-    EventSetLog(1, EventWarnx);
 
     /* Create signaling pipe */
     if ((ret = pipe(gSignalPipe)) != 0) {
@@ -481,24 +478,6 @@ CheckOneShot(void)
     }
     Log(LG_ALWAYS, ("One-shot mode enabled and no links found. Terminating daemon."));
     SendSignal(SIGTERM);
-}
-
-/*
- * EventWarnx()
- *
- * Callback used by Event...() routines to report problems.
- */
-
-static void
-EventWarnx(const char *fmt, ...)
-{
-    va_list	args;
-    char	buf[100];
-
-    va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    Log(LG_ALWAYS, ("EVENT: %s", buf));
-    va_end(args);
 }
 
 /*
