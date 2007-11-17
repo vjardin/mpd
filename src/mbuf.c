@@ -351,7 +351,32 @@ mbsplit(Mbuf bp, int cnt)
 int
 MemStat(Context ctx, int ac, char *av[], void *arg)
 {
-  typed_mem_dump(stdout);
-  return(0);
+    struct typed_mem_stats stats;
+    int		i;
+    u_int	total_allocs = 0;
+    u_int	total_bytes = 0;
+
+    if (typed_mem_usage(&stats))
+	Error("typed_mem_usage() error");
+    
+    /* Print header */
+    Printf("   %-28s %10s %10s\n", "Type", "Count", "Total");
+    Printf("   %-28s %10s %10s\n", "----", "-----", "-----");
+
+    for (i = 0; i < stats.length; i++) {
+	struct typed_mem_typestats *type = &stats.elems[i];
+
+	Printf("   %-28s %10u %10lu\n",
+	    type->type, (int)type->allocs, (u_long)type->bytes);
+	total_allocs += type->allocs;
+	total_bytes += type->bytes;
+    }
+    /* Print totals */
+    Printf("   %-28s %10s %10s\n", "", "-----", "-----");
+    Printf("   %-28s %10lu %10lu\n",
+        "Totals", total_allocs, total_bytes);
+
+    structs_free(&typed_mem_stats_type, NULL, &stats);
+    return(0);
 }
 

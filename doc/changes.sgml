@@ -71,6 +71,8 @@
 	  </item>
 	  <item> Implemented PAP-ACK packet retransmit.
 	  </item>
+	  <item> 'show mem' command now returns output to console instead of stdout.
+	  </item>
 	  <item> Many small fixes.
 	  </item>
 	</itemize>
