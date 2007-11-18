@@ -444,6 +444,9 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
 	if (rtn)
 	    break;
     }
+    RESETREF(cs->context.lnk, NULL);
+    RESETREF(cs->context.bund, NULL);
+    RESETREF(cs->context.rep, NULL);
 }
 
 static void 
@@ -504,6 +507,9 @@ WebRunCmd(FILE *f, const char *query, int priv)
     fprintf(f, "</PRE>\n");
 done:
     fprintf(f, "<P><A href=\"/\"><< Back</A></P>\n");
+    RESETREF(cs->context.lnk, NULL);
+    RESETREF(cs->context.bund, NULL);
+    RESETREF(cs->context.rep, NULL);
 }
 
 static void

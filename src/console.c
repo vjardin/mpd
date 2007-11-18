@@ -632,8 +632,12 @@ success:
   }
 
 abort:
-  if (cs->close)
-    cs->close(cs);
+    if (cs->close) {
+	RESETREF(cs->context.lnk, NULL);
+        RESETREF(cs->context.bund, NULL);
+        RESETREF(cs->context.rep, NULL);
+	cs->close(cs);
+    }
 out:
   return;
 }
