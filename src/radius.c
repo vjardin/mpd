@@ -1611,7 +1611,31 @@ RadiusGetParams(AuthData auth, int eap_proxy)
       auth->info.lnkname, __func__));
   }
   
-  return RAD_ACK;
+    /* If Framed-IP-Address is present and Framed-Netmask != 32 add route */
+    if (auth->params.range_valid && auth->params.range.width == 32 &&
+	    auth->params.netmask != 32) {
+	struct in_addr tmpmask;
+	widthtoin_addr(auth->params.netmask, &tmpmask);
+	r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
+	r->dest.addr = auth->params.range.addr;
+	r->dest.addr.u.ip4.s_addr &= tmpmask.s_addr;
+	r->dest.width = auth->params.netmask;
+	r->ok = 0;
+	j = 0;
+	SLIST_FOREACH(r1, &auth->params.routes, next) {
+	  if (!u_rangecompare(&r->dest, &r1->dest)) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", auth->info.lnkname, __func__));
+	    j = 1;
+	  }
+	};
+	if (j == 0) {
+	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
+	} else {
+	    Freee(MB_AUTH, r);
+	}
+    }
+  
+    return RAD_ACK;
 }
 
 
