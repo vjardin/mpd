@@ -1613,7 +1613,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   
     /* If Framed-IP-Address is present and Framed-Netmask != 32 add route */
     if (auth->params.range_valid && auth->params.range.width == 32 &&
-	    auth->params.netmask != 32) {
+	    auth->params.netmask != 0 && auth->params.netmask != 32) {
 	struct in_addr tmpmask;
 	widthtoin_addr(auth->params.netmask, &tmpmask);
 	r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
