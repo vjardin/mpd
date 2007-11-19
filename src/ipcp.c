@@ -441,33 +441,33 @@ IpcpLayerFinish(Fsm fp)
 static void
 IpcpLayerUp(Fsm fp)
 {
-    Bund 	b = (Bund)fp->arg;
-  IpcpState		const ipcp = &b->ipcp;
-  char			ipbuf[20];
-  char			path[NG_PATHSIZ];
-  struct ngm_vjc_config	vjc;
-  struct u_addr		tmp;
+    Bund 			b = (Bund)fp->arg;
+    IpcpState			const ipcp = &b->ipcp;
+    char			ipbuf[20];
+    char			path[NG_PATHSIZ];
+    struct ngm_vjc_config	vjc;
+    struct u_addr		tmp;
 
-  /* Determine actual address we'll use for ourselves */
-  in_addrtou_addr(&ipcp->want_addr, &tmp);
-  if (!IpAddrInRange(&ipcp->self_allow, &tmp)) {
-    Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
-      "self", inet_ntoa(ipcp->want_addr)));
-    u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
-    Log(fp->log, ("        using %s instead.",
-      inet_ntoa(ipcp->want_addr)));
-  }
+    /* Determine actual address we'll use for ourselves */
+    in_addrtou_addr(&ipcp->want_addr, &tmp);
+    if (!IpAddrInRange(&ipcp->self_allow, &tmp)) {
+	Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
+    	    "self", inet_ntoa(ipcp->want_addr)));
+	u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
+	Log(fp->log, ("        using %s instead.",
+    	    inet_ntoa(ipcp->want_addr)));
+    }
 
-  /* Determine actual address we'll use for peer */
-  in_addrtou_addr(&ipcp->peer_addr, &tmp);
-  if (!IpAddrInRange(&ipcp->peer_allow, &tmp)
-      && !u_addrempty(&ipcp->peer_allow.addr)) {
-    Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
-      "peer", inet_ntoa(ipcp->peer_addr)));
-    u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
-    Log(fp->log, ("        using %s instead.",
-      inet_ntoa(ipcp->peer_addr)));
-  }
+    /* Determine actual address we'll use for peer */
+    in_addrtou_addr(&ipcp->peer_addr, &tmp);
+    if (!IpAddrInRange(&ipcp->peer_allow, &tmp)
+    	    && !u_addrempty(&ipcp->peer_allow.addr)) {
+	Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
+    	    "peer", inet_ntoa(ipcp->peer_addr)));
+	u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
+	Log(fp->log, ("        using %s instead.",
+    	    inet_ntoa(ipcp->peer_addr)));
+    }
 
     /* Report */
     snprintf(ipbuf, sizeof(ipbuf), "%s", inet_ntoa(ipcp->peer_addr));
@@ -502,13 +502,13 @@ IpcpLayerUp(Fsm fp)
 	}
     }
 
-  BundNcpsJoin(b, NCP_IPCP);
+    BundNcpsJoin(b, NCP_IPCP);
 
-  /* Enable IP packets in the PPP node */
-  b->pppConfig.bund.enableIP = 1;
-  b->pppConfig.bund.enableVJCompression = vjc.enableComp;
-  b->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
-  NgFuncSetConfig(b);
+    /* Enable IP packets in the PPP node */
+    b->pppConfig.bund.enableIP = 1;
+    b->pppConfig.bund.enableVJCompression = vjc.enableComp;
+    b->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
+    NgFuncSetConfig(b);
 }
 
 /*
@@ -521,19 +521,20 @@ static void
 IpcpLayerDown(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
-  IpcpState		const ipcp = &b->ipcp;
+    IpcpState	const ipcp = &b->ipcp;
 
-  /* Turn off IP packets */
-  b->pppConfig.bund.enableIP = 0;
-  b->pppConfig.bund.enableVJCompression = 0;
-  b->pppConfig.bund.enableVJDecompression = 0;
-  NgFuncSetConfig(b);
+    /* Turn off IP packets */
+    b->pppConfig.bund.enableIP = 0;
+    b->pppConfig.bund.enableVJCompression = 0;
+    b->pppConfig.bund.enableVJDecompression = 0;
+    NgFuncSetConfig(b);
 
-  if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
-	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP)
+    if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
+	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP) {
 	IpcpNgShutdownVJ(b);
+    }
 
-  BundNcpsLeave(b, NCP_IPCP);
+    BundNcpsLeave(b, NCP_IPCP);
   
     if (b->params.ippool_used) {
 	struct u_addr ip;
@@ -546,7 +547,6 @@ IpcpLayerDown(Fsm fp)
 	IPPoolFree(ipcp->conf.ippool, &ip);
 	ipcp->ippool_used = 0;
     }
-
 }
 
 /*
@@ -556,7 +556,7 @@ IpcpLayerDown(Fsm fp)
 void
 IpcpUp(Bund b)
 {
-  FsmUp(&b->ipcp.fsm);
+    FsmUp(&b->ipcp.fsm);
 }
 
 /*
@@ -566,7 +566,7 @@ IpcpUp(Bund b)
 void
 IpcpDown(Bund b)
 {
-  FsmDown(&b->ipcp.fsm);
+    FsmDown(&b->ipcp.fsm);
 }
 
 /*
@@ -576,7 +576,7 @@ IpcpDown(Bund b)
 void
 IpcpOpen(Bund b)
 {
-  FsmOpen(&b->ipcp.fsm);
+    FsmOpen(&b->ipcp.fsm);
 }
 
 /*
@@ -586,7 +586,7 @@ IpcpOpen(Bund b)
 void
 IpcpClose(Bund b)
 {
-  FsmClose(&b->ipcp.fsm);
+    FsmClose(&b->ipcp.fsm);
 }
 
 /*
@@ -833,7 +833,7 @@ doDnsNbns:
 void
 IpcpInput(Bund b, Mbuf bp)
 {
-  FsmInput(&b->ipcp.fsm, bp);
+    FsmInput(&b->ipcp.fsm, bp);
 }
 
 static int
