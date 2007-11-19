@@ -74,7 +74,6 @@
     u_long		peer_reject;	/* Request codes rejected by peer */
 
     struct fsm		fsm;
-    u_char		ipDynamic:1;	/* Peer's IP was alloc dynamically */
   };
   typedef struct ipcpstate	*IpcpState;
 
