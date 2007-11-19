@@ -13,6 +13,7 @@
 #include "l2tp_avp.h"
 #include "l2tp_ctrl.h"
 #include "log.h"
+#include "util.h"
 
 #include <sys/types.h>
 #include <pdel/util/ghash.h>
@@ -57,6 +58,8 @@
   struct l2tp_tun {
     struct u_addr	self_addr;	/* self IP address */
     struct u_addr	peer_addr;	/* peer IP address */
+    char                peer_iface[IFNAMSIZ+1];	/* Peer iface */
+    u_char		peer_mac_addr[6];	/* Peer MAC address */
     in_port_t		self_port;	/* self port */
     in_port_t		peer_port;	/* peer port */
     u_char		connected;	/* control connection is connected */
@@ -123,6 +126,8 @@
   static int	L2tpSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
   static int	L2tpPeerAddr(Link l, void *buf, int buf_len);
   static int	L2tpPeerPort(Link l, void *buf, int buf_len);
+  static int	L2tpPeerMacAddr(Link l, void *buf, int buf_len);
+  static int	L2tpPeerIface(Link l, void *buf, int buf_len);
   static int	L2tpCallingNum(Link l, void *buf, int buf_len);
   static int	L2tpCalledNum(Link l, void *buf, int buf_len);
   static int	L2tpSetCallingNum(Link l, void *buf);
@@ -181,6 +186,8 @@
     .setcallednum	= L2tpSetCalledNum,
     .peeraddr		= L2tpPeerAddr,
     .peerport		= L2tpPeerPort,
+    .peermacaddr	= L2tpPeerMacAddr,
+    .peeriface		= L2tpPeerIface,
     .callingnum		= L2tpCallingNum,
     .callednum		= L2tpCalledNum,
   };
@@ -782,6 +789,35 @@ L2tpPeerPort(Link l, void *buf, int buf_len)
 }
 
 static int
+L2tpPeerMacAddr(Link l, void *buf, int buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) l->info;
+
+    if (l2tp->tun && l2tp->tun->peer_iface[0]) {
+	snprintf(buf, buf_len, "%02x:%02x:%02x:%02x:%02x:%02x",
+	    l2tp->tun->peer_mac_addr[0], l2tp->tun->peer_mac_addr[1],
+	    l2tp->tun->peer_mac_addr[2], l2tp->tun->peer_mac_addr[3],
+	    l2tp->tun->peer_mac_addr[4], l2tp->tun->peer_mac_addr[5]);
+	return (0);
+    }
+    ((char*)buf)[0]=0;
+    return(0);
+}
+
+static int
+L2tpPeerIface(Link l, void *buf, int buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) l->info;
+
+    if (l2tp->tun && l2tp->tun->peer_iface[0]) {
+	strlcpy(buf, l2tp->tun->peer_iface, buf_len);
+	return (0);
+    }
+    ((char*)buf)[0]=0;
+    return(0);
+}
+
+static int
 L2tpCallingNum(Link l, void *buf, int buf_len)
 {
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
@@ -833,6 +869,14 @@ L2tpStat(Context ctx)
 		u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
 	    Printf("\tCurrent peer : %s, port %u\r\n",
 		u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
+	    if (l2tp->tun->peer_iface[0]) {
+		Printf("\tCurrent peer : %02x:%02x:%02x:%02x:%02x:%02x at %s\r\n",
+		    l2tp->tun->peer_mac_addr[0], l2tp->tun->peer_mac_addr[1],
+		    l2tp->tun->peer_mac_addr[2], l2tp->tun->peer_mac_addr[3],
+		    l2tp->tun->peer_mac_addr[4], l2tp->tun->peer_mac_addr[5],
+		    l2tp->tun->peer_iface);
+	    }
+
 	    Printf("\tFraming      : %s\r\n", (l2tp->sync?"Sync":"Async"));
 	}
 	Printf("\tCalling number: %s\r\n", l2tp->callingnum);
@@ -849,9 +893,15 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 	struct l2tp_tun *tun = ppp_l2tp_ctrl_get_cookie(ctrl);
 	struct ppp_l2tp_sess *sess;
 	struct ppp_l2tp_avp_list *avps = NULL;
+	struct sockaddr_dl  hwa;
 	int	k;
 
 	Log(LG_PHYS, ("L2TP: Control connection %p connected", ctrl));
+	
+	if (GetPeerEther(&tun->peer_addr, &hwa)) {
+	    if_indextoname(hwa.sdl_index, tun->peer_iface);
+	    memcpy(tun->peer_mac_addr, LLADDR(&hwa), sizeof(tun->peer_mac_addr));
+	};
 
 	/* Examine all L2TP links. */
 	for (k = 0; k < gNumLinks; k++) {

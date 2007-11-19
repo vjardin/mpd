@@ -90,7 +90,8 @@
   extern int		GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname);
   extern int		GetEther(struct u_addr *addr,
 			    struct sockaddr_dl *hwaddr);
-  extern void     ppp_util_ascify(char *buf, size_t max,
+  extern int		GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr);
+  extern void     	ppp_util_ascify(char *buf, size_t max,
 			    const char *bytes, size_t len);
 
 #endif

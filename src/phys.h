@@ -49,6 +49,10 @@
 						/* returns the peer-address (IP, MAC, whatever) */
     int		(*peerport)(Link l, void *buf, int buf_len); 
 						/* returns the peer-port */
+    int		(*peermacaddr)(Link l, void *buf, int buf_len);
+						/* returns the peer MAC address */
+    int		(*peeriface)(Link l, void *buf, int buf_len);
+						/* returns the peer interface */
     int		(*callingnum)(Link l, void *buf, int buf_len); 
 						/* returns the calling number (IP, MAC, whatever) */
     int		(*callednum)(Link l, void *buf, int buf_len); 
@@ -81,6 +85,8 @@
   extern int		PhysSetCalledNum(Link l, char *buf);
   extern int		PhysGetPeerAddr(Link l, char *buf, int buf_len);
   extern int		PhysGetPeerPort(Link l, char *buf, int buf_len);
+  extern int		PhysGetPeerMacAddr(Link l, char *buf, int buf_len);
+  extern int		PhysGetPeerIface(Link l, char *buf, int buf_len);
   extern int		PhysGetCallingNum(Link l, char *buf, int buf_len);
   extern int		PhysGetCalledNum(Link l, char *buf, int buf_len);
   extern int		PhysIsBusy(Link l);

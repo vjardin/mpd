@@ -352,6 +352,40 @@ PhysGetPeerPort(Link l, char *buf, int buf_len)
 }
 
 /*
+ * PhysGetPeerMacAddr()
+ */
+
+int
+PhysGetPeerMacAddr(Link l, char *buf, int buf_len)
+{
+    PhysType	const pt = l->type;
+
+    buf[0] = 0;
+
+    if (pt && pt->peermacaddr)
+	return ((*pt->peermacaddr)(l, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
+ * PhysGetPeerIface()
+ */
+
+int
+PhysGetPeerIface(Link l, char *buf, int buf_len)
+{
+    PhysType	const pt = l->type;
+
+    buf[0] = 0;
+
+    if (pt && pt->peeriface)
+	return ((*pt->peeriface)(l, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
  * PhysGetCallingNum()
  */
 

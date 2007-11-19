@@ -349,6 +349,12 @@ AuthStart(Link l)
     /* remember peer's TCP or UDP port */
     PhysGetPeerPort(l, a->params.peerport, sizeof(a->params.peerport));
   
+    /* remember peer's MAC address */
+    PhysGetPeerMacAddr(l, a->params.peermacaddr, sizeof(a->params.peermacaddr));
+  
+    /* remember peer's iface */
+    PhysGetPeerIface(l, a->params.peeriface, sizeof(a->params.peeriface));
+  
     /* remember calling number */
     PhysGetCallingNum(l, a->params.callingnum, sizeof(a->params.callingnum));
   

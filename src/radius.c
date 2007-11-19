@@ -77,6 +77,7 @@
   static struct confinfo	gConfList[] = {
     { 0,	RADIUS_CONF_MESSAGE_AUTHENTIC,	"message-authentic"	},
     { 0,	RADIUS_CONF_PEER_AS_CALLING,	"peer-as-calling"	},
+    { 0,	RADIUS_CONF_REPORT_MAC,		"report-mac"		},
     { 0,	0,				NULL			},
   };
 
@@ -805,10 +806,17 @@ RadiusStart(AuthData auth, short request_type)
 
     /* For compatibility and for untrusted peers use peeraddr as calling */
     if (Enabled(&conf->options, RADIUS_CONF_PEER_AS_CALLING)) {
+	char	tmp[128];
+	strlcpy(tmp, auth->params.peeraddr, sizeof(tmp));
+	if (Enabled(&conf->options, RADIUS_CONF_REPORT_MAC)) {
+	    strlcat(tmp, " / ", sizeof(tmp));
+	    strlcat(tmp, auth->params.peermacaddr, sizeof(tmp));
+	    strlcat(tmp, " / ", sizeof(tmp));
+	    strlcat(tmp, auth->params.peeriface, sizeof(tmp));
+	}
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID): %s",
-    	    auth->info.lnkname, __func__, auth->params.peeraddr));
-	if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID,
-    	    auth->params.peeraddr) == -1) {
+    	    auth->info.lnkname, __func__, tmp));
+	if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, tmp) == -1) {
     	        Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_CALLING_STATION_ID) failed %s",
 	    	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
     		return (RAD_NACK);

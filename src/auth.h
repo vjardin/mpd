@@ -131,6 +131,8 @@
     char		callednum[64];	/* hr representation of the called number */
     char		peeraddr[64];	/* hr representation of the peer address */
     char		peerport[6];	/* hr representation of the peer port */
+    char		peermacaddr[32];	/* hr representation of the peer MAC address */
+    char		peeriface[IFNAMSIZ+1];	/* hr representation of the peer interface */
 
     struct {
       int	policy;			/* MPPE_POLICY_* */
