@@ -1930,6 +1930,8 @@ AuthExternal(AuthData auth)
     fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
     fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
     fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
+    fprintf(fp, "PEER_MAC_ADDR:%s\n", auth->params.peermacaddr);
+    fprintf(fp, "PEER_IFACE:%s\n", auth->params.peeriface);
     fprintf(fp, "PEER_IDENT:%s\n", auth->info.peer_ident);
  
 
@@ -2223,6 +2225,8 @@ AuthExternalAcct(AuthData auth)
     fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
     fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
     fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
+    fprintf(fp, "PEER_MAC_ADDR:%s\n", auth->params.peermacaddr);
+    fprintf(fp, "PEER_IFACE:%s\n", auth->params.peeriface);
     fprintf(fp, "PEER_IDENT:%s\n", auth->info.peer_ident);
 
     fprintf(fp, "FRAMED_IP_ADDRESS:%s\n",
