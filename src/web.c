@@ -441,8 +441,6 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
 	cs->context.errmsg[0] = 0;
 	rtn = DoCommandTab(&cs->context, gCommands, ac, av);
 	fprintf(f, "RESULT: %d %s\n", rtn, cs->context.errmsg);
-	if (rtn)
-	    break;
     }
     RESETREF(cs->context.lnk, NULL);
     RESETREF(cs->context.bund, NULL);
@@ -501,8 +499,7 @@ WebRunCmd(FILE *f, const char *query, int priv)
 	cs->write(cs, "%s\n", buf1);
     
 	ac = ParseLine(buf1, av, sizeof(av) / sizeof(*av), 0);
-	if (DoCommand(&cs->context, ac, av, NULL, 0))
-	    break;
+	DoCommand(&cs->context, ac, av, NULL, 0);
     }
     fprintf(f, "</PRE>\n");
 done:
