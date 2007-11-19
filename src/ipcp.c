@@ -297,6 +297,7 @@ IpcpConfigure(Fsm fp)
     if ((b->params.range_valid) && (!u_rangeempty(&b->params.range)))
 	ipcp->peer_allow = b->params.range;
     else if (b->params.ippool[0]) {
+	/* Get IP from pool if needed */
 	if (IPPoolGet(b->params.ippool, &ipcp->peer_allow.addr)) {
 	    Log(LG_AUTH, ("[%s] IPCP: Can't get IP from pool \"%s\"",
 		b->name, b->params.ippool));
@@ -324,31 +325,29 @@ IpcpConfigure(Fsm fp)
 	}
     } else
 	ipcp->peer_allow = ipcp->conf.peer_allow;
-
-    /* Get IP from pool if needed */
     
-  /* Initially request addresses as specified by config */
-  u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
-  u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
+    /* Initially request addresses as specified by config */
+    u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
+    u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
 
-  /* Van Jacobson compression */
-  ipcp->peer_comp.proto = 0;
-  ipcp->peer_comp.maxchan = IPCP_VJCOMP_DEFAULT_MAXCHAN;
-  ipcp->peer_comp.compcid = 0;
+    /* Van Jacobson compression */
+    ipcp->peer_comp.proto = 0;
+    ipcp->peer_comp.maxchan = IPCP_VJCOMP_DEFAULT_MAXCHAN;
+    ipcp->peer_comp.compcid = 0;
 
-  ipcp->want_comp.proto =
-    (b->params.vjc_enable || Enabled(&ipcp->conf.options, IPCP_CONF_VJCOMP)) ?
-	htons(PROTO_VJCOMP) : 0;
-  ipcp->want_comp.maxchan = IPCP_VJCOMP_MAX_MAXCHAN;
+    ipcp->want_comp.proto =
+	(b->params.vjc_enable || Enabled(&ipcp->conf.options, IPCP_CONF_VJCOMP)) ?
+	    htons(PROTO_VJCOMP) : 0;
+    ipcp->want_comp.maxchan = IPCP_VJCOMP_MAX_MAXCHAN;
 
-  /* DNS and NBNS servers */
-  memset(&ipcp->want_dns, 0, sizeof(ipcp->want_dns));
-  memset(&ipcp->want_nbns, 0, sizeof(ipcp->want_nbns));
+    /* DNS and NBNS servers */
+    memset(&ipcp->want_dns, 0, sizeof(ipcp->want_dns));
+    memset(&ipcp->want_nbns, 0, sizeof(ipcp->want_nbns));
 
-  /* If any of our links are unable to give receive error indications, we must
+    /* If any of our links are unable to give receive error indications, we must
      tell the peer not to compress the slot-id in VJCOMP packets (cf. RFC1144).
      To be on the safe side, we always say this. */
-  ipcp->want_comp.compcid = 0;
+    ipcp->want_comp.compcid = 0;
 }
 
 /*
@@ -372,15 +371,15 @@ static u_char *
 IpcpBuildConfigReq(Fsm fp, u_char *cp)
 {
     Bund 	b = (Bund)fp->arg;
-  IpcpState	const ipcp = &b->ipcp;
+    IpcpState	const ipcp = &b->ipcp;
 
-  /* Put in my desired IP address */
-  if (!IPCP_REJECTED(ipcp, TY_IPADDR) || ipcp->want_addr.s_addr == 0)
-    cp = FsmConfValue(cp, TY_IPADDR, 4, &ipcp->want_addr.s_addr);
+    /* Put in my desired IP address */
+    if (!IPCP_REJECTED(ipcp, TY_IPADDR) || ipcp->want_addr.s_addr == 0)
+	cp = FsmConfValue(cp, TY_IPADDR, 4, &ipcp->want_addr.s_addr);
 
-  /* Put in my requested compression protocol */
-  if (ipcp->want_comp.proto != 0 && !IPCP_REJECTED(ipcp, TY_COMPPROTO))
-    cp = FsmConfValue(cp, TY_COMPPROTO, 4, &ipcp->want_comp);
+    /* Put in my requested compression protocol */
+    if (ipcp->want_comp.proto != 0 && !IPCP_REJECTED(ipcp, TY_COMPPROTO))
+	cp = FsmConfValue(cp, TY_COMPPROTO, 4, &ipcp->want_comp);
 
   /* Request peer's DNS and NBNS servers */
   {
