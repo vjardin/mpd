@@ -1725,6 +1725,13 @@ BundNgDataEvent(int type, void *cookie)
     Link	l;
     u_int16_t	linkNum, proto;
 
+    if (nread <= 4) {
+	LogDumpBuf(LG_FRAME|LG_ERR, buf, nread,
+    	    "[%s] rec'd truncated %d bytes frame from link=%d",
+    	    b->name, nread, (int16_t)linkNum);
+	return;
+    }
+
     /* Extract link number and protocol */
     memcpy(&linkNum, buf, 2);
     linkNum = ntohs(linkNum);

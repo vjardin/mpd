@@ -807,6 +807,13 @@ LinkNgDataEvent(int type, void *cookie)
     if ((proto & 0x01) == 0)
 	proto = (proto << 8) + buf[ptr++];
 
+    if (nread <= ptr) {
+	LogDumpBuf(LG_FRAME|LG_ERR, buf, nread,
+    	    "[%s] rec'd truncated %d bytes frame from link",
+    	    l->name, nread);
+	return;
+    }
+
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
       "[%s] rec'd %d bytes frame from link proto=0x%04x",
