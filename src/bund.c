@@ -1004,7 +1004,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
     if (ac - stay < 1 || ac - stay > 2)
 	return(-1);
 
-    if (strlen(av[0 + stay]) > 16)
+    if (strlen(av[0 + stay]) > (16 - tmpl * 5))
 	Error("Bundle name \"%s\" is too long", av[0 + stay]);
 
     /* See if bundle name already taken */
