@@ -110,6 +110,7 @@
   static int		ModemOriginated(Link l);
   static int		ModemIsSync(Link l);
   static int		ModemPeerAddr(Link l, void *buf, int buf_len);
+  static int		ModemIface(Link l, void *buf, int buf_len);
 
   static void		ModemStart(void *arg);
   static void		ModemDoClose(Link l, int opened);
@@ -152,6 +153,7 @@
     .issync		= ModemIsSync,
     .setaccm 		= ModemSetAccm,
     .peeraddr		= ModemPeerAddr,
+    .peeriface		= ModemIface,
     .callingnum		= NULL,
     .callednum		= NULL,
   };
@@ -923,20 +925,23 @@ ModemIsSync(Link l)
     return (0);
 }
 
-/* XXX mbretter: the phone-number would be correct */
 static int
 ModemPeerAddr(Link l, void *buf, int buf_len)
 {
     ModemInfo	const m = (ModemInfo) l->info;
 
-    if (buf_len < sizeof(m->ttynode))
-	return(-1);
-
-    memcpy(buf, m->ttynode, sizeof(m->ttynode));
-
+    strlcpy(buf, m->ttynode, buf_len);
     return(0);
 }
 
+static int
+ModemIface(Link l, void *buf, int buf_len)
+{
+    ModemInfo	const m = (ModemInfo) l->info;
+
+    strlcpy(buf, m->device, buf_len);
+    return(0);
+}
 
 /*
  * ModemStat()
