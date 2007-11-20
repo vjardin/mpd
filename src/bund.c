@@ -1705,7 +1705,7 @@ static void
 BundNgDataEvent(int type, void *cookie)
 {
     Bund	b = (Bund)cookie;
-  u_char		buf[8192];
+  u_char		buf[2048];
   struct sockaddr_ng	naddr;
   int			nread;
   socklen_t		nsize = sizeof(naddr);
@@ -1733,8 +1733,8 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd bypass frame link=%d proto=0x%04x",
-      b->name, (int16_t)linkNum, proto);
+      "[%s] rec'd %d bytes bypass frame link=%d proto=0x%04x",
+      b->name, nread, (int16_t)linkNum, proto);
 
     /* Set link */
     assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < NG_PPP_MAX_LINKS);

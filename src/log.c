@@ -282,7 +282,7 @@ vLogPrintf(const char *fmt, va_list args)
 {
     LogTimeStamp(logprintf);
     if (!SLIST_EMPTY(&gConsole.sessions)) {
-	char		buf[1024];
+	char		buf[256];
 	ConsoleSession	s;
 
         vsnprintf(buf, sizeof(buf), fmt, args);
@@ -333,7 +333,7 @@ LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
 {
     int		k, total;
     u_char	bytes[DUMP_BYTES_PER_LINE];
-    char	line[256];
+    char	line[128];
     int		linelen;
     va_list	ap;
 
@@ -397,7 +397,7 @@ void
 LogDumpBuf(int level, const u_char *buf, int count, const char *fmt, ...)
 {
     int		k, stop, total;
-    char	line[256];
+    char	line[128];
     int		linelen;
     va_list	ap;
 

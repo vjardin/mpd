@@ -785,7 +785,7 @@ static void
 LinkNgDataEvent(int type, void *cookie)
 {
     Link		l = (Link)cookie;
-    u_char		buf[8192];
+    u_char		buf[2048];
     int			nread;
     u_int16_t		proto;
     int			ptr;
@@ -809,8 +809,8 @@ LinkNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame from link proto=0x%04x",
-      l->name, proto);
+      "[%s] rec'd %d bytes frame from link proto=0x%04x",
+      l->name, nread, proto);
 
     /* Input frame */
     InputFrame(l->bund, l, proto,
