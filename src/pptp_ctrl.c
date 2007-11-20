@@ -949,7 +949,7 @@ PptpCtrlReadCtrl(int type, void *cookie)
     goto abort;
   }
   LogDumpBuf(LG_FRAME, c->frame.buf + c->flen, nread,
-    "pptp%d: read ctrl data", c->id);
+    "pptp%d: read %d bytes ctrl data", c->id, nread);
   c->flen += nread;
 
   /* Do whatever with what we got */
@@ -1117,7 +1117,7 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
     PptpCtrlKillCtrl(c);
     return -1;
   }
-  LogDumpBuf(LG_FRAME, frame.buf, totlen, "pptp%d: wrote ctrl data", c->id);
+  LogDumpBuf(LG_FRAME, frame.buf, totlen, "pptp%d: wrote %d bytes ctrl data", c->id, totlen);
 
   /* If we expect a reply to this message, start expecting it now */
   if (PPTP_VALID_CTRL_TYPE(mi->reqrep.reply)) {

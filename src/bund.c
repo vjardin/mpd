@@ -1753,7 +1753,7 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on demand/mssfix-in hook", b->name);
+      "[%s] rec'd %d bytes IP frame on demand/mssfix-in hook", b->name, nread);
     IfaceListenInput(b, PROTO_IP,
       mbufise(MB_FRAME_IN, buf, nread));
     return;
@@ -1763,7 +1763,7 @@ BundNgDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_OUT) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on mssfix-out hook", b->name);
+      "[%s] rec'd %d bytes IP frame on mssfix-out hook", b->name, nread);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
     IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
     NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_IN, b->name, nbp);
@@ -1773,7 +1773,7 @@ BundNgDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_IN) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd IP frame on mssfix-in hook", b->name);
+      "[%s] rec'd %d bytes IP frame on mssfix-in hook", b->name, nread);
     nbp = mbufise(MB_FRAME_IN, buf, nread);
     IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
     NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_OUT, b->name, nbp);
@@ -1786,7 +1786,7 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_COMPRESS);
+      "[%s] rec'd %d bytes frame on %s hook", b->name, NG_PPP_HOOK_COMPRESS, nread);
 
     nbp = CcpDataOutput(b, mbufise(MB_COMP, buf, nread));
     if (nbp)
@@ -1799,7 +1799,7 @@ BundNgDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECOMPRESS) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_DECOMPRESS);
+      "[%s] rec'd %d bytes frame on %s hook", b->name, NG_PPP_HOOK_DECOMPRESS, nread);
 
     nbp = CcpDataInput(b, mbufise(MB_COMP, buf, nread));
     if (nbp)
@@ -1813,7 +1813,7 @@ BundNgDataEvent(int type, void *cookie)
 
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_ENCRYPT);
+      "[%s] rec'd %d bytes frame on %s hook", b->name, NG_PPP_HOOK_ENCRYPT, nread);
 
     nbp = EcpDataOutput(b, mbufise(MB_CRYPT, buf, nread));
     if (nbp)
@@ -1826,7 +1826,7 @@ BundNgDataEvent(int type, void *cookie)
   if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECRYPT) == 0) {
     /* Debugging */
     LogDumpBuf(LG_FRAME, buf, nread,
-      "[%s] rec'd frame on %s hook", b->name, NG_PPP_HOOK_DECRYPT);
+      "[%s] rec'd %d bytes frame on %s hook", b->name, NG_PPP_HOOK_DECRYPT, nread);
 
     nbp = EcpDataInput(b, mbufise(MB_CRYPT, buf, nread));
     if (nbp) 
@@ -1837,7 +1837,7 @@ BundNgDataEvent(int type, void *cookie)
 
   /* Unknown hook! */
   LogDumpBuf(LG_FRAME, buf, nread,
-    "[%s] rec'd data on unknown hook \"%s\"", b->name, naddr.sg_data);
+    "[%s] rec'd %d bytes data on unknown hook \"%s\"", b->name, naddr.sg_data, nread);
   DoExit(EX_ERRDEAD);
 }
 
