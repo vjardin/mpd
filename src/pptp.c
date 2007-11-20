@@ -14,6 +14,7 @@
 #include "pptp.h"
 #include "pptp_ctrl.h"
 #include "log.h"
+#include "util.h"
 
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
@@ -54,6 +55,8 @@
     void		*listener;	/* Listener pointer */
     struct u_addr	self_addr;	/* Current self IP address */
     struct u_addr	peer_addr;	/* Current peer IP address */
+    char                peer_iface[IFNAMSIZ+1];	/* Peer iface */
+    u_char		peer_mac_addr[6];	/* Peer MAC address */
     in_port_t		peer_port;	/* Current peer port */
     u_char		originate;	/* Call originated locally */
     u_char		outcall;	/* Call is outgoing vs. incoming */
@@ -102,6 +105,8 @@
   static int	PptpSetCalledNum(Link l, void *buf);
   static int	PptpPeerAddr(Link l, void *buf, int buf_len);
   static int	PptpPeerPort(Link l, void *buf, int buf_len);
+  static int	PptpPeerMacAddr(Link l, void *buf, int buf_len);
+  static int	PptpPeerIface(Link l, void *buf, int buf_len);
   static int	PptpCallingNum(Link l, void *buf, int buf_len);
   static int	PptpCalledNum(Link l, void *buf, int buf_len);
 
@@ -160,6 +165,8 @@
     .setcallednum	= PptpSetCalledNum,
     .peeraddr		= PptpPeerAddr,
     .peerport		= PptpPeerPort,
+    .peermacaddr	= PptpPeerMacAddr,
+    .peeriface		= PptpPeerIface,
     .callingnum		= PptpCallingNum,
     .callednum		= PptpCalledNum,
   };
@@ -242,6 +249,7 @@ static void
 PptpOpen(Link l)
 {
     PptpInfo		const pptp = (PptpInfo) l->info;
+    struct sockaddr_dl  hwa;
 
     /* Check state */
     switch (l->state) {
@@ -266,6 +274,11 @@ PptpOpen(Link l)
 		    /* We should not set state=DOWN as PptpResult() will be called once more */
 		    break;
 		}
+
+		if (GetPeerEther(&pptp->peer_addr, &hwa)) {
+		    if_indextoname(hwa.sdl_index, pptp->peer_iface);
+		    memcpy(pptp->peer_mac_addr, LLADDR(&hwa), sizeof(pptp->peer_mac_addr));
+		};
 
 		l->state = PHYS_STATE_UP;
 		PhysUp(l);
@@ -482,6 +495,35 @@ PptpPeerPort(Link l, void *buf, int buf_len)
 }
 
 static int
+PptpPeerMacAddr(Link l, void *buf, int buf_len)
+{
+    PptpInfo	const pptp = (PptpInfo) l->info;
+
+    if (pptp->peer_iface[0]) {
+	snprintf(buf, buf_len, "%02x:%02x:%02x:%02x:%02x:%02x",
+	    pptp->peer_mac_addr[0], pptp->peer_mac_addr[1],
+	    pptp->peer_mac_addr[2], pptp->peer_mac_addr[3],
+	    pptp->peer_mac_addr[4], pptp->peer_mac_addr[5]);
+	return (0);
+    }
+    ((char*)buf)[0]=0;
+    return(0);
+}
+
+static int
+PptpPeerIface(Link l, void *buf, int buf_len)
+{
+    PptpInfo	const pptp = (PptpInfo) l->info;
+
+    if (pptp->peer_iface[0]) {
+	strlcpy(buf, pptp->peer_iface, buf_len);
+	return (0);
+    }
+    ((char*)buf)[0]=0;
+    return(0);
+}
+
+static int
 PptpCallingNum(Link l, void *buf, int buf_len)
 {
     PptpInfo	const pptp = (PptpInfo) l->info;
@@ -532,6 +574,13 @@ PptpStat(Context ctx)
 	    u_addrtoa(&pptp->self_addr, buf, sizeof(buf)));
 	Printf("\tCurrent peer : %s, port %u\r\n",
 	    u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
+	if (pptp->peer_iface[0]) {
+	    Printf("\tCurrent peer : %02x:%02x:%02x:%02x:%02x:%02x at %s\r\n",
+	        pptp->peer_mac_addr[0], pptp->peer_mac_addr[1],
+	        pptp->peer_mac_addr[2], pptp->peer_mac_addr[3],
+	        pptp->peer_mac_addr[4], pptp->peer_mac_addr[5],
+	        pptp->peer_iface);
+	}
 	Printf("\tFraming      : %s\r\n", (pptp->sync?"Sync":"Async"));
 	Printf("\tCalling number: %s\r\n", pptp->callingnum);
 	Printf("\tCalled number: %s\r\n", pptp->callednum);
@@ -564,6 +613,7 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 {
     PptpInfo	pptp;
     Link 	l;
+    struct sockaddr_dl  hwa;
 
     /* It this fake call? */
     if (!cookie)
@@ -587,6 +637,11 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 		if (pptp->originate && !pptp->outcall)
 		    (*pptp->cinfo.connected)(pptp->cinfo.cookie, 64000 /*XXX*/ );
 
+		if (GetPeerEther(&pptp->peer_addr, &hwa)) {
+		    if_indextoname(hwa.sdl_index, pptp->peer_iface);
+		    memcpy(pptp->peer_mac_addr, LLADDR(&hwa), sizeof(pptp->peer_mac_addr));
+		};
+
 		/* OK */
 		l->state = PHYS_STATE_UP;
 		pptp->sync = (frameType&PPTP_FRAMECAP_ASYNC)?0:1;
@@ -599,6 +654,7 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 		pptp->peer_port = 0;
     		pptp->callingnum[0]=0;
     		pptp->callednum[0]=0;
+		pptp->peer_iface[0] = 0;
 		PhysDown(l, STR_CON_FAILED, "%s", errmsg);
     	    }
     	    break;
@@ -612,6 +668,7 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
     	    pptp->peer_port = 0;
     	    pptp->callingnum[0]=0;
     	    pptp->callednum[0]=0;
+	    pptp->peer_iface[0] = 0;
     	    PhysDown(l, STR_DROPPED, NULL);
     	    break;
 	case PHYS_STATE_DOWN:
@@ -943,6 +1000,7 @@ PptpCancel(void *cookie)
     pi->peer_port = 0;
     pi->callingnum[0]=0;
     pi->callednum[0]=0;
+    pi->peer_iface[0] = 0;
     PhysDown(l, STR_CON_FAILED0, NULL);
 }
 
