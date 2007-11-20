@@ -52,6 +52,10 @@
   #define RAD_MESSAGE_AUTHENTIC 80
   #endif
 
+  #ifndef RAD_NAS_PORT_ID
+  #define RAD_NAS_PORT_ID	87
+  #endif
+
   #ifndef RAD_FRAMED_POOL
   #define RAD_FRAMED_POOL	88
   #endif

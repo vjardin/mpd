@@ -839,6 +839,16 @@ RadiusStart(AuthData auth, short request_type)
 	        auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
     	    return (RAD_NACK);
     }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_string(RAD_NAS_PORT_ID): %s",
+        auth->info.lnkname, __func__, auth->params.peeriface));
+    if (rad_put_string(auth->radius.handle, RAD_NAS_PORT_ID,
+	    auth->params.peeriface) == -1) {
+	Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_string(RAD_NAS_PORT_ID) failed %s",
+	    auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
+    	return (RAD_NACK);
+    }
+
     return RAD_ACK;
 }
 

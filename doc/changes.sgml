@@ -14,6 +14,9 @@
 		 mpd will create Framed-IP-Address/Framed-Netmask route
 		 to the client side.
 	  </item>
+	  <item> Added reporting peer MAC address and interface to AAA.
+		 Added NAS-Port-Id RADIUS attribute support.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
