@@ -108,6 +108,8 @@ static void	PppoeOpen(Link l);
 static void	PppoeClose(Link l);
 static void	PppoeShutdown(Link l);
 static int	PppoePeerAddr(Link l, void *buf, int buf_len);
+static int	PppoePeerMacAddr(Link l, void *buf, int buf_len);
+static int	PppoePeerIface(Link l, void *buf, int buf_len);
 static int	PppoeCallingNum(Link l, void *buf, int buf_len);
 static int	PppoeCalledNum(Link l, void *buf, int buf_len);
 static void	PppoeCtrlReadEvent(int type, void *arg);
@@ -147,6 +149,8 @@ const struct phystype gPppoePhysType = {
     .originate		= PppoeOriginated,
     .issync		= PppoeIsSync,
     .peeraddr		= PppoePeerAddr,
+    .peermacaddr	= PppoePeerMacAddr,
+    .peeriface		= PppoePeerIface,
     .callingnum		= PppoeCallingNum,
     .callednum		= PppoeCalledNum,
 };
@@ -581,6 +585,31 @@ PppoePeerAddr(Link l, void *buf, int buf_len)
 	    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
 	    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
 
+	return (0);
+}
+
+static int
+PppoePeerMacAddr(Link l, void *buf, int buf_len)
+{
+	PppoeInfo	const pppoe = (PppoeInfo)l->info;
+
+	snprintf(buf, buf_len, "%02x:%02x:%02x:%02x:%02x:%02x",
+	    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
+	    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+
+	return (0);
+}
+
+static int
+PppoePeerIface(Link l, void *buf, int buf_len)
+{
+	PppoeInfo	const pppoe = (PppoeInfo)l->info;
+	char iface[IFNAMSIZ + 1];
+
+	strlcpy(iface, pppoe->path, sizeof(iface));
+	if (iface[strlen(iface) - 1] == ':')
+		iface[strlen(iface) - 1] = '\0';
+	strlcpy(buf, iface, buf_len);
 	return (0);
 }
 
