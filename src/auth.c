@@ -528,11 +528,6 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
 
   /* Build packet */
   bp = mballoc(MB_AUTH, plen);
-  if (bp == NULL) {
-    Log(LG_ERR, ("[%s] %s: mballoc() error", l->name, ProtoName(proto)));
-    return;
-  }
-
   memcpy(MBDATAU(bp), &lh, sizeof(lh));
   if (proto == PROTO_EAP)
     memcpy(MBDATAU(bp) + sizeof(lh), &eap_type, 1);

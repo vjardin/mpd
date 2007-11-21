@@ -523,11 +523,6 @@ EapRadiusSendMsg(void *ptr)
   } 
 
   bp = mballoc(MB_AUTH, a->params.eapmsg_len);
-  if (bp == NULL) {
-    Log(LG_ERR, ("[%s] EapRadiusSendMsg: mballoc() error", l->name));
-    return;
-  }
-
   memcpy(MBDATAU(bp), a->params.eapmsg, a->params.eapmsg_len);
   NgFuncWritePppFrameLink(l, PROTO_EAP, bp);
 }
