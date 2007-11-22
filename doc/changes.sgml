@@ -19,6 +19,12 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fixed /32 routes processing.
+	  </item>
+	</itemize>
+	</item>
     </itemize>
   </p>
   <p>
