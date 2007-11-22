@@ -1152,6 +1152,10 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 
 	    PhysGetPeerAddr(l, buf, sizeof(buf));
 	    Printf("\tPeer address    : %s\r\n", buf);
+	    PhysGetPeerMacAddr(l, buf, sizeof(buf));
+	    Printf("\tPeer MAC address: %s\r\n", buf);
+	    PhysGetPeerIface(l, buf, sizeof(buf));
+	    Printf("\tPeer iface      : %s\r\n", buf);
 	    PhysGetCallingNum(l, buf, sizeof(buf));
 	    Printf("\tCalling         : %s\r\n", buf);
 	    PhysGetCalledNum(l, buf, sizeof(buf));
