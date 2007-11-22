@@ -1645,7 +1645,9 @@ IfaceSetRoute(Bund b, int cmd, struct u_range *dst,
     	return (-1);
     }
 
-    if (!u_rangehost(dst)) {
+    if (u_rangehost(dst)) {
+	rtmes.m_rtm.rtm_flags |= RTF_HOST;
+    } else {
 	cp += memcpy_roundup(cp, &samask, samask.ss_len);
 	rtmes.m_rtm.rtm_addrs |= RTA_NETMASK;
     }
