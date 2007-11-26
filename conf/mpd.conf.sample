@@ -203,6 +203,8 @@ pptp_server:
 
 # Create clonable link template named L
 	create link template L pptp
+# Set bundle template to use
+	set link action bundle B
 # Multilink adds some overhead, but gives full 1500 MTU.
 	set link enable multilink
 	set link yes acfcomp protocomp
