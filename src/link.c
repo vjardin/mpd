@@ -318,7 +318,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
     } else if (strcmp(av[0], "static") == 0)
 	stay = 1;
 
-    if (ac - stay < 1 || ac - stay > 2)
+    if (ac != stay + 2)
 	return(-1);
 
     if (strlen(av[0 + stay]) >= (LINK_MAX_NAME - tmpl * 5))
@@ -333,23 +333,21 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	    Error("Name \"%s\" is reserved by device type", av[0 + stay]);
     }
 
-    if (ac - stay == 2) {
-	/* Locate type */
-	for (k = 0; (pt = gPhysTypes[k]); k++) {
-	    if (!strcmp(pt->name, av[1 + stay]))
-    		break;
-	}
-	if (pt != NULL) {
-	    if (!pt->tmpl && tmpl)
-		Error("Link type \"%s\" does not support templating", av[1 + stay]);
+    /* Locate type */
+    for (k = 0; (pt = gPhysTypes[k]); k++) {
+        if (!strcmp(pt->name, av[1 + stay]))
+	    break;
+    }
+    if (pt != NULL) {
+        if (!pt->tmpl && tmpl)
+    	    Error("Link type \"%s\" does not support templating", av[1 + stay]);
 
-	} else {
-	    /* See if template name specified */
-	    if ((lt = LinkFind(av[1 + stay])) == NULL)
-		Error("Link template \"%s\" not found", av[2 + tmpl]);
-	    if (!lt->tmpl)
-		Error("Link \"%s\" is not a template", av[2 + stay]);
-	}
+    } else {
+        /* See if template name specified */
+	if ((lt = LinkFind(av[1 + stay])) == NULL)
+	    Error("Link template \"%s\" not found", av[1 + tmpl]);
+	if (!lt->tmpl)
+	    Error("Link \"%s\" is not a template", av[1 + stay]);
     }
 
     /* Create and initialize new link */
