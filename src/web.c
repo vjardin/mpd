@@ -275,8 +275,12 @@ WebShowSummary(FILE *f, int priv)
 	    	fprintf(f, "<TD colspan=3></TD>\n");
 	    }
 	    if (priv) {
-		fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a><A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
-	    	    L->name, L->name);
+		if (!L->tmpl) {
+		    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a><A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
+	    		L->name, L->name);
+		} else {
+		    fprintf(f, "<TD></TD>\n");
+		}
 	    }
 	    fprintf(f, "</TR>\n");
 	}
@@ -337,7 +341,7 @@ WebShowSummary(FILE *f, int priv)
 		}
 		if (priv) {
 		    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a><A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
-			L->name, L->name);
+		    	L->name, L->name);
 		}
 		fprintf(f, "</TR>\n");
 	    }
