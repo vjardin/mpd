@@ -165,7 +165,10 @@ RepIsSync(Link l) {
     Rep r = l->rep;
     int n = (r->links[0] == l)?0:1;
     
-    return (PhysIsSync(r->links[1-n]));
+    if (r->links[1-n])
+	return (PhysIsSync(r->links[1-n]));
+    else
+	return (0);
 }
 
 /*
@@ -180,7 +183,8 @@ RepSetAccm(Link l, u_int32_t xmit, u_int32_t recv) {
     Log(LG_REP, ("[%s] REP: SetAccm(0x%08x, 0x%08x) from %s (%d)",
 	r->name, xmit, recv, l->name, n));
 
-    PhysSetAccm(r->links[1-n], xmit, recv);
+    if (r->links[1-n])
+	PhysSetAccm(r->links[1-n], xmit, recv);
 }
 
 /*
