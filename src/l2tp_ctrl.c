@@ -990,10 +990,18 @@ void
 ppp_l2tp_sess_get_hook(struct ppp_l2tp_sess *sess,
 	ng_ID_t *nodep, const char **hookp)
 {
-	if (nodep != NULL)
+	if (nodep != NULL) {
+	    if (sess->node_id)
 		*nodep = sess->node_id;
-	if (hookp != NULL)
+	    else
+		*nodep = sess->ctrl->node_id;
+	}
+	if (hookp != NULL) {
+	    if (sess->node_id)
 		*hookp = NG_TEE_HOOK_RIGHT;
+	    else
+		*hookp = sess->hook;
+	}
 }
 
 /*
