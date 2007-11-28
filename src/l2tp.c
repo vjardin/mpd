@@ -370,6 +370,7 @@ L2tpOpen(Link l)
 		return;
 	};
 
+	l->state = PHYS_STATE_CONNECTING;
 	strlcpy(pi->callingnum, pi->conf.callingnum, sizeof(pi->callingnum));
 	strlcpy(pi->callednum, pi->conf.callednum, sizeof(pi->callednum));
 
@@ -411,6 +412,7 @@ L2tpOpen(Link l)
 			    ppp_l2tp_avp_list_destroy(&avps);
 			    pi->sess = NULL;
 			    pi->tun = NULL;
+			    l->state = PHYS_STATE_DOWN;
 			    PhysDown(l, STR_ERROR, NULL);
 			    return;
 			};
@@ -457,7 +459,7 @@ L2tpOpen(Link l)
 	if ((tun = Malloc(MB_PHYS, sizeof(*tun))) == NULL) {
 		Log(LG_ERR, ("[%s] malloc: %s", 
 		    l->name, strerror(errno)));
-		return;
+		goto fail;
 	}
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
 	u_addrcopy(&pi->conf.peer_addr.addr, &tun->peer_addr);
@@ -607,6 +609,7 @@ fail:
 		ppp_l2tp_ctrl_destroy(&tun->ctrl);
 		Freee(MB_PHYS, tun);
 	}
+	l->state = PHYS_STATE_DOWN;
 	PhysDown(l, STR_DEV_NOT_READY, NULL);
 };
 
@@ -946,6 +949,7 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			Log(LG_ERR, ("ppp_l2tp_initiate: %s", strerror(errno)));
 			pi->sess = NULL;
 			pi->tun = NULL;
+			l->state = PHYS_STATE_DOWN;
 			PhysDown(l, STR_ERROR, NULL);
 			continue;
 		};
