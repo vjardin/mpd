@@ -191,15 +191,6 @@ PhysDown(Link l, const char *reason, const char *details, ...)
 
     } else {
 	RepDown(l);
-	if (l->rep->links[0] == l)
-	    l->rep->links[0] = NULL;
-	else
-	    l->rep->links[1] = NULL;
-	l->rep = NULL;
-	if (!l->stay) {
-	    REF(l);
-	    MsgSend(&l->msgs, MSG_SHUTDOWN, l);
-	}
     }
 }
 

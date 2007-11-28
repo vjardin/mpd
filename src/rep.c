@@ -145,6 +145,13 @@ RepDown(Link l)
 	r->csock = -1;
     }
     
+    l->rep->links[n] = NULL;
+    l->rep = NULL;
+    if (!l->stay) {
+        REF(l);
+        MsgSend(&l->msgs, MSG_SHUTDOWN, l);
+    }
+
     if (r->links[1-n] == NULL)
 	RepShutdown(r);
 }
