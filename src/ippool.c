@@ -164,7 +164,7 @@ IPPoolAdd(char *pool, struct in_addr begin, struct in_addr end)
     r = Malloc(MB_IPPOOL, (total + c) * sizeof(struct ippool_rec));
     if (p->pool != NULL) {
 	memcpy(r, p->pool, p->size * sizeof(struct ippool_rec));
-	Freee(MB_IPPOOL, p->pool);
+	Freee(p->pool);
     }
     p->pool = r;
     k = p->size;

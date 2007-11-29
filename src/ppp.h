@@ -96,7 +96,7 @@
 
   #define UNREF(p)		do {					\
 				    if ((--(p)->refs) == 0)		\
-					Freee(NULL, p);			\
+					Freee(p);			\
 				} while (0)
 
   #define RESETREF(v, p)	do {					\

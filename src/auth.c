@@ -141,37 +141,37 @@ void	authparamsDestroy(struct authparams *ap) {
     int i;
   
     if (ap->eapmsg) {
-	Freee(MB_AUTH, ap->eapmsg);
+	Freee(ap->eapmsg);
     }
     if (ap->state) {
-	Freee(MB_AUTH, ap->state);
+	Freee(ap->state);
     }
     if (ap->class) {
-	Freee(MB_AUTH, ap->class);
+	Freee(ap->class);
     }
 
     acls = ap->acl_rule;
     while (acls != NULL) {
 	acls1 = acls->next;
-	Freee(MB_AUTH, acls);
+	Freee(acls);
 	acls = acls1;
     };
     acls = ap->acl_pipe;
     while (acls != NULL) {
 	acls1 = acls->next;
-	Freee(MB_AUTH, acls);
+	Freee(acls);
 	acls = acls1;
     };
     acls = ap->acl_queue;
     while (acls != NULL) {
 	acls1 = acls->next;
-	Freee(MB_AUTH, acls);
+	Freee(acls);
 	acls = acls1;
     };
     acls = ap->acl_table;
     while (acls != NULL) {
 	acls1 = acls->next;
-	Freee(MB_AUTH, acls);
+	Freee(acls);
 	acls = acls1;
     };
 
@@ -179,7 +179,7 @@ void	authparamsDestroy(struct authparams *ap) {
 	acls = ap->acl_filters[i];
 	while (acls != NULL) {
 	    acls1 = acls->next;
-	    Freee(MB_AUTH, acls);
+	    Freee(acls);
 	    acls = acls1;
 	};
     };
@@ -188,18 +188,18 @@ void	authparamsDestroy(struct authparams *ap) {
 	acls = ap->acl_limits[i];
 	while (acls != NULL) {
 	    acls1 = acls->next;
-	    Freee(MB_AUTH, acls);
+	    Freee(acls);
 	    acls = acls1;
 	};
     };
 
     while ((r = SLIST_FIRST(&ap->routes)) != NULL) {
 	SLIST_REMOVE_HEAD(&ap->routes, next);
-	Freee(MB_AUTH, r);
+	Freee(r);
     }
 
     if (ap->msdomain) {
-	Freee(MB_AUTH, ap->msdomain);
+	Freee(ap->msdomain);
     }
     
     memset(ap,0,sizeof(struct authparams));
@@ -655,12 +655,12 @@ void
 AuthDataDestroy(AuthData auth)
 {
     authparamsDestroy(&auth->params);
-    Freee(MB_AUTH, auth->info.downReason);
-    Freee(MB_AUTH, auth->reply_message);
-    Freee(MB_AUTH, auth->mschap_error);
-    Freee(MB_AUTH, auth->mschapv2resp);
+    Freee(auth->info.downReason);
+    Freee(auth->reply_message);
+    Freee(auth->mschap_error);
+    Freee(auth->mschapv2resp);
     IfaceFreeStats(&auth->info.ss);
-    Freee(MB_AUTH, auth);
+    Freee(auth);
 }
 
 /*
@@ -981,7 +981,7 @@ AuthGetData(char *authname, char *password, size_t passlen,
   while ((line = ReadFullLine(fp, NULL, NULL, 0)) != NULL) {
     memset(av, 0, sizeof(av));
     ac = ParseLine(line, av, sizeof(av) / sizeof(*av), 1);
-    Freee(MB_UTIL, line);
+    Freee(line);
     if (ac >= 2
 	&& (strcmp(av[0], authname) == 0
 	 || (av[1][0] == '!' && strcmp(av[0], "*") == 0))) {
@@ -1269,7 +1269,7 @@ AuthSystem(AuthData auth)
 
     bin = Hex2Bin(&pwc.pw_passwd[4]);
     memcpy(auth->params.msoft.nt_hash, bin, sizeof(auth->params.msoft.nt_hash));
-    Freee(MB_UTIL, bin);
+    Freee(bin);
     NTPasswordHashHash(auth->params.msoft.nt_hash, auth->params.msoft.nt_hash_hash);
     auth->params.msoft.has_nt_hash = TRUE;
     auth->status = AUTH_STATUS_UNDEF;
@@ -2000,7 +2000,7 @@ AuthExternal(AuthData auth)
 	    if (j == 0) {
 	        SLIST_INSERT_HEAD(&auth->params.routes, r, next);
 	    } else {
-	        Freee(MB_AUTH, r);
+	        Freee(r);
 	    }
 	}
 
@@ -2027,7 +2027,7 @@ AuthExternal(AuthData auth)
 	    if (j == 0) {
 	        SLIST_INSERT_HEAD(&auth->params.routes, r, next);
 	    } else {
-	        Freee(MB_AUTH, r);
+	        Freee(r);
 	    }
 	}
 
@@ -2052,12 +2052,12 @@ AuthExternal(AuthData auth)
 
     } else if (strcmp(attr, "REPLY_MESSAGE") == 0) {
 	if (auth->reply_message)
-		Freee(MB_AUTH, auth->reply_message);
+		Freee(auth->reply_message);
 	auth->reply_message = Mdup(MB_AUTH, val, strlen(val) + 1);
 
     } else if (strcmp(attr, "MS_CHAP_ERROR") == 0) {
 	if (auth->mschap_error)
-		Freee(MB_AUTH, auth->mschap_error);
+		Freee(auth->mschap_error);
 	/* "E=%d R=0 M=%s" */
 	auth->mschap_error = Mdup(MB_AUTH, val, strlen(val) + 1);
 

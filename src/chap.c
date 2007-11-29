@@ -96,7 +96,7 @@ ChapStop(ChapInfo chap)
   TimerStop(&chap->chalTimer);
   TimerStop(&chap->respTimer);
   if (chap->resp) {
-    Freee(MB_AUTH, chap->resp);
+    Freee(chap->resp);
     chap->resp = NULL;
   }
 }
@@ -157,7 +157,7 @@ send_pkt:
     chap->next_id++, pkt,
     1 + cp->chal_len + strlen(l->lcp.auth.conf.authname), 0,
     EAP_TYPE_MD5CHAL);
-  Freee(MB_AUTH, pkt);
+  Freee(pkt);
 }
 
 /*
@@ -386,7 +386,7 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 
 	/* Build response packet */
 	if (chap->resp)
-	  Freee(MB_AUTH, chap->resp);
+	  Freee(chap->resp);
 	chap->resp = Malloc(MB_AUTH, 1 + hash_value_size + name_len);
 	chap->resp[0] = hash_value_size;
 	memcpy(&chap->resp[1], hash_value, hash_value_size);
@@ -440,7 +440,7 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
       /* Stop response timer */
       TimerStop(&chap->respTimer);
       if (chap->resp) {
-	Freee(MB_AUTH, chap->resp);
+	Freee(chap->resp);
 	chap->resp = NULL;
       }
 

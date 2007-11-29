@@ -1067,7 +1067,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	if (!tmpl) {
 	    /* Setup netgraph stuff */
 	    if (BundNgInit(b) < 0) {
-		Freee(MB_BUND, b);
+		Freee(b);
 		Error("Bundle netgraph initialization failed");
 	    }
 	}
@@ -1157,7 +1157,7 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
     /* Setup netgraph stuff */
     if (BundNgInit(b) < 0) {
 	Log(LG_ERR, ("[%s] Bundle netgraph initialization failed", b->name));
-	Freee(MB_BUND, b);
+	Freee(b);
 	return(0);
     }
 

@@ -102,7 +102,7 @@ PapSendRequest(Link l)
     /* Send it off */
     AuthOutput(l, PROTO_PAP, PAP_REQUEST, pap->next_id++, pkt,
 	1 + name_len + 1 + pass_len, 0, 0);
-    Freee(MB_AUTH, pkt);
+    Freee(pkt);
 }
 
 /*

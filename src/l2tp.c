@@ -603,7 +603,7 @@ fail:
 		(void)close(dsock);
 	if (tun != NULL) {
 		ppp_l2tp_ctrl_destroy(&tun->ctrl);
-		Freee(MB_PHYS, tun);
+		Freee(tun);
 	}
 	l->state = PHYS_STATE_DOWN;
 	PhysDown(l, STR_DEV_NOT_READY, NULL);
@@ -662,7 +662,7 @@ L2tpShutdown(Link l)
 	}
     }
     L2tpUnListen(l);
-    Freee(MB_PHYS, l->info);
+    Freee(l->info);
 }
 
 /*
@@ -1038,7 +1038,7 @@ ppp_l2tp_ctrl_destroyed_cb(struct ppp_l2tp_ctrl *ctrl)
 	Log(LG_PHYS, ("L2TP: Control connection %p destroyed", ctrl));
 
 	ghash_remove(gL2tpTuns, tun);
-	Freee(MB_PHYS, tun);
+	Freee(tun);
 }
 
 /*
@@ -1502,7 +1502,7 @@ L2tpServerEvent(int type, void *arg)
 	ppp_l2tp_avp_list_destroy(&avps);
 	(void)close(csock);
 	(void)close(dsock);
-	Freee(MB_PHYS, buf);
+	Freee(buf);
 	return;
 
 fail:
@@ -1513,10 +1513,10 @@ fail:
 		(void)close(dsock);
 	if (tun != NULL) {
 		ppp_l2tp_ctrl_destroy(&tun->ctrl);
-		Freee(MB_PHYS, tun);
+		Freee(tun);
 	}
 	ppp_l2tp_avp_list_destroy(&avps);
-	Freee(MB_PHYS, buf);
+	Freee(buf);
 }
 
 
@@ -1589,7 +1589,7 @@ L2tpListen(Link l)
 fail:
 	if (s->sock)
 	    close(s->sock);
-	Freee(MB_PHYS, s);
+	Freee(s);
 	return (0);
 }
 
@@ -1616,7 +1616,7 @@ L2tpUnListen(Link l)
 	    EventUnRegister(&s->event);
 	    if (s->sock)
 		close(s->sock);
-	    Freee(MB_PHYS, s);
+	    Freee(s);
 	    p->server = NULL;
 	}
 	return;

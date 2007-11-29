@@ -450,11 +450,11 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
   
   buf = Bin2Hex(a->params.state, a->params.state_len); 
   Printf("\tState          : 0x%s\r\n", buf);
-  Freee(MB_UTIL, buf);
+  Freee(buf);
   
   buf = Bin2Hex(a->params.class, a->params.class_len);
   Printf("\tClass          : 0x%s\r\n", buf);
-  Freee(MB_UTIL, buf);
+  Freee(buf);
   
   return (0);
 }
@@ -597,7 +597,7 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  Error("RADIUS: Config file name too long.");
 	} else {
 	  if (conf->file)
-		Freee(MB_RADIUS, conf->file);
+		Freee(conf->file);
 	  conf->file = Mdup(MB_RADIUS, av[0], strlen(av[0])+1);
 	}
 	break;
@@ -785,7 +785,7 @@ RadiusStart(AuthData auth, short request_type)
   if (auth->params.state != NULL) {
     tmpval = Bin2Hex(auth->params.state, auth->params.state_len);
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_attr(RAD_STATE): 0x%s", auth->info.lnkname, __func__, tmpval));
-    Freee(MB_UTIL, tmpval);
+    Freee(tmpval);
     if (rad_put_attr(auth->radius.handle, RAD_STATE, auth->params.state, auth->params.state_len) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_attr(RAD_STATE) failed %s", 
         auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
@@ -796,7 +796,7 @@ RadiusStart(AuthData auth, short request_type)
   if (auth->params.class != NULL) {
     tmpval = Bin2Hex(auth->params.class, auth->params.class_len);
     Log(LG_RADIUS2, ("[%s] RADIUS: %s: rad_put_attr(RAD_CLASS): 0x%s", auth->info.lnkname, __func__, tmpval));
-    Freee(MB_UTIL, tmpval);
+    Freee(tmpval);
     if (rad_put_attr(auth->radius.handle, RAD_CLASS, auth->params.class, auth->params.class_len) == -1) {
       Log(LG_RADIUS, ("[%s] RADIUS: %s: rad_put_attr(RAD_CLASS) failed %s", 
         auth->info.lnkname, __func__, rad_strerror(auth->radius.handle)));
@@ -1089,7 +1089,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   size_t	tmpkey_len;
 #endif
 
-  Freee(MB_AUTH, auth->params.eapmsg);
+  Freee(auth->params.eapmsg);
   auth->params.eapmsg = NULL;
   
   while ((res = rad_get_attr(auth->radius.handle, &data, &len)) > 0) {
@@ -1099,20 +1099,20 @@ RadiusGetParams(AuthData auth, int eap_proxy)
       case RAD_STATE:
 	tmpval = Bin2Hex(data, len);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_STATE: 0x%s", auth->info.lnkname, __func__, tmpval));
-	Freee(MB_UTIL, tmpval);
+	Freee(tmpval);
 	auth->params.state_len = len;
 	if (auth->params.state != NULL)
-	  Freee(MB_AUTH, auth->params.state);
+	  Freee(auth->params.state);
 	auth->params.state = Mdup(MB_AUTH, data, len);
 	continue;
 
       case RAD_CLASS:
 	tmpval = Bin2Hex(data, len);
 	Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_CLASS: 0x%s", auth->info.lnkname, __func__, tmpval));
-	Freee(MB_UTIL, tmpval);
+	Freee(tmpval);
 	auth->params.class_len = len;
 	if (auth->params.class != NULL)
-	  Freee(MB_AUTH, auth->params.class);
+	  Freee(auth->params.class);
 	auth->params.class = Mdup(MB_AUTH, data, len);
 	continue;
 
@@ -1132,7 +1132,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  memcpy(tbuf, auth->params.eapmsg, auth->params.eapmsg_len);
 	  memcpy(&tbuf[auth->params.eapmsg_len], data, len);
 	  auth->params.eapmsg_len += len;
-	  Freee(MB_AUTH, auth->params.eapmsg);
+	  Freee(auth->params.eapmsg);
 	  auth->params.eapmsg = tbuf;
 	} else {
 	  Log(LG_RADIUS2, ("[%s] RADIUS: %s: RAD_EAP_MESSAGE", auth->info.lnkname, __func__));
@@ -1206,7 +1206,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	if (j == 0) {
 	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
 	} else {
-	    Freee(MB_AUTH, r);
+	    Freee(r);
 	}
 	break;
 
@@ -1233,7 +1233,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	if (j == 0) {
 	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
 	} else {
-	    Freee(MB_AUTH, r);
+	    Freee(r);
 	}
 	break;
 
@@ -1329,7 +1329,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 	      case RAD_MICROSOFT_MS_CHAP_ERROR:
 	        if (auth->mschap_error != NULL) {
-	    	    Freee(MB_AUTH, auth->mschap_error);
+	    	    Freee(auth->mschap_error);
 		    auth->mschap_error = NULL;
 		}
 		if (len == 0)
@@ -1351,7 +1351,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      /* this was taken from userland ppp */
 	      case RAD_MICROSOFT_MS_CHAP2_SUCCESS:
 	        if (auth->mschapv2resp != NULL) {
-	    	    Freee(MB_AUTH, auth->mschapv2resp);
+	    	    Freee(auth->mschapv2resp);
 		    auth->mschapv2resp = NULL;
 		}
 		if (len == 0)
@@ -1379,7 +1379,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		break;
 
 	      case RAD_MICROSOFT_MS_CHAP_DOMAIN:
-		Freee(MB_AUTH, auth->params.msdomain);
+		Freee(auth->params.msdomain);
 		tmpval = rad_cvt_string(data, len);
 		auth->params.msdomain = Mdup(MB_AUTH, tmpval, len + 1);
 		free(tmpval);
@@ -1649,7 +1649,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	if (j == 0) {
 	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
 	} else {
-	    Freee(MB_AUTH, r);
+	    Freee(r);
 	}
     }
   

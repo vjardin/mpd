@@ -561,7 +561,7 @@ PptpCtrlListen(struct u_addr *ip, in_port_t port)
 		0, PptpCtrlListenRetry, l);
         } else {
 	    gPptpLis[k] = NULL;
-	    Freee(MB_PPTP, l);
+	    Freee(l);
     	    Log(LG_ERR, ("can't get PPTP listening socket"));
     	    return(NULL);
 	}
@@ -599,7 +599,7 @@ PptpCtrlUnListen(void *listener)
     EventUnRegister(&l->retry);
     EventUnRegister(&l->event);
     close(l->sock);
-    Freee(MB_PPTP, l);
+    Freee(l);
 }
 
 /*
@@ -1047,7 +1047,7 @@ PptpCtrlMsg(PptpCtrl c, int type, void *msg)
 
     TimerStop(&prep->timer);
     *pp = prep->next;
-    Freee(MB_PPTP, prep);
+    Freee(prep);
   }
 
   /* Check for invalid message and call or control state combinations */
@@ -1403,7 +1403,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
   for (prep = c->reps; prep; prep = next) {
     next = prep->next;
     TimerStop(&prep->timer);
-    Freee(MB_PPTP, prep);
+    Freee(prep);
   }
   c->reps = NULL;
   PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
@@ -1526,7 +1526,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     if (prep->chan == ch) {
       TimerStop(&prep->timer);
       *pp = prep->next;
-      Freee(MB_PPTP, prep);
+      Freee(prep);
     } else
       pp = &prep->next;
   }
@@ -1585,7 +1585,7 @@ PptpCtrlReplyTimeout(void *arg)
     PptpCtrlCloseChan(ch, PPTP_CDN_RESL_ERR, PPTP_ERROR_PAC_ERROR, 0);
 
   /* Done */
-  Freee(MB_PPTP, prep);
+  Freee(prep);
 }
 
 /*
@@ -1769,9 +1769,9 @@ PptpCtrlNewCtrlState(PptpCtrl c, int new)
     c->id, gPptpCtrlStates[c->state], gPptpCtrlStates[new]));
   if (new == PPTP_CTRL_ST_FREE) {
     gPptpCtrl[c->id] = NULL;
-    Freee(MB_PPTP, c->channels);
+    Freee(c->channels);
     memset(c, 0, sizeof(*c));
-    Freee(MB_PPTP, c);
+    Freee(c);
     return;
   }
   c->state = new;
@@ -1793,7 +1793,7 @@ PptpCtrlNewChanState(PptpChan ch, int new)
     case PPTP_CHAN_ST_FREE:
       c->channels[ch->id] = NULL;
       memset(ch, 0, sizeof(*ch));
-      Freee(MB_PPTP, ch);
+      Freee(ch);
       return;
     case PPTP_CHAN_ST_WAIT_IN_REPLY:
     case PPTP_CHAN_ST_WAIT_OUT_REPLY:

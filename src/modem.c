@@ -428,7 +428,7 @@ failed:
 	if ((bw = (int) strtoul(cspeed, NULL, 10)) > 0) {
 	    l->bandwidth = bw;
 	}
-	Freee(MB_CHAT, cspeed);
+	Freee(cspeed);
     }
 
     /* Do async <-> sync conversion via netgraph node */
@@ -503,7 +503,7 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
     	  l->name, idleResult));
         ModemDoClose(l, FALSE);
     }
-    Freee(MB_CHAT, idleResult);
+    Freee(idleResult);
 }
 
 /*
@@ -700,7 +700,7 @@ ModemChatMalloc(void *arg, size_t size)
 static void
 ModemChatFree(void *arg, void *mem)
 {
-    Freee(MB_CHAT, mem);
+    Freee(mem);
 }
 
 /*
@@ -972,7 +972,7 @@ ModemStat(Context ctx)
 	/* Set modem's reported connection speed (if any) as the link bandwidth */
 	if ((cspeed = ChatGetVar(m->chat, CHAT_VAR_CONNECT_SPEED)) != NULL) {
 	    Printf("\tConnect speed: %s baud\r\n", cspeed);
-	    Freee(MB_CHAT, cspeed);
+	    Freee(cspeed);
 	}
 
 	if (ctx->lnk->state == PHYS_STATE_UP && 

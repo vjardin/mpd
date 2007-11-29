@@ -623,8 +623,8 @@ fail:
 	ppp_l2tp_avp_list_destroy(&ctrl->avps);
 	ghash_remove(ppp_l2tp_ctrls, ctrl);
 	ghash_destroy(&ctrl->sessions);
-	Freee(CTRL_MEM_TYPE, ctrl->secret);
-	Freee(CTRL_MEM_TYPE, ctrl);
+	Freee(ctrl->secret);
+	Freee(ctrl);
 	if (ppp_l2tp_ctrls != NULL && ghash_size(ppp_l2tp_ctrls) == 0)
 		ghash_destroy(&ppp_l2tp_ctrls);
 	return (NULL);
@@ -1270,7 +1270,7 @@ done:
 	/* Clean up */
 	ppp_l2tp_avp_destroy(&avp);
 	ppp_l2tp_avp_list_destroy(&avps);
-	Freee(TYPED_MEM_TEMP, data);
+	Freee(data);
 }
 
 /*
@@ -1288,7 +1288,7 @@ ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 	/* Save result code and error string */
 	ctrl->result = result;
 	ctrl->error = error;
-	Freee(CTRL_MEM_TYPE, ctrl->errmsg);
+	Freee(ctrl->errmsg);
 	ctrl->errmsg = (errmsg == NULL) ? NULL : Mdup(CTRL_MEM_TYPE, errmsg, strlen(errmsg) + 1);
 
 	/* Notify peer if necessary */
@@ -1340,7 +1340,7 @@ ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 notify_done:
 		/* Clean up */
 		ppp_l2tp_avp_list_destroy(&avps);
-		Freee(TYPED_MEM_TEMP, rbuf);
+		Freee(rbuf);
 	}
 
 	/* Stop all timers */
@@ -1378,7 +1378,7 @@ ppp_l2tp_ctrl_do_close(void *arg)
 		sess->link_notified = 1;
 		sess->result = L2TP_RESULT_ERROR;
 		sess->error = L2TP_ERROR_GENERIC;
-		Freee(SESS_MEM_TYPE, sess->errmsg);
+		Freee(sess->errmsg);
 		sess->errmsg = Mdup(SESS_MEM_TYPE,
 		    "control connection closing", strlen("control connection closing") + 1);
 		(*ctrl->cb->terminated)(sess,
@@ -1590,7 +1590,7 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 	/* Save result code and error string */
 	sess->result = result;
 	sess->error = error;
-	Freee(SESS_MEM_TYPE, sess->errmsg);
+	Freee(sess->errmsg);
 	sess->errmsg = (errmsg == NULL) ? NULL : Mdup(SESS_MEM_TYPE, errmsg, strlen(errmsg) + 1);
 
 	/* Notify peer if necessary */
@@ -1635,7 +1635,7 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 notify_done:
 		/* Clean up */
 		ppp_l2tp_avp_list_destroy(&avps);
-		Freee(TYPED_MEM_TEMP, rbuf);
+		Freee(rbuf);
 	}
 
 	/* Stop all session timers */
@@ -2407,10 +2407,10 @@ ppp_l2tp_ctrl_destroy(struct ppp_l2tp_ctrl **ctrlp)
 	pevent_unregister(&ctrl->data_event);
 	ppp_l2tp_avp_list_destroy(&ctrl->avps);
 	ghash_destroy(&ctrl->sessions);
-	Freee(CTRL_MEM_TYPE, ctrl->secret);
-	Freee(CTRL_MEM_TYPE, ctrl->errmsg);
+	Freee(ctrl->secret);
+	Freee(ctrl->errmsg);
 	memset(ctrl, 0, sizeof(*ctrl));
-	Freee(CTRL_MEM_TYPE, ctrl);
+	Freee(ctrl);
 }
 
 /*
@@ -2442,9 +2442,9 @@ ppp_l2tp_sess_destroy(struct ppp_l2tp_sess **sessp)
 	pevent_unregister(&sess->reply_timer);
 	pevent_unregister(&sess->close_timer);
 	pevent_unregister(&sess->death_timer);
-	Freee(SESS_MEM_TYPE, sess->errmsg);
+	Freee(sess->errmsg);
 	memset(sess, 0, sizeof(*sess));
-	Freee(SESS_MEM_TYPE, sess);
+	Freee(sess);
 }
 
 /************************************************************************

@@ -184,7 +184,7 @@ fail:
 static void
 NgShutdown(Link l)
 {
-    Freee(MB_PHYS, l->info);
+    Freee(l->info);
 }
 
 /*

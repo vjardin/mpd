@@ -67,7 +67,7 @@ LengthenArray(void *array, int esize, int *alenp, const char *type)
   newa = Malloc(type, (*alenp + 1) * esize);
   if (*arrayp != NULL) {
     memcpy(newa, *arrayp, *alenp * esize);
-    Freee(type, *arrayp);
+    Freee(*arrayp);
   }
   *arrayp = newa;
   (*alenp)++;
@@ -289,7 +289,7 @@ void
 FreeArgs(int ac, char *av[])
 {
   while (ac > 0)
-    Freee(MB_CMD, av[--ac]);
+    Freee(av[--ac]);
 }
 
 /*
@@ -1324,7 +1324,7 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
       ifc.ifc_len = sizeof(struct ifreq) * MAX_INTERFACES;
       ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
       if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-        Freee(MB_UTIL, ifs);
+        Freee(ifs);
 	if (errno != ENXIO)
     	    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
         close(s);
@@ -1359,7 +1359,7 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
           if (!p2p) break;
         }
       }
-      Freee(MB_UTIL, ifs);
+      Freee(ifs);
     }
     close(s);
 
@@ -1410,7 +1410,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   ifc.ifc_len = sizeof(struct ifreq) * MAX_INTERFACES;
   ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
   if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-    Freee(MB_UTIL, ifs);
+    Freee(ifs);
     Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
     close(s);
     return(-1);
@@ -1455,7 +1455,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 
   /* Found? */
   if (ifr >= ifend) {
-    Freee(MB_UTIL, ifs);
+    Freee(ifs);
     return(-1);
   }
 
@@ -1470,7 +1470,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
       }
       memcpy(hwaddr, (struct sockaddr_dl *)(void *)&ifr->ifr_addr,
 	sizeof(*hwaddr));
-      Freee(MB_UTIL, ifs);
+      Freee(ifs);
       return(0);
     }
     ifr = (struct ifreq *)(void *)((char *)&ifr->ifr_addr
@@ -1478,7 +1478,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   }
 
   /* Not found! */
-  Freee(MB_UTIL, ifs);
+  Freee(ifs);
   return(-1);
 }
 
@@ -1508,7 +1508,7 @@ GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 	buf = NULL;
 	for (;;) {
 		if (buf)
-		    Freee(MB_UTIL, buf);
+		    Freee(buf);
 		buf = Malloc(MB_UTIL, needed);
 		st = sysctl(mib, 6, buf, &needed, NULL, 0);
 		if (st == 0 || errno != ENOMEM)
@@ -1530,7 +1530,7 @@ GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 			break;
 		}
 	}
-	Freee(MB_UTIL, buf);
+	Freee(buf);
 	return (found_entry);
 }
 

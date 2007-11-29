@@ -337,7 +337,7 @@ UdpShutdown(Link l)
 {
 	UdpDoClose(l);
 	UdpUnListen(l);
-	Freee(MB_PHYS, l->info);
+	Freee(l->info);
 }
 
 /*

@@ -395,7 +395,7 @@ PppoeShutdown(Link l)
 	PppoeDoClose(l);
 	PppoeUnListen(l);
 	PppoeReleaseNode(l);
-	Freee(MB_PHYS, l->info);
+	Freee(l->info);
 }
 
 /*
@@ -1249,7 +1249,7 @@ PppoeUnListen(Link l)
 		PIf->ifnodepath, pi->list->session));
 		
 	    SLIST_REMOVE(&PIf->list, pi->list, PppoeList, next);
-	    Freee(MB_PHYS, pi->list);
+	    Freee(pi->list);
 	}
 	    
 	pi->list = NULL;

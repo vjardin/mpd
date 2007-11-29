@@ -48,15 +48,14 @@ Mdup(const char *type, const void *src, int size)
  */
 
 void
-Freee(const char *type, const void *ptr)
+Freee(const void *ptr)
 {
-  Mbuf	bp;
+    Mbuf	bp;
+    if (ptr == NULL)
+	return;
 
-  if (ptr == NULL)
-    return;
-
-  bp = ((Mbuf) ptr - 1);
-  mbfree(bp);
+    bp = ((Mbuf) ptr - 1);
+    mbfree(bp);
 }
 
 /*

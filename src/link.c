@@ -572,12 +572,12 @@ LinkShutdown(Link l)
 	SLIST_REMOVE_HEAD(&l->actions, next);
 	if (a->regex[0])
 	    regfree(&a->regexp);
-	Freee(MB_LINK, a);
+	Freee(a);
     }
     if (l->upReason)
-	Freee(MB_LINK, l->upReason);
+	Freee(l->upReason);
     if (l->downReason)
-	Freee(MB_LINK, l->downReason);
+	Freee(l->downReason);
     MsgUnRegister(&l->msgs);
     UNREF(l);
     CheckOneShot();
@@ -1232,7 +1232,7 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 		if (ac == 2 && av[1][0]) {
 		    strlcpy(n->regex, av[1], sizeof(n->regex));
 		    if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
-			Freee(MB_LINK, n);
+			Freee(n);
 			Error("regexp \"%s\" compilation error", av[0]);
 		    }
 		}
@@ -1301,7 +1301,7 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    if (ac != 1)
 		return(-1);
     	    if (l->conf.ident != NULL) {
-		Freee(MB_FSM, l->conf.ident);
+		Freee(l->conf.ident);
 		l->conf.ident = NULL;
     	    }
     	    if (*av[0] != '\0')

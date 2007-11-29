@@ -183,14 +183,14 @@ Pred1Cleanup(Bund b, int dir)
   if (dir == COMP_DIR_RECV)
   {
     assert(p->InputGuessTable);
-    Freee(MB_COMP, p->InputGuessTable);
+    Freee(p->InputGuessTable);
     p->InputGuessTable = NULL;
     memset(&p->recv_stats, 0, sizeof(p->recv_stats));
   }
   if (dir == COMP_DIR_XMIT)
   {
     assert(p->OutputGuessTable);
-    Freee(MB_COMP, p->OutputGuessTable);
+    Freee(p->OutputGuessTable);
     p->OutputGuessTable = NULL;
     memset(&p->xmit_stats, 0, sizeof(p->xmit_stats));
   }

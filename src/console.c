@@ -249,7 +249,7 @@ fail:
   close(cs->fd);
 
 cleanup:
-  Freee(MB_CONS, cs);
+  Freee(cs);
   return;
 
 }
@@ -282,14 +282,14 @@ StdConsoleConnect(Console c)
 
     if (fcntl(cs->fd, F_SETFL, O_NONBLOCK) < 0) {
       Perror("%s: fcntl", __FUNCTION__);
-      Freee(MB_CONS, cs);
+      Freee(cs);
       return(NULL);
     }
 
     /* Init stdout */
     if (fcntl(1, F_SETFL, O_NONBLOCK) < 0) {
       Perror("%s: fcntl", __FUNCTION__);
-      Freee(MB_CONS, cs);
+      Freee(cs);
       return(NULL);
     }
 
@@ -331,7 +331,7 @@ ConsoleSessionClose(ConsoleSession cs)
     RWLOCK_UNLOCK(cs->console->lock);
     EventUnRegister(&cs->readEvent);
     close(cs->fd);
-    Freee(MB_CONS, cs);
+    Freee(cs);
     return;
 }
 
@@ -843,7 +843,7 @@ UserCommand(Context ctx, int ac, char *av[], void *arg)
 	else if (!strcmp(av[2],"user"))
 	    u->priv = 0;
 	else {
-	    Freee(MB_CONS, u);
+	    Freee(u);
 	    return (-1);
 	}
     }

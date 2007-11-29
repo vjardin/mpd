@@ -538,7 +538,7 @@ TcpShutdown(Link l)
 {
 	TcpDoClose(l);
 	TcpUnListen(l);
-	Freee(MB_PHYS, l->info);
+	Freee(l->info);
 }
 
 /*

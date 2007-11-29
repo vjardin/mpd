@@ -449,14 +449,14 @@ IfaceUp(Bund b, int ready)
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
     ExecCmd(LG_IFACE2, b->name, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
-    Freee(MB_IFACE, buf);
+    Freee(buf);
     acls = acls->next;
   }
   acls = b->params.acl_queue;
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule,iface->ifname);
     ExecCmd(LG_IFACE2, b->name, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
-    Freee(MB_IFACE, buf);
+    Freee(buf);
     acls = acls->next;
   }
   acls = b->params.acl_table;
@@ -471,7 +471,7 @@ IfaceUp(Bund b, int ready)
   while (acls != NULL) {
     buf = IFaceParseACL(acls->rule, iface->ifname);
     ExecCmd(LG_IFACE2, b->name, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
-    Freee(MB_IFACE, buf);
+    Freee(buf);
     acls = acls->next;
   };
 
@@ -515,7 +515,7 @@ IfaceDown(Bund b)
       sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
-      Freee(MB_IFACE, rp1);
+      Freee(rp1);
     } else {
       rp = &((*rp)->next);
     };
@@ -530,7 +530,7 @@ IfaceDown(Bund b)
     if (strncmp((*rp)->ifname, iface->ifname, IFNAMSIZ) == 0) {
       rp1 = *rp;
       *rp = (*rp)->next;
-      Freee(MB_IFACE, rp1);
+      Freee(rp1);
     } else {
       rp = &((*rp)->next);
     };
@@ -540,7 +540,7 @@ IfaceDown(Bund b)
     ExecCmd(LG_IFACE2, b->name, "%s table %d delete %s",
 	PATH_IPFW, acl->real_number, acl->rule);
     aclnext = acl->next;
-    Freee(MB_IFACE, acl);
+    Freee(acl);
     acl = aclnext;
   };
   iface->tables = NULL;
@@ -553,7 +553,7 @@ IfaceDown(Bund b)
       sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
-      Freee(MB_IFACE, rp1);
+      Freee(rp1);
     } else {
       rp = &((*rp)->next);
     };
@@ -570,7 +570,7 @@ IfaceDown(Bund b)
       sprintf(cb+strlen(cb), " %d", (*rp)->real_number);
       rp1 = *rp;
       *rp = (*rp)->next;
-      Freee(MB_IFACE, rp1);
+      Freee(rp1);
     } else {
       rp = &((*rp)->next);
     };
@@ -736,7 +736,7 @@ IFaceParseACL (char * src, char * ifname)
 	    };
 	};
     } while (end != NULL);
-    Freee(MB_IFACE, buf1);
+    Freee(buf1);
     return(buf);
 };
 
@@ -2895,18 +2895,18 @@ IfaceShutdownLimits(Bund b)
     while ((ss = SLIST_FIRST(&b->iface.ss[0])) != NULL) {
 	while ((sss = SLIST_FIRST(&ss->src)) != NULL) {
     	    SLIST_REMOVE_HEAD(&ss->src, next);
-	    Freee(MB_IFACE, sss);
+	    Freee(sss);
 	}
 	SLIST_REMOVE_HEAD(&b->iface.ss[0], next);
-	Freee(MB_IFACE, ss);
+	Freee(ss);
     }
     while ((ss = SLIST_FIRST(&b->iface.ss[1])) != NULL) {
 	while ((sss = SLIST_FIRST(&ss->src)) != NULL) {
     	    SLIST_REMOVE_HEAD(&ss->src, next);
-	    Freee(MB_IFACE, sss);
+	    Freee(sss);
 	}
 	SLIST_REMOVE_HEAD(&b->iface.ss[1], next);
-	Freee(MB_IFACE, ss);
+	Freee(ss);
     }
 }
 
@@ -3001,7 +3001,7 @@ IfaceFreeStats(struct svcstat *stat)
     for (i = 0; i < ACL_DIRS; i++) {
 	while ((ssr = SLIST_FIRST(&stat->stat[i])) != NULL) {
     	    SLIST_REMOVE_HEAD(&stat->stat[i], next);
-	    Freee(MB_IFACE, ssr);
+	    Freee(ssr);
 	}
     }
 }
