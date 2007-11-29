@@ -22,12 +22,9 @@
 void *
 Malloc(const char *type, int size)
 {
-  Mbuf	bp;
-
-  if ((bp = mballoc(type, size)) == NULL)
-    return (NULL);
-  memset(MBDATAU(bp), 0, size);
-  return(MBDATAU(bp));
+    Mbuf bp = mballoc(type, size);
+    memset(MBDATAU(bp), 0, size);
+    return(MBDATAU(bp));
 }
 
 /*
@@ -39,12 +36,9 @@ Malloc(const char *type, int size)
 void *
 Mdup(const char *type, const void *src, int size)
 {
-  Mbuf	bp;
-
-  if ((bp = mballoc(type, size)) == NULL)
-    return (NULL);
-  memcpy(MBDATAU(bp), src, size);
-  return(MBDATAU(bp));
+    Mbuf bp = mballoc(type, size);
+    memcpy(MBDATAU(bp), src, size);
+    return(MBDATAU(bp));
 }
 
 /*
