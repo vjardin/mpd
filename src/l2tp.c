@@ -456,11 +456,7 @@ L2tpOpen(Link l)
 	}
 
 	/* There is no tun which we need. Create a new one. */
-	if ((tun = Malloc(MB_PHYS, sizeof(*tun))) == NULL) {
-		Log(LG_ERR, ("[%s] malloc: %s", 
-		    l->name, strerror(errno)));
-		goto fail;
-	}
+	tun = Malloc(MB_PHYS, sizeof(*tun));
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
 	u_addrcopy(&pi->conf.peer_addr.addr, &tun->peer_addr);
 	tun->peer_port = pi->conf.peer_port?pi->conf.peer_port:L2TP_PORT;
@@ -1320,10 +1316,7 @@ L2tpServerEvent(int type, void *arg)
 	int	k;
 
 	/* Allocate buffer */
-	if ((buf = Malloc(MB_PHYS, bufsize)) == NULL) {
-		Log(LG_ERR, ("L2TP: malloc: %s", strerror(errno)));
-		goto fail;
-	}
+	buf = Malloc(MB_PHYS, bufsize);
 
 	/* Read packet */
 	sas_len = sizeof(peer_sas);
@@ -1341,10 +1334,7 @@ L2tpServerEvent(int type, void *arg)
 		goto fail;
 
 	/* Create a new tun */
-	if ((tun = Malloc(MB_PHYS, sizeof(*tun))) == NULL) {
-		Log(LG_ERR, ("L2TP: malloc: %s", strerror(errno)));
-		goto fail;
-	}
+	tun = Malloc(MB_PHYS, sizeof(*tun));
 	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
 	u_addrcopy(&s->self_addr, &tun->self_addr);
 	tun->self_port = s->self_port;
@@ -1556,9 +1546,7 @@ L2tpListen(Link l)
 	    }
 	}
 
-	if ((s = Malloc(MB_PHYS, sizeof(struct l2tp_server))) == NULL)
-	    return (0);
-	
+	s = Malloc(MB_PHYS, sizeof(struct l2tp_server));
 	s->refs = 1;
 	u_addrcopy(&p->conf.self_addr, &s->self_addr);
 	s->self_port = p->conf.self_port?p->conf.self_port:L2TP_PORT;
