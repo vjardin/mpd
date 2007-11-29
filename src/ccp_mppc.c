@@ -486,11 +486,8 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 static Mbuf
 MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
-  char	path[NG_PATHSIZ];
-
   /* Forward ResetReq to the MPPC compression node */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
-  if (NgSendMsg(b->csock, path,
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_COMPRESS,
       NGM_MPPC_COOKIE, NGM_MPPC_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset-req to %s node: %s",
       b->name, NG_MPPC_NODE_TYPE, strerror(errno)));
@@ -748,7 +745,6 @@ MppcTestCap(void)
 {
     struct ng_mppc_config	conf;
     struct ngm_mkpeer		mp;
-    char			path[NG_PATHSIZ];
     int				cs, ds;
 
     /* Create a netgraph socket node */
@@ -778,8 +774,8 @@ MppcTestCap(void)
     if (NgSendMsg(cs, "mppc",
       NGM_MPPC_COOKIE, NGM_MPPC_CONFIG_COMP, &conf, sizeof(conf)) < 0) {
         if (errno != EPROTONOSUPPORT) {
-	    Log(LG_ERR, ("MppcTestCap: can't config %s node at %s: %s",
-    		NG_MPPC_NODE_TYPE, path, strerror(errno)));
+	    Log(LG_ERR, ("MppcTestCap: can't config %s node: %s",
+    		NG_MPPC_NODE_TYPE, strerror(errno)));
 	}
     } else 
 	MPPCPresent = 1;
@@ -790,8 +786,8 @@ MppcTestCap(void)
     if (NgSendMsg(cs, "mppc",
       NGM_MPPC_COOKIE, NGM_MPPC_CONFIG_COMP, &conf, sizeof(conf)) < 0) {
         if (errno != EPROTONOSUPPORT) {
-	    Log(LG_ERR, ("MppcTestCap: can't config %s node at %s: %s",
-    		NG_MPPC_NODE_TYPE, path, strerror(errno)));
+	    Log(LG_ERR, ("MppcTestCap: can't config %s node: %s",
+    		NG_MPPC_NODE_TYPE, strerror(errno)));
 	}
     } else 
 	MPPEPresent = 1;

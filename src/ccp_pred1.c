@@ -392,10 +392,8 @@ Pred1RecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
   Pred1Init(b, COMP_DIR_XMIT);
   p->xmit_stats.Errors++;
 #else
-  char	path[NG_PATHSIZ];
   /* Forward ResetReq to the DEFLATE compression node */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_COMPRESS);
-  if (NgSendMsg(b->csock, path,
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_COMPRESS,
       NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset to %s node: %s",
       b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
@@ -427,10 +425,8 @@ Pred1RecvResetAck(Bund b, int id, Mbuf bp)
 #ifndef USE_NG_PRED1
   Pred1Init(b, COMP_DIR_RECV);
 #else
-  char	path[NG_PATHSIZ];
   /* Forward ResetReq to the DEFLATE compression node */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, NG_PPP_HOOK_DECOMPRESS);
-  if (NgSendMsg(b->csock, path,
+  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_DECOMPRESS,
       NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
     Log(LG_ERR, ("[%s] reset to %s node: %s",
       b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
