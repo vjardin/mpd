@@ -118,8 +118,8 @@ MsgSend(MsgHandler *m, int type, void *arg)
     struct mpmsg	msg;
     int			nw, nwrote, retry;
 
-    if (m == NULL)
-	    return;
+    assert(m);
+    assert(m->func);
 
     SETOVERLOAD(++pipelen);
 
