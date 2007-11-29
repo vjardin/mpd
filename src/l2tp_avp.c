@@ -62,19 +62,12 @@ ppp_l2tp_avp_create(int mandatory, u_int16_t vendor,
 {
 	struct ppp_l2tp_avp *avp;
 
-	if ((avp = MALLOC(AVP_MTYPE, sizeof(*avp))) == NULL)
-		return (NULL);
-	memset(avp, 0, sizeof(*avp));
+	avp = Malloc(AVP_MTYPE, sizeof(*avp));
 	avp->mandatory = !!mandatory;
 	avp->vendor = vendor;
 	avp->type = type;
-	if (vlen > 0) {
-		if ((avp->value = MALLOC(AVP_MTYPE, vlen)) == NULL) {
-			FREE(AVP_MTYPE, avp);
-			return (NULL);
-		}
-		memcpy(avp->value, value, vlen);
-	}
+	if (vlen > 0)
+		avp->value = Mdup(AVP_MTYPE, value, vlen);
 	avp->vlen = vlen;
 	return (avp);
 }
@@ -100,8 +93,8 @@ ppp_l2tp_avp_destroy(struct ppp_l2tp_avp **avpp)
 	if (avp == NULL)
 		return;
 	*avpp = NULL;
-	FREE(AVP_MTYPE, avp->value);
-	FREE(AVP_MTYPE, avp);
+	Freee(AVP_MTYPE, avp->value);
+	Freee(AVP_MTYPE, avp);
 }
 
 /***********************************************************************
@@ -116,9 +109,7 @@ ppp_l2tp_avp_list_create(void)
 {
 	struct ppp_l2tp_avp_list *list;
 
-	if ((list = MALLOC(AVP_LIST_MTYPE, sizeof(*list))) == NULL)
-		return (NULL);
-	memset(list, 0, sizeof(*list));
+	list = Malloc(AVP_LIST_MTYPE, sizeof(*list));
 	return (list);
 }
 
@@ -136,14 +127,16 @@ ppp_l2tp_avp_list_insert(struct ppp_l2tp_avp_list *list,
 		errno = EINVAL;
 		return (-1);
 	}
-	if ((mem = REALLOC(AVP_LIST_MTYPE, list->avps,
-	    (list->length + 1) * sizeof(*list->avps))) == NULL)
-		return (-1);
+	/* REALLOC */
+	mem = Malloc(AVP_LIST_MTYPE, (list->length + 1) * sizeof(*list->avps));
+	memcpy(mem, list->avps, list->length * sizeof(*list->avps));
+	Freee(AVP_LIST_MTYPE, list->avps);
 	list->avps = mem;
+	/* insert */
 	memmove(list->avps + index + 1, list->avps + index,
 	    (list->length++ - index) * sizeof(*list->avps));
 	list->avps[index] = *avp;
-	FREE(AVP_MTYPE, avp);
+	Freee(AVP_MTYPE, avp);
 	*avpp = NULL;
 	return (0);
 }
@@ -199,7 +192,7 @@ ppp_l2tp_avp_list_remove(struct ppp_l2tp_avp_list *list, u_int index)
 		errno = EINVAL;
 		return (-1);
 	}
-	FREE(AVP_MTYPE, list->avps[index].value);
+	Freee(AVP_MTYPE, list->avps[index].value);
 	memmove(list->avps + index, list->avps + index + 1,
 	    (--list->length - index) * sizeof(*list->avps));
 	return (0);
@@ -261,10 +254,10 @@ ppp_l2tp_avp_list_destroy(struct ppp_l2tp_avp_list **listp)
 	for (i = 0; i < list->length; i++) {
 		const struct ppp_l2tp_avp *const avp = &list->avps[i];
 
-		FREE(AVP_MTYPE, avp->value);
+		Freee(AVP_MTYPE, avp->value);
 	}
-	FREE(AVP_LIST_MTYPE, list->avps);
-	FREE(AVP_LIST_MTYPE, list);
+	Freee(AVP_LIST_MTYPE, list->avps);
+	Freee(AVP_LIST_MTYPE, list);
 }
 
 /*
@@ -541,16 +534,12 @@ do {									\
 	if (_size < avp->vlen)						\
 		_size = avp->vlen;					\
 	_size += 16;							\
-	FREE(AVP_PTRS_MTYPE, ptrs->field);				\
-	if ((ptrs->field = MALLOC(AVP_PTRS_MTYPE, _size)) == NULL)	\
-		goto fail;						\
-	memset(ptrs->field, 0, _size);					\
+	Freee(AVP_PTRS_MTYPE, ptrs->field);				\
+	ptrs->field = Malloc(AVP_PTRS_MTYPE, _size);			\
 } while (0)
 
 	/* Create new pointers structure */
-	if ((ptrs = MALLOC(AVP_PTRS_MTYPE, sizeof(*ptrs))) == NULL)
-		return (NULL);
-	memset(ptrs, 0, sizeof(*ptrs));
+	ptrs = Malloc(AVP_PTRS_MTYPE, sizeof(*ptrs));
 
 	/* Add recognized AVP's */
 	for (i = 0; i < list->length; i++) {
@@ -768,11 +757,6 @@ do {									\
 
 	/* Done */
 	return (ptrs);
-
-fail:
-	/* Clean up after failure */
-	ppp_l2tp_avp_ptrs_destroy(&ptrs);
-	return (NULL);
 }
 
 /*
@@ -785,44 +769,44 @@ ppp_l2tp_avp_ptrs_destroy(struct ppp_l2tp_avp_ptrs **ptrsp)
 
 	if (ptrs == NULL)
 		return;
-	FREE(AVP_PTRS_MTYPE, ptrs->message);
-	FREE(AVP_PTRS_MTYPE, ptrs->errresultcode);
-	FREE(AVP_PTRS_MTYPE, ptrs->protocol);
-	FREE(AVP_PTRS_MTYPE, ptrs->framingcap);
-	FREE(AVP_PTRS_MTYPE, ptrs->bearercap);
-	FREE(AVP_PTRS_MTYPE, ptrs->tiebreaker);
-	FREE(AVP_PTRS_MTYPE, ptrs->firmware);
-	FREE(AVP_PTRS_MTYPE, ptrs->hostname);
-	FREE(AVP_PTRS_MTYPE, ptrs->vendor);
-	FREE(AVP_PTRS_MTYPE, ptrs->tunnelid);
-	FREE(AVP_PTRS_MTYPE, ptrs->sessionid);
-	FREE(AVP_PTRS_MTYPE, ptrs->winsize);
-	FREE(AVP_PTRS_MTYPE, ptrs->challenge);
-	FREE(AVP_PTRS_MTYPE, ptrs->challengresp);
-	FREE(AVP_PTRS_MTYPE, ptrs->causecode);
-	FREE(AVP_PTRS_MTYPE, ptrs->serialnum);
-	FREE(AVP_PTRS_MTYPE, ptrs->maxbps);
-	FREE(AVP_PTRS_MTYPE, ptrs->bearer);
-	FREE(AVP_PTRS_MTYPE, ptrs->framing);
-	FREE(AVP_PTRS_MTYPE, ptrs->callednum);
-	FREE(AVP_PTRS_MTYPE, ptrs->callingnum);
-	FREE(AVP_PTRS_MTYPE, ptrs->subaddress);
-	FREE(AVP_PTRS_MTYPE, ptrs->txconnect);
-	FREE(AVP_PTRS_MTYPE, ptrs->rxconnect);
-	FREE(AVP_PTRS_MTYPE, ptrs->channelid);
-	FREE(AVP_PTRS_MTYPE, ptrs->groupid);
-	FREE(AVP_PTRS_MTYPE, ptrs->recvlcp);
-	FREE(AVP_PTRS_MTYPE, ptrs->lastsendlcp);
-	FREE(AVP_PTRS_MTYPE, ptrs->lastrecvlcp);
-	FREE(AVP_PTRS_MTYPE, ptrs->proxyauth);
-	FREE(AVP_PTRS_MTYPE, ptrs->proxyname);
-	FREE(AVP_PTRS_MTYPE, ptrs->proxychallenge);
-	FREE(AVP_PTRS_MTYPE, ptrs->proxyid);
-	FREE(AVP_PTRS_MTYPE, ptrs->proxyres);
-	FREE(AVP_PTRS_MTYPE, ptrs->callerror);
-	FREE(AVP_PTRS_MTYPE, ptrs->accm);
-	FREE(AVP_PTRS_MTYPE, ptrs->seqrequired);
-	FREE(AVP_PTRS_MTYPE, ptrs);
+	Freee(AVP_PTRS_MTYPE, ptrs->message);
+	Freee(AVP_PTRS_MTYPE, ptrs->errresultcode);
+	Freee(AVP_PTRS_MTYPE, ptrs->protocol);
+	Freee(AVP_PTRS_MTYPE, ptrs->framingcap);
+	Freee(AVP_PTRS_MTYPE, ptrs->bearercap);
+	Freee(AVP_PTRS_MTYPE, ptrs->tiebreaker);
+	Freee(AVP_PTRS_MTYPE, ptrs->firmware);
+	Freee(AVP_PTRS_MTYPE, ptrs->hostname);
+	Freee(AVP_PTRS_MTYPE, ptrs->vendor);
+	Freee(AVP_PTRS_MTYPE, ptrs->tunnelid);
+	Freee(AVP_PTRS_MTYPE, ptrs->sessionid);
+	Freee(AVP_PTRS_MTYPE, ptrs->winsize);
+	Freee(AVP_PTRS_MTYPE, ptrs->challenge);
+	Freee(AVP_PTRS_MTYPE, ptrs->challengresp);
+	Freee(AVP_PTRS_MTYPE, ptrs->causecode);
+	Freee(AVP_PTRS_MTYPE, ptrs->serialnum);
+	Freee(AVP_PTRS_MTYPE, ptrs->maxbps);
+	Freee(AVP_PTRS_MTYPE, ptrs->bearer);
+	Freee(AVP_PTRS_MTYPE, ptrs->framing);
+	Freee(AVP_PTRS_MTYPE, ptrs->callednum);
+	Freee(AVP_PTRS_MTYPE, ptrs->callingnum);
+	Freee(AVP_PTRS_MTYPE, ptrs->subaddress);
+	Freee(AVP_PTRS_MTYPE, ptrs->txconnect);
+	Freee(AVP_PTRS_MTYPE, ptrs->rxconnect);
+	Freee(AVP_PTRS_MTYPE, ptrs->channelid);
+	Freee(AVP_PTRS_MTYPE, ptrs->groupid);
+	Freee(AVP_PTRS_MTYPE, ptrs->recvlcp);
+	Freee(AVP_PTRS_MTYPE, ptrs->lastsendlcp);
+	Freee(AVP_PTRS_MTYPE, ptrs->lastrecvlcp);
+	Freee(AVP_PTRS_MTYPE, ptrs->proxyauth);
+	Freee(AVP_PTRS_MTYPE, ptrs->proxyname);
+	Freee(AVP_PTRS_MTYPE, ptrs->proxychallenge);
+	Freee(AVP_PTRS_MTYPE, ptrs->proxyid);
+	Freee(AVP_PTRS_MTYPE, ptrs->proxyres);
+	Freee(AVP_PTRS_MTYPE, ptrs->callerror);
+	Freee(AVP_PTRS_MTYPE, ptrs->accm);
+	Freee(AVP_PTRS_MTYPE, ptrs->seqrequired);
+	Freee(AVP_PTRS_MTYPE, ptrs);
 	*ptrsp = NULL;
 }
 

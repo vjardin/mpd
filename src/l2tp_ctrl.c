@@ -474,9 +474,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 		return (NULL);
 
 	/* Create control connection */
-	if ((ctrl = MALLOC(CTRL_MEM_TYPE, sizeof(*ctrl))) == NULL)
-		return (NULL);
-	memset(ctrl, 0, sizeof(*ctrl));
+	ctrl = Malloc(CTRL_MEM_TYPE, sizeof(*ctrl));
 	ctrl->ctx = ctx;
 	ctrl->mutex = mutex;
 	ctrl->cb = cb;
@@ -497,11 +495,8 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 		goto fail;
 
 	/* Copy shared secret, if any */
-	if (seclen > 0) {
-		if ((ctrl->secret = MALLOC(CTRL_MEM_TYPE, seclen)) == NULL)
-			goto fail;
-		memcpy(ctrl->secret, secret, seclen);
-	}
+	if (seclen > 0)
+		ctrl->secret = Mdup(CTRL_MEM_TYPE, secret, seclen);
 	ctrl->seclen = seclen;
 	ctrl->hide_avps = hide_avps;
 
@@ -628,8 +623,8 @@ fail:
 	ppp_l2tp_avp_list_destroy(&ctrl->avps);
 	ghash_remove(ppp_l2tp_ctrls, ctrl);
 	ghash_destroy(&ctrl->sessions);
-	FREE(CTRL_MEM_TYPE, ctrl->secret);
-	FREE(CTRL_MEM_TYPE, ctrl);
+	Freee(CTRL_MEM_TYPE, ctrl->secret);
+	Freee(CTRL_MEM_TYPE, ctrl);
 	if (ppp_l2tp_ctrls != NULL && ghash_size(ppp_l2tp_ctrls) == 0)
 		ghash_destroy(&ppp_l2tp_ctrls);
 	return (NULL);
@@ -1155,11 +1150,7 @@ ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
 	u_int32_t value32;
 
 	/* Create new session object */
-	if ((sess = MALLOC(SESS_MEM_TYPE, sizeof(*sess))) == NULL) {
-		Log(LOG_ERR, ("error creating session: %s", strerror(errno)));
-		return (NULL);
-	}
-	memset(sess, 0, sizeof(*sess));
+	sess = Malloc(SESS_MEM_TYPE, sizeof(*sess));
 	sess->ctrl = ctrl;
 	sess->orig = orig;
 	sess->side = side;
@@ -1250,8 +1241,7 @@ ppp_l2tp_ctrl_send(struct ppp_l2tp_ctrl *ctrl, u_int16_t session_id,
 	if ((len = ppp_l2tp_avp_pack(ppp_l2tp_avp_info_list,
 	    avps, (ctrl->hide_avps?ctrl->secret:NULL), ctrl->seclen, NULL)) == -1)
 		goto fail;
-	if ((data = MALLOC(TYPED_MEM_TEMP, 2 + len)) == NULL)
-		goto fail;
+	data = Malloc(TYPED_MEM_TEMP, 2 + len);
 	session_id = htons(session_id);
 	memcpy(data, &session_id, 2);
 	(void)ppp_l2tp_avp_pack(ppp_l2tp_avp_info_list,
@@ -1280,7 +1270,7 @@ done:
 	/* Clean up */
 	ppp_l2tp_avp_destroy(&avp);
 	ppp_l2tp_avp_list_destroy(&avps);
-	FREE(TYPED_MEM_TEMP, data);
+	Freee(TYPED_MEM_TEMP, data);
 }
 
 /*
@@ -1298,8 +1288,8 @@ ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 	/* Save result code and error string */
 	ctrl->result = result;
 	ctrl->error = error;
-	FREE(CTRL_MEM_TYPE, ctrl->errmsg);
-	ctrl->errmsg = (errmsg == NULL) ? NULL : STRDUP(CTRL_MEM_TYPE, errmsg);
+	Freee(CTRL_MEM_TYPE, ctrl->errmsg);
+	ctrl->errmsg = (errmsg == NULL) ? NULL : Mdup(CTRL_MEM_TYPE, errmsg, strlen(errmsg) + 1);
 
 	/* Notify peer if necessary */
 	if (!ctrl->peer_notified) {
@@ -1327,8 +1317,7 @@ ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 		}
 
 		/* Add result code AVP */
-		if ((rbuf = MALLOC(TYPED_MEM_TEMP, 4 + elen)) == NULL)
-			goto notify_done;
+		rbuf = Malloc(TYPED_MEM_TEMP, 4 + elen);
 		value16 = htons(ctrl->result);
 		memcpy(rbuf, &value16, sizeof(value16));
 		value16 = htons(ctrl->error);
@@ -1351,7 +1340,7 @@ ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 notify_done:
 		/* Clean up */
 		ppp_l2tp_avp_list_destroy(&avps);
-		FREE(TYPED_MEM_TEMP, rbuf);
+		Freee(TYPED_MEM_TEMP, rbuf);
 	}
 
 	/* Stop all timers */
@@ -1389,9 +1378,9 @@ ppp_l2tp_ctrl_do_close(void *arg)
 		sess->link_notified = 1;
 		sess->result = L2TP_RESULT_ERROR;
 		sess->error = L2TP_ERROR_GENERIC;
-		FREE(SESS_MEM_TYPE, sess->errmsg);
-		sess->errmsg = STRDUP(SESS_MEM_TYPE,
-		    "control connection closing");
+		Freee(SESS_MEM_TYPE, sess->errmsg);
+		sess->errmsg = Mdup(SESS_MEM_TYPE,
+		    "control connection closing", strlen("control connection closing") + 1);
 		(*ctrl->cb->terminated)(sess,
 		    sess->result, sess->error, sess->errmsg);
 	}
@@ -1601,8 +1590,8 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 	/* Save result code and error string */
 	sess->result = result;
 	sess->error = error;
-	FREE(SESS_MEM_TYPE, sess->errmsg);
-	sess->errmsg = (errmsg == NULL) ? NULL : STRDUP(SESS_MEM_TYPE, errmsg);
+	Freee(SESS_MEM_TYPE, sess->errmsg);
+	sess->errmsg = (errmsg == NULL) ? NULL : Mdup(SESS_MEM_TYPE, errmsg, strlen(errmsg) + 1);
 
 	/* Notify peer if necessary */
 	if (!sess->peer_notified) {
@@ -1628,8 +1617,7 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 		}
 
 		/* Add result code AVP */
-		if ((rbuf = MALLOC(TYPED_MEM_TEMP, 4 + elen)) == NULL)
-			goto notify_done;
+		rbuf = Malloc(TYPED_MEM_TEMP, 4 + elen);
 		value16 = htons(sess->result);
 		memcpy(rbuf, &value16, sizeof(value16));
 		value16 = htons(sess->error);
@@ -1647,7 +1635,7 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 notify_done:
 		/* Clean up */
 		ppp_l2tp_avp_list_destroy(&avps);
-		FREE(TYPED_MEM_TEMP, rbuf);
+		Freee(TYPED_MEM_TEMP, rbuf);
 	}
 
 	/* Stop all session timers */
@@ -2419,10 +2407,10 @@ ppp_l2tp_ctrl_destroy(struct ppp_l2tp_ctrl **ctrlp)
 	pevent_unregister(&ctrl->data_event);
 	ppp_l2tp_avp_list_destroy(&ctrl->avps);
 	ghash_destroy(&ctrl->sessions);
-	FREE(CTRL_MEM_TYPE, ctrl->secret);
-	FREE(CTRL_MEM_TYPE, ctrl->errmsg);
+	Freee(CTRL_MEM_TYPE, ctrl->secret);
+	Freee(CTRL_MEM_TYPE, ctrl->errmsg);
 	memset(ctrl, 0, sizeof(*ctrl));
-	FREE(CTRL_MEM_TYPE, ctrl);
+	Freee(CTRL_MEM_TYPE, ctrl);
 }
 
 /*
@@ -2454,9 +2442,9 @@ ppp_l2tp_sess_destroy(struct ppp_l2tp_sess **sessp)
 	pevent_unregister(&sess->reply_timer);
 	pevent_unregister(&sess->close_timer);
 	pevent_unregister(&sess->death_timer);
-	FREE(SESS_MEM_TYPE, sess->errmsg);
+	Freee(SESS_MEM_TYPE, sess->errmsg);
 	memset(sess, 0, sizeof(*sess));
-	FREE(SESS_MEM_TYPE, sess);
+	Freee(SESS_MEM_TYPE, sess);
 }
 
 /************************************************************************
