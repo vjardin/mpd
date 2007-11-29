@@ -24,7 +24,7 @@
  * FUNCTIONS
  */
 
-  extern const char		*ModemGetVar(Link l, const char *name);
+  extern char		*ModemGetVar(Link l, const char *name);
 
 #endif
 

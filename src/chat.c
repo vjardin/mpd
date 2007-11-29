@@ -284,7 +284,7 @@ ChatPresetVar(ChatInfo c, const char *name, const char *value)
  * Caller must free the returned value
  */
 
-const char *
+char *
 ChatGetVar(ChatInfo c, const char *var)
 {
   ChatVar	const cv = ChatVarGet(c, var);

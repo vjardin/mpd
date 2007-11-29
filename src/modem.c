@@ -409,7 +409,7 @@ ModemChatConnectResult(void *arg, int result, const char *msg)
 {
     Link	const l = (Link) arg;
     ModemInfo	const m = (ModemInfo) l->info;
-    const char	*cspeed;
+    char	*cspeed;
     int		bw;
 
     /* Was the connect script successful? */
@@ -464,7 +464,7 @@ ModemChatIdleResult(void *arg, int result, const char *msg)
 {
     Link		const l = (Link) arg;
     ModemInfo	const m = (ModemInfo) l->info;
-    const char	*idleResult;
+    char	*idleResult;
 
     /* If script failed, then do nothing */
     if (!result) {
@@ -707,7 +707,7 @@ ModemChatFree(void *arg, void *mem)
  * ModemGetVar()
  */
 
-const char *
+char *
 ModemGetVar(Link l, const char *name)
 {
     ModemInfo	const m = (ModemInfo) l->info;
@@ -952,7 +952,7 @@ ModemStat(Context ctx)
 {
     ModemInfo			const m = (ModemInfo) ctx->lnk->info;
     struct ng_async_stat	stats;
-    const char			*cspeed;
+    char			*cspeed;
 
     Printf("Modem info:\r\n");
     Printf("\tDevice       : %s\r\n", m->device);

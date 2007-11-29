@@ -57,7 +57,7 @@
 			  chatfreefunc_t freer);
   extern void		ChatPresetVar(ChatInfo c,
 			  const char *var, const char *value);
-  extern const char	*ChatGetVar(ChatInfo c, const char *var);
+  extern char		*ChatGetVar(ChatInfo c, const char *var);
   extern void		ChatStart(ChatInfo c, int fd, FILE *scriptfp,
 			  const char *label, chatresultfunc_t result);
   extern int		ChatActive(ChatInfo c);
