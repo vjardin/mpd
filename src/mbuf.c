@@ -305,7 +305,7 @@ Mbuf
 mbsplit(Mbuf bp, int cnt)
 {
   int	seen, extra, tail;
-  Mbuf	mextra, next;
+  Mbuf	next;
 
 /* Find mbuf in chain containing the breakpoint */
 
@@ -322,9 +322,7 @@ mbsplit(Mbuf bp, int cnt)
 
   if (extra > 0)
   {
-    if ((mextra = mballoc(bp->type, extra)) == NULL)
-	return (NULL);
-
+    Mbuf mextra = mballoc(bp->type, extra);
     memcpy(MBDATAU(mextra), MBDATAU(bp) + tail, extra);
     bp->cnt = tail;
     mextra->next = bp->next;
