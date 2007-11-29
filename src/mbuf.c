@@ -22,9 +22,15 @@
 void *
 Malloc(const char *type, int size)
 {
-    Mbuf bp = mballoc(type, size);
-    memset(MBDATAU(bp), 0, size);
-    return(MBDATAU(bp));
+    const char	**memory;
+    if ((memory = MALLOC(type, sizeof(char *) + size)) == NULL) {
+	Perror("Malloc: malloc");
+	DoExit(EX_ERRDEAD);
+    }
+
+    memory[0] = type;
+    bzero(memory + 1, size);
+    return (memory + 1);
 }
 
 /*
@@ -36,9 +42,15 @@ Malloc(const char *type, int size)
 void *
 Mdup(const char *type, const void *src, int size)
 {
-    Mbuf bp = mballoc(type, size);
-    memcpy(MBDATAU(bp), src, size);
-    return(MBDATAU(bp));
+    const char	**memory;
+    if ((memory = MALLOC(type, sizeof(char *) + size)) == NULL) {
+	Perror("Mdup: malloc");
+	DoExit(EX_ERRDEAD);
+    }
+
+    memory[0] = type;
+    memcpy(memory + 1, src, size);
+    return(memory + 1);
 }
 
 /*
@@ -48,14 +60,13 @@ Mdup(const char *type, const void *src, int size)
  */
 
 void
-Freee(const void *ptr)
+Freee(void *ptr)
 {
-    Mbuf	bp;
-    if (ptr == NULL)
-	return;
-
-    bp = ((Mbuf) ptr - 1);
-    mbfree(bp);
+    if (ptr) {
+	char	**memory = ptr;
+	memory--;
+	FREE(memory[0], memory);
+    }
 }
 
 /*
