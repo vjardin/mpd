@@ -549,10 +549,8 @@ PptpCtrlListen(struct u_addr *ip, in_port_t port)
     for (k = 0; k < gNumPptpLis && gPptpLis[k] != NULL; k++);
     if (k == gNumPptpLis)
 	LengthenArray(&gPptpLis, sizeof(*gPptpLis), &gNumPptpLis, MB_PPTP);
-    l = Malloc(MB_PPTP, sizeof(*l));
-    if (l == NULL)
-	return (NULL);
 
+    l = Malloc(MB_PPTP, sizeof(*l));
     gPptpLis[k] = l;
     l->ref = 1;
     l->self_addr = *ip;
