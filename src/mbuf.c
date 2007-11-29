@@ -53,6 +53,12 @@ Mdup(const char *type, const void *src, int size)
     return(memory + 1);
 }
 
+void *
+Mstrdup(const char *type, const void *src)
+{
+    return (Mdup(type, src, strlen(src) + 1));
+}
+
 /*
  * Freee()
  *

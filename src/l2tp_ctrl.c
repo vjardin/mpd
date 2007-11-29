@@ -1289,7 +1289,7 @@ ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 	ctrl->result = result;
 	ctrl->error = error;
 	Freee(ctrl->errmsg);
-	ctrl->errmsg = (errmsg == NULL) ? NULL : Mdup(CTRL_MEM_TYPE, errmsg, strlen(errmsg) + 1);
+	ctrl->errmsg = (errmsg == NULL) ? NULL : Mstrdup(CTRL_MEM_TYPE, errmsg);
 
 	/* Notify peer if necessary */
 	if (!ctrl->peer_notified) {
@@ -1591,7 +1591,7 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 	sess->result = result;
 	sess->error = error;
 	Freee(sess->errmsg);
-	sess->errmsg = (errmsg == NULL) ? NULL : Mdup(SESS_MEM_TYPE, errmsg, strlen(errmsg) + 1);
+	sess->errmsg = (errmsg == NULL) ? NULL : Mstrdup(SESS_MEM_TYPE, errmsg);
 
 	/* Notify peer if necessary */
 	if (!sess->peer_notified) {

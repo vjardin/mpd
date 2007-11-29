@@ -282,7 +282,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     }
 
     if (src->msdomain)
-	dst->msdomain = Mdup(MB_AUTH, src->msdomain, strlen(src->msdomain)+1);
+	dst->msdomain = Mstrdup(MB_AUTH, src->msdomain);
 };
 
 void	authparamsMove(struct authparams *src, struct authparams *dst)
@@ -634,7 +634,7 @@ AuthDataNew(Link l)
     }
 
     if (l->downReasonValid)
-	auth->info.downReason = Mdup(MB_LINK, l->downReason, strlen(l->downReason) + 1);
+	auth->info.downReason = Mstrdup(MB_LINK, l->downReason);
 
     auth->info.last_open = l->last_open;
     auth->info.phys_type = l->type;
@@ -2053,13 +2053,13 @@ AuthExternal(AuthData auth)
     } else if (strcmp(attr, "REPLY_MESSAGE") == 0) {
 	if (auth->reply_message)
 		Freee(auth->reply_message);
-	auth->reply_message = Mdup(MB_AUTH, val, strlen(val) + 1);
+	auth->reply_message = Mstrdup(MB_AUTH, val);
 
     } else if (strcmp(attr, "MS_CHAP_ERROR") == 0) {
 	if (auth->mschap_error)
 		Freee(auth->mschap_error);
 	/* "E=%d R=0 M=%s" */
-	auth->mschap_error = Mdup(MB_AUTH, val, strlen(val) + 1);
+	auth->mschap_error = Mstrdup(MB_AUTH, val);
 
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;

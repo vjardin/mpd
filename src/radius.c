@@ -554,8 +554,8 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	} else if ( ac > 3 )
 	  Error("Acct Port number too high > 65535");
 
-	server->hostname = Mdup(MB_RADIUS, av[0], strlen(av[0]) + 1);
-	server->sharedsecret = Mdup(MB_RADIUS, av[1], strlen(av[1]) + 1);
+	server->hostname = Mstrdup(MB_RADIUS, av[0]);
+	server->sharedsecret = Mstrdup(MB_RADIUS, av[1]);
 
 	if (conf->server != NULL)
 	  server->next = conf->server;
@@ -598,7 +598,7 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	} else {
 	  if (conf->file)
 		Freee(conf->file);
-	  conf->file = Mdup(MB_RADIUS, av[0], strlen(av[0])+1);
+	  conf->file = Mstrdup(MB_RADIUS, av[0]);
 	}
 	break;
 
