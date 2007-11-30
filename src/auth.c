@@ -634,7 +634,7 @@ AuthDataNew(Link l)
     }
 
     if (l->downReasonValid)
-	auth->info.downReason = Mstrdup(MB_LINK, l->downReason);
+	auth->info.downReason = Mstrdup(MB_AUTH, l->downReason);
 
     auth->info.last_open = l->last_open;
     auth->info.phys_type = l->type;
