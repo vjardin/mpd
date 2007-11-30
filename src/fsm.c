@@ -222,11 +222,10 @@ FsmOutputMbuf(Fsm fp, u_int code, u_int id, Mbuf payload)
     /* Build header */
     hdr.id = id;
     hdr.code = code;
-    hdr.length = htons(sizeof(hdr) + plength(payload));
+    hdr.length = htons(sizeof(hdr) + MBLEN(payload));
 
     /* Prepend to payload */
-    bp = mbwrite(mballoc(MB_FSM, sizeof(hdr)), (u_char *) &hdr, sizeof(hdr));
-    bp->next = payload;
+    bp = mbcopyback(payload, -sizeof(hdr), &hdr, sizeof(hdr));
 
     /* Send it out */
     if (fp->type->link_layer) {
@@ -247,7 +246,7 @@ FsmOutput(Fsm fp, u_int code, u_int id, u_char *ptr, int len)
 {
   Mbuf	bp;
 
-  bp = (len > 0) ? mbwrite(mballoc(MB_FSM, len), ptr, len) : NULL;
+  bp = (len > 0) ? mbcopyback(NULL, 0, ptr, len) : NULL;
   FsmOutputMbuf(fp, code, id, bp);
 }
 
@@ -555,11 +554,11 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_INITIAL:
     case ST_STARTING:
       Log(fp->log2, ("[%s] %s: Oops, RCR in %s", Pref(fp), Fsm(fp), FsmStateName(fp->state)));
-      PFREE(bp);
+      mbfree(bp);
       return;
     case ST_CLOSED:
       FsmSendTerminateAck(fp);
-      PFREE(bp);
+      mbfree(bp);
       return;
     case ST_STOPPED:
       if (fp->type->Configure)
@@ -567,12 +566,11 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
       break;
     case ST_CLOSING:
     case ST_STOPPING:
-      PFREE(bp);
+      mbfree(bp);
       return;
   }
 
   /* Decode packet */
-  bp = mbunify(bp);
   FsmDecodeBuffer(fp, MBDATA(bp), MBLEN(bp), MODE_REQ);
 
   /* State specific actions */
@@ -598,7 +596,7 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
     if (fp->failure <= 0) {
       Log(fp->log, ("[%s] %s: not converging", Pref(fp), Fsm(fp)));
       FsmFailure(fp, FAIL_NEGOT_FAILURE);
-      PFREE(bp);
+      mbfree(bp);
       return;
     } else {
       if (gRejSize)
@@ -633,7 +631,7 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 	FsmNewState(fp, ST_REQSENT);
       break;
   }
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /* RCA */
@@ -645,14 +643,13 @@ FsmRecvConfigAck(Fsm fp, FsmHeader lhp, Mbuf bp)
   /* Check sequence number */
   if (lhp->id != (u_char) (fp->reqid - 1)) {
     Log(fp->log, (" Wrong id#, expecting %d", (u_char) (fp->reqid - 1)));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
   /* XXX We should verify the contents are equal to our last sent config-req */
 
   /* Decode packet */
-  bp = mbunify(bp);
   FsmDecodeBuffer(fp, MBDATA(bp), MBLEN(bp), MODE_NOP);
 
   /* Do whatever */
@@ -688,7 +685,7 @@ FsmRecvConfigAck(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmSendConfigReq(fp);
       break;
   }
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /* RCN */
@@ -700,7 +697,7 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
   /* Check sequence number */
   if (lhp->id != (u_char) (fp->reqid - 1)) {
     Log(fp->log, (" Wrong id#, expecting %d", (u_char) (fp->reqid - 1)));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
@@ -709,28 +706,27 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_INITIAL:
     case ST_STARTING:
       Log(fp->log, ("[%s] %s: Oops, RCN in %s", Pref(fp), Fsm(fp), FsmStateName(fp->state)));
-      PFREE(bp);
+      mbfree(bp);
       return;
     case ST_CLOSED:
     case ST_STOPPED:
       FsmSendTerminateAck(fp);
-      PFREE(bp);
+      mbfree(bp);
       return;
     case ST_CLOSING:
     case ST_STOPPING:
-      PFREE(bp);
+      mbfree(bp);
       return;
   }
 
   /* Decode packet */
-  bp = mbunify(bp);
   FsmDecodeBuffer(fp, MBDATA(bp), MBLEN(bp), MODE_NAK);
 
   /* Not converging? */
   if (fp->config <= 0) {
     Log(fp->log, ("[%s] %s: not converging", Pref(fp), Fsm(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
@@ -749,7 +745,7 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmSendConfigReq(fp);
       break;
   }
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /* RCJ */
@@ -761,7 +757,7 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
   /* Check sequence number */
   if (lhp->id != (u_char) (fp->reqid - 1)) {
     Log(fp->log, (" Wrong id#, expecting %d", (u_char) (fp->reqid - 1)));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
@@ -772,28 +768,27 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_INITIAL:
     case ST_STARTING:
       Log(fp->log, ("[%s] %s: Oops, RCJ in %s", Pref(fp), Fsm(fp), FsmStateName(fp->state)));
-      PFREE(bp);
+      mbfree(bp);
       return;
     case ST_CLOSED:
     case ST_STOPPED:
       FsmSendTerminateAck(fp);
-      PFREE(bp);
+      mbfree(bp);
       return;
     case ST_CLOSING:
     case ST_STOPPING:
-      PFREE(bp);
+      mbfree(bp);
       return;
   }
 
   /* Decode packet */
-  bp = mbunify(bp);
   FsmDecodeBuffer(fp, MBDATA(bp), MBLEN(bp), MODE_REJ);
 
   /* Not converging? */
   if (fp->config <= 0) {
     Log(fp->log, ("[%s] %s: not converging", Pref(fp), Fsm(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
@@ -814,7 +809,7 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmSendConfigReq(fp);
       break;
   }
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /* RTR */
@@ -852,7 +847,7 @@ FsmRecvTermReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 	(*fp->type->UnConfigure)(fp);
       break;
   }
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /* RTA */
@@ -878,7 +873,7 @@ FsmRecvTermAck(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmSendConfigReq(fp);
       break;
   }
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -894,7 +889,7 @@ FsmRecvCodeRej(Fsm fp, FsmHeader lhp, Mbuf bp)
   int		fatal;
 
   /* Get code and log it */
-  bp = mbread(bp, &code, sizeof(code), NULL);
+  bp = mbread(bp, &code, sizeof(code));
   Log(fp->log, ("[%s] %s: code %s was rejected", Pref(fp), Fsm(fp), FsmCodeName(code)));
 
   /* Determine fatalness */
@@ -931,7 +926,7 @@ FsmRecvCodeRej(Fsm fp, FsmHeader lhp, Mbuf bp)
     FsmFailure(fp, FAIL_RECD_CODEREJ);		/* RXJ- */
   else
     FsmRecvRxjPlus(fp);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -946,7 +941,7 @@ FsmRecvProtoRej(Fsm fp, FsmHeader lhp, Mbuf bp)
   u_short	proto = 0;
   int		fatal = FALSE;
 
-  bp = mbread(bp, (u_char *) &proto, sizeof(proto), NULL);
+  bp = mbread(bp, &proto, sizeof(proto));
   proto = ntohs(proto);
   Log(fp->log, ("[%s] %s: protocol %s was rejected", Pref(fp), Fsm(fp), ProtoName(proto)));
   if (fp->state == ST_OPENED && fp->type->RecvProtoRej)
@@ -955,7 +950,7 @@ FsmRecvProtoRej(Fsm fp, FsmHeader lhp, Mbuf bp)
     FsmFailure(fp, FAIL_RECD_PROTREJ);		/* RXJ- */
   else
     FsmRecvRxjPlus(fp);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -1093,9 +1088,7 @@ FsmSendEchoReq(Fsm fp, Mbuf payload)
     return;
 
   /* Prepend my magic number */
-  bp = mbwrite(mballoc(MB_ECHO, sizeof(self_magic)),
-    (u_char *) &self_magic, sizeof(self_magic));
-  bp->next = payload;
+  bp = mbcopyback(payload, -sizeof(self_magic), &self_magic, sizeof(self_magic));
 
   /* Send it */
   Log(LG_ECHO, ("[%s] %s: SendEchoReq #%d", Pref(fp), Fsm(fp), fp->echoid));
@@ -1120,9 +1113,8 @@ FsmSendIdent(Fsm fp, const char *ident)
     self_magic = 0;
 
   /* Prepend my magic number */
-  bp = mbwrite(mballoc(MB_FSM, sizeof(self_magic)),
-    (u_char *) &self_magic, sizeof(self_magic));
-  bp->next = mbwrite(mballoc(MB_FSM, len), (u_char *) ident, len);
+  bp = mbcopyback(NULL, 0, (u_char *) &self_magic, sizeof(self_magic));
+  bp = mbcopyback(bp, sizeof(self_magic), ident, len);
 
   /* Send it */
   Log(LG_FSM, ("[%s] %s: SendIdent #%d", Pref(fp), Fsm(fp), fp->echoid));
@@ -1138,23 +1130,19 @@ static void
 FsmRecvEchoReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
   u_int32_t	self_magic;
-  Mbuf		mbp;
 
   /* Validate magic number */
   bp = FsmCheckMagic(fp, bp);
 
   /* If not opened, do nothing */
   if (fp->state != ST_OPENED) {
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
   /* Stick my magic number in there instead */
   self_magic = htonl(((Link)(fp->arg))->lcp.want_magic);
-  mbp = mbwrite(mballoc(MB_FSM, sizeof(self_magic)),
-    (u_char *) &self_magic, sizeof(self_magic));
-  mbp->next = bp;
-  bp = mbp;
+  bp = mbcopyback(bp, -sizeof(self_magic), &self_magic, sizeof(self_magic));
 
   /* Send it back, preserving everything else */
   Log(LG_ECHO, ("[%s] %s: SendEchoRep #%d", Pref(fp), Fsm(fp), lhp->id));
@@ -1169,7 +1157,7 @@ static void
 FsmRecvEchoRep(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
   bp = FsmCheckMagic(fp, bp);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -1182,7 +1170,7 @@ FsmRecvDiscReq(Fsm fp, FsmHeader lhp, Mbuf bp)
   bp = FsmCheckMagic(fp, bp);
   if (fp->type->RecvDiscReq)
     (*fp->type->RecvDiscReq)(fp, bp);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -1197,7 +1185,7 @@ FsmRecvIdent(Fsm fp, FsmHeader lhp, Mbuf bp)
         ShowMesg(fp->log, (char *) MBDATA(bp), MBLEN(bp));
     if (fp->type->RecvIdent)
 	(*fp->type->RecvIdent)(fp, bp);
-    PFREE(bp);
+    mbfree(bp);
 }
 
 /*
@@ -1210,7 +1198,7 @@ FsmRecvVendor(Fsm fp, FsmHeader lhp, Mbuf bp)
   bp = FsmCheckMagic(fp, bp);
   if (fp->type->RecvVendor)
     (*fp->type->RecvVendor)(fp, bp);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -1223,14 +1211,14 @@ FsmRecvTimeRemain(Fsm fp, FsmHeader lhp, Mbuf bp)
     u_int32_t	remain = 0;
 
     bp = FsmCheckMagic(fp, bp);
-    bp = mbread(bp, (u_char *) &remain, sizeof(remain), NULL);
+    bp = mbread(bp, &remain, sizeof(remain));
     remain = ntohl(remain);
     Log(fp->log, (" %u seconds remain", remain));
     if (bp)
         ShowMesg(fp->log, (char *) MBDATA(bp), MBLEN(bp));
     if (fp->type->RecvTimeRemain)
 	(*fp->type->RecvTimeRemain)(fp, bp);
-    PFREE(bp);
+    mbfree(bp);
 }
 
 /*
@@ -1242,7 +1230,7 @@ FsmRecvResetReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
   if (fp->type->RecvResetReq)
     (*fp->type->RecvResetReq)(fp, lhp->id, bp);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -1254,7 +1242,7 @@ FsmRecvResetAck(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
   if (fp->type->RecvResetAck)
     (*fp->type->RecvResetAck)(fp, lhp->id, bp);
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -1316,7 +1304,7 @@ FsmCheckMagic(Fsm fp, Mbuf bp)
   u_int32_t	peer_magic_ought;
 
   /* Read magic number */
-  bp = mbread(bp, (u_char *) &peer_magic, sizeof(peer_magic), NULL);
+  bp = mbread(bp, &peer_magic, sizeof(peer_magic));
   peer_magic = ntohl(peer_magic);
 
   /* What should magic number be? */
@@ -1406,21 +1394,21 @@ FsmInput(Fsm fp, Mbuf bp)
   struct fsmheader	hdr;
 
   /* Check for runt frames; discard them */
-  if ((recd_len = plength(bp)) < sizeof(hdr)) {
+  if ((recd_len = MBLEN(bp)) < sizeof(hdr)) {
     Log(fp->log, ("[%s] %s: runt packet: %d bytes", Pref(fp), Fsm(fp), recd_len));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
   /* Read in the header */
-  bp = mbread(bp, (u_char *) &hdr, sizeof(hdr), NULL);
+  bp = mbread(bp, &hdr, sizeof(hdr));
   length = ntohs(hdr.length);
 
   /* Make sure length is sensible; discard otherwise */
   if (length < sizeof(hdr) || length > recd_len) {
     Log(fp->log, ("[%s] %s: bad length: says %d, rec'd %d",
       Pref(fp), Fsm(fp), length, recd_len));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
@@ -1431,9 +1419,8 @@ FsmInput(Fsm fp, Mbuf bp)
   /* Check for a valid code byte -- if not, send code-reject */
   if (!((1 << hdr.code) & fp->type->known_codes)) {	/* RUC */
     Log(fp->log, ("[%s] %s: unknown code %d", Pref(fp), Fsm(fp), hdr.code));
-    bp = mbunify(bp);
     FsmOutput(fp, CODE_CODEREJ, fp->rejid++, MBDATA(bp), MBLEN(bp));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 

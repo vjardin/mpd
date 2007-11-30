@@ -469,18 +469,13 @@ retry:
 int
 NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
 {
-    Mbuf	hdr;
     u_int16_t	temp;
 
     /* Prepend ppp node bypass header */
-    hdr = mballoc(bp->type, 4);
-
     temp = htons(linkNum);
-    memcpy(MBDATAU(hdr), &temp, 2);
+    bp = mbcopyback(bp, -4, &temp, 2);
     temp = htons(proto);
-    memcpy(MBDATAU(hdr) + 2, &temp, 2);
-    hdr->next = bp;
-    bp = hdr;
+    bp = mbcopyback(bp, 2, &temp, 2);
 
     /* Debugging */
     LogDumpBp(LG_FRAME, bp,
@@ -500,7 +495,6 @@ NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
 int
 NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
 {
-    Mbuf	hdr;
     u_int16_t	temp;
 
     if (l->joined_bund) {
@@ -508,14 +502,10 @@ NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
     }
 
     /* Prepend framing */
-    hdr = mballoc(bp->type, 4);
-
     temp = htons(0xff03);
-    memcpy(MBDATAU(hdr), &temp, 2);
+    bp = mbcopyback(bp, -4, &temp, 2);
     temp = htons(proto);
-    memcpy(MBDATAU(hdr) + 2, &temp, 2);
-    hdr->next = bp;
-    bp = hdr;
+    bp = mbcopyback(bp, 2, &temp, 2);
 
     /* Debugging */
     LogDumpBp(LG_FRAME, bp,
@@ -539,16 +529,15 @@ NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
     struct sockaddr_ng	*ng = (struct sockaddr_ng *)buf;
     int			rtn;
 
+    /* Write frame */
+    if (bp == NULL)  
+	return (-1);
+
     /* Set dest address */
     memset(&buf, 0, sizeof(buf));
     snprintf(ng->sg_data, NG_HOOKSIZ, "%s", hookname);
     ng->sg_family = AF_NETGRAPH;
     ng->sg_len = 3 + strlen(ng->sg_data);
-
-    /* Write frame */
-    bp = mbunify(bp);
-    if (bp == NULL)  
-	return (-1);
 
     rtn = sendto(dsock, MBDATAU(bp), MBLEN(bp),
 	0, (struct sockaddr *)ng, ng->sg_len);
@@ -558,7 +547,7 @@ NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 	Log(LG_ERR, ("[%s] error writing len %d frame to %s: %s",
     	    label, MBLEN(bp), hookname, strerror(errno)));
     }
-    PFREE(bp);
+    mbfree(bp);
     return (rtn);
 }
 

@@ -16,7 +16,7 @@
 /*
  * Malloc()
  *
- * Replacement for the ususal malloc()
+ * Replacement for the usual malloc()
  */
 
 void *
@@ -82,47 +82,32 @@ Freee(void *ptr)
  */
 
 Mbuf
-mballoc(const char *type, int size)
+mballoc(int size)
 {
-  u_char	*memory;
-  u_long	amount;
-  Mbuf		bp;
+    u_char	*memory;
+    int		amount, osize;
+    Mbuf	bp;
 
-  amount = sizeof(*bp) + size;
+    if (size == 0) {
+	osize = 64 - sizeof(*bp);
+    } else if (size < 512)
+	osize = ((size - 1) / 32 + 1) * 64 - sizeof(*bp);
+    else
+	osize = ((size - 1) / 64 + 1) * 64 + 512 - sizeof(*bp);
+    amount = sizeof(*bp) + osize;
 
-  if ((memory = MALLOC(type, amount)) == NULL)
-  {
-    Perror("mballoc: malloc");
-    DoExit(EX_ERRDEAD);
-  }
+    if ((memory = MALLOC(MB_MBUF, amount)) == NULL) {
+	Perror("mballoc: malloc");
+	DoExit(EX_ERRDEAD);
+    }
 
-  /* Put mbuf at front of memory region */
+    /* Put mbuf at front of memory region */
+    bp = (Mbuf)(void *)memory;
+    bp->size = osize;
+    bp->offset = (osize - size) / 2;
+    bp->cnt = 0;
 
-  bp = (Mbuf)(void *)memory;
-  bp->base = memory + sizeof(*bp);
-  bp->size = bp->cnt = size;
-  bp->offset = 0;
-  bp->type = type;
-  bp->next = NULL;
-
-  return(bp);
-}
-
-/*
- * mbufyse()
- *
- * Cover buffer with mbuf header w/o data copying. Returns new Mbuf.
- */
-
-Mbuf
-mbufise(const char *type, u_char *buf, int len)
-{
-  Mbuf	bp;
-
-  bp = mballoc(type, 0);
-  bp->base = buf;
-  bp->size = bp->cnt = len;
-  return(bp);
+    return (bp);
 }
 
 /*
@@ -131,26 +116,11 @@ mbufise(const char *type, u_char *buf, int len)
  * Free head of chain, return next
  */
 
-Mbuf
+void
 mbfree(Mbuf bp)
 {
-  Mbuf	next;
-
-  if (bp)
-  {
-
-   /* Sanity checks */
-    assert(bp->base);
-//    assert(bp == (Mbuf)(void *)(bp->base - sizeof(*bp)));
-
-   /* Free it */
-
-    next = bp->next;
-    bp->base = NULL;
-    FREE(bp->type, bp);
-    return(next);
-  }
-  return(NULL);
+    if (bp)
+	FREE(MB_MBUF, bp);
 }
 
 /*
@@ -164,73 +134,85 @@ mbfree(Mbuf bp)
  */
 
 Mbuf
-mbread(Mbuf bp, u_char *buf, int remain, int *nreadp)
+mbread(Mbuf bp, void *buf, int cnt)
 {
-  int	nread, total;
+    int nread;
 
-  for (total = 0; bp && remain > 0; total += nread)
-  {
-    if (remain > bp->cnt)
-      nread = bp->cnt;
+    if (cnt > bp->cnt)
+	nread = bp->cnt;
     else
-      nread = remain;
+        nread = cnt;
     memcpy(buf, MBDATAU(bp), nread);
-    buf += nread;
-    remain -= nread;
     bp->offset += nread;
     bp->cnt -= nread;
-    while (bp != NULL && bp->cnt == 0)
-      bp = mbfree(bp);
-  }
-  if (nreadp != NULL)
-    *nreadp = total;
-  return(bp);
+    if (bp->cnt == 0) {
+    	mbfree(bp);
+	return (NULL);
+    }
+    return(bp);
 }
 
 /*
  * mbcopy()
  *
- * Copy contents of an mbuf chain into buffer, up to "remain" bytes.
+ * Copy contents of an mbuf chain into buffer, up to "cnt" bytes.
  * This does not consume any of the mbuf chain. Returns number copied.
  */
 
 int
-mbcopy(Mbuf bp, u_char *buf, int remain)
+mbcopy(Mbuf bp, int offset, void *buf, int cnt)
 {
-  int	nread, total;
+    int nread;
 
-  for (total = 0; bp && remain > 0; total += nread, bp = bp->next)
-  {
-    if (remain > bp->cnt)
-      nread = bp->cnt;
+    assert((offset > 0) && (offset < bp->cnt));
+
+    if (cnt > bp->cnt - offset)
+	nread = bp->cnt - offset;
     else
-      nread = remain;
-    memcpy(buf, MBDATAU(bp), nread);
-    buf += nread;
-    remain -= nread;
-  }
-  return(total);
+        nread = cnt;
+    memcpy(buf, MBDATAU(bp) + offset, nread);
+    return (nread);
 }
 
 /*
- * mbwrite()
+ * mbcopyback()
  *
  * Write bytes from buffer into an mbuf chain. Returns first argument.
  */
 
 Mbuf
-mbwrite(Mbuf bp, const u_char *buf, int len)
+mbcopyback(Mbuf bp, int offset, const void *buf, int cnt)
 {
-  Mbuf	wp;
-  int	chunk;
+    int		b, e;
 
-  for (wp = bp; wp && len > 0; wp = wp->next) {
-    chunk = (len > wp->cnt) ? wp->cnt : len;
-    memcpy(MBDATAU(wp), buf, chunk);
-    buf += chunk;
-    len -= chunk;
-  }
-  return(bp);
+    if (!bp) {
+	if (offset < 0)
+	    offset = 0;
+	bp = mballoc(offset + cnt);
+	memcpy(MBDATAU(bp) + offset, buf, cnt);
+	bp->cnt = offset + cnt;
+	return (bp);
+    }
+
+    b = (offset > 0) ? 0 : -offset;
+    e = (offset + cnt > bp->cnt) ? offset + cnt - bp->cnt : 0;
+    
+    if (b + bp->cnt + e > bp->size) {
+	Mbuf	nbp = mballoc(b + bp->cnt + e);
+	memcpy(MBDATAU(nbp) + b, MBDATAU(bp), bp->cnt);
+	nbp->cnt = bp->cnt;
+	mbfree(bp);
+	bp = nbp;
+    } else if ((b > bp->offset) || (bp->offset + bp->cnt + e > bp->size)) {
+	int	noff = (bp->size - (b + bp->cnt + e)) / 2;
+	memmove(MBDATAU(bp) - bp->offset + noff, MBDATAU(bp), bp->cnt);
+	bp->offset = noff;
+    } else {
+	bp->offset -= b;
+    }
+    bp->cnt = b + bp->cnt + e;
+    memcpy(MBDATAU(bp) + offset + b, buf, cnt);
+    return(bp);
 }
 
 /*
@@ -243,68 +225,10 @@ mbwrite(Mbuf bp, const u_char *buf, int len)
 Mbuf
 mbtrunc(Mbuf bp, int max)
 {
-  Mbuf	wp;
-  int	sum;
+    if (bp->cnt > max)
+	bp->cnt = max;
 
-/* Find mbuf in chain where truncation point happens */
-
-  for (sum = 0, wp = bp;
-    wp && sum + wp->cnt <= max;
-    sum += wp->cnt, wp = wp->next);
-
-/* Shorten this mbuf and nuke others after this one */
-
-  if (wp)
-  {
-    wp->cnt = max - sum;
-    PFREE(wp->next);
-  }
-
-/* Done */
-
-  return(bp);
-}
-
-/*
- * mbunify()
- *
- * Collect all of a chain into a single mbuf
- *
- * This should ALWAYS be called like this:
- *	bp = mbunify(bp);
- */
-
-Mbuf
-mbunify(Mbuf bp)
-{
-  Mbuf	new;
-  int	len;
-
-  if (!bp || !bp->next)
-    return(bp);
-  new = mballoc(bp->type, len = plength(bp));
-  assert(mbread(bp, MBDATA(new), len, NULL) == NULL);
-  return(new);
-}
-
-/*
- * mbclean()
- *
- * Remove zero (and negative!?) length mbufs from a chain
- */
-
-Mbuf
-mbclean(Mbuf bp)
-{
-  Mbuf	*pp;
-
-  pp = &bp;
-  while (*pp)
-    if ((*pp)->cnt <= 0)
-      *pp = mbfree(*pp);
-    else
-      pp = &(*pp)->next;
-  return(bp);
+    return (bp);
 }
 
 /*
@@ -312,7 +236,7 @@ mbclean(Mbuf bp)
  *
  * Break an mbuf chain after "cnt" bytes.
  * Return the newly created mbuf chain that
- * starts after "cnt" bytes. If plength(bp) <= cnt,
+ * starts after "cnt" bytes. If MBLEN(bp) <= cnt,
  * then returns NULL.  The first part of
  * the chain remains pointed to by "bp".
  */
@@ -320,36 +244,16 @@ mbclean(Mbuf bp)
 Mbuf
 mbsplit(Mbuf bp, int cnt)
 {
-  int	seen, extra, tail;
-  Mbuf	next;
+    Mbuf	nbp;
+    
+    if (MBLEN(bp) <= cnt)
+	return (NULL);
 
-/* Find mbuf in chain containing the breakpoint */
+    nbp = mballoc(bp->cnt - cnt);
+    memcpy(MBDATAU(nbp), MBDATAU(bp) + cnt, bp->cnt - cnt);
+    bp->cnt -= cnt;
 
-  for (seen = 0; bp && seen + bp->cnt < cnt; seen += bp->cnt, bp = bp->next);
-  if (bp == NULL)
-    return(NULL);
-
-/* "tail" is how much stays in first part, "extra" goes into second part */
-
-  tail = cnt - seen;
-  extra = bp->cnt - tail;
-
-/* Split in the middle of "bp" if necessary, creating "mextra" */
-
-  if (extra > 0)
-  {
-    Mbuf mextra = mballoc(bp->type, extra);
-    memcpy(MBDATAU(mextra), MBDATAU(bp) + tail, extra);
-    bp->cnt = tail;
-    mextra->next = bp->next;
-    bp->next = mextra;
-  }
-
-/* Now break point is just after "bp", so break the chain there */
-
-  next = bp->next;
-  bp->next = NULL;
-  return(next);
+    return(nbp);
 }
 
 /*

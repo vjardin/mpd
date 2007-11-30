@@ -233,14 +233,13 @@ Pred1Compress(Bund b, Mbuf plain)
   int		orglen;
   Pred1Info	p = &b->ccp.pred1;
   
-  plain = mbunify(plain);
-  orglen = plength(plain);
+  orglen = MBLEN(plain);
   uncomp = MBDATA(plain);
   
   p->xmit_stats.InOctets += orglen;
   p->xmit_stats.FramesPlain++;
   
-  res = mballoc(MB_COMP, PRED1_MAX_BLOWUP(orglen + 2));
+  res = mballoc(PRED1_MAX_BLOWUP(orglen + 2));
   comp = MBDATA(res);
 
   wp = comp;
@@ -280,7 +279,7 @@ Pred1Compress(Bund b, Mbuf plain)
 
   res->cnt = (wp - comp);
   
-  PFREE(plain);
+  mbfree(plain);
   Log(LG_CCP2, ("[%s] Pred1: orig (%d) --> comp (%d)", b->name, orglen, res->cnt));
 
   p->xmit_stats.OutOctets += res->cnt;
@@ -306,14 +305,13 @@ Pred1Decompress(Bund b, Mbuf mbcomp)
   Mbuf		mbuncomp;
   Pred1Info	p = &b->ccp.pred1;
 
-  mbcomp = mbunify(mbcomp);
-  orglen = plength(mbcomp);
+  orglen = MBLEN(mbcomp);
   comp = MBDATA(mbcomp);
   cp = comp;
   
   p->recv_stats.InOctets += orglen;
   
-  mbuncomp = mballoc(MB_COMP, PRED1_DECOMP_BUF_SIZE);
+  mbuncomp = mballoc(PRED1_DECOMP_BUF_SIZE);
   uncomp = MBDATA(mbuncomp);
 
 /* Get initial length value */
@@ -332,8 +330,8 @@ Pred1Decompress(Bund b, Mbuf mbcomp)
     {
       Log(LG_CCP2, ("[%s] Length error (%d) --> len (%d)", b->name, len, len1));
       p->recv_stats.Errors++;
-      PFREE(mbcomp);
-      PFREE(mbuncomp);
+      mbfree(mbcomp);
+      mbfree(mbuncomp);
       CcpSendResetReq(b);
       return NULL;
     }
@@ -364,14 +362,14 @@ Pred1Decompress(Bund b, Mbuf mbcomp)
   {
     Log(LG_CCP2, ("[%s] Pred1: Bad CRC-16", b->name));
     p->recv_stats.Errors++;
-    PFREE(mbcomp);
-    PFREE(mbuncomp);
+    mbfree(mbcomp);
+    mbfree(mbuncomp);
     CcpSendResetReq(b);
     return NULL;
   }
 
   Log(LG_CCP2, ("[%s] Pred1: orig (%d) <-- comp (%d)", b->name, mbuncomp->cnt, orglen));
-  PFREE(mbcomp);
+  mbfree(mbcomp);
   
   p->recv_stats.FramesPlain++;
   p->recv_stats.OutOctets += mbuncomp->cnt;

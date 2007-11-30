@@ -623,7 +623,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
     BundOpen(b);
     IfaceCachePkt(b, proto, pkt);
   } else {
-    PFREE(pkt);
+    mbfree(pkt);
   }
 }
 
@@ -1083,24 +1083,18 @@ static void
 IfaceCachePkt(Bund b, int proto, Mbuf pkt)
 {
   IfaceState	const iface = &b->iface;
-  Mbuf		new;
-  int		len;
 
   /* Only cache network layer data */
   if (!PROT_NETWORK_DATA(proto)) {
-    PFREE(pkt);
+    mbfree(pkt);
     return;
   }
 
   /* Release previously cached packet, if any, and save this one */
   if (iface->dodCache.pkt)
-    PFREE(iface->dodCache.pkt);
+    mbfree(iface->dodCache.pkt);
 
-  /* Make an own permanent pkt copy */
-  new = mballoc(pkt->type, len = plength(pkt));
-  assert(mbread(pkt, MBDATA(new), len, NULL) == NULL);
-
-  iface->dodCache.pkt = new;
+  iface->dodCache.pkt = pkt;
   iface->dodCache.proto = proto;
   iface->dodCache.ts = time(NULL);
 }
@@ -1118,7 +1112,7 @@ IfaceCacheSend(Bund b)
 
   if (iface->dodCache.pkt) {
     if (iface->dodCache.ts + MAX_DOD_CACHE_DELAY < time(NULL))
-      PFREE(iface->dodCache.pkt);
+      mbfree(iface->dodCache.pkt);
     else {
       if (NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM,
 	  iface->dodCache.proto, iface->dodCache.pkt) < 0) {
@@ -1146,7 +1140,7 @@ IfaceIsDemand(int proto, Mbuf pkt)
 	u_char	buf[256];
 	struct ip       *const ip = (struct ip *)(&buf);
 
-	mbcopy(pkt, buf, sizeof(buf));
+	mbcopy(pkt, 0, buf, sizeof(buf));
 	switch (ip->ip_p) {
 	  case IPPROTO_IGMP:		/* No multicast stuff */
 	    return(0);
@@ -1685,7 +1679,7 @@ IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss)
 
   iphdr = (struct ip *)MBDATAU(pkt);
   hlen = iphdr->ip_hl << 2;
-  pktlen = plength(pkt) - hlen;
+  pktlen = MBLEN(pkt) - hlen;
   tc = (struct tcphdr *)(MBDATAU(pkt) + hlen);
   hlen = tc->th_off << 2;
 

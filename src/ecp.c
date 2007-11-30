@@ -276,7 +276,7 @@ EcpDataOutput(Bund b, Mbuf plain)
   if ((!ecp->xmit) || (!ecp->xmit->Encrypt))
   {
     Log(LG_ERR, ("[%s] %s: no encryption for xmit", Pref(&ecp->fsm), Fsm(&ecp->fsm)));
-    PFREE(plain);
+    mbfree(plain);
     return(NULL);
   }
   cypher = (*ecp->xmit->Encrypt)(b, plain);
@@ -307,7 +307,7 @@ EcpDataInput(Bund b, Mbuf cypher)
   if ((!ecp->recv) || (!ecp->recv->Decrypt))
   {
     Log(LG_ERR, ("[%s] %s: no encryption for recv", Pref(&ecp->fsm), Fsm(&ecp->fsm)));
-    PFREE(cypher);
+    mbfree(cypher);
     return(NULL);
   }
 

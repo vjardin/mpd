@@ -430,32 +430,31 @@ AuthInput(Link l, int proto, Mbuf bp)
   /* Sanity check */
   if (l->lcp.phase != PHASE_AUTHENTICATE && l->lcp.phase != PHASE_NETWORK) {
     Log(LG_AUTH, ("[%s] AUTH: rec'd stray packet", l->name));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
   
   if (a->thread) {
     Log(LG_AUTH, ("[%s] AUTH: Thread already running, dropping this packet", 
       l->name));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
-  /* Make packet a single mbuf */
-  len = plength(bp = mbunify(bp));
+  len = MBLEN(bp);
 
   /* Sanity check length */
   if (len < sizeof(fsmh)) {
     Log(LG_AUTH, ("[%s] AUTH: rec'd runt packet: %d bytes",
       l->name, len));
-    PFREE(bp);
+    mbfree(bp);
     return;
   }
 
   auth = AuthDataNew(l);
   auth->proto = proto;
 
-  bp = mbread(bp, (u_char *) &fsmh, sizeof(fsmh), NULL);
+  bp = mbread(bp, &fsmh, sizeof(fsmh));
   len -= sizeof(fsmh);
   if (len > ntohs(fsmh.length))
     len = ntohs(fsmh.length);
@@ -499,7 +498,7 @@ AuthInput(Link l, int proto, Mbuf bp)
       assert(0);
   }
   
-  PFREE(bp);
+  mbfree(bp);
 }
 
 /*
@@ -527,26 +526,24 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
   lh.length = htons(plen);
 
   /* Build packet */
-  bp = mballoc(MB_AUTH, plen);
-  memcpy(MBDATAU(bp), &lh, sizeof(lh));
+  bp = mbcopyback(NULL, 0, &lh, sizeof(lh));
   if (proto == PROTO_EAP)
-    memcpy(MBDATAU(bp) + sizeof(lh), &eap_type, 1);
-
-  if (add_len)
-    *(MBDATAU(bp) + sizeof(lh)) = (u_char)len;
+    bp = mbcopyback(bp, bp->cnt, &eap_type, 1);
+  if (add_len) {
+    u_char tl = len;
+    bp = mbcopyback(bp, bp->cnt, &tl, 1);
+  }
+  bp = mbcopyback(bp, bp->cnt, ptr, len);
 
   if (proto == PROTO_EAP) {
-    memcpy(MBDATAU(bp) + sizeof(lh) + add_len + 1, ptr, len);
     Log(LG_AUTH, ("[%s] %s: sending %s Type %s len:%d", l->name,
       ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), EapType(eap_type), len));
   } else {
-    memcpy(MBDATAU(bp) + sizeof(lh) + add_len, ptr, len);
     Log(LG_AUTH, ("[%s] %s: sending %s len:%d", l->name,
       ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), len));
   }
 
   /* Send it out */
-
   NgFuncWritePppFrameLink(l, proto, bp);
 }
 

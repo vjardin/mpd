@@ -783,19 +783,25 @@ static void
 LinkNgDataEvent(int type, void *cookie)
 {
     Link		l = (Link)cookie;
-    u_char		buf[2048];
+    u_char		*buf;
     int			nread;
     u_int16_t		proto;
     int			ptr;
+    Mbuf		bp;
+
+    bp = mballoc(2048);
+    buf = MBDATA(bp);
 
     /* Read data */
-    if ((nread = recv(l->dsock, buf, sizeof(buf), 0)) < 0) {
+    if ((nread = recv(l->dsock, buf, bp->size, 0)) < 0) {
+	mbfree(bp);
 	if (errno == EAGAIN)
     	    return;
 	Log(LG_LINK, ("[%s] socket read: %s", l->name, strerror(errno)));
 	LinkClose(l);
 	return;
     }
+    bp->cnt = nread;
 
     /* Extract protocol */
     ptr = 0;
@@ -806,20 +812,23 @@ LinkNgDataEvent(int type, void *cookie)
 	proto = (proto << 8) + buf[ptr++];
 
     if (nread <= ptr) {
-	LogDumpBuf(LG_FRAME|LG_ERR, buf, nread,
+	LogDumpBp(LG_FRAME|LG_ERR, bp,
     	    "[%s] rec'd truncated %d bytes frame from link",
     	    l->name, nread);
+	mbfree(bp);
 	return;
     }
 
     /* Debugging */
-    LogDumpBuf(LG_FRAME, buf, nread,
+    LogDumpBp(LG_FRAME, bp,
       "[%s] rec'd %d bytes frame from link proto=0x%04x",
       l->name, nread, proto);
+      
+    bp->cnt -= ptr;
+    bp->offset += ptr;
 
     /* Input frame */
-    InputFrame(l->bund, l, proto,
-      mbufise(MB_FRAME_IN, buf + ptr, nread - ptr));
+    InputFrame(l->bund, l, proto, bp);
 }
 
 /*

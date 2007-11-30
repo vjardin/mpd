@@ -514,7 +514,7 @@ CcpDataOutput(Bund b, Mbuf plain)
   if ((!ccp->xmit) || (!ccp->xmit->Compress))
   {
     Log(LG_ERR, ("[%s] %s: no encryption for xmit", Pref(&ccp->fsm), Fsm(&ccp->fsm)));
-    PFREE(plain);
+    mbfree(plain);
     return(NULL);
   }
   comp = (*ccp->xmit->Compress)(b, plain);
@@ -543,7 +543,7 @@ CcpDataInput(Bund b, Mbuf comp)
   if ((!ccp->recv) || (!ccp->recv->Decompress))
   {
     Log(LG_ERR, ("[%s] %s: no compression for recv", Pref(&ccp->fsm), Fsm(&ccp->fsm)));
-    PFREE(comp);
+    mbfree(comp);
     return(NULL);
   }
 

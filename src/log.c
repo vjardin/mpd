@@ -350,11 +350,11 @@ LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
         line[3]=0;
         linelen=3;
   
-        for (total = 0; bp; bp = bp->next) {
+        total = 0;
+	if (bp) {
     	    int	start, stop, last = 0;
 
-    	    stop = bp->next ? total + bp->cnt :
-		ROUNDUP(total + bp->cnt, DUMP_BYTES_PER_LINE);
+    	    stop = ROUNDUP(total + bp->cnt, DUMP_BYTES_PER_LINE);
     	    for (start = total; total < stop; ) {
     		u_int	const byte = (MBDATAU(bp))[total - start];
 

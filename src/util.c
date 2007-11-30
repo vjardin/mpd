@@ -864,37 +864,6 @@ UuUnlock(const char *ttyname)
 }
 
 /*
- * WriteMbuf()
- *
- * Write an mbuf to a file descriptor which is character based.
- * Leave whatever portion of the mbuf is remaining.
- */
-
-int
-WriteMbuf(Mbuf *mp, int fd, const char *label)
-{
-  while (*mp)
-  {
-    Mbuf	const bp = *mp;
-    int		nw;
-
-    if ((nw = write(fd, MBDATAU(bp), MBLEN(bp))) < 0)
-    {
-      if (errno == EAGAIN)
-	return(0);
-      Log(LG_ERR, ("%s write: %s", label, strerror(errno)));
-      return(-1);
-    }
-    bp->offset += nw;
-    bp->cnt -= nw;
-    if (bp->cnt != 0)
-      break;
-    *mp = mbfree(bp);
-  }
-  return(0);
-}
-
-/*
  * GenerateMagic()
  *
  * Generate random number which will be used as magic number.

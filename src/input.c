@@ -51,7 +51,7 @@ InputFrame(Bund b, Link l, int proto, Mbuf bp)
     } else {
 	/* Check protocol vs. link state */
 	if (!InputLinkCheck(l, proto)) {
-    	    PFREE(bp);
+    	    mbfree(bp);
     	    return;
 	}
     }
@@ -67,7 +67,7 @@ InputFrame(Bund b, Link l, int proto, Mbuf bp)
 	    (!b->links[k] || b->links[k]->lcp.phase != PHASE_NETWORK);
     	    k++);
 	if (k == NG_PPP_MAX_LINKS) {
-    	    PFREE(bp);
+    	    mbfree(bp);
     	    return;
 	}
 	l = b->links[k];
@@ -75,8 +75,7 @@ InputFrame(Bund b, Link l, int proto, Mbuf bp)
 
     /* Send a protocol reject on the chosen link */
     nprot = htons((u_int16_t) proto);
-    protoRej = mbwrite(mballoc(MB_FRAME_OUT, 2), (u_char *) &nprot, 2);
-    protoRej->next = bp;
+    protoRej = mbcopyback(bp, -2, (u_char *) &nprot, 2);
     FsmOutputMbuf(&l->lcp.fsm, CODE_PROTOREJ, l->lcp.fsm.rejid++, protoRej);
 }
 
@@ -164,7 +163,7 @@ done:
     Log(LG_LINK|LG_BUND, ("[%s] rec'd unexpected protocol %s%s",
 	(l ? l->name : b->name), ProtoName(proto), reject ? ", rejecting" : ""));
     if (!reject)
-	PFREE(bp);
+	mbfree(bp);
     return (reject ? -1 : 0);
 }
 
@@ -228,14 +227,14 @@ InputMPLink(Bund b, int proto, Mbuf pkt)
 {
   struct fsmheader	hdr;	
 
-  mbcopy(pkt, (u_char *) &hdr, sizeof(hdr));
+  mbcopy(pkt, 0, &hdr, sizeof(hdr));
   switch (proto) {
     case PROTO_LCP:
       switch (hdr.code) {
         default:
 	  Log(LG_ERR, ("[%s] rec'd LCP %s #%d on MP link! (ignoring)",
 	    b->name, FsmCodeName(hdr.code), hdr.id));
-	  PFREE(pkt);
+	  mbfree(pkt);
 	  break;
 
 	case CODE_CODEREJ:		/* these two are OK */
@@ -246,7 +245,7 @@ InputMPLink(Bund b, int proto, Mbuf pkt)
 	    if (k < NG_PPP_MAX_LINKS)
 		InputFrame(b, b->links[k], proto, pkt);
 	    else
-		PFREE(pkt);
+		mbfree(pkt);
 	  }
 	  break;
 
@@ -260,7 +259,7 @@ InputMPLink(Bund b, int proto, Mbuf pkt)
 	case CODE_ECHOREP:
 	  Log(LG_ECHO, ("[%s] rec'd %s #%d",
 	    b->name, FsmCodeName(hdr.code), hdr.id));
-	  PFREE(pkt);
+	  mbfree(pkt);
 	  break;
       }
       break;
@@ -268,7 +267,7 @@ InputMPLink(Bund b, int proto, Mbuf pkt)
     default:
       Log(LG_ERR, ("[%s] rec'd proto %s on MP link! (ignoring)",
 	b->name, ProtoName(proto)));
-      PFREE(pkt);
+      mbfree(pkt);
       break;
   }
 }

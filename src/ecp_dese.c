@@ -160,7 +160,7 @@ DesEncrypt(Bund b, Mbuf plain)
 {
   EcpState	const ecp = &b->ecp;
   DesInfo	const des = &ecp->des;
-  const int	plen = plength(plain);
+  const int	plen = MBLEN(plain);
   int		padlen = roundup2(plen, 8) - plen;
   int		clen = plen + padlen;
   Mbuf		cypher;
@@ -171,7 +171,7 @@ DesEncrypt(Bund b, Mbuf plain)
 
 /* Get mbuf for encrypted frame */
 
-  cypher = mballoc(MB_CRYPT, DES_OVERHEAD + clen);
+  cypher = mballoc(DES_OVERHEAD + clen);
 
 /* Copy in sequence number */
 
@@ -181,7 +181,7 @@ DesEncrypt(Bund b, Mbuf plain)
 
 /* Copy in plaintext */
 
-  mbcopy(plain, MBDATA(cypher) + DES_OVERHEAD, plen);
+  mbcopy(plain, 0, MBDATA(cypher) + DES_OVERHEAD, plen);
   
   cypher->cnt = DES_OVERHEAD + clen;
   
@@ -200,7 +200,7 @@ DesEncrypt(Bund b, Mbuf plain)
 
 /* Return cyphertext */
 
-  PFREE(plain);
+  mbfree(plain);
   return(cypher);
 }
 
@@ -213,7 +213,7 @@ DesDecrypt(Bund b, Mbuf cypher)
 {
   EcpState	const ecp = &b->ecp;
   DesInfo	des = &ecp->des;
-  const int	clen = plength(cypher) - DES_OVERHEAD;
+  const int	clen = MBLEN(cypher) - DES_OVERHEAD;
   u_int16_t	seq;
   Mbuf		plain;
   int		k;
@@ -233,7 +233,7 @@ DesDecrypt(Bund b, Mbuf cypher)
 
 /* Check sequence number */
 
-  cypher = mbread(cypher, (u_char *) &seq, DES_OVERHEAD, NULL);
+  cypher = mbread(cypher, &seq, DES_OVERHEAD);
   seq = ntohs(seq);
   if (seq != des->recv_seq)
   {
@@ -244,8 +244,8 @@ DesDecrypt(Bund b, Mbuf cypher)
     Log(LG_ECP, ("[%s] DESE: rec'd wrong seq=%u, expected %u",
       b->name, seq, des->recv_seq));
     tail = mbsplit(cypher, clen - 8);
-    PFREE(cypher);
-    tail = mbread(tail, (u_char *) &des->recv_ivec, 8, NULL);
+    mbfree(cypher);
+    tail = mbread(tail, &des->recv_ivec, 8);
     assert(!tail);
     des->recv_seq = seq + 1;
     des->recv_stats.Errors++;
@@ -255,7 +255,7 @@ DesDecrypt(Bund b, Mbuf cypher)
 
 /* Decrypt frame */
 
-  plain = mbunify(cypher);
+  plain = cypher;
   for (k = 0; k < clen; k += 8)
   {
     u_char	*const block = MBDATA(plain) + k;

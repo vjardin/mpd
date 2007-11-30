@@ -71,7 +71,6 @@
   extern int		ExclusiveOpenDevice(const char *label, const char *path);
   extern void		ExclusiveCloseDevice(const char *label, int fd, const char *path);
 
-  extern int		WriteMbuf(Mbuf *mp, int fd, const char *label);
   extern int		PIDCheck(const char *lockfile, int killem);
 
   extern void		LengthenArray(void *arrayp, int esize,
