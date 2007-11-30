@@ -1305,7 +1305,7 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 		l->conf.ident = NULL;
     	    }
     	    if (*av[0] != '\0')
-	    strcpy(l->conf.ident = Malloc(MB_FSM, strlen(av[0]) + 1), av[0]);
+	    strcpy(l->conf.ident = Malloc(MB_LINK, strlen(av[0]) + 1), av[0]);
     	    break;
 
 	case SET_ACCEPT:
