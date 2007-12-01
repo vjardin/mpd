@@ -793,7 +793,7 @@ LinkNgDataEvent(int type, void *cookie)
     buf = MBDATA(bp);
 
     /* Read data */
-    if ((nread = recv(l->dsock, buf, bp->size, 0)) < 0) {
+    if ((nread = recv(l->dsock, buf, MBSPACE(bp), 0)) < 0) {
 	mbfree(bp);
 	if (errno == EAGAIN)
     	    return;

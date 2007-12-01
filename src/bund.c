@@ -1713,7 +1713,7 @@ BundNgDataEvent(int type, void *cookie)
     nbp = mballoc(2048);
 
     /* Read data */
-    if ((nread = recvfrom(b->dsock, MBDATA(nbp), nbp->size,
+    if ((nread = recvfrom(b->dsock, MBDATA(nbp), MBSPACE(nbp),
     	    0, (struct sockaddr *)&naddr, &nsize)) < 0) {
 	mbfree(nbp);
 	if (errno == EAGAIN)
@@ -1721,7 +1721,6 @@ BundNgDataEvent(int type, void *cookie)
 	Log(LG_BUND, ("[%s] socket read: %s", b->name, strerror(errno)));
 	DoExit(EX_ERRDEAD);
     }
-  
     nbp->cnt = nread;
     
     /* A PPP frame from the bypass hook? */
