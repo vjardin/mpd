@@ -164,7 +164,7 @@ mbcopy(Mbuf bp, int offset, void *buf, int cnt)
 {
     int nread;
 
-    assert((offset > 0) && (offset < bp->cnt));
+    assert(offset >= 0);
 
     if (cnt > bp->cnt - offset)
 	nread = bp->cnt - offset;
