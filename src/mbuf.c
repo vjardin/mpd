@@ -23,6 +23,9 @@ void *
 Malloc(const char *type, int size)
 {
     const char	**memory;
+
+    assert(size >= 0);
+
     if ((memory = MALLOC(type, sizeof(char *) + size)) == NULL) {
 	Perror("Malloc: malloc");
 	DoExit(EX_ERRDEAD);
@@ -88,6 +91,8 @@ mballoc(int size)
     int		amount, osize;
     Mbuf	bp;
 
+    assert(size >= 0);
+
     if (size == 0) {
 	osize = 64 - sizeof(*bp);
     } else if (size < 512)
@@ -138,6 +143,8 @@ mbread(Mbuf bp, void *buf, int cnt)
 {
     int nread;
 
+    assert(cnt >= 0);
+
     if (cnt > bp->cnt)
 	nread = bp->cnt;
     else
@@ -165,6 +172,10 @@ mbcopy(Mbuf bp, int offset, void *buf, int cnt)
     int nread;
 
     assert(offset >= 0);
+    assert(cnt >= 0);
+
+    if (offset >= bp->cnt)
+	return (0);
 
     if (cnt > bp->cnt - offset)
 	nread = bp->cnt - offset;
@@ -225,6 +236,8 @@ mbcopyback(Mbuf bp, int offset, const void *buf, int cnt)
 Mbuf
 mbtrunc(Mbuf bp, int max)
 {
+    assert(max >= 0);
+
     if (bp->cnt > max)
 	bp->cnt = max;
 
@@ -273,6 +286,8 @@ mbsplit(Mbuf bp, int cnt)
 {
     Mbuf	nbp;
     
+    assert(cnt >= 0);
+
     if (MBLEN(bp) <= cnt)
 	return (NULL);
 
