@@ -824,8 +824,7 @@ LinkNgDataEvent(int type, void *cookie)
       "[%s] rec'd %d bytes frame from link proto=0x%04x",
       l->name, nread, proto);
       
-    bp->cnt -= ptr;
-    bp->offset += ptr;
+    bp = mbadj(bp, ptr);
 
     /* Input frame */
     InputFrame(l->bund, l, proto, bp);

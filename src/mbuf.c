@@ -218,7 +218,7 @@ mbcopyback(Mbuf bp, int offset, const void *buf, int cnt)
 /*
  * mbtrunc()
  *
- * Truncate mbuf chain to total of "max" bytes. If max is zero
+ * Truncate mbuf to total of "max" bytes. If max is zero
  * then a zero length mbuf is returned (rather than a NULL mbuf).
  */
 
@@ -227,6 +227,33 @@ mbtrunc(Mbuf bp, int max)
 {
     if (bp->cnt > max)
 	bp->cnt = max;
+
+    return (bp);
+}
+
+/*
+ * mbadj()
+ *
+ * Truncate mbuf cutting "cnt" bytes from begin or end.
+ */
+
+Mbuf
+mbadj(Mbuf bp, int cnt)
+{
+    if (cnt >= 0) {
+	if (bp->cnt > cnt) {
+	    bp->cnt -= cnt;
+	    bp->offset += cnt;
+	} else {
+	    bp->cnt = 0;
+	}
+    } else {
+	if (bp->cnt > -cnt) {
+	    bp->cnt -= -cnt;
+	} else {
+	    bp->cnt = 0;
+	}
+    }
 
     return (bp);
 }

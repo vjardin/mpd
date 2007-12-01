@@ -77,6 +77,7 @@
   extern int	mbcopy(Mbuf bp, int offset, void *buf, int cnt);
   extern Mbuf	mbcopyback(Mbuf bp, int offset, const void *buf, int cnt);
   extern Mbuf	mbtrunc(Mbuf bp, int max);
+  extern Mbuf	mbadj(Mbuf bp, int cnt);
   extern Mbuf	mbsplit(Mbuf bp, int cnt);
 
 /* Etc */
