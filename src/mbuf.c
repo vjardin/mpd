@@ -278,7 +278,8 @@ mbsplit(Mbuf bp, int cnt)
 
     nbp = mballoc(bp->cnt - cnt);
     memcpy(MBDATAU(nbp), MBDATAU(bp) + cnt, bp->cnt - cnt);
-    bp->cnt -= cnt;
+    nbp->cnt = bp->cnt - cnt;
+    bp->cnt = cnt;
 
     return(nbp);
 }
