@@ -76,6 +76,12 @@ changed, to the first phys of the repeater. If no
 of the defined repeaters and their constituent physes.
 The new phys will be reflected in the prompt.
 
+<tag><tt>iface [ <em>iface</em> ] </tt>
+</tag>
+
+This command changes the currenly active bundle to the bundle using
+interface <tt><em>iface</em></tt>.
+
 <tag><tt>msession [ <em>msesid</em> ] </tt>
 </tag>
 

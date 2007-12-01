@@ -183,6 +183,7 @@
   extern void	BundUpdateParams(Bund b);
   extern int	BundCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	MSessionCommand(Context ctx, int ac, char *av[], void *arg);
+  extern int	IfaceCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	BundCreate(Context ctx, int ac, char *av[], void *arg);
   extern int	BundDestroy(Context ctx, int ac, char *av[], void *arg);
   extern Bund	BundInst(Bund bt, char *name, int tmpl, int stay);

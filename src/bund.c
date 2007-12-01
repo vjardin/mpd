@@ -953,7 +953,7 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 	return (0);
     }
 
-    /* Find link */
+    /* Find bundle */
     for (k = 0;
 	k < gNumBundles && (gBundles[k] == NULL || 
 	    strcmp(gBundles[k]->msession_id, av[0]));
@@ -964,6 +964,50 @@ MSessionCommand(Context ctx, int ac, char *av[], void *arg)
 	RESETREF(ctx->bund, NULL);
 	RESETREF(ctx->rep, NULL);
 	Error("msession \"%s\" is not found", av[0]);
+    }
+
+    /* Change default link and bundle */
+    RESETREF(ctx->bund, gBundles[k]);
+    if (ctx->lnk == NULL || ctx->lnk->bund != ctx->bund) {
+        RESETREF(ctx->lnk, ctx->bund->links[0]);
+    }
+    RESETREF(ctx->rep, NULL);
+
+    return(0);
+}
+
+/*
+ * IfaceCommand()
+ */
+
+int
+IfaceCommand(Context ctx, int ac, char *av[], void *arg)
+{
+    int		k;
+
+    if (ac > 1)
+	return (-1);
+
+    if (ac == 0) {
+    	Printf("Present ifaces:\r\n");
+	for (k = 0; k < gNumBundles; k++) {
+	    if (gBundles[k] && gBundles[k]->iface.ifname[0])
+    		Printf("\t%s\t%s\r\n", gBundles[k]->iface.ifname, gBundles[k]->name);
+	}
+	return (0);
+    }
+
+    /* Find bundle */
+    for (k = 0;
+	k < gNumBundles && (gBundles[k] == NULL || 
+	    strcmp(gBundles[k]->iface.ifname, av[0]));
+	k++);
+    if (k == gNumBundles) {
+	/* Change default link and bundle */
+	RESETREF(ctx->lnk, NULL);
+	RESETREF(ctx->bund, NULL);
+	RESETREF(ctx->rep, NULL);
+	Error("iface \"%s\" is not found", av[0]);
     }
 
     /* Change default link and bundle */

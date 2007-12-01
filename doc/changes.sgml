@@ -17,6 +17,8 @@
 	  <item> Added reporting peer MAC address and interface to AAA.
 		 Added NAS-Port-Id RADIUS attribute support.
 	  </item>
+	  <item> New 'iface' command added.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
