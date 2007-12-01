@@ -225,50 +225,48 @@ InputLinkCheck(Link l, int proto)
 static void
 InputMPLink(Bund b, int proto, Mbuf pkt)
 {
-  struct fsmheader	hdr;	
+    struct fsmheader	*hdr;
+    int			k;
 
-  mbcopy(pkt, 0, &hdr, sizeof(hdr));
-  switch (proto) {
-    case PROTO_LCP:
-      switch (hdr.code) {
-        default:
-	  Log(LG_ERR, ("[%s] rec'd LCP %s #%d on MP link! (ignoring)",
-	    b->name, FsmCodeName(hdr.code), hdr.id));
-	  mbfree(pkt);
-	  break;
+    switch (proto) {
+	case PROTO_LCP:
+    	    if (MBLEN(pkt) < sizeof(hdr))
+		break;
+    	    hdr = (struct fsmheader *)MBDATA(pkt);
+    	    switch (hdr->code) {
+		case CODE_CODEREJ:		/* these two are OK */
+		case CODE_PROTOREJ:
+		    for (k = 0; k < NG_PPP_MAX_LINKS && !b->links[k]; k++)
+		    if (k < NG_PPP_MAX_LINKS) {
+			InputFrame(b, b->links[k], proto, pkt);
+			return;
+		    }
+		    break;
 
-	case CODE_CODEREJ:		/* these two are OK */
-	case CODE_PROTOREJ:
-	  {
-	    int k;
-	    for (k = 0; k < NG_PPP_MAX_LINKS && !b->links[k]; k++)
-	    if (k < NG_PPP_MAX_LINKS)
-		InputFrame(b, b->links[k], proto, pkt);
-	    else
-		mbfree(pkt);
-	  }
-	  break;
+		case CODE_ECHOREQ:
+		    Log(LG_ECHO, ("[%s] rec'd %s #%d, replying...",
+			b->name, FsmCodeName(hdr->code), hdr->id));
+		    MBDATAU(pkt)[0] = CODE_ECHOREP;
+		    NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM, PROTO_LCP, pkt);
+		    return;
 
-	case CODE_ECHOREQ:
-	  Log(LG_ECHO, ("[%s] rec'd %s #%d, replying...",
-	    b->name, FsmCodeName(hdr.code), hdr.id));
-	  MBDATAU(pkt)[0] = CODE_ECHOREP;
-	  NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM, PROTO_LCP, pkt);
-	  break;
+		case CODE_ECHOREP:
+		    Log(LG_ECHO, ("[%s] rec'd %s #%d",
+			b->name, FsmCodeName(hdr->code), hdr->id));
+		    break;
 
-	case CODE_ECHOREP:
-	  Log(LG_ECHO, ("[%s] rec'd %s #%d",
-	    b->name, FsmCodeName(hdr.code), hdr.id));
-	  mbfree(pkt);
-	  break;
-      }
-      break;
+	        default:
+		    Log(LG_ERR, ("[%s] rec'd LCP %s #%d on MP link! (ignoring)",
+			b->name, FsmCodeName(hdr->code), hdr->id));
+		    break;
+	    }
+	    break;
 
-    default:
-      Log(LG_ERR, ("[%s] rec'd proto %s on MP link! (ignoring)",
-	b->name, ProtoName(proto)));
-      mbfree(pkt);
-      break;
-  }
+	default:
+    	    Log(LG_ERR, ("[%s] rec'd proto %s on MP link! (ignoring)",
+		b->name, ProtoName(proto)));
+    	    break;
+    }
+    mbfree(pkt);
 }
 
