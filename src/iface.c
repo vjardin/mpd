@@ -1128,7 +1128,6 @@ IfaceCacheSend(Bund b)
  * IfaceIsDemand()
  *
  * Determine if this outgoing packet qualifies for dial-on-demand
- * Packet must be contiguous
  */
 
 static int
@@ -1137,17 +1136,23 @@ IfaceIsDemand(int proto, Mbuf pkt)
   switch (proto) {
     case PROTO_IP:
       {
-	u_char	buf[256];
-	struct ip       *const ip = (struct ip *)(&buf);
+        struct ip	*ip;
 
-	mbcopy(pkt, 0, buf, sizeof(buf));
+        if (MBLEN(pkt) < sizeof(struct ip))
+	    return (0);
+
+	ip = (struct ip *)MBDATA(pkt);
 	switch (ip->ip_p) {
 	  case IPPROTO_IGMP:		/* No multicast stuff */
 	    return(0);
 	  case IPPROTO_ICMP:
 	    {
-	      struct icmp	*const icmp =
-		(struct icmp *) ((u_int32_t *) ip + ip->ip_hl);
+	      struct icmphdr	*icmp;
+	      
+    	      if (MBLEN(pkt) < (ip->ip_hl * 4 + sizeof(struct icmphdr)))
+		return (0);
+
+	      icmp = (struct icmphdr *) ((u_int32_t *) ip + ip->ip_hl);
 
 	      switch (icmp->icmp_type)	/* No ICMP replies */
 	      {
@@ -1162,8 +1167,12 @@ IfaceIsDemand(int proto, Mbuf pkt)
 	    break;
 	  case IPPROTO_UDP:
 	    {
-	      struct udphdr	*const udp =
-		(struct udphdr *) ((u_int32_t *) ip + ip->ip_hl);
+	      struct udphdr	*udp;
+
+    	      if (MBLEN(pkt) < (ip->ip_hl * 4 + sizeof(struct udphdr)))
+		return (0);
+
+	      udp = (struct udphdr *) ((u_int32_t *) ip + ip->ip_hl);
 
 #define NTP_PORT	123
 	      if (ntohs(udp->uh_dport) == NTP_PORT)	/* No NTP packets */
@@ -1172,8 +1181,12 @@ IfaceIsDemand(int proto, Mbuf pkt)
 	    break;
 	  case IPPROTO_TCP:
 	    {
-	      struct tcphdr	*const tcp =
-		(struct tcphdr *) ((u_int32_t *) ip + ip->ip_hl);
+	      struct tcphdr	*tcp;
+
+    	      if (MBLEN(pkt) < (ip->ip_hl * 4 + sizeof(struct tcphdr)))
+		return (0);
+
+	      tcp = (struct tcphdr *) ((u_int32_t *) ip + ip->ip_hl);
 
 	      if (tcp->th_flags & TH_RST)	/* No TCP reset packets */
 		return(0);
