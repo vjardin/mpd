@@ -784,7 +784,6 @@ LinkNgDataEvent(int type, void *cookie)
 {
     Link		l = (Link)cookie;
     u_char		*buf;
-    int			nread;
     u_int16_t		proto;
     int			ptr;
     Mbuf		bp;
@@ -793,7 +792,7 @@ LinkNgDataEvent(int type, void *cookie)
     buf = MBDATA(bp);
 
     /* Read data */
-    if ((nread = recv(l->dsock, buf, MBSPACE(bp), 0)) < 0) {
+    if ((bp->cnt = recv(l->dsock, buf, MBSPACE(bp), 0)) < 0) {
 	mbfree(bp);
 	if (errno == EAGAIN)
     	    return;
@@ -801,7 +800,6 @@ LinkNgDataEvent(int type, void *cookie)
 	LinkClose(l);
 	return;
     }
-    bp->cnt = nread;
 
     /* Extract protocol */
     ptr = 0;
@@ -811,10 +809,10 @@ LinkNgDataEvent(int type, void *cookie)
     if ((proto & 0x01) == 0)
 	proto = (proto << 8) + buf[ptr++];
 
-    if (nread <= ptr) {
+    if (MBLEN(bp) <= ptr) {
 	LogDumpBp(LG_FRAME|LG_ERR, bp,
     	    "[%s] rec'd truncated %d bytes frame from link",
-    	    l->name, nread);
+    	    l->name, MBLEN(bp));
 	mbfree(bp);
 	return;
     }
@@ -822,7 +820,7 @@ LinkNgDataEvent(int type, void *cookie)
     /* Debugging */
     LogDumpBp(LG_FRAME, bp,
       "[%s] rec'd %d bytes frame from link proto=0x%04x",
-      l->name, nread, proto);
+      l->name, MBLEN(bp), proto);
       
     bp = mbadj(bp, ptr);
 

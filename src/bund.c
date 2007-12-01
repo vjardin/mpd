@@ -1748,47 +1748,45 @@ BundNgShutdown(Bund b, int iface, int ppp)
 static void
 BundNgDataEvent(int type, void *cookie)
 {
-    Bund	b = (Bund)cookie;
+    Bund		b = (Bund)cookie;
     struct sockaddr_ng	naddr;
-    int			nread;
     socklen_t		nsize = sizeof(naddr);
-    Mbuf		nbp;
+    Mbuf		bp;
 
-    nbp = mballoc(2048);
+    bp = mballoc(2048);
 
     /* Read data */
-    if ((nread = recvfrom(b->dsock, MBDATA(nbp), MBSPACE(nbp),
+    if ((bp->cnt = recvfrom(b->dsock, MBDATA(bp), MBSPACE(bp),
     	    0, (struct sockaddr *)&naddr, &nsize)) < 0) {
-	mbfree(nbp);
+	mbfree(bp);
 	if (errno == EAGAIN)
     	    return;
 	Log(LG_BUND, ("[%s] socket read: %s", b->name, strerror(errno)));
 	DoExit(EX_ERRDEAD);
     }
-    nbp->cnt = nread;
     
     /* A PPP frame from the bypass hook? */
     if (strcmp(naddr.sg_data, MPD_HOOK_PPP) == 0) {
         Link	l;
 	u_int16_t	linkNum, proto;
 
-	if (nread <= 4) {
-	    LogDumpBp(LG_FRAME|LG_ERR, nbp,
+	if (MBLEN(bp) <= 4) {
+	    LogDumpBp(LG_FRAME|LG_ERR, bp,
     		"[%s] rec'd truncated %d bytes frame from link=%d",
-    		b->name, nread, (int16_t)linkNum);
+    		b->name, MBLEN(bp), (int16_t)linkNum);
 	    return;
 	}
 
 	/* Extract link number and protocol */
-	nbp = mbread(nbp, &linkNum, 2);
+	bp = mbread(bp, &linkNum, 2);
 	linkNum = ntohs(linkNum);
-	nbp = mbread(nbp, &proto, 2);
+	bp = mbread(bp, &proto, 2);
 	proto = ntohs(proto);
 
 	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
+	LogDumpBp(LG_FRAME, bp,
     	    "[%s] rec'd %d bytes bypass frame link=%d proto=0x%04x",
-    	    b->name, nread, (int16_t)linkNum, proto);
+    	    b->name, MBLEN(bp), (int16_t)linkNum, proto);
 
 	/* Set link */
 	assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < NG_PPP_MAX_LINKS);
@@ -1798,98 +1796,72 @@ BundNgDataEvent(int type, void *cookie)
 	else
 	    l = NULL;
 
-	InputFrame(b, l, proto, nbp);
+	InputFrame(b, l, proto, bp);
 	return;
     }
 
-    /* A snooped, outgoing IP frame? */
+    /* Debugging */
+    LogDumpBp(LG_FRAME, bp,
+	"[%s] rec'd %d bytes frame on %s hook", b->name, MBLEN(bp), naddr.sg_data);
+
+    /* A snooped, outgoing IP frame */
     if (strcmp(naddr.sg_data, MPD_HOOK_DEMAND_TAP) == 0) {
+	IfaceListenInput(b, PROTO_IP, bp);
+	return;
+    }
 
-	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
-    	    "[%s] rec'd %d bytes IP frame on demand/mssfix-in hook", b->name, nread);
-	IfaceListenInput(b, PROTO_IP, nbp);
-	return;
-    }
 #ifndef USE_NG_TCPMSS
-    /* A snooped, outgoing TCP SYN frame? */
+    /* A snooped, outgoing TCP SYN frame */
     if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_OUT) == 0) {
-	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
-    	    "[%s] rec'd %d bytes IP frame on mssfix-out hook", b->name, nread);
-	IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
-	NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_IN, b->name, nbp);
+	IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
+	NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_IN, b->name, bp);
 	return;
     }
-    /* A snooped, incoming TCP SYN frame? */
+
+    /* A snooped, incoming TCP SYN frame */
     if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_IN) == 0) {
-	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
-    	    "[%s] rec'd %d bytes IP frame on mssfix-in hook", b->name, nread);
-	IfaceCorrectMSS(nbp, MAXMSS(b->iface.mtu));
-	NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_OUT, b->name, nbp);
+	IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
+	NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_OUT, b->name, bp);
 	return;
     }
 #endif
 
     /* Packet requiring compression */
     if (strcmp(naddr.sg_data, NG_PPP_HOOK_COMPRESS) == 0) {
-
-	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
-    	    "[%s] rec'd %d bytes frame on %s hook", b->name, nread, NG_PPP_HOOK_COMPRESS);
-
-	nbp = CcpDataOutput(b, nbp);
-	if (nbp)
-	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_COMPRESS, b->name, nbp);
-
+	bp = CcpDataOutput(b, bp);
+	if (bp)
+	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_COMPRESS, b->name, bp);
 	return;
     }
 
     /* Packet requiring decompression */
     if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECOMPRESS) == 0) {
-	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
-    	    "[%s] rec'd %d bytes frame on %s hook", b->name, nread, NG_PPP_HOOK_DECOMPRESS);
-
-	nbp = CcpDataInput(b, nbp);
-	if (nbp)
-	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECOMPRESS, b->name, nbp);
-
+	bp = CcpDataInput(b, bp);
+	if (bp)
+	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECOMPRESS, b->name, bp);
 	return;
     }
 
     /* Packet requiring encryption */
     if (strcmp(naddr.sg_data, NG_PPP_HOOK_ENCRYPT) == 0) {
-
-	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
-    	    "[%s] rec'd %d bytes frame on %s hook", b->name, nread, NG_PPP_HOOK_ENCRYPT);
-
-	nbp = EcpDataOutput(b, nbp);
-	if (nbp)
-	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_ENCRYPT, b->name, nbp);
-
+	bp = EcpDataOutput(b, bp);
+	if (bp)
+	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_ENCRYPT, b->name, bp);
 	return;
     }
 
     /* Packet requiring decryption */
     if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECRYPT) == 0) {
-	/* Debugging */
-	LogDumpBp(LG_FRAME, nbp,
-    	    "[%s] rec'd %d bytes frame on %s hook", b->name, nread, NG_PPP_HOOK_DECRYPT);
-
-	nbp = EcpDataInput(b, nbp);
-	if (nbp) 
-	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECRYPT, b->name, nbp);
-
+	bp = EcpDataInput(b, bp);
+	if (bp) 
+	    NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECRYPT, b->name, bp);
 	return;
     }
 
     /* Unknown hook! */
-    LogDumpBp(LG_FRAME, nbp,
-	"[%s] rec'd %d bytes data on unknown hook \"%s\"", b->name, nread, naddr.sg_data);
-    mbfree(nbp);
+    LogDumpBp(LG_ERR, bp,
+	"[%s] rec'd %d bytes data on unknown hook \"%s\"", b->name, MBLEN(bp), naddr.sg_data);
+    mbfree(bp);
     DoExit(EX_ERRDEAD);
 }
 
