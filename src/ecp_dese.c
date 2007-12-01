@@ -122,8 +122,8 @@ DesStat(Context ctx, int dir)
 		(unsigned long long)des->xmit_stats.OctetsIn,
 		(unsigned long long)des->xmit_stats.OctetsOut,
 		((des->xmit_stats.OctetsIn!=0)?
-		    ((unsigned long long)(des->xmit_stats.OctetsOut - des->xmit_stats.OctetsIn)
-			*100/(unsigned long long)des->xmit_stats.OctetsIn):
+		    ((long long)(des->xmit_stats.OctetsOut - des->xmit_stats.OctetsIn)
+			*100/(long long)des->xmit_stats.OctetsIn):
 		    0));
 	    Printf("\tFrames\t: %llu -> %llu\r\n",
 		(unsigned long long)des->xmit_stats.FramesIn,
@@ -136,8 +136,8 @@ DesStat(Context ctx, int dir)
 		(unsigned long long)des->recv_stats.OctetsOut,
 		(unsigned long long)des->recv_stats.OctetsIn,
 		((des->recv_stats.OctetsOut!=0)?
-		    ((unsigned long long)(des->recv_stats.OctetsIn - des->recv_stats.OctetsOut)
-			*100/(unsigned long long)des->recv_stats.OctetsOut):
+		    ((long long)(des->recv_stats.OctetsIn - des->recv_stats.OctetsOut)
+			*100/(long long)des->recv_stats.OctetsOut):
 		    0));
 	    Printf("\tFrames\t: %llu <- %llu\r\n",
 		(unsigned long long)des->xmit_stats.FramesOut,
