@@ -1419,8 +1419,7 @@ FsmInput(Fsm fp, Mbuf bp)
   /* Check for a valid code byte -- if not, send code-reject */
   if (!((1 << hdr.code) & fp->type->known_codes)) {	/* RUC */
     Log(fp->log, ("[%s] %s: unknown code %d", Pref(fp), Fsm(fp), hdr.code));
-    FsmOutput(fp, CODE_CODEREJ, fp->rejid++, MBDATA(bp), MBLEN(bp));
-    mbfree(bp);
+    FsmOutputMbuf(fp, CODE_CODEREJ, fp->rejid++, bp);
     return;
   }
 
