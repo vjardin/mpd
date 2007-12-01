@@ -35,6 +35,7 @@
    */
   #define MPD_HOOK_PPP		"bypass"
   #define MPD_HOOK_DEMAND_TAP	"demand"
+  #define MPD_HOOK_DEMAND_TAP6	"demand6"
 
   #ifndef USE_NG_TCPMSS
   #define MPD_HOOK_TCPMSS_IN	"tcpmss-in"

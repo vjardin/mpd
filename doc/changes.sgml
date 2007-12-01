@@ -19,6 +19,10 @@
 	  </item>
 	  <item> New 'iface' command added.
 	  </item>
+	  <item> Added IPv6 support for Tee and DialOnDemand.
+	  </item>
+	  <item> 'set iface addrs' now able to set IPv6 addresses.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

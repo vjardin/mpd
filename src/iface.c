@@ -110,8 +110,8 @@
   static void	IfaceShutdownNAT(Bund b);
 #endif
 
-  static int	IfaceInitTee(Bund b, char *path, char *hook);
-  static void	IfaceShutdownTee(Bund b);
+  static int	IfaceInitTee(Bund b, char *path, char *hook, int v6);
+  static void	IfaceShutdownTee(Bund b, int v6);
 
   static int    IfaceInitMSS(Bund b, char *path, char *hook);
   static void	IfaceSetupMSS(Bund b, uint16_t maxMSS);
@@ -590,41 +590,20 @@ IfaceDown(Bund b)
 void
 IfaceListenInput(Bund b, int proto, Mbuf pkt)
 {
-  IfaceState	const iface = &b->iface;
-  int		const isDemand = IfaceIsDemand(proto, pkt);
-  Fsm		fsm;
+    IfaceState	const iface = &b->iface;
+    int		const isDemand = IfaceIsDemand(proto, pkt);
 
-  /* Does this count as demand traffic? */
-  if (isDemand)
-    iface->traffic[0] = TRUE;
-
-  /* Get FSM for protocol (for now, we know it's IP) */
-  assert(proto == PROTO_IP);
-  fsm = &b->ipcp.fsm;
-
-  if (OPEN_STATE(fsm->state)) {
-    if (b->n_up > 0) {
-#ifndef USE_NG_TCPMSS
-      if (Enabled(&iface->options, IFACE_CONF_TCPMSSFIX)) {
-	if (proto == PROTO_IP)
-	  IfaceCorrectMSS(pkt, MAXMSS(iface->mtu));
-      } else
-	Log(LG_IFACE, ("[%s] unexpected outgoing packet, len=%d",
-	  b->name, MBLEN(pkt)));
-#endif
-      NgFuncWriteFrame(b->dsock, MPD_HOOK_DEMAND_TAP, b->name, pkt);
+    /* Does this count as demand traffic? */
+    if (iface->open && isDemand) {
+	iface->traffic[0] = TRUE;
+        Log(LG_IFACE, ("[%s] IFACE: Outgoing %s packet demands connection", b->name,
+	    (proto==PROTO_IP)?"IP":"IPv6"));
+	RecordLinkUpDownReason(b, NULL, 1, STR_DEMAND, NULL);
+        BundOpen(b);
+        IfaceCachePkt(b, proto, pkt);
     } else {
-      IfaceCachePkt(b, proto, pkt);
+	mbfree(pkt);
     }
-  /* Maybe do dial-on-demand here */
-  } else if (iface->open && isDemand) {
-    Log(LG_IFACE, ("[%s] outgoing packet is demand", b->name));
-    RecordLinkUpDownReason(b, NULL, 1, STR_DEMAND, NULL);
-    BundOpen(b);
-    IfaceCachePkt(b, proto, pkt);
-  } else {
-    mbfree(pkt);
-  }
 }
 
 /*
@@ -1082,21 +1061,21 @@ IfaceSessionTimeout(void *arg)
 static void
 IfaceCachePkt(Bund b, int proto, Mbuf pkt)
 {
-  IfaceState	const iface = &b->iface;
+    IfaceState	const iface = &b->iface;
 
-  /* Only cache network layer data */
-  if (!PROT_NETWORK_DATA(proto)) {
-    mbfree(pkt);
-    return;
-  }
+    /* Only cache network layer data */
+    if (!PROT_NETWORK_DATA(proto)) {
+	mbfree(pkt);
+	return;
+    }
 
-  /* Release previously cached packet, if any, and save this one */
-  if (iface->dodCache.pkt)
-    mbfree(iface->dodCache.pkt);
+    /* Release previously cached packet, if any, and save this one */
+    if (iface->dodCache.pkt)
+	mbfree(iface->dodCache.pkt);
 
-  iface->dodCache.pkt = pkt;
-  iface->dodCache.proto = proto;
-  iface->dodCache.ts = time(NULL);
+    iface->dodCache.pkt = pkt;
+    iface->dodCache.proto = proto;
+    iface->dodCache.ts = time(NULL);
 }
 
 /*
@@ -1108,20 +1087,20 @@ IfaceCachePkt(Bund b, int proto, Mbuf pkt)
 static void
 IfaceCacheSend(Bund b)
 {
-  IfaceState	const iface = &b->iface;
+    IfaceState	const iface = &b->iface;
 
-  if (iface->dodCache.pkt) {
-    if (iface->dodCache.ts + MAX_DOD_CACHE_DELAY < time(NULL))
-      mbfree(iface->dodCache.pkt);
-    else {
-      if (NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM,
-	  iface->dodCache.proto, iface->dodCache.pkt) < 0) {
-	Log(LG_ERR, ("[%s] can't write cached pkt: %s",
-	  b->name, strerror(errno)));
-      }
+    if (iface->dodCache.pkt) {
+	if (iface->dodCache.ts + MAX_DOD_CACHE_DELAY < time(NULL))
+    	    mbfree(iface->dodCache.pkt);
+	else {
+    	    if (NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM,
+		    iface->dodCache.proto, iface->dodCache.pkt) < 0) {
+		Log(LG_ERR, ("[%s] can't write cached pkt: %s",
+	    	    b->name, strerror(errno)));
+    	    }
+	}
+	iface->dodCache.pkt = NULL;
     }
-    iface->dodCache.pkt = NULL;
-  }
 }
 
 /*
@@ -1229,14 +1208,21 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	/* Parse */
 	if (ac != 2)
 	  return(-1);
-	if (!ParseRange(av[0], &self_addr, ALLOW_IPV4))
+	if (!ParseRange(av[0], &self_addr, ALLOW_IPV4|ALLOW_IPV6))
 	  Error("Bad IP address \"%s\"", av[0]);
-	if (!ParseAddr(av[1], &peer_addr, ALLOW_IPV4))
+	if (!ParseAddr(av[1], &peer_addr, ALLOW_IPV4|ALLOW_IPV6))
 	  Error("Bad IP address \"%s\"", av[1]);
+	if (self_addr.addr.family != peer_addr.family)
+	  Error("Addresses must be from the same protocol family");
 
 	/* OK */
-	iface->self_addr = self_addr;
-	iface->peer_addr = peer_addr;
+	if (peer_addr.family == AF_INET) {
+	    iface->self_addr = self_addr;
+	    iface->peer_addr = peer_addr;
+	} else {
+	    iface->self_ipv6_addr = self_addr.addr;
+	    iface->peer_ipv6_addr = peer_addr;
+	}
       }
       break;
 
@@ -1759,7 +1745,7 @@ IfaceNgIpInit(Bund b, int ready)
 
 	/* Add a tee node if configured */
 	if (Enabled(&b->iface.options, IFACE_CONF_TEE)) {
-	    if (IfaceInitTee(b, path, hook))
+	    if (IfaceInitTee(b, path, hook, 0))
 		goto fail;
 	    b->iface.tee_up = 1;
 	}
@@ -1847,7 +1833,7 @@ IfaceNgIpShutdown(Bund b)
     b->iface.nat_up = 0;
 #endif
     if (b->iface.tee_up)
-	IfaceShutdownTee(b);
+	IfaceShutdownTee(b, 0);
     b->iface.tee_up = 0;
 #ifdef USE_NG_NETFLOW
     if (b->iface.nfin_up)
@@ -1878,20 +1864,35 @@ IfaceNgIpv6Init(Bund b, int ready)
 {
     struct ngm_connect	cn;
     char		path[NG_PATHSIZ];
+    char		hook[NG_HOOKSIZ];
 
     if (!ready) {
+	/* Dial-on-Demand mode */
+	/* Use demand hook of the socket node */
+	snprintf(path, sizeof(path), ".:");
+	strcpy(hook, MPD_HOOK_DEMAND_TAP6);
     } else {
-	/* Connect ipv6 hook of ng_ppp(4) node to the ng_iface(4) node. */
 	snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
-	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_IPV6);
-	snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
-	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
-	if (NgSendMsg(b->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
-		sizeof(cn)) < 0) {
-    	    Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
-    		b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
-    	    goto fail;
+	strcpy(hook, NG_PPP_HOOK_IPV6);
+
+	/* Add a tee node if configured */
+	if (Enabled(&b->iface.options, IFACE_CONF_TEE)) {
+	    if (IfaceInitTee(b, path, hook, 1))
+		goto fail;
+	    b->iface.tee6_up = 1;
 	}
+  
+    }
+
+    /* Connect graph to the iface node. */
+    strcpy(cn.ourhook, hook);
+    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
+    if (NgSendMsg(b->csock, path,
+    	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
+    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	goto fail;
     }
 
     /* OK */
@@ -1910,10 +1911,14 @@ IfaceNgIpv6Shutdown(Bund b)
 {
     char		path[NG_PATHSIZ];
 
+    if (b->iface.tee6_up)
+	IfaceShutdownTee(b, 1);
+    b->iface.tee6_up = 0;
+
     NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_IPV6);
 
     snprintf(path, sizeof(path), "%s:", b->iface.ifname);
-    NgFuncDisconnect(b->csock, b->name, path, NG_IFACE_HOOK_INET);
+    NgFuncDisconnect(b->csock, b->name, path, NG_IFACE_HOOK_INET6);
 }
 
 #ifdef USE_NG_NAT
@@ -2026,12 +2031,12 @@ IfaceShutdownNAT(Bund b)
 #endif
 
 static int
-IfaceInitTee(Bund b, char *path, char *hook)
+IfaceInitTee(Bund b, char *path, char *hook, int v6)
 {
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
 
-    Log(LG_IFACE2, ("[%s] IFACE: Connecting tee", b->name));
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting tee%s", b->name, v6?"6":""));
   
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
     strcpy(mp.ourhook, hook);
@@ -2044,7 +2049,7 @@ IfaceInitTee(Bund b, char *path, char *hook)
     }
     strlcat(path, ".", NG_PATHSIZ);
     strlcat(path, hook, NG_PATHSIZ);
-    snprintf(nm.name, sizeof(nm.name), "%s-tee", b->iface.ifname);
+    snprintf(nm.name, sizeof(nm.name), "%s-tee%s", b->iface.ifname, v6?"6":"");
     if (NgSendMsg(b->csock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
       Log(LG_ERR, ("[%s] can't name %s node: %s",
@@ -2057,11 +2062,11 @@ IfaceInitTee(Bund b, char *path, char *hook)
 }
 
 static void
-IfaceShutdownTee(Bund b)
+IfaceShutdownTee(Bund b, int v6)
 {
     char	path[NG_PATHSIZ];
 
-    snprintf(path, sizeof(path), "%s-tee:", b->iface.ifname);
+    snprintf(path, sizeof(path), "%s-tee%s:", b->iface.ifname, v6?"6":"");
     NgFuncShutdownNode(b->csock, b->name, path);
 }
 

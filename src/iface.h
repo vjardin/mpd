@@ -106,6 +106,7 @@
     u_char		ipv6_up:1;		/* IPv6 interface is up */
     u_char		nat_up:1;		/* NAT is up */
     u_char		tee_up:1;		/* TEE is up */
+    u_char		tee6_up:1;		/* TEE6 is up */
     u_char		nfin_up:1;		/* NFIN is up */
     u_char		nfout_up:1;		/* NFOUT is up */
     u_char		mss_up:1;		/* MSS is up */

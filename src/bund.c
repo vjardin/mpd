@@ -1810,6 +1810,12 @@ BundNgDataEvent(int type, void *cookie)
 	return;
     }
 
+    /* A snooped, outgoing IPv6 frame */
+    if (strcmp(naddr.sg_data, MPD_HOOK_DEMAND_TAP6) == 0) {
+	IfaceListenInput(b, PROTO_IPV6, bp);
+	return;
+    }
+
 #ifndef USE_NG_TCPMSS
     /* A snooped, outgoing TCP SYN frame */
     if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_OUT) == 0) {
