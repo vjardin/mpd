@@ -19,6 +19,12 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> Changes:
+	<itemize>
+	  <item> Internal memory management rewritten.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fixed /32 routes processing.
