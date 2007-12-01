@@ -29,6 +29,10 @@
 	<itemize>
 	  <item> Fixed /32 routes processing.
 	  </item>
+	  <item> Fixed crash on repeater shutdown.
+	  </item>
+	  <item> Fixed 'create link ' command syntax check.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
