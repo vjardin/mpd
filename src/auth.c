@@ -528,12 +528,12 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
   /* Build packet */
   bp = mbcopyback(NULL, 0, &lh, sizeof(lh));
   if (proto == PROTO_EAP)
-    bp = mbcopyback(bp, bp->cnt, &eap_type, 1);
+    bp = mbcopyback(bp, MBLEN(bp), &eap_type, 1);
   if (add_len) {
     u_char tl = len;
-    bp = mbcopyback(bp, bp->cnt, &tl, 1);
+    bp = mbcopyback(bp, MBLEN(bp), &tl, 1);
   }
-  bp = mbcopyback(bp, bp->cnt, ptr, len);
+  bp = mbcopyback(bp, MBLEN(bp), ptr, len);
 
   if (proto == PROTO_EAP) {
     Log(LG_AUTH, ("[%s] %s: sending %s Type %s len:%d", l->name,
