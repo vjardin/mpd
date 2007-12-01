@@ -494,8 +494,8 @@ Pred1Stat(Context ctx, int dir)
 		(unsigned long long)p->xmit_stats.InOctets,
 		(unsigned long long)p->xmit_stats.OutOctets,
 		((p->xmit_stats.InOctets!=0)?
-		    ((unsigned long long)(p->xmit_stats.OutOctets - p->xmit_stats.InOctets)
-			*100/(unsigned long long)p->xmit_stats.InOctets):
+		    ((long long)(p->xmit_stats.OutOctets - p->xmit_stats.InOctets)
+			*100/(long long)p->xmit_stats.InOctets):
 		    0));
 	    Printf("\tFrames\t: %llu -> %lluc + %lluu\r\n",
 		(unsigned long long)p->xmit_stats.FramesPlain,
@@ -509,8 +509,8 @@ Pred1Stat(Context ctx, int dir)
 		(unsigned long long)p->recv_stats.OutOctets,
 		(unsigned long long)p->recv_stats.InOctets,
 		((p->recv_stats.OutOctets!=0)?
-		    ((unsigned long long)(p->recv_stats.InOctets - p->recv_stats.OutOctets)
-			*100/(unsigned long long)p->recv_stats.OutOctets):
+		    ((long long)(p->recv_stats.InOctets - p->recv_stats.OutOctets)
+			*100/(long long)p->recv_stats.OutOctets):
 		    0));
 	    Printf("\tFrames\t: %llu <- %lluc + %lluu\r\n",
 		(unsigned long long)p->xmit_stats.FramesPlain,
