@@ -256,8 +256,7 @@ DeseBisDecrypt(Bund b, Mbuf cypher)
 
     Log(LG_ECP, ("[%s] DESE-bis: rec'd wrong seq=%u, expected %u",
       b->name, seq, des->recv_seq));
-    tail = mbsplit(cypher, clen - 8);
-    mbfree(cypher);
+    tail = mbadj(cypher, clen - 8);
     tail = mbread(tail, &des->recv_ivec, 8);
     assert(!tail);
     des->recv_seq = seq + 1;
