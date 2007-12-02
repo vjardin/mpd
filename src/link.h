@@ -113,10 +113,8 @@
     Bund		bund;			/* My bundle */
     int			bundleIndex;		/* Link number in bundle */
     Rep			rep;			/* Rep connected to the device */
-    int			csock;			/* Socket node control socket */
-    int			dsock;			/* Socket node data socket */
-    EventRef		dataEvent;		/* Socket node data event */
-    ng_ID_t		nodeID;			/* ID of ppp node */
+    char		hook[NG_HOOKSIZ];	/* session hook name */
+    ng_ID_t		nodeID;			/* ID of the tee node */
     MsgHandler		msgs;			/* Link events */
     SLIST_HEAD(, linkaction) actions;
     int			die;
@@ -163,9 +161,14 @@
 
   extern const struct cmdtab	LinkSetCmds[];
 
+  extern int		gLinksCsock;		/* Socket node control socket */
+  extern int		gLinksDsock;		/* Socket node data socket */
+
 /*
  * FUNCTIONS
  */
+  extern int	LinksInit(void);
+  extern void	LinksShutdown(void);
 
   extern void	LinkUp(Link l);
   extern void	LinkDown(Link l);

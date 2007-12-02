@@ -196,6 +196,7 @@ main(int ac, char *av[])
     MpSetDiscrim();
     IPPoolInit();
     MppcTestCap();
+    LinksInit();
 
     ret = pthread_mutex_init (&gGiantMutex, NULL);
     if (ret != 0) {
@@ -336,6 +337,8 @@ DoExit(int code)
 	if ((l = gLinks[k]) != NULL)
     	    LinkShutdown(l);
     }
+
+    LinksShutdown();
 
     /* Remove our PID file and exit */
     Log(LG_ALWAYS, ("process %d terminated", gPid));

@@ -513,7 +513,7 @@ NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
 	l->name, proto);
 
     /* Write frame */
-    return NgFuncWriteFrame(l->dsock, MPD_HOOK_PPP, l->name, bp);
+    return NgFuncWriteFrame(gLinksDsock, l->hook, l->name, bp);
 }
 
 /*

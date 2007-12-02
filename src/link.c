@@ -138,6 +138,52 @@
     { 0,	0,			NULL		},
   };
 
+    int		gLinksCsock = -1;		/* Socket node control socket */
+    int		gLinksDsock = -1;		/* Socket node data socket */
+    EventRef	gLinksDataEvent;
+
+int
+LinksInit(void)
+{
+    struct ngm_name	nm;
+
+    /* Create a netgraph socket node */
+    if (NgMkSockNode(NULL, &gLinksCsock, &gLinksDsock) < 0) {
+	Log(LG_ERR, ("LinksInit(): can't create %s node: %s",
+    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
+	return(-1);
+    }
+    (void) fcntl(gLinksCsock, F_SETFD, 1);
+    (void) fcntl(gLinksDsock, F_SETFD, 1);
+
+    /* Give it a name */
+    snprintf(nm.name, sizeof(nm.name), "mpd%d-lso", gPid);
+    if (NgSendMsg(gLinksCsock, ".:",
+      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
+	Log(LG_ERR, ("LinksInit(): can't name %s node: %s",
+    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
+	close(gLinksCsock);
+	close(gLinksDsock);
+	return (-1);
+    }
+
+    /* Listen for happenings on our node */
+    EventRegister(&gLinksDataEvent, EVENT_READ,
+	gLinksDsock, EVENT_RECURRING, LinkNgDataEvent, NULL);
+	
+    return (0);
+}
+
+void
+LinksShutdown(void)
+{
+    close(gLinksCsock);
+    gLinksCsock = -1;
+    EventUnRegister(&gLinksDataEvent);
+    close(gLinksDsock);
+    gLinksDsock = -1;
+}
+
 /*
  * LinkOpenCmd()
  */
@@ -360,8 +406,6 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	l->tmpl = tmpl;
 	l->stay = stay;
 	l->parent = -1;
-	l->csock = -1;
-	l->dsock = -1;
 	SLIST_INIT(&l->actions);
 
 	/* Initialize link configuration with defaults */
@@ -563,7 +607,7 @@ LinkShutdown(Link l)
 	}
     }
     MsgUnRegister(&l->msgs);
-    if (l->csock >= 0)
+    if (l->hook[0])
 	LinkNgShutdown(l, 1);
     PhysShutdown(l);
     LcpShutdown(l);
@@ -586,11 +630,7 @@ LinkShutdown(Link l)
 /*
  * LinkNgInit()
  *
- * Setup the initial link framework. Initializes these fields
- * in the supplied bundle structure:
- *
- *	csock		- Control socket for socket netgraph node
- *	dsock		- Data socket for socket netgraph node
+ * Setup the initial link framework.
  *
  * Returns -1 if error.
  */
@@ -607,29 +647,13 @@ LinkNgInit(Link l)
     struct ngm_name	nm;
     int			newTee = 0;
 
-    /* Create a netgraph socket node */
-    if (NgMkSockNode(NULL, &l->csock, &l->dsock) < 0) {
-	Log(LG_ERR, ("[%s] can't create %s node: %s",
-    	    l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
-	return(-1);
-    }
-    (void) fcntl(l->csock, F_SETFD, 1);
-    (void) fcntl(l->dsock, F_SETFD, 1);
-
-    /* Give it a name */
-    snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lso", gPid, l->name);
-    if (NgSendMsg(l->csock, ".:",
-      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-	Log(LG_ERR, ("[%s] can't name %s node: %s",
-    	    l->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
-	goto fail;
-    }
+    snprintf(l->hook, sizeof(l->hook), "link-%d", l->id);
 
     /* Create TEE node */
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", l->hook);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
-    if (NgSendMsg(l->csock, ".:",
+    if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
     	    l->name, mp.type, ".:", mp.ourhook, strerror(errno)));
@@ -639,30 +663,25 @@ LinkNgInit(Link l)
 
     /* Give it a name */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lt", gPid, l->name);
-    if (NgSendMsg(l->csock, MPD_HOOK_PPP,
+    if (NgSendMsg(gLinksCsock, l->hook,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
-    	    l->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
+    	    l->name, NG_PPP_NODE_TYPE, l->hook, strerror(errno)));
 	goto fail;
     }
 
     /* Get PPP node ID */
-    if (NgSendMsg(l->csock, MPD_HOOK_PPP,
+    if (NgSendMsg(gLinksCsock, l->hook,
       NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
 	Log(LG_ERR, ("[%s] ppp nodeinfo: %s", l->name, strerror(errno)));
 	goto fail;
     }
-    if (NgRecvMsg(l->csock, &u.reply, sizeof(u), NULL) < 0) {
+    if (NgRecvMsg(gLinksCsock, &u.reply, sizeof(u), NULL) < 0) {
 	Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
-    	    l->name, MPD_HOOK_PPP, strerror(errno)));
+    	    l->name, l->hook, strerror(errno)));
 	goto fail;
     }
     l->nodeID = ni->id;
-
-    /* Listen for happenings on our node */
-    EventRegister(&l->dataEvent, EVENT_READ,
-	l->dsock, EVENT_RECURRING, LinkNgDataEvent, l);
-    /* Control events used only by CCP so Register events there */
 
     /* OK */
     return(0);
@@ -688,14 +707,14 @@ LinkNgJoin(Link l)
     snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_RIGHT);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", 
 	NG_PPP_HOOK_LINK_PREFIX, l->bundleIndex);
-    if (NgSendMsg(l->csock, path,
+    if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
     	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
 	return(-1);
     }
     
-    NgFuncDisconnect(l->csock, l->name, path, NG_TEE_HOOK_LEFT2RIGHT);
+    NgFuncDisconnect(gLinksCsock, l->name, path, NG_TEE_HOOK_LEFT2RIGHT);
     return (0);
 }
 
@@ -710,9 +729,9 @@ LinkNgLeave(Link l)
     struct ngm_connect	cn;
 
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->nodeID);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_PPP);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", l->hook);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
-    if (NgSendMsg(l->csock, ".:",
+    if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
     	    l->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
@@ -720,7 +739,7 @@ LinkNgLeave(Link l)
     }
 
     snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
-    NgFuncDisconnect(l->csock, l->name, path, NG_TEE_HOOK_RIGHT);
+    NgFuncDisconnect(gLinksCsock, l->name, path, NG_TEE_HOOK_RIGHT);
     return (0);
 }
 
@@ -741,7 +760,7 @@ LinkNgToRep(Link l)
         Log(LG_PHYS, ("[%s] Link: can't get repeater hook", l->name));
         return (-1);
     }
-    if (NgSendMsg(l->csock, path,
+    if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
     	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
@@ -749,13 +768,8 @@ LinkNgToRep(Link l)
     }
 
     /* Shutdown link tee node */
-    NgFuncShutdownNode(l->csock, l->name, path);
-
-    close(l->csock);
-    l->csock = -1;
-    EventUnRegister(&l->dataEvent);
-    close(l->dsock);
-    l->dsock = -1;
+    NgFuncShutdownNode(gLinksCsock, l->name, path);
+    l->hook[0] = 0;
     return (0);
 }
 
@@ -767,12 +781,8 @@ void
 LinkNgShutdown(Link l, int tee)
 {
     if (tee)
-	NgFuncShutdownNode(l->csock, l->name, MPD_HOOK_PPP);
-    close(l->csock);
-    l->csock = -1;
-    EventUnRegister(&l->dataEvent);
-    close(l->dsock);
-    l->dsock = -1;
+	NgFuncShutdownNode(gLinksCsock, l->name, l->hook);
+    l->hook[0] = 0;
 }
 
 /*
@@ -782,24 +792,45 @@ LinkNgShutdown(Link l, int tee)
 static void
 LinkNgDataEvent(int type, void *cookie)
 {
-    Link		l = (Link)cookie;
+    Link		l;
     u_char		*buf;
     u_int16_t		proto;
     int			ptr;
     Mbuf		bp;
+    struct sockaddr_ng	naddr;
+    socklen_t		nsize = sizeof(naddr);
+    char		*linkname, *rest;
+    int			id;
 
     bp = mballoc(2048);
     buf = MBDATA(bp);
 
     /* Read data */
-    if ((bp->cnt = recv(l->dsock, buf, MBSPACE(bp), 0)) < 0) {
+    if ((bp->cnt = recvfrom(gLinksDsock, buf, MBSPACE(bp), 0, (struct sockaddr *)&naddr, &nsize)) < 0) {
 	mbfree(bp);
 	if (errno == EAGAIN)
     	    return;
 	Log(LG_LINK, ("[%s] socket read: %s", l->name, strerror(errno)));
-	LinkClose(l);
 	return;
     }
+
+    linkname = naddr.sg_data;
+    if (strncmp(linkname, "link-", 5)) {
+        Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
+    	    linkname));
+	mbfree(bp);
+        return;
+    }
+    linkname += 5;
+    id = strtol(linkname, &rest, 10);
+    if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
+        Log(LG_ERR, ("LinkNgDataEvent: packet from unknown link \"%s\"",
+    	    linkname));
+	mbfree(bp);
+	return;
+    }
+		
+    l = gLinks[id];
 
     /* Extract protocol */
     ptr = 0;
