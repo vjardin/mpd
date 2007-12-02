@@ -92,7 +92,7 @@
   extern void	NgFuncErr(const char *fmt, ...);
 
   #ifdef USE_NG_NETFLOW
-  extern int	NgFuncInitGlobalNetflow(Bund b);
+  extern int	NgFuncInitGlobalNetflow(void);
   #endif
   
   extern int	NgFuncCreateIface(Bund b, char *buf, int max);

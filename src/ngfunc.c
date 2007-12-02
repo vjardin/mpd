@@ -125,21 +125,28 @@
 
 #ifdef USE_NG_NETFLOW
 int
-NgFuncInitGlobalNetflow(Bund b)
+NgFuncInitGlobalNetflow(void)
 {
-    char path[NG_PATHSIZ];
-
-    snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
-
+    char		path[NG_PATHSIZ];
     struct ngm_mkpeer	mp;
     struct ngm_rmhook	rm;
     struct ngm_name	nm;
+    int			csock;
+
+    snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
+
+    /* Create a netgraph socket node */
+    if (NgMkSockNode(NULL, &csock, NULL) < 0) {
+	Log(LG_ERR, ("NgFuncInitGlobalNetflow: can't create %s node: %s",
+    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
+        return (-1);
+    }
 
     /* Create a global netflow node. */
     snprintf(mp.type, sizeof(mp.type), "%s", NG_NETFLOW_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
-    if (NgSendMsg(b->csock, ".:",
+    if (NgSendMsg(csock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
 	    NG_NETFLOW_NODE_TYPE, ".:", mp.ourhook, strerror(errno)));
@@ -148,7 +155,7 @@ NgFuncInitGlobalNetflow(Bund b)
 
     /* Set the new node's name. */
     strcpy(nm.name, gNetflowNodeName);
-    if (NgSendMsg(b->csock, TEMPHOOK,
+    if (NgSendMsg(csock, TEMPHOOK,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("can't name %s node: %s", NG_NETFLOW_NODE_TYPE,
             strerror(errno)));
@@ -164,7 +171,7 @@ NgFuncInitGlobalNetflow(Bund b)
         snprintf(mp.peerhook, sizeof(mp.peerhook), "inet/dgram/udp");
     }
     snprintf(path, sizeof(path), "%s:", nm.name);
-    if (NgSendMsg(b->csock, path,
+    if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
 	    NG_KSOCKET_NODE_TYPE, path, mp.ourhook, strerror(errno)));
@@ -178,10 +185,10 @@ NgFuncInitGlobalNetflow(Bund b)
 	nf_settime.inactive_timeout = gNetflowInactive;
 	nf_settime.active_timeout = gNetflowActive;
 
-	if (NgSendMsg(b->csock, path, NGM_NETFLOW_COOKIE,
+	if (NgSendMsg(csock, path, NGM_NETFLOW_COOKIE,
 	  NGM_NETFLOW_SETTIMEOUTS, &nf_settime, sizeof(nf_settime)) < 0) {
-	    Log(LG_ERR, ("[%s] can't set timeouts on netflow %s node: %s",
-		b->name, NG_NETFLOW_NODE_TYPE, strerror(errno)));
+	    Log(LG_ERR, ("can't set timeouts on netflow %s node: %s",
+		NG_NETFLOW_NODE_TYPE, strerror(errno)));
 	    goto fail2;
 	}
     }
@@ -190,25 +197,25 @@ NgFuncInitGlobalNetflow(Bund b)
     snprintf(path, sizeof(path), "%s:%s", gNetflowNodeName,
         NG_NETFLOW_HOOK_EXPORT);
     if (gNetflowSource.ss_len != 0) {
-	if (NgSendMsg(b->csock, path, NGM_KSOCKET_COOKIE,
+	if (NgSendMsg(csock, path, NGM_KSOCKET_COOKIE,
 	  NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
-	    Log(LG_ERR, ("[%s] can't bind export %s node: %s",
-		b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	    Log(LG_ERR, ("can't bind export %s node: %s",
+		NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	    goto fail2;
 	}
     }
     if (gNetflowExport.ss_len != 0) {
-	if (NgSendMsg(b->csock, path, NGM_KSOCKET_COOKIE,
+	if (NgSendMsg(csock, path, NGM_KSOCKET_COOKIE,
 	  NGM_KSOCKET_CONNECT, &gNetflowExport, sizeof(gNetflowExport)) < 0) {
-	    Log(LG_ERR, ("[%s] can't connect export %s node: %s",
-		b->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	    Log(LG_ERR, ("can't connect export %s node: %s",
+		NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	    goto fail2;
 	}
     }
 
     /* Set the new node's name. */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-nfso", gPid);
-    if (NgSendMsg(b->csock, path,
+    if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("can't name %s node: %s", NG_KSOCKET_NODE_TYPE,
             strerror(errno)));
@@ -217,19 +224,21 @@ NgFuncInitGlobalNetflow(Bund b)
 
     /* Disconnect temporary hook. */
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
-    if (NgSendMsg(b->csock, ".:",
+    if (NgSendMsg(csock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", TEMPHOOK, strerror(errno)));
 	goto fail2;
     }
     gNetflowNode = TRUE;
+    close(csock);
 
-    return 0;
+    return (0);
 fail2:
     snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
-    NgFuncShutdownNode(b->csock, "netflow", path);
+    NgFuncShutdownNode(csock, "netflow", path);
 fail:
-    return -1;
+    close(csock);
+    return (-1);
 }
 #endif
 

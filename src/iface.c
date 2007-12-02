@@ -2189,7 +2189,7 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
   
     /* Create global ng_netflow(4) node if not yet. */
     if (gNetflowNode == FALSE) {
-	if (NgFuncInitGlobalNetflow(b))
+	if (NgFuncInitGlobalNetflow())
 	    return(-1);
     }
 
