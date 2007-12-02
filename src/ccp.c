@@ -880,9 +880,6 @@ CcpLayerDown(Fsm fp)
 
   ccp->xmit_resets = 0;
   ccp->recv_resets = 0;
-
-  /* Unregister control messages event as it used only by CCP */
-  EventUnRegister(&b->ctrlEvent);
 }
 
 /*
