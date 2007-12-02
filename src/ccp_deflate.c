@@ -89,17 +89,18 @@ DeflateInit(Bund b, int dir)
     }
 
     /* Attach a new DEFLATE node to the PPP node */
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
     snprintf(mp.type, sizeof(mp.type), "%s", NG_DEFLATE_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", deflatehook);
-    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+    if (NgSendMsg(b->csock, path,
     	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node: %s",
     	    b->name, mp.type, strerror(errno)));
 	return(-1);
     }
 
-    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
+    strlcat(path, ppphook, sizeof(path));
 
     id = NgGetNodeID(b->csock, path);
     if (dir == COMP_DIR_XMIT) {
@@ -188,13 +189,15 @@ DeflateCleanup(Bund b, int dir)
 static Mbuf
 DeflateRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
-  /* Forward ResetReq to the DEFLATE compression node */
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_COMPRESS,
-      NGM_DEFLATE_COOKIE, NGM_DEFLATE_RESETREQ, NULL, 0) < 0) {
-    Log(LG_ERR, ("[%s] reset-req to %s node: %s",
-      b->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
-  }
-  return(NULL);
+    char		path[NG_PATHSIZ];
+    /* Forward ResetReq to the DEFLATE compression node */
+    snprintf(path, sizeof(path), "[%x]:", b->ccp.comp_node_id);
+    if (NgSendMsg(b->csock, path,
+    	    NGM_DEFLATE_COOKIE, NGM_DEFLATE_RESETREQ, NULL, 0) < 0) {
+	Log(LG_ERR, ("[%s] reset-req to %s node: %s",
+    	    b->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
+    }
+    return(NULL);
 }
 
 /*
@@ -214,12 +217,14 @@ DeflateSendResetReq(Bund b)
 static void
 DeflateRecvResetAck(Bund b, int id, Mbuf bp)
 {
-  /* Forward ResetReq to the DEFLATE compression node */
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_DECOMPRESS,
-      NGM_DEFLATE_COOKIE, NGM_DEFLATE_RESETREQ, NULL, 0) < 0) {
-    Log(LG_ERR, ("[%s] reset-ack to %s node: %s",
-      b->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
-  }
+    char		path[NG_PATHSIZ];
+    /* Forward ResetReq to the DEFLATE compression node */
+    snprintf(path, sizeof(path), "[%x]:", b->ccp.decomp_node_id);
+    if (NgSendMsg(b->csock, path,
+    	    NGM_DEFLATE_COOKIE, NGM_DEFLATE_RESETREQ, NULL, 0) < 0) {
+	Log(LG_ERR, ("[%s] reset-ack to %s node: %s",
+    	    b->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
+    }
 }
 
 /*
