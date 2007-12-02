@@ -356,12 +356,14 @@ retry:
 void
 NgFuncSetConfig(Bund b)
 {
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP, NGM_PPP_COOKIE,
-      NGM_PPP_SET_CONFIG, &b->pppConfig, sizeof(b->pppConfig)) < 0) {
-    Log(LG_ERR, ("[%s] can't config %s: %s",
-      b->name, MPD_HOOK_PPP, strerror(errno)));
-    DoExit(EX_ERRDEAD);
-  }
+    char	path[NG_PATHSIZ];
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
+    if (NgSendMsg(b->csock, path, NGM_PPP_COOKIE,
+    	    NGM_PPP_SET_CONFIG, &b->pppConfig, sizeof(b->pppConfig)) < 0) {
+	Log(LG_ERR, ("[%s] can't config %s: %s",
+    	    b->name, path, strerror(errno)));
+	DoExit(EX_ERRDEAD);
+    }
 }
 
 /*
@@ -713,7 +715,7 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 #endif /* USE_NG_NETFLOW */
 
 ng_ID_t
-NgGetNodeID(int csock, char *path)
+NgGetNodeID(int csock, const char *path)
 {
     union {
         u_char          buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];

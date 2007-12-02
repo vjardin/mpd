@@ -98,7 +98,7 @@
   #endif
   
   extern int	NgFuncCreateIface(Bund b, char *buf, int max);
-  extern ng_ID_t	NgGetNodeID(int csock, char *path);
+  extern ng_ID_t	NgGetNodeID(int csock, const char *path);
 
 #endif
 
