@@ -123,10 +123,6 @@
     Link		links[NG_PPP_MAX_LINKS];	/* Real links in this bundle */
     u_short		n_links;		/* Number of links in bundle */
     u_short		n_up;			/* Number of links joined the bundle */
-    int			csock;			/* Socket node control socket */
-    int			dsock;			/* Socket node data socket */
-    EventRef		ctrlEvent;		/* Socket node control event */
-    EventRef		dataEvent;		/* Socket node data event */
     ng_ID_t		nodeID;			/* ID of ppp node */
     char		hook[NG_HOOKSIZ];	/* session hook name */
     MsgHandler		msgs;			/* Bundle events */

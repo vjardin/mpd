@@ -783,17 +783,20 @@ static void
 LinkNgDataEvent(int type, void *cookie)
 {
     Link		l;
+    Bund		b;
     u_char		*buf;
     u_int16_t		proto;
     int			ptr;
     Mbuf		bp;
-    struct sockaddr_storage	naddr;
+    struct sockaddr_ng	naddr;
     socklen_t		nsize;
-    char		*linkname, *rest;
-    int			id;
+    char		*name, *rest;
+    int			id, num = 0;
 
     /* Read all available packets */
     while (1) {
+	if (num > 100)
+	    return;
 	bp = mballoc(2048);
 	buf = MBDATA(bp);
 	/* Read data */
@@ -805,49 +808,143 @@ LinkNgDataEvent(int type, void *cookie)
 	    Log(LG_LINK, ("Link socket read error: %s", strerror(errno)));
 	    return;
 	}
-	linkname = ((struct sockaddr_ng *)&naddr)->sg_data;
-	if (strncmp(linkname, "l-", 2)) {
+	num++;
+
+	name = naddr.sg_data;
+	if (name[1] != '-') {
     	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
-    	        linkname));
+    	        name));
 	    mbfree(bp);
     	    continue;
 	}
-	linkname += 2;
-	id = strtol(linkname, &rest, 10);
-	if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
-    	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown link %d \"%s\"",
-    		((struct sockaddr_ng *)&naddr)->sg_len, linkname));
-	    mbfree(bp);
-	    continue;
-	}
-		
-	l = gLinks[id];
+	switch (name[0]) {
+	case 'l':
+	    name += 2;
+	    id = strtol(name, &rest, 10);
+	    if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
+    		Log(LG_ERR, ("LinkNgDataEvent: packet from unknown link \"%s\"",
+    		    name));
+		mbfree(bp);
+		continue;
+	    }
+	    l = gLinks[id];
 
-	/* Extract protocol */
-	ptr = 0;
-	if ((buf[0] == 0xff) && (buf[1] == 0x03))
-	    ptr = 2;
-	proto = buf[ptr++];
-	if ((proto & 0x01) == 0)
-	    proto = (proto << 8) + buf[ptr++];
+	    /* Extract protocol */
+	    ptr = 0;
+	    if ((buf[0] == 0xff) && (buf[1] == 0x03))
+		ptr = 2;
+	    proto = buf[ptr++];
+	    if ((proto & 0x01) == 0)
+		proto = (proto << 8) + buf[ptr++];
 
-	if (MBLEN(bp) <= ptr) {
-	    LogDumpBp(LG_FRAME|LG_ERR, bp,
-    		"[%s] rec'd truncated %d bytes frame from link",
-    		l->name, MBLEN(bp));
-	    mbfree(bp);
-	    continue;
-	}
+	    if (MBLEN(bp) <= ptr) {
+		LogDumpBp(LG_FRAME|LG_ERR, bp,
+    		    "[%s] rec'd truncated %d bytes frame from link",
+    		    l->name, MBLEN(bp));
+		mbfree(bp);
+		continue;
+	    }
 
-	/* Debugging */
-	LogDumpBp(LG_FRAME, bp,
-    	    "[%s] rec'd %d bytes frame from link proto=0x%04x",
-    	    l->name, MBLEN(bp), proto);
+	    /* Debugging */
+	    LogDumpBp(LG_FRAME, bp,
+    		"[%s] rec'd %d bytes frame from link proto=0x%04x",
+    		l->name, MBLEN(bp), proto);
       
-	bp = mbadj(bp, ptr);
+	    bp = mbadj(bp, ptr);
 
-	/* Input frame */
-	InputFrame(l->bund, l, proto, bp);
+	    /* Input frame */
+	    InputFrame(l->bund, l, proto, bp);
+	    break;
+	case 'b':
+	case 'i':
+	case 'o':
+	case '4':
+	case '6':
+	    name += 2;
+	    id = strtol(name, &rest, 10);
+	    if (rest[0] != 0 || !gBundles[id] || gBundles[id]->dead) {
+    		Log(LG_ERR, ("LinkNgDataEvent: packet from unknown bundle \"%s\"",
+    		    name));
+		mbfree(bp);
+		continue;
+	    }
+	    b = gBundles[id];
+
+	    /* A PPP frame from the bypass hook? */
+	    if (naddr.sg_data[0] == 'b') {
+    		Link		l;
+		u_int16_t	linkNum, proto;
+
+		if (MBLEN(bp) <= 4) {
+		    LogDumpBp(LG_FRAME|LG_ERR, bp,
+    			"[%s] rec'd truncated %d bytes frame from link=%d",
+    			b->name, MBLEN(bp), (int16_t)linkNum);
+		    continue;
+		}
+
+		/* Extract link number and protocol */
+		bp = mbread(bp, &linkNum, 2);
+		linkNum = ntohs(linkNum);
+	        bp = mbread(bp, &proto, 2);
+		proto = ntohs(proto);
+
+		/* Debugging */
+		LogDumpBp(LG_FRAME, bp,
+    		    "[%s] rec'd %d bytes bypass frame link=%d proto=0x%04x",
+    		    b->name, MBLEN(bp), (int16_t)linkNum, proto);
+
+		/* Set link */
+		assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < NG_PPP_MAX_LINKS);
+
+		if (linkNum != NG_PPP_BUNDLE_LINKNUM)
+		    l = b->links[linkNum];
+		else
+		    l = NULL;
+
+		InputFrame(b, l, proto, bp);
+		continue;
+	    }
+
+	    /* Debugging */
+	    LogDumpBp(LG_FRAME, bp,
+		"[%s] rec'd %d bytes frame on %s hook", b->name, MBLEN(bp), naddr.sg_data);
+
+#ifndef USE_NG_TCPMSS
+	    /* A snooped, outgoing TCP SYN frame */
+	    if (naddr.sg_data[0] == 'o') {
+		IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
+		naddr.sg_data[0] = 'i';
+		NgFuncWriteFrame(gLinksDsock, naddr.sg_data, b->name, bp);
+		continue;
+	    }
+
+	    /* A snooped, incoming TCP SYN frame */
+	    if (naddr.sg_data[0] == 'i') {
+		IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
+		naddr.sg_data[0] = 'o';
+		NgFuncWriteFrame(gLinksDsock, naddr.sg_data, b->name, bp);
+		continue;
+	    }
+#endif
+
+	    /* A snooped, outgoing IP frame */
+	    if (naddr.sg_data[0] == '4') {
+		IfaceListenInput(b, PROTO_IP, bp);
+		continue;
+	    }
+
+	    /* A snooped, outgoing IPv6 frame */
+	    if (naddr.sg_data[0] == '6') {
+		IfaceListenInput(b, PROTO_IPV6, bp);
+		continue;
+	    }
+
+	    break;
+	default:
+    	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
+    	        name));
+	    mbfree(bp);
+	}
     }
 }
 

@@ -1071,7 +1071,6 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	snprintf(b->name, sizeof(b->name), "%s", av[0 + stay]);
 	b->tmpl = tmpl;
 	b->stay = stay;
-	b->csock = b->dsock = -1;
 
 	/* Add bundle to the list of bundles and make it the current active bundle */
 	for (k = 0; k < gNumBundles && gBundles[k] != NULL; k++);
@@ -1176,7 +1175,6 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
     b->tmpl = tmpl;
     b->stay = stay;
     b->refs = 0;
-    b->csock = b->dsock = -1;
 
     /* Add bundle to the list of bundles and make it the current active bundle */
     for (k = 0; k < gNumBundles && gBundles[k] != NULL; k++);
@@ -1227,7 +1225,7 @@ BundShutdown(Bund b)
 		LinkShutdown(l);
     }
 
-    if (b->csock >= 0)
+    if (b->hook[0])
 	BundNgShutdown(b, 1, 1);
     gBundles[b->id] = NULL;
     MsgUnRegister(&b->msgs);
@@ -1635,24 +1633,6 @@ BundNgInit(Bund b)
     int			newIface = 0;
     int			newPpp = 0;
 
-    /* Create a netgraph socket node */
-    if (NgMkSockNode(NULL, &b->csock, &b->dsock) < 0) {
-	Log(LG_ERR, ("[%s] can't create %s node: %s",
-    	    b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
-	return(-1);
-    }
-    (void) fcntl(b->csock, F_SETFD, 1);
-    (void) fcntl(b->dsock, F_SETFD, 1);
-
-    /* Give it a name */
-    snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, b->name);
-    if (NgSendMsg(b->csock, ".:",
-    	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-	Log(LG_ERR, ("[%s] can't name %s node: %s",
-    	    b->name, NG_SOCKET_NODE_TYPE, strerror(errno)));
-	goto fail;
-    }
-
     /* Create new iface node */
     if (NgFuncCreateIface(b,
 	b->iface.ifname, sizeof(b->iface.ifname)) < 0) {
@@ -1670,7 +1650,7 @@ BundNgInit(Bund b)
     snprintf(mp.type, sizeof(mp.type), "%s", NG_PPP_NODE_TYPE);
     strcpy(mp.ourhook, b->hook);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_PPP_HOOK_BYPASS);
-    if (NgSendMsg(b->csock, ".:",
+    if (NgSendMsg(gLinksCsock, ".:",
     	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
     	    b->name, mp.type, ".:", mp.ourhook, strerror(errno)));
@@ -1680,7 +1660,7 @@ BundNgInit(Bund b)
 
     /* Give it a name */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, b->name);
-    if (NgSendMsg(b->csock, b->hook,
+    if (NgSendMsg(gLinksCsock, b->hook,
     	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
     	    b->name, NG_PPP_NODE_TYPE, b->hook, strerror(errno)));
@@ -1688,12 +1668,7 @@ BundNgInit(Bund b)
     }
 
     /* Get PPP node ID */
-    b->nodeID = NgGetNodeID(b->csock, b->hook);
-
-    /* Listen for happenings on our node */
-    EventRegister(&b->dataEvent, EVENT_READ,
-	b->dsock, EVENT_RECURRING, BundNgDataEvent, b);
-    /* Control events used only by CCP so Register events there */
+    b->nodeID = NgGetNodeID(gLinksCsock, b->hook);
 
     /* OK */
     return(0);
@@ -1714,127 +1689,13 @@ BundNgShutdown(Bund b, int iface, int ppp)
 
     if (iface) {
 	snprintf(path, sizeof(path), "%s:", b->iface.ifname);
-	NgFuncShutdownNode(b->csock, b->name, path);
+	NgFuncShutdownNode(gLinksCsock, b->name, path);
     }
     if (ppp) {
 	snprintf(path, sizeof(path), "[%x]:", b->nodeID);
-	NgFuncShutdownNode(b->csock, b->name, path);
+	NgFuncShutdownNode(gLinksCsock, b->name, path);
     }
-    EventUnRegister(&b->ctrlEvent);
-    close(b->csock);
-    b->csock = -1;
-    EventUnRegister(&b->dataEvent);
-    close(b->dsock);
-    b->dsock = -1;
-}
-
-/*
- * BundNgDataEvent()
- */
-
-static void
-BundNgDataEvent(int type, void *cookie)
-{
-    Bund		b = (Bund)cookie;
-    struct sockaddr_ng	naddr;
-    socklen_t		nsize;
-    Mbuf		bp;
-    int			num = 0;
-
-    while (1) {
-	/* Protect from bundle shutdown and DoS */
-	if (b->dead || num > 100)
-	    return;
-    
-	bp = mballoc(2048);
-
-	/* Read data */
-	nsize = sizeof(naddr);
-	if ((bp->cnt = recvfrom(b->dsock, MBDATA(bp), MBSPACE(bp),
-    		MSG_DONTWAIT, (struct sockaddr *)&naddr, &nsize)) < 0) {
-	    mbfree(bp);
-	    if (errno == EAGAIN)
-    		return;
-	    Log(LG_BUND|LG_ERR, ("[%s] socket read: %s", b->name, strerror(errno)));
-	    return;
-	}
-	num++;
-    
-	/* A PPP frame from the bypass hook? */
-	if (strncmp(naddr.sg_data, "b-", 2) == 0) {
-    	    Link	l;
-	    u_int16_t	linkNum, proto;
-
-	    if (MBLEN(bp) <= 4) {
-		LogDumpBp(LG_FRAME|LG_ERR, bp,
-    		    "[%s] rec'd truncated %d bytes frame from link=%d",
-    		    b->name, MBLEN(bp), (int16_t)linkNum);
-		continue;
-	    }
-
-	    /* Extract link number and protocol */
-	    bp = mbread(bp, &linkNum, 2);
-	    linkNum = ntohs(linkNum);
-	    bp = mbread(bp, &proto, 2);
-	    proto = ntohs(proto);
-
-	    /* Debugging */
-	    LogDumpBp(LG_FRAME, bp,
-    		"[%s] rec'd %d bytes bypass frame link=%d proto=0x%04x",
-    		b->name, MBLEN(bp), (int16_t)linkNum, proto);
-
-	    /* Set link */
-	    assert(linkNum == NG_PPP_BUNDLE_LINKNUM || linkNum < NG_PPP_MAX_LINKS);
-
-	    if (linkNum != NG_PPP_BUNDLE_LINKNUM)
-		l = b->links[linkNum];
-	    else
-		l = NULL;
-
-	    InputFrame(b, l, proto, bp);
-	    continue;
-	}
-
-	/* Debugging */
-	LogDumpBp(LG_FRAME, bp,
-	    "[%s] rec'd %d bytes frame on %s hook", b->name, MBLEN(bp), naddr.sg_data);
-
-#ifndef USE_NG_TCPMSS
-	/* A snooped, outgoing TCP SYN frame */
-	if (strncmp(naddr.sg_data, "o-", 2) == 0) {
-	    IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
-	    naddr.sg_data[0] = 'i';
-	    NgFuncWriteFrame(b->dsock, naddr.sg_data, b->name, bp);
-	    continue;
-	}
-
-	/* A snooped, incoming TCP SYN frame */
-	if (strncmp(naddr.sg_data, "i-", 2) == 0) {
-	    IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
-	    naddr.sg_data[0] = 'o';
-	    NgFuncWriteFrame(b->dsock, naddr.sg_data, b->name, bp);
-	    continue;
-	}
-#endif
-
-	/* A snooped, outgoing IP frame */
-	if (strncmp(naddr.sg_data, "4-", 2) == 0) {
-	    IfaceListenInput(b, PROTO_IP, bp);
-	    continue;
-	}
-
-	/* A snooped, outgoing IPv6 frame */
-	if (strncmp(naddr.sg_data, "6-", 2) == 0) {
-	    IfaceListenInput(b, PROTO_IPV6, bp);
-	    continue;
-	}
-
-	/* Unknown hook! */
-	LogDumpBp(LG_ERR, bp,
-	    "[%s] rec'd %d bytes data on unknown hook \"%s\"", b->name, MBLEN(bp), naddr.sg_data);
-	mbfree(bp);
-	DoExit(EX_ERRDEAD);
-    }
+    b->hook[0] = 0;
 }
 
 /*

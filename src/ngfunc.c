@@ -264,21 +264,21 @@ NgFuncCreateIface(Bund b, char *buf, int max)
     snprintf(mp.type, sizeof(mp.type), "%s", NG_IFACE_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_IFACE_HOOK_INET);
-    if (NgSendMsg(b->csock, ".:",
+    if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s %d",
-    	    b->name, NG_IFACE_NODE_TYPE, ".:", mp.ourhook, strerror(errno), b->csock));
+    	    b->name, NG_IFACE_NODE_TYPE, ".:", mp.ourhook, strerror(errno), gLinksCsock));
 	return(-1);
     }
 
     /* Get the new node's name */
-    if (NgSendMsg(b->csock, TEMPHOOK,
+    if (NgSendMsg(gLinksCsock, TEMPHOOK,
       NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
 	Log(LG_ERR, ("[%s] %s: %s", b->name, "NGM_NODEINFO", strerror(errno)));
 	rtn = -1;
 	goto done;
     }
-    if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
+    if (NgRecvMsg(gLinksCsock, &u.reply, sizeof(u), NULL) < 0) {
 	Log(LG_ERR, ("[%s] reply from %s: %s",
     	    b->name, NG_IFACE_NODE_TYPE, strerror(errno)));
 	rtn = -1;
@@ -289,7 +289,7 @@ NgFuncCreateIface(Bund b, char *buf, int max)
 done:
     /* Disconnect temporary hook */
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
-    if (NgSendMsg(b->csock, ".:",
+    if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("[%s] can't remove hook %s: %s",
     	    b->name, TEMPHOOK, strerror(errno)));
@@ -367,7 +367,7 @@ NgFuncSetConfig(Bund b)
 {
     char	path[NG_PATHSIZ];
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
-    if (NgSendMsg(b->csock, path, NGM_PPP_COOKIE,
+    if (NgSendMsg(gLinksCsock, path, NGM_PPP_COOKIE,
     	    NGM_PPP_SET_CONFIG, &b->pppConfig, sizeof(b->pppConfig)) < 0) {
 	Log(LG_ERR, ("[%s] can't config %s: %s",
     	    b->name, path, strerror(errno)));
@@ -487,7 +487,7 @@ NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
 	b->name, (int16_t)linkNum, proto);
 
     /* Write frame */
-    return NgFuncWriteFrame(b->dsock, b->hook, b->name, bp);
+    return NgFuncWriteFrame(gLinksDsock, b->hook, b->name, bp);
 }
 
 /*
@@ -568,7 +568,7 @@ NgFuncClrStats(Bund b, u_int16_t linkNum)
 
     /* Get stats */
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
-    if (NgSendMsg(b->csock, path, 
+    if (NgSendMsg(gLinksCsock, path, 
 	NGM_PPP_COOKIE, NGM_PPP_CLR_LINK_STATS, &linkNum, sizeof(linkNum)) < 0) {
 	    Log(LG_ERR, ("[%s] can't clear stats, link=%d: %s",
     		b->name, linkNum, strerror(errno)));
