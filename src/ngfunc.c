@@ -375,23 +375,16 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
     int 	token, len;
 
     if (!gNgStatSock) {
-	struct ngm_name       nm;
+	char		name[NG_NODESIZ];
 	
 	/* Create a netgraph socket node */
-	if (NgMkSockNode(NULL, &gNgStatSock, NULL) < 0) {
+	snprintf(name, sizeof(name), "mpd%d-stats", gPid);
+	if (NgMkSockNode(name, &gNgStatSock, NULL) < 0) {
     	    Log(LG_ERR, ("NgFuncSendQuery: can't create %s node: %s",
     		NG_SOCKET_NODE_TYPE, strerror(errno)));
     	    return(-1);
 	}
 	(void) fcntl(gNgStatSock, F_SETFD, 1);
-
-	/* Give it a name */
-	snprintf(nm.name, sizeof(nm.name), "mpd%d-stats", gPid);
-	if (NgSendMsg(gNgStatSock, ".:",
-    		NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-	    Log(LG_ERR, ("NgFuncSendQuery: can't name %s node: %s",
-    		NG_PPP_NODE_TYPE, strerror(errno)));
-	}
     }
 
     /* Send message */
