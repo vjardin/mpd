@@ -648,7 +648,8 @@ PppoeCalledNum(Link l, void *buf, int buf_len)
 static int 
 CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 {
-	u_char rbuf[2048];
+	u_char	rbuf[2048];
+	char	name[NG_NODESIZ];
 	struct ng_mesg *resp;
 	const struct hooklist *hlist;
 	const struct nodeinfo *ninfo;
@@ -667,7 +668,8 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	}
 
 	/* Create a new netgraph node */
-	if (NgMkSockNode(NULL, &PIf->csock, &PIf->dsock) < 0) {
+	snprintf(name, sizeof(name), "mpd%d-pppoe-so", gPid);
+	if (NgMkSockNode(name, &PIf->csock, &PIf->dsock) < 0) {
 		Log(LG_ERR, ("[%s] PPPoE: can't create ctrl socket: %s",
 		    iface, strerror(errno)));
 		return(0);
