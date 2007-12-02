@@ -119,6 +119,16 @@
 				    LogPrintf2 args;		\
 				} while (0)
 
+  #define LogDumpBuf(lev, buf, len, fmt, args...) do {		\
+				  if (gLogOptions & (lev))	\
+				    LogDumpBuf2(buf, len, fmt, ##args);	\
+				} while (0)
+
+  #define LogDumpBp(lev, bp, fmt, args...) do {			\
+				  if (gLogOptions & (lev))	\
+				    LogDumpBp2(bp, fmt, ##args);\
+				} while (0)
+
 /*
  * VARIABLES
  */
@@ -140,10 +150,10 @@
   extern void	LogPrintf2(const char *fmt, ...) __printflike(1, 2);
   extern void	vLogPrintf2(const char *fmt, va_list args);
   extern int	LogCommand(Context ctx, int ac, char *av[], void *arg);
-  extern void	LogDumpBuf(int lev, const u_char *buf,
-		  int len, const char *fmt, ...) __printflike(4, 5);
-  extern void	LogDumpBp(int lev, Mbuf bp, const char *fmt, ...)
-			__printflike(3, 4);
+  extern void	LogDumpBuf2(const u_char *buf, int len,
+			const char *fmt, ...) __printflike(3, 4);
+  extern void	LogDumpBp2(Mbuf bp, const char *fmt, ...)
+			__printflike(2, 3);
   extern void	Perror(const char *fmt, ...) __printflike(1, 2);
 
 #endif

@@ -323,13 +323,13 @@ vLogPrintf2(const char *fmt, va_list args)
 }
 
 /*
- * LogDumpBp()
+ * LogDumpBp2()
  *
  * Dump the contents of an Mbuf to the log
  */
 
 void
-LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
+LogDumpBp2(Mbuf bp, const char *fmt, ...)
 {
     int		k, total;
     u_char	bytes[DUMP_BYTES_PER_LINE];
@@ -337,7 +337,6 @@ LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
     int		linelen;
     va_list	ap;
 
-    if (level & gLogOptions) {
 	/* Do header */
 	va_start(ap, fmt);
 	vLogPrintf(fmt, ap);
@@ -384,24 +383,22 @@ LogDumpBp(int level, Mbuf bp, const char *fmt, ...)
     		}
     	    }
 	}
-    }
 }
 
 /*
- * LogDumpBuf()
+ * LogDumpBuf2()
  *
  * Dump the contents of a buffer to the log
  */
 
 void
-LogDumpBuf(int level, const u_char *buf, int count, const char *fmt, ...)
+LogDumpBuf2(const u_char *buf, int count, const char *fmt, ...)
 {
     int		k, stop, total;
     char	line[128];
     int		linelen;
     va_list	ap;
 
-    if (level & gLogOptions) {
 	/* Do header */
 	va_start(ap, fmt);
         vLogPrintf(fmt, ap);
@@ -437,7 +434,6 @@ LogDumpBuf(int level, const u_char *buf, int count, const char *fmt, ...)
 		linelen=3;
 	    }
 	}
-    }
 }
 
 #ifndef SYSLOG_FACILITY
