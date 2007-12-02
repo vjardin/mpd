@@ -812,7 +812,7 @@ LinkNgDataEvent(int type, void *cookie)
 	    mbfree(bp);
 	    if (errno == EAGAIN)
     		return;
-	    Log(LG_LINK, ("[%s] socket read: %s", l->name, strerror(errno)));
+	    Log(LG_LINK, ("Link socket read error: %s", strerror(errno)));
 	    return;
 	}
 	linkname = ((struct sockaddr_ng *)&naddr)->sg_data;
