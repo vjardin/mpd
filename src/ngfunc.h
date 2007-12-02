@@ -26,16 +26,10 @@
 
   /*
    * The "bypass" hook is used to read PPP control frames.
-   * The "demand" hook is a bit hacky - in closed state it is
-   * used to snoop outgoing frames, that can initiate UP event
-   * on interface. In opened state "demand" hook is used to
-   * snoop incoming TCP SYN segments, if userland tcpmssfix is on.
-   * The "mssfix-out" hook is used for outgoing TCP SYN segments,
+   * The "mssfix-in"/"mssfix-out" hooks are used for TCP SYN segments,
    * if userland tcpmssfix is on.
    */
   #define MPD_HOOK_PPP		"bypass"
-  #define MPD_HOOK_DEMAND_TAP	"demand"
-  #define MPD_HOOK_DEMAND_TAP6	"demand6"
 
   #ifndef USE_NG_TCPMSS
   #define MPD_HOOK_TCPMSS_IN	"tcpmss-in"

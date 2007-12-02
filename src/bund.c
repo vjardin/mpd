@@ -1830,13 +1830,13 @@ BundNgDataEvent(int type, void *cookie)
 #endif
 
 	/* A snooped, outgoing IP frame */
-	if (strcmp(naddr.sg_data, MPD_HOOK_DEMAND_TAP) == 0) {
+	if (strncmp(naddr.sg_data, "4-", 2) == 0) {
 	    IfaceListenInput(b, PROTO_IP, bp);
 	    continue;
 	}
 
 	/* A snooped, outgoing IPv6 frame */
-	if (strcmp(naddr.sg_data, MPD_HOOK_DEMAND_TAP6) == 0) {
+	if (strncmp(naddr.sg_data, "6-", 2) == 0) {
 	    IfaceListenInput(b, PROTO_IPV6, bp);
 	    continue;
 	}

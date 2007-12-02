@@ -1727,7 +1727,7 @@ IfaceNgIpInit(Bund b, int ready)
 	/* Dial-on-Demand mode */
 	/* Use demand hook of the socket node */
 	snprintf(path, sizeof(path), ".:");
-	strcpy(hook, MPD_HOOK_DEMAND_TAP);
+	snprintf(hook, sizeof(hook), "4-%d", b->id);
 
     } else {
 
@@ -1870,7 +1870,7 @@ IfaceNgIpv6Init(Bund b, int ready)
 	/* Dial-on-Demand mode */
 	/* Use demand hook of the socket node */
 	snprintf(path, sizeof(path), ".:");
-	strcpy(hook, MPD_HOOK_DEMAND_TAP6);
+	snprintf(hook, sizeof(hook), "6-%d", b->id);
     } else {
 	snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
 	strcpy(hook, NG_PPP_HOOK_IPV6);
