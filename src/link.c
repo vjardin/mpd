@@ -637,7 +637,7 @@ LinkNgInit(Link l)
     struct ngm_name	nm;
     int			newTee = 0;
 
-    snprintf(l->hook, sizeof(l->hook), "link-%d", l->id);
+    snprintf(l->hook, sizeof(l->hook), "l-%d", l->id);
 
     /* Create TEE node */
     snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
@@ -806,13 +806,13 @@ LinkNgDataEvent(int type, void *cookie)
 	    return;
 	}
 	linkname = ((struct sockaddr_ng *)&naddr)->sg_data;
-	if (strncmp(linkname, "link-", 5)) {
+	if (strncmp(linkname, "l-", 2)) {
     	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
     	        linkname));
 	    mbfree(bp);
     	    continue;
 	}
-	linkname += 5;
+	linkname += 2;
 	id = strtol(linkname, &rest, 10);
 	if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
     	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown link %d \"%s\"",
