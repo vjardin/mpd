@@ -535,7 +535,7 @@ NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 
     /* Set dest address */
     memset(&buf, 0, sizeof(buf));
-    snprintf(ng->sg_data, NG_HOOKSIZ, "%s", hookname);
+    strlcpy(ng->sg_data, hookname, NG_HOOKSIZ);
     ng->sg_family = AF_NETGRAPH;
     ng->sg_len = 3 + strlen(ng->sg_data);
 
