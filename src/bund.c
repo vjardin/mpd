@@ -71,8 +71,6 @@
   static int	BundNgInit(Bund b);
   static void	BundNgShutdown(Bund b, int iface, int ppp);
 
-  static void	BundNgDataEvent(int type, void *cookie);
-
   static void	BundBmStart(Bund b);
   static void	BundBmStop(Bund b);
   static void	BundBmTimeout(void *arg);
@@ -1068,7 +1066,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
     } else {
 	/* Create a new bundle structure */
 	b = Malloc(MB_BUND, sizeof(*b));
-	snprintf(b->name, sizeof(b->name), "%s", av[0 + stay]);
+	strlcpy(b->name, av[0 + stay], sizeof(b->name));
 	b->tmpl = tmpl;
 	b->stay = stay;
 
@@ -1647,9 +1645,9 @@ BundNgInit(Bund b)
     /* Create new PPP node */
     snprintf(b->hook, sizeof(b->hook), "b-%d", b->id);
 
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_PPP_NODE_TYPE);
+    strcpy(mp.type, NG_PPP_NODE_TYPE);
     strcpy(mp.ourhook, b->hook);
-    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_PPP_HOOK_BYPASS);
+    strcpy(mp.peerhook, NG_PPP_HOOK_BYPASS);
     if (NgSendMsg(gLinksCsock, ".:",
     	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
