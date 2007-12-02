@@ -1740,7 +1740,6 @@ BundNgShutdown(Bund b, int iface, int ppp)
     b->dsock = -1;
 }
 
-
 /*
  * BundNgDataEvent()
  */
@@ -1828,22 +1827,6 @@ BundNgDataEvent(int type, void *cookie)
 	}
 #endif
 
-	/* Packet requiring compression */
-	if (strcmp(naddr.sg_data, NG_PPP_HOOK_COMPRESS) == 0) {
-	    bp = CcpDataOutput(b, bp);
-	    if (bp)
-		NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_COMPRESS, b->name, bp);
-	    continue;
-	}
-
-	/* Packet requiring decompression */
-	if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECOMPRESS) == 0) {
-	    bp = CcpDataInput(b, bp);
-	    if (bp)
-		NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECOMPRESS, b->name, bp);
-	    continue;
-	}
-
 	/* Packet requiring encryption */
 	if (strcmp(naddr.sg_data, NG_PPP_HOOK_ENCRYPT) == 0) {
 	    bp = EcpDataOutput(b, bp);
@@ -1879,52 +1862,6 @@ BundNgDataEvent(int type, void *cookie)
 	DoExit(EX_ERRDEAD);
     }
 }
-
-/*
- * BundNgCtrlEvent()
- *
- */
-
-void
-BundNgCtrlEvent(int type, void *cookie)
-{
-    Bund	b = (Bund)cookie;
-  union {
-      u_char		buf[8192];
-      struct ng_mesg	msg;
-  }			u;
-  char			raddr[NG_PATHSIZ];
-  int			len;
-
-  /* Read message */
-  if ((len = NgRecvMsg(b->csock, &u.msg, sizeof(u), raddr)) < 0) {
-    Log(LG_ERR, ("[%s] can't read unexpected message: %s",
-      b->name, strerror(errno)));
-    return;
-  }
-
-  /* Examine message */
-  switch (u.msg.header.typecookie) {
-
-    case NGM_MPPC_COOKIE:
-#ifdef USE_NG_DEFLATE
-    case NGM_DEFLATE_COOKIE:
-#endif
-#ifdef USE_NG_PRED1
-    case NGM_PRED1_COOKIE:
-#endif
-      CcpRecvMsg(b, &u.msg, len);
-      return;
-
-    default:
-      break;
-  }
-
-  /* Unknown message */
-  Log(LG_ERR, ("[%s] rec'd unknown ctrl message, cookie=%d cmd=%d",
-    b->name, u.msg.header.typecookie, u.msg.header.cmd));
-}
-
 
 /*
  * BundSetCommand()

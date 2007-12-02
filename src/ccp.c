@@ -66,6 +66,9 @@
   static CompType	CcpFindComp(int type, int *indexp);
   static const char	*CcpTypeName(int type, char *buf, size_t len);
 
+  static void		CcpNgCtrlEvent(int type, void *cookie);
+  static void		CcpNgDataEvent(int type, void *cookie);
+
 /*
  * GLOBAL VARIABLES
  */
@@ -151,6 +154,46 @@
     { CCP_TY_V44,		"V.44/LZJH" },
     { 0,			NULL },
   };
+
+    int		gCcpCsock = -1;		/* Socket node control socket */
+    int		gCcpDsock = -1;		/* Socket node data socket */
+    EventRef	gCcpCtrlEvent;
+    EventRef	gCcpDataEvent;
+
+int
+CcpsInit(void)
+{
+    char	name[NG_NODESIZ];
+
+    /* Create a netgraph socket node */
+    snprintf(name, sizeof(name), "mpd%d-cso", gPid);
+    if (NgMkSockNode(name, &gCcpCsock, &gCcpDsock) < 0) {
+	Log(LG_ERR, ("CcpsInit(): can't create %s node: %s",
+    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
+	return(-1);
+    }
+    (void) fcntl(gCcpCsock, F_SETFD, 1);
+    (void) fcntl(gCcpDsock, F_SETFD, 1);
+
+    /* Listen for happenings on our node */
+    EventRegister(&gCcpCtrlEvent, EVENT_READ,
+	gCcpCsock, EVENT_RECURRING, CcpNgCtrlEvent, NULL);
+    EventRegister(&gCcpDataEvent, EVENT_READ,
+	gCcpDsock, EVENT_RECURRING, CcpNgDataEvent, NULL);
+	
+    return (0);
+}
+
+void
+CcpsShutdown(void)
+{
+    EventUnRegister(&gCcpCtrlEvent);
+    close(gCcpCsock);
+    gCcpCsock = -1;
+    EventUnRegister(&gCcpDataEvent);
+    close(gCcpDsock);
+    gCcpDsock = -1;
+}
 
 /*
  * CcpInit()
@@ -254,6 +297,136 @@ CcpUnConfigure(Fsm fp)
     if (ct->UnConfigure)
       (*ct->UnConfigure)(b);
   }
+}
+
+/*
+ * CcpNgCtrlEvent()
+ *
+ */
+
+void
+CcpNgCtrlEvent(int type, void *cookie)
+{
+    Bund		b;
+    union {
+        u_char		buf[2048];
+        struct ng_mesg	msg;
+    }			u;
+    char		raddr[NG_PATHSIZ];
+    int			i, len;
+    ng_ID_t		id;
+
+    /* Read message */
+    if ((len = NgRecvMsg(b->csock, &u.msg, sizeof(u), raddr)) < 0) {
+	Log(LG_ERR, ("CcpNgCtrlEvent: can't read message: %s",
+    	    strerror(errno)));
+	return;
+    }
+    
+    if (sscanf(raddr, "[%x]:", &id) != 1) {
+	Log(LG_ERR, ("CcpNgCtrlEvent: can't decode sender id: '%s'",
+    	    raddr));
+	return;
+    }
+    
+    for (i = 0; i < gNumBundles; i++) {
+	if (gBundles[i] && !gBundles[i]->dead &&
+		gBundles[i]->ccp.decomp_node_id == id) {
+	    b = gBundles[i];
+	    break;
+	}
+    }
+    if (!b)
+	return;
+
+    /* Examine message */
+    switch (u.msg.header.typecookie) {
+
+	case NGM_MPPC_COOKIE:
+#ifdef USE_NG_DEFLATE
+	case NGM_DEFLATE_COOKIE:
+#endif
+#ifdef USE_NG_PRED1
+	case NGM_PRED1_COOKIE:
+#endif
+    	    CcpRecvMsg(b, &u.msg, len);
+        return;
+
+	default:
+	    /* Unknown message */
+	    Log(LG_ERR, ("CcpNgCtrlEvent: rec'd unknown ctrl message, cookie=%d cmd=%d",
+		u.msg.header.typecookie, u.msg.header.cmd));
+    	    break;
+    }
+
+}
+
+/*
+ * CcpNgDataEvent()
+ */
+
+static void
+CcpNgDataEvent(int type, void *cookie)
+{
+    Bund		b;
+    struct sockaddr_ng	naddr;
+    socklen_t		nsize;
+    Mbuf		bp;
+    int			num = 0;
+    char                *bundname, *rest;
+    int                 id;
+		
+    while (1) {
+	/* Protect from bundle shutdown and DoS */
+	if (num > 100)
+	    return;
+    
+	bp = mballoc(2048);
+
+	/* Read data */
+	nsize = sizeof(naddr);
+	if ((bp->cnt = recvfrom(gCcpDsock, MBDATA(bp), MBSPACE(bp),
+    		MSG_DONTWAIT, (struct sockaddr *)&naddr, &nsize)) < 0) {
+	    mbfree(bp);
+	    if (errno == EAGAIN)
+    		return;
+	    Log(LG_BUND|LG_ERR, ("CcpNgDataEvent: socket read: %s", strerror(errno)));
+	    return;
+	}
+	num++;
+    
+	/* Debugging */
+	LogDumpBp(LG_FRAME, bp,
+	    "CcpNgDataEvent: rec'd %d bytes frame on %s hook", MBLEN(bp), naddr.sg_data);
+
+	bundname = ((struct sockaddr_ng *)&naddr)->sg_data;
+	if (strncmp(bundname, "c-", 2) && strncmp(bundname, "d-", 2)) {
+    	    Log(LG_ERR, ("CcpNgDataEvent: packet from unknown hook \"%s\"",
+    	        bundname));
+	    mbfree(bp);
+    	    continue;
+	}
+	bundname += 2;
+	id = strtol(bundname, &rest, 10);
+	if (rest[0] != 0 || !gBundles[id] || gBundles[id]->dead) {
+    	    Log(LG_ERR, ("CcpNgDataEvent: packet from unknown bundle %d \"%s\"",
+    		((struct sockaddr_ng *)&naddr)->sg_len, bundname));
+	    mbfree(bp);
+	    continue;
+	}
+		
+	b = gBundles[id];
+
+	/* Packet requiring compression */
+	if (strncmp(naddr.sg_data, "c-", 2) == 0) {
+	    bp = CcpDataOutput(b, bp);
+	} else {
+	    /* Packet requiring decompression */
+	    bp = CcpDataInput(b, bp);
+	}
+	if (bp)
+	    NgFuncWriteFrame(gCcpDsock, naddr.sg_data, b->name, bp);
+    }
 }
 
 /*
@@ -612,10 +785,6 @@ CcpLayerUp(Fsm fp)
     return;
   }
 
-  /* Register control messages event as it used only by CCP */
-  EventRegister(&b->ctrlEvent, EVENT_READ,
-    b->csock, EVENT_RECURRING, BundNgCtrlEvent, b);
-
   /* Initialize each direction */
   if (ccp->xmit != NULL && ccp->xmit->Init != NULL
       && (*ccp->xmit->Init)(b, COMP_DIR_XMIT) < 0) {
@@ -631,26 +800,26 @@ CcpLayerUp(Fsm fp)
   }
 
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
-    /* Connect a hook from the bpf node to our socket node */
-    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_COMPRESS);
+    /* Connect a hook from the ppp node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "c-%d", b->id);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
-    if (NgSendMsg(b->csock, ".:",
+    if (NgSendMsg(gCcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        b->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    b->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 
   if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
-    /* Connect a hook from the bpf node to our socket node */
-    snprintf(cn.path, sizeof(cn.path), "%s", MPD_HOOK_PPP);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    /* Connect a hook from the ppp node to our socket node */
+    snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "d-%d", b->id);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
-    if (NgSendMsg(b->csock, ".:",
+    if (NgSendMsg(gCcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-        b->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    b->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     }
   }
 

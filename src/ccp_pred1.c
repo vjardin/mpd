@@ -111,63 +111,64 @@
  */
 
 static int
-Pred1Init(Bund b, int directions)
+Pred1Init(Bund b, int dir)
 {
 #ifndef USE_NG_PRED1
-  Pred1Info	p = &b->ccp.pred1;
+    Pred1Info	p = &b->ccp.pred1;
 
-  if (directions == COMP_DIR_RECV) {
-    p->iHash = 0;
-    p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
-  }
-  if (directions == COMP_DIR_XMIT) {
-    p->oHash = 0;
-    p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
-  }
+    if (dir == COMP_DIR_XMIT) {
+	p->oHash = 0;
+	p->OutputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
+    } else {
+	p->iHash = 0;
+	p->InputGuessTable = Malloc(MB_COMP, PRED1_TABLE_SIZE);
+    }
 #else
-  struct ngm_mkpeer	mp;
-  struct ng_pred1_config conf;
-  const char		*pred1hook, *ppphook;
-  char                  path[NG_PATHSIZ];
+    struct ngm_mkpeer	mp;
+    struct ng_pred1_config conf;
+    const char		*pred1hook, *ppphook;
+    char		path[NG_PATHSIZ];
+    ng_ID_t             id;
 
-  memset(&conf, 0, sizeof(conf));
-  conf.enable = 1;
-  switch (directions) {
-    case COMP_DIR_XMIT:
-      ppphook = NG_PPP_HOOK_COMPRESS;
-      pred1hook = NG_PRED1_HOOK_COMP;
-      break;
-    case COMP_DIR_RECV:
-      ppphook = NG_PPP_HOOK_DECOMPRESS;
-      pred1hook = NG_PRED1_HOOK_DECOMP;
-      break;
-    default:
-      assert(0);
-      return(-1);
-  }
+    memset(&conf, 0, sizeof(conf));
+    conf.enable = 1;
+    if (dir == COMP_DIR_XMIT) {
+        ppphook = NG_PPP_HOOK_COMPRESS;
+        pred1hook = NG_PRED1_HOOK_COMP;
+    } else {
+        ppphook = NG_PPP_HOOK_DECOMPRESS;
+        pred1hook = NG_PRED1_HOOK_DECOMP;
+    }
 
-  /* Attach a new PRED1 node to the PPP node */
-  snprintf(mp.type, sizeof(mp.type), "%s", NG_PRED1_NODE_TYPE);
-  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
-  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", pred1hook);
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, mp.type, strerror(errno)));
-    return(-1);
-  }
+    /* Attach a new PRED1 node to the PPP node */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_PRED1_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", pred1hook);
+    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+    	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+	Log(LG_ERR, ("[%s] can't create %s node: %s",
+    	    b->name, mp.type, strerror(errno)));
+	return(-1);
+    }
 
-  /* Configure PRED1 node */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  if (NgSendMsg(b->csock, path,
-      NGM_PRED1_COOKIE, NGM_PRED1_CONFIG, &conf, sizeof(conf)) < 0) {
-    Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
-      b->name, NG_PRED1_NODE_TYPE, path, strerror(errno)));
-    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, ppphook);
-    return(-1);
-  }
+    id = NgGetNodeID(b->csock, path);
+    if (dir == COMP_DIR_XMIT) {
+	b->ccp.comp_node_id = NgGetNodeID(b->csock, path);
+    } else {
+	b->ccp.decomp_node_id = NgGetNodeID(b->csock, path);
+    }
+
+    /* Configure PRED1 node */
+    snprintf(path, sizeof(path), "[%x]:", id);
+    if (NgSendMsg(gCcpCsock, path,
+    	    NGM_PRED1_COOKIE, NGM_PRED1_CONFIG, &conf, sizeof(conf)) < 0) {
+	Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
+    	    b->name, NG_PRED1_NODE_TYPE, path, strerror(errno)));
+	NgFuncShutdownNode(b->csock, b->name, path);
+	return(-1);
+    }
 #endif
-  return 0;
+    return 0;
 }
 
 /*
@@ -178,40 +179,31 @@ void
 Pred1Cleanup(Bund b, int dir)
 {
 #ifndef USE_NG_PRED1
-  Pred1Info	p = &b->ccp.pred1;
+    Pred1Info	p = &b->ccp.pred1;
 
-  if (dir == COMP_DIR_RECV)
-  {
-    assert(p->InputGuessTable);
-    Freee(p->InputGuessTable);
-    p->InputGuessTable = NULL;
-    memset(&p->recv_stats, 0, sizeof(p->recv_stats));
-  }
-  if (dir == COMP_DIR_XMIT)
-  {
-    assert(p->OutputGuessTable);
-    Freee(p->OutputGuessTable);
-    p->OutputGuessTable = NULL;
-    memset(&p->xmit_stats, 0, sizeof(p->xmit_stats));
-  }
+    if (dir == COMP_DIR_XMIT) {
+	assert(p->OutputGuessTable);
+	Freee(p->OutputGuessTable);
+	p->OutputGuessTable = NULL;
+	memset(&p->xmit_stats, 0, sizeof(p->xmit_stats));
+    } else {
+	assert(p->InputGuessTable);
+	Freee(p->InputGuessTable);
+	p->InputGuessTable = NULL;
+	memset(&p->recv_stats, 0, sizeof(p->recv_stats));
+    }
 #else
-  const char	*ppphook;
-  char		path[NG_PATHSIZ];
+    char		path[NG_PATHSIZ];
 
-  /* Remove node */
-  switch (dir) {
-    case COMP_DIR_XMIT:
-      ppphook = NG_PPP_HOOK_COMPRESS;
-      break;
-    case COMP_DIR_RECV:
-      ppphook = NG_PPP_HOOK_DECOMPRESS;
-      break;
-    default:
-      assert(0);
-      return;
-  }
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  (void)NgFuncShutdownNode(b->csock, b->name, path);
+    /* Remove node */
+    if (dir == COMP_DIR_XMIT) {
+	snprintf(path, sizeof(path), "[%x]:", b->ccp.comp_node_id);
+	b->ccp.comp_node_id = 0;
+    } else {
+	snprintf(path, sizeof(path), "[%x]:", b->ccp.decomp_node_id);
+	b->ccp.decomp_node_id = 0;
+    }
+    NgFuncShutdownNode(b->csock, b->name, path);
 #endif
 }
 

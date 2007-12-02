@@ -139,75 +139,77 @@
 static int
 MppcInit(Bund b, int dir)
 {
-  MppcInfo		const mppc = &b->ccp.mppc;
-  struct ng_mppc_config	conf;
-  struct ngm_mkpeer	mp;
-  char			path[NG_PATHSIZ];
-  const char		*mppchook, *ppphook;
-  int			mschap;
-  int			cmd;
+    MppcInfo		const mppc = &b->ccp.mppc;
+    struct ng_mppc_config	conf;
+    struct ngm_mkpeer	mp;
+    char		path[NG_PATHSIZ];
+    const char		*mppchook, *ppphook;
+    int			mschap;
+    int			cmd;
+    ng_ID_t		id;
 
-  /* Which type of MS-CHAP did we do? */
-  mschap = b->params.msoft.chap_alg;
+    /* Which type of MS-CHAP did we do? */
+    mschap = b->params.msoft.chap_alg;
 
-  /* Initialize configuration structure */
-  memset(&conf, 0, sizeof(conf));
-  conf.enable = 1;
-  switch (dir) {
-    case COMP_DIR_XMIT:
-      cmd = NGM_MPPC_CONFIG_COMP;
-      ppphook = NG_PPP_HOOK_COMPRESS;
-      mppchook = NG_MPPC_HOOK_COMP;
-      conf.bits = mppc->xmit_bits;
-      if (conf.bits & MPPE_BITS) {
-        if (mschap == CHAP_ALG_MSOFT)
-	    MppeInitKey(b, mppc, dir);
-        else
-    	    MppeInitKeyv2(b, mppc, dir);
-        memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
-      }
-      break;
-    case COMP_DIR_RECV:
-      cmd = NGM_MPPC_CONFIG_DECOMP;
-      ppphook = NG_PPP_HOOK_DECOMPRESS;
-      mppchook = NG_MPPC_HOOK_DECOMP;
-      conf.bits = mppc->recv_bits;
-      if (conf.bits & MPPE_BITS) {
-        if (mschap == CHAP_ALG_MSOFT)
-	    MppeInitKey(b, mppc, dir);
-        else
-	    MppeInitKeyv2(b, mppc, dir);
-        memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
-      }
-      break;
-    default:
-      assert(0);
-      return(-1);
-  }
+    /* Initialize configuration structure */
+    memset(&conf, 0, sizeof(conf));
+    conf.enable = 1;
+    if (dir == COMP_DIR_XMIT) {
+        cmd = NGM_MPPC_CONFIG_COMP;
+        ppphook = NG_PPP_HOOK_COMPRESS;
+        mppchook = NG_MPPC_HOOK_COMP;
+        conf.bits = mppc->xmit_bits;
+        if (conf.bits & MPPE_BITS) {
+    	    if (mschap == CHAP_ALG_MSOFT)
+		MppeInitKey(b, mppc, dir);
+    	    else
+    		MppeInitKeyv2(b, mppc, dir);
+    	    memcpy(conf.startkey, mppc->xmit_key0, sizeof(conf.startkey));
+        }
+    } else {
+        cmd = NGM_MPPC_CONFIG_DECOMP;
+        ppphook = NG_PPP_HOOK_DECOMPRESS;
+        mppchook = NG_MPPC_HOOK_DECOMP;
+        conf.bits = mppc->recv_bits;
+        if (conf.bits & MPPE_BITS) {
+    	    if (mschap == CHAP_ALG_MSOFT)
+		MppeInitKey(b, mppc, dir);
+    	    else
+		MppeInitKeyv2(b, mppc, dir);
+    	    memcpy(conf.startkey, mppc->recv_key0, sizeof(conf.startkey));
+        }
+    }
 
-  /* Attach a new MPPC node to the PPP node */
-  snprintf(mp.type, sizeof(mp.type), "%s", NG_MPPC_NODE_TYPE);
-  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
-  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", mppchook);
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, mp.type, strerror(errno)));
-    return(-1);
-  }
+    /* Attach a new MPPC node to the PPP node */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_MPPC_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", mppchook);
+    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+	Log(LG_ERR, ("[%s] can't create %s node: %s",
+    	    b->name, mp.type, strerror(errno)));
+	return(-1);
+    }
 
-  /* Configure MPPC node */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  if (NgSendMsg(b->csock, path,
-      NGM_MPPC_COOKIE, cmd, &conf, sizeof(conf)) < 0) {
-    Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
-      b->name, NG_MPPC_NODE_TYPE, path, strerror(errno)));
-    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, ppphook);
-    return(-1);
-  }
+    id = NgGetNodeID(b->csock, path);
+    if (dir == COMP_DIR_XMIT) {
+	b->ccp.comp_node_id = NgGetNodeID(b->csock, path);
+    } else {
+	b->ccp.decomp_node_id = NgGetNodeID(b->csock, path);
+    }
 
-  /* Done */
-  return(0);
+    /* Configure MPPC node */
+    snprintf(path, sizeof(path), "[%x]:", id);
+    if (NgSendMsg(gCcpCsock, path,
+    	    NGM_MPPC_COOKIE, cmd, &conf, sizeof(conf)) < 0) {
+	Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
+    	    b->name, NG_MPPC_NODE_TYPE, path, strerror(errno)));
+	NgFuncShutdownNode(b->csock, b->name, path);
+	return(-1);
+    }
+
+    /* Done */
+    return(0);
 }
 
 static int
@@ -313,23 +315,17 @@ MppcNegotiated(Bund b, int dir)
 static void
 MppcCleanup(Bund b, int dir)
 {
-  const char	*ppphook;
-  char		path[NG_PATHSIZ];
+    char		path[NG_PATHSIZ];
 
-  /* Remove node */
-  switch (dir) {
-    case COMP_DIR_XMIT:
-      ppphook = NG_PPP_HOOK_COMPRESS;
-      break;
-    case COMP_DIR_RECV:
-      ppphook = NG_PPP_HOOK_DECOMPRESS;
-      break;
-    default:
-      assert(0);
-      return;
-  }
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  (void)NgFuncShutdownNode(b->csock, b->name, path);
+    /* Remove node */
+    if (dir == COMP_DIR_XMIT) {
+	snprintf(path, sizeof(path), "[%x]:", b->ccp.comp_node_id);
+	b->ccp.comp_node_id = 0;
+    } else {
+	snprintf(path, sizeof(path), "[%x]:", b->ccp.decomp_node_id);
+	b->ccp.decomp_node_id = 0;
+    }
+    NgFuncShutdownNode(b->csock, b->name, path);
 }
 
 /*

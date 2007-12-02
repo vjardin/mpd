@@ -68,55 +68,57 @@
 static int
 DeflateInit(Bund b, int dir)
 {
-  DeflateInfo		const deflate = &b->ccp.deflate;
-  struct ng_deflate_config	conf;
-  struct ngm_mkpeer	mp;
-  char			path[NG_PATHSIZ];
-  const char		*deflatehook, *ppphook;
-  int			cmd;
+    DeflateInfo		const deflate = &b->ccp.deflate;
+    struct ng_deflate_config	conf;
+    struct ngm_mkpeer	mp;
+    char		path[NG_PATHSIZ];
+    const char		*deflatehook, *ppphook;
+    ng_ID_t		id;
 
-  /* Initialize configuration structure */
-  memset(&conf, 0, sizeof(conf));
-  conf.enable = 1;
-  cmd = NGM_DEFLATE_CONFIG;
-  switch (dir) {
-    case COMP_DIR_XMIT:
-      ppphook = NG_PPP_HOOK_COMPRESS;
-      deflatehook = NG_DEFLATE_HOOK_COMP;
-      conf.windowBits = deflate->xmit_windowBits;
-      break;
-    case COMP_DIR_RECV:
-      ppphook = NG_PPP_HOOK_DECOMPRESS;
-      deflatehook = NG_DEFLATE_HOOK_DECOMP;
-      conf.windowBits = deflate->recv_windowBits;
-      break;
-    default:
-      assert(0);
-      return(-1);
-  }
+    /* Initialize configuration structure */
+    memset(&conf, 0, sizeof(conf));
+    conf.enable = 1;
+    if (dir == COMP_DIR_XMIT) {
+	ppphook = NG_PPP_HOOK_COMPRESS;
+    	deflatehook = NG_DEFLATE_HOOK_COMP;
+    	conf.windowBits = deflate->xmit_windowBits;
+    } else {
+        ppphook = NG_PPP_HOOK_DECOMPRESS;
+        deflatehook = NG_DEFLATE_HOOK_DECOMP;
+        conf.windowBits = deflate->recv_windowBits;
+    }
 
-  /* Attach a new DEFLATE node to the PPP node */
-  snprintf(mp.type, sizeof(mp.type), "%s", NG_DEFLATE_NODE_TYPE);
-  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
-  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", deflatehook);
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-      NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    Log(LG_ERR, ("[%s] can't create %s node: %s",
-      b->name, mp.type, strerror(errno)));
-    return(-1);
-  }
+    /* Attach a new DEFLATE node to the PPP node */
+    snprintf(mp.type, sizeof(mp.type), "%s", NG_DEFLATE_NODE_TYPE);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
+    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", deflatehook);
+    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+    	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+	Log(LG_ERR, ("[%s] can't create %s node: %s",
+    	    b->name, mp.type, strerror(errno)));
+	return(-1);
+    }
 
-  /* Configure DEFLATE node */
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  if (NgSendMsg(b->csock, path,
-      NGM_DEFLATE_COOKIE, cmd, &conf, sizeof(conf)) < 0) {
-    Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
-      b->name, NG_DEFLATE_NODE_TYPE, path, strerror(errno)));
-    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, ppphook);
-    return(-1);
-  }
+    snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
 
-  return 0;
+    id = NgGetNodeID(b->csock, path);
+    if (dir == COMP_DIR_XMIT) {
+	b->ccp.comp_node_id = NgGetNodeID(b->csock, path);
+    } else {
+	b->ccp.decomp_node_id = NgGetNodeID(b->csock, path);
+    }
+
+    /* Configure DEFLATE node */
+    snprintf(path, sizeof(path), "[%x]:", id);
+    if (NgSendMsg(gCcpCsock, path,
+    	    NGM_DEFLATE_COOKIE, NGM_DEFLATE_CONFIG, &conf, sizeof(conf)) < 0) {
+	Log(LG_ERR, ("[%s] can't config %s node at %s: %s",
+    	    b->name, NG_DEFLATE_NODE_TYPE, path, strerror(errno)));
+	NgFuncShutdownNode(b->csock, b->name, path);
+	return(-1);
+    }
+
+    return 0;
 }
 
 /*
@@ -166,23 +168,17 @@ DeflateDescribe(Bund b, int dir, char *buf, size_t len)
 void
 DeflateCleanup(Bund b, int dir)
 {
-  const char	*ppphook;
-  char		path[NG_PATHSIZ];
+    char		path[NG_PATHSIZ];
 
-  /* Remove node */
-  switch (dir) {
-    case COMP_DIR_XMIT:
-      ppphook = NG_PPP_HOOK_COMPRESS;
-      break;
-    case COMP_DIR_RECV:
-      ppphook = NG_PPP_HOOK_DECOMPRESS;
-      break;
-    default:
-      assert(0);
-      return;
-  }
-  snprintf(path, sizeof(path), "%s.%s", MPD_HOOK_PPP, ppphook);
-  (void)NgFuncShutdownNode(b->csock, b->name, path);
+    /* Remove node */
+    if (dir == COMP_DIR_XMIT) {
+	snprintf(path, sizeof(path), "[%x]:", b->ccp.comp_node_id);
+	b->ccp.comp_node_id = 0;
+    } else {
+	snprintf(path, sizeof(path), "[%x]:", b->ccp.decomp_node_id);
+	b->ccp.decomp_node_id = 0;
+    }
+    NgFuncShutdownNode(b->csock, b->name, path);
 }
 
 /*

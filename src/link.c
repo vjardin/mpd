@@ -145,27 +145,17 @@
 int
 LinksInit(void)
 {
-    struct ngm_name	nm;
+    char	name[NG_NODESIZ];
 
     /* Create a netgraph socket node */
-    if (NgMkSockNode(NULL, &gLinksCsock, &gLinksDsock) < 0) {
+    snprintf(name, sizeof(name), "mpd%d-lso", gPid);
+    if (NgMkSockNode(name, &gLinksCsock, &gLinksDsock) < 0) {
 	Log(LG_ERR, ("LinksInit(): can't create %s node: %s",
     	    NG_SOCKET_NODE_TYPE, strerror(errno)));
 	return(-1);
     }
     (void) fcntl(gLinksCsock, F_SETFD, 1);
     (void) fcntl(gLinksDsock, F_SETFD, 1);
-
-    /* Give it a name */
-    snprintf(nm.name, sizeof(nm.name), "mpd%d-lso", gPid);
-    if (NgSendMsg(gLinksCsock, ".:",
-      NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-	Log(LG_ERR, ("LinksInit(): can't name %s node: %s",
-    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
-	close(gLinksCsock);
-	close(gLinksDsock);
-	return (-1);
-    }
 
     /* Listen for happenings on our node */
     EventRegister(&gLinksDataEvent, EVENT_READ,

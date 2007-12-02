@@ -197,6 +197,7 @@ main(int ac, char *av[])
     IPPoolInit();
     MppcTestCap();
     LinksInit();
+    CcpsInit();
 
     ret = pthread_mutex_init (&gGiantMutex, NULL);
     if (ret != 0) {
@@ -338,6 +339,7 @@ DoExit(int code)
     	    LinkShutdown(l);
     }
 
+    CcpsShutdown();
     LinksShutdown();
 
     /* Remove our PID file and exit */

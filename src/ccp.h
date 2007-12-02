@@ -62,6 +62,8 @@
     struct deflateinfo	deflate;	/* Deflate state */
 #endif
     struct mppcinfo	mppc;		/* MPPC/MPPE state */
+    ng_ID_t		comp_node_id;	/* compressor node id */
+    ng_ID_t		decomp_node_id;	/* decompressor node id */
     u_char		crypt_check:1;	/* We checked for required encryption */
     uint32_t		recv_resets;	/* Number of ResetReq we have got from other side */
     uint32_t		xmit_resets;	/* Number of ResetReq we have sent to other side */
@@ -80,9 +82,15 @@
 
   extern const struct cmdtab	CcpSetCmds[];
 
+  extern int		gCcpCsock;		/* Socket node control socket */
+  extern int		gCcpDsock;		/* Socket node data socket */
+
 /*
  * FUNCTIONS
  */
+
+  extern int	CcpsInit(void);
+  extern void	CcpsShutdown(void);
 
   extern void	CcpInit(Bund b);
   extern void	CcpInst(Bund b, Bund bt);
