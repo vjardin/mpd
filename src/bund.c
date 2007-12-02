@@ -1630,11 +1630,6 @@ cont:
 static int
 BundNgInit(Bund b)
 {
-    union {
-        u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-        struct ng_mesg	reply;
-    }			u;
-    struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
     int			newIface = 0;
@@ -1670,8 +1665,10 @@ BundNgInit(Bund b)
 	b->name, b->iface.ifname));
  
     /* Create new PPP node */
+    snprintf(b->hook, sizeof(b->hook), "b-%d", b->id);
+
     snprintf(mp.type, sizeof(mp.type), "%s", NG_PPP_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", MPD_HOOK_PPP);
+    strcpy(mp.ourhook, b->hook);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_PPP_HOOK_BYPASS);
     if (NgSendMsg(b->csock, ".:",
     	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
@@ -1683,25 +1680,15 @@ BundNgInit(Bund b)
 
     /* Give it a name */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, b->name);
-    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+    if (NgSendMsg(b->csock, b->hook,
     	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
-    	    b->name, NG_PPP_NODE_TYPE, MPD_HOOK_PPP, strerror(errno)));
+    	    b->name, NG_PPP_NODE_TYPE, b->hook, strerror(errno)));
 	goto fail;
     }
 
     /* Get PPP node ID */
-    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
-    	    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
-	Log(LG_ERR, ("[%s] ppp nodeinfo: %s", b->name, strerror(errno)));
-	goto fail;
-    }
-    if (NgRecvMsg(b->csock, &u.reply, sizeof(u), NULL) < 0) {
-	Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
-    	    b->name, MPD_HOOK_PPP, strerror(errno)));
-	goto fail;
-    }
-    b->nodeID = ni->id;
+    b->nodeID = NgGetNodeID(b->csock, b->hook);
 
     /* Listen for happenings on our node */
     EventRegister(&b->dataEvent, EVENT_READ,
@@ -1730,7 +1717,8 @@ BundNgShutdown(Bund b, int iface, int ppp)
 	NgFuncShutdownNode(b->csock, b->name, path);
     }
     if (ppp) {
-	NgFuncShutdownNode(b->csock, b->name, MPD_HOOK_PPP);
+	snprintf(path, sizeof(path), "[%x]:", b->nodeID);
+	NgFuncShutdownNode(b->csock, b->name, path);
     }
     EventUnRegister(&b->ctrlEvent);
     close(b->csock);
@@ -1773,7 +1761,7 @@ BundNgDataEvent(int type, void *cookie)
 	num++;
     
 	/* A PPP frame from the bypass hook? */
-	if (strcmp(naddr.sg_data, MPD_HOOK_PPP) == 0) {
+	if (strncmp(naddr.sg_data, "b-", 2) == 0) {
     	    Link	l;
 	    u_int16_t	linkNum, proto;
 

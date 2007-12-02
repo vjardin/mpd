@@ -128,6 +128,7 @@
     EventRef		ctrlEvent;		/* Socket node control event */
     EventRef		dataEvent;		/* Socket node data event */
     ng_ID_t		nodeID;			/* ID of ppp node */
+    char		hook[NG_HOOKSIZ];	/* session hook name */
     MsgHandler		msgs;			/* Bundle events */
     int			refs;			/* Number of references */
     int			dead;			/* Dead flag */

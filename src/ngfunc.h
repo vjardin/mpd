@@ -25,11 +25,9 @@
  */
 
   /*
-   * The "bypass" hook is used to read PPP control frames.
    * The "mssfix-in"/"mssfix-out" hooks are used for TCP SYN segments,
    * if userland tcpmssfix is on.
    */
-  #define MPD_HOOK_PPP		"bypass"
 
   #ifndef USE_NG_TCPMSS
   #define MPD_HOOK_TCPMSS_IN	"tcpmss-in"
