@@ -181,15 +181,18 @@ MppcInit(Bund b, int dir)
     }
 
     /* Attach a new MPPC node to the PPP node */
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
     snprintf(mp.type, sizeof(mp.type), "%s", NG_MPPC_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", mppchook);
-    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+    if (NgSendMsg(b->csock, path,
 	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node: %s",
     	    b->name, mp.type, strerror(errno)));
 	return(-1);
     }
+
+    strlcat(path, ppphook, sizeof(path));
 
     id = NgGetNodeID(b->csock, path);
     if (dir == COMP_DIR_XMIT) {
@@ -482,17 +485,19 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 static Mbuf
 MppcRecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
 {
-  /* Forward ResetReq to the MPPC compression node */
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_COMPRESS,
-      NGM_MPPC_COOKIE, NGM_MPPC_RESETREQ, NULL, 0) < 0) {
-    Log(LG_ERR, ("[%s] reset-req to %s node: %s",
-      b->name, NG_MPPC_NODE_TYPE, strerror(errno)));
-  }
+    char		path[NG_PATHSIZ];
+    /* Forward ResetReq to the MPPC compression node */
+    snprintf(path, sizeof(path), "[%x]:", b->ccp.comp_node_id);
+    if (NgSendMsg(b->csock, path,
+    	    NGM_MPPC_COOKIE, NGM_MPPC_RESETREQ, NULL, 0) < 0) {
+	Log(LG_ERR, ("[%s] reset-req to %s node: %s",
+    	    b->name, NG_MPPC_NODE_TYPE, strerror(errno)));
+    }
 
-  /* No ResetAck required for MPPC */
-  if (noAck)
-    *noAck = 1;
-  return(NULL);
+    /* No ResetAck required for MPPC */
+    if (noAck)
+	*noAck = 1;
+    return(NULL);
 }
 
 /*
