@@ -141,15 +141,18 @@ Pred1Init(Bund b, int dir)
     }
 
     /* Attach a new PRED1 node to the PPP node */
+    strlcat(path, ppphook, sizeof(path));
     snprintf(mp.type, sizeof(mp.type), "%s", NG_PRED1_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", pred1hook);
-    if (NgSendMsg(b->csock, MPD_HOOK_PPP,
+    if (NgSendMsg(b->csock, path,
     	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node: %s",
     	    b->name, mp.type, strerror(errno)));
 	return(-1);
     }
+
+    strlcat(path, ppphook, sizeof(path));
 
     id = NgGetNodeID(b->csock, path);
     if (dir == COMP_DIR_XMIT) {
@@ -382,12 +385,14 @@ Pred1RecvResetReq(Bund b, int id, Mbuf bp, int *noAck)
   Pred1Init(b, COMP_DIR_XMIT);
   p->xmit_stats.Errors++;
 #else
-  /* Forward ResetReq to the DEFLATE compression node */
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_COMPRESS,
-      NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
-    Log(LG_ERR, ("[%s] reset to %s node: %s",
-      b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
-  }
+    char		path[NG_PATHSIZ];
+    /* Forward ResetReq to the Predictor1 compression node */
+    snprintf(path, sizeof(path), "[%x]:", b->ccp.comp_node_id);
+    if (NgSendMsg(b->csock, path,
+    	    NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
+	Log(LG_ERR, ("[%s] reset to %s node: %s",
+    	    b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
+    }
 #endif
 return(NULL);
 }
@@ -413,14 +418,16 @@ static void
 Pred1RecvResetAck(Bund b, int id, Mbuf bp)
 {
 #ifndef USE_NG_PRED1
-  Pred1Init(b, COMP_DIR_RECV);
+    Pred1Init(b, COMP_DIR_RECV);
 #else
-  /* Forward ResetReq to the DEFLATE compression node */
-  if (NgSendMsg(b->csock, MPD_HOOK_PPP "." NG_PPP_HOOK_DECOMPRESS,
-      NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
-    Log(LG_ERR, ("[%s] reset to %s node: %s",
-      b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
-  }
+    char		path[NG_PATHSIZ];
+    /* Forward ResetReq to the Predictor1 decompression node */
+    snprintf(path, sizeof(path), "[%x]:", b->ccp.decomp_node_id);
+    if (NgSendMsg(b->csock, path,
+    	    NGM_PRED1_COOKIE, NGM_PRED1_RESETREQ, NULL, 0) < 0) {
+	Log(LG_ERR, ("[%s] reset to %s node: %s",
+    	    b->name, NG_PRED1_NODE_TYPE, strerror(errno)));
+    }
 #endif
 }
 

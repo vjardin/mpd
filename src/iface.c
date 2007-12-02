@@ -1731,7 +1731,7 @@ IfaceNgIpInit(Bund b, int ready)
 
     } else {
 
-	snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
+	snprintf(path, sizeof(path), "[%x]:", b->nodeID);
 	strcpy(hook, NG_PPP_HOOK_INET);
 
 #ifdef USE_NG_NAT
@@ -1853,7 +1853,8 @@ IfaceNgIpShutdown(Bund b)
     b->iface.mss_up = 0;
 
     IfaceShutdownLimits(b);
-    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_INET);
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
+    NgFuncDisconnect(b->csock, b->name, path, NG_PPP_HOOK_INET);
 
     snprintf(path, sizeof(path), "%s:", b->iface.ifname);
     NgFuncDisconnect(b->csock, b->name, path, NG_IFACE_HOOK_INET);
@@ -1872,7 +1873,7 @@ IfaceNgIpv6Init(Bund b, int ready)
 	snprintf(path, sizeof(path), ".:");
 	snprintf(hook, sizeof(hook), "6-%d", b->id);
     } else {
-	snprintf(path, sizeof(path), "%s", MPD_HOOK_PPP);
+	snprintf(path, sizeof(path), "[%x]:", b->nodeID);
 	strcpy(hook, NG_PPP_HOOK_IPV6);
 
 	/* Add a tee node if configured */
@@ -1915,7 +1916,8 @@ IfaceNgIpv6Shutdown(Bund b)
 	IfaceShutdownTee(b, 1);
     b->iface.tee6_up = 0;
 
-    NgFuncDisconnect(b->csock, b->name, MPD_HOOK_PPP, NG_PPP_HOOK_IPV6);
+    snprintf(path, sizeof(path), "[%x]:", b->nodeID);
+    NgFuncDisconnect(b->csock, b->name, path, NG_PPP_HOOK_IPV6);
 
     snprintf(path, sizeof(path), "%s:", b->iface.ifname);
     NgFuncDisconnect(b->csock, b->name, path, NG_IFACE_HOOK_INET6);
