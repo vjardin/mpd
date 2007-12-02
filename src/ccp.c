@@ -317,7 +317,7 @@ CcpNgCtrlEvent(int type, void *cookie)
     ng_ID_t		id;
 
     /* Read message */
-    if ((len = NgRecvMsg(b->csock, &u.msg, sizeof(u), raddr)) < 0) {
+    if ((len = NgRecvMsg(gCcpCsock, &u.msg, sizeof(u), raddr)) < 0) {
 	Log(LG_ERR, ("CcpNgCtrlEvent: can't read message: %s",
     	    strerror(errno)));
 	return;
