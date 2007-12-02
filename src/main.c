@@ -198,6 +198,7 @@ main(int ac, char *av[])
     MppcTestCap();
     LinksInit();
     CcpsInit();
+    EcpsInit();
 
     ret = pthread_mutex_init (&gGiantMutex, NULL);
     if (ret != 0) {
@@ -339,6 +340,7 @@ DoExit(int code)
     	    LinkShutdown(l);
     }
 
+    EcpsShutdown();
     CcpsShutdown();
     LinksShutdown();
 

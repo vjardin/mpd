@@ -65,6 +65,9 @@
 
   extern const struct cmdtab	EcpSetCmds[];
 
+  extern int		gEcpCsock;		/* Socket node control socket */
+  extern int		gEcpDsock;		/* Socket node data socket */
+
 /*
  * FUNCTIONS
  */
@@ -83,6 +86,9 @@
   extern Mbuf	EcpDataOutput(Bund b, Mbuf bp);
   extern void	EcpSendResetReq(Fsm fp);
   extern int	EcpStat(Context ctx, int ac, char *av[], void *arg);
+
+  extern int	EcpsInit(void);
+  extern void	EcpsShutdown(void);
 
 #endif
 

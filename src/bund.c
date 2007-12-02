@@ -1813,35 +1813,21 @@ BundNgDataEvent(int type, void *cookie)
 
 #ifndef USE_NG_TCPMSS
 	/* A snooped, outgoing TCP SYN frame */
-	if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_OUT) == 0) {
+	if (strncmp(naddr.sg_data, "o-", 2) == 0) {
 	    IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
-	    NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_IN, b->name, bp);
+	    naddr.sg_data[0] = 'i';
+	    NgFuncWriteFrame(b->dsock, naddr.sg_data, b->name, bp);
 	    continue;
 	}
 
 	/* A snooped, incoming TCP SYN frame */
-	if (strcmp(naddr.sg_data, MPD_HOOK_TCPMSS_IN) == 0) {
+	if (strncmp(naddr.sg_data, "i-", 2) == 0) {
 	    IfaceCorrectMSS(bp, MAXMSS(b->iface.mtu));
-	    NgFuncWriteFrame(b->dsock, MPD_HOOK_TCPMSS_OUT, b->name, bp);
+	    naddr.sg_data[0] = 'o';
+	    NgFuncWriteFrame(b->dsock, naddr.sg_data, b->name, bp);
 	    continue;
 	}
 #endif
-
-	/* Packet requiring encryption */
-	if (strcmp(naddr.sg_data, NG_PPP_HOOK_ENCRYPT) == 0) {
-	    bp = EcpDataOutput(b, bp);
-	    if (bp)
-		NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_ENCRYPT, b->name, bp);
-	    continue;
-	}
-
-	/* Packet requiring decryption */
-	if (strcmp(naddr.sg_data, NG_PPP_HOOK_DECRYPT) == 0) {
-	    bp = EcpDataInput(b, bp);
-	    if (bp) 
-		NgFuncWriteFrame(b->dsock, NG_PPP_HOOK_DECRYPT, b->name, bp);
-	    continue;
-	}
 
 	/* A snooped, outgoing IP frame */
 	if (strcmp(naddr.sg_data, MPD_HOOK_DEMAND_TAP) == 0) {

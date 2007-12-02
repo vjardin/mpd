@@ -2331,7 +2331,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 
     /* Connect to the bundle socket node. */
     snprintf(cn.path, sizeof(cn.path), "%s", path);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_TCPMSS_IN);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "i-%d", b->id);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", MPD_HOOK_TCPMSS_IN);
     if (NgSendMsg(b->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
@@ -2341,7 +2341,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     }
 
     snprintf(cn.path, sizeof(cn.path), "%s", path);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", MPD_HOOK_TCPMSS_OUT);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "o-%d", b->id);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", MPD_HOOK_TCPMSS_OUT);
     if (NgSendMsg(b->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
@@ -2395,8 +2395,11 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
 	struct ng_bpf_hookprog	hprog;
     }				u;
     struct ng_bpf_hookprog	*const hp = &u.hprog;
+    char			hook[NG_HOOKSIZ];
 
     /* Setup programs for ng_bpf hooks */
+    snprintf(hook, sizeof(hook), "i-%d", b->id);
+
     memset(&u, 0, sizeof(u));
     strcpy(hp->thisHook, "ppp");
     hp->bpf_prog_len = TCPSYN_PROG_LEN;
@@ -2405,21 +2408,7 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     strcpy(hp->ifMatch, MPD_HOOK_TCPMSS_IN);
     strcpy(hp->ifNotMatch, "iface");
 
-    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_IN, NGM_BPF_COOKIE,
-	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-	Log(LG_ERR, ("[%s] can't set %s node program: %s",
-    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
-    }
-
-    memset(&u, 0, sizeof(u));
-    strcpy(hp->thisHook, "iface");
-    hp->bpf_prog_len = TCPSYN_PROG_LEN;
-    memcpy(&hp->bpf_prog, &gTCPSYNProg,
-        TCPSYN_PROG_LEN * sizeof(*gTCPSYNProg));
-    strcpy(hp->ifMatch, MPD_HOOK_TCPMSS_OUT);
-    strcpy(hp->ifNotMatch, "ppp");
-
-    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_OUT, NGM_BPF_COOKIE,
+    if (NgSendMsg(b->csock, hook, NGM_BPF_COOKIE,
 	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
 	Log(LG_ERR, ("[%s] can't set %s node program: %s",
     	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -2433,7 +2422,22 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     strcpy(hp->ifMatch, "ppp");
     strcpy(hp->ifNotMatch, "ppp");
 
-    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_IN, NGM_BPF_COOKIE,
+    if (NgSendMsg(b->csock, hook, NGM_BPF_COOKIE,
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
+	Log(LG_ERR, ("[%s] can't set %s node program: %s",
+    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+    }
+
+    snprintf(hook, sizeof(hook), "o-%d", b->id);
+    memset(&u, 0, sizeof(u));
+    strcpy(hp->thisHook, "iface");
+    hp->bpf_prog_len = TCPSYN_PROG_LEN;
+    memcpy(&hp->bpf_prog, &gTCPSYNProg,
+        TCPSYN_PROG_LEN * sizeof(*gTCPSYNProg));
+    strcpy(hp->ifMatch, MPD_HOOK_TCPMSS_OUT);
+    strcpy(hp->ifNotMatch, "ppp");
+
+    if (NgSendMsg(b->csock, hook, NGM_BPF_COOKIE,
 	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
 	Log(LG_ERR, ("[%s] can't set %s node program: %s",
     	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -2447,7 +2451,7 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     strcpy(hp->ifMatch, "iface");
     strcpy(hp->ifNotMatch, "iface");
 
-    if (NgSendMsg(b->csock, MPD_HOOK_TCPMSS_OUT, NGM_BPF_COOKIE,
+    if (NgSendMsg(b->csock, hook, NGM_BPF_COOKIE,
 	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
 	Log(LG_ERR, ("[%s] can't set %s node program: %s",
     	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
@@ -2459,13 +2463,14 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
 static void
 IfaceShutdownMSS(Bund b)
 {
-#ifdef USE_NG_TCPMSS
 	char	path[NG_PATHSIZ];
 
+#ifdef USE_NG_TCPMSS
 	snprintf(path, sizeof(path), "mpd%d-%s-mss:", gPid, b->name);
 	NgFuncShutdownNode(b->csock, b->name, path);
 #else
-	NgFuncShutdownNode(b->csock, b->name, MPD_HOOK_TCPMSS_IN);
+	snprintf(path, sizeof(path), "i-%d", b->id);
+	NgFuncShutdownNode(b->csock, b->name, path);
 #endif
 }
 
