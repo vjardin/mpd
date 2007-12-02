@@ -857,16 +857,20 @@ CcpLayerDown(Fsm fp)
   BundUpdateParams(b);
   
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
+    char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
-    if (NgFuncDisconnect(b->csock, b->name, ".:", NG_PPP_HOOK_COMPRESS) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_COMPRESS, strerror(errno)));
+    snprintf(hook, sizeof(hook), "c-%d", b->id);
+    if (NgFuncDisconnect(gCcpCsock, b->name, ".:", hook) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", hook, strerror(errno)));
     }
   }
   
   if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
+    char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
-    if (NgFuncDisconnect(b->csock, b->name, ".:", NG_PPP_HOOK_DECOMPRESS) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", NG_PPP_HOOK_DECOMPRESS, strerror(errno)));
+    snprintf(hook, sizeof(hook), "d-%d", b->id);
+    if (NgFuncDisconnect(gCcpCsock, b->name, ".:", hook) < 0) {
+	Log(LG_ERR, ("can't remove hook %s: %s", hook, strerror(errno)));
     }
   }
   if (ccp->recv && ccp->recv->Cleanup)
