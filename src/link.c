@@ -797,66 +797,68 @@ LinkNgDataEvent(int type, void *cookie)
     u_int16_t		proto;
     int			ptr;
     Mbuf		bp;
-    struct sockaddr_ng	naddr;
-    socklen_t		nsize = sizeof(naddr);
+    struct sockaddr_storage	naddr;
+    socklen_t		nsize;
     char		*linkname, *rest;
     int			id;
 
-    bp = mballoc(2048);
-    buf = MBDATA(bp);
-
-    /* Read data */
-    if ((bp->cnt = recvfrom(gLinksDsock, buf, MBSPACE(bp), 0, (struct sockaddr *)&naddr, &nsize)) < 0) {
-	mbfree(bp);
-	if (errno == EAGAIN)
-    	    return;
-	Log(LG_LINK, ("[%s] socket read: %s", l->name, strerror(errno)));
-	return;
-    }
-
-    linkname = naddr.sg_data;
-    if (strncmp(linkname, "link-", 5)) {
-        Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
-    	    linkname));
-	mbfree(bp);
-        return;
-    }
-    linkname += 5;
-    id = strtol(linkname, &rest, 10);
-    if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
-        Log(LG_ERR, ("LinkNgDataEvent: packet from unknown link \"%s\"",
-    	    linkname));
-	mbfree(bp);
-	return;
-    }
+    /* Read all available packets */
+    while (1) {
+	bp = mballoc(2048);
+	buf = MBDATA(bp);
+	/* Read data */
+	nsize = sizeof(naddr);
+	if ((bp->cnt = recvfrom(gLinksDsock, buf, MBSPACE(bp), MSG_DONTWAIT, (struct sockaddr *)&naddr, &nsize)) < 0) {
+	    mbfree(bp);
+	    if (errno == EAGAIN)
+    		return;
+	    Log(LG_LINK, ("[%s] socket read: %s", l->name, strerror(errno)));
+	    return;
+	}
+	linkname = ((struct sockaddr_ng *)&naddr)->sg_data;
+	if (strncmp(linkname, "link-", 5)) {
+    	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
+    	        linkname));
+	    mbfree(bp);
+    	    continue;
+	}
+	linkname += 5;
+	id = strtol(linkname, &rest, 10);
+	if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
+    	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown link %d \"%s\"",
+    		((struct sockaddr_ng *)&naddr)->sg_len, linkname));
+	    mbfree(bp);
+	    continue;
+	}
 		
-    l = gLinks[id];
+	l = gLinks[id];
 
-    /* Extract protocol */
-    ptr = 0;
-    if ((buf[0] == 0xff) && (buf[1] == 0x03))
-	ptr = 2;
-    proto = buf[ptr++];
-    if ((proto & 0x01) == 0)
-	proto = (proto << 8) + buf[ptr++];
+	/* Extract protocol */
+	ptr = 0;
+	if ((buf[0] == 0xff) && (buf[1] == 0x03))
+	    ptr = 2;
+	proto = buf[ptr++];
+	if ((proto & 0x01) == 0)
+	    proto = (proto << 8) + buf[ptr++];
 
-    if (MBLEN(bp) <= ptr) {
-	LogDumpBp(LG_FRAME|LG_ERR, bp,
-    	    "[%s] rec'd truncated %d bytes frame from link",
-    	    l->name, MBLEN(bp));
-	mbfree(bp);
-	return;
-    }
+	if (MBLEN(bp) <= ptr) {
+	    LogDumpBp(LG_FRAME|LG_ERR, bp,
+    		"[%s] rec'd truncated %d bytes frame from link",
+    		l->name, MBLEN(bp));
+	    mbfree(bp);
+	    continue;
+	}
 
-    /* Debugging */
-    LogDumpBp(LG_FRAME, bp,
-      "[%s] rec'd %d bytes frame from link proto=0x%04x",
-      l->name, MBLEN(bp), proto);
+	/* Debugging */
+	LogDumpBp(LG_FRAME, bp,
+    	    "[%s] rec'd %d bytes frame from link proto=0x%04x",
+    	    l->name, MBLEN(bp), proto);
       
-    bp = mbadj(bp, ptr);
+	bp = mbadj(bp, ptr);
 
-    /* Input frame */
-    InputFrame(l->bund, l, proto, bp);
+	/* Input frame */
+	InputFrame(l->bund, l, proto, bp);
+    }
 }
 
 /*
