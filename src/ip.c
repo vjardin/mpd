@@ -139,7 +139,7 @@ ParseRange(const char *s, struct u_range *range, u_char allow)
   int			n_bits;
   char			*widp, buf[100];
 
-  snprintf(buf, sizeof(buf), "%s", s);
+  strlcpy(buf, s, sizeof(buf));
   if ((widp = strchr(buf, '/')) != NULL)
     *widp++ = '\0';
   else

@@ -391,7 +391,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	l = LinkInst(lt, av[0 + stay], tmpl, stay);
     } else {
 	l = Malloc(MB_LINK, sizeof(*l));
-	snprintf(l->name, sizeof(l->name), "%s", av[0 + stay]);
+	strlcpy(l->name, av[0 + stay], sizeof(l->name));
 	l->type = pt;
 	l->tmpl = tmpl;
 	l->stay = stay;
@@ -640,9 +640,9 @@ LinkNgInit(Link l)
     snprintf(l->hook, sizeof(l->hook), "l-%d", l->id);
 
     /* Create TEE node */
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", l->hook);
-    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
+    strcpy(mp.type, NG_TEE_NODE_TYPE);
+    strcpy(mp.ourhook, l->hook);
+    strcpy(mp.peerhook, NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
@@ -694,7 +694,7 @@ LinkNgJoin(Link l)
     snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
 
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->bund->nodeID);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_RIGHT);
+    strcpy(cn.ourhook, NG_TEE_HOOK_RIGHT);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", 
 	NG_PPP_HOOK_LINK_PREFIX, l->bundleIndex);
     if (NgSendMsg(gLinksCsock, path,
@@ -719,8 +719,8 @@ LinkNgLeave(Link l)
     struct ngm_connect	cn;
 
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->nodeID);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", l->hook);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_TEE_HOOK_LEFT2RIGHT);
+    strcpy(cn.ourhook, l->hook);
+    strcpy(cn.peerhook, NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -745,7 +745,7 @@ LinkNgToRep(Link l)
 
     /* Connect link to repeater */
     snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_TEE_HOOK_RIGHT);
+    strcpy(cn.ourhook, NG_TEE_HOOK_RIGHT);
     if (!PhysGetUpperHook(l, cn.path, cn.peerhook)) {
         Log(LG_PHYS, ("[%s] Link: can't get repeater hook", l->name));
         return (-1);
@@ -1103,7 +1103,7 @@ RecordLinkUpDownReason2(Link l, int up, const char *key, const char *fmt, va_lis
 	snprintf(buf, RBUF_SIZE, "%s:", key);
 	vsnprintf(buf + strlen(buf), RBUF_SIZE - strlen(buf), fmt, args);
     } else 
-	snprintf(buf, RBUF_SIZE, "%s", key);
+	strlcpy(buf, key, RBUF_SIZE);
 }
 
 void
