@@ -214,14 +214,9 @@ LogCommand(Context ctx, int ac, char *av[], void *arg)
 	Printf(LG_FMT, "Log Option", "Enabled", "Description\r\n");
 	Printf(LG_FMT, "----------", "-------", "-----------\r\n");
 	for (k = 0; k < NUM_LOG_LEVELS; k++) {
-    	    int	j;
-    	    char	buf[100];
-
-    	    snprintf(buf, sizeof(buf), "%s", LogOptionList[k].desc);
-    	    for (j = 0; buf[j]; j++)
-		buf[j] = tolower(buf[j]);
     	    Printf("  " LG_FMT, LogOptionList[k].name,
-		(gLogOptions & LogOptionList[k].mask) ? "Yes" : "No", buf);
+		(gLogOptions & LogOptionList[k].mask) ? "Yes" : "No",
+		LogOptionList[k].desc);
 	}
 	return(0);
     }
