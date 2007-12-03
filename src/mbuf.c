@@ -216,7 +216,7 @@ mbcopyback(Mbuf bp, int offset, const void *buf, int cnt)
 	bp = nbp;
     } else if ((b > bp->offset) || (bp->offset + bp->cnt + e > bp->size)) {
 	int	noff = (bp->size - (b + bp->cnt + e)) / 2;
-	memmove(MBDATAU(bp) - bp->offset + noff, MBDATAU(bp), bp->cnt);
+	memmove(MBDATAU(bp) - bp->offset + noff + b, MBDATAU(bp), bp->cnt);
 	bp->offset = noff;
     } else {
 	bp->offset -= b;
