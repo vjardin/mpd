@@ -808,9 +808,10 @@ AuthAccountStart(Link l, int type)
     if (type == AUTH_ACCT_START) {
 	u_int		updateInterval;
   
-        updateInterval = a->conf.acct_update;
 	if (a->params.acct_update > 0)
     	    updateInterval = a->params.acct_update;
+	else
+    	    updateInterval = a->conf.acct_update;
 
 	if (updateInterval > 0) {
 	    /* Save initial statistics. */
@@ -831,12 +832,14 @@ AuthAccountStart(Link l, int type)
         */
 	u_int	lim_recv, lim_xmit;
 
-	lim_recv = a->conf.acct_update_lim_recv;
 	if (a->params.acct_update_lim_recv > 0)
 	    lim_recv = a->params.acct_update_lim_recv;
-	lim_xmit = a->conf.acct_update_lim_xmit;
+	else
+	    lim_recv = a->conf.acct_update_lim_recv;
 	if (a->params.acct_update_lim_xmit > 0)
 	    lim_xmit = a->params.acct_update_lim_xmit;
+	else
+	    lim_xmit = a->conf.acct_update_lim_xmit;
 	if (lim_recv > 0 || lim_xmit > 0) {
 	    if ((l->stats.recvOctets - a->prev_stats.recvOctets < lim_recv) &&
     		    (l->stats.xmitOctets - a->prev_stats.xmitOctets < lim_xmit)) {
