@@ -790,7 +790,7 @@ AuthAccountStart(Link l, int type)
 	if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
 	    paction_cancel(&a->acct_thread);
 	} else {
-	    Log(LG_AUTH, ("[%s] AUTH: Accounting thread is already running", 
+	    Log(LG_AUTH, ("[%s] ACCT: Accounting thread is already running", 
     		l->name));
 	    return;
 	}
@@ -798,7 +798,7 @@ AuthAccountStart(Link l, int type)
 
     LinkUpdateStats(l);
     if (type == AUTH_ACCT_STOP) {
-	Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
+	Log(LG_AUTH, ("[%s] ACCT: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
     	    l->name, a->params.authname,
     	    (unsigned long) (time(NULL) - l->last_up),
     	    (unsigned long long)l->stats.recvOctets,
@@ -843,7 +843,7 @@ AuthAccountStart(Link l, int type)
 	if (lim_recv > 0 || lim_xmit > 0) {
 	    if ((l->stats.recvOctets - a->prev_stats.recvOctets < lim_recv) &&
     		    (l->stats.xmitOctets - a->prev_stats.xmitOctets < lim_xmit)) {
-    		Log(LG_AUTH, ("[%s] AUTH: Shouldn't send Interim-Update", l->name));
+    		Log(LG_AUTH, ("[%s] ACCT: Shouldn't send Interim-Update", l->name));
     		return;
     	    } else {
 		/* Save current statistics. */
@@ -862,7 +862,7 @@ AuthAccountStart(Link l, int type)
 
     if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
 	    AuthAccountFinish, auth) == -1) {
-	Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
+	Log(LG_ERR, ("[%s] ACCT: Couldn't start Accounting-Thread %d", 
     	    l->name, errno));
 	AuthDataDestroy(auth);
     }
@@ -880,7 +880,7 @@ AuthAccountTimeout(void *arg)
 {
     Link	l = (Link)arg;
   
-    Log(LG_AUTH, ("[%s] AUTH: Sending Accounting Update",
+    Log(LG_AUTH, ("[%s] ACCT: Time for Accounting Update",
 	l->name));
 
     AuthAccountStart(l, AUTH_ACCT_UPDATE);
@@ -898,7 +898,7 @@ AuthAccount(void *arg)
 {
     AuthData	const auth = (AuthData)arg;
   
-    Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread started", auth->info.lnkname));
+    Log(LG_AUTH, ("[%s] ACCT: Accounting-Thread started", auth->info.lnkname));
   
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
 	RadiusAccount(auth);
@@ -926,10 +926,10 @@ AuthAccountFinish(void *arg, int was_canceled)
     Link 		l;
 
     if (was_canceled) {
-	Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread was canceled", 
+	Log(LG_AUTH, ("[%s] ACCT: Accounting-Thread was canceled", 
     	    auth->info.lnkname));
     } else {
-	Log(LG_AUTH, ("[%s] AUTH: Accounting-Thread finished normally", 
+	Log(LG_AUTH, ("[%s] ACCT: Accounting-Thread finished normally", 
 	    auth->info.lnkname));
     }
     
@@ -948,7 +948,7 @@ AuthAccountFinish(void *arg, int was_canceled)
     }    
 
     if (auth->drop_user && auth->acct_type != AUTH_ACCT_STOP) {
-	Log(LG_AUTH, ("[%s] AUTH: Link close requested at the accounting reply", 
+	Log(LG_AUTH, ("[%s] ACCT: Link close requested at the accounting reply", 
 	    l->name));
 	RecordLinkUpDownReason(NULL, l, 0, STR_MANUALLY, NULL);
 	LinkClose(l);
@@ -1308,10 +1308,10 @@ AuthSystemAcct(AuthData auth)
     	    time(&t);
     	    ut.ut_time = t;
     	    login(&ut);
-    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
+    	    Log(LG_AUTH, ("[%s] ACCT: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line, 
     		ut.ut_name, ut.ut_host));
 	} else if (auth->acct_type == AUTH_ACCT_STOP) {
-    	    Log(LG_AUTH, ("[%s] AUTH: wtmp %s logout", auth->info.lnkname, ut.ut_line));
+    	    Log(LG_AUTH, ("[%s] ACCT: wtmp %s logout", auth->info.lnkname, ut.ut_line));
     	    logout(ut.ut_line);
     	    logwtmp(ut.ut_line, "", "");
 	}
@@ -1358,14 +1358,14 @@ AuthPAM(AuthData auth)
     int status;
 
     if (auth->proto != PROTO_PAP) {
-	Log(LG_ERR, ("[%s] Using PAM only possible for PAP", auth->info.lnkname));
+	Log(LG_ERR, ("[%s] AUTH: Using PAM only possible for PAP", auth->info.lnkname));
 	auth->status = AUTH_STATUS_FAIL;
 	auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
 	return;
     }
     
     if (pam_start("mpd", auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
-	Log(LG_ERR, ("[%s] PAM error", auth->info.lnkname));
+	Log(LG_ERR, ("[%s] AUTH: PAM error", auth->info.lnkname));
 	auth->status = AUTH_STATUS_FAIL;
 	auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
 	return;
@@ -1373,11 +1373,11 @@ AuthPAM(AuthData auth)
 
     if (auth->params.peeraddr[0] &&
 	pam_set_item(pamh, PAM_RHOST, auth->params.peeraddr) != PAM_SUCCESS) {
-	Log(LG_ERR, ("[%s] PAM set PAM_RHOST error", auth->info.lnkname));
+	Log(LG_ERR, ("[%s] AUTH: PAM set PAM_RHOST error", auth->info.lnkname));
     }
 
     if (pam_set_item(pamh, PAM_TTY, auth->info.lnkname) != PAM_SUCCESS) {
-	Log(LG_ERR, ("[%s] PAM set PAM_TTY error", auth->info.lnkname));
+	Log(LG_ERR, ("[%s] AUTH: PAM set PAM_TTY error", auth->info.lnkname));
     }
 
     status = pam_authenticate(pamh, 0);
@@ -1434,30 +1434,30 @@ AuthPAMAcct(AuthData auth)
     }
 
     if (pam_start("mpd", auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
-	Log(LG_ERR, ("[%s] PAM error", auth->info.lnkname));
+	Log(LG_ERR, ("[%s] ACCT: PAM error", auth->info.lnkname));
 	return;
     }
 
     if (auth->params.peeraddr[0] &&
 	pam_set_item(pamh, PAM_RHOST, auth->params.peeraddr) != PAM_SUCCESS) {
-	Log(LG_ERR, ("[%s] PAM set PAM_RHOST error", auth->info.lnkname));
+	Log(LG_ERR, ("[%s] ACCT: PAM set PAM_RHOST error", auth->info.lnkname));
     }
 
     if (pam_set_item(pamh, PAM_TTY, auth->info.lnkname) != PAM_SUCCESS) {
-	Log(LG_ERR, ("[%s] PAM set PAM_TTY error", auth->info.lnkname));
+	Log(LG_ERR, ("[%s] ACCT: PAM set PAM_TTY error", auth->info.lnkname));
     }
 
     if (auth->acct_type == AUTH_ACCT_START) {
-    	    Log(LG_AUTH, ("[%s] AUTH: PAM open session \"%s\"",
+    	    Log(LG_AUTH, ("[%s] ACCT: PAM open session \"%s\"",
 		auth->info.lnkname, auth->params.authname));
 	    status = pam_open_session(pamh, 0);
     } else {
-    	    Log(LG_AUTH, ("[%s] AUTH: PAM close session \"%s\"",
+    	    Log(LG_AUTH, ("[%s] ACCT: PAM close session \"%s\"",
 		auth->info.lnkname, auth->params.authname));
 	    status = pam_close_session(pamh, 0);
     }
     if (status != PAM_SUCCESS) {
-    	Log(LG_AUTH, ("[%s] AUTH: PAM session error",
+    	Log(LG_AUTH, ("[%s] ACCT: PAM session error",
 	    auth->info.lnkname));
     }
     
