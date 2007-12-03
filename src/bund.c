@@ -271,7 +271,7 @@ BundJoin(Link l)
     b = l->bund;
     bm = &b->bm;
 
-    if (!b->open) b->open = TRUE; /* Open bundle on incoming */
+    b->open = TRUE; /* Open bundle on incoming */
 
     if (LinkNgJoin(l)) {
 	l->bund = NULL;
@@ -434,8 +434,7 @@ BundLeave(Link l)
     		    b->name));
 	    }
 	}
-	if (b->open)
-	    b->open = FALSE;
+	b->open = FALSE;
 	if (!b->stay)
 	    BundShutdown(b);
     }
