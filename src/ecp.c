@@ -655,7 +655,7 @@ EcpLayerUp(Fsm fp)
     /* Connect a hook from the bpf node to our socket node */
     snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "d-%d", b->id);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECRYPT);
+    strcpy(cn.peerhook, NG_PPP_HOOK_DECRYPT);
     if (NgSendMsg(gEcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -667,7 +667,7 @@ EcpLayerUp(Fsm fp)
     /* Connect a hook from the bpf node to our socket node */
     snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "e-%d", b->id);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_ENCRYPT);
+    strcpy(cn.peerhook, NG_PPP_HOOK_ENCRYPT);
     if (NgSendMsg(gEcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -848,7 +848,7 @@ EcpSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_KEY:
       if (ac != 1)
 	return(-1);
-      snprintf(ecp->key, sizeof(ecp->key), "%s", av[0]);
+      strlcpy(ecp->key, av[0], sizeof(ecp->key));
       break;
 
     case SET_ACCEPT:

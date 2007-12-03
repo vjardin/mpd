@@ -59,7 +59,7 @@ RepIncoming(Link l)
 	(void)fcntl(r->csock, F_SETFD, 1);
     }
 
-    snprintf(mkp.type, sizeof(mkp.type), "%s", NG_TEE_NODE_TYPE);
+    strcpy(mkp.type, NG_TEE_NODE_TYPE);
     snprintf(mkp.ourhook, sizeof(mkp.ourhook), "tee");
     snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(r->csock, ".:", NGM_GENERIC_COOKIE,

@@ -1799,19 +1799,19 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
   switch ((intptr_t)arg) {
 
     case SET_AUTHNAME:
-      snprintf(autc->authname, sizeof(autc->authname), "%s", *av);
+      strlcpy(autc->authname, *av, sizeof(autc->authname));
       break;
 
     case SET_PASSWORD:
-      snprintf(autc->password, sizeof(autc->password), "%s", *av);
+      strlcpy(autc->password, *av, sizeof(autc->password));
       break;
       
     case SET_EXTAUTH_SCRIPT:
-      snprintf(autc->extauth_script, sizeof(autc->extauth_script), "%s", *av);
+      strlcpy(autc->extauth_script, *av, sizeof(autc->extauth_script));
       break;
       
     case SET_EXTACCT_SCRIPT:
-      snprintf(autc->extacct_script, sizeof(autc->extacct_script), "%s", *av);
+      strlcpy(autc->extacct_script, *av, sizeof(autc->extacct_script));
       break;
       
     case SET_MAX_LOGINS:

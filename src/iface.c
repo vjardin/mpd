@@ -1267,8 +1267,7 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  *iface->up_script = 0;
 	  break;
 	case 1:
-	  snprintf(iface->up_script,
-	    sizeof(iface->up_script), "%s", av[0]);
+	  strlcpy(iface->up_script, av[0], sizeof(iface->up_script));
 	  break;
 	default:
 	  return(-1);
@@ -1281,8 +1280,7 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  *iface->down_script = 0;
 	  break;
 	case 1:
-	  snprintf(iface->down_script,
-	    sizeof(iface->down_script), "%s", av[0]);
+	  strlcpy(iface->down_script, av[0], sizeof(iface->down_script));
 	  break;
 	default:
 	  return(-1);
@@ -1796,7 +1794,7 @@ IfaceNgIpInit(Bund b, int ready)
     /* Connect graph to the iface node. */
     strcpy(cn.ourhook, hook);
     snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET);
+    strcpy(cn.peerhook, NG_IFACE_HOOK_INET);
     if (NgSendMsg(gLinksCsock, path,
     	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -1896,7 +1894,7 @@ IfaceNgIpv6Init(Bund b, int ready)
     /* Connect graph to the iface node. */
     strcpy(cn.ourhook, hook);
     snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_IFACE_HOOK_INET6);
+    strcpy(cn.peerhook, NG_IFACE_HOOK_INET6);
     if (NgSendMsg(gLinksCsock, path,
     	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -1944,7 +1942,7 @@ IfaceInitNAT(Bund b, char *path, char *hook)
 #endif  
     Log(LG_IFACE2, ("[%s] IFACE: Connecting NAT", b->name));
   
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_NAT_NODE_TYPE);
+    strcpy(mp.type, NG_NAT_NODE_TYPE);
     strcpy(mp.ourhook, hook);
     strcpy(mp.peerhook, NG_NAT_HOOK_IN);
     if (NgSendMsg(gLinksCsock, path,
@@ -2048,7 +2046,7 @@ IfaceInitTee(Bund b, char *path, char *hook, int v6)
 
     Log(LG_IFACE2, ("[%s] IFACE: Connecting tee%s", b->name, v6?"6":""));
   
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+    strcpy(mp.type, NG_TEE_NODE_TYPE);
     strcpy(mp.ourhook, hook);
     strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
     if (NgSendMsg(gLinksCsock, path,
@@ -2095,7 +2093,7 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
 
     Log(LG_IFACE2, ("[%s] IFACE: Connecting ipacct", b->name));
   
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+    strcpy(mp.type, NG_TEE_NODE_TYPE);
     strcpy(mp.ourhook, hook);
     strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
     if (NgSendMsg(gLinksCsock, path,
@@ -2115,7 +2113,7 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     }
     strcpy(hook, NG_TEE_HOOK_LEFT);
 
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_IPACCT_NODE_TYPE);
+    strcpy(mp.type, NG_IPACCT_NODE_TYPE);
     strcpy(mp.ourhook, NG_TEE_HOOK_RIGHT2LEFT);
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s_in", b->iface.ifname);
     if (NgSendMsg(gLinksCsock, path,
@@ -2291,9 +2289,9 @@ IfaceInitMSS(Bund b, char *path, char *hook)
   
 #ifdef USE_NG_TCPMSS
 	/* Create ng_tcpmss(4) node. */
-	snprintf(mp.type, sizeof(mp.type), "%s", NG_TCPMSS_NODE_TYPE);
-	snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
-	snprintf(mp.peerhook, sizeof(mp.peerhook), "in");
+	strcpy(mp.type, NG_TCPMSS_NODE_TYPE);
+	strlcpy(mp.ourhook, hook, sizeof(mp.ourhook));
+	strcpy(mp.peerhook, "in");
 	if (NgSendMsg(gLinksCsock, path,
     		NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
@@ -2316,9 +2314,9 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 
 #else
     /* Create a bpf node for SYN detection. */
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_BPF_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
-    snprintf(mp.peerhook, sizeof(mp.peerhook), "ppp");
+    strcpy(mp.type, NG_BPF_NODE_TYPE);
+    strlcpy(mp.ourhook, hook, sizeof(mp.ourhook));
+    strcpy(mp.peerhook, "ppp");
     if (NgSendMsg(gLinksCsock, path,
 	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
@@ -2340,9 +2338,9 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     }
 
     /* Connect to the bundle socket node. */
-    snprintf(cn.path, sizeof(cn.path), "%s", path);
+    strlcpy(cn.path, path, sizeof(cn.path));
     snprintf(cn.ourhook, sizeof(cn.ourhook), "i-%d", b->id);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", MPD_HOOK_TCPMSS_IN);
+    strcpy(cn.peerhook, MPD_HOOK_TCPMSS_IN);
     if (NgSendMsg(gLinksCsock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
     	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
@@ -2350,9 +2348,9 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     	goto fail;
     }
 
-    snprintf(cn.path, sizeof(cn.path), "%s", path);
+    strlcpy(cn.path, path, sizeof(cn.path));
     snprintf(cn.ourhook, sizeof(cn.ourhook), "o-%d", b->id);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", MPD_HOOK_TCPMSS_OUT);
+    strcpy(cn.peerhook, MPD_HOOK_TCPMSS_OUT);
     if (NgSendMsg(gLinksCsock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
     	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
@@ -2495,9 +2493,9 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	Log(LG_IFACE2, ("[%s] IFACE: Connecting limits", b->name));
   
 	/* Create a bpf node for traffic filtering. */
-	snprintf(mp.type, sizeof(mp.type), "%s", NG_BPF_NODE_TYPE);
-	snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
-	snprintf(mp.peerhook, sizeof(mp.peerhook), "ppp");
+	strcpy(mp.type, NG_BPF_NODE_TYPE);
+	strlcpy(mp.ourhook, hook, sizeof(mp.ourhook));
+	strcpy(mp.peerhook, "ppp");
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
@@ -2717,7 +2715,7 @@ IfaceSetupLimits(Bund b)
 		    sprintf(hp->ifMatch, "%d-%d-m", dir, num);
 
 		    /* Create a car node for traffic shaping. */
-		    snprintf(mp.type, sizeof(mp.type), "%s", NG_CAR_NODE_TYPE);
+		    strcpy(mp.type, NG_CAR_NODE_TYPE);
 		    snprintf(mp.ourhook, sizeof(mp.ourhook), "%d-%d-m", dir, num);
 		    strcpy(mp.peerhook, ((dir == 0)?NG_CAR_HOOK_LOWER:NG_CAR_HOOK_UPPER));
 		    if (NgSendMsg(gLinksCsock, path,
@@ -2730,7 +2728,7 @@ IfaceSetupLimits(Bund b)
 
 		    /* Connect car to bpf. */
 		    snprintf(cn.ourhook, sizeof(cn.ourhook), "%d-%d-mi", dir, num);
-		    snprintf(cn.path, sizeof(cn.path), "%s", tmppath);
+		    strlcpy(cn.path, tmppath, sizeof(cn.path));
 		    strcpy(cn.peerhook, ((dir == 0)?NG_CAR_HOOK_UPPER:NG_CAR_HOOK_LOWER));
 		    if (NgSendMsg(gLinksCsock, path,
 		            NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {

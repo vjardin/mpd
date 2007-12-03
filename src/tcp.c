@@ -221,9 +221,9 @@ TcpOpen(Link l)
     		goto fail;
         }
     
-	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_ASYNC_NODE_TYPE);
-	snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s", hook);
-	snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_ASYNC_HOOK_SYNC);
+	strcpy(mkp.type, NG_ASYNC_NODE_TYPE);
+	strlcpy(mkp.ourhook, hook, sizeof(mkp.ourhook));
+	strcpy(mkp.peerhook, NG_ASYNC_HOOK_SYNC);
 	if (NgSendMsg(pi->csock, path, NGM_GENERIC_COOKIE,
 	    NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
 		Log(LG_ERR, ("[%s] can't attach %s %s node: %s",
@@ -288,8 +288,8 @@ TcpOpen(Link l)
 	/*
 	 * Attach fresh ksocket node next to async node.
 	 */
-	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
-	snprintf(mkp.ourhook, sizeof(mkp.ourhook), NG_ASYNC_HOOK_ASYNC);
+	strcpy(mkp.type, NG_KSOCKET_NODE_TYPE);
+	strcpy(mkp.ourhook, NG_ASYNC_HOOK_ASYNC);
 	if ((pi->conf.self_addr.family==AF_INET6) || 
 	    (pi->conf.self_addr.family==AF_UNSPEC && pi->conf.peer_addr.addr.family==AF_INET6)) {
 	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_STREAM, IPPROTO_TCP);
@@ -733,9 +733,8 @@ TcpListen(Link l)
 	(void)fcntl(pi->If->csock, F_SETFD, 1);
 
 	/* Make listening TCP ksocket node. */
-	snprintf(mkp.type, sizeof(mkp.type), "%s",
-	    NG_KSOCKET_NODE_TYPE);
-	snprintf(mkp.ourhook, sizeof(mkp.ourhook), LISTENHOOK);
+	strcpy(mkp.type, NG_KSOCKET_NODE_TYPE);
+	strcpy(mkp.ourhook, LISTENHOOK);
 	if (pi->If->self_addr.family==AF_INET6) {
 	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_STREAM, IPPROTO_TCP);
 	} else {

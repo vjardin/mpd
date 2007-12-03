@@ -551,7 +551,7 @@ ModemInstallNodes(Link l)
 	Log(LG_ERR, ("[%s] MODEM: ioctl(NGIOCGINFO): %s", l->name, strerror(errno))); 
 	return(-1);
     }
-    snprintf(m->ttynode, sizeof(m->ttynode), "%s", ngtty.name);
+    strlcpy(m->ttynode, ngtty.name, sizeof(m->ttynode));
 
     /* Set the ``hot char'' on the TTY node */
     snprintf(path, sizeof(path), "%s:", ngtty.name);
@@ -563,9 +563,9 @@ ModemInstallNodes(Link l)
     }
 
     /* Attach an async converter node */
-    snprintf(ngm.type, sizeof(ngm.type), "%s", NG_ASYNC_NODE_TYPE);
-    snprintf(ngm.ourhook, sizeof(ngm.ourhook), "%s", NG_TTY_HOOK);
-    snprintf(ngm.peerhook, sizeof(ngm.peerhook), "%s", NG_ASYNC_HOOK_ASYNC);
+    strcpy(ngm.type, NG_ASYNC_NODE_TYPE);
+    strcpy(ngm.ourhook, NG_TTY_HOOK);
+    strcpy(ngm.peerhook, NG_ASYNC_HOOK_ASYNC);
     if (NgSendMsg(m->csock, path, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &ngm, sizeof(ngm)) < 0) {
 	Log(LG_ERR, ("[%s] MODEM: can't connect %s node", l->name, NG_ASYNC_NODE_TYPE));
@@ -821,7 +821,7 @@ ModemSetCommand(Context ctx, int ac, char *av[], void *arg)
     switch ((intptr_t)arg) {
 	case SET_DEVICE:
     	    if (ac == 1)
-		snprintf(m->device, sizeof(m->device), "%s", av[0]);
+		strlcpy(m->device, av[0], sizeof(m->device));
     	    break;
 	case SET_SPEED:
     	    {
@@ -846,13 +846,13 @@ ModemSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    if (ac != 1)
 		return(-1);
     	    *m->connScript = 0;
-    	    snprintf(m->connScript, sizeof(m->connScript), "%s", av[0]);
+    	    strlcpy(m->connScript, av[0], sizeof(m->connScript));
     	    break;
 	case SET_ISCRIPT:
     	    if (ac != 1)
 		return(-1);
     	    *m->idleScript = 0;
-    	    snprintf(m->idleScript, sizeof(m->idleScript), "%s", av[0]);
+    	    strlcpy(m->idleScript, av[0], sizeof(m->idleScript));
     	    if (m->opened || TimerRemain(&m->startTimer) >= 0)
 		break;		/* nothing needs to be done right now */
     	    if (m->fd >= 0 && !*m->idleScript)

@@ -129,8 +129,8 @@ NgOpen(Link l)
 	goto fail;
     }
 
-    snprintf(cn.path, sizeof(cn.path), "%s", ng->path);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", ng->hook);
+    strlcpy(cn.path, ng->path, sizeof(cn.path));
+    strlcpy(cn.peerhook, ng->hook, sizeof(cn.peerhook));
     if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] NG: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
     	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
@@ -214,12 +214,12 @@ NgSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_NODE:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(ng->path, sizeof(ng->path), "%s", av[0]);
+    	    strlcpy(ng->path, av[0], sizeof(ng->path));
     	    break;
 	case SET_HOOK:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(ng->hook, sizeof(ng->hook), "%s", av[0]);
+    	    strlcpy(ng->hook, av[0], sizeof(ng->hook));
     	    break;
 	default:
     	    assert(0);

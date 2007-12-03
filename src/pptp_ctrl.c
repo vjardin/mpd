@@ -1249,9 +1249,9 @@ PptpCtrlGetChan(PptpCtrl c, int chanState, int orig, int incoming,
   ch->maxBps = maxBps;
   ch->bearType = bearType;
   ch->frameType = frameType;
-  snprintf(ch->calledNum, sizeof(ch->calledNum), "%s", calledNum);
-  snprintf(ch->callingNum, sizeof(ch->callingNum), "%s", callingNum);
-  snprintf(ch->subAddress, sizeof(ch->subAddress), "%s", subAddress);
+  strlcpy(ch->calledNum, calledNum, sizeof(ch->calledNum));
+  strlcpy(ch->callingNum, callingNum, sizeof(ch->callingNum));
+  strlcpy(ch->subAddress, subAddress, sizeof(ch->subAddress));
   PptpCtrlNewChanState(ch, chanState);
   return(ch);
 }
@@ -1904,7 +1904,7 @@ PptpCtrlDump(int level, int type, void *msg)
       Log(level, (" %s", line));
       *line = 0;
     }
-    snprintf(line + strlen(line), sizeof(line) - strlen(line), "%s", buf);
+    strlcpy(line + strlen(line), buf, sizeof(line) - strlen(line));
   }
   if (*line)
     Log(level, (" %s", line));

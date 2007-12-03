@@ -143,9 +143,9 @@ NgFuncInitGlobalNetflow(void)
     }
 
     /* Create a global netflow node. */
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_NETFLOW_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
-    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s0", NG_NETFLOW_HOOK_DATA);
+    strcpy(mp.type, NG_NETFLOW_NODE_TYPE);
+    strcpy(mp.ourhook, TEMPHOOK);
+    strcpy(mp.peerhook, NG_NETFLOW_HOOK_DATA);
     if (NgSendMsg(csock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
@@ -163,8 +163,8 @@ NgFuncInitGlobalNetflow(void)
     }
 
     /* Connect ng_ksocket(4) node for export. */
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_KSOCKET_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_NETFLOW_HOOK_EXPORT);
+    strcpy(mp.type, NG_KSOCKET_NODE_TYPE);
+    strcpy(mp.ourhook, NG_NETFLOW_HOOK_EXPORT);
     if (gNetflowExport.ss_family==AF_INET6) {
 	snprintf(mp.peerhook, sizeof(mp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     } else {
@@ -223,7 +223,7 @@ NgFuncInitGlobalNetflow(void)
     }
 
     /* Disconnect temporary hook. */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
+    strcpy(rm.ourhook, TEMPHOOK);
     if (NgSendMsg(csock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("can't remove hook %s: %s", TEMPHOOK, strerror(errno)));
@@ -261,9 +261,9 @@ NgFuncCreateIface(Bund b, char *buf, int max)
     int			rtn = 0;
 
     /* Create iface node (as a temporary peer of the socket node) */
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_IFACE_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", TEMPHOOK);
-    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_IFACE_HOOK_INET);
+    strcpy(mp.type, NG_IFACE_NODE_TYPE);
+    strcpy(mp.ourhook, TEMPHOOK);
+    strcpy(mp.peerhook, NG_IFACE_HOOK_INET);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s %d",
@@ -284,11 +284,11 @@ NgFuncCreateIface(Bund b, char *buf, int max)
 	rtn = -1;
 	goto done;
     }
-    snprintf(buf, max, "%s", ni->name);
+    strlcpy(buf, ni->name, max);
 
 done:
     /* Disconnect temporary hook */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", TEMPHOOK);
+    strcpy(rm.ourhook, TEMPHOOK);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Log(LG_ERR, ("[%s] can't remove hook %s: %s",
@@ -422,9 +422,9 @@ NgFuncConnect(int csock, char *label, const char *path, const char *hook,
 {
     struct ngm_connect	cn;
 
-    snprintf(cn.path, sizeof(cn.path), "%s", path2);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", hook);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", hook2);
+    strlcpy(cn.path, path2, sizeof(cn.path));
+    strlcpy(cn.ourhook, hook, sizeof(cn.ourhook));
+    strlcpy(cn.peerhook, hook2, sizeof(cn.peerhook));
     if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
         Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -445,7 +445,7 @@ NgFuncDisconnect(int csock, char *label, const char *path, const char *hook)
     int		retry = 10, delay = 1000;
 
     /* Disconnect hook */
-    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", hook);
+    strlcpy(rm.ourhook, hook, sizeof(rm.ourhook));
 retry:
     if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {

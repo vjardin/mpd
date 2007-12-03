@@ -469,7 +469,7 @@ die:
       (*c->log)(c->arg, CHAT_LG_DEBUG, "matched set \"%s\", goto label \"%s\"", 
     	    match->set, match->label);
       numPop = match->frameDepth;
-      snprintf(label, sizeof(label), "%s", match->label);
+      strlcpy(label, match->label, sizeof(label));
       ChatCancel(c, match->set);
       while (numPop-- > 0)
 	ChatReturn(c, 0);
@@ -511,7 +511,7 @@ ChatTimeout(int type, void *cookie)
 
 /* Cancel set */
 
-  snprintf(label, sizeof(label), "%s", timer->label);
+  strlcpy(label, timer->label, sizeof(label));
   numPop = timer->frameDepth;
   ChatCancel(c, timer->set);
 

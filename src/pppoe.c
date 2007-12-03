@@ -308,7 +308,7 @@ PppoeOpen(Link l)
 	}
 
 	/* Connect our ng_ppp(4) node link hook to the ng_pppoe(4) node. */
-	snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", session_hook);
+	strlcpy(cn.ourhook, session_hook, sizeof(cn.ourhook));
 	snprintf(path, sizeof(path), "[%x]:", pe->PIf->node_id);
 
 	if (!PhysGetUpperHook(l, cn.path, cn.peerhook)) {
@@ -327,7 +327,7 @@ PppoeOpen(Link l)
 	
 	/* Tell the PPPoE node to try to connect to a server. */
 	memset(idata, 0, sizeof(idata));
-	snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
+	strlcpy(idata->hook, session_hook, sizeof(idata->hook));
 	idata->data_len = strlen(pe->session);
 	strncpy(idata->data, pe->session, MAX_SESSION);
 	if (NgSendMsg(pe->PIf->csock, path, NGM_PPPOE_COOKIE, NGM_PPPOE_CONNECT,
@@ -656,7 +656,7 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	/* Make sure interface is up. */
 	char iface[IFNAMSIZ + 1];
 
-	snprintf(iface, sizeof(iface), "%s", path);
+	strlcpy(iface, path, sizeof(iface));
 	if (iface[strlen(iface) - 1] == ':')
 		iface[strlen(iface) - 1] = '\0';
 	if (ExecCmdNosh(LG_PHYS2, iface, "%s %s up", PATH_IFCONFIG, iface) != 0) {
@@ -786,10 +786,9 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 		char	path2[NG_PATHSIZ];
 
 		/* Create new PPPoE node. */
-		snprintf(mp.type, sizeof(mp.type), "%s", NG_PPPOE_NODE_TYPE);
-		snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", hook);
-		snprintf(mp.peerhook, sizeof(mp.peerhook), "%s",
-		    NG_PPPOE_HOOK_ETHERNET);
+		strcpy(mp.type, NG_PPPOE_NODE_TYPE);
+		strlcpy(mp.ourhook, hook, sizeof(mp.ourhook));
+		strcpy(mp.peerhook, NG_PPPOE_HOOK_ETHERNET);
 		if (NgSendMsg(PIf->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER, &mp,
 		    sizeof(mp)) < 0) {
 			Log(LG_ERR, ("[%s] can't create %s peer to %s,%s: %s",
@@ -978,7 +977,7 @@ PppoeListenEvent(int type, void *arg)
 	    gPid, l->id);
 		
 	/* Create ng_tee(4) node and connect it to ng_pppoe(4). */
-	snprintf(mp.type, sizeof(mp.type), "%s", NG_TEE_NODE_TYPE);
+	strcpy(mp.type, NG_TEE_NODE_TYPE);
 	snprintf(mp.ourhook, sizeof(mp.ourhook), session_hook);
 	snprintf(mp.peerhook, sizeof(mp.peerhook), "left");
 	if (NgSendMsg(pi->PIf->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER,
@@ -993,9 +992,9 @@ PppoeListenEvent(int type, void *arg)
 	snprintf(path1, sizeof(path), "%s%s", path, session_hook);
 
 	/* Connect our socket node link hook to the ng_tee(4) node. */
-	snprintf(cn.ourhook, sizeof(cn.ourhook), l->name);
-	snprintf(cn.path, sizeof(cn.path), "%s", path1);
-	snprintf(cn.peerhook, sizeof(cn.peerhook), "left2right");
+	strlcpy(cn.ourhook, l->name, sizeof(cn.ourhook));
+	strlcpy(cn.path, path1, sizeof(cn.path));
+	strcpy(cn.peerhook, "left2right");
 	if (NgSendMsg(pi->PIf->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT,
 	    &cn, sizeof(cn)) < 0) {
 		Log(LG_ERR, ("[%s] PPPoE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -1006,7 +1005,7 @@ PppoeListenEvent(int type, void *arg)
 
 	/* Put the PPPoE node into OFFER mode. */
 	memset(idata, 0, sizeof(idata));
-	snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
+	strlcpy(idata->hook, session_hook, sizeof(idata->hook));
 	if (pi->acname[0] != 0) {
 		strlcpy(idata->data, pi->acname, MAX_SESSION);
 	} else {
@@ -1029,7 +1028,7 @@ PppoeListenEvent(int type, void *arg)
 	}
 
 	memset(idata, 0, sizeof(idata));
-	snprintf(idata->hook, sizeof(idata->hook), "%s", session_hook);
+	strlcpy(idata->hook, session_hook, sizeof(idata->hook));
 	idata->data_len = strlen(pi->session);
 	strncpy(idata->data, pi->session, MAX_SESSION);
 
@@ -1298,8 +1297,7 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 			colon = (av[0][strlen(av[0]) - 1] == ':') ? "" : ":";
 			snprintf(pi->path, sizeof(pi->path),
 			    "%s%s", av[0], colon);
-			snprintf(pi->hook, sizeof(pi->hook),
-			    "%s", hookname);
+			strlcpy(pi->hook, hookname, sizeof(pi->hook));
 			break;
 		default:
 			return(-1);
@@ -1314,7 +1312,7 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_SESSION:
 		if (ac != 1)
 			return(-1);
-		snprintf(pi->session, sizeof(pi->session), "%s", av[0]);
+		strlcpy(pi->session, av[0], sizeof(pi->session));
 		if (pi->list) {
 		    PppoeUnListen(ctx->lnk);
 		    PppoeListen(ctx->lnk);
@@ -1323,7 +1321,7 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_ACNAME:
 		if (ac != 1)
 			return(-1);
-		snprintf(pi->acname, sizeof(pi->acname), "%s", av[0]);
+		strlcpy(pi->acname, av[0], sizeof(pi->acname));
 		break;
 	default:
 		assert(0);

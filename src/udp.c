@@ -216,8 +216,8 @@ UdpOpen(Link l)
         }
 
 	/* Attach ksocket node to PPP node */
-	snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
-	snprintf(mkp.ourhook, sizeof(mkp.ourhook), hook);
+	strcpy(mkp.type, NG_KSOCKET_NODE_TYPE);
+	strlcpy(mkp.ourhook, hook, sizeof(mkp.ourhook));
 	if ((pi->conf.self_addr.family==AF_INET6) || 
 	    (pi->conf.self_addr.family==AF_UNSPEC && pi->conf.peer_addr.addr.family==AF_INET6)) {
 	        snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);

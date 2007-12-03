@@ -1675,26 +1675,22 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_CALLINGNUM:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(l2tp->conf.callingnum, sizeof(l2tp->conf.callingnum),
-		"%s", av[0]);
+    	    strlcpy(l2tp->conf.callingnum, av[0], sizeof(l2tp->conf.callingnum));
     	    break;
 	case SET_CALLEDNUM:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(l2tp->conf.callednum, sizeof(l2tp->conf.callednum),
-		"%s", av[0]);
+    	    strlcpy(l2tp->conf.callednum, av[0], sizeof(l2tp->conf.callednum));
     	    break;
 	case SET_HOSTNAME:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(l2tp->conf.hostname, sizeof(l2tp->conf.hostname),
-		"%s", av[0]);
+    	    strlcpy(l2tp->conf.hostname, av[0], sizeof(l2tp->conf.hostname));
     	    break;
 	case SET_SECRET:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(l2tp->conf.secret, sizeof(l2tp->conf.secret),
-		"%s", av[0]);
+    	    strlcpy(l2tp->conf.secret, av[0], sizeof(l2tp->conf.secret));
     	    break;
 	case SET_ENABLE:
     	    EnableCommand(ac, av, &l2tp->conf.options, gConfList);

@@ -558,7 +558,7 @@ ReadFullLine(FILE *fp, int *lineNum, char *result, int resultsize)
 
   /* Append real line to what we've got so far */
 
-    snprintf(resultline + linelen, resultlinesize - linelen, "%s", real_line);
+    strlcpy(resultline + linelen, real_line, resultlinesize - linelen);
     linelen += len;
     if (linelen > sizeof(line) - 1)
 	linelen = sizeof(line) - 1;

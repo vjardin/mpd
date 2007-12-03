@@ -803,7 +803,7 @@ CcpLayerUp(Fsm fp)
     /* Connect a hook from the ppp node to our socket node */
     snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "c-%d", b->id);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_COMPRESS);
+    strcpy(cn.peerhook, NG_PPP_HOOK_COMPRESS);
     if (NgSendMsg(gCcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -815,7 +815,7 @@ CcpLayerUp(Fsm fp)
     /* Connect a hook from the ppp node to our socket node */
     snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
     snprintf(cn.ourhook, sizeof(cn.ourhook), "d-%d", b->id);
-    snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_PPP_HOOK_DECOMPRESS);
+    strcpy(cn.peerhook, NG_PPP_HOOK_DECOMPRESS);
     if (NgSendMsg(gCcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
 	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",

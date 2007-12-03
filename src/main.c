@@ -562,7 +562,7 @@ OptApply(Option opt, int ac, char *av[])
     	    return(0);
 #ifdef SYSLOG_FACILITY
 	case 's':
-    	    snprintf(gSysLogIdent, sizeof(gSysLogIdent), "%s", *av);
+    	    strlcpy(gSysLogIdent, *av, sizeof(gSysLogIdent));
     	    return(1);
 #endif
 	case 'v':

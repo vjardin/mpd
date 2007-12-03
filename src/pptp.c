@@ -749,10 +749,9 @@ PptpHookUp(Link l)
     }
 
     /* Attach PPTP/GRE node to PPP node */
-    snprintf(mkp.type, sizeof(mkp.type), "%s", NG_PPTPGRE_NODE_TYPE);
-    snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s", hook);
-    snprintf(mkp.peerhook, sizeof(mkp.peerhook),
-	"%s", NG_PPTPGRE_HOOK_UPPER);
+    strcpy(mkp.type, NG_PPTPGRE_NODE_TYPE);
+    strlcpy(mkp.ourhook, hook, sizeof(mkp.ourhook));
+    strcpy(mkp.peerhook, NG_PPTPGRE_HOOK_UPPER);
     if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
 	Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
@@ -771,8 +770,8 @@ PptpHookUp(Link l)
     }
 
     /* Attach ksocket node to PPTP/GRE node */
-    snprintf(mkp.type, sizeof(mkp.type), "%s", NG_KSOCKET_NODE_TYPE);
-    snprintf(mkp.ourhook, sizeof(mkp.ourhook), "%s", NG_PPTPGRE_HOOK_LOWER);
+    strcpy(mkp.type, NG_KSOCKET_NODE_TYPE);
+    strcpy(mkp.ourhook, NG_PPTPGRE_HOOK_LOWER);
     if (u_self_addr.family==AF_INET6) {
 	//ng_ksocket doesn't support inet6 name
 	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_RAW, IPPROTO_GRE); 
@@ -1067,12 +1066,12 @@ PptpSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_CALLINGNUM:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(pi->conf.callingnum, sizeof(pi->conf.callingnum), "%s", av[0]);
+    	    strlcpy(pi->conf.callingnum, av[0], sizeof(pi->conf.callingnum));
     	    break;
 	case SET_CALLEDNUM:
     	    if (ac != 1)
 		return(-1);
-    	    snprintf(pi->conf.callednum, sizeof(pi->conf.callednum), "%s", av[0]);
+    	    strlcpy(pi->conf.callednum, av[0], sizeof(pi->conf.callednum));
     	    break;
 	case SET_ENABLE:
     	    EnableCommand(ac, av, &pi->conf.options, gConfList);

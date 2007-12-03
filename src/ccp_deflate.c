@@ -90,9 +90,9 @@ DeflateInit(Bund b, int dir)
 
     /* Attach a new DEFLATE node to the PPP node */
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
-    snprintf(mp.type, sizeof(mp.type), "%s", NG_DEFLATE_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", ppphook);
-    snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", deflatehook);
+    strcpy(mp.type, NG_DEFLATE_NODE_TYPE);
+    strcpy(mp.ourhook, ppphook);
+    strcpy(mp.peerhook, deflatehook);
     if (NgSendMsg(gCcpCsock, path,
     	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("[%s] can't create %s node: %s",

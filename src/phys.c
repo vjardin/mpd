@@ -243,7 +243,7 @@ PhysGetUpperHook(Link l, char *path, char *hook)
 {
     if (!l->rep) {
 	snprintf(path, NG_PATHSIZ, "[%lx]:", (u_long)l->nodeID);
-	snprintf(hook, NG_HOOKSIZ, "%s", NG_TEE_HOOK_LEFT);
+	strcpy(hook, NG_TEE_HOOK_LEFT);
 	return 1;
     } else {
 	return RepGetHook(l, path, hook);

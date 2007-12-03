@@ -470,7 +470,7 @@ IpcpLayerUp(Fsm fp)
     }
 
     /* Report */
-    snprintf(ipbuf, sizeof(ipbuf), "%s", inet_ntoa(ipcp->peer_addr));
+    strlcpy(ipbuf, inet_ntoa(ipcp->peer_addr), sizeof(ipbuf));
     Log(fp->log, ("  %s -> %s", inet_ntoa(ipcp->want_addr), ipbuf));
 
     if (b->params.ippool_used) {
@@ -846,9 +846,9 @@ IpcpNgInitVJ(Bund b)
 
   /* Add a VJ compression node */
   snprintf(path, sizeof(path), "[%x]:", b->nodeID);
-  snprintf(mp.type, sizeof(mp.type), "%s", NG_VJC_NODE_TYPE);
-  snprintf(mp.ourhook, sizeof(mp.ourhook), "%s", NG_PPP_HOOK_VJC_IP);
-  snprintf(mp.peerhook, sizeof(mp.peerhook), "%s", NG_VJC_HOOK_IP);
+  strcpy(mp.type, NG_VJC_NODE_TYPE);
+  strcpy(mp.ourhook, NG_PPP_HOOK_VJC_IP);
+  strcpy(mp.peerhook, NG_VJC_HOOK_IP);
   if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
     Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
@@ -868,25 +868,25 @@ IpcpNgInitVJ(Bund b)
 
   /* Connect the other three hooks between the ppp and vjc nodes */
   snprintf(path, sizeof(path), "[%x]:", b->nodeID);
-  snprintf(cn.path, sizeof(cn.path), "%s", NG_PPP_HOOK_VJC_IP);
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_COMP);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJCOMP);
+  strcpy(cn.path, NG_PPP_HOOK_VJC_IP);
+  strcpy(cn.ourhook, NG_PPP_HOOK_VJC_COMP);
+  strcpy(cn.peerhook, NG_VJC_HOOK_VJCOMP);
   if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
       b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_UNCOMP);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJUNCOMP);
+  strcpy(cn.ourhook, NG_PPP_HOOK_VJC_UNCOMP);
+  strcpy(cn.peerhook, NG_VJC_HOOK_VJUNCOMP);
   if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
       b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     goto fail;
   }
-  snprintf(cn.ourhook, sizeof(cn.ourhook), "%s", NG_PPP_HOOK_VJC_VJIP);
-  snprintf(cn.peerhook, sizeof(cn.peerhook), "%s", NG_VJC_HOOK_VJIP);
+  strcpy(cn.ourhook, NG_PPP_HOOK_VJC_VJIP);
+  strcpy(cn.peerhook, NG_VJC_HOOK_VJIP);
   if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
     Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",

@@ -586,7 +586,7 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
     for (cmd = menu; cmd->name; cmd++) {
 	if (cmd->priv > ctx->priv)
 	    continue;
-	snprintf(buf, sizeof(buf), "%s", cmd->name);
+	strlcpy(buf, cmd->name, sizeof(buf));
 	if ((mark = strchr(buf, ' ')))
     	    *mark = 0;
 	Printf(" %-9s: %-20s%s", buf, cmd->desc,
