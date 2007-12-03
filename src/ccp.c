@@ -307,7 +307,7 @@ CcpUnConfigure(Fsm fp)
 void
 CcpNgCtrlEvent(int type, void *cookie)
 {
-    Bund		b;
+    Bund		b = NULL;
     union {
         u_char		buf[2048];
         struct ng_mesg	msg;
