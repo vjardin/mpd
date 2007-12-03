@@ -142,6 +142,7 @@
     struct ng_ppp_link_stat oldStats;	/* Previous stats for 64bit emulation */
     struct pppTimer     statsUpdateTimer;       /* update Timer */
 #endif
+    time_t		last_up;	/* Time first link got up */
     struct ifacestate	iface;		/* IP state info */
     struct ipcpstate	ipcp;		/* IPCP state info */
     struct ipv6cpstate	ipv6cp;		/* IPV6CP state info */

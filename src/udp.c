@@ -465,7 +465,6 @@ UdpStat(Context ctx)
 	Printf("\tPeer address : %s, port %u\r\n",
 	    u_rangetoa(&pi->conf.peer_addr, buf, sizeof(buf)), pi->conf.peer_port);
 	Printf("UDP state:\r\n");
-	Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	    Printf("\tIncoming     : %s\r\n", (pi->incoming?"YES":"NO"));
 	    Printf("\tCurrent peer : %s, port %u\r\n",

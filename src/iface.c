@@ -352,6 +352,7 @@ IfaceUp(Bund b, int ready)
   int		prev_real_number;
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", b->name));
+  iface->last_up = time(NULL);
 
   if (ready) {
 
@@ -1309,7 +1310,8 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 int
 IfaceStat(Context ctx, int ac, char *av[], void *arg)
 {
-    IfaceState	const iface = &ctx->bund->iface;
+    Bund	const b = ctx->bund;
+    IfaceState	const iface = &b->iface;
     IfaceRoute	r;
     int		k;
     char	buf[64];
@@ -1335,9 +1337,15 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     }
     Printf("Interface status:\r\n");
     Printf("\tAdmin status    : %s\r\n", iface->open ? "OPEN" : "CLOSED");
-    Printf("\tStatus          : %s\r\n", iface->up ? "UP" : "DOWN");
-    if (iface->up)
+    Printf("\tStatus          : %s\r\n", iface->up ? (iface->dod?"DoD":"UP") : "DOWN");
+    if (iface->up) {
+	Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - iface->last_up));
+	if (b->params.idle_timeout || iface->idle_timeout)
+	    Printf("\tIdle timeout    : %d seconds\r\n", b->params.idle_timeout?b->params.idle_timeout:iface->idle_timeout);
+	if (b->params.session_timeout || iface->session_timeout)
+	    Printf("\tSession timeout : %d seconds\r\n", b->params.session_timeout?b->params.session_timeout:iface->session_timeout);
 	Printf("\tMTU             : %d bytes\r\n", iface->mtu);
+    }
     if (iface->ip_up && !u_rangeempty(&iface->self_addr)) {
 	Printf("\tIP Addresses    : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
 	Printf("%s\r\n", u_addrtoa(&iface->peer_addr,buf,sizeof(buf)));

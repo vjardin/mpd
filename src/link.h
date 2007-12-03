@@ -140,7 +140,7 @@
     u_char		downReasonValid:1;
     int			bandwidth;	/* Bandwidth in bits per second */
     int			latency;	/* Latency in microseconds */
-    time_t		last_open;	/* Time this link last was opened */
+    time_t		last_up;	/* Time this link last got up */
     char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq msession-id */
     char		session_id[AUTH_MAX_SESSIONID];	/* a uniq session-id */
 

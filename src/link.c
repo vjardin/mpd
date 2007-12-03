@@ -311,7 +311,6 @@ LinkMsg(int type, void *arg)
     Log(LG_LINK, ("[%s] link: %s event", l->name, MsgName(type)));
     switch (type) {
 	case MSG_OPEN:
-    	    l->last_open = time(NULL);
     	    l->num_redial = 0;
     	    LcpOpen(l);
     	    break;
@@ -1176,6 +1175,7 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
     Printf("Link %s%s:\r\n", l->name, l->tmpl?" (template)":(l->stay?" (static)":""));
 
     Printf("Configuration:\r\n");
+    Printf("\tDevice type    : %s\r\n", l->type?l->type->name:"");
     Printf("\tMRU            : %d bytes\r\n", l->conf.mru);
     Printf("\tMRRU           : %d bytes\r\n", l->conf.mrru);
     Printf("\tCtrl char map  : 0x%08x bytes\r\n", l->conf.accmap);
@@ -1210,7 +1210,12 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
     Printf("Link state:\r\n");
     if (l->tmpl)
 	Printf("\tChildren       : %d\r\n", l->children);
-    Printf("\tSession-Id     : %s\r\n", l->session_id);
+    else {
+	Printf("\tState          : %s\r\n", gPhysStateNames[l->state]);
+	if (l->state == PHYS_STATE_UP)
+	    Printf("\tSession time   : %ld seconds\r\n", (long int)(time(NULL) - l->last_up));
+    }
+    Printf("\tSession Id     : %s\r\n", l->session_id);
     if (!l->tmpl) {
 	Printf("Up/Down stats:\r\n");
 	if (l->downReason && (!l->downReasonValid))

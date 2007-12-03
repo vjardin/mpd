@@ -860,7 +860,6 @@ L2tpStat(Context ctx)
     Printf("L2TP options:\r\n");
     OptStat(ctx, &l2tp->conf.options, gConfList);
     Printf("L2TP status:\r\n");
-    Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
     if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	Printf("\tIncoming     : %s\r\n", (l2tp->incoming?"YES":"NO"));
 	if (l2tp->tun) {

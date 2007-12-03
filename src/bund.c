@@ -290,6 +290,8 @@ BundJoin(Link l)
 	/* Cancel re-open timer; we've come up somehow (eg, LCP renegotiation) */
 	TimerStop(&b->reOpenTimer);
 
+	b->last_up = time(NULL);
+
 	/* Copy auth params from the first link */
 	authparamsCopy(&l->lcp.auth.params,&b->params);
 
@@ -1271,7 +1273,9 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tLinks          : ");
   BundShowLinks(ctx, sb);
   Printf("\tStatus         : %s\r\n", sb->open ? "OPEN" : "CLOSED");
-  Printf("\tM-Session-Id   : %s\r\n", sb->msession_id);
+  if (sb->n_up)
+    Printf("\tSession time   : %ld seconds\r\n", (long int)(time(NULL) - sb->last_up));
+  Printf("\tMultiSession Id: %s\r\n", sb->msession_id);
   Printf("\tTotal bandwidth: %u bits/sec\r\n", tbw);
   Printf("\tAvail bandwidth: %u bits/sec\r\n", bw);
   Printf("\tPeer authname  : \"%s\"\r\n", sb->params.authname);

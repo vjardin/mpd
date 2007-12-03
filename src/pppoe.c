@@ -546,7 +546,6 @@ PppoeStat(Context ctx)
 	Printf("\tIface Hook   : %s\r\n", pe->hook);
 	Printf("\tSession      : %s\r\n", pe->session);
 	Printf("PPPoE status:\r\n");
-	Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	    Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
 	    Printf("\tIncoming     : %s\r\n", (pe->incoming?"YES":"NO"));

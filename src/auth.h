@@ -217,7 +217,7 @@
     struct {		/* informational (read-only) data needed for e.g. accouting */
       struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
       short		n_links;	/* number of links in the bundle */
-      char		msession_id[AUTH_MAX_SESSIONID]; /* multy-session-id */
+      char		msession_id[AUTH_MAX_SESSIONID]; /* multi-session-id */
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
       char		ifname[IFNAMSIZ+1];	/* interface name */
       char		bundname[LINK_MAX_NAME];/* name of the bundle */
@@ -225,7 +225,7 @@
       struct ng_ppp_link_stat64	stats;		/* Current link statistics */
       struct svcstat	ss;
       char		*downReason;	/* Reason for link going down */
-      time_t		last_open;	/* Time this link last was opened */
+      time_t		last_up;	/* Time this link last got up */
       PhysType		phys_type;	/* Device type descriptor */
       int		linkID;		/* Absolute link number */
       char		peer_ident[64];	/* LCP ident received from peer */

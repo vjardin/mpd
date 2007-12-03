@@ -633,7 +633,7 @@ AuthDataNew(Link l)
     if (l->downReasonValid)
 	auth->info.downReason = Mstrdup(MB_AUTH, l->downReason);
 
-    auth->info.last_open = l->last_open;
+    auth->info.last_up = l->last_up;
     auth->info.phys_type = l->type;
     auth->info.linkID = l->id;
 
@@ -800,7 +800,7 @@ AuthAccountStart(Link l, int type)
     if (type == AUTH_ACCT_STOP) {
 	Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
     	    l->name, a->params.authname,
-    	    (unsigned long) (time(NULL) - l->last_open),
+    	    (unsigned long) (time(NULL) - l->last_up),
     	    (unsigned long long)l->stats.recvOctets,
     	    (unsigned long long)l->stats.xmitOctets));
     }
@@ -2242,7 +2242,7 @@ AuthExternalAcct(AuthData auth)
     if (auth->acct_type != AUTH_ACCT_START) {
 	struct svcstatrec *ssr;
 	fprintf(fp, "ACCT_SESSION_TIME:%ld\n", 
-	    (long int)(time(NULL) - auth->info.last_open));
+	    (long int)(time(NULL) - auth->info.last_up));
 	fprintf(fp, "ACCT_INPUT_OCTETS:%llu\n", 
 	    (long long unsigned)auth->info.stats.recvOctets);
 	fprintf(fp, "ACCT_INPUT_PACKETS:%llu\n", 

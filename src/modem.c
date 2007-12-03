@@ -964,7 +964,6 @@ ModemStat(Context ctx)
 	(m->watch & TIOCM_DSR) ? "DSR" : "");
 
     Printf("Modem status:\r\n");
-    Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
     if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	Printf("\tOpened       : %s\r\n", (m->opened?"YES":"NO"));
 	Printf("\tIncoming     : %s\r\n", (m->originated?"NO":"YES"));

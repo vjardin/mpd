@@ -100,6 +100,7 @@
     ng_ID_t		limitID;		/* ID of limit (bpf) node */
     SLIST_HEAD(, svcs)	ss[ACL_DIRS];		/* Where to get service stats */
     struct svcstat	prevstats;		/* Stats from gone layers */
+    time_t		last_up;		/* Time this iface last got up */
     u_char		open:1;			/* In an open state */
     u_char		up:1;			/* interface is up */
     u_char		ip_up:1;		/* IP interface is up */

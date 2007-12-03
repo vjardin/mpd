@@ -158,6 +158,7 @@ void
 PhysUp(Link l)
 {
     Log(LG_PHYS2, ("[%s] device: UP event", l->name));
+    l->last_up = time(NULL);
     if (!l->rep) {
 	LinkUp(l);
     } else {
@@ -520,6 +521,11 @@ PhysStat(Context ctx, int ac, char *av[], void *arg)
 
     Printf("Device '%s' (%s)\r\n", l->name, (l->tmpl)?"template":"instance");
     Printf("\tType         : %s\r\n", l->type->name);
+    if (!l->tmpl) {
+	Printf("\tState        : %s\r\n", gPhysStateNames[l->state]);
+	if (l->state == PHYS_STATE_UP)
+    	    Printf("\tSession time : %ld seconds\r\n", (long int)(time(NULL) - l->last_up));
+    }
 
     if (l->type->showstat)
 	(*l->type->showstat)(ctx);

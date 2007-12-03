@@ -567,7 +567,6 @@ PptpStat(Context ctx)
     Printf("PPTP options:\r\n");
     OptStat(ctx, &pptp->conf.options, gConfList);
     Printf("PPTP status:\r\n");
-    Printf("\tState        : %s\r\n", gPhysStateNames[ctx->lnk->state]);
     if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	Printf("\tIncoming     : %s\r\n", (pptp->originate?"NO":"YES"));
 	Printf("\tCurrent self : %s\r\n",

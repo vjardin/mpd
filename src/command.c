@@ -1033,13 +1033,14 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 	iface = &b->iface;
 	Printf("Interface:\r\n");
 	Printf("\tName            : %s\r\n", iface->ifname);
-	Printf("\tStatus          : %s\r\n", iface->up ? "UP" : "DOWN");
+	Printf("\tStatus          : %s\r\n", iface->up ? (iface->dod?"DoD":"UP") : "DOWN");
 	if (iface->up) {
-	    Printf("\tMTU             : %d bytes\r\n", iface->mtu);
+	    Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - iface->last_up));
 	    if (b->params.idle_timeout || iface->idle_timeout)
 		Printf("\tIdle timeout    : %d seconds\r\n", b->params.idle_timeout?b->params.idle_timeout:iface->idle_timeout);
 	    if (b->params.session_timeout || iface->session_timeout)
-	    Printf("\tSession timeout : %d seconds\r\n", b->params.session_timeout?b->params.session_timeout:iface->session_timeout);
+		Printf("\tSession timeout : %d seconds\r\n", b->params.session_timeout?b->params.session_timeout:iface->session_timeout);
+	    Printf("\tMTU             : %d bytes\r\n", iface->mtu);
 	}
 	if (iface->ip_up && !u_rangeempty(&iface->self_addr)) {
 	    Printf("\tIP Addresses    : %s -> ", u_rangetoa(&iface->self_addr,buf,sizeof(buf)));
@@ -1117,8 +1118,10 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
     if (b) {
 	Printf("Bundle %s%s:\r\n", b->name, b->tmpl?" (template)":(b->stay?" (static)":""));
 	Printf("\tStatus          : %s\r\n", b->open ? "OPEN" : "CLOSED");
-	Printf("\tM-Session-Id    : %s\r\n", b->msession_id);
+	Printf("\tMulti Session Id: %s\r\n", b->msession_id);
 	Printf("\tPeer authname   : \"%s\"\r\n", b->params.authname);
+	if (b->n_up)
+    	    Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - l->last_up));
 
 	if (b->multilink) {
 	    Printf("\tMultilink PPP:\r\n");
@@ -1147,10 +1150,13 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 	if (l) {
 	    char	buf[64];
 	    Printf("Link %s:\r\n", l->name);
+	    Printf("\tDevice type     : %s\r\n", l->type?l->type->name:"");
 	    Printf("\tStatus          : %s/%s\r\n",
 		FsmStateName(l->lcp.fsm.state),
 		gPhysStateNames[l->state]);
-	    Printf("\tSession-Id      : %s\r\n", l->session_id);
+	    Printf("\tSession Id      : %s\r\n", l->session_id);
+	    if (l->state == PHYS_STATE_UP)
+    		Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - l->last_up));
 
 	    PhysGetPeerAddr(l, buf, sizeof(buf));
 	    Printf("\tPeer address    : %s\r\n", buf);
