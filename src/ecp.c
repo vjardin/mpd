@@ -376,7 +376,7 @@ EcpDataOutput(Bund b, Mbuf plain)
   EcpState	const ecp = &b->ecp;
   Mbuf		cypher;
 
-  LogDumpBp(LG_ECP2, plain, "[%s] %s: xmit plain", Pref(&ecp->fsm), Fsm(&ecp->fsm));
+  LogDumpBp(LG_FRAME, plain, "[%s] %s: xmit plain", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 
 /* Encrypt packet */
 
@@ -387,7 +387,7 @@ EcpDataOutput(Bund b, Mbuf plain)
     return(NULL);
   }
   cypher = (*ecp->xmit->Encrypt)(b, plain);
-  LogDumpBp(LG_ECP2, cypher, "[%s] %s: xmit cypher", Pref(&ecp->fsm), Fsm(&ecp->fsm));
+  LogDumpBp(LG_FRAME, cypher, "[%s] %s: xmit cypher", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 
 /* Return result, with new protocol number */
 
@@ -407,7 +407,7 @@ EcpDataInput(Bund b, Mbuf cypher)
   EcpState	const ecp = &b->ecp;
   Mbuf		plain;
 
-  LogDumpBp(LG_ECP2, cypher, "[%s] %s: recv cypher", Pref(&ecp->fsm), Fsm(&ecp->fsm));
+  LogDumpBp(LG_FRAME, cypher, "[%s] %s: recv cypher", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 
 /* Decrypt packet */
 
@@ -428,7 +428,7 @@ EcpDataInput(Bund b, Mbuf cypher)
     return(NULL);
   }
 
-  LogDumpBp(LG_ECP2, plain, "[%s] %s: recv plain", Pref(&ecp->fsm), Fsm(&ecp->fsm));
+  LogDumpBp(LG_FRAME, plain, "[%s] %s: recv plain", Pref(&ecp->fsm), Fsm(&ecp->fsm));
 /* Done */
 
   return(plain);

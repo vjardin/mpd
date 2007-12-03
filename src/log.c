@@ -97,9 +97,6 @@
 #ifdef LG_CCP2
     ADD_OPT(CCP2,	"CCP events and debugging")
 #endif
-#ifdef LG_CCP3
-    ADD_OPT(CCP3,	"CCP complete packet dumps")
-#endif
 #ifdef LG_ECP
     ADD_OPT(ECP,	"ECP negotiation")
 #endif

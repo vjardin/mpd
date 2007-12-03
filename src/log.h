@@ -38,7 +38,6 @@
     LG_I_IPV6CP2,
     LG_I_CCP,
     LG_I_CCP2,
-    LG_I_CCP3,
     LG_I_ECP,
     LG_I_ECP2,
     LG_I_FSM,
@@ -72,7 +71,6 @@
   #define LG_IPV6CP2		(1 << LG_I_IPV6CP2)
   #define LG_CCP		(1 << LG_I_CCP)
   #define LG_CCP2		(1 << LG_I_CCP2)
-  #define LG_CCP3		(1 << LG_I_CCP3)
   #define LG_ECP		(1 << LG_I_ECP)
   #define LG_ECP2		(1 << LG_I_ECP2)
   #define LG_FSM		(1 << LG_I_FSM)
