@@ -782,85 +782,87 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
 void
 AuthAccountStart(Link l, int type)
 {
-  Auth		const a = &l->lcp.auth;
-  AuthData	auth;
-  u_long	updateInterval = 0;
+    Auth		const a = &l->lcp.auth;
+    AuthData		auth;
       
-  /* maybe an outstanding thread is running */
-  if (a->acct_thread) {
-    if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
-	paction_cancel(&a->acct_thread);
-    } else {
-	Log(LG_AUTH, ("[%s] AUTH: Accounting thread is already running", 
-    	    l->name));
-	return;
+    /* maybe an outstanding thread is running */
+    if (a->acct_thread) {
+	if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
+	    paction_cancel(&a->acct_thread);
+	} else {
+	    Log(LG_AUTH, ("[%s] AUTH: Accounting thread is already running", 
+    		l->name));
+	    return;
+	}
     }
-  }
 
-  LinkUpdateStats(l);
-  if (type == AUTH_ACCT_STOP) {
-    Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
-      l->name, a->params.authname,
-      (unsigned long) (time(NULL) - l->last_open),
-      (unsigned long long)l->stats.recvOctets,
-      (unsigned long long)l->stats.xmitOctets));
-  }
-
-  if (type == AUTH_ACCT_START) {
-  
-    if (a->params.acct_update > 0)
-      updateInterval = a->params.acct_update;
-    else if (l->lcp.auth.conf.acct_update > 0)
-      updateInterval = l->lcp.auth.conf.acct_update;
-
-    if (updateInterval > 0) {
-	/* Save initial statistics. */
-	memcpy(&a->prev_stats, &l->stats, 
-	  sizeof(a->prev_stats));
-
-	/* Start accounting update timer. */
-	TimerInit(&a->acct_timer, "AuthAccountTimer",
-	  updateInterval * SECONDS, AuthAccountTimeout, l);
-	TimerStartRecurring(&a->acct_timer);
+    LinkUpdateStats(l);
+    if (type == AUTH_ACCT_STOP) {
+	Log(LG_AUTH, ("[%s] AUTH: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
+    	    l->name, a->params.authname,
+    	    (unsigned long) (time(NULL) - l->last_open),
+    	    (unsigned long long)l->stats.recvOctets,
+    	    (unsigned long long)l->stats.xmitOctets));
     }
-  }
+
+    if (type == AUTH_ACCT_START) {
+	u_int		updateInterval;
   
-  if (type == AUTH_ACCT_UPDATE) {
-    /*
-     * Suppress sending of accounting update, if byte threshold
-     * is configured, and delta since last update doesn't exceed it.
-     */
-    if (a->conf.acct_update_lim_recv > 0 ||
-      a->conf.acct_update_lim_xmit > 0) {
-	if ((l->stats.recvOctets - a->prev_stats.recvOctets <
-    	   a->conf.acct_update_lim_recv) &&
-    	  (l->stats.xmitOctets - a->prev_stats.xmitOctets <
-    	   a->conf.acct_update_lim_xmit)) {
-    	    Log(LG_AUTH, ("[%s] AUTH: Shouldn't send Interim-Update",
-    	      l->name));
-    	    return;
-        } else {
-	    /* Save current statistics. */
+        updateInterval = a->conf.acct_update;
+	if (a->params.acct_update > 0)
+    	    updateInterval = a->params.acct_update;
+
+	if (updateInterval > 0) {
+	    /* Save initial statistics. */
 	    memcpy(&a->prev_stats, &l->stats, 
-	      sizeof(a->prev_stats));
-        }
-    }
-  }
-    
-  if (type == AUTH_ACCT_STOP) {
-    /* Stop accounting update timer if running. */
-    TimerStop(&a->acct_timer);
-  }
-    
-  auth = AuthDataNew(l);
-  auth->acct_type = type;
+		sizeof(a->prev_stats));
 
-  if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
-    AuthAccountFinish, auth) == -1) {
-    Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
-      l->name, errno));
-    AuthDataDestroy(auth);
-  }
+	    /* Start accounting update timer. */
+	    TimerInit(&a->acct_timer, "AuthAccountTimer",
+		updateInterval * SECONDS, AuthAccountTimeout, l);
+	    TimerStartRecurring(&a->acct_timer);
+	}
+    }
+  
+    if (type == AUTH_ACCT_UPDATE) {
+	/*
+	* Suppress sending of accounting update, if byte threshold
+        * is configured, and delta since last update doesn't exceed it.
+        */
+	u_int	lim_recv, lim_xmit;
+
+	lim_recv = a->conf.acct_update_lim_recv;
+	if (a->params.acct_update_lim_recv > 0)
+	    lim_recv = a->params.acct_update_lim_recv;
+	lim_xmit = a->conf.acct_update_lim_xmit;
+	if (a->params.acct_update_lim_xmit > 0)
+	    lim_xmit = a->params.acct_update_lim_xmit;
+	if (lim_recv > 0 || lim_xmit > 0) {
+	    if ((l->stats.recvOctets - a->prev_stats.recvOctets < lim_recv) &&
+    		    (l->stats.xmitOctets - a->prev_stats.xmitOctets < lim_xmit)) {
+    		Log(LG_AUTH, ("[%s] AUTH: Shouldn't send Interim-Update", l->name));
+    		return;
+    	    } else {
+		/* Save current statistics. */
+		memcpy(&a->prev_stats, &l->stats, sizeof(a->prev_stats));
+    	    }
+	}
+    }
+    
+    if (type == AUTH_ACCT_STOP) {
+	/* Stop accounting update timer if running. */
+	TimerStop(&a->acct_timer);
+    }
+    
+    auth = AuthDataNew(l);
+    auth->acct_type = type;
+
+    if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
+	    AuthAccountFinish, auth) == -1) {
+	Log(LG_ERR, ("[%s] AUTH: Couldn't start Accounting-Thread %d", 
+    	    l->name, errno));
+	AuthDataDestroy(auth);
+    }
 
 }
 
@@ -2036,6 +2038,12 @@ AuthExternal(AuthData auth)
 
     } else if (strcmp(attr, "ACCT_INTERIM_INTERVAL") == 0) {
 	auth->params.acct_update = atoi(val);
+
+    } else if (strcmp(attr, "ACCT_INTERIM_LIM_RECV") == 0) {
+	auth->params.acct_update_lim_recv = atoi(val);
+
+    } else if (strcmp(attr, "ACCT_INTERIM_LIM_XMIT") == 0) {
+	auth->params.acct_update_lim_xmit = atoi(val);
 
     } else if (strcmp(attr, "FRAMED_MTU") == 0) {
 	auth->params.mtu = atoi(val);

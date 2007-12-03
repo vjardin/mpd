@@ -121,6 +121,8 @@
     u_int		session_timeout;	/* Session-Timeout */
     u_int		idle_timeout;		/* Idle-Timeout */
     u_int		acct_update;		/* interval for accouting updates */
+    u_int		acct_update_lim_recv;
+    u_int		acct_update_lim_xmit;
     char		*msdomain;		/* Microsoft domain */
     SLIST_HEAD(, ifaceroute) routes;
     u_short		mtu;			/* MTU */
@@ -159,9 +161,9 @@
     struct radiusconf	radius;		/* RADIUS configuration */
     char		authname[AUTH_MAX_AUTHNAME];	/* Configured username */
     char		password[AUTH_MAX_PASSWORD];	/* Configured password */
-    int			acct_update;
-    int			acct_update_lim_recv;
-    int			acct_update_lim_xmit;
+    u_int		acct_update;
+    u_int		acct_update_lim_recv;
+    u_int		acct_update_lim_xmit;
     int			timeout;	/* Authorization timeout in seconds */
     struct optinfo	options;	/* Configured options */
     char		extauth_script[AUTH_MAX_EXTCMD];/*  External auth script */

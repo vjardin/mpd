@@ -480,6 +480,8 @@ FRAMED_POOL			-	+	-	-
 SESSION_TIMEOUT			-	+	-	-
 IDLE_TIMEOUT			-	+	-	-
 ACCT_INTERIM_INTERVAL		-	+	-	-
+ACCT_INTERIM_LIM_RECV		-	+	-	-
+ACCT_INTERIM_LIM_XMIT		-	+	-	-
 REPLY_MESSAGE			-	+	-	-
 MS_CHAP_ERROR			-	+	-	-
 IFACE				-	-	+	-

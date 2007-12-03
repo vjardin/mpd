@@ -23,11 +23,8 @@
 	  </item>
 	  <item> 'set iface addrs' now able to set IPv6 addresses.
 	  </item>
-	</itemize>
-	</item>
-	<item> Changes:
-	<itemize>
-	  <item> Internal memory management rewritten.
+	  <item> ACCT_INTERIM_LIM_RECV and ACCT_INTERIM_LIM_XMIT
+		 attributes added to ext-auth.
 	  </item>
 	</itemize>
 	</item>
@@ -47,6 +44,8 @@
 		 Now 6 sockets per daemon used to communicate with netgraph
 		 instead of 4 sockets per link before. This gives significant
 		 performance benefit due to reduced pevent engine overhead.
+	  </item>
+	  <item> Internal memory management rewritten.
 	  </item>
 	</itemize>
 	</item>
