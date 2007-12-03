@@ -41,6 +41,15 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> Performance improvements:
+	<itemize>
+	  <item> Netgraph management completely rewritten.
+		 Now 6 sockets per daemon used to communicate with netgraph
+		 instead of 4 sockets per link before. This gives significant
+		 performance benefit due to reduced pevent engine overhead.
+	  </item>
+	</itemize>
+	</item>
     </itemize>
   </p>
   <p>
