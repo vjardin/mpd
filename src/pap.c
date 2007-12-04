@@ -120,8 +120,8 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   char			buf[32];
 
   /* Deal with packet */
-  Log(LG_AUTH, ("[%s] PAP: rec'd %s #%d",
-    l->name, PapCode(auth->code, buf, sizeof(buf)), auth->id));
+  Log(LG_AUTH, ("[%s] PAP: rec'd %s #%d len: %d",
+    l->name, PapCode(auth->code, buf, sizeof(buf)), auth->id, len));
   switch (auth->code) {
     case PAP_REQUEST:
       {

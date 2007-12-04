@@ -536,11 +536,11 @@ AuthOutput(Link l, int proto, u_int code, u_int id, const u_char *ptr,
   bp = mbcopyback(bp, MBLEN(bp), ptr, len);
 
   if (proto == PROTO_EAP) {
-    Log(LG_AUTH, ("[%s] %s: sending %s #%d type: %s, len: %d", l->name,
-      ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), id, EapType(eap_type), len));
+    Log(LG_AUTH, ("[%s] %s: sending %s #%d len: %d, type: %s", l->name,
+      ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), id, plen, EapType(eap_type)));
   } else {
     Log(LG_AUTH, ("[%s] %s: sending %s #%d len: %d", l->name,
-      ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), id, len));
+      ProtoName(proto), AuthCode(proto, code, buf, sizeof(buf)), id, plen));
   }
 
   /* Send it out */

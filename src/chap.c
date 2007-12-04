@@ -256,8 +256,8 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   char		buf[32];
   
   /* Deal with packet */
-  Log(LG_AUTH, ("[%s] CHAP: rec'd %s #%d",
-    l->name, ChapCode(auth->code, buf, sizeof(buf)), auth->id));
+  Log(LG_AUTH, ("[%s] CHAP: rec'd %s #%d len: %d",
+    l->name, ChapCode(auth->code, buf, sizeof(buf)), auth->id, len));
     
   chap->proto = auth->proto;
   

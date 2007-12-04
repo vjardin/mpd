@@ -288,8 +288,8 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
     type = pkt[0];
-    Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d type: %s, len: %d",
-      l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, EapType(type), len));
+    Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len: %d, type: %s",
+      l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, len, EapType(type)));
   } else {
     Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len: %d",
       l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, len));
@@ -516,11 +516,11 @@ EapRadiusSendMsg(void *ptr)
   char		buf[32];
 
   if (a->params.eapmsg_len > 4) {
-    Log(LG_AUTH, ("[%s] EAP: send %s #%d type: %s, len: %d ",
-      l->name, EapCode(f->code, buf, sizeof(buf)), f->id,
-      EapType(a->params.eapmsg[4]), htons(f->length)));
+    Log(LG_AUTH, ("[%s] EAP: send %s #%d len: %d, type: %s",
+      l->name, EapCode(f->code, buf, sizeof(buf)), f->id, htons(f->length),
+      EapType(a->params.eapmsg[4])));
   } else {
-    Log(LG_AUTH, ("[%s] EAP: send %s #%d len: %d ",
+    Log(LG_AUTH, ("[%s] EAP: send %s #%d len: %d",
       l->name, EapCode(f->code, buf, sizeof(buf)), f->id, htons(f->length)));
   } 
 
