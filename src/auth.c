@@ -1995,7 +1995,7 @@ AuthExternal(AuthData auth)
 	    j = 0;
 	    SLIST_FOREACH(r1, &auth->params.routes, next) {
 	      if (!u_rangecompare(&r->dest, &r1->dest)) {
-	        Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", auth->info.lnkname, __func__));
+	        Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
 	        j = 1;
 	      }
 	    };
@@ -2022,7 +2022,7 @@ AuthExternal(AuthData auth)
 	    j = 0;
 	    SLIST_FOREACH(r1, &auth->params.routes, next) {
 	      if (!u_rangecompare(&r->dest, &r1->dest)) {
-	        Log(LG_RADIUS, ("[%s] RADIUS: %s: Duplicate route", auth->info.lnkname, __func__));
+	        Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
 	        j = 1;
 	      }
 	    };
