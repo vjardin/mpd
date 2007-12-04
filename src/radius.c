@@ -386,8 +386,6 @@ RadiusAccount(AuthData auth)
 
   }
 
-  Log(LG_RADIUS2, ("[%s] RADIUS: Sending accounting data (Type: %d)",
-    auth->info.lnkname, auth->acct_type));
   RadiusSendRequest(auth);
 
 }
@@ -988,7 +986,7 @@ RadiusSendRequest(AuthData auth)
   struct timeval	tv;
   int 			fd, n;
 
-  Log(LG_RADIUS2, ("[%s] RADIUS: Send request: username: %s", 
+  Log(LG_RADIUS2, ("[%s] RADIUS: Send request for user '%s'", 
     auth->info.lnkname, auth->params.authname));
   n = rad_init_send_request(auth->radius.handle, &fd, &tv);
   if (n != 0) {
@@ -1024,7 +1022,7 @@ RadiusSendRequest(AuthData auth)
 	continue;
     }
 
-    Log(LG_RADIUS2, ("[%s] RADIUS: Sending request: username: %s", 
+    Log(LG_RADIUS2, ("[%s] RADIUS: Sending request for user '%s'", 
       auth->info.lnkname, auth->params.authname));
     n = rad_continue_send_request(auth->radius.handle, n, &fd, &tv);
     if (n != 0)
@@ -1037,24 +1035,24 @@ RadiusSendRequest(AuthData auth)
   switch (n) {
 
     case RAD_ACCESS_ACCEPT:
-      Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_ACCEPT for user %s", 
+      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_ACCEPT for user %s", 
         auth->info.lnkname, auth->params.authname));
       auth->status = AUTH_STATUS_SUCCESS;
       break;
 
     case RAD_ACCESS_CHALLENGE:
-      Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_CHALLENGE for user %s", 
+      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_CHALLENGE for user %s", 
         auth->info.lnkname, auth->params.authname));
       break;
 
     case RAD_ACCESS_REJECT:
-      Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCESS_REJECT for user %s", 
+      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_REJECT for user %s", 
         auth->info.lnkname, auth->params.authname));
       auth->status = AUTH_STATUS_FAIL;
       break;
 
     case RAD_ACCOUNTING_RESPONSE:
-      Log(LG_RADIUS, ("[%s] RADIUS: rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
+      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
         auth->info.lnkname, auth->params.authname));
       break;
 
@@ -1083,7 +1081,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   u_int32_t	vendor;
   char		*route, *acl, *acl1, *acl2, *acl3;
   char		*tmpval;
-  short		got_mppe_keys = FALSE;
   struct in_addr	ip;
   struct acl		**acls, *acls1;
   struct ifaceroute	*r, *r1;
@@ -1394,7 +1391,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 #if (!defined(__FreeBSD__) || __FreeBSD_version >= 503100)
               /* MPPE Keys MS-CHAPv2 and EAP-TLS */
 	      case RAD_MICROSOFT_MS_MPPE_RECV_KEY:
-		got_mppe_keys = TRUE;
 		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_MPPE_RECV_KEY",
 		  auth->info.lnkname));
 		tmpkey = rad_demangle_mppe_key(auth->radius.handle, data, len, &tmpkey_len);
@@ -1410,7 +1406,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		break;
 
 	      case RAD_MICROSOFT_MS_MPPE_SEND_KEY:
-		got_mppe_keys = TRUE;
 		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_MPPE_SEND_KEY",
 		  auth->info.lnkname));
 		tmpkey = rad_demangle_mppe_key(auth->radius.handle, data, len, &tmpkey_len);
@@ -1426,7 +1421,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
               /* MPPE Keys MS-CHAPv1 */
 	      case RAD_MICROSOFT_MS_CHAP_MPPE_KEYS:
-		got_mppe_keys = TRUE;
 		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_CHAP_MPPE_KEYS",
 		  auth->info.lnkname));
 
@@ -1607,53 +1601,57 @@ RadiusGetParams(AuthData auth, int eap_proxy)
     }
   }
 
-  /* sanity check, this happens when FreeRADIUS has no msoft-dictionary loaded */
-  if (auth->proto == PROTO_CHAP && cp->recv_alg == CHAP_ALG_MSOFTv2
-    && auth->mschapv2resp == NULL && auth->mschap_error == NULL) {
-    Log(LG_RADIUS, ("[%s] RADIUS: PANIC no MS-CHAPv2 response received!",
-      auth->info.lnkname));
-    return RAD_NACK;
-  }
-  
-  /* MPPE allowed or required, but no MPPE keys returned */
-  /* print warning, because MPPE doesen't work */
-  if (!got_mppe_keys && auth->params.msoft.policy != MPPE_POLICY_NONE) {
-    Log(LG_RADIUS, ("[%s] RADIUS: WARNING no MPPE-Keys received, MPPE will not work",
-      auth->info.lnkname));
-  }
+    if (auth->acct_type == 0) {
 
-  /* If no MPPE-Infos are returned by the RADIUS server, then allow all */
-  /* MSoft IAS sends no Infos if all MPPE-Types are enabled and if encryption is optional */
-  if (auth->params.msoft.policy == MPPE_POLICY_NONE &&
-      auth->params.msoft.types == MPPE_TYPE_0BIT &&
-      got_mppe_keys) {
-    auth->params.msoft.policy = MPPE_POLICY_ALLOWED;
-    auth->params.msoft.types = MPPE_TYPE_40BIT | MPPE_TYPE_128BIT | MPPE_TYPE_56BIT;
-    Log(LG_RADIUS, ("[%s] RADIUS: MPPE-Keys, but no MPPE-Infos received => allowing MPPE with all types",
-      auth->info.lnkname));
-  }
+	/* sanity check, this happens when FreeRADIUS has no msoft-dictionary loaded */
+	if (auth->proto == PROTO_CHAP && cp->recv_alg == CHAP_ALG_MSOFTv2
+		&& auth->mschapv2resp == NULL && auth->mschap_error == NULL) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: PANIC no MS-CHAPv2 response received!",
+    	    auth->info.lnkname));
+	    return RAD_NACK;
+	}
   
-    /* If Framed-IP-Address is present and Framed-Netmask != 32 add route */
-    if (auth->params.range_valid && auth->params.range.width == 32 &&
-	    auth->params.netmask != 0 && auth->params.netmask != 32) {
-	struct in_addr tmpmask;
-	widthtoin_addr(auth->params.netmask, &tmpmask);
-	r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
-	r->dest.addr = auth->params.range.addr;
-	r->dest.addr.u.ip4.s_addr &= tmpmask.s_addr;
-	r->dest.width = auth->params.netmask;
-	r->ok = 0;
-	j = 0;
-	SLIST_FOREACH(r1, &auth->params.routes, next) {
-	  if (!u_rangecompare(&r->dest, &r1->dest)) {
-	    Log(LG_RADIUS, ("[%s] RADIUS: Duplicate route", auth->info.lnkname));
-	    j = 1;
-	  }
-	};
-	if (j == 0) {
-	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
-	} else {
-	    Freee(r);
+	/* MPPE allowed or required, but no MPPE keys returned */
+	/* print warning, because MPPE doesen't work */
+	if (!(auth->params.msoft.has_keys || auth->params.msoft.has_nt_hash || auth->params.msoft.has_lm_hash) &&
+		auth->params.msoft.policy != MPPE_POLICY_NONE) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: WARNING no MPPE-Keys received, MPPE will not work",
+    		auth->info.lnkname));
+	}
+
+	/* If no MPPE-Infos are returned by the RADIUS server, then allow all */
+	/* MSoft IAS sends no Infos if all MPPE-Types are enabled and if encryption is optional */
+	if (auth->params.msoft.policy == MPPE_POLICY_NONE &&
+    	    auth->params.msoft.types == MPPE_TYPE_0BIT &&
+    	    (auth->params.msoft.has_keys || auth->params.msoft.has_nt_hash || auth->params.msoft.has_lm_hash)) {
+		auth->params.msoft.policy = MPPE_POLICY_ALLOWED;
+		auth->params.msoft.types = MPPE_TYPE_40BIT | MPPE_TYPE_128BIT | MPPE_TYPE_56BIT;
+		Log(LG_RADIUS, ("[%s] RADIUS: MPPE-Keys present, but no MPPE-Infos received => allowing MPPE with all types",
+    		    auth->info.lnkname));
+	}
+  
+	/* If Framed-IP-Address is present and Framed-Netmask != 32 add route */
+	if (auth->params.range_valid && auth->params.range.width == 32 &&
+		auth->params.netmask != 0 && auth->params.netmask != 32) {
+	    struct in_addr tmpmask;
+	    widthtoin_addr(auth->params.netmask, &tmpmask);
+	    r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
+	    r->dest.addr = auth->params.range.addr;
+	    r->dest.addr.u.ip4.s_addr &= tmpmask.s_addr;
+	    r->dest.width = auth->params.netmask;
+	    r->ok = 0;
+	    j = 0;
+	    SLIST_FOREACH(r1, &auth->params.routes, next) {
+		if (!u_rangecompare(&r->dest, &r1->dest)) {
+		    Log(LG_RADIUS, ("[%s] RADIUS: Duplicate route", auth->info.lnkname));
+		    j = 1;
+		}
+	    };
+	    if (j == 0) {
+		SLIST_INSERT_HEAD(&auth->params.routes, r, next);
+	    } else {
+		Freee(r);
+	    }
 	}
     }
   
