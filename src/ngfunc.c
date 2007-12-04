@@ -703,7 +703,7 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 		return (-1);
     	    if (strlen(av[0]) == 0 || strlen(av[0]) > 63)
 		Error("Bad netflow node name \"%s\"", av[0]);
-    	    strncpy(gNetflowNodeName,av[0],63);
+    	    strlcpy(gNetflowNodeName, av[0], sizeof(gNetflowNodeName));
     	    gNetflowNode=TRUE;
     	    gNetflowNodeShutdown=FALSE;
     	    break;

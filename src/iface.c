@@ -620,7 +620,7 @@ IfaceAllocACL(struct acl_pool ***ap, int start, char *ifname, int number)
     struct acl_pool **rp,*rp1;
 
     rp1 = Malloc(MB_IFACE, sizeof(struct acl_pool));
-    strncpy(rp1->ifname, ifname, IFNAMSIZ);
+    strlcpy(rp1->ifname, ifname, sizeof(rp1->ifname));
     rp1->acl_number = number;
 
     rp = *ap;
@@ -680,10 +680,10 @@ IFaceParseACL (char * src, char * ifname)
     int num,real_number;
     struct acl_pool *ap;
     
-    buf = Malloc(MB_IFACE, ACL_LEN+1);
-    buf1 = Malloc(MB_IFACE, ACL_LEN+1);
+    buf = Malloc(MB_IFACE, ACL_LEN);
+    buf1 = Malloc(MB_IFACE, ACL_LEN);
 
-    strncpy(buf,src,ACL_LEN);
+    strlcpy(buf, src, ACL_LEN);
     do {
         end = buf;
 	begin = strsep(&end, "%");
@@ -712,7 +712,7 @@ IFaceParseACL (char * src, char * ifname)
 		} else {
 		    snprintf(buf1, ACL_LEN, "%s%d", begin, real_number);
 		};
-		strncpy(buf, buf1, ACL_LEN);
+		strlcpy(buf, buf1, ACL_LEN);
 	    };
 	};
     } while (end != NULL);
@@ -1438,7 +1438,7 @@ IfaceSetMTU(Bund b, int mtu)
 
   /* Set MTU on interface */
   memset(&ifr, 0, sizeof(ifr));
-  strncpy(ifr.ifr_name, b->iface.ifname, sizeof(ifr.ifr_name));
+  strlcpy(ifr.ifr_name, b->iface.ifname, sizeof(ifr.ifr_name));
   ifr.ifr_mtu = mtu;
   Log(LG_IFACE2, ("[%s] IFACE: setting %s MTU to %d bytes",
     b->name, b->iface.ifname, mtu));
@@ -1465,7 +1465,7 @@ IfaceChangeFlags(Bund b, int clear, int set)
     }
 
     memset(&ifrq, '\0', sizeof(ifrq));
-    strncpy(ifrq.ifr_name, b->iface.ifname, sizeof(ifrq.ifr_name) - 1);
+    strlcpy(ifrq.ifr_name, b->iface.ifname, sizeof(ifrq.ifr_name));
     ifrq.ifr_name[sizeof(ifrq.ifr_name) - 1] = '\0';
     if (ioctl(s, SIOCGIFFLAGS, &ifrq) < 0) {
 	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCGIFFLAGS");
@@ -1534,7 +1534,7 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
     switch (self->addr.family) {
       case AF_INET:
 	memset(&ifra, '\0', sizeof(ifra));
-	strncpy(ifra.ifra_name, b->iface.ifname, sizeof(ifra.ifra_name) - 1);
+	strlcpy(ifra.ifra_name, b->iface.ifname, sizeof(ifra.ifra_name));
 
 	me4 = (struct sockaddr_in *)&ifra.ifra_addr;
 	memcpy(me4, &ssself, sizeof(*me4));
@@ -1559,7 +1559,7 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 
       case AF_INET6:
 	memset(&ifra6, '\0', sizeof(ifra6));
-	strncpy(ifra6.ifra_name, b->iface.ifname, sizeof(ifra6.ifra_name) - 1);
+	strlcpy(ifra6.ifra_name, b->iface.ifname, sizeof(ifra6.ifra_name));
 
 	memcpy(&ifra6.ifra_addr, &ssself, sizeof(ifra6.ifra_addr));
 	memcpy(&ifra6.ifra_prefixmask, &ssmsk, sizeof(ifra6.ifra_prefixmask));
@@ -2582,7 +2582,7 @@ IfaceSetupLimits(Bund b)
 		Log(LG_IFACE2, ("[%s] IFACE: limit %s#%d%s%s: '%s'",
         	    b->name, (dir?"out":"in"), l->number,
 		    ((l->name[0])?"#":""), l->name, l->rule));
-		strncpy(str, l->rule, sizeof(str));
+		strlcpy(str, l->rule, sizeof(str));
     		ac = ParseLine(str, av, ACL_MAX_PARAMS, 0);
 	        if (ac < 1 || ac >= ACL_MAX_PARAMS) {
 		    Log(LG_ERR, ("[%s] IFACE: incorrect limit: '%s'",

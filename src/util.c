@@ -1275,7 +1275,7 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
 
     /* Try simple call for the first IP on interface */
     if (ifname != NULL) {
-	strncpy(ifreq.ifr_name, ifname, sizeof(ifreq.ifr_name));
+	strlcpy(ifreq.ifr_name, ifname, sizeof(ifreq.ifr_name));
         if (ioctl(s, SIOCGIFADDR, &ifreq) < 0) {
 	    if (errno != ENXIO)
     		Perror("%s: ioctl(SIOCGIFADDR)", __FUNCTION__);
@@ -1311,7 +1311,7 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
 	    continue;
 
           /* Check that the interface is up; prefer non-p2p and non-loopback */
-          strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+          strlcpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
           if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
     	    continue;
           if ((ifreq.ifr_flags & IFF_UP) != IFF_UP)
@@ -1398,7 +1398,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 
       /* Save IP address and interface name */
       ina = ((struct sockaddr_in *)(void *)&ifr->ifr_addr)->sin_addr.s_addr;
-      strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+      strlcpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
       ifreq.ifr_addr = ifr->ifr_addr;
 
       /* Check that the interface is up, and not point-to-point or loopback */

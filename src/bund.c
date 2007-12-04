@@ -337,8 +337,7 @@ BundJoin(Link l)
     NgFuncSetConfig(b);
 
     /* copy msession_id to link */
-    strncpy(l->msession_id, b->msession_id,
-	sizeof(l->msession_id));
+    strlcpy(l->msession_id, b->msession_id, sizeof(l->msession_id));
 
     /* What to do when the first link comes up */
     if (b->n_up == 1) {
@@ -1731,7 +1730,7 @@ BundSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    if (ac > NG_PPP_MAX_LINKS)
 		return (-1);
     	    for (i = 0; i < ac; i++)
-		strncpy(b->conf.linkst[i], av[i], LINK_MAX_NAME);
+		strlcpy(b->conf.linkst[i], av[i], LINK_MAX_NAME);
     	    for (; i < NG_PPP_MAX_LINKS; i++)
 	        b->conf.linkst[i][0] = 0;
     	    break;

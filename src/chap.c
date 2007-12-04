@@ -351,7 +351,7 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	/* Get the corresponding secret */
 	if ((strcmp(auth->conf.authname, auth->params.authname) == 0) && 
 	    auth->conf.password[0] != 0) {
-		strncpy(password, auth->conf.password, sizeof(password));
+		strlcpy(password, auth->conf.password, sizeof(password));
 	} else if (AuthGetData(auth->params.authname, password, 
 	    sizeof(password), NULL, NULL) < 0) {
 		Log(LG_AUTH, (" Warning: no secret for \"%s\" found", 

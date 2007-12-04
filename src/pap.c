@@ -82,7 +82,7 @@ PapSendRequest(Link l)
     Log(LG_AUTH, ("[%s] PAP: using authname \"%s\"", 
 	l->name, l->lcp.auth.conf.authname));
     if (l->lcp.auth.conf.password[0] != 0) {
-	strncpy(password, l->lcp.auth.conf.password, sizeof(password));
+	strlcpy(password, l->lcp.auth.conf.password, sizeof(password));
     } else if (AuthGetData(l->lcp.auth.conf.authname, password, 
 	    sizeof(password), NULL, NULL) < 0) {
 	Log(LG_AUTH, (" Warning: no secret for \"%s\" found", 
