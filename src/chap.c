@@ -505,7 +505,7 @@ ChapInputFinish(Link l, AuthData auth)
     int		hash_value_size;
     char	ackMesg[128], *secret;
    
-    Log(LG_AUTH, ("[%s] CHAP: ChapInputFinish: status %s", 
+    Log(LG_AUTH, ("[%s] CHAP: Auth return status: %s", 
 	l->name, AuthStatusText(auth->status)));
     
     if (a->params.chap.recv_alg == CHAP_ALG_MSOFTv2 && 

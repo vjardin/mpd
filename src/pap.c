@@ -227,7 +227,7 @@ void PapInputFinish(Link l, AuthData auth)
   PapParams	pap = &a->params.pap;
   const char	*Mesg;
   
-  Log(LG_AUTH, ("[%s] PAP: PapInputFinish: status %s", 
+  Log(LG_AUTH, ("[%s] PAP: Auth return status: %s", 
     l->name, AuthStatusText(auth->status)));
 
   if (auth->status == AUTH_STATUS_FAIL)
