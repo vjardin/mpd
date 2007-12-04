@@ -288,10 +288,10 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
     type = pkt[0];
-    Log(LG_AUTH, ("[%s] EAP: rec'd %s Type %s #%d len:%d",
-      l->name, EapCode(auth->code, buf, sizeof(buf)), EapType(type), auth->id, len));
+    Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d type: %s, len: %d",
+      l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, EapType(type), len));
   } else {
-    Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len:%d",
+    Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len: %d",
       l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, len));
   }
   
@@ -412,6 +412,8 @@ EapRadiusProxy(Link l, AuthData auth, const u_char *pkt, u_short len)
   EapInfo	const eap = &a->eap;
   struct fsmheader	lh;
 
+  Log(LG_AUTH, ("[%s] EAP: Proxying packet to RADIUS", l->name));
+
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
     type = pkt[0];
@@ -420,13 +422,13 @@ EapRadiusProxy(Link l, AuthData auth, const u_char *pkt, u_short len)
   if (auth->code == EAP_RESPONSE && type == EAP_TYPE_IDENT) {
     TimerStop(&eap->identTimer);
     if (data_len >= AUTH_MAX_AUTHNAME) {
-      Log(LG_AUTH, ("[%s] EAP-RADIUS: Identity to big (%d), truncating",
+      Log(LG_AUTH, ("[%s] EAP: Identity to big (%d), truncating",
 	l->name, data_len));
         data_len = AUTH_MAX_AUTHNAME - 1;
     }
     memset(eap->identity, 0, sizeof(eap->identity));
     strncpy(eap->identity, (char *) data, data_len);
-    Log(LG_AUTH, ("[%s] EAP-RADIUS: Identity:%s", l->name, eap->identity));
+    Log(LG_AUTH, ("[%s] EAP: Identity: %s", l->name, eap->identity));
   }
 
   TimerStop(&eap->reqTimer);
@@ -463,14 +465,14 @@ EapRadiusProxyFinish(Link l, AuthData auth)
   Auth		const a = &l->lcp.auth;
   EapInfo	eap = &a->eap;
   
-  Log(LG_AUTH, ("[%s] EAP-RADIUS: RadiusEapProxyFinish: status %s", 
+  Log(LG_AUTH, ("[%s] EAP: RADIUS return status: %s", 
     l->name, AuthStatusText(auth->status)));
 
   /* this shouldn't happen normally, however be liberal */
   if (a->params.eapmsg == NULL) {
     struct fsmheader	lh;
 
-    Log(LG_AUTH, ("[%s] EAP-RADIUS: Warning, rec'd empty EAP-Message", 
+    Log(LG_AUTH, ("[%s] EAP: Warning, rec'd empty EAP-Message", 
       l->name));
     /* prepare packet */
     lh.code = auth->status == AUTH_STATUS_SUCCESS ? EAP_SUCCESS : EAP_FAILURE;
@@ -514,11 +516,11 @@ EapRadiusSendMsg(void *ptr)
   char		buf[32];
 
   if (a->params.eapmsg_len > 4) {
-    Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  Type %s #%d len:%d ",
-      l->name, EapCode(f->code, buf, sizeof(buf)), EapType(a->params.eapmsg[4]),
-      f->id, htons(f->length)));
+    Log(LG_AUTH, ("[%s] EAP: send %s #%d type: %s, len: %d ",
+      l->name, EapCode(f->code, buf, sizeof(buf)), f->id,
+      EapType(a->params.eapmsg[4]), htons(f->length)));
   } else {
-    Log(LG_AUTH, ("[%s] EAP-RADIUS: send  %s  #%d len:%d ",
+    Log(LG_AUTH, ("[%s] EAP: send %s #%d len: %d ",
       l->name, EapCode(f->code, buf, sizeof(buf)), f->id, htons(f->length)));
   } 
 
