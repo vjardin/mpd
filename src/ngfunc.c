@@ -486,6 +486,15 @@ NgFuncWritePppFrame(Bund b, int linkNum, int proto, Mbuf bp)
 	"[%s] xmit bypass frame link=%d proto=0x%04x",
 	b->name, (int16_t)linkNum, proto);
 
+    if ((linkNum == NG_PPP_BUNDLE_LINKNUM && b->n_up == 0) ||
+	(linkNum != NG_PPP_BUNDLE_LINKNUM &&
+	    (b->links[linkNum] == NULL ||
+	    b->links[linkNum]->state != PHYS_STATE_UP))) {
+	Log(LG_FRAME, ("[%s] Bundle: No links ready to send packet", b->name));
+	mbfree(bp);
+	return (-1);
+    }
+
     /* Write frame */
     return NgFuncWriteFrame(gLinksDsock, b->hook, b->name, bp);
 }
@@ -515,6 +524,12 @@ NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
     LogDumpBp(LG_FRAME, bp,
 	"[%s] xmit frame to link proto=0x%04x",
 	l->name, proto);
+
+    if (l->state != PHYS_STATE_UP) {
+	Log(LG_FRAME, ("[%s] Link: Not ready to send packet", l->name));
+	mbfree(bp);
+	return (-1);
+    }
 
     /* Write frame */
     return NgFuncWriteFrame(gLinksDsock, l->hook, l->name, bp);
