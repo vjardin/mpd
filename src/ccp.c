@@ -401,7 +401,7 @@ CcpNgDataEvent(int type, void *cookie)
 
 	bundname = ((struct sockaddr_ng *)&naddr)->sg_data;
 	if (strncmp(bundname, "c-", 2) && strncmp(bundname, "d-", 2)) {
-    	    Log(LG_ERR, ("CcpNgDataEvent: packet from unknown hook \"%s\"",
+    	    Log(LG_ERR, ("CCP: Packet from unknown hook \"%s\"",
     	        bundname));
 	    mbfree(bp);
     	    continue;
@@ -409,8 +409,8 @@ CcpNgDataEvent(int type, void *cookie)
 	bundname += 2;
 	id = strtol(bundname, &rest, 10);
 	if (rest[0] != 0 || !gBundles[id] || gBundles[id]->dead) {
-    	    Log(LG_ERR, ("CcpNgDataEvent: packet from unknown bundle %d \"%s\"",
-    		((struct sockaddr_ng *)&naddr)->sg_len, bundname));
+    	    Log(LG_ERR, ("CCP: Packet from unexisting bundle \"%s\"",
+    		bundname));
 	    mbfree(bp);
 	    continue;
 	}

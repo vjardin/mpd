@@ -830,7 +830,7 @@ LinkNgDataEvent(int type, void *cookie)
 	    name += 2;
 	    id = strtol(name, &rest, 10);
 	    if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
-    		Log(LG_ERR, ("LinkNgDataEvent: packet from unknown link \"%s\"",
+    		Log(LG_ERR, ("Link: packet from unexisting link \"%s\"",
     		    name));
 		mbfree(bp);
 		continue;
@@ -871,7 +871,7 @@ LinkNgDataEvent(int type, void *cookie)
 	    name += 2;
 	    id = strtol(name, &rest, 10);
 	    if (rest[0] != 0 || !gBundles[id] || gBundles[id]->dead) {
-    		Log(LG_ERR, ("LinkNgDataEvent: packet from unknown bundle \"%s\"",
+    		Log(LG_ERR, ("Link: Packet from unexisting bundle \"%s\"",
     		    name));
 		mbfree(bp);
 		continue;
@@ -949,7 +949,7 @@ LinkNgDataEvent(int type, void *cookie)
 
 	    break;
 	default:
-    	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
+    	    Log(LG_ERR, ("Link: Packet from unknown hook \"%s\"",
     	        name));
 	    mbfree(bp);
 	}
