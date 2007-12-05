@@ -326,7 +326,7 @@ DoExit(int code)
 
     /* Blow away all netgraph nodes */
     for (k = 0; k < gNumBundles; k++) {
-	if (((b = gBundles[k]) != NULL) && (!b->tmpl))
+	if ((b = gBundles[k]) != NULL)
     	    BundShutdown(b);
     }
 
