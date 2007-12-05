@@ -175,7 +175,7 @@ NgClose(Link l)
 
 fail:
     l->state = PHYS_STATE_DOWN;
-    PhysDown(l, 0, NULL);
+    PhysDown(l, STR_MANUALLY, NULL);
 }
 
 /*

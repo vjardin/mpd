@@ -381,7 +381,7 @@ PppoeClose(Link l)
 	if (l->state == PHYS_STATE_DOWN)
 		return;
 	PppoeDoClose(l);
-	PhysDown(l, 0, NULL);
+	PhysDown(l, STR_MANUALLY, NULL);
 }
 
 /*

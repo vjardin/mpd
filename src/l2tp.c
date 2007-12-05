@@ -634,7 +634,7 @@ L2tpClose(Link l)
     pi->callingnum[0]=0;
     pi->callednum[0]=0;
     l->state = PHYS_STATE_DOWN;
-    PhysDown(l, 0, NULL);
+    PhysDown(l, STR_MANUALLY, NULL);
 }
 
 /*

@@ -322,7 +322,7 @@ ModemClose(Link l)
 	return;
     ModemDoClose(l, FALSE);
     l->state = PHYS_STATE_DOWN;
-    PhysDown(l, 0, NULL);
+    PhysDown(l, STR_MANUALLY, NULL);
 }
 
 static void

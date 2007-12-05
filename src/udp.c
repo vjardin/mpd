@@ -324,7 +324,7 @@ UdpClose(Link l)
 	l->state = PHYS_STATE_DOWN;
 	u_addrclear(&pi->peer_addr);
 	pi->peer_port=0;
-	PhysDown(l, 0, NULL);
+	PhysDown(l, STR_MANUALLY, NULL);
     }
 }
 
