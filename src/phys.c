@@ -113,6 +113,9 @@ PhysInst(Link l, Link lt)
 int
 PhysOpenCmd(Context ctx)
 {
+    if (ctx->lnk->tmpl)
+	Error("impossible to open template");
+    RecordLinkUpDownReason(NULL, ctx->lnk, 1, STR_MANUALLY, NULL);
     PhysOpen(ctx->lnk);
     return (0);
 }
@@ -135,6 +138,9 @@ PhysOpen(Link l)
 int
 PhysCloseCmd(Context ctx)
 {
+    if (ctx->lnk->tmpl)
+	Error("impossible to close template");
+    RecordLinkUpDownReason(NULL, ctx->lnk, 0, STR_MANUALLY, NULL);
     PhysClose(ctx->lnk);
     return (0);
 }
