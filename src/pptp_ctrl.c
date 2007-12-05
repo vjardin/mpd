@@ -562,15 +562,15 @@ PptpCtrlListen(struct u_addr *ip, in_port_t port)
         } else {
 	    gPptpLis[k] = NULL;
 	    Freee(l);
-    	    Log(LG_ERR, ("can't get PPTP listening socket"));
+    	    Log(LG_ERR, ("PPTP: can't get listening socket"));
     	    return(NULL);
 	}
     } else {
 	EventRegister(&l->event, EVENT_READ,
     	    l->sock, EVENT_RECURRING, PptpCtrlListenEvent, l);
     }
-    Log(LG_PHYS2, ("local IP address for PPTP is %s", 
-	u_addrtoa(ip, buf, sizeof(buf))));
+    Log(LG_PHYS, ("PPTP: waiting for connection on %s %u",
+	u_addrtoa(&l->self_addr, buf, sizeof(buf)), l->self_port));
     return(l);
 }
 
@@ -584,6 +584,7 @@ void
 PptpCtrlUnListen(void *listener)
 {
     PptpLis	l = (PptpLis)listener;
+    char	buf[64];
     int		k;
 
     assert(l);
@@ -591,6 +592,9 @@ PptpCtrlUnListen(void *listener)
     l->ref--;
     if (l->ref > 0)
 	return;
+
+    Log(LG_PHYS, ("PPTP: stop waiting for connection on %s %u",
+	u_addrtoa(&l->self_addr, buf, sizeof(buf)), l->self_port));
 
     for (k = 0; k < gNumPptpLis && gPptpLis[k] != l; k++);
     assert(k != gNumPptpLis);

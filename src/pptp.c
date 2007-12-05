@@ -1013,15 +1013,10 @@ PptpListenUpdate(Link l)
 
     if (pi->listener == NULL) {
 	if (Enabled(&l->conf.options, LINK_CONF_INCOMING)) {
-	    char	buf[64];
-
 	    /* Set up listening for incoming connections */
 	    if ((pi->listener = 
 		PptpCtrlListen(&pi->conf.self_addr, pi->conf.self_port))
-		    != NULL) {
-		Log(LG_PHYS, ("PPTP: waiting for connection on %s",
-		    u_addrtoa(&pi->conf.self_addr, buf, sizeof(buf))));
-	    } else {
+		    == NULL) {
 		Log(LG_ERR, ("PPTP: Error, can't listen for connection!"));
 	    }
 	}
