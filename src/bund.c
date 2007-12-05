@@ -475,7 +475,7 @@ BundMsg(int type, void *arg)
 	UNREF(b);
 	return;
     }
-    Log(LG_BUND, ("[%s] bundle: %s event in state %s",
+    Log(LG_BUND, ("[%s] Bundle: %s event in state %s",
 	b->name, MsgName(type), b->open ? "OPENED" : "CLOSED"));
     TimerStop(&b->reOpenTimer);
     switch (type) {
@@ -832,7 +832,7 @@ BundReasses(Bund b)
   /* Update system interface parameters */
   BundUpdateParams(b);
 
-  Log(LG_BUND, ("[%s] Bundle up: %d link%s, total bandwidth %d bps",
+  Log(LG_BUND, ("[%s] Bundle: Status update: up %d link%s, total bandwidth %d bps",
     b->name, b->n_up, b->n_up == 1 ? "" : "s", bm->total_bw));
 
 }
@@ -1641,7 +1641,7 @@ BundNgInit(Bund b)
     }
     newIface = 1;
     b->iface.ifindex = if_nametoindex(b->iface.ifname);
-    Log(LG_BUND|LG_IFACE, ("[%s] using interface %s",
+    Log(LG_BUND|LG_IFACE, ("[%s] Bundle: Interface %s created",
 	b->name, b->iface.ifname));
  
     /* Create new PPP node */

@@ -873,7 +873,7 @@ AuthAccountStart(Link l, int type)
 
     if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
 	    AuthAccountFinish, auth) == -1) {
-	Log(LG_ERR, ("[%s] ACCT: Couldn't start Accounting-Thread %d", 
+	Log(LG_ERR, ("[%s] ACCT: Couldn't start thread: %d", 
     	    l->name, errno));
 	AuthDataDestroy(auth);
     }
@@ -909,7 +909,7 @@ AuthAccount(void *arg)
 {
     AuthData	const auth = (AuthData)arg;
   
-    Log(LG_AUTH, ("[%s] ACCT: Accounting-Thread started", auth->info.lnkname));
+    Log(LG_AUTH, ("[%s] ACCT: Thread started", auth->info.lnkname));
   
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
 	RadiusAccount(auth);
@@ -937,10 +937,10 @@ AuthAccountFinish(void *arg, int was_canceled)
     Link 		l;
 
     if (was_canceled) {
-	Log(LG_AUTH, ("[%s] ACCT: Accounting-Thread was canceled", 
+	Log(LG_AUTH, ("[%s] ACCT: Thread was canceled", 
     	    auth->info.lnkname));
     } else {
-	Log(LG_AUTH, ("[%s] ACCT: Accounting-Thread finished normally", 
+	Log(LG_AUTH, ("[%s] ACCT: Thread finished normally", 
 	    auth->info.lnkname));
     }
     
@@ -1067,7 +1067,7 @@ AuthAsyncStart(Link l, AuthData auth)
 
   if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
     AuthAsyncFinish, auth) == -1) {
-    Log(LG_ERR, ("[%s] AUTH: Couldn't start Auth-Thread %d", 
+    Log(LG_ERR, ("[%s] AUTH: Couldn't start thread: %d", 
       l->name, errno));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
@@ -1087,7 +1087,7 @@ AuthAsync(void *arg)
 {
   AuthData	const auth = (AuthData)arg;
 
-  Log(LG_AUTH, ("[%s] AUTH: Auth-Thread started", auth->info.lnkname));
+  Log(LG_AUTH, ("[%s] AUTH: Thread started", auth->info.lnkname));
 
   if (Enabled(&auth->conf.options, AUTH_CONF_EXT_AUTH)) {
     auth->params.authentic = AUTH_CONF_EXT_AUTH;
@@ -1175,7 +1175,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
     Link	l;
 
     if (was_canceled)
-	Log(LG_AUTH, ("[%s] AUTH: Auth-Thread was canceled", auth->info.lnkname));
+	Log(LG_AUTH, ("[%s] AUTH: Thread was canceled", auth->info.lnkname));
 
     /* cleanup */
     RadiusClose(auth);
@@ -1191,7 +1191,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
 	return;
     }    
 
-    Log(LG_AUTH, ("[%s] AUTH: Auth-Thread finished normally", l->name));
+    Log(LG_AUTH, ("[%s] AUTH: Thread finished normally", l->name));
 
     /* Replace modified data */
     authparamsDestroy(&l->lcp.auth.params);
@@ -1212,8 +1212,8 @@ AuthInternal(AuthData auth)
     if (AuthGetData(auth->params.authname, auth->params.password, 
 	    sizeof(auth->params.password), &auth->params.range, 
 	    &auth->params.range_valid) < 0) {
-	Log(LG_AUTH, ("AUTH: User \"%s\" not found in secret file", 
-	    auth->params.authname));
+	Log(LG_AUTH, ("[%s] AUTH: User \"%s\" not found in secret file", 
+	    auth->info.lnkname, auth->params.authname));
 	auth->status = AUTH_STATUS_FAIL;
 	auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
 	return;
@@ -1245,9 +1245,11 @@ AuthSystem(AuthData auth)
     err=errno;
     GIANT_MUTEX_UNLOCK(); /* We must release lock before Log() */
     if (err)
-      Log(LG_ERR, ("AUTH: Error retrieving passwd %s", strerror(errno)));
+      Log(LG_ERR, ("[%s] AUTH: Error retrieving passwd: %s",
+        auth->info.lnkname, strerror(errno)));
     else
-      Log(LG_AUTH, ("AUTH: User \"%s\" not found in the systems database", auth->params.authname));
+      Log(LG_AUTH, ("[%s] AUTH: User \"%s\" not found in the systems database",
+        auth->info.lnkname, auth->params.authname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     return;
@@ -1255,8 +1257,8 @@ AuthSystem(AuthData auth)
   memcpy(&pwc,pw,sizeof(struct passwd)); /* we must make copy before release lock */
   GIANT_MUTEX_UNLOCK();
   
-  Log(LG_AUTH, ("AUTH: Found user %s Uid:%d Gid:%d Fmt:%*.*s", pwc.pw_name, 
-    pwc.pw_uid, pwc.pw_gid, 3, 3, pwc.pw_passwd));
+  Log(LG_AUTH, ("[%s] AUTH: Found user %s Uid:%d Gid:%d Fmt:%*.*s",
+    auth->info.lnkname, pwc.pw_name, pwc.pw_uid, pwc.pw_gid, 3, 3, pwc.pw_passwd));
 
   if (auth->proto == PROTO_PAP) {
     /* protect non-ts crypt() */
