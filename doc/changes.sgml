@@ -36,6 +36,8 @@
 	  </item>
 	  <item> Fixed 'create link ' command syntax check.
 	  </item>
+	  <item> Fixed redial delay.
+	  </item>
 	  <item> Many small tunings and fixes.
 	  </item>
 	</itemize>
