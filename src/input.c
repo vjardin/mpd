@@ -180,19 +180,19 @@ InputLinkCheck(Link l, int proto)
   /* Check link LCP state */
   switch (l->lcp.phase) {
     case PHASE_DEAD:
-      Log(LG_ERR, ("[%s] rec'd proto %s while dead",
+      Log(LG_LINK, ("[%s] rec'd proto %s while dead",
 	l->name, ProtoName(proto)));
       return(FALSE);
     case PHASE_ESTABLISH:
       if (proto != PROTO_LCP) {
-	Log(LG_ERR, ("[%s] rec'd proto %s during establishment phase",
+	Log(LG_LINK, ("[%s] rec'd proto %s during establishment phase",
 	  l->name, ProtoName(proto)));
 	return(FALSE);
       }
       break;
     case PHASE_AUTHENTICATE:
       if (!PROT_LINK_LAYER(proto)) {
-	Log(LG_ERR, ("[%s] rec'd proto %s during authenticate phase",
+	Log(LG_LINK, ("[%s] rec'd proto %s during authenticate phase",
 	  l->name, ProtoName(proto)));
 	return(FALSE);
       }
@@ -201,7 +201,7 @@ InputLinkCheck(Link l, int proto)
       break;
     case PHASE_TERMINATE:
       if (proto != PROTO_LCP) {
-	Log(LG_ERR, ("[%s] rec'd proto %s during terminate phase",
+	Log(LG_LINK, ("[%s] rec'd proto %s during terminate phase",
 	  l->name, ProtoName(proto)));
 	return(FALSE);
       }
