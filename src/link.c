@@ -1136,13 +1136,13 @@ LinkMatchAction(Link l, int stage, char *login)
 
     a = SLIST_FIRST(&l->actions);
     if (!a) {
-	Log(LG_LINK, ("[%s] No link actions defined", l->name));
+	Log(LG_LINK, ("[%s] Link: No actions defined", l->name));
 	return (NULL);
     }
     if (stage == 1) {
 	if (SLIST_NEXT(a, next) == NULL &&
 	  a->action == LINK_ACTION_FORWARD && !a->regex[0]) {
-	    Log(LG_LINK, ("[%s] Matched link action 'forward \"%s\"'",
+	    Log(LG_LINK, ("[%s] Link: Matched action 'forward \"%s\"'",
 		l->name, a->arg));
 	    return (a->arg);
 	}
@@ -1155,7 +1155,7 @@ LinkMatchAction(Link l, int stage, char *login)
     if (a) {
 	if ((stage == 2 && a->action == LINK_ACTION_FORWARD) ||
 	    (stage == 3 && a->action == LINK_ACTION_BUNDLE)) {
-	    Log(LG_LINK, ("[%s] Matched link action '%s \"%s\" \"%s\"'",
+	    Log(LG_LINK, ("[%s] Link: Matched action '%s \"%s\" \"%s\"'",
 		l->name, (a->action == LINK_ACTION_FORWARD)?"forward":"bundle",
 		a->arg, a->regex));
 	    return (a->arg);
