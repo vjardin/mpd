@@ -289,6 +289,13 @@ LinkReopenTimeout(void *arg)
 {
     Link	const l = (Link)arg;
 
+    if (gShutdownInProgress) {
+	LcpClose(l);
+	return;
+    }
+
+    Log(LG_LINK, ("[%s] Link: reconnection attempt %d",
+	l->name, l->num_redial));
     RecordLinkUpDownReason(NULL, l, 1, STR_REDIAL, NULL);
     PhysOpen(l);
 }
