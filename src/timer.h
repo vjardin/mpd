@@ -51,6 +51,7 @@
 	    TimerStop2(t, __FILE__, __LINE__)
   extern void	TimerStop2(PppTimer t, const char *file, int line);
   extern int	TimerRemain(PppTimer t);
+  extern int	TimerStarted(PppTimer t);
 
 #endif
 

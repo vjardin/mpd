@@ -650,7 +650,8 @@ LcpLayerStart(Fsm fp)
     Link	l = (Link)fp->arg;
   
     LinkNgInit(l);
-    PhysOpen(l);
+    if (!TimerStarted(&l->openTimer))
+	PhysOpen(l);
 }
 
 static void

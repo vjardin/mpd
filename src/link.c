@@ -260,18 +260,18 @@ LinkDown(Link l)
 	    LcpClose(l);
             LcpDown(l);
 	} else {
-	    int delay;
+	    int delay = 1 + ((random() ^ l->id ^ gPid) & 3);
 
-    	    LcpDown(l);
-
-	    l->num_redial++;
-	    delay = 1 + ((random() ^ l->id ^ gPid) & 3);
-	    Log(LG_LINK, ("[%s] Link: reconnection attempt %d in %d seconds",
-	      l->name, l->num_redial, delay));
 	    TimerStop(&l->openTimer);
 	    TimerInit(&l->openTimer, "PhysOpen",
 	        delay * SECONDS, LinkReopenTimeout, l);
 	    TimerStart(&l->openTimer);
+
+    	    LcpDown(l);
+
+	    l->num_redial++;
+	    Log(LG_LINK, ("[%s] Link: reconnection attempt %d in %d seconds",
+	      l->name, l->num_redial, delay));
 	}
     } else {
 	if (!l->stay)

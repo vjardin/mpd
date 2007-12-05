@@ -111,3 +111,15 @@ TimerRemain(PppTimer t)
   return(EventTimerRemain(&t->event));
 }
 
+/*
+ * TimerStarted()
+ *
+ * Return Timer status.
+ */
+
+int
+TimerStarted(PppTimer t)
+{
+  return (EventIsRegistered(&t->event));
+}
+
