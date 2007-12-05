@@ -426,6 +426,7 @@ AuthInput(Link l, int proto, Mbuf bp)
   int			len;
   struct fsmheader	fsmh;
   u_char		*pkt;
+  char			buf[32];
 
   /* Sanity check */
   if (l->lcp.phase != PHASE_AUTHENTICATE && l->lcp.phase != PHASE_NETWORK) {
@@ -455,9 +456,9 @@ AuthInput(Link l, int proto, Mbuf bp)
   auth->proto = proto;
 
   bp = mbread(bp, &fsmh, sizeof(fsmh));
-  len -= sizeof(fsmh);
   if (len > ntohs(fsmh.length))
     len = ntohs(fsmh.length);
+  len -= sizeof(fsmh);
 
   if (bp == NULL && proto != PROTO_EAP && proto != PROTO_CHAP)
   {
@@ -478,6 +479,16 @@ AuthInput(Link l, int proto, Mbuf bp)
   }
 
   pkt = MBDATA(bp);
+
+  if (proto == PROTO_EAP && bp) {
+    Log(LG_AUTH, ("[%s] %s: rec'd %s #%d len: %d, type: %s", l->name,
+      ProtoName(proto), AuthCode(proto, fsmh.code, buf, sizeof(buf)), fsmh.id,
+        ntohs(fsmh.length), EapType(pkt[0])));
+  } else {
+    Log(LG_AUTH, ("[%s] %s: rec'd %s #%d len: %d", l->name,
+      ProtoName(proto), AuthCode(proto, fsmh.code, buf, sizeof(buf)), fsmh.id,
+        ntohs(fsmh.length)));
+  }
 
   auth->id = fsmh.id;
   auth->code = fsmh.code;

@@ -283,16 +283,10 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   ChapInfo	const chap = &a->chap;
   int		data_len = len - 1, i, acc_type;
   u_char	*data = NULL, type = 0;
-  char		buf[32];
   
   if (pkt != NULL) {
     data = data_len > 0 ? (u_char *) &pkt[1] : NULL;
     type = pkt[0];
-    Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len: %d, type: %s",
-      l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, len, EapType(type)));
-  } else {
-    Log(LG_AUTH, ("[%s] EAP: rec'd %s #%d len: %d",
-      l->name, EapCode(auth->code, buf, sizeof(buf)), auth->id, len));
   }
   
   if (Enabled(&eap->conf.options, EAP_CONF_RADIUS))
