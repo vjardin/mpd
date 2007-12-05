@@ -606,7 +606,7 @@ BundCloseLinks(Bund b)
 static void
 BundCloseLink(Link l)
 {
-    Log(LG_BUND, ("[%s] closing link \"%s\"...", l->bund->name, l->name));
+    Log(LG_BUND, ("[%s] Bundle: closing link \"%s\"...", l->bund->name, l->name));
     LinkClose(l);
 }
 
@@ -655,7 +655,7 @@ BundNcpsFinish(Bund b, int proto)
 {
     b->ncpstarted &= (~((1<<proto)>>1));
     if (!b->ncpstarted) {
-	Log(LG_BUND, ("[%s] No NCPs left. Closing links...", b->name));
+	Log(LG_BUND, ("[%s] Bundle: No NCPs left. Closing links...", b->name));
 	RecordLinkUpDownReason(b, NULL, 0, STR_PROTO_ERR, NULL);
 	BundCloseLinks(b); /* We have nothing to live for */
     }
@@ -1216,7 +1216,7 @@ BundShutdown(Bund b)
     Link	l;
     int		k;
 
-    Log(LG_BUND, ("[%s] Bundle shutdown", b->name));
+    Log(LG_BUND, ("[%s] Bundle: Shutdown", b->name));
     for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
 	if ((l = b->links[k]) != NULL)
 	    if (!l->stay)
@@ -1601,7 +1601,7 @@ cont:
     while (k >= 0 && (!b->links[k] || !OPEN_STATE(b->links[k]->lcp.fsm.state)))
 	k--;
     assert(k >= 0);
-    Log(LG_BUND, ("[%s] closing link %s due to reduced demand",
+    Log(LG_BUND, ("[%s] Bundle: closing link %s due to reduced demand",
       b->name, b->links[k]->name));
     b->bm.last_close = now;
     RecordLinkUpDownReason(NULL, b->links[k], 0, STR_PORT_UNNEEDED, NULL);

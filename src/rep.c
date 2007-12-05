@@ -45,13 +45,13 @@ RepIncoming(Link l)
     struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
     char	buf[64];
     
-    Log(LG_REP, ("[%s] REP: INCOMING event from %s (0)",
+    Log(LG_REP, ("[%s] Rep: INCOMING event from %s (0)",
 	r->name, l->name));
 	
     if (r->csock <= 0) {
 	/* Create a new netgraph node to control TCP ksocket node. */
 	if (NgMkSockNode(NULL, &r->csock, NULL) < 0) {
-    	    Log(LG_ERR, ("[%s] REP: can't create control socket: %s",
+    	    Log(LG_ERR, ("[%s] Rep: can't create control socket: %s",
     		r->name, strerror(errno)));
     	    PhysClose(l);
 	    return;
@@ -64,7 +64,7 @@ RepIncoming(Link l)
     snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(r->csock, ".:", NGM_GENERIC_COOKIE,
         NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-    	Log(LG_ERR, ("[%s] REP: can't attach %s %s node: %s",
+    	Log(LG_ERR, ("[%s] Rep: can't attach %s %s node: %s",
     	    l->name, NG_TEE_NODE_TYPE, mkp.ourhook, strerror(errno)));
 	close(r->csock);
     	PhysClose(l);
@@ -98,7 +98,7 @@ RepUp(Link l)
     Rep r = l->rep;
     int n = (r->links[0] == l)?0:1;
     
-    Log(LG_REP, ("[%s] REP: UP event from %s (%d)",
+    Log(LG_REP, ("[%s] Rep: UP event from %s (%d)",
 	r->name, l->name, n));
 
     r->p_up |= (1 << n);
@@ -127,7 +127,7 @@ RepDown(Link l)
     Rep r = l->rep;
     int n = (r->links[0] == l)?0:1;
 
-    Log(LG_REP, ("[%s] REP: DOWN event from %s (%d)",
+    Log(LG_REP, ("[%s] Rep: DOWN event from %s (%d)",
 	r->name, l->name, n));
 
     r->p_up &= ~(1 << n);
@@ -180,7 +180,7 @@ RepSetAccm(Link l, u_int32_t xmit, u_int32_t recv) {
     Rep r = l->rep;
     int n = (r->links[0] == l)?0:1;
     
-    Log(LG_REP, ("[%s] REP: SetAccm(0x%08x, 0x%08x) from %s (%d)",
+    Log(LG_REP, ("[%s] Rep: SetAccm(0x%08x, 0x%08x) from %s (%d)",
 	r->name, xmit, recv, l->name, n));
 
     if (r->links[1-n])
@@ -311,7 +311,7 @@ RepShutdown(Rep r)
 
     gReps[r->id] = NULL;
 
-    Log(LG_REP, ("[%s] Repeater shutdown", r->name));
+    Log(LG_REP, ("[%s] Rep: Shutdown", r->name));
     for (k = 0; k < 2; k++) {
 	Link	l;
 	if ((l = r->links[k]) != NULL)

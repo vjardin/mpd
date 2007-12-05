@@ -231,10 +231,10 @@ LinkClose(Link l)
 void
 LinkUp(Link l)
 {
-    Log(LG_LINK, ("[%s] link: UP event", l->name));
+    Log(LG_LINK, ("[%s] Link: UP event", l->name));
 
     l->originate = PhysGetOriginate(l);
-    Log(LG_LINK, ("[%s] link: origination is %s",
+    Log(LG_LINK, ("[%s] Link: origination is %s",
 	l->name, LINK_ORIGINATION(l->originate)));
     LcpUp(l);
 }
@@ -246,13 +246,13 @@ LinkUp(Link l)
 void
 LinkDown(Link l)
 {
-    Log(LG_LINK, ("[%s] link: DOWN event", l->name));
+    Log(LG_LINK, ("[%s] Link: DOWN event", l->name));
 
     if (OPEN_STATE(l->lcp.fsm.state)) {
 	if (((l->conf.max_redial != 0) && (l->num_redial >= l->conf.max_redial)) ||
 	    gShutdownInProgress) {
 	    if (l->conf.max_redial >= 0) {
-		Log(LG_LINK, ("[%s] link: giving up after %d reconnection attempts",
+		Log(LG_LINK, ("[%s] Link: giving up after %d reconnection attempts",
 		  l->name, l->num_redial));
 	    }
 	    if (!l->stay)
@@ -266,7 +266,7 @@ LinkDown(Link l)
 
 	    l->num_redial++;
 	    delay = 1 + ((random() ^ l->id ^ gPid) & 3);
-	    Log(LG_LINK, ("[%s] link: reconnection attempt %d in %d seconds",
+	    Log(LG_LINK, ("[%s] Link: reconnection attempt %d in %d seconds",
 	      l->name, l->num_redial, delay));
 	    TimerStop(&l->openTimer);
 	    TimerInit(&l->openTimer, "PhysOpen",
@@ -308,7 +308,7 @@ LinkMsg(int type, void *arg)
 	UNREF(l);
 	return;
     }
-    Log(LG_LINK, ("[%s] link: %s event", l->name, MsgName(type)));
+    Log(LG_LINK, ("[%s] Link: %s event", l->name, MsgName(type)));
     switch (type) {
 	case MSG_OPEN:
     	    l->num_redial = 0;
@@ -576,6 +576,8 @@ void
 LinkShutdown(Link l)
 {
     struct linkaction	*a;
+
+    Log(LG_LINK, ("[%s] Link: Shutdown", l->name));
 
     /* Late divorce for DoD case */
     if (l->bund) {
