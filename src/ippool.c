@@ -16,7 +16,7 @@ enum {
 
 struct ippool_rec {
     struct in_addr	ip;
-    time_t		until;
+    int			used;
 };
 
 struct ippool {
@@ -54,7 +54,6 @@ IPPoolInit(void)
 int IPPoolGet(char *pool, struct u_addr *ip)
 {
     IPPool	p;
-    time_t	now = time(NULL);
     int		i;
 
     MUTEX_LOCK(gIPPoolMutex);
@@ -68,8 +67,8 @@ int IPPoolGet(char *pool, struct u_addr *ip)
     }
     i = 0;
     while (i < p->size) {
-	if (p->pool[i].until < now) {
-	    p->pool[i].until = now + 30;
+	if (!p->pool[i].used) {
+	    p->pool[i].used = 1;
 	    in_addrtou_addr(&p->pool[i].ip, ip);
 	    MUTEX_UNLOCK(gIPPoolMutex);
 	    return (0);
@@ -80,31 +79,6 @@ int IPPoolGet(char *pool, struct u_addr *ip)
     return (-1);
 }
 
-void IPPoolReserve(char *pool, struct u_addr *ip) {
-    IPPool	p;
-    time_t	now = time(NULL);
-    int		i;
-
-    MUTEX_LOCK(gIPPoolMutex);
-    SLIST_FOREACH(p, &gIPPools, next) {
-	if (strcmp(p->name, pool) == 0)
-	    break;
-    }
-    if (!p) {
-	MUTEX_UNLOCK(gIPPoolMutex);
-	return;
-    }
-    i = 0;
-    while (i < p->size) {
-        if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
-    	    p->pool[i].until = now + 3600*24*365*10;
-	    MUTEX_UNLOCK(gIPPoolMutex);
-	    return;
-	}
-	i++;
-    }
-    MUTEX_UNLOCK(gIPPoolMutex);
-}
 void IPPoolFree(char *pool, struct u_addr *ip) {
     IPPool	p;
     int		i;
@@ -121,7 +95,7 @@ void IPPoolFree(char *pool, struct u_addr *ip) {
     i = 0;
     while (i < p->size) {
         if (p->pool[i].ip.s_addr == ip->u.ip4.s_addr) {
-    	    p->pool[i].until = 0;
+    	    p->pool[i].used = 0;
 	    MUTEX_UNLOCK(gIPPoolMutex);
 	    return;
 	}
@@ -191,7 +165,6 @@ int
 IPPoolStat(Context ctx, int ac, char *av[], void *arg)
 {
     IPPool 	p;
-    time_t	now = time(NULL);
 
     Printf("Available IP pools:\r\n");
     MUTEX_LOCK(gIPPoolMutex);
@@ -202,7 +175,7 @@ IPPoolStat(Context ctx, int ac, char *av[], void *arg)
 	for (i = 0; i < p->size; i++) {
 	    if (p->pool[i].ip.s_addr) {
 		total++;
-		if (p->pool[i].until > now)
+		if (p->pool[i].used)
 		    used++;
 	    }
 	}

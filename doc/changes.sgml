@@ -6,6 +6,16 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.0b4:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Rewritten ippool to avoid races on IPCP renegotiation.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
     Changes since version 5.0b3:
     <itemize>
 	<item> New features:

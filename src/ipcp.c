@@ -359,8 +359,18 @@ IpcpUnConfigure(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
     IpcpState	const ipcp = &b->ipcp;
-
-    ipcp->ippool_used = 0;
+  
+    if (b->params.ippool_used) {
+	struct u_addr ip;
+	in_addrtou_addr(&ipcp->peer_addr, &ip);
+	IPPoolFree(b->params.ippool, &ip);
+	b->params.ippool_used = 0;
+    } else if (ipcp->ippool_used) {
+	struct u_addr ip;
+	in_addrtou_addr(&ipcp->peer_addr, &ip);
+	IPPoolFree(ipcp->conf.ippool, &ip);
+	ipcp->ippool_used = 0;
+    }
 }
 
 /*
@@ -473,16 +483,6 @@ IpcpLayerUp(Fsm fp)
     strlcpy(ipbuf, inet_ntoa(ipcp->peer_addr), sizeof(ipbuf));
     Log(fp->log, ("  %s -> %s", inet_ntoa(ipcp->want_addr), ipbuf));
 
-    if (b->params.ippool_used) {
-	struct u_addr ip;
-	in_addrtou_addr(&ipcp->peer_addr, &ip);
-	IPPoolReserve(b->params.ippool, &ip);
-    } else if (ipcp->ippool_used) {
-	struct u_addr ip;
-	in_addrtou_addr(&ipcp->peer_addr, &ip);
-	IPPoolReserve(ipcp->conf.ippool, &ip);
-    }
-
     memset(&vjc, 0, sizeof(vjc));
     if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP) {
@@ -535,18 +535,6 @@ IpcpLayerDown(Fsm fp)
     }
 
     BundNcpsLeave(b, NCP_IPCP);
-  
-    if (b->params.ippool_used) {
-	struct u_addr ip;
-	in_addrtou_addr(&ipcp->peer_addr, &ip);
-	IPPoolFree(b->params.ippool, &ip);
-	b->params.ippool_used = 0;
-    } else if (ipcp->ippool_used) {
-	struct u_addr ip;
-	in_addrtou_addr(&ipcp->peer_addr, &ip);
-	IPPoolFree(ipcp->conf.ippool, &ip);
-	ipcp->ippool_used = 0;
-    }
 }
 
 /*
