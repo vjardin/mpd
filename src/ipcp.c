@@ -299,11 +299,11 @@ IpcpConfigure(Fsm fp)
     else if (b->params.ippool[0]) {
 	/* Get IP from pool if needed */
 	if (IPPoolGet(b->params.ippool, &ipcp->peer_allow.addr)) {
-	    Log(fp->log, ("[%s] IPCP: Can't get IP from pool \"%s\"",
+	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\"",
 		b->name, b->params.ippool));
 	} else {
 	    char buf[64];
-	    Log(fp->log, ("[%s] IPCP: Got IP %s from pool \"%s\"",
+	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\"",
 		b->name,
 		u_addrtoa(&ipcp->peer_allow.addr, buf, sizeof(buf)),
 		b->params.ippool));
@@ -312,11 +312,11 @@ IpcpConfigure(Fsm fp)
 	}
     } else if (ipcp->conf.ippool[0]) {
 	if (IPPoolGet(ipcp->conf.ippool, &ipcp->peer_allow.addr)) {
-	    Log(fp->log, ("[%s] IPCP: Can't get IP from pool \"%s\"",
+	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\"",
 		b->name, ipcp->conf.ippool));
 	} else {
 	    char buf[64];
-	    Log(fp->log, ("[%s] IPCP: Got IP %s from pool \"%s\"",
+	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\"",
 		b->name,
 		u_addrtoa(&ipcp->peer_allow.addr, buf, sizeof(buf)),
 		ipcp->conf.ippool));
@@ -461,10 +461,10 @@ IpcpLayerUp(Fsm fp)
     /* Determine actual address we'll use for ourselves */
     in_addrtou_addr(&ipcp->want_addr, &tmp);
     if (!IpAddrInRange(&ipcp->self_allow, &tmp)) {
-	Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
+	Log(LG_IPCP, ("  Note: ignoring negotiated %s IP %s,",
     	    "self", inet_ntoa(ipcp->want_addr)));
 	u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
-	Log(fp->log, ("        using %s instead.",
+	Log(LG_IPCP, ("        using %s instead.",
     	    inet_ntoa(ipcp->want_addr)));
     }
 
@@ -472,16 +472,16 @@ IpcpLayerUp(Fsm fp)
     in_addrtou_addr(&ipcp->peer_addr, &tmp);
     if (!IpAddrInRange(&ipcp->peer_allow, &tmp)
     	    && !u_addrempty(&ipcp->peer_allow.addr)) {
-	Log(fp->log, ("  Note: ignoring negotiated %s IP %s,",
+	Log(LG_IPCP, ("  Note: ignoring negotiated %s IP %s,",
     	    "peer", inet_ntoa(ipcp->peer_addr)));
 	u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
-	Log(fp->log, ("        using %s instead.",
+	Log(LG_IPCP, ("        using %s instead.",
     	    inet_ntoa(ipcp->peer_addr)));
     }
 
     /* Report */
     strlcpy(ipbuf, inet_ntoa(ipcp->peer_addr), sizeof(ipbuf));
-    Log(fp->log, ("  %s -> %s", inet_ntoa(ipcp->want_addr), ipbuf));
+    Log(LG_IPCP, ("  %s -> %s", inet_ntoa(ipcp->want_addr), ipbuf));
 
     memset(&vjc, 0, sizeof(vjc));
     if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
@@ -632,23 +632,23 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     FsmOptInfo	const oi = FsmFindOptInfo(gIpcpConfOpts, opt->type);
 
     if (!oi) {
-      Log(fp->log, (" UNKNOWN[%d] len=%d", opt->type, opt->len));
+      Log(LG_IPCP, (" UNKNOWN[%d] len=%d", opt->type, opt->len));
       if (mode == MODE_REQ)
 	FsmRej(fp, opt);
       continue;
     }
     if (!oi->supported) {
-      Log(fp->log, (" %s", oi->name));
+      Log(LG_IPCP, (" %s", oi->name));
       if (mode == MODE_REQ) {
-	Log(fp->log, ("   Not supported"));
+	Log(LG_IPCP, ("   Not supported"));
 	FsmRej(fp, opt);
       }
       continue;
     }
     if (opt->len < oi->minLen + 2 || opt->len > oi->maxLen + 2) {
-      Log(fp->log, (" %s", oi->name));
+      Log(LG_IPCP, (" %s", oi->name));
       if (mode == MODE_REQ) {
-	Log(fp->log, ("   bogus len=%d", opt->len));
+	Log(LG_IPCP, ("   bogus len=%d", opt->len));
 	FsmRej(fp, opt);
       }
       continue;
@@ -661,45 +661,45 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 	  memcpy(&ip, opt->data, 4);
 	  in_addrtou_addr(&ip, &tmp);
-	  Log(fp->log, (" %s %s", oi->name, inet_ntoa(ip)));
+	  Log(LG_IPCP, (" %s %s", oi->name, inet_ntoa(ip)));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (!IpAddrInRange(&ipcp->peer_allow, &tmp) || !ip.s_addr) {
 		if (ipcp->peer_addr.s_addr == 0)
-		  Log(fp->log, ("   %s", "no IP address available for peer!"));
+		  Log(LG_IPCP, ("   %s", "no IP address available for peer!"));
 		if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
-		  Log(fp->log, ("   pretending that %s is OK, will ignore",
+		  Log(LG_IPCP, ("   pretending that %s is OK, will ignore",
 		      inet_ntoa(ip)));
 		  ipcp->peer_addr = ip;
 		  FsmAck(fp, opt);
 		  break;
 		}
 		memcpy(opt->data, &ipcp->peer_addr, 4);
-		Log(fp->log, ("   NAKing with %s", inet_ntoa(ipcp->peer_addr)));
+		Log(LG_IPCP, ("   NAKing with %s", inet_ntoa(ipcp->peer_addr)));
 		FsmNak(fp, opt);
 		break;
 	      }
-	      Log(fp->log, ("   %s is OK", inet_ntoa(ip)));
+	      Log(LG_IPCP, ("   %s is OK", inet_ntoa(ip)));
 	      ipcp->peer_addr = ip;
 	      FsmAck(fp, opt);
 	      break;
 	    case MODE_NAK:
 	      {
 		if (IpAddrInRange(&ipcp->self_allow, &tmp)) {
-		  Log(fp->log, ("   %s is OK", inet_ntoa(ip)));
+		  Log(LG_IPCP, ("   %s is OK", inet_ntoa(ip)));
 		  ipcp->want_addr = ip;
 		} else if (Enabled(&ipcp->conf.options, IPCP_CONF_PRETENDIP)) {
-		  Log(fp->log, ("   pretending that %s is OK, will ignore",
+		  Log(LG_IPCP, ("   pretending that %s is OK, will ignore",
 		      inet_ntoa(ip)));
 		  ipcp->want_addr = ip;
 		} else
-		  Log(fp->log, ("   %s is unacceptable", inet_ntoa(ip)));
+		  Log(LG_IPCP, ("   %s is unacceptable", inet_ntoa(ip)));
 	      }
 	      break;
 	    case MODE_REJ:
 	      IPCP_PEER_REJ(ipcp, opt->type);
 	      if (ipcp->want_addr.s_addr == 0)
-		Log(fp->log, ("   Problem: I need an IP address!"));
+		Log(LG_IPCP, ("   Problem: I need an IP address!"));
 	      break;
 	  }
 	}
@@ -710,7 +710,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  struct ipcpvjcomp	vj;
 
 	  memcpy(&vj, opt->data, sizeof(vj));
-	  Log(fp->log, (" %s %s, %d comp. channels, %s comp-cid",
+	  Log(LG_IPCP, (" %s %s, %d comp. channels, %s comp-cid",
 	    oi->name, ProtoName(ntohs(vj.proto)),
 	    vj.maxchan + 1, vj.compcid ? "allow" : "no"));
 	  switch (mode) {
@@ -735,21 +735,21 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	      if (ntohs(vj.proto) != PROTO_VJCOMP) {
-		Log(fp->log, ("  Can't accept proto 0x%04x",
+		Log(LG_IPCP, ("  Can't accept proto 0x%04x",
 		  (u_short) ntohs(vj.proto)));
 		break;
 	      }
 	      if (vj.maxchan != ipcp->want_comp.maxchan) {
 		if (vj.maxchan <= IPCP_VJCOMP_MAX_MAXCHAN
 		    && vj.maxchan >= IPCP_VJCOMP_MIN_MAXCHAN) {
-		  Log(fp->log, ("  Adjusting # compression channels"));
+		  Log(LG_IPCP, ("  Adjusting # compression channels"));
 		  ipcp->want_comp.maxchan = vj.maxchan;
 		} else {
-		  Log(fp->log, ("  Can't handle %d maxchan", vj.maxchan));
+		  Log(LG_IPCP, ("  Can't handle %d maxchan", vj.maxchan));
 		}
 	      }
 	      if (vj.compcid) {
-		Log(fp->log, ("  Can't accept comp-cid"));
+		Log(LG_IPCP, ("  Can't accept comp-cid"));
 		break;
 	      }
 	      break;
@@ -781,7 +781,7 @@ doDnsNbns:
 	  struct in_addr	hisip;
 
 	  memcpy(&hisip, opt->data, 4);
-	  Log(fp->log, (" %s %s", oi->name, inet_ntoa(hisip)));
+	  Log(LG_IPCP, (" %s %s", oi->name, inet_ntoa(hisip)));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (hisip.s_addr == 0) {		/* he's asking for one */
@@ -789,7 +789,7 @@ doDnsNbns:
 		  FsmRej(fp, opt);
 		  break;
 		}
-		Log(fp->log, ("   NAKing with %s", inet_ntoa(*peerip)));
+		Log(LG_IPCP, ("   NAKing with %s", inet_ntoa(*peerip)));
 		memcpy(opt->data, peerip, sizeof(*peerip));
 		FsmNak(fp, opt);		/* we got one for him */
 		break;
