@@ -1694,7 +1694,6 @@ PptpCtrlCheckConn(PptpCtrl c)
 	  PptpCtrlNewChanState(ch, PPTP_CHAN_ST_WAIT_OUT_REPLY);
 	  PptpCtrlWriteMsg(c, PPTP_OutCallRequest, &req);
 	}
-	return;
       }
       break;
     default:
