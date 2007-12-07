@@ -465,13 +465,13 @@ PppoeCtrlReadEvent(int type, void *arg)
 		int	id;
 
 		/* Check hook name prefix */
-		snprintf(ppphook, NG_HOOKSIZ, "mpd%d-", gPid);
 		linkname = ((struct ngpppoe_sts *)u.resp.data)->hook;
 		if (strncmp(linkname, "listen-", 7) == 0)
 		    return;	/* We do not need them */
+		snprintf(ppphook, NG_HOOKSIZ, "mpd%d-", gPid);
 		if (strncmp(linkname, ppphook, strlen(ppphook))) {
-		    Log(LG_ERR, ("PPPoE: message from unknown hook \"%s\"",
-			((struct ngpppoe_sts *)u.resp.data)->hook));
+		    Log(LG_ERR, ("PPPoE: message %d from unknown hook \"%s\"",
+			u.resp.header.cmd, ((struct ngpppoe_sts *)u.resp.data)->hook));
 		    return;
 		}
 		linkname += strlen(ppphook);
@@ -480,8 +480,9 @@ PppoeCtrlReadEvent(int type, void *arg)
 		  !gLinks[id] ||
 		  gLinks[id]->type != &gPppoePhysType ||
 		  PIf != ((PppoeInfo)gLinks[id]->info)->PIf) {
-		    Log(LG_ERR, ("PPPoE: message from unknown session hook \"%s\"",
-			((struct ngpppoe_sts *)u.resp.data)->hook));
+		    Log((u.resp.header.cmd == NGM_PPPOE_SUCCESS)?LG_ERR:LG_PHYS,
+			("PPPoE: message %d from unexisting link \"%s\"",
+			    u.resp.header.cmd, linkname));
 		    return;
 		}
 		
