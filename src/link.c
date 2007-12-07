@@ -829,9 +829,14 @@ LinkNgDataEvent(int type, void *cookie)
 	case 'l':
 	    name += 2;
 	    id = strtol(name, &rest, 10);
-	    if (rest[0] != 0 || !gLinks[id] || gLinks[id]->dead) {
+	    if (rest[0] != 0 || !gLinks[id]) {
     		Log(LG_ERR, ("Link: packet from unexisting link \"%s\"",
     		    name));
+		mbfree(bp);
+		continue;
+	    }
+	    if (gLinks[id]->dead) {
+    		Log(LG_LINK, ("Link: Packet from dead link \"%s\"", name));
 		mbfree(bp);
 		continue;
 	    }
@@ -870,9 +875,14 @@ LinkNgDataEvent(int type, void *cookie)
 	case '6':
 	    name += 2;
 	    id = strtol(name, &rest, 10);
-	    if (rest[0] != 0 || !gBundles[id] || gBundles[id]->dead) {
+	    if (rest[0] != 0 || !gBundles[id]) {
     		Log(LG_ERR, ("Link: Packet from unexisting bundle \"%s\"",
     		    name));
+		mbfree(bp);
+		continue;
+	    }
+	    if (gBundles[id]->dead) {
+    		Log(LG_LINK, ("Link: Packet from dead bundle \"%s\"", name));
 		mbfree(bp);
 		continue;
 	    }
