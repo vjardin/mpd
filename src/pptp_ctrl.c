@@ -1522,7 +1522,6 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
   assert(ch);
   if (c->state == PPTP_CTRL_ST_DYING)		/* should never happen anyway */
     return;
-  PptpCtrlNewChanState(ch, PPTP_CHAN_ST_DYING);
 
   /* If link layer needs notification, tell it */
   Log(LG_PHYS2, ("pptp%d-%d: killing channel", c->id, ch->id));
@@ -1543,6 +1542,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     default:
       assert(0);
   }
+  PptpCtrlNewChanState(ch, PPTP_CHAN_ST_DYING);
 
   /* Nuke any pending replies pertaining to this channel */
   for (pp = &c->reps; *pp; ) {
