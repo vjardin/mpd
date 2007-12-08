@@ -1518,10 +1518,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
   PptpPendRep	*pp;
   int		k;
 
-  /* Don't recurse */
   assert(ch);
-  if (c->state == PPTP_CTRL_ST_DYING)		/* should never happen anyway */
-    return;
 
   /* If link layer needs notification, tell it */
   Log(LG_PHYS2, ("pptp%d-%d: killing channel", c->id, ch->id));
@@ -1537,8 +1534,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     case PPTP_CHAN_ST_WAIT_ANSWER:
       (*ch->linfo.cancel)(ch->linfo.cookie);
       break;
-    case PPTP_CHAN_ST_DYING:
-      break;
+    case PPTP_CHAN_ST_DYING:				/* should never happen */
     default:
       assert(0);
   }
