@@ -1421,7 +1421,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
   }
   c->reps = NULL;
   
-  /* Delay Free call to avoid "Modify aftre free" case */
+  /* Delay Free call to avoid "Modify after free" case */
   TimerInit(&c->idleTimer, "PptpKill", 0, (void (*)(void *))PptpCtrlFreeCtrl, c);
   TimerStart(&c->idleTimer);
 }
@@ -1558,7 +1558,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
 
   /* Free channel */
   c->channels[ch->id] = NULL;
-  /* Delay Free call to avoid "Modify aftre free" case */
+  /* Delay Free call to avoid "Modify after free" case */
   TimerInit(&ch->killTimer, "PptpKillCh", 0, (void (*)(void *))PptpCtrlFreeChan, ch);
   TimerStart(&ch->killTimer);
 
