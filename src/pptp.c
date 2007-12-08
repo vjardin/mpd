@@ -383,10 +383,8 @@ PptpDoClose(Link l)
 {
     PptpInfo      const pptp = (PptpInfo) l->info;
 
-    if (l->state != PHYS_STATE_DOWN) {		/* avoid double close */
+    if (l->state != PHYS_STATE_DOWN)		/* avoid double close */
 	(*pptp->cinfo.close)(pptp->cinfo.cookie, PPTP_CDN_RESL_ADMIN, 0, 0);
-	PptpKillNode(l);
-    }
 }
 
 /*
@@ -660,7 +658,7 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 	case PHYS_STATE_UP:
     	    assert(errmsg);
     	    Log(LG_PHYS, ("[%s] PPTP call terminated", l->name));
-    	    PptpDoClose(l);
+	    PptpKillNode(l);
     	    l->state = PHYS_STATE_DOWN;
             u_addrclear(&pptp->self_addr);
     	    u_addrclear(&pptp->peer_addr);
