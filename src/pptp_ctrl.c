@@ -88,9 +88,8 @@
   struct pptpchan {
     uint16_t		id;		/* channel index */
     u_char		state;		/* channel state */
-    u_char		orig:1;		/* call originated from us */
-    u_char		incoming:1;	/* call is incoming, not outgoing */
-    u_char		killing:1;	/* channel is being killed */
+    u_char		orig;		/* call originated from us */
+    u_char		incoming;	/* call is incoming, not outgoing */
     u_int16_t		cid;		/* my call id */
     u_int16_t		serno;		/* call serial number */
     u_int16_t		peerCid;	/* peer call id */
@@ -105,6 +104,7 @@
     char		callingNum[PPTP_PHONE_LEN + 1];	/* calling number */
     char		calledNum[PPTP_PHONE_LEN + 1];	/* called number */
     char		subAddress[PPTP_SUBADDR_LEN + 1];/* sub-address */
+    struct pppTimer	killTimer;	/* kill timer */
   };
   typedef struct pptpchan	*PptpChan;
 
@@ -114,8 +114,7 @@
   struct pptpctrl {
     u_int32_t		id;		/* channel index */
     u_char		state;		/* state */
-    u_char		orig:1;		/* we originated connection */
-    u_char		killing:1;	/* connection is being killed */
+    u_char		orig;		/* we originated connection */
     union {
 	u_char			buf[PPTP_CTRL_MAX_FRAME];
 	struct pptpMsgHead	hdr;
@@ -128,7 +127,7 @@
     in_port_t		peer_port;
     EventRef		connEvent;	/* connection event */
     EventRef		ctrlEvent;	/* control connection input */
-    struct pppTimer	idleTimer;	/* idle timer */
+    struct pppTimer	idleTimer;	/* idle/kill timer */
     u_int32_t		echoId;		/* last echo id # sent */
     PptpPendRep		reps;		/* pending replies to msgs */
     PptpChan		*channels;	/* array of channels */
@@ -181,6 +180,7 @@
   static void	PptpCtrlCloseChan(PptpChan ch,
 		  int result, int error, int cause);
   static void	PptpCtrlKillChan(PptpChan ch, const char *errmsg);
+  static void	PptpCtrlFreeChan(PptpChan ch);
   static void	PptpCtrlDialResult(void *cookie,
 		  int result, int error, int cause, int speed);
   static void	PptpCtrlConected(void *cookie, int speed);
@@ -195,6 +195,7 @@
   /* Shutdown routines */
   static void	PptpCtrlCloseCtrl(PptpCtrl c);
   static void	PptpCtrlKillCtrl(PptpCtrl c);
+  static void	PptpCtrlFreeCtrl(PptpCtrl c);
 
   /* Timer routines */
   static void	PptpCtrlResetIdleTimer(PptpCtrl c);
@@ -269,6 +270,8 @@
 		    "WAIT_STOP_REPLY",
 #define PPTP_CTRL_ST_ESTABLISHED	4
 		    "ESTABLISHED",
+#define PPTP_CTRL_ST_DYING		5
+		    "DYING",
   };
 
   static const char		*gPptpChanStates[] = {
@@ -288,6 +291,8 @@
 		    "ESTABLISHED",
 #define PPTP_CHAN_ST_WAIT_CTRL		7
 		    "WAIT_CTRL",
+#define PPTP_CHAN_ST_DYING		8
+		    "DYING",
   };
 
   /* Control message descriptors */
@@ -751,6 +756,7 @@ PptpCtrlGetSessionInfo(struct pptpctrlinfo *cp,
 	return(0);
      }
     case PPTP_CHAN_ST_FREE:
+    case PPTP_CHAN_ST_DYING:
       return(-1);
       break;
     default:
@@ -1202,7 +1208,8 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
 
   /* Connect to peer */
   if ((c->csock = GetInetSocket(SOCK_STREAM, self_addr, 0, FALSE, buf, bsiz)) < 0) {
-    PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
+    gPptpCtrl[k] = NULL;
+    PptpCtrlFreeCtrl(c);
     return(NULL);
   }
   u_addrtosockaddr(&c->peer_addr, c->peer_port, &peer);
@@ -1212,7 +1219,8 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
     c->csock = -1;
     snprintf(buf, bsiz, "pptp: connect to %s %u failed: %s",
       u_addrtoa(&c->peer_addr,buf1,sizeof(buf1)), c->peer_port, strerror(errno));
-    PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
+    gPptpCtrl[k] = NULL;
+    PptpCtrlFreeCtrl(c);
     return(NULL);
   }
 
@@ -1366,6 +1374,8 @@ PptpCtrlCloseCtrl(PptpCtrl c)
 	return;
       }
       break;
+    case PPTP_CTRL_ST_DYING:
+      break;
     default:
       assert(0);
   }
@@ -1384,9 +1394,9 @@ PptpCtrlKillCtrl(PptpCtrl c)
 
   /* Don't recurse */
   assert(c);
-  if (c->killing || c->state == PPTP_CTRL_ST_FREE)
+  if (c->state == PPTP_CTRL_ST_DYING)
     return;
-  c->killing = 1;
+  PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_DYING);
 
   /* Do ungraceful shutdown */
   Log(LG_PHYS2, ("pptp%d: killing connection with %s %u",
@@ -1410,7 +1420,18 @@ PptpCtrlKillCtrl(PptpCtrl c)
     Freee(prep);
   }
   c->reps = NULL;
-  PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_FREE);
+  
+  /* Delay Free call to avoid "Modify aftre free" case */
+  TimerInit(&c->idleTimer, "PptpKill", 0, (void (*)(void *))PptpCtrlFreeCtrl, c);
+  TimerStart(&c->idleTimer);
+}
+
+static void
+PptpCtrlFreeCtrl(PptpCtrl c)
+{
+    Freee(c->channels);
+    memset(c, 0, sizeof(*c));
+    Freee(c);
 }
 
 /*
@@ -1423,10 +1444,6 @@ static void
 PptpCtrlCloseChan(PptpChan ch, int result, int error, int cause)
 {
   PptpCtrl	const c = ch->ctrl;
-
-  /* Don't recurse */
-  if (ch->killing)
-    return;
 
   /* Check call state */
   switch (ch->state) {
@@ -1483,6 +1500,8 @@ pnsClear:
     case PPTP_CHAN_ST_WAIT_CTRL:
       PptpCtrlKillChan(ch, "link layer shutdown");
       return;
+    case PPTP_CHAN_ST_DYING:
+      break;
     default:
       assert(0);
   }
@@ -1501,9 +1520,9 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
 
   /* Don't recurse */
   assert(ch);
-  if (ch->killing)		/* should never happen anyway */
+  if (c->state == PPTP_CTRL_ST_DYING)		/* should never happen anyway */
     return;
-  ch->killing = 1;
+  PptpCtrlNewChanState(ch, PPTP_CHAN_ST_DYING);
 
   /* If link layer needs notification, tell it */
   Log(LG_PHYS2, ("pptp%d-%d: killing channel", c->id, ch->id));
@@ -1518,6 +1537,8 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
       break;
     case PPTP_CHAN_ST_WAIT_ANSWER:
       (*ch->linfo.cancel)(ch->linfo.cookie);
+      break;
+    case PPTP_CHAN_ST_DYING:
       break;
     default:
       assert(0);
@@ -1536,20 +1557,26 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
   }
 
   /* Free channel */
-  PptpCtrlNewChanState(ch, PPTP_CHAN_ST_FREE);
+  c->channels[ch->id] = NULL;
+  /* Delay Free call to avoid "Modify aftre free" case */
+  TimerInit(&ch->killTimer, "PptpKillCh", 0, (void (*)(void *))PptpCtrlFreeChan, ch);
+  TimerStart(&ch->killTimer);
 
-  /* When the last channel is closed, close the control channel too,
-     unless we're already in the process of killing it. */
+  /* When the last channel is closed, close the control channel too. */
   for (k = 0; k < c->numChannels; k++) {
-    PptpChan	const ch2 = c->channels[k];
-
-    if (ch2 != NULL && ch2->ctrl == c)
+    if (c->channels[k] != NULL)
       break;
   }
   if (k == c->numChannels
-      && c->state == PPTP_CTRL_ST_ESTABLISHED
-      && !c->killing)
+      && c->state == PPTP_CTRL_ST_ESTABLISHED)
     PptpCtrlCloseCtrl(c);
+}
+
+static void
+PptpCtrlFreeChan(PptpChan ch)
+{
+    memset(ch, 0, sizeof(*ch));
+    Freee(ch);
 }
 
 /*************************************************************************
@@ -1696,6 +1723,8 @@ PptpCtrlCheckConn(PptpCtrl c)
 	}
       }
       break;
+    case PPTP_CTRL_ST_DYING:
+      break;
     default:
       assert(0);
   }
@@ -1767,16 +1796,9 @@ PptpCtrlFindChan(PptpCtrl c, int type, void *msg, int incoming)
 static void
 PptpCtrlNewCtrlState(PptpCtrl c, int new)
 {
-  assert(c->state != new);
   Log(LG_PHYS3, ("pptp%d: ctrl state %s --> %s",
     c->id, gPptpCtrlStates[c->state], gPptpCtrlStates[new]));
-  if (new == PPTP_CTRL_ST_FREE) {
-    gPptpCtrl[c->id] = NULL;
-    Freee(c->channels);
-    memset(c, 0, sizeof(*c));
-    Freee(c);
-    return;
-  }
+  assert(c->state != new);
   c->state = new;
 }
 
@@ -1789,24 +1811,9 @@ PptpCtrlNewChanState(PptpChan ch, int new)
 {
   PptpCtrl	const c = ch->ctrl;
 
-  assert(ch->state != new);
   Log(LG_PHYS3, ("pptp%d-%d: chan state %s --> %s",
     c->id, ch->id, gPptpChanStates[ch->state], gPptpChanStates[new]));
-  switch (new) {
-    case PPTP_CHAN_ST_FREE:
-      c->channels[ch->id] = NULL;
-      memset(ch, 0, sizeof(*ch));
-      Freee(ch);
-      return;
-    case PPTP_CHAN_ST_WAIT_IN_REPLY:
-    case PPTP_CHAN_ST_WAIT_OUT_REPLY:
-    case PPTP_CHAN_ST_WAIT_CONNECT:
-    case PPTP_CHAN_ST_WAIT_DISCONNECT:
-    case PPTP_CHAN_ST_WAIT_ANSWER:
-    case PPTP_CHAN_ST_ESTABLISHED:
-    case PPTP_CHAN_ST_WAIT_CTRL:
-      break;
-  }
+  assert(ch->state != new);
   ch->state = new;
 }
 
@@ -2150,7 +2157,7 @@ PptpOutCallRequest(PptpCtrl c, struct pptpOutCallRequest *req)
 denied:
   Log(LG_PHYS2, ("pptp%d: peer's outgoing call request denied", c->id));
   if (ch)
-    PptpCtrlNewChanState(ch, PPTP_CHAN_ST_FREE);
+    PptpCtrlKillChan(ch, "peer's outgoing call request denied");
 chFail:
   memset(&reply, 0, sizeof(reply));
   reply.peerCid = req->cid;
