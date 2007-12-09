@@ -1460,8 +1460,8 @@ PptpCtrlCloseChan(PptpChan ch, int result, int error, int cause)
 	memset(&reply, 0, sizeof(reply));
 	reply.peerCid = ch->peerCid;
 	reply.result = PPTP_OCR_RESL_ADMIN;
-	PptpCtrlKillChan(ch, "link layer shutdown");	/* XXX errmsg */
 	PptpCtrlWriteMsg(c, PPTP_OutCallReply, &reply);
+	PptpCtrlKillChan(ch, "link layer shutdown");	/* XXX errmsg */
 	return;
       }
       break;
@@ -1478,8 +1478,8 @@ pacClear:
 	  disc.err = error;
 	disc.cause = cause;
 	/* XXX stats? */
-	PptpCtrlKillChan(ch, "link layer shutdown");	/* XXX errmsg */
 	PptpCtrlWriteMsg(c, PPTP_CallDiscNotify, &disc);
+	PptpCtrlKillChan(ch, "link layer shutdown");	/* XXX errmsg */
       }
       break;
     case PPTP_CHAN_ST_WAIT_OUT_REPLY:		/* we are the PNS */
@@ -1491,8 +1491,8 @@ pnsClear:
 	Log(LG_PHYS2, ("pptp%d-%d: clearing call", c->id, ch->id));
 	memset(&req, 0, sizeof(req));
 	req.cid = ch->cid;
-	PptpCtrlNewChanState(ch, PPTP_CHAN_ST_WAIT_DISCONNECT);
 	PptpCtrlWriteMsg(c, PPTP_CallClearRequest, &req);
+	PptpCtrlNewChanState(ch, PPTP_CHAN_ST_WAIT_DISCONNECT);
       }
       break;
     case PPTP_CHAN_ST_WAIT_DISCONNECT:		/* call was already cleared */
