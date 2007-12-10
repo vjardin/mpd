@@ -147,9 +147,7 @@ ppp_l2tp_avp_list_append(struct ppp_l2tp_avp_list *list, int mandatory,
 {
 	struct ppp_l2tp_avp *avp;
 
-	if ((avp = ppp_l2tp_avp_create(mandatory,
-	    vendor, type, value, vlen)) == NULL)
-		return (-1);
+	avp = ppp_l2tp_avp_create(mandatory, vendor, type, value, vlen);
 	if (ppp_l2tp_avp_list_insert(list, &avp, list->length) == -1) {
 		ppp_l2tp_avp_destroy(&avp);
 		return (-1);
@@ -171,9 +169,8 @@ ppp_l2tp_avp_list_extract(struct ppp_l2tp_avp_list *list, u_int index)
 		return (NULL);
 	}
 	elem = &list->avps[index];
-	if ((avp = ppp_l2tp_avp_create(elem->mandatory, elem->vendor,
-	    elem->type, elem->value, elem->vlen)) == NULL)
-		return (NULL);
+	avp = ppp_l2tp_avp_create(elem->mandatory, elem->vendor,
+	    elem->type, elem->value, elem->vlen);
 	memmove(list->avps + index, list->avps + index + 1,
 	    (--list->length - index) * sizeof(*list->avps));
 	return (avp);
@@ -222,8 +219,7 @@ ppp_l2tp_avp_list_copy(const struct ppp_l2tp_avp_list *orig)
 	struct ppp_l2tp_avp_list *list;
 	int i;
 
-	if ((list = ppp_l2tp_avp_list_create()) == NULL)
-		return (NULL);
+	list = ppp_l2tp_avp_list_create();
 	for (i = 0; i < orig->length; i++) {
 		const struct ppp_l2tp_avp *const avp = &orig->avps[i];
 
@@ -399,8 +395,7 @@ ppp_l2tp_avp_unpack(const struct ppp_l2tp_avp_info *info,
 	int i;
 
 	/* Create list */
-	if ((list = ppp_l2tp_avp_list_create()) == NULL)
-		return (NULL);
+	list = ppp_l2tp_avp_list_create();
 
 	/* Unpack AVP's */
 	while (dlen > 0) {

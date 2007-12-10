@@ -899,8 +899,6 @@ ppp_l2tp_set_link_info(struct ppp_l2tp_sess *sess,
 		return (0);
 
 	avps = ppp_l2tp_avp_list_create();
-	if (avps == NULL)
-		return (-1);
 
 	accm[0] = 0;
 	accm[1] = htons(xmit >> 16);
@@ -1173,10 +1171,7 @@ ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
 	}
 
 	/* Create session AVP list to send to peer */
-	if ((sess->my_avps = ppp_l2tp_avp_list_create()) == NULL) {
-		ppp_l2tp_sess_destroy(&sess);
-		return (NULL);
-	}
+	sess->my_avps = ppp_l2tp_avp_list_create();
 
 	/* Add assigned session ID AVP */
 	value16 = htons(sess->config.session_id);
@@ -1231,9 +1226,7 @@ ppp_l2tp_ctrl_send(struct ppp_l2tp_ctrl *ctrl, u_int16_t session_id,
 
 	/* Add message type AVP as first in the list */
 	value = htons(msgtype);
-	if ((avp = ppp_l2tp_avp_create(1, 0,
-	    AVP_MESSAGE_TYPE, &value, sizeof(value))) == NULL)
-		goto fail;
+	avp = ppp_l2tp_avp_create(1, 0, AVP_MESSAGE_TYPE, &value, sizeof(value));
 	if (ppp_l2tp_avp_list_insert(avps, &avp, 0) == -1)
 		goto fail;
 
@@ -1303,10 +1296,7 @@ ppp_l2tp_ctrl_close(struct ppp_l2tp_ctrl *ctrl,
 
 		/* Create AVP list */
 		ctrl->peer_notified = 1;
-		if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-			Log(LOG_ERR, ("%s: %s", "ppp_l2tp_avp_list_create", strerror(errno)));
-			goto notify_done;
-		}
+		avps = ppp_l2tp_avp_list_create();
 
 		/* Add assigned tunnel ID AVP */
 		value16 = htons(ctrl->config.tunnel_id);
@@ -1603,10 +1593,7 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 
 		/* Create AVP list */
 		sess->peer_notified = 1;
-		if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-			Log(LOG_ERR, ("%s: %s", "ppp_l2tp_avp_list_create", strerror(errno)));
-			goto notify_done;
-		}
+		avps = ppp_l2tp_avp_list_create();
 
 		/* Add assigned session ID AVP */
 		value16 = htons(sess->config.session_id);

@@ -332,22 +332,18 @@ L2tpOpen(Link l)
 		    if (pi->outcall) {
 			pi->sync = 1;
 			if (l->rep) {
-			    if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
-				    l->name, strerror(errno)));
+			    uint32_t fr;
+			    avps = ppp_l2tp_avp_list_create();
+			    if (RepIsSync(l)) {
+				fr = htonl(L2TP_FRAMING_SYNC);
 			    } else {
-				uint32_t fr;
-				if (RepIsSync(l)) {
-					fr = htonl(L2TP_FRAMING_SYNC);
-				} else {
-					fr = htonl(L2TP_FRAMING_ASYNC);
-					pi->sync = 0;
-				}
-				if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
-	        		    &fr, sizeof(fr)) == -1) {
-					Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
-					    l->name, strerror(errno)));
-				}
+				fr = htonl(L2TP_FRAMING_ASYNC);
+				pi->sync = 0;
+			    }
+			    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
+	        	        &fr, sizeof(fr)) == -1) {
+			    	    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+				        l->name, strerror(errno)));
 			    }
 			} else {
 			    avps = NULL;
@@ -383,24 +379,20 @@ L2tpOpen(Link l)
 		    if (tun->connected) { /* if tun is connected then just initiate */
 		    
 			/* Create number AVPs */
-			if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
-				    l->name, strerror(errno)));
-			} else {
-			 if (pi->conf.callingnum[0]) {
+			avps = ppp_l2tp_avp_list_create();
+			if (pi->conf.callingnum[0]) {
 			  if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLING_NUMBER,
 	        	    pi->conf.callingnum, strlen(pi->conf.callingnum)) == -1) {
 				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 				    l->name, strerror(errno)));
 			  }
-			 }
-			 if (pi->conf.callednum[0]) {
+			}
+			if (pi->conf.callednum[0]) {
 			  if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLED_NUMBER,
 	        	    pi->conf.callednum, strlen(pi->conf.callednum)) == -1) {
 				Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 				    l->name, strerror(errno)));
 			  }
-			 }
 			}
 			if ((sess = ppp_l2tp_initiate(tun->ctrl, 
 				Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0,
@@ -426,22 +418,18 @@ L2tpOpen(Link l)
 			if (!pi->outcall) {
 			    pi->sync = 1;
 			    if (l->rep) {
-				if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-				    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
-					l->name, strerror(errno)));
+				uint32_t fr;
+				avps = ppp_l2tp_avp_list_create();
+				if (RepIsSync(l)) {
+				    fr = htonl(L2TP_FRAMING_SYNC);
 				} else {
-				    uint32_t fr;
-				    if (RepIsSync(l)) {
-					fr = htonl(L2TP_FRAMING_SYNC);
-				    } else {
-					fr = htonl(L2TP_FRAMING_ASYNC);
-					pi->sync = 0;
-				    }
-				    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
-	        			&fr, sizeof(fr)) == -1) {
-					    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
-						l->name, strerror(errno)));
-				    }
+				    fr = htonl(L2TP_FRAMING_ASYNC);
+				    pi->sync = 0;
+				}
+				if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
+	        		    &fr, sizeof(fr)) == -1) {
+				        Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+				    	    l->name, strerror(errno)));
 				}
 			    } else {
 				avps = NULL;
@@ -466,11 +454,7 @@ L2tpOpen(Link l)
 	tun->connected = 0;
 
 	/* Create vendor name AVP */
-	if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-		Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
-		    l->name, strerror(errno)));
-		goto fail;
-	}
+	avps = ppp_l2tp_avp_list_create();
 
 	if (pi->conf.hostname[0] != 0) {
 	    strlcpy(hostname, pi->conf.hostname, sizeof(hostname));
@@ -917,24 +901,20 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 
 		tun->connected = 1;
 		/* Create number AVPs */
-		if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
-			    l->name, strerror(errno)));
-		} else {
-		  if (pi->conf.callingnum[0]) {
+		avps = ppp_l2tp_avp_list_create();
+		if (pi->conf.callingnum[0]) {
 		   if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLING_NUMBER,
 	            pi->conf.callingnum, strlen(pi->conf.callingnum)) == -1) {
 			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 			    l->name, strerror(errno)));
 		   }
-		  }
-		  if (pi->conf.callednum[0]) {
+		}
+		if (pi->conf.callednum[0]) {
 		   if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_CALLED_NUMBER,
 	            pi->conf.callednum, strlen(pi->conf.callednum)) == -1) {
 			Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
 			    l->name, strerror(errno)));
 		   }
-		  }
 		}
 		if ((sess = ppp_l2tp_initiate(tun->ctrl,
 			    Enabled(&pi->conf.options, L2TP_CONF_OUTCALL)?1:0, 
@@ -958,22 +938,18 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 		if (!pi->outcall) {
 		    pi->sync = 1;
 		    if (l->rep) {
-			if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-			    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_create: %s", 
-				l->name, strerror(errno)));
+			uint32_t fr;
+			avps = ppp_l2tp_avp_list_create();
+			if (RepIsSync(l)) {
+			    fr = htonl(L2TP_FRAMING_SYNC);
 			} else {
-			    uint32_t fr;
-			    if (RepIsSync(l)) {
-				fr = htonl(L2TP_FRAMING_SYNC);
-			    } else {
-				fr = htonl(L2TP_FRAMING_ASYNC);
-				pi->sync = 0;
-			    }
-			    if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
-	        		&fr, sizeof(fr)) == -1) {
-				    Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
-					l->name, strerror(errno)));
-			    }
+			    fr = htonl(L2TP_FRAMING_ASYNC);
+			    pi->sync = 0;
+			}
+			if (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_FRAMING_TYPE,
+	        	    &fr, sizeof(fr)) == -1) {
+			        Log(LG_ERR, ("[%s] ppp_l2tp_avp_list_append: %s", 
+			    	    l->name, strerror(errno)));
 			}
 		    } else {
 			avps = NULL;
@@ -1375,10 +1351,8 @@ L2tpServerEvent(int type, void *arg)
 	}
 
 	/* Create vendor name AVP */
-	if ((avps = ppp_l2tp_avp_list_create()) == NULL) {
-		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_create: %s", strerror(errno)));
-		goto fail;
-	}
+	avps = ppp_l2tp_avp_list_create();
+
 	if (pi->conf.hostname[0] != 0) {
 	    strlcpy(hostname, pi->conf.hostname, sizeof(hostname));
 	} else {
