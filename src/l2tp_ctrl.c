@@ -1669,8 +1669,7 @@ ppp_l2tp_sess_do_close(void *arg)
 		if (ctrl->state != CS_DYING) {
 			ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_CLEARED,
 			    0, "no more sessions exist in this tunnel");
-		} else
-			ppp_l2tp_ctrl_death_start(ctrl);
+		}
 	}
 }
 
