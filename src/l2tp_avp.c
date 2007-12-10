@@ -107,10 +107,7 @@ ppp_l2tp_avp_destroy(struct ppp_l2tp_avp **avpp)
 struct ppp_l2tp_avp_list *
 ppp_l2tp_avp_list_create(void)
 {
-	struct ppp_l2tp_avp_list *list;
-
-	list = Malloc(AVP_LIST_MTYPE, sizeof(*list));
-	return (list);
+	return (Malloc(AVP_LIST_MTYPE, sizeof(struct ppp_l2tp_avp_list)));
 }
 
 /*
