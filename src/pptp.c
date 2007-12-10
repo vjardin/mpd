@@ -113,7 +113,7 @@
   static void	PptpInitCtrl(void);
   static int	PptpOriginate(Link l);
   static void	PptpDoClose(Link l);
-  static void	PptpKillNode(Link l);
+  static void	PptpUnhook(Link l);
   static void	PptpResult(void *cookie, const char *errmsg, int frameType);
   static void	PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra);
   static void	PptpCancel(void *cookie);
@@ -370,7 +370,7 @@ PptpShutdown(Link l)
 	PptpCtrlUnListen(pptp->listener);
 	pptp->listener = NULL;
     }
-    PptpKillNode(l);
+    PptpUnhook(l);
     Freee(l->info);
 }
 
@@ -388,11 +388,11 @@ PptpDoClose(Link l)
 }
 
 /*
- * PptpKillNode()
+ * PptpUnhook()
  */
 
 static void
-PptpKillNode(Link l)
+PptpUnhook(Link l)
 {
 	PptpInfo const	pptp = (PptpInfo) l->info;
 	char		path[NG_PATHSIZ];
@@ -658,7 +658,7 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 	case PHYS_STATE_UP:
     	    assert(errmsg);
     	    Log(LG_PHYS, ("[%s] PPTP call terminated", l->name));
-	    PptpKillNode(l);
+	    PptpUnhook(l);
     	    l->state = PHYS_STATE_DOWN;
             u_addrclear(&pptp->self_addr);
     	    u_addrclear(&pptp->peer_addr);
