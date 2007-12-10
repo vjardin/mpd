@@ -133,8 +133,8 @@
   static int	L2tpSetCallingNum(Link l, void *buf);
   static int	L2tpSetCalledNum(Link l, void *buf);
 
-  static void	L2tpDoClose(Link l);
-  static void	L2tpHookUpIncoming(Link l);
+  static void	L2tpHookUp(Link l);
+  static void	L2tpUnhook(Link l);
 
   static void	L2tpNodeUpdate(Link l);
   static int	L2tpListen(Link l);
@@ -354,7 +354,7 @@ L2tpOpen(Link l)
 			if (avps)
 			    ppp_l2tp_avp_list_destroy(&avps);
 		    }
-		    L2tpHookUpIncoming(l);
+		    L2tpHookUp(l);
 		    PhysUp(l);
 		}
 		return;
@@ -607,7 +607,7 @@ L2tpClose(Link l)
     pi->outcall = 0;
     if (l->state == PHYS_STATE_DOWN)
     	return;
-    L2tpDoClose(l);
+    L2tpUnhook(l);
     if (pi->sess) {
 	Log(LG_PHYS, ("[%s] L2TP: Call #%u terminated locally", l->name, 
 	    ppp_l2tp_sess_get_serial(pi->sess)));
@@ -650,11 +650,11 @@ L2tpShutdown(Link l)
 }
 
 /*
- * L2tpDoClose()
+ * L2tpUnhook()
  */
 
 static void
-L2tpDoClose(Link l)
+L2tpUnhook(Link l)
 {
     int		csock = -1;
     L2tpInfo	const pi = (L2tpInfo) l->info;
@@ -990,7 +990,7 @@ ppp_l2tp_ctrl_terminated_cb(struct ppp_l2tp_ctrl *ctrl,
 			continue;
 
 		l->state = PHYS_STATE_DOWN;
-		L2tpDoClose(l);
+		L2tpUnhook(l);
 		pi->sess = NULL;
 		pi->tun = NULL;
 		pi->callingnum[0]=0;
@@ -1154,7 +1154,7 @@ ppp_l2tp_connected_cb(struct ppp_l2tp_sess *sess,
 
 	if (pi->opened) {
 	    l->state = PHYS_STATE_UP;
-	    L2tpHookUpIncoming(l);
+	    L2tpHookUp(l);
 	    PhysUp(l);
 	} else {
 	    l->state = PHYS_STATE_READY;
@@ -1185,7 +1185,7 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	    ppp_l2tp_sess_get_serial(sess), buf));
 
 	l->state = PHYS_STATE_DOWN;
-	L2tpDoClose(l);
+	L2tpUnhook(l);
 	pi->sess = NULL;
 	pi->tun = NULL;
 	pi->callingnum[0]=0;
@@ -1212,7 +1212,7 @@ ppp_l2tp_set_link_info_cb(struct ppp_l2tp_sess *sess,
  */
  
 static void
-L2tpHookUpIncoming(Link l)
+L2tpHookUp(Link l)
 {
 	int		csock = -1;
 	L2tpInfo	pi = (L2tpInfo)l->info;
