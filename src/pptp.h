@@ -21,5 +21,7 @@
   extern const struct cmdtab	PptpSetCmds[];
   extern const struct phystype	gPptpPhysType;
 
+  extern int		PptpsStat(Context ctx, int ac, char *av[], void *arg);
+
 #endif
 

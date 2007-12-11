@@ -135,6 +135,7 @@
     PptpPendRep		reps;		/* pending replies to msgs */
     PptpChan		*channels;	/* array of channels */
     int			numChannels;	/* length of channels array */
+    u_int		active_sessions;	/* # non-dying sessns */
   };
   typedef struct pptpctrl	*PptpCtrl;
 
@@ -152,6 +153,8 @@
 
   /* Our physical channel ID */
   #define PHYS_CHAN(ch)		(((ch)->ctrl->id << 16) | (ch)->id)
+
+  int	PptpsStat(Context ctx, int ac, char *av[], void *arg);
 
 /*
  * INTERNAL FUNCTIONS
@@ -1257,6 +1260,7 @@ PptpCtrlGetChan(PptpCtrl c, int chanState, int orig, int incoming,
 	LengthenArray(&c->channels, sizeof(*c->channels), &c->numChannels, MB_PPTP);
     ch = Malloc(MB_PPTP, sizeof(*ch));
     c->channels[k] = ch;
+    c->active_sessions++;
     ch->id = k;
     ch->cid = ++gLastCallId;
     ch->ctrl = c;
@@ -1522,7 +1526,6 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
 {
   PptpCtrl	const c = ch->ctrl;
   PptpPendRep	*pp;
-  int		k;
 
   assert(ch);
 
@@ -1535,10 +1538,12 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     case PPTP_CHAN_ST_ESTABLISHED:
     case PPTP_CHAN_ST_WAIT_CTRL:
     case PPTP_CHAN_ST_WAIT_DISCONNECT:
-      (*ch->linfo.result)(ch->linfo.cookie, errmsg, 0);
+	if (ch->linfo.cookie != NULL)
+    	    (*ch->linfo.result)(ch->linfo.cookie, errmsg, 0);
       break;
     case PPTP_CHAN_ST_WAIT_ANSWER:
-      (*ch->linfo.cancel)(ch->linfo.cookie);
+	if (ch->linfo.cookie != NULL)
+    	    (*ch->linfo.cancel)(ch->linfo.cookie);
       break;
     case PPTP_CHAN_ST_DYING:				/* should never happen */
     default:
@@ -1558,18 +1563,15 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
       pp = &prep->next;
   }
 
-  /* Free channel */
-  c->channels[ch->id] = NULL;
-  /* Delay Free call to avoid "Modify after free" case */
-  TimerInit(&ch->killTimer, "PptpKillCh", 0, (void (*)(void *))PptpCtrlFreeChan, ch);
-  TimerStart(&ch->killTimer);
+    /* Free channel */
+    c->channels[ch->id] = NULL;
+    c->active_sessions--;
+    /* Delay Free call to avoid "Modify after free" case */
+    TimerInit(&ch->killTimer, "PptpKillCh", 0, (void (*)(void *))PptpCtrlFreeChan, ch);
+    TimerStart(&ch->killTimer);
 
     /* When the last channel is closed, close the control channel too. */
-    for (k = 0; k < c->numChannels; k++) {
-	if (c->channels[k] != NULL)
-    	    break;
-    }
-    if (k == c->numChannels && c->state <= PPTP_CTRL_ST_ESTABLISHED) {
+    if (c->active_sessions == 0 && c->state <= PPTP_CTRL_ST_ESTABLISHED) {
 	/* Delay control close as it may be be needed soon */
 	TimerInit(&c->killTimer, "PptpUnused", PPTP_UNUSED_TIMEOUT * SECONDS,
 	    (void (*)(void *))PptpCtrlCloseCtrl, c);
@@ -2397,3 +2399,28 @@ PptpSetLinkInfo(PptpChan ch, struct pptpSetLinkInfo *info)
   }
 }
 
+/*
+ * PptpsStat()
+ */
+
+int
+PptpsStat(Context ctx, int ac, char *av[], void *arg)
+{
+    int		k;
+    char	buf1[64], buf2[64];
+
+    Printf("Active PPTP tunnels:\r\n");
+    for (k = 0; k < gNumPptpCtrl; k++) {
+	PptpCtrl        const c = gPptpCtrl[k];
+	if (c) {
+
+	    u_addrtoa(&c->self_addr, buf1, sizeof(buf1));
+	    u_addrtoa(&c->peer_addr, buf2, sizeof(buf2));
+	    Printf("pptp%d\t %s %d <=> %s %d\t%s\t%d calls\r\n",
+    		c->id, buf1, c->self_port, buf2, c->peer_port,
+		gPptpCtrlStates[c->state], c->active_sessions);
+	}
+    }
+
+    return 0;
+}

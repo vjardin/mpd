@@ -1678,3 +1678,28 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
     return(0);
 }
 
+/*
+ * L2tpsStat()
+ */
+
+int
+L2tpsStat(Context ctx, int ac, char *av[], void *arg)
+{
+    struct l2tp_tun	*tun;
+    struct ghash_walk	walk;
+    char	buf1[64], buf2[64], buf3[64];
+
+    Printf("Active L2TP tunnels:\r\n");
+    ghash_walk_init(gL2tpTuns, &walk);
+    while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
+
+	u_addrtoa(&tun->self_addr, buf1, sizeof(buf1));
+	u_addrtoa(&tun->peer_addr, buf2, sizeof(buf2));
+	ppp_l2tp_ctrl_stats(tun->ctrl, buf3, sizeof(buf3));
+	Printf("%p\t %s %d <=> %s %d\t%s\r\n",
+    	    tun->ctrl, buf1, tun->self_port, buf2, tun->peer_port,
+	    buf3);
+    }
+
+    return 0;
+}
