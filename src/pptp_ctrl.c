@@ -1416,6 +1416,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
     if (ch != NULL)
       PptpCtrlKillChan(ch, "control channel shutdown");
   }
+  gPptpCtrl[c->id] = NULL;
   if (c->csock >= 0) {
     close(c->csock);
     c->csock = -1;
