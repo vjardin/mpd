@@ -1564,14 +1564,14 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
   TimerInit(&ch->killTimer, "PptpKillCh", 0, (void (*)(void *))PptpCtrlFreeChan, ch);
   TimerStart(&ch->killTimer);
 
-  /* When the last channel is closed, close the control channel too. */
-  for (k = 0; k < c->numChannels; k++) {
-    if (c->channels[k] != NULL)
-      break;
-  }
+    /* When the last channel is closed, close the control channel too. */
+    for (k = 0; k < c->numChannels; k++) {
+	if (c->channels[k] != NULL)
+    	    break;
+    }
     if (k == c->numChannels && c->state <= PPTP_CTRL_ST_ESTABLISHED) {
 	/* Delay control close as it may be be needed soon */
-	TimerInit(&c->killTimer, "PptpUnused", PPTP_IDLE_TIMEOUT * SECONDS,
+	TimerInit(&c->killTimer, "PptpUnused", PPTP_UNUSED_TIMEOUT * SECONDS,
 	    (void (*)(void *))PptpCtrlCloseCtrl, c);
 	TimerStart(&c->killTimer);
     }
