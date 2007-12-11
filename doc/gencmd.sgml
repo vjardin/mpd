@@ -147,6 +147,10 @@ Show the device types supported by this version of mpd.
 <tag>layers</tag>
 Show the names of the layers that are valid as arguments to the <tt>open</tt>
 and <tt>close</tt> commands.
+<tag>l2tp</tag>
+Show active L2TP tunnels.
+<tag>pptp</tag>
+Show active PPTP tunnels.
 <tag>events</tag>
 Show all pending events (for debugging mpd).
 <tag>mem</tag>
