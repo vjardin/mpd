@@ -73,6 +73,9 @@
 /* Idle timeout for sending 'HELLO' message */
 #define L2TP_IDLE_TIMEOUT	60
 
+/* Timeout for closing unused tunnels */
+#define L2TP_CTRL_UNUSED_TIMEOUT	10
+
 /* Reply timeout for messages */
 #define L2TP_REPLY_TIMEOUT	60
 
@@ -287,6 +290,7 @@ static pevent_handler_t		ppp_l2tp_ctrl_event;
 static pevent_handler_t		ppp_l2tp_data_event;
 
 static pevent_handler_t		ppp_l2tp_idle_timeout;
+static pevent_handler_t		ppp_l2tp_unused_timeout;
 static pevent_handler_t		ppp_l2tp_ctrl_do_close;
 static pevent_handler_t		ppp_l2tp_ctrl_death_timeout;
 
@@ -1132,6 +1136,12 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 		}
 	}
 
+	if (pevent_register(ctrl->ctx, &ctrl->death_timer, 0,
+	    ctrl->mutex, ppp_l2tp_unused_timeout, ctrl,
+	    PEVENT_TIME, L2TP_CTRL_UNUSED_TIMEOUT * 1000) == -1) {
+		Log(LOG_ERR, ("error starting unused timer: %s", strerror(errno)));
+	}
+
 	/* Done */
 	return (0);
 }
@@ -1163,8 +1173,10 @@ ppp_l2tp_sess_create(struct ppp_l2tp_ctrl *ctrl,
 	snprintf(sess->hook, sizeof(sess->hook),
 	    NG_L2TP_HOOK_SESSION_F, sess->config.session_id);
 
-	/* Add to control connection hash table */
+	pevent_unregister(&ctrl->death_timer);
 	ctrl->active_sessions++;
+
+	/* Add to control connection hash table */
 	if (ghash_put(ctrl->sessions, sess) == -1) {
 		ppp_l2tp_sess_destroy(&sess);
 		return (NULL);
@@ -1445,6 +1457,21 @@ ppp_l2tp_idle_timeout(void *arg)
 }
 
 /*
+ * Handle unused timeout on control connection.
+ */
+static void
+ppp_l2tp_unused_timeout(void *arg)
+{
+	struct ppp_l2tp_ctrl *const ctrl = arg;
+
+	assert(ctrl->active_sessions == 0);
+	assert(ctrl->state != CS_DYING);
+
+	ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_CLEARED,
+	    0, "no more sessions exist in this tunnel");
+}
+
+/*
  * Remove a control connection that has been dead for a while.
  */
 static void
@@ -1665,10 +1692,11 @@ ppp_l2tp_sess_do_close(void *arg)
 	}
 
 	/* Close control connection after last session closes */
-	if (ctrl->active_sessions == 0) {
-		if (ctrl->state != CS_DYING) {
-			ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_CLEARED,
-			    0, "no more sessions exist in this tunnel");
+	if (ctrl->active_sessions == 0 && ctrl->state != CS_DYING) {
+		if (pevent_register(ctrl->ctx, &ctrl->death_timer, 0,
+		    ctrl->mutex, ppp_l2tp_unused_timeout, ctrl,
+		    PEVENT_TIME, L2TP_CTRL_UNUSED_TIMEOUT * 1000) == -1) {
+			Log(LOG_ERR, ("error starting unused timer: %s", strerror(errno)));
 		}
 	}
 }
