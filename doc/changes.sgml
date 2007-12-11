@@ -19,6 +19,9 @@
 	  <item> Rewritten message engine using internal circular queue
 		 instead of system pipe.
 	  </item>
+	  <item> L2TP/PPTP tunnel shutdown is now delayed for better
+		 LAC/PAC interoperation.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
