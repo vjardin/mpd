@@ -31,6 +31,8 @@
   #define PPTP_INCALLREP_REPLY_TIME	90
   #define PPTP_STOPCCR_REPLY_TIME	3
 
+  #define PPTP_UNUSED_TIMEOUT		10
+
   /* Retry for binding to listen socket */
   #define PPTP_LISTEN_RETRY		10
 
@@ -127,7 +129,8 @@
     in_port_t		peer_port;
     EventRef		connEvent;	/* connection event */
     EventRef		ctrlEvent;	/* control connection input */
-    struct pppTimer	idleTimer;	/* idle/kill timer */
+    struct pppTimer	idleTimer;	/* idle timer */
+    struct pppTimer	killTimer;	/* kill timer */
     u_int32_t		echoId;		/* last echo id # sent */
     PptpPendRep		reps;		/* pending replies to msgs */
     PptpChan		*channels;	/* array of channels */
@@ -1243,29 +1246,31 @@ PptpCtrlGetChan(PptpCtrl c, int chanState, int orig, int incoming,
 	int bearType, int frameType, int minBps, int maxBps,
 	const char *callingNum, const char *calledNum, const char *subAddress)
 {
-  PptpChan	ch;
-  int		k;
+    PptpChan	ch;
+    int		k;
 
-  /* Get a free data channel */
-  for (k = 0; k < c->numChannels && c->channels[k] != NULL; k++);
-  if (k == c->numChannels)
-    LengthenArray(&c->channels, sizeof(*c->channels), &c->numChannels, MB_PPTP);
-  ch = Malloc(MB_PPTP, sizeof(*ch));
-  c->channels[k] = ch;
-  ch->id = k;
-  ch->cid = ++gLastCallId;
-  ch->ctrl = c;
-  ch->orig = orig;
-  ch->incoming = incoming;
-  ch->minBps = minBps;
-  ch->maxBps = maxBps;
-  ch->bearType = bearType;
-  ch->frameType = frameType;
-  strlcpy(ch->calledNum, calledNum, sizeof(ch->calledNum));
-  strlcpy(ch->callingNum, callingNum, sizeof(ch->callingNum));
-  strlcpy(ch->subAddress, subAddress, sizeof(ch->subAddress));
-  PptpCtrlNewChanState(ch, chanState);
-  return(ch);
+    TimerStop(&c->killTimer);
+
+    /* Get a free data channel */
+    for (k = 0; k < c->numChannels && c->channels[k] != NULL; k++);
+    if (k == c->numChannels)
+	LengthenArray(&c->channels, sizeof(*c->channels), &c->numChannels, MB_PPTP);
+    ch = Malloc(MB_PPTP, sizeof(*ch));
+    c->channels[k] = ch;
+    ch->id = k;
+    ch->cid = ++gLastCallId;
+    ch->ctrl = c;
+    ch->orig = orig;
+    ch->incoming = incoming;
+    ch->minBps = minBps;
+    ch->maxBps = maxBps;
+    ch->bearType = bearType;
+    ch->frameType = frameType;
+    strlcpy(ch->calledNum, calledNum, sizeof(ch->calledNum));
+    strlcpy(ch->callingNum, callingNum, sizeof(ch->callingNum));
+    strlcpy(ch->subAddress, subAddress, sizeof(ch->subAddress));
+    PptpCtrlNewChanState(ch, chanState);
+    return(ch);
 }
 
 /*
@@ -1414,6 +1419,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
   EventUnRegister(&c->connEvent);
   EventUnRegister(&c->ctrlEvent);
   TimerStop(&c->idleTimer);
+  TimerStop(&c->killTimer);
   for (prep = c->reps; prep; prep = next) {
     next = prep->next;
     TimerStop(&prep->timer);
@@ -1422,8 +1428,8 @@ PptpCtrlKillCtrl(PptpCtrl c)
   c->reps = NULL;
   
   /* Delay Free call to avoid "Modify after free" case */
-  TimerInit(&c->idleTimer, "PptpKill", 0, (void (*)(void *))PptpCtrlFreeCtrl, c);
-  TimerStart(&c->idleTimer);
+  TimerInit(&c->killTimer, "PptpKill", 0, (void (*)(void *))PptpCtrlFreeCtrl, c);
+  TimerStart(&c->killTimer);
 }
 
 static void
@@ -1563,9 +1569,12 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     if (c->channels[k] != NULL)
       break;
   }
-  if (k == c->numChannels
-      && c->state == PPTP_CTRL_ST_ESTABLISHED)
-    PptpCtrlCloseCtrl(c);
+    if (k == c->numChannels && c->state <= PPTP_CTRL_ST_ESTABLISHED) {
+	/* Delay control close as it may be be needed soon */
+	TimerInit(&c->killTimer, "PptpUnused", PPTP_IDLE_TIMEOUT * SECONDS,
+	    (void (*)(void *))PptpCtrlCloseCtrl, c);
+	TimerStart(&c->killTimer);
+    }
 }
 
 static void
@@ -1627,14 +1636,6 @@ PptpCtrlIdleTimeout(void *arg)
 {
   PptpCtrl			const c = (PptpCtrl) arg;
   struct pptpEchoRequest	msg;
-  int				k;
-
-  /* If no channels are left on this control connection, shut it down */
-  for (k = 0; k < c->numChannels && c->channels[k] == NULL; k++);
-  if (k == c->numChannels) {
-    PptpCtrlCloseCtrl(c);
-    return;
-  }
 
   /* Send echo request */
   memset(&msg, 0, sizeof(msg));
