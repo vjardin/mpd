@@ -54,6 +54,8 @@
     SET_QUEUE,
     SET_PIPE,
     SET_TABLE,
+    SET_PPTPTO,
+    SET_L2TPTO,
   };
 
 
@@ -98,6 +100,10 @@
        	GlobalSetCommand, NULL, 2, (void *) SET_PIPE },
     { "starttable {num}", 		"Initial ipfw table number" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_TABLE },
+    { "l2tptimeout {sec}", 		"L2TP tunnel unused timeout" ,
+       	GlobalSetCommand, NULL, 2, (void *) SET_L2TPTO },
+    { "pptptimeout {sec}", 		"PPTP tunnel unused timeout" ,
+       	GlobalSetCommand, NULL, 2, (void *) SET_PPTPTO },
     { NULL },
   };
 
@@ -526,6 +532,22 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    else
 		table_pool_start = val;
 	}
+      break;
+
+    case SET_L2TPTO:
+	val = atoi(*av);
+	if (val < 0 || val > 1000000)
+	    Log(LG_ERR, ("Incorrect timeout"));
+	else
+	    gL2TPto = val;
+      break;
+
+    case SET_PPTPTO:
+	val = atoi(*av);
+	if (val < 0 || val > 1000000)
+	    Log(LG_ERR, ("Incorrect timeout"));
+	else
+	    gPPTPto = val;
       break;
 
     default:

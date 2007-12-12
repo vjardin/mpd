@@ -73,9 +73,6 @@
 /* Idle timeout for sending 'HELLO' message */
 #define L2TP_IDLE_TIMEOUT	60
 
-/* Timeout for closing unused tunnels */
-#define L2TP_CTRL_UNUSED_TIMEOUT	10
-
 /* Reply timeout for messages */
 #define L2TP_REPLY_TIMEOUT	60
 
@@ -1138,7 +1135,7 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 
 	if (pevent_register(ctrl->ctx, &ctrl->death_timer, 0,
 	    ctrl->mutex, ppp_l2tp_unused_timeout, ctrl,
-	    PEVENT_TIME, L2TP_CTRL_UNUSED_TIMEOUT * 1000) == -1) {
+	    PEVENT_TIME, gL2TPto * 1000) == -1) {
 		Log(LOG_ERR, ("error starting unused timer: %s", strerror(errno)));
 	}
 
@@ -1695,7 +1692,7 @@ ppp_l2tp_sess_do_close(void *arg)
 	if (ctrl->active_sessions == 0 && ctrl->state != CS_DYING) {
 		if (pevent_register(ctrl->ctx, &ctrl->death_timer, 0,
 		    ctrl->mutex, ppp_l2tp_unused_timeout, ctrl,
-		    PEVENT_TIME, L2TP_CTRL_UNUSED_TIMEOUT * 1000) == -1) {
+		    PEVENT_TIME, gL2TPto * 1000) == -1) {
 			Log(LOG_ERR, ("error starting unused timer: %s", strerror(errno)));
 		}
 	}

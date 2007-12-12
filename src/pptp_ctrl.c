@@ -31,8 +31,6 @@
   #define PPTP_INCALLREP_REPLY_TIME	90
   #define PPTP_STOPCCR_REPLY_TIME	3
 
-  #define PPTP_UNUSED_TIMEOUT		10
-
   /* Retry for binding to listen socket */
   #define PPTP_LISTEN_RETRY		10
 
@@ -1574,7 +1572,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
     /* When the last channel is closed, close the control channel too. */
     if (c->active_sessions == 0 && c->state <= PPTP_CTRL_ST_ESTABLISHED) {
 	/* Delay control close as it may be be needed soon */
-	TimerInit(&c->killTimer, "PptpUnused", PPTP_UNUSED_TIMEOUT * SECONDS,
+	TimerInit(&c->killTimer, "PptpUnused", gPPTPto * SECONDS,
 	    (void (*)(void *))PptpCtrlCloseCtrl, c);
 	TimerStart(&c->killTimer);
     }

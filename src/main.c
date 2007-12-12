@@ -89,6 +89,9 @@
   pid_t          	gPid;
   int			gRouteSeq = 0;
 
+  int			gPPTPto = 10;
+  int			gL2TPto = 10;
+
   struct globalconf	gGlobalConf;
 
   pthread_mutex_t	gGiantMutex;

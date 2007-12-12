@@ -190,6 +190,9 @@
   extern pid_t		gPid;
   extern int		gRouteSeq;
 
+  extern int		gPPTPto;
+  extern int		gL2TPto;
+
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 
   extern struct pevent_ctx	*gPeventCtx;
