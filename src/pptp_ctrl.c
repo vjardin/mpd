@@ -242,8 +242,9 @@
  * INTERNAL VARIABLES
  */
 
-  static u_char			gInitialized;
+  static u_char			gInitialized = 0;
   static u_int16_t		gLastCallId;
+  static u_char			gCallIds[65536];
   static PptpGetInLink_t	gGetInLink;
   static PptpGetOutLink_t	gGetOutLink;
 
@@ -495,34 +496,35 @@
 int
 PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink)
 {
-  int	type;
+    int	type;
 
-  /* Save callbacks */
-  gGetInLink = getInLink;
-  gGetOutLink = getOutLink;
-  if (gInitialized)
-    return(0);
+    /* Save callbacks */
+    gGetInLink = getInLink;
+    gGetOutLink = getOutLink;
+    if (gInitialized)
+	return(0);
 
-  /* Generate semi-random call ID */
+    /* Generate semi-random call ID */
 #ifdef RANDOMIZE_CID
-  gLastCallId = (u_short) (time(NULL) ^ (gPid << 5));
+    gLastCallId = (u_short) (time(NULL) ^ (gPid << 5));
 #endif
+    bzero(gCallIds, sizeof(gCallIds));
 
-  /* Sanity check structure lengths and valid state bits */
-  for (type = 0; type < PPTP_MAX_CTRL_TYPE; type++) {
-    PptpMsgInfo	const mi = &gPptpMsgInfo[type];
-    PptpField	field = gPptpMsgLayout[type];
-    int		total;
+    /* Sanity check structure lengths and valid state bits */
+    for (type = 0; type < PPTP_MAX_CTRL_TYPE; type++) {
+	PptpMsgInfo	const mi = &gPptpMsgInfo[type];
+	PptpField	field = gPptpMsgLayout[type];
+	int		total;
 
-    assert((mi->match.inField != NULL) ^ !(mi->states & 0x8000));
-    for (total = 0; field->name; field++)
-      total += field->length;
-    assert(total == gPptpMsgInfo[type].length);
-  }
+	assert((mi->match.inField != NULL) ^ !(mi->states & 0x8000));
+	for (total = 0; field->name; field++)
+    	    total += field->length;
+	assert(total == gPptpMsgInfo[type].length);
+    }
 
-  /* Done */
-  gInitialized = TRUE;
-  return(0);
+    /* Done */
+    gInitialized = TRUE;
+    return(0);
 }
 
 /*
@@ -1261,7 +1263,10 @@ PptpCtrlGetChan(PptpCtrl c, int chanState, int orig, int incoming,
     c->channels[k] = ch;
     c->active_sessions++;
     ch->id = k;
-    ch->cid = ++gLastCallId;
+    while (gCallIds[gLastCallId])
+	gLastCallId++;
+    gCallIds[gLastCallId] = 1;
+    ch->cid = gLastCallId;
     ch->ctrl = c;
     ch->orig = orig;
     ch->incoming = incoming;
@@ -1564,6 +1569,7 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
   }
 
     /* Free channel */
+    gCallIds[ch->cid] = 0;
     c->channels[ch->id] = NULL;
     c->active_sessions--;
     /* Delay Free call to avoid "Modify after free" case */
