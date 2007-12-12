@@ -484,7 +484,7 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	ctrl->dsock = -1;
 
 	/* Debugging */
-	Log(LOG_DEBUG, ("L2TP: %s: invoked", __FUNCTION__));
+	Log(LOG_DEBUG, ("L2TP: %s invoked", __FUNCTION__));
 
 	/* Select an unused, non-zero local tunnel ID */
 	while (ctrl->config.tunnel_id == 0
@@ -638,7 +638,7 @@ struct ppp_l2tp_ctrl *
 ppp_l2tp_ctrl_initiate(struct ppp_l2tp_ctrl *ctrl)
 {
 	/* Debugging */
-	Log(LOG_DEBUG, ("L2TP: %s: invoked", __FUNCTION__));
+	Log(LOG_DEBUG, ("L2TP: %s invoked", __FUNCTION__));
 
 	/* Initiate connection, we're the initiator */
 	ctrl->state = CS_WAIT_CTL_REPLY;
@@ -659,7 +659,7 @@ ppp_l2tp_ctrl_shutdown(struct ppp_l2tp_ctrl *ctrl,
         u_int16_t result, u_int16_t error, const char *errmsg)
 {
 	/* Debugging */
-	Log(LOG_DEBUG, ("L2TP: %s: invoked, ctrl=%p errmsg=\"%s\"",
+	Log(LOG_DEBUG, ("L2TP: %s invoked, ctrl=%p errmsg=\"%s\"",
 	    __FUNCTION__, ctrl, errmsg));
 
 	/* Close control connection */
@@ -680,7 +680,7 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 	int i;
 
 	/* Debugging */
-	Log(LOG_DEBUG, ("L2TP: %s: invoked, ctrl=%p out=%d", __FUNCTION__, ctrl, out));
+	Log(LOG_DEBUG, ("L2TP: %s invoked, ctrl=%p out=%d", __FUNCTION__, ctrl, out));
 
 	/* Check control connection */
 	/* XXX add support for sessions waiting for open ctrl conection */
@@ -787,7 +787,7 @@ ppp_l2tp_connected(struct ppp_l2tp_sess *sess,
 	int i;
 
 	/* Debugging */
-	Log(LOG_DEBUG, ("L2TP: %s: invoked, sess=%p", __FUNCTION__, sess));
+	Log(LOG_DEBUG, ("L2TP: %s invoked, sess=%p", __FUNCTION__, sess));
 
 	/* Check control connection */
 	if (ctrl->state != CS_ESTABLISHED) {
@@ -866,7 +866,7 @@ ppp_l2tp_terminate(struct ppp_l2tp_sess *sess,
 	struct ppp_l2tp_ctrl *const ctrl = sess->ctrl;
 
 	/* Debugging */
-	Log(LOG_DEBUG, ("L2TP: %s: invoked, sess=%p errmsg=\"%s\"",
+	Log(LOG_DEBUG, ("L2TP: %s invoked, sess=%p errmsg=\"%s\"",
 	    __FUNCTION__, sess, errmsg != NULL ? errmsg : ""));
 
 	/* Check control connection state */
