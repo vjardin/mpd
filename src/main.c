@@ -90,7 +90,9 @@
   int			gRouteSeq = 0;
 
   int			gPPTPto = 10;
+  int			gPPTPtunlimit = 100;
   int			gL2TPto = 10;
+  int			gL2TPtunlimit = 10;
 
   struct globalconf	gGlobalConf;
 

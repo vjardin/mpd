@@ -64,6 +64,7 @@
     in_port_t		peer_port;	/* peer port */
     u_char		connected;	/* control connection is connected */
     u_char		alive;		/* control connection is not dying */
+    u_int		active_sessions;/* number of calls in this sunnels */
     struct ppp_l2tp_ctrl *ctrl;		/* control connection for this tunnel */
   };
   
@@ -372,10 +373,11 @@ L2tpOpen(Link l)
 
 	ghash_walk_init(gL2tpTuns, &walk);
 	while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
-	    if (tun->ctrl && tun->alive &&
+	    if (tun->ctrl && tun->alive && tun->active_sessions <= gL2TPtunlimit &&
 		(IpAddrInRange(&pi->conf.peer_addr, &tun->peer_addr)) &&
 		(pi->conf.peer_port == 0 || pi->conf.peer_port == tun->peer_port)) {
 		    pi->tun = tun;
+		    tun->active_sessions++;
 		    if (tun->connected) { /* if tun is connected then just initiate */
 		    
 			/* Create number AVPs */
@@ -404,6 +406,7 @@ L2tpOpen(Link l)
 			    ppp_l2tp_avp_list_destroy(&avps);
 			    pi->sess = NULL;
 			    pi->tun = NULL;
+			    tun->active_sessions--;
 			    l->state = PHYS_STATE_DOWN;
 			    PhysDown(l, STR_ERROR, NULL);
 			    return;
@@ -570,6 +573,7 @@ L2tpOpen(Link l)
 		goto fail;
 	}
 	pi->tun = tun;
+	tun->active_sessions++;
 	Log(LG_PHYS, ("L2TP: Control connection %p initiated", tun->ctrl));
 	ppp_l2tp_ctrl_initiate(tun->ctrl);
 
@@ -614,6 +618,8 @@ L2tpClose(Link l)
 	ppp_l2tp_terminate(pi->sess, L2TP_RESULT_ADMIN, 0, NULL);
 	pi->sess = NULL;
     }
+    if (pi->tun)
+	pi->tun->active_sessions--;
     pi->tun = NULL;
     pi->callingnum[0]=0;
     pi->callednum[0]=0;
@@ -924,6 +930,7 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 			Log(LG_ERR, ("ppp_l2tp_initiate: %s", strerror(errno)));
 			pi->sess = NULL;
 			pi->tun = NULL;
+			tun->active_sessions--;
 			l->state = PHYS_STATE_DOWN;
 			PhysDown(l, STR_ERROR, NULL);
 			continue;
@@ -993,6 +1000,7 @@ ppp_l2tp_ctrl_terminated_cb(struct ppp_l2tp_ctrl *ctrl,
 		L2tpUnhook(l);
 		pi->sess = NULL;
 		pi->tun = NULL;
+		tun->active_sessions--;
 		pi->callingnum[0]=0;
 	        pi->callednum[0]=0;
 		PhysDown(l, STR_DROPPED, NULL);
@@ -1097,6 +1105,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		pi->incoming = 1;
 		pi->outcall = out;
 		pi->tun = tun;
+		tun->active_sessions++;
 		pi->sess = sess;
 		if (ptrs->callingnum && ptrs->callingnum->number)
 		    strlcpy(pi->callingnum, ptrs->callingnum->number, sizeof(pi->callingnum));
@@ -1187,6 +1196,8 @@ ppp_l2tp_terminated_cb(struct ppp_l2tp_sess *sess,
 	l->state = PHYS_STATE_DOWN;
 	L2tpUnhook(l);
 	pi->sess = NULL;
+	if (pi->tun)
+	    pi->tun->active_sessions--;
 	pi->tun = NULL;
 	pi->callingnum[0]=0;
 	pi->callednum[0]=0;
@@ -1696,9 +1707,9 @@ L2tpsStat(Context ctx, int ac, char *av[], void *arg)
 	u_addrtoa(&tun->self_addr, buf1, sizeof(buf1));
 	u_addrtoa(&tun->peer_addr, buf2, sizeof(buf2));
 	ppp_l2tp_ctrl_stats(tun->ctrl, buf3, sizeof(buf3));
-	Printf("%p\t %s %d <=> %s %d\t%s\r\n",
+	Printf("%p\t %s %d <=> %s %d\t%s %d calls\r\n",
     	    tun->ctrl, buf1, tun->self_port, buf2, tun->peer_port,
-	    buf3);
+	    buf3, tun->active_sessions);
     }
 
     return 0;

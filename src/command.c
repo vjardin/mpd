@@ -55,7 +55,9 @@
     SET_PIPE,
     SET_TABLE,
     SET_PPTPTO,
+    SET_PPTPLIMIT,
     SET_L2TPTO,
+    SET_L2TPLIMIT,
   };
 
 
@@ -102,8 +104,12 @@
        	GlobalSetCommand, NULL, 2, (void *) SET_TABLE },
     { "l2tptimeout {sec}", 		"L2TP tunnel unused timeout" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_L2TPTO },
+    { "l2tplimit {num}", 		"Calls per L2TP tunnel limit" ,
+       	GlobalSetCommand, NULL, 2, (void *) SET_L2TPLIMIT },
     { "pptptimeout {sec}", 		"PPTP tunnel unused timeout" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_PPTPTO },
+    { "pptplimit {num}", 		"Calls per PPTP tunnel limit" ,
+       	GlobalSetCommand, NULL, 2, (void *) SET_PPTPLIMIT },
     { NULL },
   };
 
@@ -492,7 +498,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>=65535)
-		Log(LG_ERR, ("Incorrect rule number"));
+		Error("Incorrect rule number");
 	    else
 		rule_pool_start = val;
 	}
@@ -504,7 +510,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>=65535)
-		Log(LG_ERR, ("Incorrect queue number"));
+		Error("Incorrect queue number");
 	    else
 		queue_pool_start = val;
 	}
@@ -516,7 +522,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>=65535)
-		Log(LG_ERR, ("Incorrect rule number"));
+		Error("Incorrect rule number");
 	    else
 		pipe_pool_start = val;
 	}
@@ -528,7 +534,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>127) /* table 0 is usually possible but we deny it */
-		Log(LG_ERR, ("Incorrect rule number"));
+		Error("Incorrect rule number");
 	    else
 		table_pool_start = val;
 	}
@@ -537,17 +543,33 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_L2TPTO:
 	val = atoi(*av);
 	if (val < 0 || val > 1000000)
-	    Log(LG_ERR, ("Incorrect timeout"));
+	    Error("Incorrect timeout");
 	else
 	    gL2TPto = val;
+      break;
+
+    case SET_L2TPLIMIT:
+	val = atoi(*av);
+	if (val < 0 || val > 65536)
+	    Error("Incorrect call limit");
+	else
+	    gL2TPtunlimit = val;
       break;
 
     case SET_PPTPTO:
 	val = atoi(*av);
 	if (val < 0 || val > 1000000)
-	    Log(LG_ERR, ("Incorrect timeout"));
+	    Error("Incorrect timeout");
 	else
 	    gPPTPto = val;
+      break;
+
+    case SET_PPTPLIMIT:
+	val = atoi(*av);
+	if (val <= 0 || val > 65536)
+	    Error("Incorrect call limit");
+	else
+	    gPPTPtunlimit = val;
       break;
 
     default:
@@ -713,6 +735,10 @@ ShowGlobal(Context ctx, int ac, char *av[], void *arg)
   Printf("	startpipe	: %d\r\n", pipe_pool_start);
   Printf("	startqueue	: %d\r\n", queue_pool_start);
   Printf("	starttable	: %d\r\n", table_pool_start);
+  Printf("	l2tptimeout	: %d\r\n", gL2TPto);
+  Printf("	l2tplimit	: %d\r\n", gL2TPtunlimit);
+  Printf("	pptptimeout	: %d\r\n", gPPTPto);
+  Printf("	pptplimit	: %d\r\n", gPPTPtunlimit);
   Printf("Global options:\r\n");
   OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
   return 0;

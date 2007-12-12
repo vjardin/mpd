@@ -2590,8 +2590,7 @@ ppp_l2tp_sess_side_str(enum l2tp_sess_side side)
 char *
 ppp_l2tp_ctrl_stats(struct ppp_l2tp_ctrl *ctrl, char *buf, int buf_len)
 {
-	snprintf(buf, buf_len, "%s\t%d calls",
-		ppp_l2tp_ctrl_state_str(ctrl->state),
-		ctrl->active_sessions);
+	snprintf(buf, buf_len, "%s",
+		ppp_l2tp_ctrl_state_str(ctrl->state));
 	return (buf);
 }

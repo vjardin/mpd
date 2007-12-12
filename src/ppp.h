@@ -191,7 +191,9 @@
   extern int		gRouteSeq;
 
   extern int		gPPTPto;
+  extern int		gPPTPtunlimit;
   extern int		gL2TPto;
+  extern int		gL2TPtunlimit;
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 
