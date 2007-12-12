@@ -373,7 +373,7 @@ L2tpOpen(Link l)
 
 	ghash_walk_init(gL2tpTuns, &walk);
 	while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
-	    if (tun->ctrl && tun->alive && tun->active_sessions <= gL2TPtunlimit &&
+	    if (tun->ctrl && tun->alive && tun->active_sessions < gL2TPtunlimit &&
 		(IpAddrInRange(&pi->conf.peer_addr, &tun->peer_addr)) &&
 		(pi->conf.peer_port == 0 || pi->conf.peer_port == tun->peer_port)) {
 		    pi->tun = tun;

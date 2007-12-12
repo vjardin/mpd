@@ -1181,7 +1181,7 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
 		PptpCtrl	const c = gPptpCtrl[k];
 	
 		if (c != NULL
-		    && (c->active_sessions <= gPPTPtunlimit)
+		    && (c->active_sessions < gPPTPtunlimit)
 		    && (u_addrcompare(&c->peer_addr, peer_addr) == 0)
 		    && (c->peer_port == peer_port || c->orig != orig)
 		    && (u_addrempty(self_addr) || 
