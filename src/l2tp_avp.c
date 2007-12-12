@@ -777,6 +777,7 @@ ppp_l2tp_avp_ptrs_destroy(struct ppp_l2tp_avp_ptrs **ptrsp)
 	Freee(ptrs->challengresp);
 	Freee(ptrs->causecode);
 	Freee(ptrs->serialnum);
+	Freee(ptrs->minbps);
 	Freee(ptrs->maxbps);
 	Freee(ptrs->bearer);
 	Freee(ptrs->framing);
