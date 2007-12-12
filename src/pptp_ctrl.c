@@ -562,7 +562,6 @@ PptpCtrlListen(struct u_addr *ip, in_port_t port)
 	LengthenArray(&gPptpLis, sizeof(*gPptpLis), &gNumPptpLis, MB_PPTP);
 
     l = Malloc(MB_PPTP, sizeof(*l));
-    gPptpLis[k] = l;
     l->ref = 1;
     l->self_addr = *ip;
     l->self_port = port;
@@ -571,7 +570,6 @@ PptpCtrlListen(struct u_addr *ip, in_port_t port)
 	    EventRegister(&l->retry, EVENT_TIMEOUT, PPTP_LISTEN_RETRY * 1000,
 		0, PptpCtrlListenRetry, l);
         } else {
-	    gPptpLis[k] = NULL;
 	    Freee(l);
     	    Log(LG_ERR, ("PPTP: can't get listening socket"));
     	    return(NULL);
@@ -580,6 +578,7 @@ PptpCtrlListen(struct u_addr *ip, in_port_t port)
 	EventRegister(&l->event, EVENT_READ,
     	    l->sock, EVENT_RECURRING, PptpCtrlListenEvent, l);
     }
+    gPptpLis[k] = l;
     Log(LG_PHYS, ("PPTP: waiting for connection on %s %u",
 	u_addrtoa(&l->self_addr, buf, sizeof(buf)), l->self_port));
     return(l);
