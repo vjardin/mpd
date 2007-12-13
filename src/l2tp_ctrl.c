@@ -53,6 +53,7 @@
 #include <openssl/md5.h>
 #include "l2tp_avp.h"
 #include "l2tp_ctrl.h"
+#include "ngfunc.h"
 
 #ifndef __FreeBSD__
 #define __printflike(x,y)
@@ -452,12 +453,6 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	const struct ppp_l2tp_avp_list *avps, const void *secret, size_t seclen,
 	u_char hide_avps)
 {
-	union {
-	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-	    struct ng_mesg reply;
-	} repbuf;
-	struct ng_mesg *const reply = &repbuf.reply;
-	struct nodeinfo ninfo;
 	struct ppp_l2tp_ctrl *ctrl;
 	struct ngm_mkpeer mkpeer;
 	struct ppp_l2tp_avp *avp = NULL;
@@ -518,13 +513,11 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 		goto fail;
 
 	/* Get l2tp node ID */
-	if (NgSendMsg(ctrl->csock, NG_L2TP_HOOK_CTRL,
-	    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) == -1)
-		goto fail;
-	if (NgRecvMsg(ctrl->csock, reply, sizeof(repbuf), NULL) == -1)
-		goto fail;
-	memcpy(&ninfo, reply->data, sizeof(ninfo));
-	ctrl->node_id = ninfo.id;
+	if ((ctrl->node_id = NgGetNodeID(ctrl->csock, NG_L2TP_HOOK_CTRL)) == 0) {
+	    Log(LG_ERR, ("L2TP: Cannot get %s node id: %s",
+		NG_L2TP_NODE_TYPE, strerror(errno)));
+	    goto fail;
+	};
 	snprintf(ctrl->path, sizeof(ctrl->path),
 	    "[%lx]:", (u_long)ctrl->node_id);
 
@@ -1518,12 +1511,6 @@ ppp_l2tp_sess_check_liic(struct ppp_l2tp_sess *sess)
 static int
 ppp_l2tp_sess_setup(struct ppp_l2tp_sess *sess)
 {
-	union {
-	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-	    struct ng_mesg reply;
-	} repbuf;
-	struct ng_mesg *const reply = &repbuf.reply;
-	struct nodeinfo ninfo;
 	struct ppp_l2tp_ctrl *const ctrl = sess->ctrl;
 	struct ngm_mkpeer mkpeer;
 	char path[64];
@@ -1551,13 +1538,11 @@ ppp_l2tp_sess_setup(struct ppp_l2tp_sess *sess)
 
 	/* Get ng_tee node ID */
 	snprintf(path, sizeof(path), "%s.%s", NG_L2TP_HOOK_CTRL, sess->hook);
-	if (NgSendMsg(ctrl->csock, path,
-	    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) == -1)
-		goto fail;
-	if (NgRecvMsg(ctrl->csock, reply, sizeof(repbuf), NULL) == -1)
-		goto fail;
-	memcpy(&ninfo, reply->data, sizeof(ninfo));
-	sess->node_id = ninfo.id;
+	if ((sess->node_id = NgGetNodeID(ctrl->csock, path)) == 0) {
+	    Log(LG_ERR, ("L2TP: Cannot get %s node id: %s",
+		NG_TEE_NODE_TYPE, strerror(errno)));
+	    goto fail;
+	};
 
 	/* Configure session hook */
 	if (sess->dseq_required) {

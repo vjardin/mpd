@@ -802,24 +802,13 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 
 		snprintf(path2, sizeof(path2), "%s%s", path, hook);
 		/* Get pppoe node ID */
-		if (NgSendMsg(PIf->csock, path2,
-		    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
-			Log(LG_ERR, ("[%s] Cannot request pppoe node id: %s",
-			    iface, strerror(errno)));
-			close(PIf->csock);
-			close(PIf->dsock);
-			return (0);
-		}
-		resp = (struct ng_mesg *)rbuf;
-		if (NgRecvMsg(PIf->csock, resp, sizeof(rbuf), NULL) <= 0) {
+		if ((PIf->node_id = NgGetNodeID(PIf->csock, path2)) == 0) {
 			Log(LG_ERR, ("[%s] Cannot get pppoe node id: %s",
 			    iface, strerror(errno)));
 			close(PIf->csock);
 			close(PIf->dsock);
 			return (0);
-		}
-		ninfo = (const struct nodeinfo *)resp->data;
-		PIf->node_id = ninfo->id;
+		};
 	};
 
 	/* Register an event listening to the control and data sockets. */

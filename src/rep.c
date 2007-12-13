@@ -37,12 +37,6 @@ RepIncoming(Link l)
 {
     Rep		r = l->rep;
     struct ngm_mkpeer       mkp;
-    union {
-        u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-        struct ng_mesg reply;
-    } repbuf;
-    struct ng_mesg *const reply = &repbuf.reply;
-    struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
     char	buf[64];
     
     Log(LG_REP, ("[%s] Rep: INCOMING event from %s (0)",
@@ -72,12 +66,13 @@ RepIncoming(Link l)
     }
 
     /* Get tee node ID */
-    if (NgSendMsg(r->csock, ".:tee",
-	NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) != -1) {
-	    if (NgRecvMsg(r->csock, reply, sizeof(repbuf), NULL) != -1) {
-	        r->node_id = ninfo->id;
-	    }
-    }
+    if ((r->node_id = NgGetNodeID(r->csock, ".:tee")) == 0) {
+	Log(LG_ERR, ("[%s] Rep: Cannot get %s node id: %s",
+	    l->name, NG_TEE_NODE_TYPE, strerror(errno)));
+	close(r->csock);
+    	PhysClose(l);
+	return;
+    };
     
     PhysGetCallingNum(r->links[0], buf, sizeof(buf));
     PhysSetCallingNum(r->links[1], buf);

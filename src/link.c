@@ -636,11 +636,6 @@ LinkShutdown(Link l)
 int
 LinkNgInit(Link l)
 {
-    union {
-        u_char		buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-        struct ng_mesg	reply;
-    }			u;
-    struct nodeinfo	*const ni = (struct nodeinfo *)(void *)u.reply.data;
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
     int			newTee = 0;
@@ -669,17 +664,11 @@ LinkNgInit(Link l)
     }
 
     /* Get PPP node ID */
-    if (NgSendMsg(gLinksCsock, l->hook,
-      NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
-	Log(LG_ERR, ("[%s] ppp nodeinfo: %s", l->name, strerror(errno)));
+    if ((l->nodeID = NgGetNodeID(gLinksCsock, l->hook)) == 0) {
+	Log(LG_ERR, ("[%s] Cannot get %s node id: %s",
+	    l->name, NG_PPP_NODE_TYPE, strerror(errno)));
 	goto fail;
-    }
-    if (NgRecvMsg(gLinksCsock, &u.reply, sizeof(u), NULL) < 0) {
-	Log(LG_ERR, ("[%s] node \"%s\" reply: %s",
-    	    l->name, l->hook, strerror(errno)));
-	goto fail;
-    }
-    l->nodeID = ni->id;
+    };
 
     /* OK */
     return(0);
