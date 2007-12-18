@@ -4,16 +4,15 @@
 .\" See ``COPYRIGHT.whistle''
 .\"
 .Dd @DATE@
-.Dt MPD 8
+.Dt MPD5 8
 .Os
 .Sh NAME
-.Nm mpd
+.Nm mpd5
 .Nd netgraph multi-link PPP daemon
 .Sh SYNOPSIS
 .Nm
-.Op Fl kbv
+.Op Fl bkov
 .Op Fl d Ar directory
-.Op Fl c Ar tcp-port
 .Op Fl f Ar file
 .Op Fl p Ar pid-file
 .Op Fl s Ar ident
@@ -62,12 +61,9 @@ entered via the console command line or read from a configuration file. If
 .Nm
 is running as a background daemon, the console can be made accessible via
 .Xr telnet 1
-with the
-.Fl c
-flag. Only one console connection is allowed at a time.
 Since commands may apply to a single link, the console prompt always shows the
 .Ar current bundle
-and the
+or the
 .Ar current link
 in that bundle. 
 .Sh ON-LINE MANUAL
@@ -95,6 +91,11 @@ Specify a configuration directory other than the default,
 .Pp
 Specify an initial configuration file other than the default,
 .Pa mpd.conf .
+.Pp
+.It Fl o
+.It Fl -one-shot
+.Pp
+Terminate daemon after the last link shutdown.
 .Pp
 .It Fl p Ar file
 .It Fl -pidfile Ar file
