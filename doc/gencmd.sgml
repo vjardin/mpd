@@ -209,7 +209,7 @@ set global pptplimit <em>num</em>
 
 Limit maximum number of calls per PPTP/L2TP tunnel. When limit
 is reached new tunnel will be created for the next call.
-This option violate PPTP RFC which requires only one tunnel existing
+This option violates PPTP RFC which requires only one tunnel existing
 for the PAC/PNS pair, but it can increase busy tunnels stability.
 
 Defaults are 100 for PPTP and 10 for L2TP.
