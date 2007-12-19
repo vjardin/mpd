@@ -52,7 +52,7 @@ MAN8=		mpd5.8
 MANCOMPRESSED=	maybe
 USE_RC_SUBR=	mpd5.sh
 HTMLNUM!=	@HTMLNUM@
-CONFSUF=	conf links secret script
+CONFSUF=	conf secret script
 DOCSDIR=	${PREFIX}/share/doc/mpd5
 PORTDOCS=	${HTMLNUM:S/^/mpd/:S/$/.html/} mpd.html mpd.ps README	\
 		mpd_toc.html
