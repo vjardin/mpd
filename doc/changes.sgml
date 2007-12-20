@@ -6,6 +6,19 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.0rc1:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fixed bug in tcpmssfix when compression or encryption is used.
+	  </item>
+	  <item> Fixed build on FreeBSD 5.x.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 5.0b4:
     <itemize>
 	<item> New features:
