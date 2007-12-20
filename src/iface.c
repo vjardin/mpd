@@ -742,7 +742,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     }
 
     if (IfaceNgIpInit(b, ready)) {
-	Log(LG_ERR, ("[%s] IfaceNgIpInit() error, closing IPCP", b->name));
+	Log(LG_ERR, ("[%s] IFACE: IfaceNgIpInit() error, closing IPCP", b->name));
 	FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
 	return (-1);
     };
@@ -755,11 +755,11 @@ IfaceIpIfaceUp(Bund b, int ready)
     if (Enabled(&iface->options, IFACE_CONF_PROXY)) {
 	if (u_addrempty(&iface->peer_addr)) {
     	    Log(LG_IFACE,
-		("[%s] can't proxy arp for %s",
+		("[%s] IFACE: Can't proxy arp for %s",
 		b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
 	} else if (GetEther(&iface->peer_addr, &hwa) < 0) {
     	    Log(LG_IFACE,
-		("[%s] no interface to proxy arp on for %s",
+		("[%s] IFACE: No interface to proxy arp on for %s",
 		b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
 	} else {
     	    ether = (u_char *) LLADDR(&hwa);
@@ -904,7 +904,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     }
 
     if (IfaceNgIpv6Init(b, ready)) {
-        Log(LG_ERR, ("[%s] IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
+        Log(LG_ERR, ("[%s] IFACE: IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
         FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
         return (-1);
     };
@@ -1016,8 +1016,7 @@ IfaceIdleTimeout(void *arg)
   } else {		/* no demand traffic for a whole idle timeout period? */
     for (k = 0; k < IFACE_IDLE_SPLIT && !iface->traffic[k]; k++);
     if (k == IFACE_IDLE_SPLIT) {
-      Log(LG_BUND, ("[%s] idle timeout",
-	b->name));
+      Log(LG_BUND, ("[%s] IFACE: Idle timeout", b->name));
       RecordLinkUpDownReason(b, NULL, 0, STR_IDLE_TIMEOUT, NULL);
       BundClose(b);
       return;
@@ -1044,7 +1043,7 @@ IfaceSessionTimeout(void *arg)
 {
     Bund b = (Bund)arg;
 
-  Log(LG_BUND, ("[%s] session timeout ", b->name));
+  Log(LG_BUND, ("[%s] IFACE: Session timeout", b->name));
 
   RecordLinkUpDownReason(b, NULL, 0, STR_SESSION_TIMEOUT, NULL);
 
