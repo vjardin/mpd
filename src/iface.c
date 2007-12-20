@@ -1417,39 +1417,43 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 void
 IfaceSetMTU(Bund b, int mtu)
 {
-  IfaceState	const iface = &b->iface;
-  struct ifreq	ifr;
-  int		s;
+    IfaceState		const iface = &b->iface;
+    struct ifreq	ifr;
+    int			s;
 
-  /* Get socket */
-  if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("[%s] IFACE: Can't get socket to set MTU!", b->name);
-    return;
-  }
+    /* Get socket */
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Perror("[%s] IFACE: Can't get socket to set MTU!", b->name);
+	return;
+    }
 
-  if ((b->params.mtu > 0) && (mtu > b->params.mtu)) {
-    mtu = b->params.mtu;
-    Log(LG_IFACE2, ("[%s] IFACE: forcing MTU of auth backend: %d bytes",
-      b->name, mtu));
-  }
+    if ((b->params.mtu > 0) && (mtu > b->params.mtu)) {
+	mtu = b->params.mtu;
+	Log(LG_IFACE2, ("[%s] IFACE: forcing MTU of auth backend: %d bytes",
+	    b->name, mtu));
+    }
 
-  /* Limit MTU to configured maximum */
-  if (mtu > iface->max_mtu) {
-      mtu = iface->max_mtu;
-  }
+    /* Limit MTU to configured maximum */
+    if (mtu > iface->max_mtu)
+        mtu = iface->max_mtu;
 
-  /* Set MTU on interface */
-  memset(&ifr, 0, sizeof(ifr));
-  strlcpy(ifr.ifr_name, b->iface.ifname, sizeof(ifr.ifr_name));
-  ifr.ifr_mtu = mtu;
-  Log(LG_IFACE2, ("[%s] IFACE: setting %s MTU to %d bytes",
-    b->name, b->iface.ifname, mtu));
-  if (ioctl(s, SIOCSIFMTU, (char *)&ifr) < 0)
-    Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCSIFMTU");
-  close(s);
+    /* Set MTU on interface */
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, b->iface.ifname, sizeof(ifr.ifr_name));
+    ifr.ifr_mtu = mtu;
+    Log(LG_IFACE2, ("[%s] IFACE: setting %s MTU to %d bytes",
+	b->name, b->iface.ifname, mtu));
+    if (ioctl(s, SIOCSIFMTU, (char *)&ifr) < 0)
+	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCSIFMTU");
+    close(s);
 
-  /* Save MTU */
-  iface->mtu = mtu;
+    /* Save MTU */
+    iface->mtu = mtu;
+
+    /* Update tcpmssfix config */
+    if (iface->mss_up)
+        IfaceSetupMSS(b, MAXMSS(mtu));
+
 }
 
 void
