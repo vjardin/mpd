@@ -1125,6 +1125,7 @@ IfaceIsDemand(int proto, Mbuf pkt)
 	switch (ip->ip_p) {
 	  case IPPROTO_IGMP:		/* No multicast stuff */
 	    return(0);
+#if (!defined(__FreeBSD__) || __FreeBSD_version >= 600025)
 	  case IPPROTO_ICMP:
 	    {
 	      struct icmphdr	*icmp;
@@ -1145,6 +1146,7 @@ IfaceIsDemand(int proto, Mbuf pkt)
 	      }
 	    }
 	    break;
+#endif
 	  case IPPROTO_UDP:
 	    {
 	      struct udphdr	*udp;
