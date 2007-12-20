@@ -598,7 +598,7 @@ AuthCleanup(Link l)
 {
     Auth	a = &l->lcp.auth;
 
-    Log(LG_AUTH, ("[%s] AUTH: Cleanup", l->name));
+    Log(LG_AUTH2, ("[%s] AUTH: Cleanup", l->name));
 
     authparamsDestroy(&a->params);
 
@@ -801,7 +801,7 @@ AuthAccountStart(Link l, int type)
 	if (type == AUTH_ACCT_START || type == AUTH_ACCT_STOP) {
 	    paction_cancel(&a->acct_thread);
 	} else {
-	    Log(LG_AUTH, ("[%s] ACCT: Accounting thread is already running", 
+	    Log(LG_AUTH2, ("[%s] ACCT: Accounting thread is already running", 
     		l->name));
 	    return;
 	}
@@ -809,7 +809,7 @@ AuthAccountStart(Link l, int type)
 
     LinkUpdateStats(l);
     if (type == AUTH_ACCT_STOP) {
-	Log(LG_AUTH, ("[%s] ACCT: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
+	Log(LG_AUTH2, ("[%s] ACCT: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
     	    l->name, a->params.authname,
     	    (unsigned long) (time(NULL) - l->last_up),
     	    (unsigned long long)l->stats.recvOctets,
@@ -854,7 +854,7 @@ AuthAccountStart(Link l, int type)
 	if (lim_recv > 0 || lim_xmit > 0) {
 	    if ((l->stats.recvOctets - a->prev_stats.recvOctets < lim_recv) &&
     		    (l->stats.xmitOctets - a->prev_stats.xmitOctets < lim_xmit)) {
-    		Log(LG_AUTH, ("[%s] ACCT: Shouldn't send Interim-Update", l->name));
+    		Log(LG_AUTH2, ("[%s] ACCT: Shouldn't send Interim-Update", l->name));
     		return;
     	    } else {
 		/* Save current statistics. */
@@ -891,7 +891,7 @@ AuthAccountTimeout(void *arg)
 {
     Link	l = (Link)arg;
   
-    Log(LG_AUTH, ("[%s] ACCT: Time for Accounting Update",
+    Log(LG_AUTH2, ("[%s] ACCT: Time for Accounting Update",
 	l->name));
 
     AuthAccountStart(l, AUTH_ACCT_UPDATE);
@@ -909,7 +909,7 @@ AuthAccount(void *arg)
 {
     AuthData	const auth = (AuthData)arg;
   
-    Log(LG_AUTH, ("[%s] ACCT: Thread started", auth->info.lnkname));
+    Log(LG_AUTH2, ("[%s] ACCT: Thread started", auth->info.lnkname));
   
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
 	RadiusAccount(auth);
@@ -937,10 +937,10 @@ AuthAccountFinish(void *arg, int was_canceled)
     Link 		l;
 
     if (was_canceled) {
-	Log(LG_AUTH, ("[%s] ACCT: Thread was canceled", 
+	Log(LG_AUTH2, ("[%s] ACCT: Thread was canceled", 
     	    auth->info.lnkname));
     } else {
-	Log(LG_AUTH, ("[%s] ACCT: Thread finished normally", 
+	Log(LG_AUTH2, ("[%s] ACCT: Thread finished normally", 
 	    auth->info.lnkname));
     }
     
@@ -1087,7 +1087,7 @@ AuthAsync(void *arg)
 {
   AuthData	const auth = (AuthData)arg;
 
-  Log(LG_AUTH, ("[%s] AUTH: Thread started", auth->info.lnkname));
+  Log(LG_AUTH2, ("[%s] AUTH: Thread started", auth->info.lnkname));
 
   if (Enabled(&auth->conf.options, AUTH_CONF_EXT_AUTH)) {
     auth->params.authentic = AUTH_CONF_EXT_AUTH;
@@ -1175,7 +1175,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
     Link	l;
 
     if (was_canceled)
-	Log(LG_AUTH, ("[%s] AUTH: Thread was canceled", auth->info.lnkname));
+	Log(LG_AUTH2, ("[%s] AUTH: Thread was canceled", auth->info.lnkname));
 
     /* cleanup */
     RadiusClose(auth);
@@ -1191,7 +1191,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
 	return;
     }    
 
-    Log(LG_AUTH, ("[%s] AUTH: Thread finished normally", l->name));
+    Log(LG_AUTH2, ("[%s] AUTH: Thread finished normally", l->name));
 
     /* Replace modified data */
     authparamsDestroy(&l->lcp.auth.params);
@@ -1344,7 +1344,7 @@ pam_conv(int n, const struct pam_message **msg, struct pam_response **resp,
     int		i;
 
     for (i = 0; i < n; i++) {
-	Log(LG_AUTH, ("[%s] AUTH: PAM: %s",
+	Log(LG_AUTH2, ("[%s] AUTH: PAM: %s",
     	    auth->info.lnkname, msg[i]->msg));
     }
 
@@ -1967,10 +1967,10 @@ AuthExternal(AuthData auth)
 
 	/* Log data w/o password */
 	if (strcmp(attr, "USER_PASSWORD") != 0) {
-	    Log(LG_AUTH, ("[%s] Ext-auth: attr:'%s', value:'%s'", 
+	    Log(LG_AUTH2, ("[%s] Ext-auth: attr:'%s', value:'%s'", 
 		auth->info.lnkname, attr, val));
 	} else {
-	    Log(LG_AUTH, ("[%s] Ext-auth: attr:'%s', value:'XXX'", 
+	    Log(LG_AUTH2, ("[%s] Ext-auth: attr:'%s', value:'XXX'", 
 		auth->info.lnkname, attr));
 	}
     
@@ -2298,7 +2298,7 @@ AuthExternalAcct(AuthData auth)
 	val = line;
 	attr = strsep(&val, ":");
 
-	Log(LG_AUTH, ("[%s] Ext-acct: attr:'%s', value:'%s'", 
+	Log(LG_AUTH2, ("[%s] Ext-acct: attr:'%s', value:'%s'", 
 	    auth->info.lnkname, attr, val));
     
 	if (strcmp(attr, "MPD_DROP_USER") == 0) {

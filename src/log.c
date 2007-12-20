@@ -79,6 +79,9 @@
 #ifdef LG_AUTH
     ADD_OPT(AUTH,	"Link authentication events")
 #endif
+#ifdef LG_AUTH2
+    ADD_OPT(AUTH2,	"Link authentication details")
+#endif
 #ifdef LG_IPCP
     ADD_OPT(IPCP,	"IPCP negotiation")
 #endif

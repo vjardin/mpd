@@ -8,6 +8,12 @@
   <p>
     Changes since version 5.0rc1:
     <itemize>
+	<item> New features:
+	<itemize>
+	  <item> 'auth2' log level added.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fixed bug in tcpmssfix when compression or encryption is used.

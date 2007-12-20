@@ -32,6 +32,7 @@
     LG_I_LCP,
     LG_I_LCP2,
     LG_I_AUTH,
+    LG_I_AUTH2,
     LG_I_IPCP,
     LG_I_IPCP2,
     LG_I_IPV6CP,
@@ -65,6 +66,7 @@
   #define LG_LCP		(1 << LG_I_LCP)
   #define LG_LCP2		(1 << LG_I_LCP2)
   #define LG_AUTH		(1 << LG_I_AUTH)
+  #define LG_AUTH2		(1 << LG_I_AUTH2)
   #define LG_IPCP		(1 << LG_I_IPCP)
   #define LG_IPCP2		(1 << LG_I_IPCP2)
   #define LG_IPV6CP		(1 << LG_I_IPV6CP)
