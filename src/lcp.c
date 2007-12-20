@@ -16,9 +16,6 @@
 #include "fsm.h"
 #include "mp.h"
 #include "phys.h"
-#ifdef PHYSTYPE_PPTP
-#include "pptp.h"
-#endif
 #include "link.h"
 #include "msg.h"
 #include "util.h"
@@ -251,24 +248,14 @@ LcpConfigure(Fsm fp)
   lcp->want_chap_alg = 0;
   lcp->peer_ident[0] = 0;
 
-  memset(lcp->want_protos, 0, sizeof(lcp->want_protos));
-  /* fill my list of possible auth-protos, most to least secure */
-  /* for pptp prefer MS-CHAP and for all others CHAP-MD5 */
-#ifdef PHYSTYPE_PPTP
-  if (l->type == &gPptpPhysType) {
+    memset(lcp->want_protos, 0, sizeof(lcp->want_protos));
+    /* fill my list of possible auth-protos, most to least secure */
+    /* prefer MS-CHAP to others to get encryption keys */
     lcp->want_protos[0] = &gLcpAuthProtos[LINK_CONF_CHAPMSv2];
     lcp->want_protos[1] = &gLcpAuthProtos[LINK_CONF_CHAPMSv1];
     lcp->want_protos[2] = &gLcpAuthProtos[LINK_CONF_CHAPMD5];
-  } else {
-#endif
-    lcp->want_protos[0] = &gLcpAuthProtos[LINK_CONF_CHAPMD5];
-    lcp->want_protos[1] = &gLcpAuthProtos[LINK_CONF_CHAPMSv2];
-    lcp->want_protos[2] = &gLcpAuthProtos[LINK_CONF_CHAPMSv1];
-#ifdef PHYSTYPE_PPTP
-  }
-#endif
-  lcp->want_protos[3] = &gLcpAuthProtos[LINK_CONF_PAP];
-  lcp->want_protos[4] = &gLcpAuthProtos[LINK_CONF_EAP];
+    lcp->want_protos[3] = &gLcpAuthProtos[LINK_CONF_PAP];
+    lcp->want_protos[4] = &gLcpAuthProtos[LINK_CONF_EAP];
 
   /* Use the same list for the MODE_REQ */
   memcpy(lcp->peer_protos, lcp->want_protos, sizeof(lcp->peer_protos));
