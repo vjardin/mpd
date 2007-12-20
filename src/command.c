@@ -166,10 +166,14 @@
 	ShowLayers, NULL, 0, NULL },
     { "device",				"Physical device status",
 	PhysStat, AdmitLink, 0, NULL },
+#ifdef PHYSTYPE_PPTP
     { "pptp",				"PPTP tunnels status",
 	PptpsStat, NULL, 0, NULL },
+#endif
+#ifdef PHYSTYPE_L2TP
     { "l2tp",				"L2TP tunnels status",
 	L2tpsStat, NULL, 0, NULL },
+#endif
     { "link",				"Link status",
 	LinkStat, AdmitLink, 0, NULL },
     { "auth",				"Auth status",
