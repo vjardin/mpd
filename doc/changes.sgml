@@ -28,6 +28,8 @@
 	  </item>
 	  <item> Fixed build without PPTP or L2TP support.
 	  </item>
+	  <item> Fixed netflow node creation.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
