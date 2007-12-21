@@ -27,14 +27,14 @@
 <descrip>
 
 <tag><tt>
-set netflow export <em>ip</em> <em>port</em>
+set netflow peer <em>ip</em> <em>port</em>
 </tt></tag>
 
 Set destination IP address and port, where NetFlow export datagrams
 will be sent. This options is important to have working NetFlow.
 
 <tag><tt>
-set netflow source <em>ip</em> <em>port</em>
+set netflow self <em>ip</em> <em>port</em>
 </tt></tag>
 
 Set optional local IP and port binding, to make NetFlow datagrams
