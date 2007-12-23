@@ -412,7 +412,6 @@ BundLeave(Link l)
 	IfaceFreeStats(&b->iface.prevstats);
 
 	authparamsDestroy(&b->params);
-	memset(&b->ccp.mppc, 0, sizeof(b->ccp.mppc));
 
 	b->msession_id[0] = 0;
  
