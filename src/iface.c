@@ -2566,13 +2566,12 @@ IfaceSetupLimits(Bund b)
 
 	    if (dir == 0) {
 		strcpy(inhook[0], "ppp");
-		strcpy(inhook[1], "");
 		strcpy(outhook, "iface");
 	    } else {
 		strcpy(inhook[0], "iface");
-		strcpy(inhook[1], "");
 		strcpy(outhook, "ppp");
 	    }
+	    strcpy(inhook[1], "");
 	    num = 0;
 	    for (l = b->params.acl_limits[dir]; l; l = l->next) {
 	        char		str[ACL_LEN];
@@ -2913,6 +2912,7 @@ IfaceShutdownLimits(Bund b)
     char path[NG_PATHSIZ];
     struct svcs *ss;
     struct svcssrc *sss;
+    int		i;
 
     if (b->n_up > 0)
 	IfaceGetStats(b, &b->iface.prevstats);
@@ -2922,21 +2922,15 @@ IfaceShutdownLimits(Bund b)
 	NgFuncShutdownNode(gLinksCsock, b->name, path);
     }
 
-    while ((ss = SLIST_FIRST(&b->iface.ss[0])) != NULL) {
-	while ((sss = SLIST_FIRST(&ss->src)) != NULL) {
-    	    SLIST_REMOVE_HEAD(&ss->src, next);
-	    Freee(sss);
+    for (i = 0; i < ACL_DIRS; i++) {
+	while ((ss = SLIST_FIRST(&b->iface.ss[i])) != NULL) {
+	    while ((sss = SLIST_FIRST(&ss->src)) != NULL) {
+    		SLIST_REMOVE_HEAD(&ss->src, next);
+		Freee(sss);
+	    }
+	    SLIST_REMOVE_HEAD(&b->iface.ss[i], next);
+	    Freee(ss);
 	}
-	SLIST_REMOVE_HEAD(&b->iface.ss[0], next);
-	Freee(ss);
-    }
-    while ((ss = SLIST_FIRST(&b->iface.ss[1])) != NULL) {
-	while ((sss = SLIST_FIRST(&ss->src)) != NULL) {
-    	    SLIST_REMOVE_HEAD(&ss->src, next);
-	    Freee(sss);
-	}
-	SLIST_REMOVE_HEAD(&b->iface.ss[1], next);
-	Freee(ss);
     }
 }
 
