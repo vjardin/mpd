@@ -455,7 +455,6 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 {
 	struct ppp_l2tp_ctrl *ctrl;
 	struct ngm_mkpeer mkpeer;
-	struct ppp_l2tp_avp *avp = NULL;
 	u_int16_t value16;
 	int index, i;
 	
@@ -606,7 +605,6 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 
 fail:
 	/* Clean up after failure */
-	ppp_l2tp_avp_destroy(&avp);
 	if (ctrl->csock >= 0)
 		(void)close(ctrl->csock);	/* l2tp node will go away too */
 	if (ctrl->dsock >= 0)
