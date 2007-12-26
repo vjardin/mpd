@@ -1532,6 +1532,9 @@ PptpCtrlKillChan(PptpChan ch, const char *errmsg)
   PptpPendRep	*pp;
 
   assert(ch);
+  /* Don't recurse */
+  if (ch->state == PPTP_CHAN_ST_DYING)
+    return;
 
   /* If link layer needs notification, tell it */
   Log(LG_PHYS2, ("pptp%d-%d: killing channel", c->id, ch->id));

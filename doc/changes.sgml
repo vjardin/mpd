@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Fixed MPPC options loss on link disconnect.
 	  </item>
+	  <item> Fixed crash on PPTP CDN sending error.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
