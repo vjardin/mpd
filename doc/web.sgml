@@ -60,5 +60,9 @@ The default is enable.
 
 </descrip>
 
+You can send any set of command allowed by privileges via WEB server for mpd
+infrastructure integration. Depending on URL used mpd supports two response
+formats: text/html (/cmd?command1&...) and text/plain (/bincmd?command1&...).
+
 </p>
 
