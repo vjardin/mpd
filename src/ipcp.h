@@ -71,7 +71,7 @@
     struct in_addr	want_dns[2];	/* DNS servers we got from peer */
     struct in_addr	want_nbns[2];	/* NBNS servers we got from peer */
 
-    u_long		peer_reject;	/* Request codes rejected by peer */
+    uint32_t		peer_reject;	/* Request codes rejected by peer */
 
     struct fsm		fsm;
   };

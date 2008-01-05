@@ -55,8 +55,8 @@
     struct optinfo	options;	/* configured protocols */
     CompType		xmit;		/* xmit protocol */
     CompType		recv;		/* recv protocol */
-    u_short		self_reject;	/* types rejected by me */
-    u_short		peer_reject;	/* types rejected by peer */
+    uint32_t		self_reject;	/* types rejected by me */
+    uint32_t		peer_reject;	/* types rejected by peer */
     struct pred1info	pred1;		/* Predictor-1 state */
 #ifdef USE_NG_DEFLATE
     struct deflateinfo	deflate;	/* Deflate state */

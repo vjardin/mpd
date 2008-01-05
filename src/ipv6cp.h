@@ -32,7 +32,7 @@
     u_char 		myintid[8];
     u_char 		hisintid[8];
 
-    u_int		peer_reject;	/* Request codes rejected by peer */
+    uint32_t		peer_reject;	/* Request codes rejected by peer */
 
     struct fsm		fsm;
   };

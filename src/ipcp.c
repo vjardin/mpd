@@ -50,8 +50,11 @@
   #define TY_SECONDARYDNS	131
   #define TY_SECONDARYNBNS	132
 
-  #define IPCP_REJECTED(p,x)	((p)->peer_reject & (1<<(x)))
-  #define IPCP_PEER_REJ(p,x)	do{(p)->peer_reject |= (1<<(x));}while(0)
+  /* Keep sync with above */
+  #define o2b(x)		(((x)<128)?(x):(x)-128+3)
+
+  #define IPCP_REJECTED(p,x)	((p)->peer_reject & (1<<o2b(x)))
+  #define IPCP_PEER_REJ(p,x)	do{(p)->peer_reject |= (1<<o2b(x));}while(0)
 
   #define IPCP_VJCOMP_MIN_MAXCHAN	(NG_VJC_MIN_CHANNELS - 1)
   #define IPCP_VJCOMP_MAX_MAXCHAN	(NG_VJC_MAX_CHANNELS - 1)

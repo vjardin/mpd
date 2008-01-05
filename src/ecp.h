@@ -46,8 +46,8 @@
     char		key[ECP_MAX_KEY];	/* Encryption key */
     EncType		xmit;		/* Xmit encryption type */
     EncType		recv;		/* Recv encryption type */
-    u_short		self_reject;
-    u_short		peer_reject;
+    uint32_t		self_reject;
+    uint32_t		peer_reject;
     struct fsm		fsm;		/* PPP FSM */
     struct optinfo	options;	/* Configured options */
 #ifdef ENCRYPTION_DES
