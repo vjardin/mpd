@@ -521,7 +521,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
 
     case SET_PIPE:
-	if (rule_pool) 
+	if (pipe_pool) 
 	    Error("Pipe pool is not empty. Impossible to set initial number");
 	else {
 	    val = atoi(*av);
@@ -533,7 +533,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
 
     case SET_TABLE:
-	if (rule_pool) 
+	if (table_pool) 
 	    Error("Table pool is not empty. Impossible to set initial number");
 	else {
 	    val = atoi(*av);
