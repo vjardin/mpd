@@ -992,7 +992,7 @@ PIDCheck(const char *filename, int killem)
  */
 
 int
-GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, int len)
+GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, size_t len)
 {
   int			sock;
   static int		one = 1;

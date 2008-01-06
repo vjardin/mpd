@@ -65,7 +65,7 @@
 
   extern int		TcpGetListenPort(struct u_addr *addr, in_port_t port, int block);
   extern int		TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block);
-  extern int		GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, int len);
+  extern int		GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, size_t len);
 
   extern int		OpenSerialDevice(const char *label, const char *path, int baudrate);
   extern int		ExclusiveOpenDevice(const char *label, const char *path);

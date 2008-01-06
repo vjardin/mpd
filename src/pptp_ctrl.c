@@ -229,7 +229,7 @@
 
   static PptpCtrl	PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
 			  struct u_addr *peer_addr, in_port_t peer_port,
-			  char *buf, int bsiz);
+			  char *buf, size_t bsiz);
   static PptpChan	PptpCtrlGetChan(PptpCtrl c, int chanState, int orig,
 			  int incoming, int bearType, int frameType, int minBps,
 			  int maxBps, const char *callingNum,
@@ -1168,7 +1168,7 @@ PptpCtrlWriteMsg(PptpCtrl c, int type, void *msg)
 
 static PptpCtrl
 PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
-	struct u_addr *peer_addr, in_port_t peer_port, char *buf, int bsiz)
+	struct u_addr *peer_addr, in_port_t peer_port, char *buf, size_t bsiz)
 {
     PptpCtrl			c;
     int				k;
