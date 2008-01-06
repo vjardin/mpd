@@ -792,7 +792,7 @@ LinkNgDataEvent(int type, void *cookie)
 
     /* Read all available packets */
     while (1) {
-	if (num > 100)
+	if (num > 20)
 	    return;
 	bp = mballoc(2048);
 	buf = MBDATA(bp);
