@@ -16,6 +16,8 @@
 	  </item>
 	  <item> Fixed incorrect IPCP options reject processing.
 	  </item>
+	  <item> Fixed MP SHORTSEQ option.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
