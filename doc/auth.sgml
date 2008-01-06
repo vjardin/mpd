@@ -10,7 +10,7 @@
   Mpd currently supports authentication against (tried 
   in this order) <ref id="extauth" name="external script">,
   <ref id="radius" name="RADIUS">, PAM, systems password database 
-  (<tt>master.passwd</tt>), OPIE and internal <tt>mpd.secrets</tt> file.
+  (<tt>master.passwd</tt>), OPIE and internal <tt>mpd.secret</tt> file.
   
   This chapter describes commands that configure the Authentication 
   subsystem of LCP layer. All of these commands apply to the currently
@@ -26,7 +26,7 @@ This command sets the authentication login name associated with
 the link (in multi-link PPP, though each link is authenticated
 individually, they all must use the same login name). The
 <tt><em>login</em></tt> may have a corresponding entry in
-<tt>mpd.secrets</tt>. The <tt><em>login</em></tt> and password
+<tt>mpd.secret</tt>. The <tt><em>login</em></tt> and password
 are used when the peer requires us to authenticate ourselves.
 
 <tag><tt>
@@ -35,9 +35,9 @@ set auth password <em>password</em>
 
 This command is normally not necessary. It causes mpd to <em>not</em>
 lookup the password corresponding to <tt><em>login</em></tt>
-in <tt>mpd.secrets</tt>, but rather to use
+in <tt>mpd.secret</tt>, but rather to use
 <tt><em>password</em></tt> instead. If you're too lazy to set up
-<tt>mpd.secrets</tt> and are only dialing out, you can use this
+<tt>mpd.secret</tt> and are only dialing out, you can use this
 command instead.
 
 <tag><tt>set auth max-logins <em>num</em></tt></tag>
@@ -80,7 +80,7 @@ The options available are:
 
 <tag><tt>internal</tt></tag>
 
-Enables authentication against the <tt>mpd.secrets</tt> file.
+Enables authentication against the <tt>mpd.secret</tt> file.
 
 Default <tt><bf>enable</bf></tt>.
 
@@ -151,7 +151,7 @@ Default <tt><bf>disable</bf></tt>.
 Enables authentication using OPIE.
 When using PAP there is nothing more todo. For all other 
 authentication protocols you have to put the username into 
-the <tt>mpd.secrets</tt> file, but the specified password is 
+the <tt>mpd.secret</tt> file, but the specified password is 
 then interpreted as secret pass phrase. This is needed, because
 Mpd must be aware of the plaintext password when using CHAP.
 The (windows) endusers could generate their actual responses 

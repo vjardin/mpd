@@ -88,7 +88,7 @@ and <tt>create</tt> can change this context.
 	user's password is retrieved by an external program.
 <tscreen><verb>
 #
-# mpd.secrets configuration file
+# mpd.secret configuration file
 #
 
 # my two ISP accounts

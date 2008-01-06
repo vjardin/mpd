@@ -1203,7 +1203,7 @@ AuthAsyncFinish(void *arg, int was_canceled)
 /*
  * AuthInternal()
  * 
- * Authenticate against mpd.secrets
+ * Authenticate against mpd.secret
  */
  
 static void

@@ -778,7 +778,7 @@
 	some internal structs as interface.
         </item>
 	<item>
-        The <tt>mpd.secrets</tt> file is now used as one authentication backends of many, it 
+        The <tt>mpd.secret</tt> file is now used as one authentication backends of many, it 
 	has no special role anymore, i.e. it could be disabled.
         </item>
 	<item>
@@ -853,7 +853,7 @@
 	attribute to the RADIUS request.
 	</item>
 	<item>
-	auth: <tt>internal</tt>, controles the usage of the <tt>mpd.secrets</tt> file 
+	auth: <tt>internal</tt>, controles the usage of the <tt>mpd.secret</tt> file 
 	(internal authentication backend).
         </item>
 	<item>
