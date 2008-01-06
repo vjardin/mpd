@@ -106,11 +106,11 @@ static int	PppoeInst(Link l, Link lt);
 static void	PppoeOpen(Link l);
 static void	PppoeClose(Link l);
 static void	PppoeShutdown(Link l);
-static int	PppoePeerAddr(Link l, void *buf, int buf_len);
-static int	PppoePeerMacAddr(Link l, void *buf, int buf_len);
-static int	PppoePeerIface(Link l, void *buf, int buf_len);
-static int	PppoeCallingNum(Link l, void *buf, int buf_len);
-static int	PppoeCalledNum(Link l, void *buf, int buf_len);
+static int	PppoePeerAddr(Link l, void *buf, size_t buf_len);
+static int	PppoePeerMacAddr(Link l, void *buf, size_t buf_len);
+static int	PppoePeerIface(Link l, void *buf, size_t buf_len);
+static int	PppoeCallingNum(Link l, void *buf, size_t buf_len);
+static int	PppoeCalledNum(Link l, void *buf, size_t buf_len);
 static void	PppoeCtrlReadEvent(int type, void *arg);
 static void	PppoeConnectTimeout(void *arg);
 static void	PppoeStat(Context ctx);
@@ -575,7 +575,7 @@ PppoeIsSync(Link l)
 }
 
 static int
-PppoePeerAddr(Link l, void *buf, int buf_len)
+PppoePeerAddr(Link l, void *buf, size_t buf_len)
 {
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
@@ -587,7 +587,7 @@ PppoePeerAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-PppoePeerMacAddr(Link l, void *buf, int buf_len)
+PppoePeerMacAddr(Link l, void *buf, size_t buf_len)
 {
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
@@ -599,7 +599,7 @@ PppoePeerMacAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-PppoePeerIface(Link l, void *buf, int buf_len)
+PppoePeerIface(Link l, void *buf, size_t buf_len)
 {
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 	char iface[IFNAMSIZ];
@@ -612,7 +612,7 @@ PppoePeerIface(Link l, void *buf, int buf_len)
 }
 
 static int
-PppoeCallingNum(Link l, void *buf, int buf_len)
+PppoeCallingNum(Link l, void *buf, size_t buf_len)
 {
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
@@ -628,7 +628,7 @@ PppoeCallingNum(Link l, void *buf, int buf_len)
 }
 
 static int
-PppoeCalledNum(Link l, void *buf, int buf_len)
+PppoeCalledNum(Link l, void *buf, size_t buf_len)
 {
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 

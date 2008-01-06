@@ -44,17 +44,17 @@
 						/* sets the calling number */
     int		(*setcallednum)(Link l, void *buf); 
 						/* sets the called number */
-    int		(*peeraddr)(Link l, void *buf, int buf_len); 
+    int		(*peeraddr)(Link l, void *buf, size_t buf_len); 
 						/* returns the peer-address (IP, MAC, whatever) */
-    int		(*peerport)(Link l, void *buf, int buf_len); 
+    int		(*peerport)(Link l, void *buf, size_t buf_len); 
 						/* returns the peer-port */
-    int		(*peermacaddr)(Link l, void *buf, int buf_len);
+    int		(*peermacaddr)(Link l, void *buf, size_t buf_len);
 						/* returns the peer MAC address */
-    int		(*peeriface)(Link l, void *buf, int buf_len);
+    int		(*peeriface)(Link l, void *buf, size_t buf_len);
 						/* returns the peer interface */
-    int		(*callingnum)(Link l, void *buf, int buf_len); 
+    int		(*callingnum)(Link l, void *buf, size_t buf_len); 
 						/* returns the calling number (IP, MAC, whatever) */
-    int		(*callednum)(Link l, void *buf, int buf_len); 
+    int		(*callednum)(Link l, void *buf, size_t buf_len); 
 						/* returns the called number (IP, MAC, whatever) */
   };
   typedef struct phystype	*PhysType;
@@ -82,12 +82,12 @@
   extern int		PhysSetAccm(Link l, uint32_t xmit, u_int32_t recv);
   extern int		PhysSetCallingNum(Link l, char *buf);
   extern int		PhysSetCalledNum(Link l, char *buf);
-  extern int		PhysGetPeerAddr(Link l, char *buf, int buf_len);
-  extern int		PhysGetPeerPort(Link l, char *buf, int buf_len);
-  extern int		PhysGetPeerMacAddr(Link l, char *buf, int buf_len);
-  extern int		PhysGetPeerIface(Link l, char *buf, int buf_len);
-  extern int		PhysGetCallingNum(Link l, char *buf, int buf_len);
-  extern int		PhysGetCalledNum(Link l, char *buf, int buf_len);
+  extern int		PhysGetPeerAddr(Link l, char *buf, size_t buf_len);
+  extern int		PhysGetPeerPort(Link l, char *buf, size_t buf_len);
+  extern int		PhysGetPeerMacAddr(Link l, char *buf, size_t buf_len);
+  extern int		PhysGetPeerIface(Link l, char *buf, size_t buf_len);
+  extern int		PhysGetCallingNum(Link l, char *buf, size_t buf_len);
+  extern int		PhysGetCalledNum(Link l, char *buf, size_t buf_len);
   extern int		PhysIsBusy(Link l);
  
   extern int		PhysInit(Link l);

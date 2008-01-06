@@ -74,10 +74,10 @@
   static void	UdpStat(Context ctx);
   static int	UdpOrigination(Link l);
   static int	UdpIsSync(Link l);
-  static int	UdpPeerAddr(Link l, void *buf, int buf_len);
-  static int	UdpPeerPort(Link l, void *buf, int buf_len);
-  static int	UdpCallingNum(Link l, void *buf, int buf_len);
-  static int	UdpCalledNum(Link l, void *buf, int buf_len);
+  static int	UdpPeerAddr(Link l, void *buf, size_t buf_len);
+  static int	UdpPeerPort(Link l, void *buf, size_t buf_len);
+  static int	UdpCallingNum(Link l, void *buf, size_t buf_len);
+  static int	UdpCalledNum(Link l, void *buf, size_t buf_len);
 
   static void	UdpDoClose(Link l);
   static void	UdpShutdown(Link l);
@@ -381,7 +381,7 @@ UdpIsSync(Link l)
 }
 
 static int
-UdpPeerAddr(Link l, void *buf, int buf_len)
+UdpPeerAddr(Link l, void *buf, size_t buf_len)
 {
     UdpInfo	const pi = (UdpInfo) l->info;
 
@@ -392,7 +392,7 @@ UdpPeerAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-UdpPeerPort(Link l, void *buf, int buf_len)
+UdpPeerPort(Link l, void *buf, size_t buf_len)
 {
     UdpInfo	const pi = (UdpInfo) l->info;
 
@@ -403,7 +403,7 @@ UdpPeerPort(Link l, void *buf, int buf_len)
 }
 
 static int
-UdpCallingNum(Link l, void *buf, int buf_len)
+UdpCallingNum(Link l, void *buf, size_t buf_len)
 {
 	UdpInfo const pi = (UdpInfo) l->info;
 
@@ -421,7 +421,7 @@ UdpCallingNum(Link l, void *buf, int buf_len)
 }
 
 static int
-UdpCalledNum(Link l, void *buf, int buf_len)
+UdpCalledNum(Link l, void *buf, size_t buf_len)
 {
 	UdpInfo const pi = (UdpInfo) l->info;
 

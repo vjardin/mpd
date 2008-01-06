@@ -102,12 +102,12 @@
   static int	PptpSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
   static int	PptpSetCallingNum(Link l, void *buf);
   static int	PptpSetCalledNum(Link l, void *buf);
-  static int	PptpPeerAddr(Link l, void *buf, int buf_len);
-  static int	PptpPeerPort(Link l, void *buf, int buf_len);
-  static int	PptpPeerMacAddr(Link l, void *buf, int buf_len);
-  static int	PptpPeerIface(Link l, void *buf, int buf_len);
-  static int	PptpCallingNum(Link l, void *buf, int buf_len);
-  static int	PptpCalledNum(Link l, void *buf, int buf_len);
+  static int	PptpPeerAddr(Link l, void *buf, size_t buf_len);
+  static int	PptpPeerPort(Link l, void *buf, size_t buf_len);
+  static int	PptpPeerMacAddr(Link l, void *buf, size_t buf_len);
+  static int	PptpPeerIface(Link l, void *buf, size_t buf_len);
+  static int	PptpCallingNum(Link l, void *buf, size_t buf_len);
+  static int	PptpCalledNum(Link l, void *buf, size_t buf_len);
 
   static void	PptpInitCtrl(void);
   static int	PptpOriginate(Link l);
@@ -469,7 +469,7 @@ PptpSetCalledNum(Link l, void *buf)
 }
 
 static int
-PptpPeerAddr(Link l, void *buf, int buf_len)
+PptpPeerAddr(Link l, void *buf, size_t buf_len)
 {
     PptpInfo	const pptp = (PptpInfo) l->info;
 
@@ -480,7 +480,7 @@ PptpPeerAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-PptpPeerPort(Link l, void *buf, int buf_len)
+PptpPeerPort(Link l, void *buf, size_t buf_len)
 {
     PptpInfo	const pptp = (PptpInfo) l->info;
 
@@ -491,7 +491,7 @@ PptpPeerPort(Link l, void *buf, int buf_len)
 }
 
 static int
-PptpPeerMacAddr(Link l, void *buf, int buf_len)
+PptpPeerMacAddr(Link l, void *buf, size_t buf_len)
 {
     PptpInfo	const pptp = (PptpInfo) l->info;
 
@@ -507,7 +507,7 @@ PptpPeerMacAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-PptpPeerIface(Link l, void *buf, int buf_len)
+PptpPeerIface(Link l, void *buf, size_t buf_len)
 {
     PptpInfo	const pptp = (PptpInfo) l->info;
 
@@ -520,7 +520,7 @@ PptpPeerIface(Link l, void *buf, int buf_len)
 }
 
 static int
-PptpCallingNum(Link l, void *buf, int buf_len)
+PptpCallingNum(Link l, void *buf, size_t buf_len)
 {
     PptpInfo	const pptp = (PptpInfo) l->info;
 
@@ -529,7 +529,7 @@ PptpCallingNum(Link l, void *buf, int buf_len)
 }
 
 static int
-PptpCalledNum(Link l, void *buf, int buf_len)
+PptpCalledNum(Link l, void *buf, size_t buf_len)
 {
     PptpInfo	const pptp = (PptpInfo) l->info;
 

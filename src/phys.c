@@ -320,7 +320,7 @@ PhysSetCalledNum(Link l, char *buf)
  */
 
 int
-PhysGetPeerAddr(Link l, char *buf, int buf_len)
+PhysGetPeerAddr(Link l, char *buf, size_t buf_len)
 {
     PhysType	const pt = l->type;
 
@@ -337,7 +337,7 @@ PhysGetPeerAddr(Link l, char *buf, int buf_len)
  */
 
 int
-PhysGetPeerPort(Link l, char *buf, int buf_len)
+PhysGetPeerPort(Link l, char *buf, size_t buf_len)
 {
     PhysType	const pt = l->type;
 
@@ -354,7 +354,7 @@ PhysGetPeerPort(Link l, char *buf, int buf_len)
  */
 
 int
-PhysGetPeerMacAddr(Link l, char *buf, int buf_len)
+PhysGetPeerMacAddr(Link l, char *buf, size_t buf_len)
 {
     PhysType	const pt = l->type;
 
@@ -371,7 +371,7 @@ PhysGetPeerMacAddr(Link l, char *buf, int buf_len)
  */
 
 int
-PhysGetPeerIface(Link l, char *buf, int buf_len)
+PhysGetPeerIface(Link l, char *buf, size_t buf_len)
 {
     PhysType	const pt = l->type;
 
@@ -388,7 +388,7 @@ PhysGetPeerIface(Link l, char *buf, int buf_len)
  */
 
 int
-PhysGetCallingNum(Link l, char *buf, int buf_len)
+PhysGetCallingNum(Link l, char *buf, size_t buf_len)
 {
     PhysType	const pt = l->type;
 
@@ -405,7 +405,7 @@ PhysGetCallingNum(Link l, char *buf, int buf_len)
  */
 
 int
-PhysGetCalledNum(Link l, char *buf, int buf_len)
+PhysGetCalledNum(Link l, char *buf, size_t buf_len)
 {
     PhysType	const pt = l->type;
 

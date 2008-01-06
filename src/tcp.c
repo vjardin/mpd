@@ -75,10 +75,10 @@ static void	TcpShutdown(Link l);
 static void	TcpStat(Context ctx);
 static int	TcpOriginate(Link l);
 static int	TcpIsSync(Link l);
-static int	TcpPeerAddr(Link l, void *buf, int buf_len);
-static int	TcpPeerPort(Link l, void *buf, int buf_len);
-static int	TcpCallingNum(Link l, void *buf, int buf_len);
-static int	TcpCalledNum(Link l, void *buf, int buf_len);
+static int	TcpPeerAddr(Link l, void *buf, size_t buf_len);
+static int	TcpPeerPort(Link l, void *buf, size_t buf_len);
+static int	TcpCallingNum(Link l, void *buf, size_t buf_len);
+static int	TcpCalledNum(Link l, void *buf, size_t buf_len);
 
 static void	TcpDoClose(Link l);
 static void	TcpAcceptEvent(int type, void *cookie);
@@ -588,7 +588,7 @@ TcpIsSync(Link l)
 }
 
 static int
-TcpPeerAddr(Link l, void *buf, int buf_len)
+TcpPeerAddr(Link l, void *buf, size_t buf_len)
 {
 	TcpInfo const pi = (TcpInfo) l->info;
 
@@ -599,18 +599,18 @@ TcpPeerAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-TcpPeerPort(Link l, void *buf, int buf_len)
+TcpPeerPort(Link l, void *buf, size_t buf_len)
 {
 	TcpInfo const pi = (TcpInfo) l->info;
 
-	if (snprintf( buf, buf_len, "%d", pi->peer_port))
+	if (snprintf( buf, buf_len, "%u", pi->peer_port))
 		return (0);
   	else
 		return (-1);
 }
 
 static int
-TcpCallingNum(Link l, void *buf, int buf_len)
+TcpCallingNum(Link l, void *buf, size_t buf_len)
 {
 	TcpInfo const pi = (TcpInfo) l->info;
 
@@ -628,7 +628,7 @@ TcpCallingNum(Link l, void *buf, int buf_len)
 }
 
 static int
-TcpCalledNum(Link l, void *buf, int buf_len)
+TcpCalledNum(Link l, void *buf, size_t buf_len)
 {
 	TcpInfo const pi = (TcpInfo) l->info;
 

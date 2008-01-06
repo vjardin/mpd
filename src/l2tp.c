@@ -124,12 +124,12 @@
   static int	L2tpOriginated(Link l);
   static int	L2tpIsSync(Link l);
   static int	L2tpSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
-  static int	L2tpPeerAddr(Link l, void *buf, int buf_len);
-  static int	L2tpPeerPort(Link l, void *buf, int buf_len);
-  static int	L2tpPeerMacAddr(Link l, void *buf, int buf_len);
-  static int	L2tpPeerIface(Link l, void *buf, int buf_len);
-  static int	L2tpCallingNum(Link l, void *buf, int buf_len);
-  static int	L2tpCalledNum(Link l, void *buf, int buf_len);
+  static int	L2tpPeerAddr(Link l, void *buf, size_t buf_len);
+  static int	L2tpPeerPort(Link l, void *buf, size_t buf_len);
+  static int	L2tpPeerMacAddr(Link l, void *buf, size_t buf_len);
+  static int	L2tpPeerIface(Link l, void *buf, size_t buf_len);
+  static int	L2tpCallingNum(Link l, void *buf, size_t buf_len);
+  static int	L2tpCalledNum(Link l, void *buf, size_t buf_len);
   static int	L2tpSetCallingNum(Link l, void *buf);
   static int	L2tpSetCalledNum(Link l, void *buf);
 
@@ -742,7 +742,7 @@ L2tpSetCalledNum(Link l, void *buf)
 }
 
 static int
-L2tpPeerAddr(Link l, void *buf, int buf_len)
+L2tpPeerAddr(Link l, void *buf, size_t buf_len)
 {
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
 
@@ -759,7 +759,7 @@ L2tpPeerAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-L2tpPeerPort(Link l, void *buf, int buf_len)
+L2tpPeerPort(Link l, void *buf, size_t buf_len)
 {
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
 
@@ -776,7 +776,7 @@ L2tpPeerPort(Link l, void *buf, int buf_len)
 }
 
 static int
-L2tpPeerMacAddr(Link l, void *buf, int buf_len)
+L2tpPeerMacAddr(Link l, void *buf, size_t buf_len)
 {
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
 
@@ -792,7 +792,7 @@ L2tpPeerMacAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-L2tpPeerIface(Link l, void *buf, int buf_len)
+L2tpPeerIface(Link l, void *buf, size_t buf_len)
 {
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
 
@@ -805,7 +805,7 @@ L2tpPeerIface(Link l, void *buf, int buf_len)
 }
 
 static int
-L2tpCallingNum(Link l, void *buf, int buf_len)
+L2tpCallingNum(Link l, void *buf, size_t buf_len)
 {
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
 
@@ -814,7 +814,7 @@ L2tpCallingNum(Link l, void *buf, int buf_len)
 }
 
 static int
-L2tpCalledNum(Link l, void *buf, int buf_len)
+L2tpCalledNum(Link l, void *buf, size_t buf_len)
 {
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
 

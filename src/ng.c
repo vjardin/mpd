@@ -51,7 +51,7 @@
   static void	NgStat(Context ctx);
   static int	NgSetCommand(Context ctx, int ac, char *av[], void *arg);
   static int	NgIsSync(Link l);
-  static int	NgPeerAddr(Link l, void *buf, int buf_len);
+  static int	NgPeerAddr(Link l, void *buf, size_t buf_len);
 
 /*
  * GLOBAL VARIABLES
@@ -239,7 +239,7 @@ NgIsSync(Link l)
  */
 
 static int
-NgPeerAddr(Link l, void *buf, int buf_len)
+NgPeerAddr(Link l, void *buf, size_t buf_len)
 {
     NgInfo	const ng = (NgInfo) l->info;
 

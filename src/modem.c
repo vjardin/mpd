@@ -108,8 +108,8 @@
   static void		ModemStat(Context ctx);
   static int		ModemOriginated(Link l);
   static int		ModemIsSync(Link l);
-  static int		ModemPeerAddr(Link l, void *buf, int buf_len);
-  static int		ModemIface(Link l, void *buf, int buf_len);
+  static int		ModemPeerAddr(Link l, void *buf, size_t buf_len);
+  static int		ModemIface(Link l, void *buf, size_t buf_len);
 
   static void		ModemStart(void *arg);
   static void		ModemDoClose(Link l, int opened);
@@ -924,7 +924,7 @@ ModemIsSync(Link l)
 }
 
 static int
-ModemPeerAddr(Link l, void *buf, int buf_len)
+ModemPeerAddr(Link l, void *buf, size_t buf_len)
 {
     ModemInfo	const m = (ModemInfo) l->info;
 
@@ -933,7 +933,7 @@ ModemPeerAddr(Link l, void *buf, int buf_len)
 }
 
 static int
-ModemIface(Link l, void *buf, int buf_len)
+ModemIface(Link l, void *buf, size_t buf_len)
 {
     ModemInfo	const m = (ModemInfo) l->info;
 

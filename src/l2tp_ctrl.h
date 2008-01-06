@@ -287,7 +287,7 @@ extern void	ppp_l2tp_ctrl_destroy(struct ppp_l2tp_ctrl **ctrlp);
  *	ctrlp	Pointer to the control connection descriptor pointer
  */
 extern char *	ppp_l2tp_ctrl_stats(struct ppp_l2tp_ctrl *ctrl,
-			char *buf, int buf_len);
+			char *buf, size_t buf_len);
 
 /*
  * This function initiates a new session, either an as an incoming or

@@ -2571,7 +2571,7 @@ ppp_l2tp_sess_side_str(enum l2tp_sess_side side)
 }
 
 char *
-ppp_l2tp_ctrl_stats(struct ppp_l2tp_ctrl *ctrl, char *buf, int buf_len)
+ppp_l2tp_ctrl_stats(struct ppp_l2tp_ctrl *ctrl, char *buf, size_t buf_len)
 {
 	snprintf(buf, buf_len, "%s",
 		ppp_l2tp_ctrl_state_str(ctrl->state));
