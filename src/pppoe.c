@@ -602,7 +602,7 @@ static int
 PppoePeerIface(Link l, void *buf, int buf_len)
 {
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
-	char iface[IFNAMSIZ + 1];
+	char iface[IFNAMSIZ];
 
 	strlcpy(iface, pppoe->path, sizeof(iface));
 	if (iface[strlen(iface) - 1] == ':')
@@ -653,7 +653,7 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	int f;
 
 	/* Make sure interface is up. */
-	char iface[IFNAMSIZ + 1];
+	char iface[IFNAMSIZ];
 
 	strlcpy(iface, path, sizeof(iface));
 	if (iface[strlen(iface) - 1] == ':')

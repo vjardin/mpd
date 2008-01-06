@@ -106,20 +106,23 @@
   struct linkst {
     char		name[LINK_MAX_NAME];	/* Human readable name */
     int			id;			/* Index of this link in gLinks */
-    int			tmpl;			/* This is template, not an instance */
-    int			stay;			/* Must not disappear */
+    u_char		tmpl;			/* This is template, not an instance */
+    u_char		stay;			/* Must not disappear */
+    u_char		state;			/* Device current state */
+    u_char		joined_bund;		/* Link successfully joined bundle */
+    u_char		originate;		/* Who originated the connection */
+    u_char		die;			/* LCP agreed to die */
+    u_char		dead;			/* Dead flag (shutted down) */
+    Bund		bund;			/* My bundle */
+    Rep			rep;			/* Rep connected to the device */
+    int			bundleIndex;		/* Link number in bundle */
     int			parent;			/* Index of the parent in gLinks */
     int			children;		/* Number of children */
-    Bund		bund;			/* My bundle */
-    int			bundleIndex;		/* Link number in bundle */
-    Rep			rep;			/* Rep connected to the device */
+    int			refs;			/* Number of references */
     char		hook[NG_HOOKSIZ];	/* session hook name */
     ng_ID_t		nodeID;			/* ID of the tee node */
     MsgHandler		msgs;			/* Link events */
     SLIST_HEAD(, linkaction) actions;
-    int			die;
-    int			refs;			/* Number of references */
-    int			dead;			/* Dead flag */
 
     /* State info */
     struct linkconf	conf;		/* Link configuration */
@@ -132,12 +135,10 @@
 
     /* Link properties */
     short		num_redial;	/* Counter for retry attempts */
-    u_char		joined_bund;	/* Link successfully joined bundle */
-    u_char		originate;	/* Who originated the connection */
+    u_char		upReasonValid;
+    u_char		downReasonValid;
     char		*upReason;	/* Reason for link going up */
     char		*downReason;	/* Reason for link going down */
-    u_char		upReasonValid:1;
-    u_char		downReasonValid:1;
     int			bandwidth;	/* Bandwidth in bits per second */
     int			latency;	/* Latency in microseconds */
     time_t		last_up;	/* Time this link last got up */
@@ -147,7 +148,6 @@
     /* Info gleaned from negotiations */
     struct discrim	peer_discrim;
 
-    u_char		state;			/* Device current state */
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
     MsgHandler		pmsgs;			/* Message channel */

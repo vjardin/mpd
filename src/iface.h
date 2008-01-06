@@ -72,13 +72,13 @@
 
   struct ifaceroute {
     struct u_range	dest;			/* Destination of route */
-    u_char		ok:1;			/* Route installed OK */
+    u_char		ok;			/* Route installed OK */
     SLIST_ENTRY(ifaceroute)	next;
   };
   typedef struct ifaceroute	*IfaceRoute;
   
   struct ifacestate {
-    char		ifname[IFNAMSIZ+1];	/* Name of my interface */
+    char		ifname[IFNAMSIZ];	/* Name of my interface */
     uint		ifindex;		/* System interface index */
     u_char		traffic[IFACE_IDLE_SPLIT];	/* Mark any traffic */
     u_short		mtu;			/* Interface MTU */
@@ -102,6 +102,7 @@
     struct svcstat	prevstats;		/* Stats from gone layers */
     time_t		last_up;		/* Time this iface last got up */
     u_char		open:1;			/* In an open state */
+    u_char		dod:1;			/* Interface flagged -link0 */
     u_char		up:1;			/* interface is up */
     u_char		ip_up:1;		/* IP interface is up */
     u_char		ipv6_up:1;		/* IPv6 interface is up */
@@ -113,7 +114,6 @@
     u_char		mss_up:1;		/* MSS is up */
     u_char		ipacct_up:1;		/* IPACCT is up */
     
-    u_char		dod:1;			/* Interface flagged -link0 */
     struct dodcache	dodCache;		/* Dial-on-demand cache */
     
     struct natstate	nat;			/* NAT config */
@@ -123,7 +123,7 @@
   typedef struct ifacestate	*IfaceState;
 
   struct acl_pool {			/* Pool of used ACL numbers */
-    char		ifname[IFNAMSIZ+1];     /* Name of interface */
+    char		ifname[IFNAMSIZ];     /* Name of interface */
     unsigned short	acl_number;		/* ACL number given by RADIUS unique on this interface */
     unsigned short	real_number;		/* Real ACL number unique on this system */
     struct acl_pool	*next;

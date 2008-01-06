@@ -48,7 +48,7 @@
     } conf;
 
     /* State */
-    u_char		incoming:1;		/* incoming vs. outgoing */
+    u_char		incoming;		/* incoming vs. outgoing */
     struct UdpIf 	*If;
     struct u_addr	peer_addr;
     in_port_t		peer_port;

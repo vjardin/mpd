@@ -45,22 +45,22 @@
     struct auth	auth;			/* Used during authorization phase */
 
     /* Peers negotiated parameters */
+    LcpAuthProto	peer_protos[LCP_NUM_AUTH_PROTOS];	/* list of acceptable auth-protos */
     u_int32_t	peer_accmap;		/* Characters peer needs escaped */
     u_int32_t	peer_magic;		/* Peer's magic number */
     u_int16_t	peer_mru;		/* Peer's max reception packet size */
     u_int16_t	peer_auth;		/* Auth requested by peer, or zero */
     u_int16_t	peer_mrru;		/* MRRU set by peer, or zero */
     u_char	peer_chap_alg;		/* Peer's CHAP algorithm */
-    LcpAuthProto	peer_protos[LCP_NUM_AUTH_PROTOS];	/* list of acceptable auth-protos */
 
     /* My negotiated parameters */
     u_char	want_chap_alg;		/* My CHAP algorithm */
+    LcpAuthProto	want_protos[LCP_NUM_AUTH_PROTOS];	/* list of requestable auth-protos */
     u_int32_t	want_accmap;		/* Control chars I want escaped */
     u_int32_t	want_magic;		/* My magic number */
     u_int16_t	want_mru;		/* My MRU */
     u_int16_t	want_auth;		/* Auth I require of peer, or zero */
     u_int16_t	want_mrru;		/* My MRRU, or zero if no MP */
-    LcpAuthProto	want_protos[LCP_NUM_AUTH_PROTOS];	/* list of requestable auth-protos */
 
     /* More params */
     u_char	want_protocomp:1;	/* I want protocol compression */

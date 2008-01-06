@@ -45,7 +45,7 @@ struct tcpinfo {
 	} conf;
 
 	/* State */
-	u_char		incoming:1;		/* incoming vs. outgoing */
+	u_char		incoming;		/* incoming vs. outgoing */
 	struct TcpIf 	*If;
 	int		csock;
 	struct u_addr	peer_addr;

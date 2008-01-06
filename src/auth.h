@@ -100,8 +100,8 @@
     u_char		netmask;	/* IP Netmask */
     u_char		vjc_enable;	/* VJC requested by AAA */
 
-    char		ippool[LINK_MAX_NAME];
     u_char		ippool_used;
+    char		ippool[LINK_MAX_NAME];
 
     char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
     int			eapmsg_len;
@@ -134,7 +134,7 @@
     char		peeraddr[64];	/* hr representation of the peer address */
     char		peerport[6];	/* hr representation of the peer port */
     char		peermacaddr[32];	/* hr representation of the peer MAC address */
-    char		peeriface[IFNAMSIZ+1];	/* hr representation of the peer interface */
+    char		peeriface[IFNAMSIZ];	/* hr representation of the peer interface */
 
     struct {
       int	policy;			/* MPPE_POLICY_* */
@@ -199,15 +199,15 @@
     int			proto;		/* wich proto are we using, PAP, CHAP, ... */
     u_int		id;		/* Actual, packet id */    
     u_int		code;		/* Proto specific code */
-    u_short		status;
-    int			why_fail;
+    u_char		acct_type;	/* Accounting type, Start, Stop, Update */
+    u_char		eap_radius;
+    u_char		status;
+    u_char		why_fail;
     char		*reply_message;	/* Text wich may displayed to the user */
     char		*mschap_error;	/* MSCHAP Error Message */
     char		*mschapv2resp;	/* Response String for MSCHAPv2 */
     void		(*finish)(Link l, struct authdata *auth); /* Finish handler */
-    int			acct_type;	/* Accounting type, Start, Stop, Update */
     int			drop_user;	/* RAD_MPD_DROP_USER value sent by RADIUS server */
-    u_char		eap_radius;
     struct {
       struct rad_handle	*handle;	/* the RADIUS handle */
     } radius;
@@ -215,11 +215,9 @@
       struct opie	data;
     } opie;
     struct {		/* informational (read-only) data needed for e.g. accouting */
-      struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
-      short		n_links;	/* number of links in the bundle */
       char		msession_id[AUTH_MAX_SESSIONID]; /* multi-session-id */
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
-      char		ifname[IFNAMSIZ+1];	/* interface name */
+      char		ifname[IFNAMSIZ];	/* interface name */
       char		bundname[LINK_MAX_NAME];/* name of the bundle */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
       struct ng_ppp_link_stat64	stats;		/* Current link statistics */
@@ -229,6 +227,8 @@
       PhysType		phys_type;	/* Device type descriptor */
       int		linkID;		/* Absolute link number */
       char		peer_ident[64];	/* LCP ident received from peer */
+      struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
+      short		n_links;	/* number of links in the bundle */
     } info;
     struct authparams	params;		/* params to pass to from auth backend */
   };

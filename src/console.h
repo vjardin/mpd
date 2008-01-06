@@ -79,18 +79,18 @@
     struct console_user user;
     struct u_addr	peer_addr;
     in_port_t           peer_port;
-    char		cmd[MAX_CONSOLE_LINE];
-    int			cmd_len;
     void		(*prompt)(struct console_session *);
     void		(*write)(struct console_session *, const char *fmt, ...);
     void		(*writev)(struct console_session *, const char *fmt, va_list vl);
     void		(*close)(struct console_session *);
-    int			state;
-    int			telnet;
-    int			escaped;
-    int			exit;
-    char		history[MAX_CONSOLE_HIST][MAX_CONSOLE_LINE];	/* last command */
+    u_char		state;
+    u_char		telnet;
+    u_char		escaped;
+    u_char		exit;
+    int			cmd_len;
+    char		cmd[MAX_CONSOLE_LINE];
     int			currhist;
+    char		history[MAX_CONSOLE_HIST][MAX_CONSOLE_LINE];	/* last command */
     SLIST_ENTRY(console_session)	next;
   };
 

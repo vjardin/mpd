@@ -54,7 +54,7 @@
     void		*listener;	/* Listener pointer */
     struct u_addr	self_addr;	/* Current self IP address */
     struct u_addr	peer_addr;	/* Current peer IP address */
-    char                peer_iface[IFNAMSIZ+1];	/* Peer iface */
+    char                peer_iface[IFNAMSIZ];	/* Peer iface */
     u_char		peer_mac_addr[6];	/* Peer MAC address */
     in_port_t		peer_port;	/* Current peer port */
     u_char		originate;	/* Call originated locally */

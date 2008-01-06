@@ -57,7 +57,7 @@
   struct l2tp_tun {
     struct u_addr	self_addr;	/* self IP address */
     struct u_addr	peer_addr;	/* peer IP address */
-    char                peer_iface[IFNAMSIZ+1];	/* Peer iface */
+    char                peer_iface[IFNAMSIZ];	/* Peer iface */
     u_char		peer_mac_addr[6];	/* Peer MAC address */
     in_port_t		self_port;	/* self port */
     in_port_t		peer_port;	/* peer port */
