@@ -28,7 +28,6 @@
   struct phystype {
     const char	*name;				/* Name of device type */
     const char	*descr;				/* Description of device type */
-    short	minReopenDelay;			/* Min seconds between opens */
     u_short	mtu, mru;			/* Not incl. addr/ctrl/fcs */
     int		tmpl;				/* This type is template, not an instance */
     int		(*init)(Link l);		/* Initialize device info */

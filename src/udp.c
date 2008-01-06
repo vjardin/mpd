@@ -36,8 +36,6 @@
   #define UDP_MTU		2048
   #define UDP_MRU		2048
 
-  #define UDP_REOPEN_PAUSE	5
-
   #define UDP_MAXPARENTIFS	256
 
   struct udpinfo {
@@ -95,7 +93,6 @@
   const struct phystype gUdpPhysType = {
     .name		= "udp",
     .descr		= "PPP over UDP",
-    .minReopenDelay	= UDP_REOPEN_PAUSE,
     .mtu		= UDP_MTU,
     .mru		= UDP_MRU,
     .tmpl		= 1,

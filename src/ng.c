@@ -28,8 +28,6 @@
   #define NG_MTU		1600
   #define NG_MRU		1600
 
-  #define NG_REOPEN_PAUSE	5
-
   struct nginfo {
     char	path[NG_PATHSIZ];	/* Node that takes PPP frames */
     char	hook[NG_HOOKSIZ];	/* Hook on that node */
@@ -62,7 +60,6 @@
   const struct phystype gNgPhysType = {
     .name		= "ng",
     .descr		= "Netgraph hook",
-    .minReopenDelay	= NG_REOPEN_PAUSE,
     .mtu		= NG_MTU,
     .mru		= NG_MRU,
     .tmpl		= 0,

@@ -30,7 +30,6 @@
 
 #define TCP_MTU		2048
 #define TCP_MRU		2048
-#define TCP_REOPEN_PAUSE	5
 #define LISTENHOOK		"listen"
 
 #define TCP_MAXPARENTIFS	256
@@ -97,7 +96,6 @@ static void	TcpUnListen(Link l);
 const struct phystype gTcpPhysType = {
 	.name		= "tcp",
 	.descr		= "PPP over TCP",
-	.minReopenDelay	= TCP_REOPEN_PAUSE,
 	.mtu		= TCP_MTU,
 	.mru		= TCP_MRU,
 	.tmpl		= 1,

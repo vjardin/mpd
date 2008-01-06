@@ -40,7 +40,6 @@
   #define L2TP_PORT		1701
 
   #define L2TP_MAX_ERRORS	10
-  #define L2TP_REOPEN_PAUSE	5
 
   #define MAX_IOVEC		32
 
@@ -169,7 +168,6 @@
   const struct phystype	gL2tpPhysType = {
     .name		= "l2tp",
     .descr		= "Layer Two Tunneling Protocol",
-    .minReopenDelay	= L2TP_REOPEN_PAUSE,
     .mtu		= L2TP_MTU,
     .mru		= L2TP_MRU,
     .tmpl		= 1,

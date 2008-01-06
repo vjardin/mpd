@@ -41,7 +41,6 @@
   #define MODEM_MTU			1600
   #define MODEM_MRU			1600
 
-  #define MODEM_REOPEN_PAUSE		8
   #define MODEM_MIN_CLOSE_TIME		3
   #define MODEM_CONNECT_TIMEOUT		30
   #define MODEM_CHECK_INTERVAL		1
@@ -140,7 +139,6 @@
   const struct phystype gModemPhysType = {
     .name		= "modem",
     .descr		= "Serial port modem",
-    .minReopenDelay	= MODEM_REOPEN_PAUSE,
     .mtu		= MODEM_MTU,
     .mru		= MODEM_MRU,
     .tmpl		= 0,

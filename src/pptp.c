@@ -35,7 +35,6 @@
   #define PPTP_MRU		PPTP_MTU
 
   #define PPTP_MAX_ERRORS	10
-  #define PPTP_REOPEN_PAUSE	5
 
   #define MAX_IOVEC		32
 
@@ -147,7 +146,6 @@
   const struct phystype	gPptpPhysType = {
     .name		= "pptp",
     .descr		= "Point-to-Point Tunneling Protocol",
-    .minReopenDelay	= PPTP_REOPEN_PAUSE,
     .mtu		= PPTP_MTU,
     .mru		= PPTP_MRU,
     .tmpl		= 1,

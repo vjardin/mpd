@@ -36,7 +36,6 @@
 #define PPPOE_MTU		1492	/* allow room for PPPoE overhead */
 #define PPPOE_MRU		1492
 
-#define PPPOE_REOPEN_PAUSE	5
 #define PPPOE_CONNECT_TIMEOUT	9
 
 #define ETHER_DEFAULT_HOOK	NG_ETHER_HOOK_ORPHAN
@@ -135,7 +134,6 @@ static void	PppoeDoClose(Link l);
 const struct phystype gPppoePhysType = {
     .name		= "pppoe",
     .descr		= "PPP over Ethernet",
-    .minReopenDelay 	= PPPOE_REOPEN_PAUSE,
     .mtu		= PPPOE_MTU,
     .mru		= PPPOE_MRU,
     .tmpl		= 1,
