@@ -971,11 +971,11 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
   for (b = 0; b < gNumReps; b++) {
     if ((R = gReps[b]) != NULL) {
 	Printf("Repeater\t%s\t", R->name);
-	int first = 1;
+	f = 1;
 	for (l = 0; l < 2; l++) {
 	    if ((L = R->links[l])!= NULL) {
-		if (first)
-		    first = 0;
+		if (f)
+		    f = 0;
 		else
 		    Printf("\t\t\t");
 		PhysGetPeerAddr(L, buf, sizeof(buf));
@@ -990,7 +990,7 @@ ShowSummary(Context ctx, int ac, char *av[], void *arg)
 		Printf("\r\n");
 	    }
 	}
-	if (first)
+	if (f)
 	    Printf("\r\n");
     }
   }
