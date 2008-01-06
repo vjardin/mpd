@@ -532,7 +532,8 @@ LcpStat(Context ctx, int ac, char *av[], void *arg)
 		"\tACFCOMP  : %s\r\n"
 		"\tPROTOCOMP: %s\r\n"
 		"\tMULTILINK: %s\r\n"
-		"\tSHORTSEQ : %s\r\n",
+		"\tSHORTSEQ : %s\r\n"
+		"\tAUTHTYPE : %s\r\n",
     (int) lcp->want_mru,
     (int) lcp->want_mrru,
     (int) lcp->want_magic,
@@ -540,7 +541,8 @@ LcpStat(Context ctx, int ac, char *av[], void *arg)
     lcp->want_acfcomp ? "Yes" : "No",
     lcp->want_protocomp ? "Yes" : "No",
     lcp->want_multilink ? "Yes" : "No",
-    lcp->want_shortseq ? "Yes" : "No");
+    lcp->want_shortseq ? "Yes" : "No",
+    (lcp->want_auth)?ProtoName(lcp->want_auth):"none");
 
   Printf("Peer:\r\n");
   Printf(	"\tMRU      : %d bytes\r\n"
@@ -550,7 +552,8 @@ LcpStat(Context ctx, int ac, char *av[], void *arg)
 		"\tACFCOMP  : %s\r\n"
 		"\tPROTOCOMP: %s\r\n"
 		"\tMULTILINK: %s\r\n"
-		"\tSHORTSEQ : %s\r\n",
+		"\tSHORTSEQ : %s\r\n"
+		"\tAUTHTYPE : %s\r\n",
     (int) lcp->peer_mru,
     (int) lcp->peer_mrru,
     (int) lcp->peer_magic,
@@ -558,7 +561,8 @@ LcpStat(Context ctx, int ac, char *av[], void *arg)
     lcp->peer_acfcomp ? "Yes" : "No",
     lcp->peer_protocomp ? "Yes" : "No",
     lcp->peer_multilink ? "Yes" : "No",
-    lcp->peer_shortseq ? "Yes" : "No");
+    lcp->peer_shortseq ? "Yes" : "No",
+    (lcp->peer_auth)?ProtoName(lcp->peer_auth):"none");
   return(0);
 }
 
