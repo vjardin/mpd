@@ -34,8 +34,8 @@
 
   struct optinfo
   {
-    u_int16_t	enable;		/* Options I want */
-    u_int16_t	accept;		/* Options I'll allow */
+    u_int32_t	enable;		/* Options I want */
+    u_int32_t	accept;		/* Options I'll allow */
   };
   typedef struct optinfo	*Options;
 
