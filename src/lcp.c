@@ -106,8 +106,8 @@
     "LCP",			/* Name of protocol */
     PROTO_LCP,			/* Protocol Number */
     LCP_KNOWN_CODES,
-    LG_LCP, LG_LCP2,
     TRUE,
+    LG_LCP, LG_LCP2,
     LcpNewState,
     NULL,
     LcpLayerDown,
