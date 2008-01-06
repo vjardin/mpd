@@ -50,11 +50,8 @@ bandwidth.  Packets routed through the netgraph interface travel in
 multi-link fragments over all of the links.
 Each link is a normal PPP link and can deliver complete packets
 as well, so redundancy is another benefit.
-.Nm
-implements a fairly simple form of multi-link PPP, in that a bundle
-consists of a fixed set of links. Attempts to connect two links in the
-same bundle to different peers, or to a peer that is not configured
-for multi-link PPP, will fail.
+Attempts to connect two links in the same bundle to different peers,
+or to a peer that is not configured for multi-link PPP, will fail.
 .Pp
 In general, everything is controlled by executing commands which are either
 entered via the console command line or read from a configuration file. If
@@ -143,11 +140,12 @@ Stored process ID and lock file
 .El
 .Sh SEE ALSO
 .Xr netgraph 4 ,
+.Xr ngctl 8 ,
 .Xr ng_ppp 4 ,
+.Xr ng_iface 4 ,
 .Xr ppp 8 ,
 .Xr pppd 8 .
-.Sh AUTHOR
-Mpd was written by Archie Cobbs <archie@freebsd.org>, based
-on the original
-.Xr ppp 8
-daemon written by Toshiharu OHNO <tony-o@iij.ad.jp>.
+.Sh AUTHORS
+.An Archie Cobbs Aq archie@FreeBSD.org
+.An Alexander Motin Aq mav@FreeBSD.org
+.An based on ppp daemon written by Toshiharu OHNO Aq tony-o@iij.ad.jp
