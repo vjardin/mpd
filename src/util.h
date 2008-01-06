@@ -73,7 +73,7 @@
 
   extern int		PIDCheck(const char *lockfile, int killem);
 
-  extern void		LengthenArray(void *arrayp, int esize,
+  extern void		LengthenArray(void *arrayp, size_t esize,
 				int *alenp, const char *type);
 
   extern int		ExecCmd(int log, const char *label, const char *fmt, ...)
@@ -81,7 +81,7 @@
   extern int		ExecCmdNosh(int log, const char *label, const char *fmt, ...)
 				__printflike(3, 4);
   extern void		ShowMesg(int log, const char *buf, int len);
-  extern char		*Bin2Hex(const unsigned char *bin, int len);
+  extern char		*Bin2Hex(const unsigned char *bin, size_t len);
   extern u_char		*Hex2Bin(char *hexstr);
   extern u_short	Crc16(u_short fcs, u_char *cp, int len);
   extern u_long		GenerateMagic(void);

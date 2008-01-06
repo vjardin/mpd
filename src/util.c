@@ -59,7 +59,7 @@
  */
 
 void
-LengthenArray(void *array, int esize, int *alenp, const char *type)
+LengthenArray(void *array, size_t esize, int *alenp, const char *type)
 {
   void **const arrayp = (void **)array;
   void *newa;
@@ -1145,10 +1145,10 @@ ShowMesg(int log, const char *buf, int len)
  */
 
 char *
-Bin2Hex(const unsigned char *bin, int len)
+Bin2Hex(const unsigned char *bin, size_t len)
 {
   static char	hexconvtab[] = "0123456789abcdef";
-  int		i, j;
+  size_t	i, j;
   char		*buf;
   
   buf = Malloc(MB_UTIL, len * 2 + 1);
