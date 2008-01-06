@@ -1390,52 +1390,53 @@ FsmEchoTimeout(void *arg)
 void
 FsmInput(Fsm fp, Mbuf bp)
 {
-  int			log, recd_len, length;
-  struct fsmheader	hdr;
+    int			log, recd_len, length;
+    struct fsmheader	hdr;
 
-  /* Check for runt frames; discard them */
-  if ((recd_len = MBLEN(bp)) < sizeof(hdr)) {
-    Log(fp->log, ("[%s] %s: runt packet: %d bytes", Pref(fp), Fsm(fp), recd_len));
-    mbfree(bp);
-    return;
-  }
+    /* Check for runt frames; discard them */
+    if ((recd_len = MBLEN(bp)) < sizeof(hdr)) {
+	Log(fp->log, ("[%s] %s: runt packet: %d bytes", Pref(fp), Fsm(fp), recd_len));
+	mbfree(bp);
+	return;
+    }
 
-  /* Read in the header */
-  bp = mbread(bp, &hdr, sizeof(hdr));
-  length = ntohs(hdr.length);
+    /* Read in the header */
+    bp = mbread(bp, &hdr, sizeof(hdr));
+    length = ntohs(hdr.length);
 
-  /* Make sure length is sensible; discard otherwise */
-  if (length < sizeof(hdr) || length > recd_len) {
-    Log(fp->log, ("[%s] %s: bad length: says %d, rec'd %d",
-      Pref(fp), Fsm(fp), length, recd_len));
-    mbfree(bp);
-    return;
-  }
+    /* Make sure length is sensible; discard otherwise */
+    if (length < sizeof(hdr) || length > recd_len) {
+	Log(fp->log, ("[%s] %s: bad length: says %d, rec'd %d",
+    	    Pref(fp), Fsm(fp), length, recd_len));
+	mbfree(bp);
+	return;
+    }
 
-  /* Truncate off any padding bytes */
-  if (length < recd_len)
-    bp = mbtrunc(bp, length - sizeof(hdr));
+    /* Truncate off any padding bytes */
+    if (length < recd_len)
+	bp = mbtrunc(bp, length - sizeof(hdr));
 
-  /* Check for a valid code byte -- if not, send code-reject */
-  if (!((1 << hdr.code) & fp->type->known_codes)) {	/* RUC */
-    Log(fp->log, ("[%s] %s: unknown code %d", Pref(fp), Fsm(fp), hdr.code));
-    FsmOutputMbuf(fp, CODE_CODEREJ, fp->rejid++, bp);
-    return;
-  }
+    /* Check for a valid code byte -- if not, send code-reject */
+    if ((hdr.code >= NUM_FSM_CODES) ||
+	    (((1 << hdr.code) & fp->type->known_codes) == 0)) {	/* RUC */
+	Log(fp->log, ("[%s] %s: unknown code %d", Pref(fp), Fsm(fp), hdr.code));
+	FsmOutputMbuf(fp, CODE_CODEREJ, fp->rejid++, bp);
+	return;
+    }
 
-  /* Log it */
-  if (hdr.code == CODE_ECHOREQ || hdr.code == CODE_ECHOREP)
-    log = LG_ECHO;
-  else if (hdr.code == CODE_RESETREQ || hdr.code == CODE_RESETACK)
-    log = fp->log2;
-  else
-    log = fp->log;
-  Log(log, ("[%s] %s: rec'd %s #%d (%s)",
-    Pref(fp), Fsm(fp), FsmCodeName(hdr.code), (int) hdr.id,
-    FsmStateName(fp->state)));
+    /* Log it */
+    if (hdr.code == CODE_ECHOREQ || hdr.code == CODE_ECHOREP)
+	log = LG_ECHO;
+    else if (hdr.code == CODE_RESETREQ || hdr.code == CODE_RESETACK)
+	log = fp->log2;
+    else
+	log = fp->log;
+    Log(log, ("[%s] %s: rec'd %s #%d (%s)",
+	Pref(fp), Fsm(fp), FsmCodeName(hdr.code), (int) hdr.id,
+	FsmStateName(fp->state)));
 
-  /* Do whatever */
-  (*FsmCodes[hdr.code].action)(fp, &hdr, bp);
+    /* Do whatever */
+    (*FsmCodes[hdr.code].action)(fp, &hdr, bp);
 }
 
 /*
@@ -1600,7 +1601,7 @@ FsmCodeName(int code)
  */
 
 const char *
-FsmStateName(int state)
+FsmStateName(u_char state)
 {
   switch (state) {
     case ST_INITIAL:	return "Initial";

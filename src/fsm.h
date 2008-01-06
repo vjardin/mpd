@@ -88,17 +88,17 @@
     short	maxfailure;	/* "Max-Failure" initial value */
     short	echo_int;	/* LCP echo interval (zero disables) */
     short	echo_max;	/* LCP max quiet timeout */
-    u_char	check_magic:1;	/* Validate any magic numbers seen */
-    u_char	passive:1;	/* Passive option (see rfc 1661) */
+    u_char	check_magic;	/* Validate any magic numbers seen */
+    u_char	passive;	/* Passive option (see rfc 1661) */
   };
   typedef struct fsmconf	*FsmConf;
 
   struct fsmtype {
     const char		*name;		/* Name of protocol */
-    u_short		proto;		/* Protocol number */
-    u_long		known_codes;	/* Accepted FSM codes */
+    uint16_t		proto;		/* Protocol number */
+    uint16_t		known_codes;	/* Accepted FSM codes */
+    u_char		link_layer;	/* Link level FSM */
     int			log, log2;	/* Log levels for FSM events */
-    u_char		link_layer:1;	/* One FSM for each link */
 
     void		(*NewState)(Fsm f, int old, int new);
     void		(*LayerUp)(Fsm f);
@@ -129,7 +129,7 @@
     int			log;		/* Current log level */
     int			log2;		/* Current log2 level */
     struct fsmconf	conf;		/* FSM parameters */
-    short		state;		/* State of the machine */
+    u_char		state;		/* State of the machine */
     u_char		reqid;		/* Next request id */
     u_char		rejid;		/* Next reject id */
     u_char		echoid;		/* Next echo request id */
@@ -198,7 +198,7 @@
   extern void		FsmRej(Fsm fp, const struct fsmoption *opt);
 
   extern FsmOptInfo	FsmFindOptInfo(FsmOptInfo list, u_char type);
-  extern const char	*FsmStateName(int state);
+  extern const char	*FsmStateName(u_char state);
   extern const char	*FsmCodeName(int code);
 
 #define Pref(fp)	 ( (fp)->type->link_layer ? ((Link)((fp)->arg))->name : ((Bund)((fp)->arg))->name )
