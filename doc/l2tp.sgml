@@ -22,8 +22,8 @@ client <- some link type -> LAC <- L2TP tunnel -> LNS
 </verb>
 
   LAC is physical level repeater, which receives PPP connection of some 
-  type and forwards it to LNS using L2TP protocol. LNS is ppp endpoint, 
-  which receives ppp frames via L2TP tunnel and processes them.
+  type and forwards it to LNS using L2TP protocol. LNS is a PPP endpoint, 
+  which receives PPP frames via L2TP tunnel and processes them.
 
   In simple case, when physical conversion is not required, topology 
   can be simplified to:
@@ -119,10 +119,9 @@ The following options are supported:
 
 Inside L2TP tunnel, each individual PPP connection (there may be several), 
 is initiated as either an incoming or an outgoing call. 
-This is to allow, for example, making an outgoing telephone call (by LNS) 
-via a remote access server (LAC), as well as the more common use of forwarding
-of an incoming telephone call from an access server (LAC) to a remote
-L2TP server (LNS).
+This allows to make an outgoing phone call (by LNS) via a remote access
+server (LAC), as well as in more common case forward an incoming
+phone call from an access server (LAC) to a remote L2TP server (LNS).
 
 When this option is enabled, mpd will initiate outgoing calls (LNS);
 otherwise mpd will initiate incoming calls (LAC).

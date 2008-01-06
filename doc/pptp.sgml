@@ -31,8 +31,8 @@ client <- some link type -> PAC <- PPTP tunnel -> PNS
 </verb>
 
   PAC is physical level repeater, which receives PPP connection of some 
-  type and forwards it to PNS using PPTP protocol. PNS is ppp endpoint, 
-  which receives ppp frames via PPTP tunnel and processes them.
+  type and forwards it to PNS using PPTP protocol. PNS is a PPP endpoint, 
+  which receives PPP frames via PPTP tunnel and processes them.
 
   In simple case, when physical conversion is not required, topology 
   can be simplified to:
@@ -95,10 +95,9 @@ In PPTP, each individual PPP connection between two IP hosts (there
 may be several, and these are not to be confused with the
 <em>single</em> TCP connection between any two IP hosts), is
 initiated as either an incoming or an outgoing call. 
-This is to allow, for example, making an outgoing telephone call (by PNS) 
-via a remote access server (PAC), as well as the more common use of forwarding
-of an incoming telephone call from an access server (PAC) to a remote
-PPTP server (PNS).
+This allows to make an outgoing phone call (by PNS) via a remote access
+server (PAC), as well as in more common case forward an incoming
+phone call from an access server (PAC) to a remote PPTP server (PNS).
 
 When this option is enabled, mpd will initiate outgoing calls (PNS);
 otherwise mpd will initiate incoming calls (PAC). Although it seems that
