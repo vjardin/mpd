@@ -402,7 +402,7 @@ SignalHandler(int type, void *arg)
  */
 
 static void
-FatalSignal(sig)
+FatalSignal(int sig)
 {
     Bund 	b;
     static struct pppTimer	gDeathTimer;
