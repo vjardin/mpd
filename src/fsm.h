@@ -71,7 +71,7 @@
     FAIL_RECD_PROTREJ,		/* rec'd fatal protocol reject */
     FAIL_WAS_PROTREJ,		/* protocol was rejected */
     FAIL_ECHO_TIMEOUT,		/* peer not responding to echo requests */
-    FAIL_CANT_ENCRYPT,		/* failed to negotiate required encryption */
+    FAIL_CANT_ENCRYPT		/* failed to negotiate required encryption */
   };
 
   /* FSM descriptor */

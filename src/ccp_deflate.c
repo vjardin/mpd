@@ -160,7 +160,7 @@ DeflateDescribe(Bund b, int dir, char *buf, size_t len)
     	    return(NULL);
     }
     return (buf);
-};
+}
 
 /*
  * DeflateCleanup()

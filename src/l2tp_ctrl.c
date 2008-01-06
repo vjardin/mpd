@@ -102,7 +102,7 @@ enum l2tp_msg_type {
 	ICCN		=12,
 	CDN		=14,
 	WEN		=15,
-	SLI		=16,
+	SLI		=16
 };
 
 /* Control connection states */

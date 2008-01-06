@@ -55,7 +55,7 @@
     SET_ENABLE,
     SET_DISABLE,
     SET_YES,
-    SET_NO,
+    SET_NO
   };
 
 /*

@@ -11,7 +11,7 @@
 #include "util.h"
 
 enum {
-    SET_ADD,
+    SET_ADD
 };
 
 struct ippool_rec {

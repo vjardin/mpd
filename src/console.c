@@ -36,7 +36,7 @@
     SET_CLOSE,
     SET_SELF,
     SET_DISABLE,
-    SET_ENABLE,
+    SET_ENABLE
   };
 
 

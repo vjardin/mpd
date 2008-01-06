@@ -46,7 +46,7 @@
     PPTP_CallClearRequest = 12,
     PPTP_CallDiscNotify = 13,
     PPTP_WanErrorNotify = 14,
-    PPTP_SetLinkInfo = 15,
+    PPTP_SetLinkInfo = 15
   };
 
   #define PPTP_MIN_CTRL_TYPE		1

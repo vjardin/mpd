@@ -22,14 +22,14 @@
   /* Configuration options */
   enum {
     EAP_CONF_RADIUS,
-    EAP_CONF_MD5,
+    EAP_CONF_MD5
   };
 
   enum {
     EAP_REQUEST = 1,
     EAP_RESPONSE,
     EAP_SUCCESS,
-    EAP_FAILURE,
+    EAP_FAILURE
   };
 
   enum {
@@ -73,7 +73,7 @@
     EAP_TYPE_DEVICECONNECT,	/* DeviceConnect */
     EAP_TYPE_SPEKE,		/* EAP-SPEKE */
     EAP_TYPE_MOBAC,		/* EAP-MOBAC */
-    EAP_TYPE_FAST,		/* EAP-FAST */
+    EAP_TYPE_FAST		/* EAP-FAST */
   };
 
   extern const	struct cmdtab EapSetCmds[];

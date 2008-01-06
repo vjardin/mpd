@@ -25,7 +25,7 @@
     SET_ADDR,
     SET_TARGET,
     SET_ENABLE,
-    SET_DISABLE,
+    SET_DISABLE
   };
 
 static int	NatSetCommand(Context ctx, int ac, char *av[], void *arg);

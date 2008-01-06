@@ -89,7 +89,7 @@
   enum {
     RADIUS_CONF_MESSAGE_AUTHENTIC,
     RADIUS_CONF_PEER_AS_CALLING,
-    RADIUS_CONF_REPORT_MAC,
+    RADIUS_CONF_REPORT_MAC
   };
 
   extern const	struct cmdtab RadiusSetCmds[];

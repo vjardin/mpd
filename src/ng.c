@@ -37,7 +37,7 @@
   /* Set menu options */
   enum {
     SET_NODE,
-    SET_HOOK,
+    SET_HOOK
   };
 
 /*

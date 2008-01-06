@@ -136,10 +136,7 @@ Do(int which, int ac, char *av[], Options opt, ConfInfo list)
     switch (index)
     {
       case -1:
-//	if (!strcasecmp(*av, "help") || !strcmp(*av, "?"))
-//	  OptStat(opt, list);
-//	else
-	  Log(LG_ERR, ("option \"%s\" unknown", *av));
+	Log(LG_ERR, ("option \"%s\" unknown", *av));
 	break;
       case -2:
 	Log(LG_ERR, ("option \"%s\" ambiguous", *av));

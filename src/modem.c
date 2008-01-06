@@ -93,7 +93,7 @@
     SET_CSCRIPT,
     SET_ISCRIPT,
     SET_SCRIPT_VAR,
-    SET_WATCH,
+    SET_WATCH
   };
 
 /*

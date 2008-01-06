@@ -14,7 +14,7 @@
     NAT_CONF_LOG,
     NAT_CONF_INCOMING,
     NAT_CONF_SAME_PORTS,
-    NAT_CONF_UNREG_ONLY,
+    NAT_CONF_UNREG_ONLY
   };
 
   struct natstate {

@@ -60,7 +60,7 @@ typedef struct tcpinfo	*TcpInfo;
 /* Set menu options */
 enum {
 	SET_PEERADDR,
-	SET_SELFADDR,
+	SET_SELFADDR
 };
 
 /*
@@ -789,7 +789,7 @@ fail2:
 	NgSendMsg(pi->If->csock, LISTENHOOK, NGM_GENERIC_COOKIE, NGM_SHUTDOWN,
 	    NULL, 0);
 	return (0);
-};
+}
 
 static void
 TcpUnListen(Link l)
@@ -810,7 +810,7 @@ TcpUnListen(Link l)
 	    pi->If->self_port = 0;
 	    pi->If = NULL;
 	}
-};
+}
 
 /*
  * TcpNodeUpdate()

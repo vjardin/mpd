@@ -46,18 +46,6 @@
  */
 
 /*
- * DEFINITIONS
- */
-
-  /* Set menu options */
-  enum {
-    SET_LINK,
-    SET_REPEATER,
-    SET_ENABLE,
-    SET_DISABLE,
-  };
-
-/*
  * INTERNAL FUNCTIONS
  */
 

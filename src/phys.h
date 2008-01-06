@@ -21,7 +21,7 @@
     PHYS_STATE_DOWN = 0,
     PHYS_STATE_CONNECTING,
     PHYS_STATE_READY,
-    PHYS_STATE_UP,
+    PHYS_STATE_UP
   };
 
   /* Descriptor for a given type of physical layer */

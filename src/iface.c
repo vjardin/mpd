@@ -81,7 +81,7 @@
     SET_UP_SCRIPT,
     SET_DOWN_SCRIPT,
     SET_ENABLE,
-    SET_DISABLE,
+    SET_DISABLE
   };
 
 /*
@@ -638,7 +638,7 @@ IfaceAllocACL(struct acl_pool ***ap, int start, char *ifname, int number)
     *rp = rp1;
     *ap = rp;
     return(i);
-};
+}
 
 /*
  * IfaceFindACL ()
@@ -662,7 +662,7 @@ IfaceFindACL (struct acl_pool *ap, char * ifname, int number)
         rp = rp->next;
     };
     return(i);
-};
+}
 
 /*
  * IFaceParseACL ()
@@ -718,7 +718,7 @@ IFaceParseACL (char * src, char * ifname)
     } while (end != NULL);
     Freee(buf1);
     return(buf);
-};
+}
 
 /*
  * IfaceIpIfaceUp()

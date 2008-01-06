@@ -68,7 +68,7 @@
     SET_ACCT_UPDATE,
     SET_ACCT_UPDATE_LIMIT_IN,
     SET_ACCT_UPDATE_LIMIT_OUT,
-    SET_TIMEOUT,
+    SET_TIMEOUT
   };
 
 /*
@@ -133,7 +133,7 @@
 void	authparamsInit(struct authparams *ap) {
     memset(ap,0,sizeof(struct authparams));
     SLIST_INIT(&ap->routes);
-};
+}
 
 void	authparamsDestroy(struct authparams *ap) {
     struct acl		*acls, *acls1;
@@ -203,7 +203,7 @@ void	authparamsDestroy(struct authparams *ap) {
     }
     
     memset(ap,0,sizeof(struct authparams));
-};
+}
 
 void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     struct acl		*acls;
@@ -283,7 +283,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 
     if (src->msdomain)
 	dst->msdomain = Mstrdup(MB_AUTH, src->msdomain);
-};
+}
 
 void	authparamsMove(struct authparams *src, struct authparams *dst)
 {

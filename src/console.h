@@ -20,20 +20,20 @@
   #define MAX_CONSOLE_LINE	400
   #define MAX_CONSOLE_HIST	10
 
-  #define Printf(fmt, args...)	({ 						\
+  #define Printf(fmt, args...)	do { 						\
 	  			  if (ctx->cs)	 				\
 	  			    ctx->cs->write(ctx->cs, fmt, ## args);	\
-  				})
+  				} while (0)
 
-  #define Error(fmt, args...)	({ 						\
+  #define Error(fmt, args...)	do { 						\
 				  snprintf(ctx->errmsg, sizeof(ctx->errmsg),	\
 				    fmt, ## args);				\
 				  return(CMD_ERR_OTHER);			\
-  				})
+  				} while (0)
 
   /* Configuration options */
   enum {
-    CONSOLE_LOGGING,	/* enable logging */
+    CONSOLE_LOGGING	/* enable logging */
   };
 
   struct console {

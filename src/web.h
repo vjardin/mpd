@@ -21,7 +21,7 @@
 
   /* Configuration options */
   enum {
-    WEB_AUTH,	/* enable auth */
+    WEB_AUTH	/* enable auth */
   };
 
   struct web {

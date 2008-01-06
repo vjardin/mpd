@@ -391,7 +391,7 @@ enum ppp_l2tp_avp_type {
 	AVP_PRIVATE_GROUP_ID		=37,
 	AVP_RX_CONNECT_SPEED		=38,
 	AVP_SEQUENCING_REQUIRED		=39,
-	AVP_MAX				=40,
+	AVP_MAX				=40
 };
 
 /***********************************************************************

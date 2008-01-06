@@ -68,7 +68,7 @@ static u_char gNgEtherLoaded = FALSE;
 enum {
 	SET_IFACE,
 	SET_SESSION,
-	SET_ACNAME,
+	SET_ACNAME
 };
 
 /*
@@ -816,7 +816,7 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	    EVENT_RECURRING, PppoeListenEvent, PIf);
 
 	return (1);
-};
+}
 
 /*
  * Look for a tag of a specific type.
@@ -1066,7 +1066,7 @@ shutdown_tee:
 close_socket:
 	Log(LG_PHYS, ("[%s] PPPoE connection not accepted due to error",
 	    l->name));
-};
+}
 
 /*
  * PppoeGetNode()
@@ -1210,7 +1210,7 @@ PppoeListen(Link l)
 		PIf->ifnodepath, idata->data));
 	    
 	return (1);
-};
+}
 
 static int 
 PppoeUnListen(Link l)
@@ -1240,7 +1240,7 @@ PppoeUnListen(Link l)
 	    
 	pi->list = NULL;
 	return (1);
-};
+}
 
 /*
  * PppoeNodeUpdate()

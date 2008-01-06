@@ -43,7 +43,7 @@
     SET_RETRIES,
     SET_CONFIG,
     SET_ENABLE,
-    SET_DISABLE,
+    SET_DISABLE
   };
 
 /*

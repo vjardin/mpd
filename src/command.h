@@ -29,7 +29,7 @@
   /* Configuration options */
   enum {
     GLOBAL_CONF_TCPWRAPPER,	/* enable tcp-wrapper */
-    GLOBAL_CONF_ONESHOT,	/* enable OneShot mode */
+    GLOBAL_CONF_ONESHOT		/* enable OneShot mode */
   };
 
   struct globalconf {

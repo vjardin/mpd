@@ -32,7 +32,7 @@
     SET_ENABLE,
     SET_DISABLE,
     SET_YES,
-    SET_NO,
+    SET_NO
   };
 
 /*
@@ -289,8 +289,10 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
     type = pkt[0];
   }
   
-  if (Enabled(&eap->conf.options, EAP_CONF_RADIUS))
-    return EapRadiusProxy(l, auth, pkt, len);
+  if (Enabled(&eap->conf.options, EAP_CONF_RADIUS)) {
+	EapRadiusProxy(l, auth, pkt, len);
+	return;
+  }
 
   switch (auth->code) {
     case EAP_REQUEST:

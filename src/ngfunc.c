@@ -71,7 +71,7 @@
     SET_SELF,
     SET_TIMEOUTS,
     SET_NODE,
-    SET_HOOK,
+    SET_HOOK
   };
 
 /*

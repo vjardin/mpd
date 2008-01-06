@@ -74,7 +74,7 @@
     SET_CALLINGNUM,
     SET_CALLEDNUM,
     SET_ENABLE,
-    SET_DISABLE,
+    SET_DISABLE
   };
 
   /* Binary options */
@@ -83,7 +83,7 @@
     PPTP_CONF_DELAYED_ACK,	/* enable delayed receive ack algorithm */
     PPTP_CONF_ALWAYS_ACK,	/* include ack with all outgoing data packets */
 #if NGM_PPTPGRE_COOKIE >= 1082548365
-    PPTP_CONF_WINDOWING,	/* control (stupid) windowing algorithm */
+    PPTP_CONF_WINDOWING		/* control (stupid) windowing algorithm */
 #endif
   };
 
@@ -692,7 +692,7 @@ PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra)
 
     if (l->rep != NULL)
 	    RepSetAccm(l, sa, ra);
-};
+}
 
 /*
  * PptpHookUp()

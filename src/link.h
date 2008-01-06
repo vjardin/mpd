@@ -42,7 +42,7 @@
 
   enum {
     LINK_ACTION_FORWARD,
-    LINK_ACTION_BUNDLE,
+    LINK_ACTION_BUNDLE
   };
 
   struct linkaction {
@@ -71,7 +71,7 @@
     LINK_CONF_NO_ORIG_AUTH,
     LINK_CONF_CALLBACK,
     LINK_CONF_MULTILINK,	/* multi-link */
-    LINK_CONF_SHORTSEQ,		/* multi-link short sequence numbers */
+    LINK_CONF_SHORTSEQ		/* multi-link short sequence numbers */
   };
 
   /* Configuration for a link */

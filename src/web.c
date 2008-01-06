@@ -20,7 +20,7 @@
     SET_CLOSE,
     SET_SELF,
     SET_DISABLE,
-    SET_ENABLE,
+    SET_ENABLE
   };
 
 
@@ -601,12 +601,12 @@ WebServletRun(struct http_servlet *servlet,
 	http_response_send_error(resp, 404, NULL);
     }
     return 1;
-};
+}
 
 static void	
 WebServletDestroy(struct http_servlet *servlet)
 {
-};
+}
 
 static void
 WebLogger(int sev, const char *fmt, ...)

@@ -51,7 +51,7 @@
   {
     CHAT_IDLE = 0,
     CHAT_RUNNING,
-    CHAT_WAIT,
+    CHAT_WAIT
   };
 
 /* Commands */
@@ -72,7 +72,7 @@
     CMD_SUCCESS,
     CMD_FAILURE,
     CMD_WAIT,
-    CMD_NOTHING,
+    CMD_NOTHING
   };
 
 /* Structures */

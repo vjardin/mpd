@@ -36,7 +36,7 @@
     SET_ENABLE,
     SET_DISABLE,
     SET_YES,
-    SET_NO,
+    SET_NO
   };
 
   enum {
@@ -45,7 +45,7 @@
     MPPC_CONF_56,
     MPPC_CONF_128,
     MPPC_CONF_STATELESS,
-    MPPC_CONF_POLICY,
+    MPPC_CONF_POLICY
   };
 
 /*

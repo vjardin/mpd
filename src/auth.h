@@ -77,7 +77,7 @@
     AUTH_CONF_PAM_AUTH,
     AUTH_CONF_PAM_ACCT,
     AUTH_CONF_OPIE,
-    AUTH_CONF_MAX_LOGINS,
+    AUTH_CONF_MAX_LOGINS
   };  
 
   struct acl {			/* List of ACLs received from auth */

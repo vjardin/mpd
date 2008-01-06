@@ -60,7 +60,7 @@
 
   enum {
     SET_PEERADDR,
-    SET_SELFADDR,
+    SET_SELFADDR
   };
 
 /*
@@ -634,7 +634,7 @@ fail2:
 	pi->If->self_port = 0;
 	pi->If = NULL;
 	return (0);
-};
+}
 
 
 static int 
@@ -658,7 +658,7 @@ UdpUnListen(Link l)
 	}
 
 	return (1);
-};
+}
 
 /*
  * UdpNodeUpdate()

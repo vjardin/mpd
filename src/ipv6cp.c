@@ -46,7 +46,7 @@
     SET_ACCEPT,
     SET_DENY,
     SET_YES,
-    SET_NO,
+    SET_NO
   };
 
 /*

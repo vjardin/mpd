@@ -58,7 +58,7 @@
     IFACE_CONF_NAT,
     IFACE_CONF_NETFLOW_IN,
     IFACE_CONF_NETFLOW_OUT,
-    IFACE_CONF_IPACCT,
+    IFACE_CONF_IPACCT
   };
 
   /* Dial-on-demand packet cache */

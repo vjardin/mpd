@@ -100,7 +100,7 @@
     SET_HOSTNAME,
     SET_SECRET,
     SET_ENABLE,
-    SET_DISABLE,
+    SET_DISABLE
   };
 
   /* Binary options */
@@ -108,7 +108,7 @@
     L2TP_CONF_OUTCALL,		/* when originating, calls are "outgoing" */
     L2TP_CONF_HIDDEN,		/* enable AVP hidding */
     L2TP_CONF_LENGTH,		/* enable Length field in data packets */
-    L2TP_CONF_DATASEQ,		/* enable sequence fields in data packets */
+    L2TP_CONF_DATASEQ		/* enable sequence fields in data packets */
   };
 
 /*
@@ -593,7 +593,7 @@ fail:
 	}
 	l->state = PHYS_STATE_DOWN;
 	PhysDown(l, STR_DEV_NOT_READY, NULL);
-};
+}
 
 /*
  * L2tpClose()
@@ -1214,7 +1214,7 @@ ppp_l2tp_set_link_info_cb(struct ppp_l2tp_sess *sess,
 	if (l->rep != NULL) {
 		RepSetAccm(l, xmit, recv);
 	}
-};
+}
 
 /*
  * Connect L2TP and link hooks.

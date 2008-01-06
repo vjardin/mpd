@@ -57,7 +57,7 @@
     SET_PPTPTO,
     SET_PPTPLIMIT,
     SET_L2TPTO,
-    SET_L2TPLIMIT,
+    SET_L2TPLIMIT
   };
 
 

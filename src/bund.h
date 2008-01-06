@@ -35,7 +35,7 @@
     BUND_CONF_ENCRYPTION,	/* encryption */
     BUND_CONF_CRYPT_REQD,	/* encryption is required */
     BUND_CONF_BWMANAGE,		/* dynamic bandwidth */
-    BUND_CONF_ROUNDROBIN,	/* round-robin MP scheduling */
+    BUND_CONF_ROUNDROBIN	/* round-robin MP scheduling */
   };
 
   /* Default bundle-layer FSM retry timeout */
