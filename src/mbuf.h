@@ -64,8 +64,8 @@
 
 /* Replacements for malloc() & free() */
 
-  extern void	*Malloc(const char *type, int size);
-  extern void	*Mdup(const char *type, const void *src, int size);
+  extern void	*Malloc(const char *type, size_t size);
+  extern void	*Mdup(const char *type, const void *src, size_t size);
   extern void	*Mstrdup(const char *type, const void *src);
   extern void	Freee(void *ptr);
 

@@ -20,11 +20,9 @@
  */
 
 void *
-Malloc(const char *type, int size)
+Malloc(const char *type, size_t size)
 {
     const char	**memory;
-
-    assert(size >= 0);
 
     if ((memory = MALLOC(type, sizeof(char *) + size)) == NULL) {
 	Perror("Malloc: malloc");
@@ -43,7 +41,7 @@ Malloc(const char *type, int size)
  */
 
 void *
-Mdup(const char *type, const void *src, int size)
+Mdup(const char *type, const void *src, size_t size)
 {
     const char	**memory;
     if ((memory = MALLOC(type, sizeof(char *) + size)) == NULL) {
