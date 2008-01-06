@@ -65,13 +65,11 @@
     /* More params */
     u_char	want_protocomp:1;	/* I want protocol compression */
     u_char	want_acfcomp:1;		/* I want a&c field compression */
-    u_char	want_multilink:1;	/* I accept multi-link */
     u_char	want_shortseq:1;	/* I want short seq numbers */
     u_char	want_callback:1;	/* I want to be called back */
 
     u_char	peer_protocomp:1;	/* Peer wants protocol field comp */
     u_char	peer_acfcomp:1;		/* Peer wants addr & ctrl field comp */
-    u_char	peer_multilink:1;	/* Peer accepts multi-link */
     u_char	peer_shortseq:1;	/* Peer gets ML short seq numbers */
 
     /* Misc */

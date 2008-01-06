@@ -1179,7 +1179,7 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 	if (b->n_up)
     	    Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - l->last_up));
 
-	if (b->multilink) {
+	if (b->peer_mrru) {
 	    Printf("\tMultilink PPP:\r\n");
     	    Printf("\t\tPeer auth name : \"%s\"\r\n", b->params.authname);
     	    Printf("\t\tPeer discrimin.: %s\r\n", MpDiscrimText(&b->peer_discrim, buf, sizeof(buf)));

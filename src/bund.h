@@ -134,6 +134,7 @@
 
     /* Data chunks */
     char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq session-id */    
+    u_int16_t		peer_mrru;	/* MRRU set by peer, or zero */
     struct discrim	peer_discrim;	/* Peer's discriminator */
     struct bundbm	bm;		/* Bandwidth management state */
     struct bundconf	conf;		/* Configuration for this bundle */
@@ -156,7 +157,6 @@
 
     /* Boolean variables */
     u_char		open;		/* In the open state */
-    u_char		multilink;	/* Doing multi-link on this bundle */
     u_char		originate;	/* Who originated the connection */
     
     struct authparams   params;         /* params to pass to from auth backend */

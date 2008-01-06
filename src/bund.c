@@ -217,9 +217,9 @@ BundJoin(Link l)
 
     if (!l->bund) {
 	b = NULL;
-	if (lcp->peer_multilink) {
+	if (lcp->peer_mrru) {
 	    for (k = 0; k < gNumBundles; k++) {
-		if (gBundles[k] && !gBundles[k]->tmpl && gBundles[k]->multilink &&
+		if (gBundles[k] && !gBundles[k]->tmpl && gBundles[k]->peer_mrru &&
 		    MpDiscrimEqual(&l->peer_discrim, &gBundles[k]->peer_discrim) &&
 		    !strcmp(l->lcp.auth.params.authname, gBundles[k]->params.authname)) {
 		        break;
@@ -296,7 +296,7 @@ BundJoin(Link l)
 	authparamsCopy(&l->lcp.auth.params,&b->params);
 
 	/* Initialize multi-link stuff */
-	if ((b->multilink = lcp->peer_multilink)) {
+	if ((b->peer_mrru = lcp->peer_mrru)) {
     	    b->peer_discrim = l->peer_discrim;
 	}
 
@@ -319,7 +319,7 @@ BundJoin(Link l)
     if (b->n_up == 1) {
 
 	/* Configure the bundle */
-	b->pppConfig.bund.enableMultilink = lcp->peer_multilink;
+	b->pppConfig.bund.enableMultilink = lcp->peer_mrru?1:0;
 	b->pppConfig.bund.mrru = lcp->peer_mrru;
 	b->pppConfig.bund.xmitShortSeq = lcp->peer_shortseq;
 	b->pppConfig.bund.recvShortSeq = lcp->want_shortseq;
@@ -863,12 +863,12 @@ BundUpdateParams(Bund b)
     if (b->n_up == 0) {
         mtu = NG_IFACE_MTU_DEFAULT;	/* Reset to default settings */
 
-    } else if (!b->multilink) {		/* If no multilink, use peer MRU */
+    } else if (!b->peer_mrru) {		/* If no multilink, use peer MRU */
 	mtu = MIN(b->links[the_link]->lcp.peer_mru,
 		  b->links[the_link]->type->mtu);
 
     } else {	  	/* Multilink. We fragment everything, use peer MRRU */
-        mtu = b->links[the_link]->lcp.peer_mrru;
+        mtu = b->peer_mrru;
     }
 
     /* Subtract to make room for various frame-bloating protocols */
@@ -1277,7 +1277,6 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tTotal bandwidth: %u bits/sec\r\n", tbw);
   Printf("\tAvail bandwidth: %u bits/sec\r\n", bw);
   Printf("\tPeer authname  : \"%s\"\r\n", sb->params.authname);
-  Printf("\tPeer discrim.  : %s\r\n", MpDiscrimText(&sb->peer_discrim, buf, sizeof(buf)));
 
   /* Show configuration */
   Printf("Configuration:\r\n");
@@ -1295,11 +1294,12 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
   Printf("Bundle level options:\r\n");
   OptStat(ctx, &sb->conf.options, gConfList);
 
-  /* Show peer info */
+    /* Show peer info */
     Printf("Multilink PPP:\r\n");
     Printf("\tStatus         : %s\r\n",
-      sb->multilink ? "Active" : "Inactive");
-    if (sb->multilink) {
+	sb->peer_mrru ? "Active" : "Inactive");
+    if (sb->peer_mrru) {
+      Printf("\tPeer MRRU      : %d bytes\r\n", sb->peer_mrru);
       Printf("\tPeer auth name : \"%s\"\r\n", sb->params.authname);
       Printf("\tPeer discrimin.: %s\r\n", MpDiscrimText(&sb->peer_discrim, buf, sizeof(buf)));
     }
@@ -1336,7 +1336,7 @@ BundUpdateStats(Bund b)
 
 #if (__FreeBSD_version < 602104 || (__FreeBSD_version >= 700000 && __FreeBSD_version < 700029))
   /* Workaround for broken ng_ppp bundle stats */
-  if (!b->multilink)
+  if (!b->peer_mrru)
     l = 0;
 #endif
 
