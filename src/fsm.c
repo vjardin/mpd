@@ -1252,10 +1252,10 @@ FsmRecvIdent(Fsm fp, FsmHeader lhp, Mbuf bp)
 static void
 FsmRecvVendor(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
-  bp = FsmCheckMagic(fp, bp);
-  if (fp->type->RecvVendor)
-    (*fp->type->RecvVendor)(fp, bp);
-  mbfree(bp);
+    bp = FsmCheckMagic(fp, bp);
+    if (fp->type->RecvVendor)
+	(*fp->type->RecvVendor)(fp, bp);
+    mbfree(bp);
 }
 
 /*
