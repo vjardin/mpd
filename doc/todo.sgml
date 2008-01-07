@@ -18,6 +18,13 @@ Currently MPD supports only simpliest LCP callback without number
 negotiation, without CBCP support and only as client.
 </p>
 
+<tag>L2TP auth proxying</tag>
+<p>
+Currently MPD acting as LAC requires parameter renegotiation
+on every tunnel hop. It would be good to implement auth proxying
+to speedup negotiation.
+</p>
+
 <tag>Unimplemented Protocols</tag>
 <p>
 lcp.c contains a list of protocols (gLcpConfOpts), each protocol with
