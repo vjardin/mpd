@@ -217,7 +217,7 @@ link.  Mpd supports MD5 style CHAP and Microsoft style CHAP versions
 1 and 2.  Mpd will prefer Microsoft CHAP over MD5 CHAP to get
 encryption keys.
 
-This parameter is an alias for <tt>md5-chap</tt> <tt>ms-chapv1</tt> <tt>ms-chapv2</tt>
+This option is an alias for <tt>md5-chap</tt> <tt>ms-chapv1</tt> <tt>ms-chapv2</tt>
 
 <tag><tt>chap-md5</tt></tag>
 
@@ -251,7 +251,7 @@ If this option is disabled, mpd will not accept incoming connections
 using this link. To avoid races it is advised to enable it after
 all other link options are configured.
 
-The default is disable.
+The default is <tt><bf>disable</bf></tt>.
 
 <tag><tt>multilink</tt></tag>
 
@@ -261,8 +261,15 @@ multi-link PPP is sometimes useful on single links when the link MTU is
 low; multi-link PPP allows arbitrarily long packets to go over a link
 in fragments.
 
-The default is <tt>disable</tt> and <tt>deny</tt>
-(i.e., normal non-multilink PPP).
+The default is <tt><bf>disable</bf></tt> (i.e., normal non-multilink PPP).
+
+<tag><tt>shortseq</tt></tag>
+
+This option is only meaningful if multi-link PPP is negotiated.
+It proscribes shorter multi-link fragment headers,
+saving two bytes on every frame.
+
+The default is <tt><bf>enable</bf></tt> and <tt><bf>accept</bf></tt>.
 
 <tag><tt>acfcomp</tt></tag>
 

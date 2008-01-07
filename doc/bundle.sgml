@@ -107,14 +107,6 @@ loss or broken peer equipment.
 
 The default is disable.
 
-<tag><tt>shortseq</tt></tag>
-
-This option is only meaningful if multi-link PPP is negotiated.
-It proscribes shorter multi-link fragment headers,
-saving two bytes on every frame.
-
-The default id enable and accept.
-
 <tag><tt>ipcp</tt></tag>
 
 Enable/Disable IPCP negotiation. For details see
