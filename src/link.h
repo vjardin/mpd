@@ -145,9 +145,6 @@
     char		msession_id[AUTH_MAX_SESSIONID]; /* a uniq msession-id */
     char		session_id[AUTH_MAX_SESSIONID];	/* a uniq session-id */
 
-    /* Info gleaned from negotiations */
-    struct discrim	peer_discrim;
-
     PhysType		type;			/* Device type descriptor */
     void		*info;			/* Type specific info */
     MsgHandler		pmsgs;			/* Message channel */

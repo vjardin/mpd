@@ -288,8 +288,8 @@ LcpConfigure(Fsm fp)
     }
 
     /* Peer discriminator */
-    l->peer_discrim.class = DISCRIM_CLASS_NULL;
-    l->peer_discrim.len = 0;
+    lcp->peer_discrim.class = DISCRIM_CLASS_NULL;
+    lcp->peer_discrim.len = 0;
 }
 
 /*
@@ -563,7 +563,7 @@ LcpStat(Context ctx, int ac, char *av[], void *arg)
     if (lcp->peer_mrru) {
 	Printf(	"\tMRRU     : %d bytes\r\n", (int) lcp->peer_mrru);
 	Printf(	"\tSHORTSEQ : %s\r\n", lcp->peer_shortseq ? "Yes" : "No");
-	Printf(	"\tENDPOINTDISC: %s\r\n", MpDiscrimText(&l->peer_discrim, buf, sizeof(buf)));
+	Printf(	"\tENDPOINTDISC: %s\r\n", MpDiscrimText(&lcp->peer_discrim, buf, sizeof(buf)));
     }
 
     return(0);
@@ -1078,7 +1078,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  Log(LG_LCP, (" %s %s", oi->name, MpDiscrimText(&dis, buf, sizeof(buf))));
 	  switch (mode) {
 	    case MODE_REQ:
-	      l->peer_discrim = dis;
+	      lcp->peer_discrim = dis;
 	      FsmAck(fp, opt);
 	      break;
 	    case MODE_NAK:	/* a NAK here doesn't make sense */

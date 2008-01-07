@@ -220,8 +220,8 @@ BundJoin(Link l)
 	if (lcp->peer_mrru) {
 	    for (k = 0; k < gNumBundles; k++) {
 		if (gBundles[k] && !gBundles[k]->tmpl && gBundles[k]->peer_mrru &&
-		    MpDiscrimEqual(&l->peer_discrim, &gBundles[k]->peer_discrim) &&
-		    !strcmp(l->lcp.auth.params.authname, gBundles[k]->params.authname)) {
+		    MpDiscrimEqual(&lcp->peer_discrim, &gBundles[k]->peer_discrim) &&
+		    !strcmp(lcp->auth.params.authname, gBundles[k]->params.authname)) {
 		        break;
 		}
 	    }
@@ -297,7 +297,7 @@ BundJoin(Link l)
 
 	/* Initialize multi-link stuff */
 	if ((b->peer_mrru = lcp->peer_mrru)) {
-    	    b->peer_discrim = l->peer_discrim;
+    	    b->peer_discrim = lcp->peer_discrim;
 	}
 
 	/* Start bandwidth management */

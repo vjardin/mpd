@@ -73,6 +73,7 @@
     u_char	peer_shortseq:1;	/* Peer gets ML short seq numbers */
 
     /* Misc */
+    struct discrim	peer_discrim;	/* Peer's discriminator */
     char	peer_ident[64];		/* Peer's LCP ident string */
     uint32_t	peer_reject;		/* Request codes rejected by peer */
     struct fsm	fsm;			/* Finite state machine */
