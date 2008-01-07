@@ -1265,10 +1265,9 @@ FsmRecvVendor(Fsm fp, FsmHeader lhp, Mbuf bp)
 static void
 FsmRecvTimeRemain(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
-    u_int32_t	remain = 0;
-
     bp = FsmCheckMagic(fp, bp);
     if (bp) {
+	u_int32_t	remain = 0;
 	mbcopy(bp, 0, &remain, sizeof(remain));
 	remain = ntohl(remain);
 	Log(fp->log, (" %u seconds remain", remain));
