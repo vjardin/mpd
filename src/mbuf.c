@@ -143,6 +143,8 @@ mbread(Mbuf bp, void *buf, int cnt)
 
     assert(cnt >= 0);
 
+    if (!bp)
+	return (NULL);
     if (cnt > bp->cnt)
 	nread = bp->cnt;
     else
@@ -172,6 +174,8 @@ mbcopy(Mbuf bp, int offset, void *buf, int cnt)
     assert(offset >= 0);
     assert(cnt >= 0);
 
+    if (!bp)
+	return (0);
     if (offset >= bp->cnt)
 	return (0);
 
@@ -236,6 +240,9 @@ mbtrunc(Mbuf bp, int max)
 {
     assert(max >= 0);
 
+    if (!bp)
+	return (NULL);
+
     if (bp->cnt > max)
 	bp->cnt = max;
 
@@ -251,6 +258,9 @@ mbtrunc(Mbuf bp, int max)
 Mbuf
 mbadj(Mbuf bp, int cnt)
 {
+    if (!bp)
+	return (NULL);
+
     if (cnt >= 0) {
 	if (bp->cnt > cnt) {
 	    bp->cnt -= cnt;
@@ -285,6 +295,9 @@ mbsplit(Mbuf bp, int cnt)
     Mbuf	nbp;
     
     assert(cnt >= 0);
+
+    if (!bp)
+	return (NULL);
 
     if (MBLEN(bp) <= cnt)
 	return (NULL);
