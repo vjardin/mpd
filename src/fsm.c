@@ -1268,11 +1268,11 @@ FsmRecvTimeRemain(Fsm fp, FsmHeader lhp, Mbuf bp)
     u_int32_t	remain = 0;
 
     bp = FsmCheckMagic(fp, bp);
-    bp = mbread(bp, &remain, sizeof(remain));
-    remain = ntohl(remain);
-    Log(fp->log, (" %u seconds remain", remain));
-    if (bp)
-        ShowMesg(fp->log, (char *) MBDATA(bp), MBLEN(bp));
+    if (bp) {
+	mbcopy(bp, 0, &remain, sizeof(remain));
+	remain = ntohl(remain);
+	Log(fp->log, (" %u seconds remain", remain));
+    }
     if (fp->type->RecvTimeRemain)
 	(*fp->type->RecvTimeRemain)(fp, bp);
     mbfree(bp);
