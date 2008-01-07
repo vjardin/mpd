@@ -48,7 +48,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void	FsmNewState(Fsm f, int state);
+  static void	FsmNewState(Fsm f, enum fsm_state state);
 
   static void	FsmSendConfigReq(Fsm fp);
   static void	FsmSendTerminateReq(Fsm fp);
@@ -173,9 +173,9 @@ FsmInst(Fsm fp, Fsm fpt, void *arg)
  */
 
 void
-FsmNewState(Fsm fp, int new)
+FsmNewState(Fsm fp, enum fsm_state new)
 {
-  int	old;
+  enum fsm_state	old;
 
   /* Log it */
   Log(fp->log2, ("[%s] %s: state change %s --> %s",
@@ -362,6 +362,8 @@ FsmDown(Fsm fp)
       if (fp->type->UnConfigure)
 	(*fp->type->UnConfigure)(fp);
       break;
+    default:
+      break;
   }
 }
 
@@ -396,6 +398,8 @@ FsmClose(Fsm fp)
       FsmSendTerminateReq(fp);
       if (fp->type->UnConfigure)
 	(*fp->type->UnConfigure)(fp);
+      break;
+    default:
       break;
   }
 }
@@ -493,6 +497,8 @@ FsmTimeout(void *arg)
 	FsmNewState(fp, ST_REQSENT);
 	FsmSendConfigReq(fp);
 	break;
+      default:
+	break;
     }
   } else {				/* TO- */
     switch (fp->state) {
@@ -509,6 +515,8 @@ FsmTimeout(void *arg)
       case ST_ACKRCVD:
 	FsmFailure(fp, FAIL_NEGOT_FAILURE);
 	break;
+      default:
+        break;
     }
   }
 }
@@ -568,6 +576,8 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_STOPPING:
       mbfree(bp);
       return;
+    default:
+      break;
   }
 
   /* Decode packet */
@@ -585,6 +595,8 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmInitMaxFailure(fp, fp->conf.maxfailure);
       FsmInitMaxConfig(fp, fp->conf.maxconfig);
       FsmSendConfigReq(fp);
+      break;
+    default:
       break;
   }
 
@@ -629,6 +641,8 @@ FsmRecvConfigReq(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_ACKSENT:
       if (!fullyAcked)
 	FsmNewState(fp, ST_REQSENT);
+      break;
+    default:
       break;
   }
   mbfree(bp);
@@ -684,6 +698,8 @@ FsmRecvConfigAck(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmLayerDown(fp);
       FsmSendConfigReq(fp);
       break;
+    default:
+      break;
   }
   mbfree(bp);
 }
@@ -717,6 +733,8 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_STOPPING:
       mbfree(bp);
       return;
+    default:
+      break;
   }
 
   /* Decode packet */
@@ -743,6 +761,8 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_ACKRCVD:
       FsmNewState(fp, ST_REQSENT);
       FsmSendConfigReq(fp);
+      break;
+    default:
       break;
   }
   mbfree(bp);
@@ -779,6 +799,8 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_STOPPING:
       mbfree(bp);
       return;
+    default:
+      break;
   }
 
   /* Decode packet */
@@ -807,6 +829,8 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
     case ST_ACKRCVD:
       FsmNewState(fp, ST_REQSENT);
       FsmSendConfigReq(fp);
+      break;
+    default:
       break;
   }
   mbfree(bp);
@@ -871,6 +895,8 @@ FsmRecvTermAck(Fsm fp, FsmHeader lhp, Mbuf bp)
       FsmNewState(fp, ST_REQSENT);
       FsmLayerDown(fp);
       FsmSendConfigReq(fp);
+      break;
+    default:
       break;
   }
   mbfree(bp);
@@ -964,6 +990,8 @@ FsmRecvRxjPlus(Fsm fp)				/* RXJ+ */
     case ST_ACKRCVD:
       FsmNewState(fp, ST_REQSENT);
       break;
+    default:
+      break;
   }
 }
 
@@ -1030,6 +1058,8 @@ FsmFailure(Fsm fp, enum fsmfail reason)
     case ST_STOPPED:
       if (!fp->conf.passive)
 	FsmLayerFinish(fp);
+      break;
+    default:
       break;
   }
 }
@@ -1601,7 +1631,7 @@ FsmCodeName(int code)
  */
 
 const char *
-FsmStateName(u_char state)
+FsmStateName(enum fsm_state state)
 {
   switch (state) {
     case ST_INITIAL:	return "Initial";

@@ -23,17 +23,19 @@
  * DEFINITIONS
  */
 
-  /* States: don't change these! */
-  #define ST_INITIAL	0
-  #define ST_STARTING	1
-  #define ST_CLOSED	2
-  #define ST_STOPPED	3
-  #define ST_CLOSING	4
-  #define ST_STOPPING	5
-  #define ST_REQSENT	6
-  #define ST_ACKRCVD	7
-  #define ST_ACKSENT	8
-  #define ST_OPENED	9
+    /* States: don't change these! */
+    enum fsm_state {
+	ST_INITIAL = 0,
+	ST_STARTING,
+	ST_CLOSED,
+	ST_STOPPED,
+	ST_CLOSING,
+	ST_STOPPING,
+	ST_REQSENT,
+	ST_ACKRCVD,
+	ST_ACKSENT,
+	ST_OPENED
+    };
 
   #define OPEN_STATE(s)		((s) > ST_CLOSING || ((s) & 1))
 
@@ -100,7 +102,7 @@
     u_char		link_layer;	/* Link level FSM */
     int			log, log2;	/* Log levels for FSM events */
 
-    void		(*NewState)(Fsm f, int old, int new);
+    void		(*NewState)(Fsm f, enum fsm_state old, enum fsm_state new);
     void		(*LayerUp)(Fsm f);
     void		(*LayerDown)(Fsm f);
     void		(*LayerStart)(Fsm f);
@@ -129,7 +131,7 @@
     int			log;		/* Current log level */
     int			log2;		/* Current log2 level */
     struct fsmconf	conf;		/* FSM parameters */
-    u_char		state;		/* State of the machine */
+    enum fsm_state	state;		/* State of the machine */
     u_char		reqid;		/* Next request id */
     u_char		rejid;		/* Next reject id */
     u_char		echoid;		/* Next echo request id */
@@ -198,7 +200,7 @@
   extern void		FsmRej(Fsm fp, const struct fsmoption *opt);
 
   extern FsmOptInfo	FsmFindOptInfo(FsmOptInfo list, u_char type);
-  extern const char	*FsmStateName(u_char state);
+  extern const char	*FsmStateName(enum fsm_state state);
   extern const char	*FsmCodeName(int code);
 
 #define Pref(fp)	 ( (fp)->type->link_layer ? ((Link)((fp)->arg))->name : ((Bund)((fp)->arg))->name )

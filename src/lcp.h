@@ -35,11 +35,19 @@
   };
   typedef struct lcpauthproto	*LcpAuthProto;
 
+    enum lcp_phase {
+	PHASE_DEAD = 0,
+	PHASE_ESTABLISH,
+	PHASE_AUTHENTICATE,
+	PHASE_NETWORK,
+	PHASE_TERMINATE
+    };
+
   /* Link state */
   struct lcpstate {
 
     /* LCP phase of this link */
-    u_short	phase;			/* PPP phase */
+    enum lcp_phase	phase;		/* PPP phase */
 
     /* Authorization info */
     struct auth	auth;			/* Used during authorization phase */
@@ -79,12 +87,6 @@
     struct fsm	fsm;			/* Finite state machine */
   };
   typedef struct lcpstate	*LcpState;
-
-  #define PHASE_DEAD		0
-  #define PHASE_ESTABLISH	1
-  #define PHASE_AUTHENTICATE	2
-  #define PHASE_NETWORK		3
-  #define PHASE_TERMINATE	4
 
   #define TY_VENDOR		0	/* Vendor specific */
   #define TY_MRU		1	/* Maximum-Receive-Unit */

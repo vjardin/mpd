@@ -49,8 +49,8 @@
  */
 
   static void	LcpConfigure(Fsm fp);
-  static void	LcpNewState(Fsm fp, int old, int new);
-  static void	LcpNewPhase(Link l, int new);
+  static void	LcpNewState(Fsm fp, enum fsm_state old, enum fsm_state new);
+  static void	LcpNewPhase(Link l, enum lcp_phase new);
 
   static u_char	*LcpBuildConfigReq(Fsm fp, u_char *cp);
   static void	LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode);
@@ -299,7 +299,7 @@ LcpConfigure(Fsm fp)
  */
 
 static void
-LcpNewState(Fsm fp, int old, int new)
+LcpNewState(Fsm fp, enum fsm_state old, enum fsm_state new)
 {
     Link	l = (Link)fp->arg;
 
@@ -395,10 +395,10 @@ LcpNewState(Fsm fp, int old, int new)
  */
 
 static void
-LcpNewPhase(Link l, int new)
+LcpNewPhase(Link l, enum lcp_phase new)
 {
     LcpState	const lcp = &l->lcp;
-    int		old = lcp->phase;
+    enum lcp_phase	old = lcp->phase;
 
     /* Logit */
     Log(LG_LCP2, ("[%s] %s: phase shift %s --> %s",
