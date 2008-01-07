@@ -190,6 +190,7 @@
   extern void		FsmOutputMbuf(Fsm, u_int, u_int, Mbuf);
   extern void		FsmSendEchoReq(Fsm fp, Mbuf payload);
   extern void		FsmSendIdent(Fsm fp, const char *ident);
+  extern void		FsmSendTimeRemaining(Fsm fp, u_int seconds);
   extern u_char		*FsmConfValue(u_char *cp, int ty,
 				int len, const void *data);
   extern void		FsmFailure(Fsm fp, enum fsmfail reason);

@@ -1128,7 +1128,7 @@ FsmSendEchoReq(Fsm fp, Mbuf payload)
 /*
  * FsmSendIdent()
  *
- * Send an LCP ident packet. Consumes the mbuf.
+ * Send an LCP ident packet.
  */
 
 void
@@ -1150,6 +1150,33 @@ FsmSendIdent(Fsm fp, const char *ident)
   Log(LG_FSM, ("[%s] %s: SendIdent #%d", Pref(fp), Fsm(fp), fp->echoid));
   ShowMesg(LG_FSM, ident, len);
   FsmOutputMbuf(fp, CODE_IDENT, fp->echoid++, bp);
+}
+
+/*
+ * FsmSendTimeRemaining()
+ *
+ * Send an LCP Time-Remaining packet.
+ */
+
+void
+FsmSendTimeRemaining(Fsm fp, u_int seconds)
+{
+  u_int32_t	self_magic = htonl(((Link)(fp->arg))->lcp.want_magic);
+  u_int32_t	data = htonl(seconds);
+  Mbuf		bp;
+
+  /* Leave magic zero unless fully opened, as IDENT can be sent anytime */
+  if (fp->state != ST_OPENED)
+    self_magic = 0;
+
+  /* Prepend my magic number */
+  bp = mbcopyback(NULL, 0, (u_char *) &self_magic, sizeof(self_magic));
+  bp = mbcopyback(bp, sizeof(self_magic), &data, 4);
+
+  /* Send it */
+  Log(LG_FSM, ("[%s] %s: SendTimeRemaining #%d", Pref(fp), Fsm(fp), fp->echoid));
+  Log(LG_FSM, (" %u seconds remain", seconds));
+  FsmOutputMbuf(fp, CODE_TIMEREM, fp->echoid++, bp);
 }
 
 /*
