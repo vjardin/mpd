@@ -342,6 +342,12 @@ for instance if IAS is used as RADIUS server.
 
 Default <tt><bf>disable</bf></tt>.
 
+<tag><tt>time-remain</tt></tag>
+
+Send Time-Remaining LCP packet to the peer if AAA returned session timeout.
+
+Default <tt><bf>disable</bf></tt>.
+
 </descrip>
 
 </p>

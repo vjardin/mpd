@@ -71,7 +71,8 @@
     LINK_CONF_NO_ORIG_AUTH,
     LINK_CONF_CALLBACK,
     LINK_CONF_MULTILINK,	/* multi-link */
-    LINK_CONF_SHORTSEQ		/* multi-link short sequence numbers */
+    LINK_CONF_SHORTSEQ,		/* multi-link short sequence numbers */
+    LINK_CONF_TIMEREMAIN	/* Send LCP Time-Remain if known */
   };
 
   /* Configuration for a link */

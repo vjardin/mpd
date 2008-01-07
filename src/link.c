@@ -135,6 +135,7 @@
     { 0,	LINK_CONF_CALLBACK,	"callback"	},
     { 0,	LINK_CONF_MULTILINK,	"multilink"	},
     { 1,	LINK_CONF_SHORTSEQ,	"shortseq"	},
+    { 0,	LINK_CONF_TIMEREMAIN,	"time-remain"	},
     { 0,	0,			NULL		},
   };
 

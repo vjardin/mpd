@@ -470,7 +470,8 @@ LcpNewPhase(Link l, enum lcp_phase new)
 	FsmSendIdent(&lcp->fsm, l->conf.ident);
 
       /* Send Time-Remaining if known */
-      if (lcp->auth.params.session_timeout != 0)
+      if (Enabled(&l->conf.options, LINK_CONF_TIMEREMAIN) &&
+    	    lcp->auth.params.session_timeout != 0)
 	FsmSendTimeRemaining(&lcp->fsm, lcp->auth.params.session_timeout);
 
       /* Join my bundle */
