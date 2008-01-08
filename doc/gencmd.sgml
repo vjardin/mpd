@@ -212,7 +212,7 @@ is reached new tunnel will be created for the next call.
 This option violates PPTP RFC which requires only one tunnel existing
 for the PAC/PNS pair, but it can increase busy tunnels stability.
 
-Defaults are 100 for PPTP and 10 for L2TP.
+Defaults are 100 (10 for L2TP on FreeBSD before 6.3-STABLE and 7.0-STABLE).
 
 <tag><tt>
 set global enable <em>option ...</em>
