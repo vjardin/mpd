@@ -93,6 +93,10 @@ manual page.
 <tag><tt>ACCT_OUTPUT_OCTETS</tt></tag> 64bit output bytes counter.
 </descrip>
 
+  NOTE: as Accounting Update is implemented on a link layer it accounts
+  traffic via single physical link (without link overhead). So it accounts
+  traffic after compression, encryption and multilink were applied to it.
+
 <sect1><heading>Typed Accounting Update</heading>
 <p>
   In addition to standard Accounting Update stats, mpd is able to provide
