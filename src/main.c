@@ -92,7 +92,7 @@
   int			gPPTPto = 10;
   int			gPPTPtunlimit = 100;
   int			gL2TPto = 10;
-#if ((__FreeBSD_version > 603100 && __FreeBSD_version < 700000) || __FreeBSD_version > 700100)
+#if ((__FreeBSD_version > 603100 && __FreeBSD_version < 700000) || __FreeBSD_version >= 700055)
   int			gL2TPtunlimit = 100;
 #else
   int			gL2TPtunlimit = 10;
