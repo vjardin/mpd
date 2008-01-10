@@ -24,6 +24,8 @@
 	  </item>
 	  <item> Fixed MP SHORTSEQ option.
 	  </item>
+	  <item> Fixed packet order on accepting outgoing PPTP call.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

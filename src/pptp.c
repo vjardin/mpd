@@ -278,11 +278,14 @@ PptpOpen(Link l)
 		    memcpy(pptp->peer_mac_addr, LLADDR(&hwa), sizeof(pptp->peer_mac_addr));
 		};
 
-		l->state = PHYS_STATE_UP;
-		PhysUp(l);
-
 		(*pptp->cinfo.answer)(pptp->cinfo.cookie,
 		    PPTP_OCR_RESL_OK, 0, 0, 64000 /*XXX*/ );
+
+		/* Report UP if there was no error. */
+		if (l->state == PHYS_STATE_CONNECTING) {
+		    l->state = PHYS_STATE_UP;
+		    PhysUp(l);
+		}
 		return;
     	    }
     	    return; 	/* wait for peer's incoming pptp call to complete */
