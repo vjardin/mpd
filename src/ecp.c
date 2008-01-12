@@ -510,11 +510,10 @@ static void
 EcpFailure(Fsm fp, enum fsmfail reason)
 {
     Bund 	b = (Bund)fp->arg;
-  EcpClose(b);
-  if (Enabled(&b->conf.options, BUND_CONF_CRYPT_REQD)) {
-    FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
-    FsmFailure(&b->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
-  }
+    if (Enabled(&b->conf.options, BUND_CONF_CRYPT_REQD)) {
+	FsmFailure(&b->ipcp.fsm, FAIL_CANT_ENCRYPT);
+	FsmFailure(&b->ipv6cp.fsm, FAIL_CANT_ENCRYPT);
+    }
 }
 
 /*

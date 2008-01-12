@@ -560,8 +560,7 @@ static void
 CcpFailure(Fsm fp, enum fsmfail reason)
 {
     Bund 	b = (Bund)fp->arg;
-  CcpClose(b);
-  CcpCheckEncryption(b);
+    CcpCheckEncryption(b);
 }
 
 /*
