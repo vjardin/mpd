@@ -859,18 +859,14 @@ CcpLayerDown(Fsm fp)
     char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
     snprintf(hook, sizeof(hook), "c-%d", b->id);
-    if (NgFuncDisconnect(gCcpCsock, b->name, ".:", hook) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", hook, strerror(errno)));
-    }
+    NgFuncDisconnect(gCcpCsock, b->name, ".:", hook);
   }
   
   if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
     char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
     snprintf(hook, sizeof(hook), "d-%d", b->id);
-    if (NgFuncDisconnect(gCcpCsock, b->name, ".:", hook) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", hook, strerror(errno)));
-    }
+    NgFuncDisconnect(gCcpCsock, b->name, ".:", hook);
   }
   if (ccp->recv && ccp->recv->Cleanup)
     (*ccp->recv->Cleanup)(b, COMP_DIR_RECV);

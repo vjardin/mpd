@@ -710,18 +710,14 @@ EcpLayerDown(Fsm fp)
     char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
     snprintf(hook, sizeof(hook), "e-%d", b->id);
-    if (NgFuncDisconnect(gEcpCsock, b->name, ".:", hook) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", hook, strerror(errno)));
-    }
+    NgFuncDisconnect(gEcpCsock, b->name, ".:", hook);
   }
   
   if (ecp->recv != NULL && ecp->recv->Decrypt != NULL) {
     char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
     snprintf(hook, sizeof(hook), "d-%d", b->id);
-    if (NgFuncDisconnect(gEcpCsock, b->name, ".:", hook) < 0) {
-	Log(LG_ERR, ("can't remove hook %s: %s", hook, strerror(errno)));
-    }
+    NgFuncDisconnect(gEcpCsock, b->name, ".:", hook);
   }
 
   if (ecp->xmit && ecp->xmit->Cleanup)
