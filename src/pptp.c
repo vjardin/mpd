@@ -635,17 +635,21 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
 		if (pptp->originate && !pptp->outcall)
 		    (*pptp->cinfo.connected)(pptp->cinfo.cookie, 64000 /*XXX*/ );
 
-		if (GetPeerEther(&pptp->peer_addr, &hwa)) {
-		    if_indextoname(hwa.sdl_index, pptp->peer_iface);
-		    memcpy(pptp->peer_mac_addr, LLADDR(&hwa), sizeof(pptp->peer_mac_addr));
-		};
+		/* Report UP if there was no error. */
+		if (l->state == PHYS_STATE_CONNECTING) {
+		    if (GetPeerEther(&pptp->peer_addr, &hwa)) {
+			if_indextoname(hwa.sdl_index, pptp->peer_iface);
+	    		memcpy(pptp->peer_mac_addr, LLADDR(&hwa), sizeof(pptp->peer_mac_addr));
+		    };
 
-		/* OK */
-		l->state = PHYS_STATE_UP;
-		pptp->sync = (frameType&PPTP_FRAMECAP_ASYNC)?0:1;
-		PhysUp(l);
+		    /* OK */
+		    l->state = PHYS_STATE_UP;
+		    pptp->sync = (frameType&PPTP_FRAMECAP_ASYNC)?0:1;
+		    PhysUp(l);
+		}
 	    } else {
 		Log(LG_PHYS, ("[%s] PPTP call failed", l->name));
+		PptpUnhook(l);		/* For the (*connected)() error. */
 		l->state = PHYS_STATE_DOWN;
 		u_addrclear(&pptp->self_addr);
 		u_addrclear(&pptp->peer_addr);
