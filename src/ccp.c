@@ -787,13 +787,13 @@ CcpLayerUp(Fsm fp)
   /* Initialize each direction */
   if (ccp->xmit != NULL && ccp->xmit->Init != NULL
       && (*ccp->xmit->Init)(b, COMP_DIR_XMIT) < 0) {
-    Log(LG_CCP, ("[%s] %s: %scompression init failed", Pref(fp), Fsm(fp), ""));
+    Log(LG_CCP, ("[%s] %s: compression init failed", Pref(fp), Fsm(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);		/* XXX */
     return;
   }
   if (ccp->recv != NULL && ccp->recv->Init != NULL
       && (*ccp->recv->Init)(b, COMP_DIR_RECV) < 0) {
-    Log(LG_CCP, ("[%s] %s: %scompression init failed", Pref(fp), Fsm(fp), "de"));
+    Log(LG_CCP, ("[%s] %s: decompression init failed", Pref(fp), Fsm(fp)));
     FsmFailure(fp, FAIL_NEGOT_FAILURE);		/* XXX */
     return;
   }
