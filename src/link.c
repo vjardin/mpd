@@ -607,7 +607,7 @@ LinkShutdown(Link l)
     }
     MsgUnRegister(&l->msgs);
     if (l->hook[0])
-	LinkNgShutdown(l, 1);
+	LinkNgShutdown(l);
     PhysShutdown(l);
     LcpShutdown(l);
     l->dead = 1;
@@ -639,13 +639,10 @@ LinkNgInit(Link l)
 {
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
-    int			newTee = 0;
-
-    snprintf(l->hook, sizeof(l->hook), "l-%d", l->id);
 
     /* Create TEE node */
     strcpy(mp.type, NG_TEE_NODE_TYPE);
-    strcpy(mp.ourhook, l->hook);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "l-%d", l->id);
     strcpy(mp.peerhook, NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
@@ -653,7 +650,7 @@ LinkNgInit(Link l)
     	    l->name, mp.type, ".:", mp.ourhook, strerror(errno)));
 	goto fail;
     }
-    newTee = 1;
+    strlcpy(l->hook, mp.ourhook, sizeof(l->hook));
 
     /* Give it a name */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lt", gPid, l->name);
@@ -675,7 +672,7 @@ LinkNgInit(Link l)
     return(0);
 
 fail:
-    LinkNgShutdown(l, newTee);
+    LinkNgShutdown(l);
     return(-1);
 }
 
@@ -766,9 +763,9 @@ LinkNgToRep(Link l)
  */
 
 void
-LinkNgShutdown(Link l, int tee)
+LinkNgShutdown(Link l)
 {
-    if (tee)
+    if (l->hook[0])
 	NgFuncShutdownNode(gLinksCsock, l->name, l->hook);
     l->hook[0] = 0;
 }

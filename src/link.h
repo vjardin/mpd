@@ -184,7 +184,7 @@
   extern int	LinkNgJoin(Link l);
   extern int	LinkNgToRep(Link l);
   extern int	LinkNgLeave(Link l);
-  extern void	LinkNgShutdown(Link l, int tee);
+  extern void	LinkNgShutdown(Link l);
   extern int	LinkNuke(Link link);
   extern int	LinkStat(Context ctx, int ac, char *av[], void *arg);
   extern void	LinkUpdateStats(Link l);
