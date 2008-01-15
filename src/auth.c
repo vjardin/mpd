@@ -700,7 +700,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
 {
     Auth	const au = &ctx->lnk->lcp.auth;
     AuthConf	const conf = &au->conf;
-    char	buf[64];
+    char	buf[64], buf2[16];
     struct acl	*a;
     IfaceRoute	r;
     int		k;
@@ -723,6 +723,12 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tIP range        : %s\r\n", (au->params.range_valid)?
 	u_rangetoa(&au->params.range,buf,sizeof(buf)):"");
     Printf("\tIP pool         : %s\r\n", au->params.ippool);
+    Printf("\tDNS             : %s %s\r\n",
+	inet_ntop(AF_INET, &au->params.peer_dns[0], buf, sizeof(buf)),
+	inet_ntop(AF_INET, &au->params.peer_dns[1], buf2, sizeof(buf2)));
+    Printf("\tNBNS            : %s %s\r\n",
+	inet_ntop(AF_INET, &au->params.peer_nbns[0], buf, sizeof(buf)),
+	inet_ntop(AF_INET, &au->params.peer_nbns[1], buf2, sizeof(buf2)));
     Printf("\tMTU             : %u\r\n", au->params.mtu);
     Printf("\tSession-Timeout : %u\r\n", au->params.session_timeout);
     Printf("\tIdle-Timeout    : %u\r\n", au->params.idle_timeout);
@@ -1991,6 +1997,18 @@ AuthExternal(AuthData auth)
     } else if (strcmp(attr, "FRAMED_IP_ADDRESS") == 0) {
         auth->params.range_valid = 
     	    ParseRange(val, &auth->params.range, ALLOW_IPV4);
+
+    } else if (strcmp(attr, "PRIMARY_DNS_SERVER") == 0) {
+    	inet_pton(AF_INET, val, &auth->params.peer_dns[0]);
+
+    } else if (strcmp(attr, "SECONDARY_DNS_SERVER") == 0) {
+    	inet_pton(AF_INET, val, &auth->params.peer_dns[1]);
+
+    } else if (strcmp(attr, "PRIMARY_NBNS_SERVER") == 0) {
+    	inet_pton(AF_INET, val, &auth->params.peer_nbns[0]);
+
+    } else if (strcmp(attr, "SECONDARY_NBNS_SERVER") == 0) {
+    	inet_pton(AF_INET, val, &auth->params.peer_nbns[1]);
 
     } else if (strcmp(attr, "FRAMED_ROUTE") == 0) {
 	struct u_range        range;

@@ -1458,6 +1458,30 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		}
 		break;
 
+    	     case RAD_MICROSOFT_MS_PRIMARY_DNS_SERVER:
+    		auth->params.peer_dns[0] = rad_cvt_addr(data);
+		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_PRIMARY_DNS_SERVER: %s",
+		    auth->info.lnkname, inet_ntoa(auth->params.peer_dns[0])));
+		break;
+
+    	     case RAD_MICROSOFT_MS_SECONDARY_DNS_SERVER:
+    		auth->params.peer_dns[1] = rad_cvt_addr(data);
+		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_SECONDARY_DNS_SERVER: %s",
+		    auth->info.lnkname, inet_ntoa(auth->params.peer_dns[1])));
+		break;
+
+    	     case RAD_MICROSOFT_MS_PRIMARY_NBNS_SERVER:
+    		auth->params.peer_nbns[0] = rad_cvt_addr(data);
+		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_PRIMARY_NBNS_SERVER: %s",
+		    auth->info.lnkname, inet_ntoa(auth->params.peer_nbns[0])));
+		break;
+
+    	     case RAD_MICROSOFT_MS_SECONDARY_NBNS_SERVER:
+    		auth->params.peer_nbns[1] = rad_cvt_addr(data);
+		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_SECONDARY_NBNS_SERVER: %s",
+		    auth->info.lnkname, inet_ntoa(auth->params.peer_nbns[1])));
+		break;
+
 	      default:
 		Log(LG_RADIUS2, ("[%s] RADIUS: Dropping MICROSOFT vendor specific attribute: %d ",
 		  auth->info.lnkname, res));

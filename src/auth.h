@@ -103,6 +103,9 @@
     u_char		ippool_used;
     char		ippool[LINK_MAX_NAME];
 
+    struct in_addr	peer_dns[2];	/* DNS servers for peer to use */
+    struct in_addr	peer_nbns[2];	/* NBNS servers for peer to use */
+
     char		*eapmsg;	/* EAP Msg for forwarding to RADIUS server */
     int			eapmsg_len;
     u_char		*state;		/* copy of the state attribute, needed for accounting */

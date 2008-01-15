@@ -765,19 +765,31 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case TY_PRIMARYDNS:
-	peerip = &ipcp->conf.peer_dns[0];
+        if (b->params.peer_dns[0].s_addr != 0)
+	    peerip = &b->params.peer_dns[0];
+	else
+	    peerip = &ipcp->conf.peer_dns[0];
 	wantip = &ipcp->want_dns[0];
 	goto doDnsNbns;
       case TY_PRIMARYNBNS:
-	peerip = &ipcp->conf.peer_nbns[0];
+        if (b->params.peer_nbns[0].s_addr != 0)
+	    peerip = &b->params.peer_nbns[0];
+	else
+	    peerip = &ipcp->conf.peer_nbns[0];
 	wantip = &ipcp->want_nbns[0];
 	goto doDnsNbns;
       case TY_SECONDARYDNS:
-	peerip = &ipcp->conf.peer_dns[1];
+        if (b->params.peer_dns[1].s_addr != 0)
+	    peerip = &b->params.peer_dns[1];
+	else
+	    peerip = &ipcp->conf.peer_dns[1];
 	wantip = &ipcp->want_dns[1];
 	goto doDnsNbns;
       case TY_SECONDARYNBNS:
-	peerip = &ipcp->conf.peer_nbns[1];
+        if (b->params.peer_nbns[1].s_addr != 0)
+	    peerip = &b->params.peer_nbns[1];
+	else
+	    peerip = &ipcp->conf.peer_nbns[1];
 	wantip = &ipcp->want_nbns[1];
 doDnsNbns:
 	{

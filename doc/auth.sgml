@@ -299,6 +299,10 @@ N   Name                       	   Access	 Accounting
 17  MS-MPPE-Recv-Key		-	+	-	-
 25  MS-CHAP2-Response		+	-	-	-
 26  MS-CHAP2-Success		-	+	-	-
+28  MS-Primary-DNS-Server	-	+	-	-
+29  MS-Secondary-DNS-Server	-	+	-	-
+30  MS-Primary-NBNS-Server	-	+	-	-
+31  MS-Secondary-NBNS-Server	-	+	-	-
 
     mpd VSA (12341)
 1   mpd-rule			-	+	-	-
@@ -472,6 +476,10 @@ PEER_IFACE			+	-	+	-
 PEER_IDENT			+	-	+	-
 RESULT				-	+	-	-
 FRAMED_IP_ADDRESS		-	+	+	-
+PRIMARY_DNS_SERVER		-	+	-	-
+SECONDARY_DNS_SERVER		-	+	-	-
+PRIMARY_NBNS_SERVER		-	+	-	-
+SECONDARY_NBNS_SERVER		-	+	-	-
 FRAMED_ROUTE			-	+	-	-
 FRAMED_IPV6_ROUTE		-	+	-	-
 FRAMED_MTU			-	+	-	-

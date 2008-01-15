@@ -6,6 +6,23 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.0:
+    <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added support for NS specific RADIUS attributes from RFC 2548.
+	  </item>
+	</itemize>
+	</item>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fixed incorrect link creation error handeling.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 5.0rc2:
     <itemize>
 	<item> New features:
