@@ -413,7 +413,7 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tRetries      : %d\r\n", conf->radius_retries);
   Printf("\tConfig-file  : %s\r\n", (conf->file ? conf->file : "none"));
   Printf("\tMe (NAS-IP)  : %s\r\n", inet_ntoa(conf->radius_me));
-  Printf("\tv6Me (NAS-IP: %s\r\n", u_addrtoa(&conf->radius_mev6, buf1, sizeof(buf1)));
+  Printf("\tv6Me (NAS-IP): %s\r\n", u_addrtoa(&conf->radius_mev6, buf1, sizeof(buf1)));
   
   if (conf->server != NULL) {
 
