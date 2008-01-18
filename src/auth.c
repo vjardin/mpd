@@ -460,24 +460,6 @@ AuthInput(Link l, int proto, Mbuf bp)
     len = ntohs(fsmh.length);
   len -= sizeof(fsmh);
 
-  if (bp == NULL && proto != PROTO_EAP && proto != PROTO_CHAP)
-  {
-    char	failMesg[64];
-    u_char	code = 0;
-
-    Log(LG_AUTH, (" Bad packet"));
-    auth->why_fail = AUTH_FAIL_INVALID_PACKET;
-    AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
-    if (proto == PROTO_PAP)
-      code = PAP_NAK;
-    else
-      assert(0);
-    AuthOutput(l, proto, code, fsmh.id, (u_char *)failMesg, strlen(failMesg), 1, 0);
-    AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
-    AuthDataDestroy(auth);
-    return;
-  }
-
   pkt = MBDATA(bp);
 
   if (proto == PROTO_EAP && bp) {

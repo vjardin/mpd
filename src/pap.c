@@ -117,6 +117,7 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   Auth			const a = &l->lcp.auth;
   PapInfo		const pap = &a->pap;
   PapParams		const pp = &auth->params.pap;
+    char		failMesg[64];
 
   switch (auth->code) {
     case PAP_REQUEST:
@@ -143,20 +144,22 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	    break;
 	}
 
+	/* Sanity check packet and extract fields */
+	if (len < 1)
+	    goto error;
+
 	name_len = pkt[0];
 	name_ptr = (char *)pkt + 1;
 
-	/* Sanity check packet and extract fields */
-	if (1 + name_len >= len
-	  || ((pass_len = pkt[1 + name_len]) && FALSE)
-	  || ((pass_ptr = (char *)pkt + 1 + name_len + 1) && FALSE)
-	  || name_len + 1 + pass_len + 1 > len)
-	{
-	  Log(LG_AUTH, (" Bad packet"));
-	  auth->why_fail = AUTH_FAIL_INVALID_PACKET;
-	  PapInputFinish(l, auth);
-	  break;
-	}
+	if (1 + name_len >= len)
+	    goto error;
+
+	pass_len = pkt[1 + name_len];
+	pass_ptr = (char *)pkt + 1 + name_len + 1;
+
+	if (name_len + 1 + pass_len + 1 > len)
+	    goto error;
+
 	memcpy(name, name_ptr, name_len);
 	name[name_len] = 0;
 	memcpy(pass, pass_ptr, pass_len);
@@ -176,26 +179,25 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
     case PAP_ACK:
     case PAP_NAK:
       {
-	char	*msg;
-	int	msg_len;
-	char	buf[32];
-
 	/* Is this appropriate? */
 	if (a->self_to_peer != PROTO_PAP) {
-	  Log(LG_AUTH, ("[%s] PAP: %s not expected",
-	    l->name, PapCode(auth->code, buf, sizeof(buf))));
-	  break;
+	    char	buf[32];
+	    Log(LG_AUTH, ("[%s] PAP: %s not expected",
+		l->name, PapCode(auth->code, buf, sizeof(buf))));
+	    break;
 	}
 
 	/* Stop resend timer */
 	TimerStop(&pap->timer);
 
 	/* Show reply message */
-	msg_len = pkt[0];
-	msg = (char *) &pkt[1];
-	if (msg_len < len - 1)
-	  msg_len = len - 1;
-	ShowMesg(LG_AUTH, msg, msg_len);
+	if (len > 0) {
+	    int		msg_len = pkt[0];
+	    char	*msg = (char *) &pkt[1];
+	    if (msg_len < len - 1)
+		msg_len = len - 1;
+	    ShowMesg(LG_AUTH, msg, msg_len);
+	}
 
 	/* Done with my auth to peer */
 	AuthFinish(l, AUTH_SELF_TO_PEER, auth->code == PAP_ACK);	
@@ -208,6 +210,15 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
       AuthDataDestroy(auth);
       break;
   }
+  return;
+
+error:
+    Log(LG_AUTH, (" Bad PAP packet"));
+    auth->why_fail = AUTH_FAIL_INVALID_PACKET;
+    AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
+    AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, (u_char *)failMesg, strlen(failMesg), 1, 0);
+    AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
+    AuthDataDestroy(auth);
 }
 
 /*

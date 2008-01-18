@@ -18,6 +18,8 @@
 	<itemize>
 	  <item> Fixed incorrect link creation error handeling.
 	  </item>
+	  <item> Added workaround for some incorrect PAP implementations.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
