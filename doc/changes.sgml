@@ -20,6 +20,9 @@
 	  </item>
 	  <item> Added workaround for some incorrect PAP implementations.
 	  </item>
+	  <item> Changed NAK on multilink options processing.
+		 NAK enables rejected options back.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

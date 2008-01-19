@@ -43,6 +43,7 @@
 
   #define LCP_PEER_REJECTED(p,x)	((p)->peer_reject & (1<<x))
   #define LCP_PEER_REJ(p,x)	do{(p)->peer_reject |= (1<<(x));}while(0)
+  #define LCP_PEER_UNREJ(p,x)	do{(p)->peer_reject &= ~(1<<(x));}while(0)
 
 /*
  * INTERNAL FUNCTIONS
@@ -1029,6 +1030,12 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	      {
+	        /* Let the peer to change it's mind. */
+		if (LCP_PEER_REJECTED(lcp, opt->type)) {
+		    LCP_PEER_UNREJ(lcp, opt->type);
+		    if (Enabled(&l->conf.options, LINK_CONF_MULTILINK))
+	    		lcp->want_mrru = l->conf.mrru;
+		}
 		/* Make sure we don't violate any rules by changing MRRU now */
 		if (mrru > lcp->want_mrru)		/* too big */
 		  break;
@@ -1059,7 +1066,14 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	    lcp->peer_shortseq = TRUE;
 	    FsmAck(fp, opt);
 	    break;
-	  case MODE_NAK:	/* a NAK here doesn't make sense */
+	  case MODE_NAK:
+	        /* Let the peer to change it's mind. */
+		if (LCP_PEER_REJECTED(lcp, opt->type)) {
+		    LCP_PEER_UNREJ(lcp, opt->type);
+		    if (Enabled(&l->conf.options, LINK_CONF_MULTILINK))
+			lcp->want_shortseq = Enabled(&l->conf.options, LINK_CONF_SHORTSEQ);
+		}
+		break;
 	  case MODE_REJ:
 	      lcp->want_shortseq = FALSE;
 	      LCP_PEER_REJ(lcp, opt->type);
@@ -1086,7 +1100,11 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      lcp->peer_discrim = dis;
 	      FsmAck(fp, opt);
 	      break;
-	    case MODE_NAK:	/* a NAK here doesn't make sense */
+	    case MODE_NAK:
+	        /* Let the peer to change it's mind. */
+		if (LCP_PEER_REJECTED(lcp, opt->type))
+		    LCP_PEER_UNREJ(lcp, opt->type);
+		break;
 	    case MODE_REJ:
 	      LCP_PEER_REJ(lcp, opt->type);
 	      break;
