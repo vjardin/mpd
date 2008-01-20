@@ -221,6 +221,7 @@
       char		msession_id[AUTH_MAX_SESSIONID]; /* multi-session-id */
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */
       char		ifname[IFNAMSIZ];	/* interface name */
+      uint		ifindex;		/* System interface index */
       char		bundname[LINK_MAX_NAME];/* name of the bundle */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
       struct ng_ppp_link_stat64	stats;		/* Current link statistics */

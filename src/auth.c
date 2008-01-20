@@ -609,6 +609,7 @@ AuthDataNew(Link l)
 
     if (l->bund) {
 	strlcpy(auth->info.ifname, l->bund->iface.ifname, sizeof(auth->info.ifname));
+	auth->info.ifindex = l->bund->iface.ifindex;
 	strlcpy(auth->info.bundname, l->bund->name, sizeof(auth->info.bundname));
         auth->info.n_links = l->bund->n_links;
 	auth->info.peer_addr = l->bund->ipcp.peer_addr;
@@ -2232,6 +2233,7 @@ AuthExternalAcct(AuthData auth)
     fprintf(fp, "ACCT_MULTI_SESSION_ID:%s\n", auth->info.msession_id);
     fprintf(fp, "USER_NAME:%s\n", auth->params.authname);
     fprintf(fp, "IFACE:%s\n", auth->info.ifname);
+    fprintf(fp, "IFACE_INDEX:%d\n", auth->info.ifindex);
     fprintf(fp, "BUNDLE:%s\n", auth->info.bundname);
     fprintf(fp, "LINK:%s\n", auth->info.lnkname);
     fprintf(fp, "NAS_PORT:%d\n", auth->info.linkID);

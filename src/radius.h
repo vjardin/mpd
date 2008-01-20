@@ -83,6 +83,10 @@
   #define RAD_MPD_INPUT_PACKETS	9
   #define RAD_MPD_OUTPUT_OCTETS	10
   #define RAD_MPD_OUTPUT_PACKETS	11
+  #define RAD_MPD_LINK		12
+  #define RAD_MPD_BUNDLE	13
+  #define RAD_MPD_IFACE		14
+  #define RAD_MPD_IFACE_INDEX	15
   #define RAD_MPD_DROP_USER	154
 
   /* Configuration options */

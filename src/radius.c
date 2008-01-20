@@ -241,6 +241,27 @@ RadiusAccount(AuthData auth)
     return;
   }
 
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_BUNDLE: %s", 
+        auth->info.lnkname, auth->info.bundname));
+    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_BUNDLE, auth->info.bundname) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_BUNDLE: %s", auth->info.lnkname,
+	    rad_strerror(auth->radius.handle)));
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_IFACE: %s", 
+        auth->info.lnkname, auth->info.ifname));
+    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE, auth->info.ifname) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE: %s", auth->info.lnkname,
+	    rad_strerror(auth->radius.handle)));
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %u", 
+        auth->info.lnkname, auth->info.ifindex));
+    if (rad_put_vendor_int(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE, auth->info.ifindex) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %s", auth->info.lnkname,
+	    rad_strerror(auth->radius.handle)));
+    }
+
   Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_LINK_COUNT: %d", 
     auth->info.lnkname, auth->info.n_links));
   if (rad_put_int(auth->radius.handle, RAD_ACCT_LINK_COUNT, auth->info.n_links) != 0) {
@@ -351,7 +372,7 @@ RadiusAccount(AuthData auth)
 	    ssr->name, (long long unsigned)ssr->Octets);
 	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_INPUT_OCTETS: %s", 
     	    auth->info.lnkname, str));
-	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_OCTETS, str, strlen(str)) != 0) {
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_OCTETS, str) != 0) {
     	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_INPUT_OCTETS: %s", auth->info.lnkname,
 		rad_strerror(auth->radius.handle)));
 	}
@@ -359,7 +380,7 @@ RadiusAccount(AuthData auth)
 	    ssr->name, (long long unsigned)ssr->Packets);
 	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_INPUT_PACKETS: %s", 
     	    auth->info.lnkname, str));
-	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_PACKETS, str, strlen(str)) != 0) {
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_PACKETS, str) != 0) {
     	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_INPUT_PACKETS: %s", auth->info.lnkname,
 		rad_strerror(auth->radius.handle)));
 	}
@@ -370,7 +391,7 @@ RadiusAccount(AuthData auth)
 	    ssr->name, (long long unsigned)ssr->Octets);
 	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_OCTETS: %s", 
     	    auth->info.lnkname, str));
-	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_OCTETS, str, strlen(str)) != 0) {
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_OCTETS, str) != 0) {
     	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_OCTETS: %s", auth->info.lnkname,
 		rad_strerror(auth->radius.handle)));
 	}
@@ -378,7 +399,7 @@ RadiusAccount(AuthData auth)
 	    ssr->name, (long long unsigned)ssr->Packets);
 	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_PACKETS: %s", 
     	    auth->info.lnkname, str));
-	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_PACKETS, str, strlen(str)) != 0) {
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_PACKETS, str) != 0) {
     	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_PACKETS: %s", auth->info.lnkname,
 		rad_strerror(auth->radius.handle)));
 	}
@@ -836,6 +857,13 @@ RadiusStart(AuthData auth, short request_type)
 	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_NAS_PORT_ID failed %s",
 	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
     	return (RAD_NACK);
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_LINK: %s", 
+        auth->info.lnkname, auth->info.lnkname));
+    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_LINK, auth->info.lnkname) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_LINK: %s", auth->info.lnkname,
+	    rad_strerror(auth->radius.handle)));
     }
 
     return RAD_ACK;
