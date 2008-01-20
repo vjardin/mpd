@@ -540,6 +540,7 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
     l->tmpl = tmpl;
     l->stay = stay;
     /* Count link as one more child of parent. */
+    gChildren++;
     lt->children++;
     l->parent = lt->id;
     l->children = 0;
@@ -595,8 +596,10 @@ LinkShutdown(Link l)
     }
     gLinks[l->id] = NULL;
     /* Our parent lost one children */
-    if (l->parent >= 0)
+    if (l->parent >= 0) {
+	gChildren--;
 	gLinks[l->parent]->children--;
+    }
     /* Our children are orphans */
     if (l->children) {
 	int k;

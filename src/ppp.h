@@ -194,6 +194,8 @@
   extern int		gPPTPtunlimit;
   extern int		gL2TPto;
   extern int		gL2TPtunlimit;
+  extern int		gChildren;
+  extern int		gMaxChildren;
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 

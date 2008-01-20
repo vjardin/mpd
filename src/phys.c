@@ -416,7 +416,7 @@ PhysIsBusy(Link l)
 {
     return (l->die || l->rep || l->state != PHYS_STATE_DOWN ||
 	l->lcp.fsm.state != ST_INITIAL || l->lcp.auth.acct_thread != NULL ||
-	(l->tmpl && l->children >= l->conf.max_children));
+	(l->tmpl && (l->children >= l->conf.max_children || gChildren >= gMaxChildren)));
 }
 
 /*

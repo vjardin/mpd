@@ -97,6 +97,8 @@
 #else
   int			gL2TPtunlimit = 10;
 #endif
+  int			gChildren = 0;		/* Current number of children links */
+  int			gMaxChildren = 10000;	/* Maximal number of children links */
 
   struct globalconf	gGlobalConf;
 

@@ -57,7 +57,8 @@
     SET_PPTPTO,
     SET_PPTPLIMIT,
     SET_L2TPTO,
-    SET_L2TPLIMIT
+    SET_L2TPLIMIT,
+    SET_MAX_CHILDREN
   };
 
 
@@ -110,6 +111,8 @@
        	GlobalSetCommand, NULL, 2, (void *) SET_PPTPTO },
     { "pptplimit {num}", 		"Calls per PPTP tunnel limit" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_PPTPLIMIT },
+    { "max-children {num}",		"Max number of children",
+	GlobalSetCommand, NULL, 2, (void *) SET_MAX_CHILDREN },
     { NULL },
   };
 
@@ -576,6 +579,14 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    gPPTPtunlimit = val;
       break;
 
+    case SET_MAX_CHILDREN:
+	val = atoi(*av);
+	if (val < 0 || val > 65536)
+	    Error("Incorrect children links limit");
+	else
+	    gMaxChildren = val;
+      break;
+
     default:
       return(-1);
   }
@@ -743,6 +754,7 @@ ShowGlobal(Context ctx, int ac, char *av[], void *arg)
   Printf("	l2tplimit	: %d\r\n", gL2TPtunlimit);
   Printf("	pptptimeout	: %d\r\n", gPPTPto);
   Printf("	pptplimit	: %d\r\n", gPPTPtunlimit);
+  Printf("	max-children	: %d\r\n", gMaxChildren);
   Printf("Global options:\r\n");
   OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
   return 0;

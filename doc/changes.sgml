@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Added support for NS specific RADIUS attributes from RFC 2548.
 	  </item>
+	  <item> Added global max-children option.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
