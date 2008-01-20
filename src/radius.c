@@ -257,7 +257,7 @@ RadiusAccount(AuthData auth)
 
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %u", 
         auth->info.lnkname, auth->info.ifindex));
-    if (rad_put_vendor_int(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE, auth->info.ifindex) != 0) {
+    if (rad_put_vendor_int(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE_INDEX, auth->info.ifindex) != 0) {
 	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %s", auth->info.lnkname,
 	    rad_strerror(auth->radius.handle)));
     }
