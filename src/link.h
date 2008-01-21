@@ -72,7 +72,9 @@
     LINK_CONF_CALLBACK,
     LINK_CONF_MULTILINK,	/* multi-link */
     LINK_CONF_SHORTSEQ,		/* multi-link short sequence numbers */
-    LINK_CONF_TIMEREMAIN	/* Send LCP Time-Remain if known */
+    LINK_CONF_TIMEREMAIN,	/* Send LCP Time-Remain if known */
+    LINK_CONF_PEER_AS_CALLING,
+    LINK_CONF_REPORT_MAC
   };
 
   /* Configuration for a link */

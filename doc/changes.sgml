@@ -18,6 +18,13 @@
 	  </item>
 	</itemize>
 	</item>
+	<item> Changes:
+	<itemize>
+	  <item> peer-as-calling and report-mac options moved from radius
+		 to link to improve LAC operation.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fixed incorrect link creation error handeling.

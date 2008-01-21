@@ -348,6 +348,20 @@ Send Time-Remaining LCP packet to the peer if AAA returned session timeout.
 
 Default <tt><bf>disable</bf></tt>.
 
+<tag><tt>peer-as-calling</tt></tag>
+
+Forces mpd to send remote tunnel address in Calling-Station-Id 
+instead of addres supplied by remote peer via tunnel (for PPTP and L2TP).
+Can be disabled for trusted peers.
+
+Default is <tt><bf>enable</bf></tt>.
+
+<tag><tt>report-mac</tt></tag>
+
+Forces mpd to send peer MAC address and interface in Calling-Station-Id.
+
+Default <tt><bf>disable</bf></tt>.
+
 </descrip>
 
 </p>

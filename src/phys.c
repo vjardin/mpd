@@ -382,10 +382,27 @@ PhysGetCallingNum(Link l, char *buf, size_t buf_len)
 
     buf[0] = 0;
 
-    if (pt && pt->callingnum)
-	return ((*pt->callingnum)(l, buf, buf_len));
-    else
-	return (0);
+    if (pt) {
+	/* For compatibility and for untrusted peers use peeraddr as calling */
+	if (Enabled(&l->conf.options, LINK_CONF_PEER_AS_CALLING) && pt->peeraddr)
+	    (*pt->peeraddr)(l, buf, buf_len);
+	else if (pt->callingnum)
+	    (*pt->callingnum)(l, buf, buf_len);
+	if (Enabled(&l->conf.options, LINK_CONF_REPORT_MAC)) {
+	    char tmp[64];
+	    strlcat(buf, " / ", buf_len);
+	    if (pt->peermacaddr) {
+		(*pt->peermacaddr)(l, tmp, sizeof(tmp));
+		strlcat(buf, tmp, buf_len);
+	    }
+	    strlcat(buf, " / ", buf_len);
+	    if (pt->peeriface) {
+		(*pt->peeriface)(l, tmp, sizeof(tmp));
+		strlcat(buf, tmp, buf_len);
+	    }
+	}
+    }
+    return (0);
 }
 
 /*

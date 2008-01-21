@@ -136,6 +136,8 @@
     { 0,	LINK_CONF_MULTILINK,	"multilink"	},
     { 1,	LINK_CONF_SHORTSEQ,	"shortseq"	},
     { 0,	LINK_CONF_TIMEREMAIN,	"time-remain"	},
+    { 0,	LINK_CONF_PEER_AS_CALLING,	"peer-as-calling"	},
+    { 0,	LINK_CONF_REPORT_MAC,	"report-mac"	},
     { 0,	0,			NULL		},
   };
 
@@ -450,6 +452,8 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	Disable(&l->conf.options, LINK_CONF_MULTILINK);
 	Enable(&l->conf.options, LINK_CONF_SHORTSEQ);
 	Accept(&l->conf.options, LINK_CONF_SHORTSEQ);
+
+	Enable(&l->conf.options, LINK_CONF_PEER_AS_CALLING);
 
         PhysInit(l);
         LcpInit(l);

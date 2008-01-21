@@ -76,8 +76,6 @@
 
   static struct confinfo	gConfList[] = {
     { 0,	RADIUS_CONF_MESSAGE_AUTHENTIC,	"message-authentic"	},
-    { 0,	RADIUS_CONF_PEER_AS_CALLING,	"peer-as-calling"	},
-    { 0,	RADIUS_CONF_REPORT_MAC,		"report-mac"		},
     { 0,	0,				NULL			},
   };
 
@@ -91,7 +89,6 @@ RadiusInit(Link l)
     RadConf       const conf = &l->lcp.auth.conf.radius;
 
     memset(conf, 0, sizeof(*conf));
-    Enable(&conf->options, RADIUS_CONF_PEER_AS_CALLING);
     conf->radius_retries = 3;
     conf->radius_timeout = 5;
 }
@@ -814,32 +811,13 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 
-    /* For compatibility and for untrusted peers use peeraddr as calling */
-    if (Enabled(&conf->options, RADIUS_CONF_PEER_AS_CALLING)) {
-	char	tmp[128];
-	strlcpy(tmp, auth->params.peeraddr, sizeof(tmp));
-	if (Enabled(&conf->options, RADIUS_CONF_REPORT_MAC)) {
-	    strlcat(tmp, " / ", sizeof(tmp));
-	    strlcat(tmp, auth->params.peermacaddr, sizeof(tmp));
-	    strlcat(tmp, " / ", sizeof(tmp));
-	    strlcat(tmp, auth->params.peeriface, sizeof(tmp));
-	}
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID: %s",
-    	    auth->info.lnkname, tmp));
-	if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID, tmp) == -1) {
-    	        Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID failed %s",
-	    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    		return (RAD_NACK);
-	}
-    } else {
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID: %s",
-    	    auth->info.lnkname, auth->params.callingnum));
-	if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID,
-    	    auth->params.callingnum) == -1) {
-    	        Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID failed %s",
-	    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    		return (RAD_NACK);
-	}
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID: %s",
+        auth->info.lnkname, auth->params.callingnum));
+    if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID,
+        auth->params.callingnum) == -1) {
+            Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID failed %s",
+        	auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	    return (RAD_NACK);
     }
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CALLED_STATION_ID: %s",
 	auth->info.lnkname, auth->params.callednum));
