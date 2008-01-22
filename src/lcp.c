@@ -1102,8 +1102,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      break;
 	    case MODE_NAK:
 	        /* Let the peer to change it's mind. */
-		if (LCP_PEER_REJECTED(lcp, opt->type))
-		    LCP_PEER_UNREJ(lcp, opt->type);
+		LCP_PEER_UNREJ(lcp, opt->type);
 		break;
 	    case MODE_REJ:
 	      LCP_PEER_REJ(lcp, opt->type);
