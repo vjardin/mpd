@@ -482,7 +482,7 @@ LcpNewPhase(Link l, enum lcp_phase new)
 	    l->name));
 	  RecordLinkUpDownReason(NULL, l,
 	    0, STR_PROTO_ERR, "%s", STR_MULTI_FAIL);
-	  LinkClose(l);
+	  FsmFailure(&l->lcp.fsm, FAIL_NEGOT_FAILURE);
       } else {
     	    /* If link connection complete, reset redial counter */
 	    l->num_redial = 0;

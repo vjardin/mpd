@@ -253,6 +253,19 @@ BundJoin(Link l)
 		return (0);
 	    }
 	}
+	if (b->n_up > 0 &&
+	  (b->peer_mrru == 0 || lcp->peer_mrru == 0 || lcp->want_mrru == 0)) {
+    	    Log(LG_BUND, ("[%s] Can't join bundle %s without "
+		"multilink negotiated.", l->name, b->name));
+	    return (0);
+	}
+	if (b->n_up > 0 &&
+	  (!MpDiscrimEqual(&lcp->peer_discrim, &b->peer_discrim) ||
+	  strcmp(lcp->auth.params.authname, b->params.authname))) {
+    	    Log(LG_BUND, ("[%s] Can't join bundle %s with different "
+		"peer discriminator/authname.", l->name, b->name));
+	    return (0);
+	}
 	k = 0;
 	while (k < NG_PPP_MAX_LINKS && b->links[k] != NULL)
 	    k++;
