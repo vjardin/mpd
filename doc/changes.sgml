@@ -36,6 +36,8 @@
 	  </item>
 	  <item> Added missing multilink parameters check in BundJoin().
 	  </item>
+	  <item> Fixed pppoe connection accept error handeling.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

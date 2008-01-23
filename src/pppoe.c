@@ -1066,6 +1066,10 @@ shutdown_tee:
 close_socket:
 	Log(LG_PHYS, ("[%s] PPPoE connection not accepted due to error",
 	    l->name));
+
+	/* If link is not static - shutdown it. */
+	if (!l->stay)
+	    LinkShutdown(l);
 }
 
 /*
