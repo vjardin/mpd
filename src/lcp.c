@@ -1019,8 +1019,8 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		FsmRej(fp, opt);
 		break;
 	      }
-	      if (mrru < MP_MIN_MRRU || mrru > MP_MAX_MRRU) {
-	        mrru = htons((mrru > MP_MAX_MRRU)?MP_MAX_MRRU:MP_MIN_MRRU);
+	      if (mrru < MP_MIN_MRRU) {
+	        mrru = htons(MP_MIN_MRRU);
 		memcpy(opt->data, &mrru, 2);
 		FsmNak(fp, opt);
 		break;

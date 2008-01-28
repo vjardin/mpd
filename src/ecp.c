@@ -315,7 +315,7 @@ EcpNgDataEvent(int type, void *cookie)
 	if (num > 100)
 	    return;
     
-	bp = mballoc(2048);
+	bp = mballoc(4096);
 
 	/* Read data */
 	nsize = sizeof(naddr);

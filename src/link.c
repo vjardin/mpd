@@ -38,6 +38,7 @@
     SET_BANDWIDTH,
     SET_LATENCY,
     SET_ACCMAP,
+    SET_MRRU,
     SET_MRU,
     SET_MTU,
     SET_FSM_RETRY,
@@ -85,6 +86,8 @@
 	LinkSetCommand, NULL, 2, (void *) SET_LATENCY },
     { "accmap {hex-value}",		"Accmap value",
 	LinkSetCommand, NULL, 2, (void *) SET_ACCMAP },
+    { "mrru {value}",			"Link MRRU value",
+	LinkSetCommand, NULL, 2, (void *) SET_MRRU },
     { "mru {value}",			"Link MRU value",
 	LinkSetCommand, NULL, 2, (void *) SET_MRU },
     { "mtu {value}",			"Link MTU value",
@@ -799,7 +802,7 @@ LinkNgDataEvent(int type, void *cookie)
     while (1) {
 	if (num > 20)
 	    return;
-	bp = mballoc(2048);
+	bp = mballoc(4096);
 	buf = MBDATA(bp);
 	/* Read data */
 	nsize = sizeof(naddr);
@@ -1405,6 +1408,16 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 		l->conf.mtu = val;
     	    else
 		l->conf.mru = val;
+    	    break;
+
+	case SET_MRRU:
+    	    val = atoi(*av);
+    	    if (val < MP_MIN_MRRU)
+		Error("min MRRU is %d", MP_MIN_MRRU);
+    	    else if (val > MP_MAX_MRRU)
+		Error("max MRRU is %d", MP_MAX_MRRU);
+    	    else
+		l->conf.mrru = val;
     	    break;
 
 	case SET_FSM_RETRY:

@@ -58,6 +58,7 @@ fragments over the links.
 
 <tag><tt>set link mtu <em>numbytes</em></tt></tag><p>
 <tag><tt>set link mru <em>numbytes</em></tt></tag><p>
+<tag><tt>set link mrru <em>numbytes</em></tt></tag><p>
 
 The <tt>set link mtu</tt> command sets the maximum transmit unit
 (MTU) value for the link.  This is the size of the largest single
@@ -71,8 +72,8 @@ value is 1500 bytes.
 
 If PPP multilink is negotiated on a link, then these values are
 less important, because multilink allows PPP frames themselves to
-be fragmented, so a PPP frame can always pass through no matter how
-small the MTU is in a particular direction.
+be fragmented, so a PPP frame up to MRRU bytes can always pass
+through no matter how small the MTU is in a particular direction.
 
 Otherwise, mpd is responsible for making sure that the MTU configured
 on the system networking interface is low enough so that the largest

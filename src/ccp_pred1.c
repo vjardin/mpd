@@ -33,8 +33,7 @@
  * DEFINITIONS
  */
 
-  #define PRED1_COMP_BUF_SIZE	2048
-  #define PRED1_DECOMP_BUF_SIZE	1600
+  #define PRED1_DECOMP_BUF_SIZE	4096
 
   #define PRED1_MAX_BLOWUP(n)	((n) * 9 / 8 + 24)
 

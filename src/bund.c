@@ -880,8 +880,8 @@ BundUpdateParams(Bund b)
 	mtu = MIN(b->links[the_link]->lcp.peer_mru,
 		  b->links[the_link]->type->mtu);
 
-    } else {	  	/* Multilink. We fragment everything, use peer MRRU */
-        mtu = b->peer_mrru;
+    } else {	  	/* Multilink, use peer MRRU */
+        mtu = MIN(b->peer_mrru, MP_MAX_MRRU);
     }
 
     /* Subtract to make room for various frame-bloating protocols */
