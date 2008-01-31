@@ -32,6 +32,10 @@ Sets the requested PPPoE service name. Setting service name to "*"
 on link with allowed incoming connections allows to accept incoming 
 connection requests with any service name specified.
 
+Since FreeBSD 6.3-STABLE/7.0-STABLE of 2008-01-30 it is possible to use
+"AC-Name\Service-Name" syntax to request specified access concentrator
+for outgoing connection.
+
 The default is "*".
 
 <tag><tt>
