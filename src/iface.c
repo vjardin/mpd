@@ -1838,6 +1838,7 @@ IfaceNgIpShutdown(Bund b)
 {
     char		path[NG_PATHSIZ];
 
+    IfaceShutdownLimits(b); /* Limits must shutdown first to save final stats. */
 #ifdef USE_NG_NAT
     if (b->iface.nat_up)
 	IfaceShutdownNAT(b);
@@ -1863,7 +1864,6 @@ IfaceNgIpShutdown(Bund b)
 	IfaceShutdownMSS(b);
     b->iface.mss_up = 0;
 
-    IfaceShutdownLimits(b);
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
     NgFuncDisconnect(gLinksCsock, b->name, path, NG_PPP_HOOK_INET);
 
