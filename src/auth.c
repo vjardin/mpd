@@ -856,15 +856,21 @@ AuthAccountStart(Link l, int type)
 	/* Stop accounting update timer if running. */
 	TimerStop(&a->acct_timer);
     }
-    
-    auth = AuthDataNew(l);
-    auth->acct_type = type;
 
-    if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
-	    AuthAccountFinish, auth) == -1) {
-	Log(LG_ERR, ("[%s] ACCT: Couldn't start thread: %d", 
-    	    l->name, errno));
-	AuthDataDestroy(auth);
+    if (Enabled(&a->conf.options, AUTH_CONF_RADIUS_ACCT) ||
+	Enabled(&a->conf.options, AUTH_CONF_PAM_ACCT) ||
+	Enabled(&a->conf.options, AUTH_CONF_SYSTEM_ACCT) ||
+	Enabled(&a->conf.options, AUTH_CONF_EXT_ACCT)) {
+    
+	auth = AuthDataNew(l);
+	auth->acct_type = type;
+
+	if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
+		AuthAccountFinish, auth) == -1) {
+	    Log(LG_ERR, ("[%s] ACCT: Couldn't start thread: %d", 
+    		l->name, errno));
+	    AuthDataDestroy(auth);
+	}
     }
 
 }
