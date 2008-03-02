@@ -113,6 +113,7 @@
   u_char gNetflowNode = FALSE;
   u_char gNetflowNodeShutdown = TRUE;
   char gNetflowNodeName[64] = "mpd-nf";
+  ng_ID_t gNetflowNodeID = 0;
   u_int gNetflowIface = 0;
   struct sockaddr_storage gNetflowExport;
   struct sockaddr_storage gNetflowSource;
@@ -133,14 +134,22 @@ NgFuncInitGlobalNetflow(void)
     struct ngm_name	nm;
     int			csock;
 
-    snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
-
     /* Create a netgraph socket node */
     if (NgMkSockNode(NULL, &csock, NULL) < 0) {
 	Log(LG_ERR, ("NETFLOW: Can't create %s node: %s",
     	    NG_SOCKET_NODE_TYPE, strerror(errno)));
         return (-1);
     }
+
+    /* If node exist just get it's ID. */
+    if (gNetflowNode) {
+	snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+	gNetflowNodeID = NgGetNodeID(csock, path);
+	close(csock);
+	return (0);
+    }
+
+    snprintf(gNetflowNodeName, sizeof(gNetflowNodeName), "mpd%d-nf", gPid);
 
     /* Create a global netflow node. */
     strcpy(mp.type, NG_NETFLOW_NODE_TYPE);
@@ -152,6 +161,9 @@ NgFuncInitGlobalNetflow(void)
 	    mp.type, ".:", mp.ourhook, strerror(errno)));
 	goto fail;
     }
+    
+    /* Get new node ID. */
+    gNetflowNodeID = NgGetNodeID(csock, TEMPHOOK);
 
     /* Set the new node's name. */
     strcpy(nm.name, gNetflowNodeName);
@@ -170,7 +182,7 @@ NgFuncInitGlobalNetflow(void)
     } else {
         snprintf(mp.peerhook, sizeof(mp.peerhook), "inet/dgram/udp");
     }
-    snprintf(path, sizeof(path), "%s:", nm.name);
+    snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
     if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
 	Log(LG_ERR, ("NETFLOW: Can't create %s node at \"%s\"->\"%s\": %s", 
@@ -194,8 +206,7 @@ NgFuncInitGlobalNetflow(void)
     }
 
     /* Configure export destination and source on ng_ksocket(4). */
-    snprintf(path, sizeof(path), "%s:%s", gNetflowNodeName,
-        NG_NETFLOW_HOOK_EXPORT);
+    strlcat(path, NG_NETFLOW_HOOK_EXPORT, sizeof(path));
     if (gNetflowSource.ss_len != 0) {
 	if (NgSendMsg(csock, path, NGM_KSOCKET_COOKIE,
 	  NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
@@ -234,9 +245,10 @@ NgFuncInitGlobalNetflow(void)
 
     return (0);
 fail2:
-    snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+    snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
     NgFuncShutdownNode(csock, "netflow", path);
 fail:
+    gNetflowNodeID = 0;
     close(csock);
     return (-1);
 }
@@ -323,7 +335,7 @@ NgFuncShutdownGlobal(void)
         return;
     }
 
-    snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+    snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
     NgFuncShutdownNode(csock, "netflow", path);
     
     close(csock);

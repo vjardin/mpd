@@ -2199,14 +2199,14 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
     Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow (%s)", b->name, out?"out":"in"));
   
     /* Create global ng_netflow(4) node if not yet. */
-    if (gNetflowNode == FALSE) {
+    if (gNetflowNodeID == 0) {
 	if (NgFuncInitGlobalNetflow())
 	    return(-1);
     }
 
     /* Connect ng_netflow(4) node to the ng_bpf(4)/ng_tee(4) node. */
     strcpy(cn.ourhook, hook);
-    snprintf(cn.path, sizeof(cn.path), "%s:", gNetflowNodeName);
+    snprintf(cn.path, sizeof(cn.path), "[%x]:", gNetflowNodeID);
     if (out) {
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
 	    gNetflowIface + b->id*2 + out);
@@ -2240,7 +2240,7 @@ IfaceSetupNetflow(Bund b, char out)
     struct ng_netflow_setifindex nf_setidx;
     
     /* Configure data link type and interface index. */
-    snprintf(path, sizeof(path), "%s:", gNetflowNodeName);
+    snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
     nf_setdlt.iface = gNetflowIface + b->id*2 + out;
     nf_setdlt.dlt = DLT_RAW;
     if (NgSendMsg(gLinksCsock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
@@ -2271,7 +2271,7 @@ IfaceShutdownNetflow(Bund b, char out)
     char	path[NG_PATHSIZ];
     char	hook[NG_HOOKSIZ];
 
-    snprintf(path, NG_PATHSIZ, "%s:", gNetflowNodeName);
+    snprintf(path, NG_PATHSIZ, "[%x]:", gNetflowNodeID);
     snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA,
 	    gNetflowIface + b->id*2 + out);
     NgFuncDisconnect(gLinksCsock, b->name, path, hook);

@@ -58,6 +58,7 @@
   extern u_char gNetflowNode;
   extern u_char gNetflowNodeShutdown;
   extern char gNetflowNodeName[64];
+  extern ng_ID_t gNetflowNodeID;
   extern u_int gNetflowIface;
   extern struct sockaddr_storage gNetflowExport;
   extern struct sockaddr_storage gNetflowSource;
