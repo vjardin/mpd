@@ -1353,8 +1353,8 @@ int
 GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 {
   int			s;
-  struct ifreq		*ifr, *ifend, *ifp;
-  u_int32_t		ina, mask;
+  struct ifreq		*ifr, *bifr, *ifend, *ifp;
+  u_int32_t		ina, mask, bmask;
   struct ifreq		ifreq;
   struct ifconf		ifc;
   struct ifreq 		*ifs;
@@ -1388,6 +1388,8 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
    * Scan through looking for an interface with an IP
    * address on same subnet as `addr'.
    */
+  bifr = NULL;
+  bmask = 0;
   for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
 	ifr = ifc.ifc_req;
       ifr < ifend;
@@ -1408,27 +1410,36 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 	  != (IFF_UP|IFF_BROADCAST))
 	continue;
 
-      /* Get its netmask and check that it's on the right subnet */
-      if (ioctl(s, SIOCGIFNETMASK, &ifreq) < 0)
+      if (addr) {
+        /* Get its netmask and check that it's on the right subnet */
+        if (ioctl(s, SIOCGIFNETMASK, &ifreq) < 0)
+	    continue;
+        mask = ((struct sockaddr_in *)(void *)&ifreq.ifr_addr)->sin_addr.s_addr;
+        if ((addr->u.ip4.s_addr & mask) != (ina & mask))
+	    continue;
+	/* Is this the best match? */
+	if (mask >= bmask) {
+	    bmask = mask;
+	    bifr = ifr;
+	}
 	continue;
-      mask = ((struct sockaddr_in *)(void *)&ifreq.ifr_addr)->sin_addr.s_addr;
-      if (addr && (addr->u.ip4.s_addr & mask) != (ina & mask))
-	continue;
+      }
 
       /* OK */
+      bifr = ifr;
       break;
     }
   }
   close(s);
 
   /* Found? */
-  if (ifr >= ifend) {
+  if (bifr == NULL) {
     Freee(ifs);
     return(-1);
   }
 
   /* Now scan again looking for a link-level address for this interface */
-  for (ifp = ifr, ifr = ifc.ifc_req; ifr < ifend; ) {
+  for (ifp = bifr, ifr = ifc.ifc_req; ifr < ifend; ) {
     if (strcmp(ifp->ifr_name, ifr->ifr_name) == 0
 	&& ifr->ifr_addr.sa_family == AF_LINK) {
       if (addr == NULL) {

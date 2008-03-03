@@ -43,6 +43,8 @@
 	  </item>
 	  <item> Fixed sending of incoming traffic typed accounting on accounting stop.
 	  </item>
+	  <item> Fixed proxy-arp MAC when more then one interface matches.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
