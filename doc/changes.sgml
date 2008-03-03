@@ -39,7 +39,7 @@
 	  </item>
 	  <item> Added missing multilink parameters check in BundJoin().
 	  </item>
-	  <item> Fixed pppoe connection accept error handeling.
+	  <item> Fixed PPPoE connection accept error handeling.
 	  </item>
 	  <item> Fixed sending of incoming traffic typed accounting on accounting stop.
 	  </item>
