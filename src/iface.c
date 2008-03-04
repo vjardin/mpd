@@ -1738,7 +1738,7 @@ IfaceNgIpInit(Bund b, int ready)
 	/* Dial-on-Demand mode */
 	/* Use demand hook of the socket node */
 	snprintf(path, sizeof(path), ".:");
-	snprintf(hook, sizeof(hook), "4-%d", b->id);
+	snprintf(hook, sizeof(hook), "4%d", b->id);
 
     } else {
 
@@ -1882,7 +1882,7 @@ IfaceNgIpv6Init(Bund b, int ready)
 	/* Dial-on-Demand mode */
 	/* Use demand hook of the socket node */
 	snprintf(path, sizeof(path), ".:");
-	snprintf(hook, sizeof(hook), "6-%d", b->id);
+	snprintf(hook, sizeof(hook), "6%d", b->id);
     } else {
 	snprintf(path, sizeof(path), "[%x]:", b->nodeID);
 	strcpy(hook, NG_PPP_HOOK_IPV6);
@@ -2344,7 +2344,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 
     /* Connect to the bundle socket node. */
     strlcpy(cn.path, path, sizeof(cn.path));
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "i-%d", b->id);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "i%d", b->id);
     strcpy(cn.peerhook, MPD_HOOK_TCPMSS_IN);
     if (NgSendMsg(gLinksCsock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
@@ -2354,7 +2354,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     }
 
     strlcpy(cn.path, path, sizeof(cn.path));
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "o-%d", b->id);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "o%d", b->id);
     strcpy(cn.peerhook, MPD_HOOK_TCPMSS_OUT);
     if (NgSendMsg(gLinksCsock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
@@ -2411,7 +2411,7 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     char			hook[NG_HOOKSIZ];
 
     /* Setup programs for ng_bpf hooks */
-    snprintf(hook, sizeof(hook), "i-%d", b->id);
+    snprintf(hook, sizeof(hook), "i%d", b->id);
 
     memset(&u, 0, sizeof(u));
     strcpy(hp->thisHook, "ppp");
@@ -2441,7 +2441,7 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
     }
 
-    snprintf(hook, sizeof(hook), "o-%d", b->id);
+    snprintf(hook, sizeof(hook), "o%d", b->id);
     memset(&u, 0, sizeof(u));
     strcpy(hp->thisHook, "iface");
     hp->bpf_prog_len = TCPSYN_PROG_LEN;
@@ -2482,7 +2482,7 @@ IfaceShutdownMSS(Bund b)
 	snprintf(path, sizeof(path), "mpd%d-%s-mss:", gPid, b->name);
 	NgFuncShutdownNode(gLinksCsock, b->name, path);
 #else
-	snprintf(path, sizeof(path), "i-%d", b->id);
+	snprintf(path, sizeof(path), "i%d", b->id);
 	NgFuncShutdownNode(gLinksCsock, b->name, path);
 #endif
 }

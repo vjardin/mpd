@@ -1659,7 +1659,7 @@ BundNgInit(Bund b)
 	b->name, b->iface.ifname));
  
     /* Create new PPP node */
-    snprintf(b->hook, sizeof(b->hook), "b-%d", b->id);
+    snprintf(b->hook, sizeof(b->hook), "b%d", b->id);
 
     strcpy(mp.type, NG_PPP_NODE_TYPE);
     strcpy(mp.ourhook, b->hook);

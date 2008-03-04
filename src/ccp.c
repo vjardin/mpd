@@ -400,13 +400,13 @@ CcpNgDataEvent(int type, void *cookie)
 	    "CcpNgDataEvent: rec'd %d bytes frame on %s hook", MBLEN(bp), naddr.sg_data);
 
 	bundname = ((struct sockaddr_ng *)&naddr)->sg_data;
-	if (strncmp(bundname, "c-", 2) && strncmp(bundname, "d-", 2)) {
+	if (bundname[0] != 'c' && bundname[0] != 'd') {
     	    Log(LG_ERR, ("CCP: Packet from unknown hook \"%s\"",
     	        bundname));
 	    mbfree(bp);
     	    continue;
 	}
-	bundname += 2;
+	bundname++;
 	id = strtol(bundname, &rest, 10);
 	if (rest[0] != 0 || !gBundles[id] || gBundles[id]->dead) {
     	    Log(LG_ERR, ("CCP: Packet from unexisting bundle \"%s\"",
@@ -418,7 +418,7 @@ CcpNgDataEvent(int type, void *cookie)
 	b = gBundles[id];
 
 	/* Packet requiring compression */
-	if (strncmp(naddr.sg_data, "c-", 2) == 0) {
+	if (bundname[0] == 'c') {
 	    bp = CcpDataOutput(b, bp);
 	} else {
 	    /* Packet requiring decompression */
@@ -801,7 +801,7 @@ CcpLayerUp(Fsm fp)
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
     /* Connect a hook from the ppp node to our socket node */
     snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "c-%d", b->id);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "c%d", b->id);
     strcpy(cn.peerhook, NG_PPP_HOOK_COMPRESS);
     if (NgSendMsg(gCcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
@@ -813,7 +813,7 @@ CcpLayerUp(Fsm fp)
   if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
     /* Connect a hook from the ppp node to our socket node */
     snprintf(cn.path, sizeof(cn.path), "[%x]:", b->nodeID);
-    snprintf(cn.ourhook, sizeof(cn.ourhook), "d-%d", b->id);
+    snprintf(cn.ourhook, sizeof(cn.ourhook), "d%d", b->id);
     strcpy(cn.peerhook, NG_PPP_HOOK_DECOMPRESS);
     if (NgSendMsg(gCcpCsock, ".:",
 	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
@@ -858,14 +858,14 @@ CcpLayerDown(Fsm fp)
   if (ccp->xmit != NULL && ccp->xmit->Compress != NULL) {
     char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
-    snprintf(hook, sizeof(hook), "c-%d", b->id);
+    snprintf(hook, sizeof(hook), "c%d", b->id);
     NgFuncDisconnect(gCcpCsock, b->name, ".:", hook);
   }
   
   if (ccp->recv != NULL && ccp->recv->Decompress != NULL) {
     char	hook[NG_HOOKSIZ];
     /* Disconnect hook. */
-    snprintf(hook, sizeof(hook), "d-%d", b->id);
+    snprintf(hook, sizeof(hook), "d%d", b->id);
     NgFuncDisconnect(gCcpCsock, b->name, ".:", hook);
   }
   if (ccp->recv && ccp->recv->Cleanup)

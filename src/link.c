@@ -652,7 +652,7 @@ LinkNgInit(Link l)
 
     /* Create TEE node */
     strcpy(mp.type, NG_TEE_NODE_TYPE);
-    snprintf(mp.ourhook, sizeof(mp.ourhook), "l-%d", l->id);
+    snprintf(mp.ourhook, sizeof(mp.ourhook), "l%d", l->id);
     strcpy(mp.peerhook, NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
@@ -816,15 +816,9 @@ LinkNgDataEvent(int type, void *cookie)
 	num++;
 
 	name = naddr.sg_data;
-	if (name[1] != '-') {
-    	    Log(LG_ERR, ("LinkNgDataEvent: packet from unknown hook \"%s\"",
-    	        name));
-	    mbfree(bp);
-    	    continue;
-	}
 	switch (name[0]) {
 	case 'l':
-	    name += 2;
+	    name++;
 	    id = strtol(name, &rest, 10);
 	    if (rest[0] != 0 || !gLinks[id]) {
     		Log(LG_ERR, ("Link: packet from unexisting link \"%s\"",
@@ -870,7 +864,7 @@ LinkNgDataEvent(int type, void *cookie)
 	case 'o':
 	case '4':
 	case '6':
-	    name += 2;
+	    name++;
 	    id = strtol(name, &rest, 10);
 	    if (rest[0] != 0 || !gBundles[id]) {
     		Log(LG_ERR, ("Link: Packet from unexisting bundle \"%s\"",
