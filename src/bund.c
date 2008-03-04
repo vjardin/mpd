@@ -1120,6 +1120,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	if (!tmpl) {
 	    /* Setup netgraph stuff */
 	    if (BundNgInit(b) < 0) {
+		gBundles[b->id] = NULL;
 		Freee(b);
 		Error("Bundle netgraph initialization failed");
 	    }
@@ -1209,6 +1210,7 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
     /* Setup netgraph stuff */
     if (BundNgInit(b) < 0) {
 	Log(LG_ERR, ("[%s] Bundle netgraph initialization failed", b->name));
+	gBundles[b->id] = NULL;
 	Freee(b);
 	return(0);
     }
@@ -1670,6 +1672,9 @@ BundNgInit(Bund b)
     }
     newPpp = 1;
 
+    /* Get PPP node ID */
+    b->nodeID = NgGetNodeID(gLinksCsock, b->hook);
+
     /* Give it a name */
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, b->name);
     if (NgSendMsg(gLinksCsock, b->hook,
@@ -1678,9 +1683,6 @@ BundNgInit(Bund b)
     	    b->name, NG_PPP_NODE_TYPE, b->hook, strerror(errno)));
 	goto fail;
     }
-
-    /* Get PPP node ID */
-    b->nodeID = NgGetNodeID(gLinksCsock, b->hook);
 
     /* OK */
     return(0);
