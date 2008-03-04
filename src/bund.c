@@ -287,6 +287,7 @@ BundJoin(Link l)
     b->open = TRUE; /* Open bundle on incoming */
 
     if (LinkNgJoin(l)) {
+	Log(LG_ERR, ("[%s] Bundle netgraph join failed", l->name));
 	l->bund = NULL;
 	b->links[l->bundleIndex] = NULL;
 	if (!b->stay)
