@@ -321,6 +321,7 @@ L2tpOpen(Link l)
 	int dsock = -1;
 	struct ghash_walk walk;
 	u_int32_t       cap;
+	u_int16_t	win;
 
 	pi->opened=1;
 	
@@ -464,12 +465,15 @@ L2tpOpen(Link l)
 	    hostname[sizeof(hostname) - 1] = '\0';
 	}
 	cap = htonl(L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG);
+	win = htons(8); /* XXX: this value is empirical. */
 	if ((ppp_l2tp_avp_list_append(avps, 1, 0, AVP_HOST_NAME,
 	      hostname, strlen(hostname)) == -1) ||
 	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
 	      MPD_VENDOR, strlen(MPD_VENDOR)) == -1) ||
 	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
-	      &cap, sizeof(cap)) == -1)) {
+	      &cap, sizeof(cap)) == -1) ||
+	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_RECEIVE_WINDOW_SIZE,
+	      &win, sizeof(win)) == -1)) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
 		goto fail;
 	}
@@ -1297,6 +1301,7 @@ L2tpServerEvent(int type, void *arg)
 	int dsock = -1;
 	int len;
 	u_int32_t	cap;
+	u_int16_t	win;
 	int	k;
 
 	/* Allocate buffer */
@@ -1369,12 +1374,15 @@ L2tpServerEvent(int type, void *arg)
 	    hostname[sizeof(hostname) - 1] = '\0';
 	}
 	cap = htonl(L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG);
+	win = htons(8); /* XXX: this value is empirical. */
 	if ((ppp_l2tp_avp_list_append(avps, 1, 0, AVP_HOST_NAME,
 	      hostname, strlen(hostname)) == -1) ||
 	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
 	      MPD_VENDOR, strlen(MPD_VENDOR)) == -1) ||
 	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
-	      &cap, sizeof(cap)) == -1)) {
+	      &cap, sizeof(cap)) == -1) ||
+	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_RECEIVE_WINDOW_SIZE,
+	      &win, sizeof(win)) == -1)) {
 		Log(LG_ERR, ("L2TP: ppp_l2tp_avp_list_append: %s", strerror(errno)));
 		goto fail;
 	}
