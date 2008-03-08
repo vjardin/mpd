@@ -1672,8 +1672,10 @@ ppp_l2tp_sess_do_close(void *arg)
 	}
 
 	/* Close control connection after last session closes */
-	if (ctrl->active_sessions == 0 && ctrl->state != CS_DYING) {
-		if (pevent_register(ctrl->ctx, &ctrl->death_timer, 0,
+	if (ctrl->active_sessions == 0) {
+		if (ctrl->state == CS_DYING) {
+			ppp_l2tp_ctrl_death_start(ctrl);
+		} else if (pevent_register(ctrl->ctx, &ctrl->death_timer, 0,
 		    ctrl->mutex, ppp_l2tp_unused_timeout, ctrl,
 		    PEVENT_TIME, gL2TPto * 1000) == -1) {
 			Log(LOG_ERR, ("L2TP: error starting unused timer: %s", strerror(errno)));
