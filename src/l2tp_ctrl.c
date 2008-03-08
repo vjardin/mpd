@@ -187,7 +187,7 @@ struct ppp_l2tp_ctrl {
 	u_int16_t		error;			/* close error code */
 	u_int32_t		peer_bearer;		/* peer bearer types */
 	u_int32_t		peer_framing;		/* peer framing types */
-	u_int			active_sessions;	/* # non-dying sessns */
+	u_int			active_sessions;	/* # of sessns */
 	char			*errmsg;		/* close error msg */
 	u_char			link_notified;		/* link notified down */
 	u_char			peer_notified;		/* peer notified down */
@@ -1582,7 +1582,6 @@ ppp_l2tp_sess_close(struct ppp_l2tp_sess *sess,
 	if (sess->state == SS_DYING)
 		return;
 	sess->state = SS_DYING;
-	ctrl->active_sessions--;
 
 	/* Save result code and error string */
 	sess->result = result;
@@ -1657,6 +1656,8 @@ ppp_l2tp_sess_do_close(void *arg)
 
 	/* Remove event */
 	pevent_unregister(&sess->close_timer);
+
+	ctrl->active_sessions--;
 
 	/* Linger for a while before going away */
 	if (pevent_register(ctrl->ctx, &sess->death_timer, 0,
@@ -2426,8 +2427,19 @@ ppp_l2tp_sess_destroy(struct ppp_l2tp_sess **sessp)
 
 	/* Destroy session */
 	ctrl = sess->ctrl;
-	if (sess->state != SS_DYING)
+	if (sess->state != SS_DYING || sess->close_timer) {
 		ctrl->active_sessions--;
+		/* Close control connection after last session closes */
+		if (ctrl->active_sessions == 0) {
+			if (ctrl->state == CS_DYING) {
+				ppp_l2tp_ctrl_death_start(ctrl);
+			} else if (pevent_register(ctrl->ctx, &ctrl->death_timer, 0,
+			    ctrl->mutex, ppp_l2tp_unused_timeout, ctrl,
+			    PEVENT_TIME, gL2TPto * 1000) == -1) {
+				Log(LOG_ERR, ("L2TP: error starting unused timer: %s", strerror(errno)));
+			}
+		}
+	}
 	ghash_remove(ctrl->sessions, sess);
 	snprintf(path, sizeof(path), "[%lx]:", (u_long)sess->node_id);
 	(void)NgSendMsg(ctrl->csock, path,
