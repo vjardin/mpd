@@ -45,6 +45,8 @@
 	  </item>
 	  <item> Fixed proxy-arp MAC when more then one interface matches.
 	  </item>
+	  <item> Fixed some L2TP errors processing.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
