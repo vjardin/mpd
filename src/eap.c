@@ -182,10 +182,8 @@ EapSendRequest(Link l, u_char type)
 
   /* don't request this type again */
   eap->want_types[i] = 0;
-  a->peer_to_self_alg = req_type;
 
   switch (req_type) {
-
     case EAP_TYPE_MD5CHAL:
 
       /* Invalidate any old challenge data */
@@ -194,6 +192,7 @@ EapSendRequest(Link l, u_char type)
       chap->next_id = 1;
       chap->retry = AUTH_RETRIES;
       chap->proto = PROTO_EAP;
+      a->peer_to_self_alg = CHAP_ALG_MD5;
 
       TimerInit(&chap->chalTimer, "ChalTimer",
         l->conf.retry_timeout * SECONDS, ChapChalTimeout, l);
