@@ -1924,6 +1924,25 @@ AuthExternal(AuthData auth)
 
     /* SENDING REQUEST */
     fprintf(fp, "USER_NAME:%s\n", auth->params.authname);
+    fprintf(fp, "AUTH_TYPE:%s", ProtoName(auth->proto));
+    if (auth->proto == PROTO_CHAP) {
+	switch (auth->params.chap.recv_alg) {
+    	    case CHAP_ALG_MD5:
+		fprintf(fp, " MD5\n");
+		break;
+	    case CHAP_ALG_MSOFT:
+		fprintf(fp, " MSOFT\n");
+	        break;
+	    case CHAP_ALG_MSOFTv2:
+		fprintf(fp, " MSOFTv2\n");
+	        break;
+	    default:
+	        fprintf(fp, " 0x%02x", auth->params.chap.recv_alg);
+	        break;
+	}
+    } else
+	fprintf(fp, "\n");
+
     if (auth->proto == PROTO_PAP)
 	fprintf(fp, "USER_PASSWORD:%s\n", auth->params.pap.peer_pass);
 
