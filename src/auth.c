@@ -2003,19 +2003,25 @@ AuthExternal(AuthData auth)
 	strlcpy(auth->params.password, val, sizeof(auth->params.password));
 
     } else if (strcmp(attr, "USER_NT_HASH") == 0) {
-	u_char	*bin;
-	bin = Hex2Bin(val);
-	memcpy(auth->params.msoft.nt_hash, bin, sizeof(auth->params.msoft.nt_hash));
-	Freee(bin);
-	NTPasswordHashHash(auth->params.msoft.nt_hash, auth->params.msoft.nt_hash_hash);
-	auth->params.msoft.has_nt_hash = TRUE;
+	if (strlen(val) != 32) {
+	    Log(LG_AUTH, ("[%s] Ext-auth: Incorrect USER_NT_HASH length", auth->info.lnkname));
+	} else {
+	    u_char *bin = Hex2Bin(val);
+	    memcpy(auth->params.msoft.nt_hash, bin, sizeof(auth->params.msoft.nt_hash));
+	    Freee(bin);
+	    NTPasswordHashHash(auth->params.msoft.nt_hash, auth->params.msoft.nt_hash_hash);
+	    auth->params.msoft.has_nt_hash = TRUE;
+	}
 
     } else if (strcmp(attr, "USER_LM_HASH") == 0) {
-	u_char	*bin;
-	bin = Hex2Bin(val);
-	memcpy(auth->params.msoft.lm_hash, bin, sizeof(auth->params.msoft.lm_hash));
-	Freee(bin);
-	auth->params.msoft.has_lm_hash = TRUE;
+	if (strlen(val) != 32) {
+	    Log(LG_AUTH, ("[%s] Ext-auth: Incorrect USER_LM_HASH length", auth->info.lnkname));
+	} else {
+	    u_char *bin = Hex2Bin(val);
+	    memcpy(auth->params.msoft.lm_hash, bin, sizeof(auth->params.msoft.lm_hash));
+	    Freee(bin);
+	    auth->params.msoft.has_lm_hash = TRUE;
+	}
 
     } else if (strcmp(attr, "FRAMED_IP_ADDRESS") == 0) {
         auth->params.range_valid = 
