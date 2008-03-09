@@ -102,13 +102,10 @@ EapStart(Link l, int which)
   if (Acceptable(&eap->conf.options, EAP_CONF_MD5))
     eap->peer_types[0] = EAP_TYPE_MD5CHAL;
 
-  a->params.chap.recv_alg = l->lcp.want_chap_alg;
-  a->chap.xmit_alg = l->lcp.peer_chap_alg;
-
   if (l->originate == LINK_ORIGINATE_LOCAL)
-    a->params.msoft.chap_alg = l->lcp.peer_chap_alg;
+    a->params.msoft.chap_alg = a->self_to_peer_alg;
   else
-    a->params.msoft.chap_alg = l->lcp.want_chap_alg;
+    a->params.msoft.chap_alg = a->peer_to_self_alg;
 
   switch (which) {
     case AUTH_PEER_TO_SELF:
@@ -185,6 +182,7 @@ EapSendRequest(Link l, u_char type)
 
   /* don't request this type again */
   eap->want_types[i] = 0;
+  a->peer_to_self_alg = req_type;
 
   switch (req_type) {
 
@@ -196,12 +194,6 @@ EapSendRequest(Link l, u_char type)
       chap->next_id = 1;
       chap->retry = AUTH_RETRIES;
       chap->proto = PROTO_EAP;
-
-      if (req_type == EAP_TYPE_MD5CHAL) {
-	cp->recv_alg = CHAP_ALG_MD5;
-      } else {
-	cp->recv_alg = CHAP_ALG_MSOFTv2;
-      }
 
       TimerInit(&chap->chalTimer, "ChalTimer",
         l->conf.retry_timeout * SECONDS, ChapChalTimeout, l);
@@ -280,7 +272,6 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 {
   Auth		const a = &l->lcp.auth;
   EapInfo	const eap = &a->eap;
-  ChapInfo	const chap = &a->chap;
   int		data_len = len - 1, i, acc_type;
   u_char	*data = NULL, type = 0;
   
@@ -329,7 +320,7 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 
 	    switch (type) {
 	      case EAP_TYPE_MD5CHAL:
-		chap->xmit_alg = CHAP_ALG_MD5;
+		a->self_to_peer_alg = CHAP_ALG_MD5;
 		auth->code = CHAP_CHALLENGE;
 		ChapInput(l, auth, &pkt[1], len - 1);
 		break;

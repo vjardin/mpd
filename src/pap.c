@@ -215,7 +215,7 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 error:
     Log(LG_AUTH, (" Bad PAP packet"));
     auth->why_fail = AUTH_FAIL_INVALID_PACKET;
-    AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
+    AuthFailMsg(auth, failMesg, sizeof(failMesg));
     AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, (u_char *)failMesg, strlen(failMesg), 1, 0);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);
@@ -256,7 +256,7 @@ badRequest:
   {
     char        failMesg[64];
 
-    Mesg = AuthFailMsg(auth, 0, failMesg, sizeof(failMesg));
+    Mesg = AuthFailMsg(auth, failMesg, sizeof(failMesg));
     Log(LG_AUTH, (" Reply message: %s", Mesg));
     AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);

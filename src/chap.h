@@ -56,7 +56,6 @@
     u_char		*resp;				/* Response packet */
     short		resp_len;			/* Response length */
     u_char		resp_id;			/* Response ID */
-    u_char		xmit_alg;			/* Peer auth us with */
   };
   typedef struct chapinfo	*ChapInfo;
 
@@ -66,7 +65,6 @@
     u_char		value[CHAP_MAX_VAL];		/* Chap packet */
     int			chal_len;			/* Challenge length */
     int			value_len;			/* Packet length */
-    u_char		recv_alg;			/* We auth peer with */
   };
   typedef struct chapparams	*ChapParams;
 

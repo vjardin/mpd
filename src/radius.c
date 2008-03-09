@@ -868,7 +868,7 @@ RadiusPutAuth(AuthData auth)
   }
 
   if (auth->proto == PROTO_CHAP || auth->proto == PROTO_EAP) {
-    switch (cp->recv_alg) {
+    switch (auth->alg) {
 
       case CHAP_ALG_MSOFT:
 	if (cp->value_len != 49) {
@@ -960,7 +960,7 @@ RadiusPutAuth(AuthData auth)
       
       default:
 	Log(LG_RADIUS, ("[%s] RADIUS: RADIUS unkown CHAP ALG %d", 
-	  auth->info.lnkname, cp->recv_alg));
+	  auth->info.lnkname, auth->alg));
 	return (RAD_NACK);
     }
   } else if (auth->proto == PROTO_PAP) {
@@ -1078,7 +1078,6 @@ RadiusSendRequest(AuthData auth)
 static int
 RadiusGetParams(AuthData auth, int eap_proxy)
 {
-  ChapParams	const cp = &auth->params.chap;
   int		res, i, j;
   size_t	len;
   const void	*data;
@@ -1632,7 +1631,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
     if (auth->acct_type == 0) {
 
 	/* sanity check, this happens when FreeRADIUS has no msoft-dictionary loaded */
-	if (auth->proto == PROTO_CHAP && cp->recv_alg == CHAP_ALG_MSOFTv2
+	if (auth->proto == PROTO_CHAP && auth->alg == CHAP_ALG_MSOFTv2
 		&& auth->mschapv2resp == NULL && auth->mschap_error == NULL) {
 	    Log(LG_RADIUS, ("[%s] RADIUS: PANIC no MS-CHAPv2 response received!",
     	    auth->info.lnkname));

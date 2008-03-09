@@ -180,6 +180,8 @@
   struct auth {
     u_short		peer_to_self;	/* What I need from peer */
     u_short		self_to_peer;	/* What peer needs from me */
+    u_char		peer_to_self_alg;	/* What alg I need from peer */
+    u_char		self_to_peer_alg;	/* What alg peer needs from me */
     struct pppTimer	timer;		/* Max time to spend doing auth */
     struct pppTimer	acct_timer;	/* Timer for accounting updates */
     struct papinfo	pap;		/* PAP state */
@@ -199,7 +201,8 @@
    */
   struct authdata {
     struct authconf	conf;		/* a copy of bundle's authconf */
-    int			proto;		/* wich proto are we using, PAP, CHAP, ... */
+    u_short		proto;		/* wich proto are we using, PAP, CHAP, ... */
+    u_char		alg;		/* proto specific algoruthm */
     u_int		id;		/* Actual, packet id */    
     u_int		code;		/* Proto specific code */
     u_char		acct_type;	/* Accounting type, Start, Stop, Update */
@@ -267,7 +270,7 @@
   extern int		AuthGetData(char *authname, char *password, size_t passlen, 
 			    struct u_range *range, u_char *range_valid);
   extern void		AuthAsyncStart(Link l, AuthData auth);
-  extern const char	*AuthFailMsg(AuthData auth, int alg, char *buf, size_t len);
+  extern const char	*AuthFailMsg(AuthData auth, char *buf, size_t len);
   extern const char	*AuthStatusText(int status);
   extern const char	*AuthMPPEPolicyname(int policy);
   extern const char	*AuthMPPETypesname(int types, char *buf, size_t len);

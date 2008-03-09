@@ -342,6 +342,8 @@ AuthStart(Link l)
     /* What auth protocols were negotiated by LCP? */
     a->self_to_peer = l->lcp.peer_auth;
     a->peer_to_self = l->lcp.want_auth;
+    a->self_to_peer_alg = l->lcp.peer_alg;
+    a->peer_to_self_alg = l->lcp.want_alg;
 
     /* remember peer's IP address */
     PhysGetPeerAddr(l, a->params.peeraddr, sizeof(a->params.peeraddr));
@@ -434,7 +436,7 @@ AuthInput(Link l, int proto, Mbuf bp)
     mbfree(bp);
     return;
   }
-  
+
   if (a->thread) {
     Log(LG_AUTH, ("[%s] AUTH: Thread already running, dropping this packet", 
       l->name));
@@ -1267,8 +1269,8 @@ AuthSystem(AuthData auth)
     GIANT_MUTEX_UNLOCK();
     return;
   } else if (auth->proto == PROTO_CHAP 
-      && (auth->params.chap.recv_alg == CHAP_ALG_MSOFT 
-        || auth->params.chap.recv_alg == CHAP_ALG_MSOFTv2)) {
+      && (auth->alg == CHAP_ALG_MSOFT 
+        || auth->alg == CHAP_ALG_MSOFTv2)) {
 
     if (!strstr(pwc.pw_passwd, "$3$$")) {
       Log(LG_AUTH, (" Password has the wrong format, nth ($3$) is needed"));
@@ -1592,12 +1594,12 @@ AuthTimeout(void *arg)
  */
 
 const char *
-AuthFailMsg(AuthData auth, int alg, char *buf, size_t len)
+AuthFailMsg(AuthData auth, char *buf, size_t len)
 {
     const char	*mesg;
 
     if (auth->proto == PROTO_CHAP
-        && (alg == CHAP_ALG_MSOFT || alg == CHAP_ALG_MSOFTv2)) {
+        && (auth->alg == CHAP_ALG_MSOFT || auth->alg == CHAP_ALG_MSOFTv2)) {
 	    int	mscode;
 
 	    if (auth->mschap_error != NULL) {
@@ -1926,7 +1928,7 @@ AuthExternal(AuthData auth)
     fprintf(fp, "USER_NAME:%s\n", auth->params.authname);
     fprintf(fp, "AUTH_TYPE:%s", ProtoName(auth->proto));
     if (auth->proto == PROTO_CHAP) {
-	switch (auth->params.chap.recv_alg) {
+	switch (auth->alg) {
     	    case CHAP_ALG_MD5:
 		fprintf(fp, " MD5\n");
 		break;
@@ -1937,7 +1939,7 @@ AuthExternal(AuthData auth)
 		fprintf(fp, " MSOFTv2\n");
 	        break;
 	    default:
-	        fprintf(fp, " 0x%02x", auth->params.chap.recv_alg);
+	        fprintf(fp, " 0x%02x", auth->alg);
 	        break;
 	}
     } else

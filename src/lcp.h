@@ -30,7 +30,7 @@
 
   struct lcpauthproto {
     ushort		proto;
-    u_char		chap_alg;
+    u_char		alg;
     u_char		conf;
   };
   typedef struct lcpauthproto	*LcpAuthProto;
@@ -59,10 +59,10 @@
     u_int16_t	peer_mru;		/* Peer's max reception packet size */
     u_int16_t	peer_auth;		/* Auth requested by peer, or zero */
     u_int16_t	peer_mrru;		/* MRRU set by peer, or zero */
-    u_char	peer_chap_alg;		/* Peer's CHAP algorithm */
+    u_char	peer_alg;		/* Peer's CHAP algorithm */
 
     /* My negotiated parameters */
-    u_char	want_chap_alg;		/* My CHAP algorithm */
+    u_char	want_alg;		/* My CHAP algorithm */
     LcpAuthProto	want_protos[LCP_NUM_AUTH_PROTOS];	/* list of requestable auth-protos */
     u_int32_t	want_accmap;		/* Control chars I want escaped */
     u_int32_t	want_magic;		/* My magic number */

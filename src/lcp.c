@@ -60,8 +60,8 @@
   static void	LcpLayerFinish(Fsm fp);
   static int	LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp);
   static void	LcpFailure(Fsm fp, enum fsmfail reason);
-  static const struct fsmoption	*LcpAuthProtoNak(ushort proto, u_char chap_alg);
-  static short 	LcpFindAuthProto(ushort proto, u_char chap_alg);
+  static const struct fsmoption	*LcpAuthProtoNak(ushort proto, u_char alg);
+  static short 	LcpFindAuthProto(ushort proto, u_char alg);
   static void	LcpRecvIdent(Fsm fp, Mbuf bp);
   static void	LcpStopActivity(Link l);
 
@@ -246,7 +246,8 @@ LcpConfigure(Fsm fp)
     /* Authentication stuff */
     lcp->peer_auth = 0;
     lcp->want_auth = 0;
-    lcp->want_chap_alg = 0;
+    lcp->peer_alg = 0;
+    lcp->want_alg = 0;
     lcp->peer_ident[0] = 0;
 
     memset(lcp->want_protos, 0, sizeof(lcp->want_protos));
@@ -264,7 +265,7 @@ LcpConfigure(Fsm fp)
     for (i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
 	if (Enabled(&l->conf.options, lcp->want_protos[i]->conf) && lcp->want_auth == 0) {
 	    lcp->want_auth = lcp->want_protos[i]->proto;
-	    lcp->want_chap_alg = lcp->want_protos[i]->chap_alg;
+	    lcp->want_alg = lcp->want_protos[i]->alg;
     	    /* avoid re-requesting this proto, if it was nak'd by the peer */
     	    lcp->want_protos[i] = NULL;
 	} else if (!Enabled(&l->conf.options, lcp->want_protos[i]->conf)) {
@@ -615,11 +616,11 @@ LcpBuildConfigReq(Fsm fp, u_char *cp)
 	case PROTO_CHAP: {
 	    struct {
 		u_short	want_auth;
-		u_char	chap_alg;
+		u_char	alg;
 	    } s_mdx;
 
 	    s_mdx.want_auth = htons(PROTO_CHAP);
-	    s_mdx.chap_alg = lcp->want_chap_alg;
+	    s_mdx.alg = lcp->want_alg;
 	    cp = FsmConfValue(cp, TY_AUTHPROTO, 3, &s_mdx);
         }
         break;
@@ -789,7 +790,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	lcp->peer_protocomp = FALSE;
 	lcp->peer_magic = 0;
 	lcp->peer_auth = 0;
-	lcp->peer_chap_alg = 0;
+	lcp->peer_alg = 0;
 	lcp->peer_mrru = 0;
 	lcp->peer_shortseq = FALSE;
     }
@@ -951,7 +952,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      if ((authProto != NULL) && Acceptable(&l->conf.options, authProto->conf)) {
 		lcp->peer_auth = proto;
 	        if (proto == PROTO_CHAP)
-		  lcp->peer_chap_alg = opt->data[2];
+		  lcp->peer_alg = opt->data[2];
 		FsmAck(fp, opt);
 		break;
 	      }
@@ -959,7 +960,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      /* search an acceptable proto */
 	      for(i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
 		if (lcp->peer_protos[i] != NULL) {
-		  FsmNak(fp, LcpAuthProtoNak(lcp->peer_protos[i]->proto, lcp->peer_protos[i]->chap_alg));
+		  FsmNak(fp, LcpAuthProtoNak(lcp->peer_protos[i]->proto, lcp->peer_protos[i]->alg));
 		  break;
 		}
 	      }
@@ -978,7 +979,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      if (Enabled(&l->conf.options, authProto->conf)) {
 	        lcp->want_auth = proto;
 	        if (proto == PROTO_CHAP)
-		  lcp->want_chap_alg = opt->data[2];
+		  lcp->want_alg = opt->data[2];
 		break;
 	      }
 
@@ -989,7 +990,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	      for(i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
 		if (lcp->want_protos[i] != NULL) {
 		  lcp->want_auth = lcp->want_protos[i]->proto;
-		  lcp->want_chap_alg = lcp->want_protos[i]->chap_alg;
+		  lcp->want_alg = lcp->want_protos[i]->alg;
 		  break;
 		}
 	      }
@@ -1233,7 +1234,7 @@ LcpInput(Link l, Mbuf bp)
 }
 
 static const struct fsmoption *
-LcpAuthProtoNak(ushort proto, u_char chap_alg)
+LcpAuthProtoNak(ushort proto, u_char alg)
 {
   static const u_char	chapmd5cf[] =
     { PROTO_CHAP >> 8, PROTO_CHAP & 0xff, CHAP_ALG_MD5 };
@@ -1265,7 +1266,7 @@ LcpAuthProtoNak(ushort proto, u_char chap_alg)
   } else if (proto == PROTO_EAP) {
     return &eapNak;
   } else {
-    switch (chap_alg) {
+    switch (alg) {
       case CHAP_ALG_MSOFTv2:
         return &chapmsv2Nak;
 
@@ -1287,12 +1288,12 @@ LcpAuthProtoNak(ushort proto, u_char chap_alg)
  *
  */
 static short
-LcpFindAuthProto(ushort proto, u_char chap_alg)
+LcpFindAuthProto(ushort proto, u_char alg)
 {
   int i;
 
   for(i = 0; i < LCP_NUM_AUTH_PROTOS; i++) {
-    if (gLcpAuthProtos[i].proto == proto && gLcpAuthProtos[i].chap_alg == chap_alg) {
+    if (gLcpAuthProtos[i].proto == proto && gLcpAuthProtos[i].alg == alg) {
       return i;
     }
   }
