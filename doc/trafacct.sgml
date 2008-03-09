@@ -141,4 +141,8 @@ mpd-input-packets = Biz:21321
 mpd-input-octets = Biz:3213213
 </verb>
 
+  To simplify AAA integration mpd able to return specified traffic types
+  using standatd RADIUS attributes. Required traffic type can be specified
+  using mpd-input-acct/mpd-output-acct attributes.
+
 </p>

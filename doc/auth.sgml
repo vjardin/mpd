@@ -320,6 +320,8 @@ N   Name                       	   Access	 Accounting
 13  mpd-bundle			-	-	+	-
 14  mpd-iface			-	-	+	-
 15  mpd-iface-index		-	-	+	-
+16  mpd-input-acct		-	+	-	-
+17  mpd-output-acct		-	+	-	-
 154 mpd-drop-user		-	-	-	+
 </VERB>
 
@@ -357,6 +359,8 @@ ATTRIBUTE	mpd-link	12	string		mpd
 ATTRIBUTE	mpd-bundle	13	string		mpd 
 ATTRIBUTE	mpd-iface	14	string		mpd 
 ATTRIBUTE	mpd-iface-index	15	integer		mpd 
+ATTRIBUTE	mpd-input-acct	16	string		mpd 
+ATTRIBUTE	mpd-output-acct	17	string		mpd 
 ATTRIBUTE	mpd-drop-user	154	integer		mpd
 #----------------------------------------------------------
 </verb>

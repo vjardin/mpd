@@ -121,6 +121,8 @@
     struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
     struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
 
+    char 		std_acct[ACL_DIRS][ACL_NAME_LEN]; /* Names of ACL rerurned in standard accounting */
+    
     u_int		session_timeout;	/* Session-Timeout */
     u_int		idle_timeout;		/* Idle-Timeout */
     u_int		acct_update;		/* interval for accouting updates */

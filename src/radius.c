@@ -341,27 +341,35 @@ RadiusAccount(AuthData auth)
       return;
     }
 
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
-      auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets % MAX_U_INT32)));
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_PACKETS: %lu", 
-      auth->info.lnkname, (long unsigned int)(auth->info.stats.recvFrames)));
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_OCTETS: %lu", 
-      auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets % MAX_U_INT32)));
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_PACKETS: %lu", 
-      auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitFrames)));
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_GIGAWORDS: %lu", 
-      auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets / MAX_U_INT32)));
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_GIGAWORDS: %lu", 
-      auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets / MAX_U_INT32)));
-    if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, auth->info.stats.recvOctets % MAX_U_INT32) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, auth->info.stats.recvFrames) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, auth->info.stats.xmitOctets % MAX_U_INT32) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, auth->info.stats.xmitFrames) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, auth->info.stats.recvOctets / MAX_U_INT32) != 0 ||
-	rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, auth->info.stats.xmitOctets / MAX_U_INT32) != 0) {
-      Log(LG_RADIUS, ("[%s] RADIUS: Put stats: %s", auth->info.lnkname,
-	rad_strerror(auth->radius.handle)));
-      return;
+    if (auth->params.std_acct[0][0] == 0) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets % MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_GIGAWORDS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets / MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_PACKETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvFrames)));
+	if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, auth->info.stats.recvOctets % MAX_U_INT32) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, auth->info.stats.recvFrames) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, auth->info.stats.recvOctets / MAX_U_INT32) != 0) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put input stats: %s", auth->info.lnkname,
+		    rad_strerror(auth->radius.handle)));
+    		return;
+	}
+    }
+    if (auth->params.std_acct[1][0] == 0) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_OCTETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets % MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_GIGAWORDS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets / MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_PACKETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitFrames)));
+	if (rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, auth->info.stats.xmitOctets % MAX_U_INT32) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, auth->info.stats.xmitFrames) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, auth->info.stats.xmitOctets / MAX_U_INT32) != 0) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put output stats: %s", auth->info.lnkname,
+		    rad_strerror(auth->radius.handle)));
+    		return;
+	}
     }
     SLIST_FOREACH(ssr, &auth->info.ss.stat[0], next) {
 	char str[64];
@@ -381,6 +389,21 @@ RadiusAccount(AuthData auth)
     	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_INPUT_PACKETS: %s", auth->info.lnkname,
 		rad_strerror(auth->radius.handle)));
 	}
+	if (strcmp(ssr->name,auth->params.std_acct[0]) == 0) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets % MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_GIGAWORDS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets / MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_PACKETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Packets)));
+	    if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, ssr->Octets % MAX_U_INT32) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, ssr->Packets) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, ssr->Octets / MAX_U_INT32) != 0) {
+    		    Log(LG_RADIUS, ("[%s] RADIUS: Put input stats: %s", auth->info.lnkname,
+			rad_strerror(auth->radius.handle)));
+    		    return;
+	    }
+	}
     }
     SLIST_FOREACH(ssr, &auth->info.ss.stat[1], next) {
 	char str[64];
@@ -399,6 +422,21 @@ RadiusAccount(AuthData auth)
 	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_PACKETS, str) != 0) {
     	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_PACKETS: %s", auth->info.lnkname,
 		rad_strerror(auth->radius.handle)));
+	}
+	if (strcmp(ssr->name,auth->params.std_acct[1]) == 0) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_OCTETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets % MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_GIGAWORDS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets / MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_PACKETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Packets)));
+	    if (rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, ssr->Octets % MAX_U_INT32) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, ssr->Packets) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, ssr->Octets / MAX_U_INT32) != 0) {
+    		    Log(LG_RADIUS, ("[%s] RADIUS: Put output stats: %s", auth->info.lnkname,
+			rad_strerror(auth->radius.handle)));
+    		    return;
+	    }
 	}
     }
 
@@ -1555,6 +1593,22 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_DROP_USER: %d",
 		auth->info.lnkname, auth->drop_user));
 	      break;
+	    } else if (res == RAD_MPD_INPUT_ACCT) {
+		tmpval = rad_cvt_string(data, len);
+	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_INPUT_ACCT: %s",
+	    	    auth->info.lnkname, tmpval));
+		strlcpy(auth->params.std_acct[0], tmpval,
+		    sizeof(auth->params.std_acct[0]));
+		free(tmpval);
+		break;
+	    } else if (res == RAD_MPD_OUTPUT_ACCT) {
+		tmpval = rad_cvt_string(data, len);
+	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_OUTPUT_ACCT: %s",
+	    	    auth->info.lnkname, tmpval));
+		strlcpy(auth->params.std_acct[1], tmpval,
+		    sizeof(auth->params.std_acct[1]));
+		free(tmpval);
+		break;
 	    } else {
 	      Log(LG_RADIUS2, ("[%s] RADIUS: Dropping MPD vendor specific attribute: %d",
 		auth->info.lnkname, res));

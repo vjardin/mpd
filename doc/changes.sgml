@@ -22,6 +22,10 @@
 	  <item> Added USER_NT_HASH and USER_LM_HASH ext-auth attributes
 		 for MS-CHAP authentication.
 	  </item>
+	  <item> Added mpd-input-acct/mpd-output-acct RADIUS attributes
+		 to allow sending typed traffic accounting using standard
+		 RADIUS attributes.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

@@ -87,6 +87,8 @@
   #define RAD_MPD_BUNDLE	13
   #define RAD_MPD_IFACE		14
   #define RAD_MPD_IFACE_INDEX	15
+  #define RAD_MPD_INPUT_ACCT	16
+  #define RAD_MPD_OUTPUT_ACCT	17
   #define RAD_MPD_DROP_USER	154
 
   /* Configuration options */
