@@ -472,6 +472,8 @@ Name                       	   Access	 Accounting
 	                	Req	Resp	Req	Resp
 USER_NAME			+	+	+	+
 USER_PASSWORD			+	+	-	-
+USER_NT_HASH			-	+	-	-
+USER_LM_HASH			-	+	-	-
 LINK				+	-	+	-
 NAS_PORT			+	-	+	-
 NAS_PORT_TYPE			+	-	+	-
@@ -528,6 +530,8 @@ MPD_DROP_USER			-	-	-	+
 </verb>
 
 Attribute USER_PASSWORD provided in Access-Request only for PAP auth.
+Attributes USER_NT_HASH and USER_LM_HASH in Access-Reply used for
+MS-CHAP auth only.
 
 In reply script may specify any combination of attributes it needs. 
 The only mandatory attribute in Access-Response is RESULT. RESULT must

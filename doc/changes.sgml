@@ -19,6 +19,9 @@
 	  <item> Added 'set link mrru ...' command.
 		 Set default MRRU to 2048 and maximum to 4096 bytes.
 	  </item>
+	  <item> Added USER_NT_HASH and USER_LM_HASH ext-auth attributes
+		 for MS-CHAP authentication.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
