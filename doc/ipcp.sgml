@@ -15,7 +15,7 @@
 <descrip>
 
 <tag><tt>
-set ipcp ranges <em>local/width</em> (<em>remote/width</em>|ippool <em>pool</em>)
+set ipcp ranges (<em>local/width</em>|ippool <em>pool</em>) (<em>remote/width</em>|ippool <em>pool</em>)
 </tt></tag>
 
 This command determines what IP addresses mpd will allow to be

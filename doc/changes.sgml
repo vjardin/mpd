@@ -26,6 +26,8 @@
 		 to allow sending typed traffic accounting using standard
 		 RADIUS attributes.
 	  </item>
+	  <item> Added support for local side IP management using IP pools.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

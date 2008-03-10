@@ -48,6 +48,7 @@
     struct optinfo	options;	/* Configuraion options */
     struct u_range	self_allow;	/* My allowed IP addresses */
     struct u_range	peer_allow;	/* His allowed IP addresses */
+    char		self_ippool[LINK_MAX_NAME];
     char		ippool[LINK_MAX_NAME];
     struct in_addr	peer_dns[2];	/* DNS servers for peer to use */
     struct in_addr	peer_nbns[2];	/* NBNS servers for peer to use */
@@ -63,6 +64,7 @@
     struct u_range	self_allow;	/* My allowed IP addresses */
     struct u_range	peer_allow;	/* His allowed IP addresses */
 
+    u_char		self_ippool_used;
     u_char		ippool_used;
 
     struct ipcpvjcomp	peer_comp;	/* Peer's IP compression config */

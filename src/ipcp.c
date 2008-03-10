@@ -98,7 +98,7 @@
  */
 
   const struct cmdtab IpcpSetCmds[] = {
-    { "ranges {self}[/{width}] {peer}[/{width}]|ippool {pool}",	"Allowed IP address ranges",
+    { "ranges {self}[/{width}]|ippool {pool} {peer}[/{width}]|ippool {pool}",	"Allowed IP address ranges",
 	IpcpSetCommand, NULL, 2, (void *) SET_RANGES },
     { "enable [opt ...]",		"Enable option",
 	IpcpSetCommand, NULL, 2, (void *) SET_ENABLE},
@@ -188,8 +188,13 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("[%s] %s [%s]\r\n", Pref(fp), Fsm(fp), FsmStateName(fp->state));
   Printf("Allowed IP address ranges:\r\n");
-  Printf("\tSelf: %s\r\n",
-    u_rangetoa(&ipcp->conf.self_allow,buf,sizeof(buf)));
+    if (ipcp->conf.self_ippool[0]) {
+	Printf("\tPeer: ippool %s\r\n",
+	  ipcp->conf.self_ippool);
+    } else {
+	Printf("\tSelf: %s\r\n",
+	    u_rangetoa(&ipcp->conf.self_allow,buf,sizeof(buf)));
+    }
     if (ipcp->conf.ippool[0]) {
 	Printf("\tPeer: ippool %s\r\n",
 	  ipcp->conf.ippool);
@@ -296,17 +301,32 @@ IpcpConfigure(Fsm fp)
     ipcp->peer_reject = 0;
 
     /* Get allowed IP addresses from config and/or from current bundle */
-    ipcp->self_allow = ipcp->conf.self_allow;
+    if (ipcp->conf.self_ippool[0]) {
+	if (IPPoolGet(ipcp->conf.self_ippool, &ipcp->self_allow.addr)) {
+	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\" for self",
+		b->name, ipcp->conf.self_ippool));
+	} else {
+	    char buf[64];
+	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\" for self",
+		b->name,
+		u_addrtoa(&ipcp->self_allow.addr, buf, sizeof(buf)),
+		ipcp->conf.self_ippool));
+	    ipcp->self_allow.width = 32;
+	    ipcp->self_ippool_used = 1;
+	}
+    } else
+	ipcp->self_allow = ipcp->conf.self_allow;
+
     if ((b->params.range_valid) && (!u_rangeempty(&b->params.range)))
 	ipcp->peer_allow = b->params.range;
     else if (b->params.ippool[0]) {
 	/* Get IP from pool if needed */
 	if (IPPoolGet(b->params.ippool, &ipcp->peer_allow.addr)) {
-	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\"",
+	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\" for peer",
 		b->name, b->params.ippool));
 	} else {
 	    char buf[64];
-	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\"",
+	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\" for peer",
 		b->name,
 		u_addrtoa(&ipcp->peer_allow.addr, buf, sizeof(buf)),
 		b->params.ippool));
@@ -319,7 +339,7 @@ IpcpConfigure(Fsm fp)
 		b->name, ipcp->conf.ippool));
 	} else {
 	    char buf[64];
-	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\"",
+	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\" for peer",
 		b->name,
 		u_addrtoa(&ipcp->peer_allow.addr, buf, sizeof(buf)),
 		ipcp->conf.ippool));
@@ -363,6 +383,12 @@ IpcpUnConfigure(Fsm fp)
     Bund 	b = (Bund)fp->arg;
     IpcpState	const ipcp = &b->ipcp;
   
+    if (ipcp->self_ippool_used) {
+	struct u_addr ip;
+	in_addrtou_addr(&ipcp->want_addr, &ip);
+	IPPoolFree(ipcp->conf.self_ippool, &ip);
+	ipcp->self_ippool_used = 0;
+    }
     if (b->params.ippool_used) {
 	struct u_addr ip;
 	in_addrtou_addr(&ipcp->peer_addr, &ip);
@@ -928,19 +954,42 @@ IpcpSetCommand(Context ctx, int ac, char *av[], void *arg)
       {
 	struct u_range	self_new_allow;
 	struct u_range	peer_new_allow;
+	int pos = 0, self_new_pool = -1, peer_new_pool = -1;
 
 	/* Parse args */
-	if (ac == 2) {
-	    if (!ParseRange(av[0], &self_new_allow, ALLOW_IPV4)
-	      || !ParseRange(av[1], &peer_new_allow, ALLOW_IPV4))
-	    return(-1);
-	    ipcp->conf.ippool[0] = 0;
-	} else if (ac == 3 && strcmp(av[1], "ippool") == 0) {
-	    if (!ParseRange(av[0], &self_new_allow, ALLOW_IPV4))
+	if (ac < 2)
+	    return (-1);
+	if (strcmp(av[pos], "ippool") == 0) {
+	    self_new_pool = pos+1;
+	    pos+=2;
+	} else {
+	    if (!ParseRange(av[pos], &self_new_allow, ALLOW_IPV4))
 		return(-1);
-	    strlcpy(ipcp->conf.ippool, av[2], sizeof(ipcp->conf.ippool));
-	} else
-	    return(-1);
+	    pos++;
+	}
+	if (pos >= ac)
+	    return (-1);
+	if (strcmp(av[pos], "ippool") == 0) {
+	    if ((pos + 1) >= ac)
+		return (-1);
+	    peer_new_pool = pos+1;
+	    pos+=2;
+	} else {
+	    if (!ParseRange(av[pos], &peer_new_allow, ALLOW_IPV4))
+		return(-1);
+	    pos++;
+	}
+	if (pos != ac)
+	    return (-1);
+
+	if (self_new_pool >= 0)
+	    strlcpy(ipcp->conf.self_ippool, av[self_new_pool], sizeof(ipcp->conf.self_ippool));
+	else
+	    ipcp->conf.self_ippool[0] = 0;
+	if (peer_new_pool >= 0)
+	    strlcpy(ipcp->conf.ippool, av[peer_new_pool], sizeof(ipcp->conf.ippool));
+	else
+	    ipcp->conf.ippool[0] = 0;
 	ipcp->conf.self_allow = self_new_allow;
 	ipcp->conf.peer_allow = peer_new_allow;
 
