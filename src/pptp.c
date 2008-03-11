@@ -34,10 +34,6 @@
 
   #define PPTP_MRU		PPTP_MTU
 
-  #define PPTP_MAX_ERRORS	10
-
-  #define MAX_IOVEC		32
-
   #define PPTP_CALL_MIN_BPS	56000
   #define PPTP_CALL_MAX_BPS	64000
 

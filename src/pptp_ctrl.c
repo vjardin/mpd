@@ -147,8 +147,6 @@
   };
   typedef struct pptplis	*PptpLis;
 
-  #define MAX_IOVEC	32
-
   /* Our physical channel ID */
   #define PHYS_CHAN(ch)		(((ch)->ctrl->id << 16) | (ch)->id)
 

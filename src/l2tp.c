@@ -39,10 +39,6 @@
   
   #define L2TP_PORT		1701
 
-  #define L2TP_MAX_ERRORS	10
-
-  #define MAX_IOVEC		32
-
   #define L2TP_CALL_MIN_BPS	56000
   #define L2TP_CALL_MAX_BPS	64000
 
