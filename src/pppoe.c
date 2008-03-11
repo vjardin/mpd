@@ -266,14 +266,14 @@ PppoeOpen(Link l)
 		/* Connect ng_tee(4) node to the ng_ppp(4) node. */
 		if (!PhysGetUpperHook(l, cn.path, cn.peerhook)) {
 		    Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", l->name));
-		    goto fail2;
+		    goto fail3;
 		}
 		snprintf(cn.ourhook, sizeof(cn.ourhook), "right");
 		if (NgSendMsg(pe->PIf->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, 
 		    &cn, sizeof(cn)) < 0) {
 			Log(LG_ERR, ("[%s] PPPoE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
 	    		    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
-			goto fail2;
+			goto fail3;
 		}
 
 		/* Shutdown ng_tee node */
@@ -345,6 +345,8 @@ PppoeOpen(Link l)
 	strlcpy(pe->real_session, pe->session, sizeof(pe->real_session));
 	return;
 
+fail3:
+	snprintf(path, sizeof(path), "[%x]:", pe->PIf->node_id);
 fail2:
 	NgFuncDisconnect(pe->PIf->csock, l->name, path, session_hook);
 fail:	
