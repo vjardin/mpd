@@ -270,6 +270,8 @@ L2tpTShutdown(void)
 	    ppp_l2tp_ctrl_destroy(&tun->ctrl);
 	}
     }
+    ghash_destroy(&gL2tpServers);
+    ghash_destroy(&gL2tpTuns);
 }
 
 /*
