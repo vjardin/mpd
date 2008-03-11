@@ -331,6 +331,7 @@ DoExit(int code)
     Bund	b;
     Rep		r;
     Link	l;
+    PhysType	pt;
     int		k;
 
     gShutdownInProgress=1;
@@ -358,6 +359,12 @@ DoExit(int code)
     for (k = 0; k < gNumLinks; k++) {
 	if ((l = gLinks[k]) != NULL)
     	    LinkShutdown(l);
+    }
+
+    /* Shutdown device types. */
+    for (k = 0; (pt = gPhysTypes[k]); k++) {
+	if (pt->tshutdown)
+	    (pt->tshutdown)();
     }
 
     EcpsShutdown();

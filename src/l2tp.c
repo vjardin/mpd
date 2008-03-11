@@ -116,6 +116,7 @@
  */
 
   static int	L2tpTInit(void);
+  static void	L2tpTShutdown(void);
   static int	L2tpInit(Link l);
   static int	L2tpInst(Link l, Link lt);
   static void	L2tpOpen(Link l);
@@ -173,6 +174,7 @@
     .mru		= L2TP_MRU,
     .tmpl		= 1,
     .tinit		= L2tpTInit,
+    .tshutdown		= L2tpTShutdown,
     .init		= L2tpInit,
     .inst		= L2tpInst,
     .open		= L2tpOpen,
@@ -230,7 +232,6 @@ struct pppTimer L2tpListenUpdateTimer;
 
 struct ghash	*gL2tpServers;
 struct ghash	*gL2tpTuns;
-int		gNumL2tpLinks = 0;
 int		one = 1;
 
 /*
@@ -247,6 +248,28 @@ L2tpTInit(void)
 	  == NULL)
 	return(-1);
     return(0);
+}
+
+/*
+ * L2tpTShutdown()
+ */
+
+static void
+L2tpTShutdown(void)
+{
+    struct ghash_walk walk;
+    struct l2tp_tun *tun;
+
+    Log(LG_PHYS2, ("L2TP: Total shutdown"));
+    ghash_walk_init(gL2tpTuns, &walk);
+    while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
+        if (tun->ctrl) {
+    	    if (tun->alive)
+	        ppp_l2tp_ctrl_shutdown(tun->ctrl,
+		    L2TP_RESULT_SHUTDOWN, 0, NULL);
+	    ppp_l2tp_ctrl_destroy(&tun->ctrl);
+	}
+    }
 }
 
 /*
@@ -271,8 +294,6 @@ L2tpInit(Link l)
 
     Enable(&l2tp->conf.options, L2TP_CONF_DATASEQ);
   
-    gNumL2tpLinks++;
-  
     return(0);
 }
 
@@ -290,8 +311,6 @@ L2tpInst(Link l, Link lt)
 	if (pi->server)
 	    pi->server->refs++;
 	
-	gNumL2tpLinks++;
-  
 	return(0);
 }
 
@@ -643,23 +662,6 @@ L2tpClose(Link l)
 static void
 L2tpShutdown(Link l)
 {
-    gNumL2tpLinks--;
-
-    if (gNumL2tpLinks == 0) {
-	struct ghash_walk walk;
-	struct l2tp_tun *tun;
-
-	Log(LG_PHYS2, ("L2TP: Total shutdown"));
-	ghash_walk_init(gL2tpTuns, &walk);
-	while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
-	    if (tun->ctrl) {
-		if (tun->alive)
-		    ppp_l2tp_ctrl_shutdown(tun->ctrl,
-			L2TP_RESULT_SHUTDOWN, 0, NULL);
-		ppp_l2tp_ctrl_destroy(&tun->ctrl);
-	    }
-	}
-    }
     L2tpUnListen(l);
     Freee(l->info);
 }

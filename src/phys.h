@@ -31,6 +31,7 @@
     u_short	mtu, mru;			/* Not incl. addr/ctrl/fcs */
     int		tmpl;				/* This type is template, not an instance */
     int		(*tinit)(void);			/* Initialize device type info */
+    void	(*tshutdown)(void);		/* Destroy device type info */
     int		(*init)(Link l);		/* Initialize device info */
     int		(*inst)(Link l, Link lt);	/* Instantiate device */
     void	(*open)(Link l);		/* Initiate connection */
