@@ -91,6 +91,7 @@
  * INTERNAL FUNCTIONS
  */
 
+  static int	PptpTInit(void);
   static int	PptpInit(Link l);
   static int	PptpInst(Link l, Link lt);
   static void	PptpOpen(Link l);
@@ -109,7 +110,6 @@
   static int	PptpCallingNum(Link l, void *buf, size_t buf_len);
   static int	PptpCalledNum(Link l, void *buf, size_t buf_len);
 
-  static void	PptpInitCtrl(void);
   static int	PptpOriginate(Link l);
   static void	PptpDoClose(Link l);
   static void	PptpUnhook(Link l);
@@ -149,6 +149,7 @@
     .mtu		= PPTP_MTU,
     .mru		= PPTP_MRU,
     .tmpl		= 1,
+    .tinit		= PptpTInit,
     .init		= PptpInit,
     .inst		= PptpInst,
     .open		= PptpOpen,
@@ -189,7 +190,6 @@
  * INTERNAL VARIABLES
  */
 
-  static u_char			gInitialized;
   static struct confinfo	gConfList[] = {
     { 0,	PPTP_CONF_OUTCALL,	"outcall"	},
     { 0,	PPTP_CONF_DELAYED_ACK,	"delayed-ack"	},
@@ -199,6 +199,16 @@
 #endif
     { 0,	0,			NULL		},
   };
+
+/*
+ * PptpTInit()
+ */
+
+static int
+PptpTInit(void)
+{
+    return (PptpCtrlInit(PptpIncoming, PptpOutgoing));
+}
 
 /*
  * PptpInit()
@@ -215,10 +225,6 @@ PptpInit(Link l)
     pptp->conf.self_addr.family = AF_INET;
     Enable(&pptp->conf.options, PPTP_CONF_OUTCALL);
     Enable(&pptp->conf.options, PPTP_CONF_DELAYED_ACK);
-
-    /* Initialize first time */
-    if (!gInitialized)
-	PptpInitCtrl();
 
     return(0);
 }
@@ -583,20 +589,6 @@ PptpStat(Context ctx)
 	Printf("\tCalling number: %s\r\n", pptp->callingnum);
 	Printf("\tCalled number: %s\r\n", pptp->callednum);
     }
-}
-
-/*
- * PptpInitCtrl()
- */
-
-static void
-PptpInitCtrl(void)
-{
-    if (PptpCtrlInit(PptpIncoming, PptpOutgoing) < 0) {
-	Log(LG_ERR, ("PPTP ctrl init failed"));
-	return;
-    }
-    gInitialized = TRUE;
 }
 
 /*
