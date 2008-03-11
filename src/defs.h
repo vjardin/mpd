@@ -78,7 +78,6 @@
 
   #define PATH_IFCONFIG		"/sbin/ifconfig"
   #define PATH_ARP		"/usr/sbin/arp"
-  #define PATH_ROUTE		"/sbin/route"
   #define PATH_IPFW		"/sbin/ipfw"
   #define PATH_NETSTAT		"/usr/bin/netstat"
 
