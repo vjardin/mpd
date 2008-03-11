@@ -115,6 +115,7 @@
  * INTERNAL FUNCTIONS
  */
 
+  static int	L2tpTInit(void);
   static int	L2tpInit(Link l);
   static int	L2tpInst(Link l, Link lt);
   static void	L2tpOpen(Link l);
@@ -171,6 +172,7 @@
     .mtu		= L2TP_MTU,
     .mru		= L2TP_MRU,
     .tmpl		= 1,
+    .tinit		= L2tpTInit,
     .init		= L2tpInit,
     .inst		= L2tpInst,
     .open		= L2tpOpen,
@@ -226,11 +228,26 @@
 int L2tpListenUpdateSheduled = 0;
 struct pppTimer L2tpListenUpdateTimer;
 
-static u_char	gInitialized = 0;
 struct ghash	*gL2tpServers;
 struct ghash	*gL2tpTuns;
 int		gNumL2tpLinks = 0;
 int		one = 1;
+
+/*
+ * L2tpTInit()
+ */
+
+static int
+L2tpTInit(void)
+{
+    if ((gL2tpServers = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
+	  == NULL)
+	return(-1);
+    if ((gL2tpTuns = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
+	  == NULL)
+	return(-1);
+    return(0);
+}
 
 /*
  * L2tpInit()
@@ -240,16 +257,6 @@ static int
 L2tpInit(Link l)
 {
     L2tpInfo	l2tp;
-
-    if (!gInitialized) {
-	if ((gL2tpServers = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
-	  == NULL)
-	    return(-1);
-	if ((gL2tpTuns = ghash_create(NULL, 0, 0, MB_PHYS, NULL, NULL, NULL, NULL))
-	  == NULL)
-	    return(-1);
-	gInitialized = 1;
-    }
 
     /* Initialize this link */
     l2tp = (L2tpInfo) (l->info = Malloc(MB_PHYS, sizeof(*l2tp)));

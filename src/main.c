@@ -144,9 +144,10 @@
 int
 main(int ac, char *av[])
 {
-    int			ret;
+    int			ret, k;
     char		*args[MAX_ARGS];
     Context		c;
+    PhysType		pt;
 
     gPid=getpid();
 
@@ -210,6 +211,14 @@ main(int ac, char *av[])
     LinksInit();
     CcpsInit();
     EcpsInit();
+    
+    /* Init device types. */
+    for (k = 0; (pt = gPhysTypes[k]); k++) {
+	if (pt->tinit && (pt->tinit)()) {
+	    Log(LG_ERR, ("Device type '%s' initialization error.\n", pt->name));
+	    exit(EX_UNAVAILABLE);
+	}
+    }
 
     ret = pthread_mutex_init (&gGiantMutex, NULL);
     if (ret != 0) {
