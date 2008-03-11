@@ -12,11 +12,6 @@
  * DEFINITIONS
  */
 
-  #define MAX_EVENT_NAME	32
-  #define EVENT_MAGIC		0x3de80f67
-
-  #define MAXOF(x,y)		((x)>(y)?(x):(y))
-
   struct pevent_ctx	*gPeventCtx = NULL;
 
 /*
