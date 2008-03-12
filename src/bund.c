@@ -284,6 +284,8 @@ BundJoin(Link l)
     b = l->bund;
     bm = &b->bm;
 
+    Log(LG_LINK, ("[%s] Link: Join bundle \"%s\"", l->name, b->name));
+
     b->open = TRUE; /* Open bundle on incoming */
 
     if (LinkNgJoin(l)) {
@@ -388,6 +390,8 @@ BundLeave(Link l)
     /* Elvis has left the bundle */
     assert(b->n_up > 0);
   
+    Log(LG_LINK, ("[%s] Link: Leave bundle \"%s\"", l->name, b->name));
+
     AuthAccountStart(l, AUTH_ACCT_STOP);
 
     /* Disable link */

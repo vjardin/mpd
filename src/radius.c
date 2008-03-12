@@ -315,7 +315,7 @@ RadiusAccount(AuthData auth)
 	} else if (!strncmp(auth->info.downReason, STR_PORT_UNNEEDED, strlen(STR_PORT_UNNEEDED))) {
 	  termCause = RAD_TERM_PORT_UNNEEDED;
 	};
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_TERMINATE_CAUSE: %s, RADIUS: %d",
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_TERMINATE_CAUSE: %s, RADIUS: %d",
 	  auth->info.lnkname, auth->info.downReason, termCause));
 
         if (rad_put_int(auth->radius.handle, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
@@ -897,7 +897,7 @@ RadiusPutAuth(AuthData auth)
   struct mschapvalue		*mschapval;
   struct mschapv2value		*mschapv2val;  
 
-  Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_USER_NAME: %s", 
+  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_USER_NAME: %s", 
     auth->info.lnkname, auth->params.authname));
   if (rad_put_string(auth->radius.handle, RAD_USER_NAME, auth->params.authname) == -1) {
     Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_USER_NAME failed %s", 
@@ -915,7 +915,7 @@ RadiusPutAuth(AuthData auth)
 	  return (RAD_NACK);
 	}
 
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP_CHALLENGE",
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP_CHALLENGE",
 	  auth->info.lnkname));
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_CHALLENGE,
 	    cp->chal_data, cp->chal_len) == -1)  {
@@ -930,7 +930,7 @@ RadiusPutAuth(AuthData auth)
 	memcpy(rad_mschapval.lm_response, mschapval->lmHash, 24);
 	memcpy(rad_mschapval.nt_response, mschapval->ntHash, 24);
 
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP_RESPONSE",
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP_RESPONSE",
 	  auth->info.lnkname));
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP_RESPONSE,
 	    &rad_mschapval, sizeof(rad_mschapval)) == -1)  {
@@ -947,7 +947,7 @@ RadiusPutAuth(AuthData auth)
 	  return (RAD_NACK);
 	}
       
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP_CHALLENGE",
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP_CHALLENGE",
 	  auth->info.lnkname));
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT,
 	    RAD_MICROSOFT_MS_CHAP_CHALLENGE, cp->chal_data, cp->chal_len) == -1) {
@@ -966,7 +966,7 @@ RadiusPutAuth(AuthData auth)
 	memcpy(rad_mschapv2val.pchallenge, mschapv2val->peerChal,
 	  sizeof(rad_mschapv2val.pchallenge));
 
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP2_RESPONSE",
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MICROSOFT_MS_CHAP2_RESPONSE",
 	  auth->info.lnkname));
 	if (rad_put_vendor_attr(auth->radius.handle, RAD_VENDOR_MICROSOFT, RAD_MICROSOFT_MS_CHAP2_RESPONSE,
 	    &rad_mschapv2val, sizeof(rad_mschapv2val)) == -1)  {
@@ -980,14 +980,14 @@ RadiusPutAuth(AuthData auth)
 	/* RADIUS requires the CHAP Ident in the first byte of the CHAP-Password */
 	rad_chapval.ident = auth->id;
 	memcpy(rad_chapval.response, cp->value, cp->value_len);
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CHAP_CHALLENGE",
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CHAP_CHALLENGE",
 	  auth->info.lnkname));
 	if (rad_put_attr(auth->radius.handle, RAD_CHAP_CHALLENGE, cp->chal_data, cp->chal_len) == -1) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CHAP_CHALLENGE failed %s",
 	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
 	  return (RAD_NACK);
 	}
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CHAP_PASSWORD",
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CHAP_PASSWORD",
 	  auth->info.lnkname));
 	if (rad_put_attr(auth->radius.handle, RAD_CHAP_PASSWORD, &rad_chapval, cp->value_len + 1) == -1) {
 	  Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CHAP_PASSWORD failed %s",

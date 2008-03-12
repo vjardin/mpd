@@ -1090,7 +1090,8 @@ AuthAsync(void *arg)
     auth->params.authentic = AUTH_CONF_EXT_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying EXTERNAL", auth->info.lnkname));
     AuthExternal(auth);
-    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned %s", auth->info.lnkname, AuthStatusText(auth->status)));
+    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned: %s",
+      auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
 	return;
@@ -1104,7 +1105,7 @@ AuthAsync(void *arg)
     auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", auth->info.lnkname));
     RadiusAuthenticate(auth);
-    Log(LG_AUTH, ("[%s] AUTH: RADIUS returned %s", 
+    Log(LG_AUTH, ("[%s] AUTH: RADIUS returned: %s", 
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS)
       return;
@@ -1114,7 +1115,7 @@ AuthAsync(void *arg)
     auth->params.authentic = AUTH_CONF_PAM_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying PAM", auth->info.lnkname));
     AuthPAM(auth);
-    Log(LG_AUTH, ("[%s] AUTH: PAM returned %s", 
+    Log(LG_AUTH, ("[%s] AUTH: PAM returned: %s", 
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
@@ -1125,7 +1126,7 @@ AuthAsync(void *arg)
     auth->params.authentic = AUTH_CONF_SYSTEM_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying SYSTEM", auth->info.lnkname));
     AuthSystem(auth);
-    Log(LG_AUTH, ("[%s] AUTH: SYSTEM returned %s", 
+    Log(LG_AUTH, ("[%s] AUTH: SYSTEM returned: %s", 
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
@@ -1136,7 +1137,7 @@ AuthAsync(void *arg)
     auth->params.authentic = AUTH_CONF_OPIE;
     Log(LG_AUTH, ("[%s] AUTH: Trying OPIE", auth->info.lnkname));
     AuthOpie(auth);
-    Log(LG_AUTH, ("[%s] AUTH: OPIE returned %s", 
+    Log(LG_AUTH, ("[%s] AUTH: OPIE returned: %s", 
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
@@ -1147,7 +1148,7 @@ AuthAsync(void *arg)
     auth->params.authentic = AUTH_CONF_INTERNAL;
     Log(LG_AUTH, ("[%s] AUTH: Trying INTERNAL", auth->info.lnkname));
     AuthInternal(auth);
-    Log(LG_AUTH, ("[%s] AUTH: INTERNAL returned %s", 
+    Log(LG_AUTH, ("[%s] AUTH: INTERNAL returned: %s", 
       auth->info.lnkname, AuthStatusText(auth->status)));
     if (auth->status == AUTH_STATUS_SUCCESS 
       || auth->status == AUTH_STATUS_UNDEF)
