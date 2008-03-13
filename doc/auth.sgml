@@ -188,6 +188,8 @@ set radius server <em>name</em> <em>secret</em> [ <em>auth-port</em> [ <em>acct-
 
 Configure RADIUS server parameters. Multiple RADIUS servers may be configured 
 by repeating this command, and up to 10 servers may be specified.
+If one of auth/acct ports specified as 0, it will not be used for requests
+of that type.
 
 <tag><tt>
 set radius timeout <em>seconds</em>

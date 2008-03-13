@@ -520,27 +520,30 @@ RadiusAddServer(AuthData auth, short request_type)
   i = 1;
   while (s) {
 
-    Log(LG_RADIUS2, ("[%s] RADIUS: Adding server %s", auth->info.lnkname, s->hostname));
     if (request_type == RAD_ACCESS_REQUEST) {
-      if (rad_add_server (auth->radius.handle, s->hostname,
-	s->auth_port,
-	s->sharedsecret,
-	c->radius_timeout,
-	c->radius_retries) == -1) {
-	  Log(LG_RADIUS, ("[%s] RADIUS: Adding server error: %s", auth->info.lnkname,
-	    rad_strerror(auth->radius.handle)));
-	  return (RAD_NACK);
+      if (s->auth_port != 0) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Adding server %s %d", auth->info.lnkname, s->hostname, s->auth_port));
+        if (rad_add_server (auth->radius.handle, s->hostname,
+	    s->auth_port,
+	    s->sharedsecret,
+	    c->radius_timeout,
+	    c->radius_retries) == -1) {
+		Log(LG_RADIUS, ("[%s] RADIUS: Adding server error: %s", auth->info.lnkname,
+		    rad_strerror(auth->radius.handle)));
+		return (RAD_NACK);
+        }
       }
-    } else {
-      if (rad_add_server (auth->radius.handle, s->hostname,
-	s->acct_port,
-	s->sharedsecret,
-	c->radius_timeout,
-	c->radius_retries) == -1) {
-	  Log(LG_RADIUS, ("[%s] RADIUS: Adding server error: %s", auth->info.lnkname, 
-	    rad_strerror(auth->radius.handle)));
-	  return (RAD_NACK);
-      }
+    } else if (s->acct_port != 0) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Adding server %s %d", auth->info.lnkname, s->hostname, s->acct_port));
+        if (rad_add_server (auth->radius.handle, s->hostname,
+	    s->acct_port,
+	    s->sharedsecret,
+	    c->radius_timeout,
+	    c->radius_retries) == -1) {
+		Log(LG_RADIUS, ("[%s] RADIUS: Adding server error: %s", auth->info.lnkname, 
+		    rad_strerror(auth->radius.handle)));
+		return (RAD_NACK);
+        }
     }
 
     s = s->next;
@@ -584,22 +587,35 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	server->acct_port = 1813;
 	server->next = NULL;
 
-	if (strlen(av[0]) > 255)
-	  Error("Hostname too long. > 255 char.");
+	if (strlen(av[0]) > 255) {
+	    Freee(server);
+	    Error("Hostname too long. > 255 char.");
+	}
 
-	if (strlen(av[1]) > 127)
-	  Error("Shared Secret too long. > 127 char.");
+	if (strlen(av[1]) > 127) {
+	    Freee(server);
+	    Error("Shared Secret too long. > 127 char.");
+	}
 
-	if (ac > 2 && atoi(av[2]) < 65535 && atoi(av[2]) > 1) {
-	  server->auth_port = atoi (av[2]);
+	if (ac > 2 && atoi(av[2]) < 65535 && atoi(av[2]) >= 0) {
+	    server->auth_port = atoi (av[2]);
 
-	} else if ( ac > 2 )
-	  Error("Auth Port number too high. > 65535");
+	} else if ( ac > 2 ) {
+	    Freee(server);
+	    Error("Auth Port number too high. > 65535");
+	}
 
-	if (ac > 3 && atoi(av[3]) < 65535 && atoi(av[3]) > 1) {
-	  server->acct_port = atoi (av[3]);
-	} else if ( ac > 3 )
-	  Error("Acct Port number too high > 65535");
+	if (ac > 3 && atoi(av[3]) < 65535 && atoi(av[3]) >= 0) {
+	    server->acct_port = atoi (av[3]);
+	} else if ( ac > 3 ) {
+	    Freee(server);
+	    Error("Acct Port number too high > 65535");
+	}
+
+	if (server->auth_port == 0 && server->acct_port == 0) {
+	    Freee(server);
+	    Error("At least one port must be specified.");
+	}
 
 	server->hostname = Mstrdup(MB_RADIUS, av[0]);
 	server->sharedsecret = Mstrdup(MB_RADIUS, av[1]);

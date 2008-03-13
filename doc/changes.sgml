@@ -10,7 +10,7 @@
     <itemize>
 	<item> New features:
 	<itemize>
-	  <item> Added support for NS specific RADIUS attributes from RFC 2548.
+	  <item> Added support for NS-related RADIUS attributes from RFC 2548.
 	  </item>
 	  <item> Added global max-children option.
 	  </item>
@@ -27,6 +27,10 @@
 		 RADIUS attributes.
 	  </item>
 	  <item> Added support for local side IP management using IP pools.
+	  </item>
+	  <item> Added support for auth/acct-only RADIUS servers.
+		 It allows to specify different servers for authentication
+		 and accounting in mpd configuration file.
 	  </item>
 	</itemize>
 	</item>
@@ -48,13 +52,11 @@
 	  </item>
 	  <item> Added missing multilink parameters check in BundJoin().
 	  </item>
-	  <item> Fixed PPPoE connection accept error handeling.
-	  </item>
 	  <item> Fixed sending of incoming traffic typed accounting on accounting stop.
 	  </item>
-	  <item> Fixed proxy-arp MAC when more then one interface matches.
+	  <item> Fixed using correct proxy-arp MAC when more then one interface matches.
 	  </item>
-	  <item> Fixed some L2TP errors processing.
+	  <item> Fixed some L2TP and PPPoE errors processing.
 	  </item>
 	</itemize>
 	</item>
