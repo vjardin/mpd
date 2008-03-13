@@ -350,7 +350,7 @@ fail3:
 fail2:
 	NgFuncDisconnect(pe->PIf->csock, l->name, path, session_hook);
 fail:	
-	PhysDown(l, STR_CON_FAILED0, NULL);
+	PhysDown(l, STR_ERROR, NULL);
 	return;
 }
 

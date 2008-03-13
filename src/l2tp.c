@@ -620,7 +620,7 @@ fail:
 		Freee(tun);
 	}
 	l->state = PHYS_STATE_DOWN;
-	PhysDown(l, STR_DEV_NOT_READY, NULL);
+	PhysDown(l, STR_ERROR, NULL);
 }
 
 /*

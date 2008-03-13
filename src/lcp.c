@@ -515,7 +515,7 @@ LcpAuthResult(Link l, int success)
       LcpNewPhase(l, PHASE_NETWORK);
   } else {
     RecordLinkUpDownReason(NULL, l, 0, STR_LOGIN_FAIL,
-      "%s", STR_PPP_AUTH_FAILURE2);
+      "%s", STR_PPP_AUTH_FAILURE);
     FsmFailure(&l->lcp.fsm, FAIL_NEGOT_FAILURE);
   }
 }

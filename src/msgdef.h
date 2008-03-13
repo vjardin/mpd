@@ -20,7 +20,6 @@
 #define STR_CON_FAILED		"Connection failed: %s"
 #define STR_DROPPED		"Dropped"
 #define STR_PEER_DISC		"Peer disconnect"
-#define STR_CONN_ESTAB		"Network connection established."
 #define STR_PROTO_ERR		"Protocol error"
 #define STR_LOGIN_FAIL		"Login failed"
 #define STR_ECHO_TIMEOUT	"Echo timeout"
@@ -29,7 +28,6 @@
 #define STR_ADMIN_SHUTDOWN	"Admin shutdown"
 #define STR_FATAL_SHUTDOWN	"Fatal shutdown"
 #define STR_INCOMING_CALL	"Incoming call"
-#define STR_PPP_DISABLED	"Port disabled."
 #define STR_ERROR		"Error"
 #define STR_PORT_NEEDED		"Increased demand"
 #define STR_PORT_UNNEEDED	"Decreased demand"
@@ -50,14 +48,4 @@
 #define STR_DEV_NOT_READY	"Device not ready"
 
 #define STR_PPP_AUTH_FAILURE	"PPP authorization failed."
-#define STR_PPP_AUTH_FAILURE2	"PPP authorization failed. The login or password configured for this port was not accepted by the server."
 #define STR_MULTI_FAIL		"Multi-link PPP negotiation failure."
-
-#define STR_LINK_ESTAB		"Establishing link..."
-#define STR_LINK_AUTH		"Authenticating..."
-#define STR_LINK_NEGOT		"Negotiating network addresses..."
-#define STR_LINK_CONN_ESTAB	"Network connection established."
-#define STR_LINK_HANGUP		"Hanging up..."
-#define STR_LINK_DISCON		"Disconnected."
-
-
