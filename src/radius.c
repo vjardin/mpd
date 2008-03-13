@@ -1176,7 +1176,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 	/* libradius already checks the message-authenticator, so simply ignore it */
       case RAD_MESSAGE_AUTHENTIC:
-	Log(LG_RADIUS, ("[%s] RADIUS: Get RAD_MESSAGE_AUTHENTIC", auth->info.lnkname));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MESSAGE_AUTHENTIC", auth->info.lnkname));
 	continue;
 
       case RAD_EAP_MESSAGE:
@@ -1703,7 +1703,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	/* sanity check, this happens when FreeRADIUS has no msoft-dictionary loaded */
 	if (auth->proto == PROTO_CHAP && auth->alg == CHAP_ALG_MSOFTv2
 		&& auth->mschapv2resp == NULL && auth->mschap_error == NULL) {
-	    Log(LG_RADIUS, ("[%s] RADIUS: PANIC no MS-CHAPv2 response received!",
+	    Log(LG_RADIUS, ("[%s] RADIUS: PANIC no MS-CHAP2-Success or MS-CHAP-Error received!",
     	    auth->info.lnkname));
 	    return RAD_NACK;
 	}
