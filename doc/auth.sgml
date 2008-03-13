@@ -543,7 +543,8 @@ MS-CHAP auth only.
 In reply script may specify any combination of attributes it needs. 
 The only mandatory attribute in Access-Response is RESULT. RESULT must
 be one of SUCCESS, UNDEF or FAIL. RESULT UNDEF means that mpd should
-authenticate user itself using USER_PASSWORD attribute supplied by script.
+authenticate user itself using USER_PASSWORD/USER_NT_HASH attribute
+supplied by script.
 
 For description of most attributes look their RADIUS alternatives.
 
