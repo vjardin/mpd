@@ -85,8 +85,8 @@ PapSendRequest(Link l)
 	strlcpy(password, l->lcp.auth.conf.password, sizeof(password));
     } else if (AuthGetData(l->lcp.auth.conf.authname, password, 
 	    sizeof(password), NULL, NULL) < 0) {
-	Log(LG_AUTH, (" Warning: no secret for \"%s\" found", 
-	    l->lcp.auth.conf.authname));
+	Log(LG_AUTH, ("[%s] PAP: Warning: no secret for \"%s\" found", 
+	    l->name, l->lcp.auth.conf.authname));
     }
 
     /* Build response packet */
@@ -213,7 +213,7 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
   return;
 
 error:
-    Log(LG_AUTH, (" Bad PAP packet"));
+    Log(LG_AUTH, ("[%s] PAP: Bad PAP packet", l->name));
     auth->why_fail = AUTH_FAIL_INVALID_PACKET;
     AuthFailMsg(auth, failMesg, sizeof(failMesg));
     AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, (u_char *)failMesg, strlen(failMesg), 1, 0);
@@ -245,7 +245,7 @@ void PapInputFinish(Link l, AuthData auth)
   /* Do name & password match? */
   if (strcmp(a->params.authname, pap->peer_name) ||
       strcmp(a->params.password, pap->peer_pass)) {
-    Log(LG_AUTH, (" Invalid response"));
+    Log(LG_AUTH, ("[%s] PAP: Invalid response", l->name));
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     goto badRequest;
   }
@@ -257,7 +257,7 @@ badRequest:
     char        failMesg[64];
 
     Mesg = AuthFailMsg(auth, failMesg, sizeof(failMesg));
-    Log(LG_AUTH, (" Reply message: %s", Mesg));
+    Log(LG_AUTH, ("[%s] PAP: Reply message: %s", l->name, Mesg));
     AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);  
@@ -266,13 +266,13 @@ badRequest:
   
 goodRequest:
   /* Login accepted */
-  Log(LG_AUTH, (" Response is valid"));
+  Log(LG_AUTH, ("[%s] PAP: Response is valid", l->name));
   if (auth->reply_message) {
     Mesg = auth->reply_message;
   } else {
     Mesg = AUTH_MSG_WELCOME;
   }
-  Log(LG_AUTH, (" Reply message: %s", Mesg));
+  Log(LG_AUTH, ("[%s] PAP: Reply message: %s", l->name, Mesg));
   AuthOutput(l, PROTO_PAP, PAP_ACK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
   AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);  
   AuthDataDestroy(auth);
