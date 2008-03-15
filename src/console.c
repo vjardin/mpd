@@ -623,6 +623,9 @@ success:
         cs->write(cs, "\a");
         break;
       }
+      
+      if (c < 32)
+        break;
 
       if (cs->state != STATE_PASSWORD)
  	cs->write(cs, "%c", c);
