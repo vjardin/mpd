@@ -262,7 +262,7 @@ DeflateDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
   /* Sanity check */
   if (opt->len != 4) {
-    Log(LG_CCP, ("   bogus length %d", opt->len));
+    Log(LG_CCP, ("[%s]     bogus length %d", b->name, opt->len));
     if (mode == MODE_REQ)
       FsmRej(fp, opt);
     return;
@@ -276,7 +276,7 @@ DeflateDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
   chk = o&0x0003;
 
   /* Display it */
-  Log(LG_CCP, ("   0x%04x: w:%d, m:%d, c:%d", o, window, method, chk));
+  Log(LG_CCP, ("[%s]     0x%04x: w:%d, m:%d, c:%d", b->name, o, window, method, chk));
 
   /* Deal with it */
   switch (mode) {

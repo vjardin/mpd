@@ -1159,7 +1159,7 @@ TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
  */
 
 void
-ShowMesg(int log, const char *buf, int len)
+ShowMesg(int log, const char *pref, const char *buf, int len)
 {
   char	*s, mesg[256];
 
@@ -1170,7 +1170,7 @@ ShowMesg(int log, const char *buf, int len)
     memcpy(mesg, buf, len);
     mesg[len] = 0;
     for (s = strtok(mesg, "\r\n"); s; s = strtok(NULL, "\r\n"))
-      Log(log, (" MESG: %s", s));
+      Log(log, ("[%s]   MESG: %s", pref, s));
   }
 }
 

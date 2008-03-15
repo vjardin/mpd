@@ -320,12 +320,12 @@ DesDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
   if (opt->len != 10)
   {
-    Log(LG_ECP, ("   bogus length %d", opt->len));
+    Log(LG_ECP, ("[%s]   bogus length %d", b->name, opt->len));
     if (mode == MODE_REQ)
       FsmRej(fp, opt);
     return;
   }
-  Log(LG_ECP, ("   nonce 0x%08lx%08lx",
+  Log(LG_ECP, ("[%s]   nonce 0x%08lx%08lx", b->name,
     (unsigned long)ntohl(((u_int32_t *) opt->data)[0]),
     (unsigned long)ntohl(((u_int32_t *) opt->data)[1])));
   switch (mode)

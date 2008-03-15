@@ -288,7 +288,7 @@ Ipv6cpLayerUp(Fsm fp)
   Ipv6cpState		const ipv6cp = &b->ipv6cp;
 
   /* Report */
-  Log(fp->log, ("  %04x:%04x:%04x:%04x -> %04x:%04x:%04x:%04x", 
+  Log(fp->log, ("[%s]   %04x:%04x:%04x:%04x -> %04x:%04x:%04x:%04x", b->name,
     ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]),
     ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3])));
 
@@ -411,23 +411,23 @@ Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     FsmOptInfo	const oi = FsmFindOptInfo(gIpv6cpConfOpts, opt->type);
 
     if (!oi) {
-      Log(LG_IPV6CP, (" UNKNOWN[%d] len=%d", opt->type, opt->len));
+      Log(LG_IPV6CP, ("[%s]   UNKNOWN[%d] len=%d", b->name, opt->type, opt->len));
       if (mode == MODE_REQ)
 	FsmRej(fp, opt);
       continue;
     }
     if (!oi->supported) {
-      Log(LG_IPV6CP, (" %s", oi->name));
+      Log(LG_IPV6CP, ("[%s]   %s", b->name, oi->name));
       if (mode == MODE_REQ) {
-	Log(LG_IPV6CP, ("   Not supported"));
+	Log(LG_IPV6CP, ("[%s]     Not supported", b->name));
 	FsmRej(fp, opt);
       }
       continue;
     }
     if (opt->len < oi->minLen + 2 || opt->len > oi->maxLen + 2) {
-      Log(LG_IPV6CP, (" %s", oi->name));
+      Log(LG_IPV6CP, ("[%s]   %s", b->name, oi->name));
       if (mode == MODE_REQ) {
-	Log(LG_IPV6CP, ("   bogus len=%d min=%d max=%d", opt->len, oi->minLen + 2, oi->maxLen + 2));
+	Log(LG_IPV6CP, ("[%s]     bogus len=%d min=%d max=%d", b->name, opt->len, oi->minLen + 2, oi->maxLen + 2));
 	FsmRej(fp, opt);
       }
       continue;
@@ -435,27 +435,28 @@ Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     switch (opt->type) {
       case TY_INTIDENT:
 	{
-	  Log(LG_IPV6CP2, (" %s %04x:%04x:%04x:%04x", oi->name, ntohs(((u_short*)opt->data)[0]), ntohs(((u_short*)opt->data)[1]), ntohs(((u_short*)opt->data)[2]), ntohs(((u_short*)opt->data)[3])));
+	  Log(LG_IPV6CP2, ("[%s]   %s %04x:%04x:%04x:%04x", b->name, oi->name,
+	    ntohs(((u_short*)opt->data)[0]), ntohs(((u_short*)opt->data)[1]), ntohs(((u_short*)opt->data)[2]), ntohs(((u_short*)opt->data)[3])));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if ((((u_int32_t*)opt->data)[0]==0) && (((u_int32_t*)opt->data)[1]==0)) {
-		Log(LG_IPV6CP2, ("   Empty INTIDENT, propose our."));
+		Log(LG_IPV6CP2, ("[%s]     Empty INTIDENT, propose our.", b->name));
 		CreateInterfaceID(ipv6cp->hisintid, 1);
 	        memcpy(opt->data, ipv6cp->hisintid, 8);
 	        FsmNak(fp, opt);
 	      } else if ((((u_int32_t*)opt->data)[0]==((u_int32_t*)ipv6cp->myintid)[0]) && (((u_int32_t*)opt->data)[1]==((u_int32_t*)ipv6cp->myintid)[1])) {
-		Log(LG_IPV6CP2, ("   Duplicate INTIDENT, generate and propose other."));
+		Log(LG_IPV6CP2, ("[%s]     Duplicate INTIDENT, generate and propose other.", b->name));
 		CreateInterfaceID(ipv6cp->hisintid, 1);
 	        memcpy(opt->data, ipv6cp->hisintid, 8);
 	        FsmNak(fp, opt);
 	      } else {
-		Log(LG_IPV6CP2, ("   It's OK."));
+		Log(LG_IPV6CP2, ("[%s]     It's OK.", b->name));
 	        memcpy(ipv6cp->hisintid, opt->data, 8);
 	        FsmAck(fp, opt);
 	      }
 	      break;
 	    case MODE_NAK:
-		Log(LG_IPV6CP2, ("   I agree to get this to myself."));
+		Log(LG_IPV6CP2, ("[%s]     I agree to get this to myself.", b->name));
 	        memcpy(ipv6cp->myintid, opt->data, 8);
 	      break;
 	    case MODE_REJ:

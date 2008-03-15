@@ -395,14 +395,14 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
   /* Sanity check */
   if (opt->len != 6) {
-    Log(LG_CCP, ("   bogus length %d", opt->len));
+    Log(LG_CCP, ("[%s]     bogus length %d", b->name, opt->len));
     if (mode == MODE_REQ)
       FsmRej(fp, opt);
     return;
   }
 
   /* Display it */
-  Log(LG_CCP, ("   0x%08x:%s", bits, MppcDescribeBits(bits, buf, sizeof(buf))));
+  Log(LG_CCP, ("[%s]     0x%08x:%s", b->name, bits, MppcDescribeBits(bits, buf, sizeof(buf))));
 
   /* Deal with it */
   switch (mode) {
@@ -410,7 +410,7 @@ MppcDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
 
       /* Check for supported bits */
       if (bits & ~MPPC_SUPPORTED) {
-	Log(LG_CCP, ("   Bits 0x%08x not supported", bits & ~MPPC_SUPPORTED));
+	Log(LG_CCP, ("[%s]     Bits 0x%08x not supported", b->name, bits & ~MPPC_SUPPORTED));
 	bits &= MPPC_SUPPORTED;
       }
 
@@ -509,9 +509,9 @@ MppcDescribeBits(u_int32_t bits, char *buf, size_t len)
 {
   *buf = 0;
   if (bits & MPPC_BIT)
-    snprintf(buf + strlen(buf), len - strlen(buf), "MPPC, ");
+    snprintf(buf + strlen(buf), len - strlen(buf), "MPPC");
   if (bits & MPPE_BITS) {
-    snprintf(buf + strlen(buf), len - strlen(buf), "MPPE(");
+    snprintf(buf + strlen(buf), len - strlen(buf), "%sMPPE(", (*buf)?", ":"");
     if (bits & MPPE_40) {
       snprintf(buf + strlen(buf), len - strlen(buf), "40");
       if (bits & (MPPE_56|MPPE_128))
@@ -524,10 +524,10 @@ MppcDescribeBits(u_int32_t bits, char *buf, size_t len)
     }
     if (bits & MPPE_128)
       snprintf(buf + strlen(buf), len - strlen(buf), "128");
-    snprintf(buf + strlen(buf), len - strlen(buf), " bits), ");
+    snprintf(buf + strlen(buf), len - strlen(buf), " bits)");
   }
   if (bits & MPPE_STATELESS)
-    snprintf(buf + strlen(buf), len - strlen(buf), "stateless");
+    snprintf(buf + strlen(buf), len - strlen(buf), "%sstateless", (*buf)?", ":"");
   return(buf);
 }
 

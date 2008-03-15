@@ -80,7 +80,7 @@
 				__printflike(3, 4);
   extern int		ExecCmdNosh(int log, const char *label, const char *fmt, ...)
 				__printflike(3, 4);
-  extern void		ShowMesg(int log, const char *buf, int len);
+  extern void		ShowMesg(int log, const char *pref, const char *buf, int len);
   extern char		*Bin2Hex(const unsigned char *bin, size_t len);
   extern u_char		*Hex2Bin(char *hexstr);
   extern u_short	Crc16(u_short fcs, u_char *cp, int len);

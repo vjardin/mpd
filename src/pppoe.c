@@ -661,8 +661,8 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	if (iface[strlen(iface) - 1] == ':')
 		iface[strlen(iface) - 1] = '\0';
 	if (ExecCmdNosh(LG_PHYS2, iface, "%s %s up", PATH_IFCONFIG, iface) != 0) {
-		Log(LG_ERR, ("[%s] can't bring up interface %s",
-		    iface, iface));
+		Log(LG_ERR, ("PPPoE: can't bring up interface %s",
+		    iface));
 		return (0);
 	}
 
@@ -682,7 +682,7 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 		/* Ask for a list of available node types. */
 		if (NgSendMsg(PIf->csock, "", NGM_GENERIC_COOKIE, NGM_LISTTYPES,
 		    NULL, 0) < 0) {
-			Log(LG_ERR, ("[%s] Cannot send a netgraph message: %s",
+			Log(LG_ERR, ("[%s] PPPoE: Cannot send a netgraph message: %s",
 			    iface, strerror(errno)));
 			close(PIf->csock);
 			close(PIf->dsock);
@@ -692,7 +692,7 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 		/* Get response. */
 		resp = (struct ng_mesg *)rbuf;
 		if (NgRecvMsg(PIf->csock, resp, sizeof(rbuf), NULL) <= 0) {
-			Log(LG_ERR, ("[%s] Cannot get netgraph response: %s",
+			Log(LG_ERR, ("[%s] PPPoE: Cannot get netgraph response: %s",
 			    iface, strerror(errno)));
 			close(PIf->csock);
 			close(PIf->dsock);

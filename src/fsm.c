@@ -656,7 +656,7 @@ FsmRecvConfigAck(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   /* Check sequence number */
   if (lhp->id != (u_char) (fp->reqid - 1)) {
-    Log(fp->log, (" Wrong id#, expecting %d", (u_char) (fp->reqid - 1)));
+    Log(fp->log, ("[%s]   Wrong id#, expecting %d", Pref(fp), (u_char) (fp->reqid - 1)));
     mbfree(bp);
     return;
   }
@@ -712,7 +712,7 @@ FsmRecvConfigNak(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   /* Check sequence number */
   if (lhp->id != (u_char) (fp->reqid - 1)) {
-    Log(fp->log, (" Wrong id#, expecting %d", (u_char) (fp->reqid - 1)));
+    Log(fp->log, ("[%s]   Wrong id#, expecting %d", Pref(fp), (u_char) (fp->reqid - 1)));
     mbfree(bp);
     return;
   }
@@ -776,7 +776,7 @@ FsmRecvConfigRej(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   /* Check sequence number */
   if (lhp->id != (u_char) (fp->reqid - 1)) {
-    Log(fp->log, (" Wrong id#, expecting %d", (u_char) (fp->reqid - 1)));
+    Log(fp->log, ("[%s]   Wrong id#, expecting %d", Pref(fp), (u_char) (fp->reqid - 1)));
     mbfree(bp);
     return;
   }
@@ -1148,7 +1148,7 @@ FsmSendIdent(Fsm fp, const char *ident)
 
   /* Send it */
   Log(LG_FSM, ("[%s] %s: SendIdent #%d", Pref(fp), Fsm(fp), fp->echoid));
-  ShowMesg(LG_FSM, ident, len);
+  ShowMesg(LG_FSM, Pref(fp), ident, len);
   FsmOutputMbuf(fp, CODE_IDENT, fp->echoid++, bp);
 }
 
@@ -1175,7 +1175,7 @@ FsmSendTimeRemaining(Fsm fp, u_int seconds)
 
   /* Send it */
   Log(LG_FSM, ("[%s] %s: SendTimeRemaining #%d", Pref(fp), Fsm(fp), fp->echoid));
-  Log(LG_FSM, (" %u seconds remain", seconds));
+  Log(LG_FSM, ("[%s]   %u seconds remain", Pref(fp), seconds));
   FsmOutputMbuf(fp, CODE_TIMEREM, fp->echoid++, bp);
 }
 
@@ -1239,7 +1239,7 @@ FsmRecvIdent(Fsm fp, FsmHeader lhp, Mbuf bp)
 {
     bp = FsmCheckMagic(fp, bp);
     if (bp)
-        ShowMesg(fp->log, (char *) MBDATA(bp), MBLEN(bp));
+        ShowMesg(fp->log, Pref(fp), (char *) MBDATA(bp), MBLEN(bp));
     if (fp->type->RecvIdent)
 	(*fp->type->RecvIdent)(fp, bp);
     mbfree(bp);
@@ -1270,7 +1270,7 @@ FsmRecvTimeRemain(Fsm fp, FsmHeader lhp, Mbuf bp)
 	u_int32_t	remain = 0;
 	mbcopy(bp, 0, &remain, sizeof(remain));
 	remain = ntohl(remain);
-	Log(fp->log, (" %u seconds remain", remain));
+	Log(fp->log, ("[%s]   %u seconds remain", Pref(fp), remain));
     }
     if (fp->type->RecvTimeRemain)
 	(*fp->type->RecvTimeRemain)(fp, bp);

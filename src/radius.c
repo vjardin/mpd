@@ -1209,13 +1209,13 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  
 	if (strcmp(inet_ntoa(ip), "255.255.255.255") == 0) {
 	  /* the peer can choose an address */
-	  Log(LG_RADIUS2, (" the peer can choose an address"));
+	  Log(LG_RADIUS2, ("[%s]   the peer can choose an address", auth->info.lnkname));
 	  ip.s_addr=0;
 	  in_addrtou_range(&ip, 0, &auth->params.range);
 	  auth->params.range_valid = 1;
 	} else if (strcmp(inet_ntoa(ip), "255.255.255.254") == 0) {
 	  /* we should choose the ip */
-	  Log(LG_RADIUS2, (" we should choose an address"));
+	  Log(LG_RADIUS2, ("[%s]   we should choose an address", auth->info.lnkname));
 	  auth->params.range_valid = 0;
 	} else {
 	  /* or use IP from Radius-server */

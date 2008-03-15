@@ -1274,7 +1274,8 @@ AuthSystem(AuthData auth)
         || auth->alg == CHAP_ALG_MSOFTv2)) {
 
     if (!strstr(pwc.pw_passwd, "$3$$")) {
-      Log(LG_AUTH, (" Password has the wrong format, nth ($3$) is needed"));
+      Log(LG_AUTH, ("[%s] AUTH: Password has the wrong format, nth ($3$) is needed",
+    	    auth->info.lnkname));
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
       return;
@@ -1289,7 +1290,8 @@ AuthSystem(AuthData auth)
     return;
 
   } else {
-    Log(LG_ERR, (" Using systems password database only possible for PAP and MS-CHAP"));
+    Log(LG_ERR, ("[%s] AUTH: Using systems password database only possible for PAP and MS-CHAP",
+	auth->info.lnkname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
     return;
@@ -1498,7 +1500,8 @@ AuthOpie(AuthData auth)
       break;
   
     case 1:
-      Log(LG_ERR, (" User \"%s\" not found in opiekeys", auth->params.authname));
+      Log(LG_ERR, ("[%s] AUTH: User \"%s\" not found in opiekeys",
+        auth->info.lnkname, auth->params.authname));
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
       return;
@@ -1506,13 +1509,13 @@ AuthOpie(AuthData auth)
     case -1:
     case 2:
     default:
-      Log(LG_ERR, (" System error"));
+      Log(LG_ERR, ("[%s] AUTH: System error", auth->info.lnkname));
       auth->status = AUTH_STATUS_FAIL;
       auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
       return;
   };
 
-  Log(LG_AUTH, (" Opieprompt:%s", opieprompt));
+  Log(LG_AUTH, ("[%s] AUTH: Opieprompt:%s", auth->info.lnkname, opieprompt));
 
   if (auth->proto == PROTO_PAP ) {
     if (!opieverify(&auth->opie.data, pp->peer_pass)) {
@@ -1525,7 +1528,8 @@ AuthOpie(AuthData auth)
   }
 
   if (AuthGetData(auth->params.authname, secret, sizeof(secret), NULL, NULL) < 0) {
-    Log(LG_AUTH, (" Can't get credentials for \"%s\"", auth->params.authname));
+    Log(LG_AUTH, ("[%s] AUTH: Can't get credentials for \"%s\"",
+	auth->info.lnkname, auth->params.authname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;    
     return;
@@ -1549,7 +1553,7 @@ AuthPreChecks(AuthData auth)
 {
 
   if (!strlen(auth->params.authname)) {
-    Log(LG_AUTH, (" We don't accept empty usernames"));
+    Log(LG_AUTH, ("[%s] AUTH: We don't accept empty usernames", auth->info.lnkname));
     auth->status = AUTH_STATUS_FAIL;
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     return (-1);
@@ -1564,8 +1568,8 @@ AuthPreChecks(AuthData auth)
 	  num++;
 
     if (num >= gMaxLogins) {
-	Log(LG_AUTH, (" Name: \"%s\" max. number of logins exceeded",
-	    auth->params.authname));
+	Log(LG_AUTH, ("[%s] AUTH: Name: \"%s\" max. number of logins exceeded",
+	    auth->info.lnkname, auth->params.authname));
         auth->status = AUTH_STATUS_FAIL;
         auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
         return (-1);

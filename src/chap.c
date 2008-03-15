@@ -26,7 +26,7 @@
 		  const u_char *challenge, int clen, int local);
   static int	ChapHashAgree(int alg, const u_char *self, int slen,
 		  const u_char *peer, int plen);
-  static int	ChapParsePkt(const u_char *pkt, const int pkt_len,
+  static int	ChapParsePkt(const char *pref, const u_char *pkt, const int pkt_len,
 		  char *peer_name, u_char *chap_value,
 		  int *chap_value_size);
   static char	*ChapGetSecret(Link l, int alg, char *password);
@@ -191,7 +191,7 @@ ChapSendResponse(Link l)
  */
 
 static int
-ChapParsePkt(const u_char *pkt, const int pkt_len,
+ChapParsePkt(const char *pref, const u_char *pkt, const int pkt_len,
   char *peer_name, u_char *chap_value, int *chap_value_size)
 {
   int		val_len, name_len;
@@ -203,7 +203,7 @@ ChapParsePkt(const u_char *pkt, const int pkt_len,
       || val_len > CHAP_MAX_VAL
       || (name_len = (pkt_len - val_len - 1)) < 0
       || name_len > CHAP_MAX_NAME) {
-    Log(LG_AUTH, (" Bogus packet"));
+    Log(LG_AUTH, ("[%s]   Bogus packet", pref));
     return(-1);
   }
 
@@ -212,9 +212,9 @@ ChapParsePkt(const u_char *pkt, const int pkt_len,
   peer_name[name_len] = 0;
   memcpy(chap_value, pkt + 1, val_len);
   *chap_value_size = val_len;
-  Log(LG_AUTH, (" Name: \"%s\"", peer_name));
+  Log(LG_AUTH, ("[%s]   Name: \"%s\"", pref, peer_name));
 #if 0
-  Log(LG_AUTH, (" Value: %d bytes", *chap_value_size));
+  Log(LG_AUTH, ("[%s]   Value: %d bytes", pref, *chap_value_size));
 #endif
   return(0);
 }
@@ -266,14 +266,14 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	/* Check packet */
 	if ((a->self_to_peer != PROTO_CHAP && a->self_to_peer != PROTO_EAP)
 	    || l->lcp.phase != PHASE_AUTHENTICATE)
-	  Log(LG_AUTH, (" Not expected, but that's OK"));
-	if (ChapParsePkt(pkt, len, peer_name, value, &value_len) < 0)
+	  Log(LG_AUTH, ("[%s] CHAP: Not expected, but that's OK", l->name));
+	if (ChapParsePkt(l->name, pkt, len, peer_name, value, &value_len) < 0)
 	  break;
 
 	/* Never respond to our own outstanding challenge */
 	if (value_len == auth->params.chap.chal_len
 	    && !memcmp(value, auth->params.chap.chal_data, auth->params.chap.chal_len)) {
-	  Log(LG_AUTH, (" SECURITY: peer sent same challenge! Ignoring."));
+	  Log(LG_AUTH, ("[%s] CHAP: SECURITY: peer sent same challenge! Ignoring.", l->name));
 	  break;
 	}
 
@@ -318,7 +318,8 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	  /* Log failure */
 	  if (idFail) {
 	    Log(LG_AUTH,
-	      (" SECURITY: origination value check failed (%s,%s). Ignoring.",
+	      ("[%s] CHAP: SECURITY: origination value check failed (%s,%s). Ignoring.",
+	        l->name,
 		LINK_ORIGINATION(l->originate),
 		LINK_ORIGINATION(chalOrig)));
 	    break;
@@ -338,7 +339,7 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	else
 	  name = peer_name;
 	name_len = strlen(name);
-	Log(LG_AUTH, (" Using authname \"%s\"", name));
+	Log(LG_AUTH, ("[%s] CHAP: Using authname \"%s\"", l->name, name));
 
 	strlcpy(auth->params.authname, name, sizeof(auth->params.authname));
 
@@ -348,7 +349,8 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 		strlcpy(password, auth->conf.password, sizeof(password));
 	} else if (AuthGetData(auth->params.authname, password, 
 	    sizeof(password), NULL, NULL) < 0) {
-		Log(LG_AUTH, (" Warning: no secret for \"%s\" found", 
+		Log(LG_AUTH, ("[%s] CHAP: Warning: no secret for \"%s\" found",
+		    l->name, 
 		    auth->params.authname));
 		break;
 	}
@@ -358,7 +360,7 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	/* Get hash value */
 	if ((hash_value_size = ChapHash(l, a->self_to_peer_alg, hash_value,
 	    auth->id, name, secret, value, value_len, 1)) < 0) {
-	  Log(LG_AUTH, (" Hash failure"));
+	  Log(LG_AUTH, ("[%s] CHAP: Hash failure", l->name));
 	  break;
 	}
 
@@ -404,8 +406,8 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	/* Check response */
 	if ((a->peer_to_self != PROTO_CHAP && a->peer_to_self != PROTO_EAP)
 	    || l->lcp.phase != PHASE_AUTHENTICATE)
-	  Log(LG_AUTH, (" Not expected, but that's OK"));
-	if (ChapParsePkt(pkt, len,
+	  Log(LG_AUTH, ("[%s] CHAP: Not expected, but that's OK", l->name));
+	if (ChapParsePkt(l->name, pkt, len,
 	    peer_name, auth->params.chap.value, &auth->params.chap.value_len) < 0) {
 	  auth->why_fail = AUTH_FAIL_INVALID_PACKET;
 	  ChapInputFinish(l, auth);
@@ -445,12 +447,12 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
       /* Appropriate? */
       if (a->self_to_peer != PROTO_CHAP
 	  || l->lcp.phase != PHASE_AUTHENTICATE) {
-	Log(LG_AUTH, (" Not expected, but that's OK"));
+	Log(LG_AUTH, ("[%s] CHAP: Not expected, but that's OK", l->name));
 	break;
       }
 
       /* Log message */
-      ShowMesg(LG_AUTH, (char *) pkt, len);
+      ShowMesg(LG_AUTH, l->name, (char *) pkt, len);
       AuthFinish(l, AUTH_SELF_TO_PEER, auth->code == CHAP_SUCCESS);
       AuthDataDestroy(auth);
       break;
@@ -530,7 +532,7 @@ ChapInputFinish(Link l, AuthData auth)
   if ((hash_value_size = ChapHash(l, a->peer_to_self_alg, hash_value, auth->id,
     a->params.authname, secret, a->params.chap.chal_data, a->params.chap.chal_len,
     0)) < 0) {
-    Log(LG_AUTH, (" Hash failure"));
+    Log(LG_AUTH, ("[%s] CHAP: Hash failure", l->name));
     auth->why_fail = AUTH_FAIL_INVALID_PACKET;
     goto badResponse;
   }
@@ -539,13 +541,13 @@ ChapInputFinish(Link l, AuthData auth)
   if (a->params.chap.chal_len == 0
       || !ChapHashAgree(a->peer_to_self_alg, hash_value, hash_value_size,
 		a->params.chap.value, a->params.chap.value_len)) {
-    Log(LG_AUTH, (" Invalid response"));
+    Log(LG_AUTH, ("[%s] CHAP: Invalid response", l->name));
     auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
     goto badResponse;
   }
   
   /* Response is good */
-  Log(LG_AUTH, (" Response is valid"));
+  Log(LG_AUTH, ("[%s] CHAP: Response is valid", l->name));
 
   if (a->peer_to_self_alg == CHAP_ALG_MSOFTv2) {
     struct mschapv2value *const pv = (struct mschapv2value *)a->params.chap.value;
@@ -568,7 +570,7 @@ badResponse:
     char        failMesg[64];
 
     AuthFailMsg(auth, failMesg, sizeof(failMesg));
-    Log(LG_AUTH, (" Reply message: %s", failMesg));
+    Log(LG_AUTH, ("[%s] CHAP: Reply message: %s", l->name, failMesg));
     AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_FAILURE : EAP_FAILURE,
 	auth->id, (u_char *)failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
@@ -589,7 +591,7 @@ goodResponse:
       a->params.chap.value + offsetof(struct mschapv2value, ntHash),
       CHAP_MSOFTv2_RESP_LEN);
   
-    Log(LG_AUTH, (" Reply message: %s", ackMesg));
+    Log(LG_AUTH, ("[%s] CHAP: Reply message: %s", l->name, ackMesg));
   AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
     auth->id, (u_char *)ackMesg, strlen(ackMesg), 0, EAP_TYPE_MD5CHAL);
   AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);

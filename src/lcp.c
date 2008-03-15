@@ -802,23 +802,23 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
     /* Check option */
     if (!oi) {
-      Log(LG_LCP, (" UNKNOWN[%d] len=%d", opt->type, opt->len));
+      Log(LG_LCP, ("[%s]   UNKNOWN[%d] len=%d", l->name, opt->type, opt->len));
       if (mode == MODE_REQ)
 	FsmRej(fp, opt);
       continue;
     }
     if (!oi->supported) {
-      Log(LG_LCP, (" %s", oi->name));
+      Log(LG_LCP, ("[%s]   %s", l->name, oi->name));
       if (mode == MODE_REQ) {
-	Log(LG_LCP, ("   Not supported"));
+	Log(LG_LCP, ("[%s]     Not supported", l->name));
 	FsmRej(fp, opt);
       }
       continue;
     }
     if (opt->len < oi->minLen + 2 || opt->len > oi->maxLen + 2) {
-      Log(LG_LCP, (" %s", oi->name));
+      Log(LG_LCP, ("[%s]   %s", l->name, oi->name));
       if (mode == MODE_REQ) {
-	Log(LG_LCP, ("   Bogus length=%d", opt->len));
+	Log(LG_LCP, ("[%s]     Bogus length=%d", l->name, opt->len));
 	FsmRej(fp, opt);
       }
       continue;
@@ -832,7 +832,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 	  memcpy(&mru, opt->data, 2);
 	  mru = ntohs(mru);
-	  Log(LG_LCP, (" %s %d", oi->name, mru));
+	  Log(LG_LCP, ("[%s]   %s %d", l->name, oi->name, mru));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (mru < LCP_MIN_MRU) {
@@ -868,7 +868,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 	  memcpy(&accm, opt->data, 4);
 	  accm = ntohl(accm);
-	  Log(LG_LCP, (" %s 0x%08x", oi->name, accm));
+	  Log(LG_LCP, ("[%s]   %s 0x%08x", l->name, oi->name, accm));
 	  switch (mode) {
 	    case MODE_REQ:
 	      lcp->peer_accmap = accm;
@@ -915,12 +915,12 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		    ts = buf;
 		    break;
 		}
-		Log(LG_LCP, (" %s %s %s", oi->name, ProtoName(proto), ts));
+		Log(LG_LCP, ("[%s]   %s %s %s", l->name, oi->name, ProtoName(proto), ts));
 		break;
 	      }
 	      break;
 	    default:
-	      Log(LG_LCP, (" %s %s", oi->name, ProtoName(proto)));
+	      Log(LG_LCP, ("[%s]   %s %s", l->name, oi->name, ProtoName(proto)));
 	      break;
 	  }
 
@@ -928,13 +928,13 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  switch (proto) {
 	    case PROTO_PAP:
 	      if (opt->len != 4) {
-		Log(LG_LCP, ("   Bad len=%d", opt->len));
+		Log(LG_LCP, ("[%s]     Bad len=%d", l->name, opt->len));
 		bogus = 1;
 	      }
 	      break;
 	    case PROTO_CHAP:
 	      if (opt->len != 5) {
-		Log(LG_LCP, ("   Bad len=%d", opt->len));
+		Log(LG_LCP, ("[%s]     Bad len=%d", l->name, opt->len));
 		bogus = 1;
 	      }
 	      break;
@@ -1013,7 +1013,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 	  memcpy(&mrru, opt->data, 2);
 	  mrru = ntohs(mrru);
-	  Log(LG_LCP, (" %s %d", oi->name, mrru));
+	  Log(LG_LCP, ("[%s]   %s %d", l->name, oi->name, mrru));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (!Enabled(&l->conf.options, LINK_CONF_MULTILINK)) {
@@ -1056,7 +1056,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case TY_SHORTSEQNUM:		/* multi-link short sequence numbers */
-	Log(LG_LCP, (" %s", oi->name));
+	Log(LG_LCP, ("[%s]   %s", l->name, oi->name));
 	switch (mode) {
 	  case MODE_REQ:
 	    if (!Enabled(&l->conf.options, LINK_CONF_MULTILINK) ||
@@ -1088,14 +1088,14 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  char			buf[64];
 
 	  if (opt->len < 3 || opt->len > sizeof(dis.bytes)) {
-	    Log(LG_LCP, (" %s bad len=%d", oi->name, opt->len));
+	    Log(LG_LCP, ("[%s]   %s bad len=%d", l->name, oi->name, opt->len));
 	    if (mode == MODE_REQ)
 	      FsmRej(fp, opt);
 	    break;
 	  }
 	  memcpy(&dis.class, opt->data, opt->len - 2);
 	  dis.len = opt->len - 3;
-	  Log(LG_LCP, (" %s %s", oi->name, MpDiscrimText(&dis, buf, sizeof(buf))));
+	  Log(LG_LCP, ("[%s]   %s %s", l->name, oi->name, MpDiscrimText(&dis, buf, sizeof(buf))));
 	  switch (mode) {
 	    case MODE_REQ:
 	      lcp->peer_discrim = dis;
@@ -1118,12 +1118,12 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 	  memcpy(&magic, opt->data, 4);
 	  magic = ntohl(magic);
-	  Log(LG_LCP, (" %s %08x", oi->name, magic));
+	  Log(LG_LCP, ("[%s]   %s %08x", l->name, oi->name, magic));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (lcp->want_magic) {
 		if (magic == lcp->want_magic) {
-		  Log(LG_LCP, ("   Same magic! Detected loopback condition"));
+		  Log(LG_LCP, ("[%s]     Same magic! Detected loopback condition", l->name));
 		  magic = htonl(~magic);
 		  memcpy(opt->data, &magic, 4);
 		  FsmNak(fp, opt);
@@ -1147,7 +1147,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case TY_PROTOCOMP:		/* Protocol field compression */
-	Log(LG_LCP, (" %s", oi->name));
+	Log(LG_LCP, ("[%s]   %s", l->name, oi->name));
 	switch (mode) {
 	  case MODE_REQ:
 	    if (Acceptable(&l->conf.options, LINK_CONF_PROTOCOMP)) {
@@ -1166,7 +1166,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case TY_ACFCOMP:			/* Address field compression */
-	Log(LG_LCP, (" %s", oi->name));
+	Log(LG_LCP, ("[%s]   %s", l->name, oi->name));
 	switch (mode) {
 	  case MODE_REQ:
 	    if (Acceptable(&l->conf.options, LINK_CONF_ACFCOMP)) {
@@ -1185,7 +1185,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	break;
 
       case TY_CALLBACK:			/* Callback */
-	Log(LG_LCP, (" %s %d", oi->name, opt->data[0]));
+	Log(LG_LCP, ("[%s]   %s %d", l->name, oi->name, opt->data[0]));
 	switch (mode) {
 	  case MODE_REQ:	/* we only support peer calling us back */
 	    FsmRej(fp, opt);
@@ -1201,7 +1201,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
       case TY_VENDOR:
 	{
-	  Log(LG_LCP, (" %s %02x%02x%02x:%d", oi->name,
+	  Log(LG_LCP, ("[%s]   %s %02x%02x%02x:%d", l->name, oi->name,
 	    opt->data[0], opt->data[1], opt->data[2], opt->data[3]));
 	  switch (mode) {
 	    case MODE_REQ:

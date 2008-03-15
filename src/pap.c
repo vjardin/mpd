@@ -196,7 +196,7 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	    char	*msg = (char *) &pkt[1];
 	    if (msg_len < len - 1)
 		msg_len = len - 1;
-	    ShowMesg(LG_AUTH, msg, msg_len);
+	    ShowMesg(LG_AUTH, l->name, msg, msg_len);
 	}
 
 	/* Done with my auth to peer */

@@ -823,9 +823,9 @@ CcpLayerUp(Fsm fp)
   }
 
   /* Report what we're doing */
-  Log(LG_CCP, ("  Compress using: %s (%s)", !ccp->xmit ? "none" : ccp->xmit->name,
+  Log(LG_CCP, ("[%s] CCP: Compress using: %s (%s)", b->name, !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(b, COMP_DIR_XMIT, buf, sizeof(buf)) : ""));
-  Log(LG_CCP, ("Decompress using: %s (%s)", !ccp->recv ? "none" : ccp->recv->name,
+  Log(LG_CCP, ("[%s] CCP: Decompress using: %s (%s)", b->name, !ccp->recv ? "none" : ccp->recv->name,
     (ccp->recv && ccp->recv->Describe) ? (*ccp->recv->Describe)(b, COMP_DIR_RECV, buf, sizeof(buf)) : ""));
 
   /* Update PPP node config */
@@ -900,10 +900,10 @@ CcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     CompType	ct;
     char	buf[32];
 
-    Log(LG_CCP, (" %s", CcpTypeName(opt->type, buf, sizeof(buf))));
+    Log(LG_CCP, ("[%s]   %s", b->name, CcpTypeName(opt->type, buf, sizeof(buf))));
     if ((ct = CcpFindComp(opt->type, &index)) == NULL) {
       if (mode == MODE_REQ) {
-	Log(LG_CCP, ("   Not supported"));
+	Log(LG_CCP, ("[%s]     Not supported", b->name));
 	FsmRej(fp, opt);
       }
       continue;

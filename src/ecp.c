@@ -674,8 +674,8 @@ EcpLayerUp(Fsm fp)
     }
   }
 
-  Log(LG_ECP, ("  Encrypt using: %s", !ecp->xmit ? "none" : ecp->xmit->name));
-  Log(LG_ECP, ("  Decrypt using: %s", !ecp->recv ? "none" : ecp->recv->name));
+  Log(LG_ECP, ("[%s] ECP: Encrypt using: %s", b->name, !ecp->xmit ? "none" : ecp->xmit->name));
+  Log(LG_ECP, ("[%s] ECP: Decrypt using: %s", b->name, !ecp->recv ? "none" : ecp->recv->name));
 
   /* Update PPP node config */
   b->pppConfig.bund.enableEncryption = (ecp->xmit != NULL);
@@ -753,12 +753,12 @@ EcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     int		index;
     EncType	et;
 
-    Log(LG_ECP, (" %s", EcpTypeName(opt->type)));
+    Log(LG_ECP, ("[%s] %s", b->name, EcpTypeName(opt->type)));
     if ((et = EcpFindType(opt->type, &index)) == NULL)
     {
       if (mode == MODE_REQ)
       {
-	Log(LG_ECP, ("   Not supported"));
+	Log(LG_ECP, ("[%s]   Not supported", b->name));
 	FsmRej(fp, opt);
       }
       continue;
