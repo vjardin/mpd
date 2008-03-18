@@ -1212,12 +1212,14 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
     CcpInst(b, bt);
     EcpInst(b, bt);
 
-    /* Setup netgraph stuff */
-    if (BundNgInit(b) < 0) {
-	Log(LG_ERR, ("[%s] Bundle netgraph initialization failed", b->name));
-	gBundles[b->id] = NULL;
-	Freee(b);
-	return(0);
+    if (!tmpl) {
+	/* Setup netgraph stuff */
+	if (BundNgInit(b) < 0) {
+	    Log(LG_ERR, ("[%s] Bundle netgraph initialization failed", b->name));
+	    gBundles[b->id] = NULL;
+	    Freee(b);
+	    return(0);
+	}
     }
 
     return (b);
