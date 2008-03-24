@@ -441,7 +441,7 @@ void sockaddrtou_addr(struct sockaddr_storage *src, struct u_addr *addr, in_port
     }
 }
 
-int u_addrcompare(struct u_addr *addr1, struct u_addr *addr2)
+int u_addrcompare(const struct u_addr *addr1, const struct u_addr *addr2)
 {
   int	i;
 
@@ -472,7 +472,7 @@ int u_addrcompare(struct u_addr *addr1, struct u_addr *addr2)
   return 0;
 }
 
-int u_rangecompare(struct u_range *range1, struct u_range *range2)
+int u_rangecompare(const struct u_range *range1, const struct u_range *range2)
 {
   if (range1->width<range2->width)
     return(-1);
@@ -483,7 +483,7 @@ int u_rangecompare(struct u_range *range1, struct u_range *range2)
 }
 
 uint32_t
-u_addrtoid(struct u_addr *addr)
+u_addrtoid(const struct u_addr *addr)
 {
     uint32_t id;
 

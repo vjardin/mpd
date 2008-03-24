@@ -75,10 +75,10 @@
   extern int 	u_rangeempty(struct u_range *range);
   extern int 	u_rangehost(struct u_range *range);
 
-  extern int 	u_addrcompare(struct u_addr *addr1, struct u_addr *addr2);
-  extern int 	u_rangecompare(struct u_range *range1, struct u_range *range2);
+  extern int 	u_addrcompare(const struct u_addr *addr1, const struct u_addr *addr2);
+  extern int 	u_rangecompare(const struct u_range *range1, const struct u_range *range2);
 
-  extern uint32_t	u_addrtoid(struct u_addr *addr);
+  extern uint32_t	u_addrtoid(const struct u_addr *addr);
   
   extern u_char		in_addrtowidth(struct in_addr *mask);
   extern struct in_addr *widthtoin_addr(u_char width, struct in_addr *mask);
