@@ -32,6 +32,10 @@
 		 It allows to specify different servers for authentication
 		 and accounting in mpd configuration file.
 	  </item>
+	  <item> Added support for the new ng_pptpgre node design, supporting
+		 multiple calls per node. It improves performance, when multiple
+		 calls active between two IPs.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

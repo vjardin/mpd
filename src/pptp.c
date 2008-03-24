@@ -37,6 +37,14 @@
   #define PPTP_CALL_MIN_BPS	56000
   #define PPTP_CALL_MAX_BPS	64000
 
+  struct pptptun {
+    struct u_addr	self_addr;	/* Current self IP address */
+    struct u_addr	peer_addr;	/* Current peer IP address */
+    ng_ID_t		node_id;
+    int			refs;
+  };
+  typedef struct pptptun	*PptpTun;
+
   struct pptpinfo {
     struct {
 	struct u_addr	self_addr;	/* self IP address */
@@ -56,8 +64,9 @@
     u_char		originate;	/* Call originated locally */
     u_char		outcall;	/* Call is outgoing vs. incoming */
     u_char		sync;		/* Call is sync vs. async */
+    u_int16_t		cid;		/* call id */
+    PptpTun		tun;
     struct pptpctrlinfo	cinfo;
-    ng_ID_t		node_id;
     char		callingnum[64];	/* PPTP phone number to use */
     char		callednum[64];	/* PPTP phone number to use */
   };
@@ -88,6 +97,7 @@
  */
 
   static int	PptpTInit(void);
+  static void	PptpTShutdown(void);
   static int	PptpInit(Link l);
   static int	PptpInst(Link l, Link lt);
   static void	PptpOpen(Link l);
@@ -134,6 +144,9 @@
 				  const char *subAddress);
 
   static int	PptpSetCommand(Context ctx, int ac, char *av[], void *arg);
+  static int	PptpTunEQ(struct ghash *g, const void *item1, const void *item2);
+  static u_int32_t	PptpTunHash(struct ghash *g, const void *item);
+
 
 /*
  * GLOBAL VARIABLES
@@ -146,6 +159,7 @@
     .mru		= PPTP_MRU,
     .tmpl		= 1,
     .tinit		= PptpTInit,
+    .tshutdown		= PptpTShutdown,
     .init		= PptpInit,
     .inst		= PptpInst,
     .open		= PptpOpen,
@@ -196,6 +210,8 @@
     { 0,	0,			NULL		},
   };
 
+struct ghash    *gPptpTuns;
+
 /*
  * PptpTInit()
  */
@@ -203,7 +219,21 @@
 static int
 PptpTInit(void)
 {
+    if ((gPptpTuns = ghash_create(NULL, 0, 0, MB_PHYS, PptpTunHash, PptpTunEQ, NULL, NULL))
+	  == NULL)
+	return(-1);
     return (PptpCtrlInit(PptpIncoming, PptpOutgoing));
+}
+
+/*
+ * PptpTShutdown()
+ */
+
+static void
+PptpTShutdown(void)
+{
+    Log(LG_PHYS2, ("PPTP: Total shutdown"));
+    ghash_destroy(&gPptpTuns);
 }
 
 /*
@@ -401,7 +431,7 @@ PptpUnhook(Link l)
 	char		path[NG_PATHSIZ];
 	int		csock = -1;
 
-	if (pptp->node_id == 0)
+	if (pptp->tun == NULL)
 		return;
 
 	/* Get a temporary netgraph socket node */
@@ -410,13 +440,23 @@ PptpUnhook(Link l)
 		return;
 	}
 	
-	/* Disconnect session hook. */
-	snprintf(path, sizeof(path), "[%lx]:", (u_long)pptp->node_id);
-	NgFuncShutdownNode(csock, l->name, path);
+	pptp->tun->refs--;
+	snprintf(path, sizeof(path), "[%lx]:", (u_long)pptp->tun->node_id);
+	if (pptp->tun->refs == 0) {
+	    /* Disconnect session hook. */
+	    NgFuncShutdownNode(csock, l->name, path);
+	    ghash_remove(gPptpTuns, pptp->tun);
+#ifdef	NG_PPTPGRE_HOOK_SESSION_F
+	} else {
+	    char	hook[NG_HOOKSIZ];
+	    snprintf(hook, sizeof(hook), NG_PPTPGRE_HOOK_SESSION_F, pptp->cid);
+	    NgFuncDisconnect(csock, l->name, path, hook);
+#endif
+	}
 	
 	close(csock);
 	
-	pptp->node_id = 0;
+	pptp->tun = NULL;
 }
 
 /*
@@ -689,6 +729,24 @@ PptpSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra)
 	    RepSetAccm(l, sa, ra);
 }
 
+static int
+PptpTunEQ(struct ghash *g, const void *item1, const void *item2)
+{
+    const struct pptptun *tun1 = item1;
+    const struct pptptun *tun2 = item2;
+    if (u_addrcompare(&tun1->self_addr, &tun2->self_addr) == 0 &&
+	u_addrcompare(&tun1->peer_addr, &tun2->peer_addr) == 0)
+	    return (1);
+    return (0);
+}
+
+static u_int32_t
+PptpTunHash(struct ghash *g, const void *item)
+{
+    const struct pptptun *tun = item;
+    return (u_addrtoid(&tun->self_addr) + u_addrtoid(&tun->peer_addr));
+}
+
 /*
  * PptpHookUp()
  *
@@ -702,6 +760,7 @@ PptpHookUp(Link l)
     char	       		ksockpath[NG_PATHSIZ];
     char	       		pptppath[NG_PATHSIZ];
     struct ngm_mkpeer		mkp;
+    struct ngm_connect		cn;
     struct ng_pptpgre_conf	gc;
     struct sockaddr_storage	self_addr, peer_addr;
     struct u_addr		u_self_addr, u_peer_addr;
@@ -713,11 +772,13 @@ PptpHookUp(Link l)
     int		csock = -1;
     char        path[NG_PATHSIZ];
     char	hook[NG_HOOKSIZ];
+    PptpTun	tun = NULL;
 
     /* Get session info */
     memset(&gc, 0, sizeof(gc));
     PptpCtrlGetSessionInfo(&pi->cinfo, &u_self_addr,
 	&u_peer_addr, &gc.cid, &gc.peerCid, &gc.recvWin, &gc.peerPpd);
+    pi->cid = gc.cid;
     
     u_addrtosockaddr(&u_self_addr, 0, &self_addr);
     u_addrtosockaddr(&u_peer_addr, 0, &peer_addr);
@@ -733,73 +794,116 @@ PptpHookUp(Link l)
 	return(-1);
     }
 
-    /* Attach PPTP/GRE node to PPP node */
-    strcpy(mkp.type, NG_PPTPGRE_NODE_TYPE);
-    strlcpy(mkp.ourhook, hook, sizeof(mkp.ourhook));
-    strcpy(mkp.peerhook, NG_PPTPGRE_HOOK_UPPER);
-    if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
-      NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-	Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
-    	    l->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
-	close(csock);
-	return(-1);
+#ifdef	NG_PPTPGRE_HOOK_SESSION_F
+    {
+	struct pptptun tmptun;
+	tmptun.self_addr = u_self_addr;
+	tmptun.peer_addr = u_peer_addr;
+	tun = ghash_get(gPptpTuns, &tmptun);
     }
+#endif
+
     snprintf(pptppath, sizeof(pptppath), "%s.%s", path, hook);
+    if (tun == NULL) {
+	tun = (PptpTun)Malloc(MB_PHYS, sizeof(*tun));
+	tun->self_addr = u_self_addr;
+	tun->peer_addr = u_peer_addr;
+	if (ghash_put(gPptpTuns, tun) == -1) {
+	    Log(LG_ERR, ("[%s] PPTP: ghash_put: %s", l->name, strerror(errno)));
+	    close(csock);
+	    return(-1);
+	}
+    
+	/* Attach PPTP/GRE node to PPP node */
+	strcpy(mkp.type, NG_PPTPGRE_NODE_TYPE);
+	strlcpy(mkp.ourhook, hook, sizeof(mkp.ourhook));
+#ifdef	NG_PPTPGRE_HOOK_SESSION_F
+	snprintf(mkp.peerhook, sizeof(mkp.peerhook), NG_PPTPGRE_HOOK_SESSION_F, pi->cid);
+#else
+	strcpy(mkp.peerhook, NG_PPTPGRE_HOOK_UPPER);
+#endif
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
+          NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
+	    Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
+    		l->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
+	    ghash_remove(gPptpTuns, tun);
+	    close(csock);
+	    return(-1);
+	}
 
-    /* Get pptpgre node ID */
-    if ((pi->node_id = NgGetNodeID(csock, pptppath)) == 0) {
-	Log(LG_ERR, ("[%s] Cannot get %s node id: %s",
-	    l->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
-	close(csock);
-	return(-1);
-    };
+	/* Get pptpgre node ID */
+	if ((tun->node_id = NgGetNodeID(csock, pptppath)) == 0) {
+	    Log(LG_ERR, ("[%s] Cannot get %s node id: %s",
+		l->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
+	    ghash_remove(gPptpTuns, tun);
+	    close(csock);
+	    return(-1);
+	};
+	tun->refs++;
+	pi->tun = tun;
 
-    /* Attach ksocket node to PPTP/GRE node */
-    strcpy(mkp.type, NG_KSOCKET_NODE_TYPE);
-    strcpy(mkp.ourhook, NG_PPTPGRE_HOOK_LOWER);
-    if (u_self_addr.family==AF_INET6) {
-	//ng_ksocket doesn't support inet6 name
-	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_RAW, IPPROTO_GRE); 
+	/* Attach ksocket node to PPTP/GRE node */
+	strcpy(mkp.type, NG_KSOCKET_NODE_TYPE);
+	strcpy(mkp.ourhook, NG_PPTPGRE_HOOK_LOWER);
+	if (u_self_addr.family==AF_INET6) {
+	    //ng_ksocket doesn't support inet6 name
+	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "%d/%d/%d", PF_INET6, SOCK_RAW, IPPROTO_GRE); 
+	} else {
+	    snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/raw/gre");
+	}
+	if (NgSendMsg(csock, pptppath, NGM_GENERIC_COOKIE,
+	  NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
+	    Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
+    		l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	    close(csock);
+	    return(-1);
+	}
+	snprintf(ksockpath, sizeof(ksockpath),
+	    "%s.%s", pptppath, NG_PPTPGRE_HOOK_LOWER);
+
+	/* increase recvspace to avoid packet loss due to very small GRE recv buffer. */
+	ksso->level=SOL_SOCKET;
+	ksso->name=SO_RCVBUF;
+	((int *)(ksso->value))[0]=48*1024;
+	if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
+	    NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
+		Log(LG_ERR, ("[%s] PPTP: can't setsockopt %s node: %s",
+		    l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	}
+
+	/* Bind ksocket socket to local IP address */
+	if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
+          NGM_KSOCKET_BIND, &self_addr, self_addr.ss_len) < 0) {
+	    Log(LG_ERR, ("[%s] PPTP: can't bind() %s node: %s",
+    		l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	    close(csock);
+	    return(-1);
+	}
+
+	/* Connect ksocket socket to remote IP address */
+	if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
+    	  NGM_KSOCKET_CONNECT, &peer_addr, peer_addr.ss_len) < 0 &&
+    	  errno != EINPROGRESS) {	/* happens in -current (weird) */
+	    Log(LG_ERR, ("[%s] PPTP: can't connect() %s node: %s",
+    	        l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
+	    close(csock);
+    	    return(-1);
+        }
+#ifdef	NG_PPTPGRE_HOOK_SESSION_F
     } else {
-	snprintf(mkp.peerhook, sizeof(mkp.peerhook), "inet/raw/gre");
-    }
-    if (NgSendMsg(csock, pptppath, NGM_GENERIC_COOKIE,
-      NGM_MKPEER, &mkp, sizeof(mkp)) < 0) {
-	Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
-    	    l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-	close(csock);
-	return(-1);
-    }
-    snprintf(ksockpath, sizeof(ksockpath),
-	"%s.%s", pptppath, NG_PPTPGRE_HOOK_LOWER);
-
-    /* increase recvspace to avoid packet loss due to very small GRE recv buffer. */
-    ksso->level=SOL_SOCKET;
-    ksso->name=SO_RCVBUF;
-    ((int *)(ksso->value))[0]=48*1024;
-    if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
-	NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
-	    Log(LG_ERR, ("[%s] PPTP: can't setsockopt %s node: %s",
-		l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-    }
-
-    /* Bind ksocket socket to local IP address */
-    if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
-      NGM_KSOCKET_BIND, &self_addr, self_addr.ss_len) < 0) {
-	Log(LG_ERR, ("[%s] PPTP: can't bind() %s node: %s",
-    	    l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-	close(csock);
-	return(-1);
-    }
-
-    /* Connect ksocket socket to remote IP address */
-    if (NgSendMsg(csock, ksockpath, NGM_KSOCKET_COOKIE,
-      NGM_KSOCKET_CONNECT, &peer_addr, peer_addr.ss_len) < 0
-      && errno != EINPROGRESS) {	/* happens in -current (weird) */
-	Log(LG_ERR, ("[%s] PPTP: can't connect() %s node: %s",
-    	    l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
-	close(csock);
-	return(-1);
+	snprintf(cn.path, sizeof(cn.path), "[%x]:", tun->node_id);
+	strlcpy(cn.ourhook, hook, sizeof(mkp.ourhook));
+	snprintf(cn.peerhook, sizeof(mkp.peerhook), NG_PPTPGRE_HOOK_SESSION_F, pi->cid);
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
+          NGM_CONNECT, &cn, sizeof(cn)) < 0) {
+	    Log(LG_ERR, ("[%s] PPTP: can't connect to %s node: %s",
+    		l->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
+	    close(csock);
+	    return(-1);
+	}
+	tun->refs++;
+	pi->tun = tun;
+#endif
     }
 
     /* Configure PPTP/GRE node */
