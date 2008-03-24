@@ -760,7 +760,6 @@ PptpHookUp(Link l)
     char	       		ksockpath[NG_PATHSIZ];
     char	       		pptppath[NG_PATHSIZ];
     struct ngm_mkpeer		mkp;
-    struct ngm_connect		cn;
     struct ng_pptpgre_conf	gc;
     struct sockaddr_storage	self_addr, peer_addr;
     struct u_addr		u_self_addr, u_peer_addr;
@@ -891,6 +890,7 @@ PptpHookUp(Link l)
         }
 #ifdef	NG_PPTPGRE_HOOK_SESSION_F
     } else {
+	struct ngm_connect	cn;
 	snprintf(cn.path, sizeof(cn.path), "[%x]:", tun->node_id);
 	strlcpy(cn.ourhook, hook, sizeof(mkp.ourhook));
 	snprintf(cn.peerhook, sizeof(mkp.peerhook), NG_PPTPGRE_HOOK_SESSION_F, pi->cid);
