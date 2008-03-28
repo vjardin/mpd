@@ -1702,9 +1702,9 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 	/* sanity check, this happens when FreeRADIUS has no msoft-dictionary loaded */
 	if (auth->proto == PROTO_CHAP && auth->alg == CHAP_ALG_MSOFTv2
-		&& auth->mschapv2resp == NULL && auth->mschap_error == NULL) {
-	    Log(LG_RADIUS, ("[%s] RADIUS: PANIC no MS-CHAP2-Success or MS-CHAP-Error received!",
-    	    auth->info.lnkname));
+		&& auth->mschapv2resp == NULL && auth->status == AUTH_STATUS_SUCCESS) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: PANIC no MS-CHAP2-Success received from server!",
+    		auth->info.lnkname));
 	    return RAD_NACK;
 	}
   
