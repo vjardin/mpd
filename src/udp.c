@@ -226,7 +226,7 @@ UdpOpen(Link l)
 	strlcat(path, hook, sizeof(path));
 
 	/* Give it a name */
-	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, l->name);
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-kso", gPid, l->name);
 	if (NgSendMsg(csock, path,
 	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 		Log(LG_ERR, ("[%s] can't name %s node: %s",

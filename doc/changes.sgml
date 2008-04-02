@@ -62,6 +62,8 @@
 	  </item>
 	  <item> Fixed some L2TP and PPPoE errors processing.
 	  </item>
+	  <item> Fixed TCP and UDP link type nodes naming.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

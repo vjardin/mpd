@@ -200,14 +200,6 @@ TcpOpen(Link l)
 	}
 	(void)fcntl(pi->csock, F_SETFD, 1);
 
-	/* Give it a name */
-	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-so", gPid, l->name);
-	if (NgSendMsg(pi->csock, ".:",
-	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-		Log(LG_ERR, ("[%s] can't name %s node: %s",
-		    l->name, NG_BPF_NODE_TYPE, strerror(errno)));
-	}
-
         if (!PhysGetUpperHook(l, path, hook)) {
 		Log(LG_PHYS, ("[%s] TCP: can't get upper hook", l->name));
     		goto fail;
@@ -298,11 +290,11 @@ TcpOpen(Link l)
 	strlcat(path, NG_ASYNC_HOOK_ASYNC, sizeof(path));
 
 	/* Give it a name */
-	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, l->name);
+	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-kso", gPid, l->name);
 	if (NgSendMsg(pi->csock, path,
 	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 		Log(LG_ERR, ("[%s] can't name %s node: %s",
-		    l->name, NG_BPF_NODE_TYPE, strerror(errno)));
+		    l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 	}
 
 	/* Start connecting to peer. */
