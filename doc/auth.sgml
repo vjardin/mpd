@@ -376,8 +376,8 @@ mpd-table += "1=10.0.0.1",
 mpd-table += "1=10.0.0.15",
 mpd-pipe += "1=bw 10Kbyte/s",
 mpd-pipe += "5=bw 20Kbyte/s",
-mpd-rule += "1=pipe %p1 all from any to table(%t1) in",
-mpd-rule += "2=pipe %p5 all from table(%t1) to any out",
+mpd-rule += "1=pipe %p1 all from any to table\\(%t1\\) in",
+mpd-rule += "2=pipe %p5 all from table\\(%t1\\) to any out",
 mpd-rule += "100=allow all from any to any",
 </verb>
 
@@ -393,12 +393,14 @@ ipfw table 32 add 10.0.0.1
 ipfw table 32 add 10.0.0.15
 ipfw pipe 10000 config bw 10Kbyte/s
 ipfw pipe 10001 config bw 20Kbyte/s
-ipfw add 10000 pipe 10000 all from any to table(32) in via ng0
-ipfw add 10001 pipe 10001 all from table(32) to any out via ng0
+ipfw add 10000 pipe 10000 all from any to table\(32\) in via ng0
+ipfw add 10001 pipe 10001 all from table\(32\) to any out via ng0
 ipfw add 10002 allow all from any to any via ng0
 </verb>
-
 When the link goes down, all created rules will be removed.
+
+Note: As soon as mpd executes ipfw commands using shell, shell's
+special characters like "(" and ")" must be slashed.
 
 <tag>internal (ng_bpf/ng_car)</tag>
 <p>
