@@ -1041,7 +1041,6 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
     pi = (PptpInfo)l->info;
 
     Log(LG_PHYS, ("[%s] Accepting PPTP connection", l->name));
-    PhysIncoming(l);
 
     /* Got one */
     linfo.cookie = l;
@@ -1055,6 +1054,8 @@ PptpPeerCall(struct pptpctrlinfo *cinfo,
     pi->peer_port = port;
     strlcpy(pi->callingnum, callingNum, sizeof(pi->callingnum));
     strlcpy(pi->callednum, calledNum, sizeof(pi->callednum));
+
+    PhysIncoming(l);
     return(linfo);
 }
 
