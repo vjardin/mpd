@@ -1205,7 +1205,7 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
     gBundles[k] = b;
     REF(b);
 
-    /* Inst iafce and NCP's */
+    /* Inst iface and NCP's */
     IfaceInst(b, bt);
     IpcpInst(b, bt);
     Ipv6cpInst(b, bt);
