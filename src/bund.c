@@ -711,7 +711,7 @@ BundNcpsJoin(Bund b, int proto)
 		if (!iface->ipv6_up) {
 			iface->ipv6_up = 1;
 			if (IfaceIpv6IfaceUp(b, 1)) {
-			    iface->ip_up = 0;
+			    iface->ipv6_up = 0;
 			    return;
 			};
 		}
@@ -729,7 +729,7 @@ BundNcpsJoin(Bund b, int proto)
 		    !iface->ipv6_up) {
 			iface->ipv6_up = 1;
 			if (IfaceIpv6IfaceUp(b, 0)) {
-			    iface->ip_up = 0;
+			    iface->ipv6_up = 0;
 			    return;
 			};
 		}
