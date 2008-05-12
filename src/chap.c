@@ -142,17 +142,17 @@ ChapSendChallenge(Link l)
 
 send_pkt:
   /* Build a challenge packet */
-  pkt = Malloc(MB_AUTH, 1 + cp->chal_len + strlen(l->lcp.auth.conf.authname) + 1);
+  pkt = Malloc(MB_AUTH, 1 + cp->chal_len + strlen(a->conf.authname) + 1);
   pkt[0] = cp->chal_len;
   memcpy(pkt + 1, cp->chal_data, cp->chal_len);
   memcpy(pkt + 1 + cp->chal_len,
-    l->lcp.auth.conf.authname, strlen(l->lcp.auth.conf.authname));
+    a->conf.authname, strlen(a->conf.authname));
 
   /* Send it off */
   AuthOutput(l, chap->proto,
     chap->proto == PROTO_CHAP ? CHAP_CHALLENGE : EAP_REQUEST,
     chap->next_id++, pkt,
-    1 + cp->chal_len + strlen(l->lcp.auth.conf.authname), 0,
+    1 + cp->chal_len + strlen(a->conf.authname), 0,
     EAP_TYPE_MD5CHAL);
   Freee(pkt);
 }
