@@ -529,7 +529,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>=65535)
-		Error("Incorrect rule number");
+		Error("Incorrect pipe number");
 	    else
 		pipe_pool_start = val;
 	}
@@ -541,7 +541,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	else {
 	    val = atoi(*av);
 	    if (val <= 0 || val>127) /* table 0 is usually possible but we deny it */
-		Error("Incorrect rule number");
+		Error("Incorrect table number");
 	    else
 		table_pool_start = val;
 	}
@@ -550,7 +550,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_L2TPTO:
 	val = atoi(*av);
 	if (val < 0 || val > 1000000)
-	    Error("Incorrect timeout");
+	    Error("Incorrect L2TP timeout");
 	else
 	    gL2TPto = val;
       break;
@@ -558,7 +558,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_L2TPLIMIT:
 	val = atoi(*av);
 	if (val < 0 || val > 65536)
-	    Error("Incorrect call limit");
+	    Error("Incorrect L2TP call limit");
 	else
 	    gL2TPtunlimit = val;
       break;
@@ -566,7 +566,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_PPTPTO:
 	val = atoi(*av);
 	if (val < 0 || val > 1000000)
-	    Error("Incorrect timeout");
+	    Error("Incorrect PPTP timeout");
 	else
 	    gPPTPto = val;
       break;
@@ -574,7 +574,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_PPTPLIMIT:
 	val = atoi(*av);
 	if (val <= 0 || val > 65536)
-	    Error("Incorrect call limit");
+	    Error("Incorrect PPTP call limit");
 	else
 	    gPPTPtunlimit = val;
       break;
@@ -618,9 +618,9 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
 	snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), "%s%c",
 	  av[k], k == depth ? '\0' : ' ');
       if (err == CMD_ERR_AMBIG)
-	  errfmt = "%sAmbiguous command: '%s'.";
+	  errfmt = "%sAmbiguous command: '%s'.\r\n";
       else 
-          errfmt = "%sUnknown command: '%s'.";
+          errfmt = "%sUnknown command: '%s'.\r\n";
       if (arg) {
         Printf(errfmt, (char*)arg, buf);
       } else {
