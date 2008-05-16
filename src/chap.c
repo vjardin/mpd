@@ -508,13 +508,18 @@ ChapInputFinish(Link l, AuthData auth)
     Log(LG_AUTH, ("[%s] CHAP: Auth return status: %s", 
 	l->name, AuthStatusText(auth->status)));
     
+    if (auth->status == AUTH_STATUS_BUSY) {
+	AuthDataDestroy(auth);  
+	return;
+    }
+    
     if (a->peer_to_self_alg == CHAP_ALG_MSOFTv2 && 
-	auth->mschapv2resp != NULL) {
-	    strlcpy(ackMesg, auth->mschapv2resp, sizeof(ackMesg));
+      auth->mschapv2resp != NULL) {
+	strlcpy(ackMesg, auth->mschapv2resp, sizeof(ackMesg));
     } else if (auth->reply_message != NULL) {
-	    strlcpy(ackMesg, auth->reply_message, sizeof(ackMesg));
+	strlcpy(ackMesg, auth->reply_message, sizeof(ackMesg));
     } else {
-	    strlcpy(ackMesg, AUTH_MSG_WELCOME, sizeof(ackMesg));
+	strlcpy(ackMesg, AUTH_MSG_WELCOME, sizeof(ackMesg));
     }
 
     if (auth->status == AUTH_STATUS_FAIL)
@@ -522,48 +527,67 @@ ChapInputFinish(Link l, AuthData auth)
     else if (auth->status == AUTH_STATUS_SUCCESS)
 	goto goodResponse;
   
-  /* Copy in peer challenge for MS-CHAPv2 */
-  if (a->peer_to_self_alg == CHAP_ALG_MSOFTv2)
-    memcpy(hash_value, a->params.chap.value, 16);
+    /* Copy in peer challenge for MS-CHAPv2 */
+    if (a->peer_to_self_alg == CHAP_ALG_MSOFTv2)
+	memcpy(hash_value, a->params.chap.value, 16);
     
-  secret = ChapGetSecret(l, a->peer_to_self_alg, a->params.password);
+    secret = ChapGetSecret(l, a->peer_to_self_alg, a->params.password);
 
-  /* Get expected hash value */
-  if ((hash_value_size = ChapHash(l, a->peer_to_self_alg, hash_value, auth->id,
-    a->params.authname, secret, a->params.chap.chal_data, a->params.chap.chal_len,
-    0)) < 0) {
-    Log(LG_AUTH, ("[%s] CHAP: Hash failure", l->name));
-    auth->why_fail = AUTH_FAIL_INVALID_PACKET;
-    goto badResponse;
-  }
+    /* Get expected hash value */
+    if ((hash_value_size = ChapHash(l, a->peer_to_self_alg, hash_value, auth->id,
+      a->params.authname, secret, a->params.chap.chal_data, a->params.chap.chal_len,
+      0)) < 0) {
+	Log(LG_AUTH, ("[%s] CHAP: Hash failure", l->name));
+	auth->why_fail = AUTH_FAIL_INVALID_PACKET;
+	goto badResponse;
+    }
 
-  /* Compare with peer's response */
-  if (a->params.chap.chal_len == 0
+    /* Compare with peer's response */
+    if (a->params.chap.chal_len == 0
       || !ChapHashAgree(a->peer_to_self_alg, hash_value, hash_value_size,
 		a->params.chap.value, a->params.chap.value_len)) {
-    Log(LG_AUTH, ("[%s] CHAP: Invalid response", l->name));
-    auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
-    goto badResponse;
-  }
+	Log(LG_AUTH, ("[%s] CHAP: Invalid response", l->name));
+	auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+	goto badResponse;
+    }
   
-  /* Response is good */
-  Log(LG_AUTH, ("[%s] CHAP: Response is valid", l->name));
+    /* Response is good */
+    Log(LG_AUTH, ("[%s] CHAP: Response is valid", l->name));
 
-  if (a->peer_to_self_alg == CHAP_ALG_MSOFTv2) {
-    struct mschapv2value *const pv = (struct mschapv2value *)a->params.chap.value;
-    char hex[41];
-    u_char authresp[20];
-    int i;
+    if (a->peer_to_self_alg == CHAP_ALG_MSOFTv2) {
+	struct mschapv2value *const pv = (struct mschapv2value *)a->params.chap.value;
+	char hex[41];
+	u_char authresp[20];
+	int i;
 
-    /* Generate MS-CHAPv2 'authenticator response' */
-    GenerateAuthenticatorResponse(a->params.msoft.nt_hash, pv->ntHash,
-      pv->peerChal, a->params.chap.chal_data, a->params.authname, authresp);
-    for (i = 0; i < 20; i++)
-      sprintf(hex + (i * 2), "%02X", authresp[i]);
-    snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
-  }
+	/* Generate MS-CHAPv2 'authenticator response' */
+	GenerateAuthenticatorResponse(a->params.msoft.nt_hash, pv->ntHash,
+    	    pv->peerChal, a->params.chap.chal_data, a->params.authname, authresp);
+	for (i = 0; i < 20; i++)
+    	    sprintf(hex + (i * 2), "%02X", authresp[i]);
+	snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
+    }
   
-  goto goodResponse;
+goodResponse:
+    /* make a dummy verify to force an update of the opiekeys database */
+    if (a->params.authentic == AUTH_CONF_OPIE)
+	opieverify(&auth->opie.data, a->params.password);
+
+    /* Need to remember MS-CHAP stuff for use with MPPE encryption */
+    if (l->originate == LINK_ORIGINATE_REMOTE &&
+      a->peer_to_self_alg == CHAP_ALG_MSOFTv2 &&
+      !memcmp(a->params.msoft.ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN)) {
+	memcpy(a->params.msoft.ntResp,
+    	    a->params.chap.value + offsetof(struct mschapv2value, ntHash),
+    	    CHAP_MSOFTv2_RESP_LEN);
+    }
+  
+    Log(LG_AUTH, ("[%s] CHAP: Reply message: %s", l->name, ackMesg));
+    AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
+	auth->id, (u_char *)ackMesg, strlen(ackMesg), 0, EAP_TYPE_MD5CHAL);
+    AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);
+    AuthDataDestroy(auth);
+    return;  
 
 badResponse:
   {
@@ -575,27 +599,7 @@ badResponse:
 	auth->id, (u_char *)failMesg, strlen(failMesg), 0, EAP_TYPE_MD5CHAL);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);  
-    return;  
   }
-
-goodResponse:
-  /* make a dummy verify to force an update of the opiekeys database */
-  if (a->params.authentic == AUTH_CONF_OPIE)
-    opieverify(&auth->opie.data, a->params.password);
-
-  /* Need to remember MS-CHAP stuff for use with MPPE encryption */
-  if (l->originate == LINK_ORIGINATE_REMOTE
-    && a->peer_to_self_alg == CHAP_ALG_MSOFTv2 
-    && !memcmp(a->params.msoft.ntResp, gMsoftZeros, CHAP_MSOFTv2_RESP_LEN))
-    memcpy(a->params.msoft.ntResp,
-      a->params.chap.value + offsetof(struct mschapv2value, ntHash),
-      CHAP_MSOFTv2_RESP_LEN);
-  
-    Log(LG_AUTH, ("[%s] CHAP: Reply message: %s", l->name, ackMesg));
-  AuthOutput(l, chap->proto, chap->proto == PROTO_CHAP ? CHAP_SUCCESS : EAP_SUCCESS,
-    auth->id, (u_char *)ackMesg, strlen(ackMesg), 0, EAP_TYPE_MD5CHAL);
-  AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);
-  AuthDataDestroy(auth);
 }
 
 /*

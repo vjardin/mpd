@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Fix PPTP peer address reporting for real LAC/PAC mode.
 	  </item>
+	  <item> Fix auth thread busy check.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

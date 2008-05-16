@@ -48,6 +48,7 @@
   #define AUTH_STATUS_UNDEF		0
   #define AUTH_STATUS_FAIL		1
   #define AUTH_STATUS_SUCCESS		2
+  #define AUTH_STATUS_BUSY		3
   
   #define AUTH_PW_HASH_NONE		0
   #define AUTH_PW_HASH_NT		1

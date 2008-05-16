@@ -234,23 +234,38 @@ void PapInputFinish(Link l, AuthData auth)
   PapParams	pap = &a->params.pap;
   const char	*Mesg;
   
-  Log(LG_AUTH, ("[%s] PAP: Auth return status: %s", 
-    l->name, AuthStatusText(auth->status)));
+    Log(LG_AUTH, ("[%s] PAP: Auth return status: %s", 
+	l->name, AuthStatusText(auth->status)));
 
-  if (auth->status == AUTH_STATUS_FAIL)
-    goto badRequest;
-  else if (auth->status == AUTH_STATUS_SUCCESS)
-    goto goodRequest;
+    if (auth->status == AUTH_STATUS_BUSY) {
+	AuthDataDestroy(auth);  
+	return;
+    } else if (auth->status == AUTH_STATUS_FAIL)
+	goto badRequest;
+    else if (auth->status == AUTH_STATUS_SUCCESS)
+	goto goodRequest;
   
-  /* Do name & password match? */
-  if (strcmp(a->params.authname, pap->peer_name) ||
-      strcmp(a->params.password, pap->peer_pass)) {
-    Log(LG_AUTH, ("[%s] PAP: Invalid response", l->name));
-    auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
-    goto badRequest;
-  }
-  
-  goto goodRequest;
+    /* Do name & password match? */
+    if (strcmp(a->params.authname, pap->peer_name) ||
+        strcmp(a->params.password, pap->peer_pass)) {
+	Log(LG_AUTH, ("[%s] PAP: Invalid response", l->name));
+	auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+	goto badRequest;
+    }
+
+goodRequest:
+    /* Login accepted */
+    Log(LG_AUTH, ("[%s] PAP: Response is valid", l->name));
+    if (auth->reply_message) {
+	Mesg = auth->reply_message;
+    } else {
+	Mesg = AUTH_MSG_WELCOME;
+    }
+    Log(LG_AUTH, ("[%s] PAP: Reply message: %s", l->name, Mesg));
+    AuthOutput(l, PROTO_PAP, PAP_ACK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
+    AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);  
+    AuthDataDestroy(auth);
+    return;
 
 badRequest:
   {
@@ -261,21 +276,7 @@ badRequest:
     AuthOutput(l, PROTO_PAP, PAP_NAK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
     AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
     AuthDataDestroy(auth);  
-    return;
   }
-  
-goodRequest:
-  /* Login accepted */
-  Log(LG_AUTH, ("[%s] PAP: Response is valid", l->name));
-  if (auth->reply_message) {
-    Mesg = auth->reply_message;
-  } else {
-    Mesg = AUTH_MSG_WELCOME;
-  }
-  Log(LG_AUTH, ("[%s] PAP: Reply message: %s", l->name, Mesg));
-  AuthOutput(l, PROTO_PAP, PAP_ACK, auth->id, (u_char *) Mesg, strlen(Mesg), 1, 0);
-  AuthFinish(l, AUTH_PEER_TO_SELF, TRUE);  
-  AuthDataDestroy(auth);
 }
 
 /*

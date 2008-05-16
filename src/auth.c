@@ -424,7 +424,6 @@ void
 AuthInput(Link l, int proto, Mbuf bp)
 {
   AuthData		auth;
-  Auth			const a = &l->lcp.auth;
   int			len;
   struct fsmheader	fsmh;
   u_char		*pkt;
@@ -433,13 +432,6 @@ AuthInput(Link l, int proto, Mbuf bp)
   /* Sanity check */
   if (l->lcp.phase != PHASE_AUTHENTICATE && l->lcp.phase != PHASE_NETWORK) {
     Log(LG_AUTH, ("[%s] AUTH: rec'd stray packet", l->name));
-    mbfree(bp);
-    return;
-  }
-
-  if (a->thread) {
-    Log(LG_AUTH, ("[%s] AUTH: Thread already running, dropping this packet", 
-      l->name));
     mbfree(bp);
     return;
   }
@@ -1053,23 +1045,30 @@ AuthAsyncStart(Link l, AuthData auth)
 	LcpClose(l);
 	return;
     }
-  
-  /* perform pre authentication checks (single-login, etc.) */
-  if (AuthPreChecks(auth) < 0) {
-    Log(LG_AUTH, ("[%s] AUTH: AuthPreCheck failed for \"%s\"", 
-      l->name, auth->params.authname));
-    auth->finish(l, auth);
-    return;
-  }
 
-  if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
-    AuthAsyncFinish, auth) == -1) {
-    Log(LG_ERR, ("[%s] AUTH: Couldn't start thread: %d", 
-      l->name, errno));
-    auth->status = AUTH_STATUS_FAIL;
-    auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
-    auth->finish(l, auth);
-  }
+    /* Check if we are ready to process request. */
+    if (a->thread) {
+	auth->status = AUTH_STATUS_BUSY;
+	auth->finish(l, auth);
+	return;
+    }
+  
+    /* perform pre authentication checks (single-login, etc.) */
+    if (AuthPreChecks(auth) < 0) {
+	Log(LG_AUTH, ("[%s] AUTH: AuthPreCheck failed for \"%s\"", 
+    	    l->name, auth->params.authname));
+	auth->finish(l, auth);
+	return;
+    }
+
+    if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
+	AuthAsyncFinish, auth) == -1) {
+	Log(LG_ERR, ("[%s] AUTH: Couldn't start thread: %d", 
+    	    l->name, errno));
+	auth->status = AUTH_STATUS_FAIL;
+	auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
+	auth->finish(l, auth);
+    }
 }
 
 /*
@@ -1689,6 +1688,9 @@ AuthStatusText(int status)
 
     case AUTH_STATUS_FAIL:
       return "failed";
+
+    case AUTH_STATUS_BUSY:
+      return "busy";
 
     default:
       return "INCORRECT STATUS";
