@@ -1634,6 +1634,10 @@ AuthFailMsg(AuthData auth, char *buf, size_t len)
 		break;
 	    }
 
+	    /* If we have reply message, send it instead of default. */
+	    if (auth->reply_message != NULL)
+		mesg = auth->reply_message;
+
     	    snprintf(buf, len, "E=%d R=0 M=%s", mscode, mesg);
     
     } else {
