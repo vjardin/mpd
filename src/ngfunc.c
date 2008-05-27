@@ -90,7 +90,7 @@
   const struct cmdtab NetflowSetCmds[] = {
     { "peer {ip} {port}",	"Set export destination" ,
         NetflowSetCommand, NULL, 2, (void *) SET_PEER },
-    { "self {ip} {port}",	"Set export source" ,
+    { "self {ip} [{port}]",	"Set export source" ,
         NetflowSetCommand, NULL, 2, (void *) SET_SELF },
     { "timeouts {inactive} {active}", "Set NetFlow timeouts" ,
         NetflowSetCommand, NULL, 2, (void *) SET_TIMEOUTS },
@@ -708,6 +708,8 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     switch ((intptr_t)arg) {
 	case SET_PEER: 
+    	    if (ac != 2)
+		return (-1);
     	    if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 		return (-1);
     	    gNetflowExport = *sin;
