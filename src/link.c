@@ -667,14 +667,14 @@ LinkNgInit(Link l)
     if (NgSendMsg(gLinksCsock, l->hook,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 	Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
-    	    l->name, NG_PPP_NODE_TYPE, l->hook, strerror(errno)));
+    	    l->name, NG_TEE_NODE_TYPE, l->hook, strerror(errno)));
 	goto fail;
     }
 
-    /* Get PPP node ID */
+    /* Get TEE node ID */
     if ((l->nodeID = NgGetNodeID(gLinksCsock, l->hook)) == 0) {
 	Log(LG_ERR, ("[%s] Cannot get %s node id: %s",
-	    l->name, NG_PPP_NODE_TYPE, strerror(errno)));
+	    l->name, NG_TEE_NODE_TYPE, strerror(errno)));
 	goto fail;
     };
 
