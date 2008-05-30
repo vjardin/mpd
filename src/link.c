@@ -240,7 +240,7 @@ LinkUp(Link l)
     Log(LG_LINK, ("[%s] Link: UP event", l->name));
 
     l->originate = PhysGetOriginate(l);
-    Log(LG_LINK, ("[%s] Link: origination is %s",
+    Log(LG_PHYS2, ("[%s] Link: origination is %s",
 	l->name, LINK_ORIGINATION(l->originate)));
     LcpUp(l);
 }
