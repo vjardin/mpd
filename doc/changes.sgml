@@ -10,7 +10,7 @@
     <itemize>
 	<item> Changes:
 	<itemize>
-	  <item> IPCP/IPv6CP now closing on interface address assigning error.
+	  <item> IPCP/IPv6CP now closing on interface address assign error.
 	  </item>
 	</itemize>
 	</item>
