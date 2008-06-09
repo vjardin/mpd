@@ -748,7 +748,11 @@ IfaceIpIfaceUp(Bund b, int ready)
     };
 
     /* Set addresses */
-    IfaceChangeAddr(b, 1, &iface->self_addr, &iface->peer_addr);
+    if (IfaceChangeAddr(b, 1, &iface->self_addr, &iface->peer_addr)) {
+	Log(LG_ERR, ("[%s] IFACE: IfaceChangeAddr() error, closing IPCP", b->name));
+	FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
+	return (-1);
+    };
 
     /* Proxy ARP for peer if desired and peer's address is known */
     u_addrclear(&iface->proxy_addr);
@@ -912,7 +916,11 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     /* Set addresses */
     rng.addr = iface->self_ipv6_addr;
     rng.width = 64;
-    IfaceChangeAddr(b, 1, &rng, &iface->peer_ipv6_addr);
+    if (IfaceChangeAddr(b, 1, &rng, &iface->peer_ipv6_addr)) {
+        Log(LG_ERR, ("[%s] IFACE: IfaceChangeAddr() failed, closing IPv6CP", b->name));
+        FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
+        return (-1);
+    };
   
     /* Add static routes */
     SLIST_FOREACH(r, &iface->routes, next) {
@@ -1511,7 +1519,7 @@ add_scope(struct sockaddr *sa, int ifindex)
 }
 #endif
 
-void
+int
 IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 {
     struct ifaliasreq ifra;
@@ -1533,7 +1541,7 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 
     if ((s = socket(self->addr.family, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to change interface address!", b->name);
-	return;
+	return (s);
     }
 
     switch (self->addr.family) {
@@ -1582,8 +1590,13 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 		b->name, add?"Adding":"Removing", add?"to":"from", b->iface.ifname);
 	}
 	break;
+
+      default:
+        res = -1;
+	break;
     }
     close(s);
+    return (res);
 }
 
 struct rtmsg {

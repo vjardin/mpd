@@ -168,7 +168,7 @@
   #endif
   extern void	IfaceSetMTU(Bund b, int mtu);
   extern void	IfaceChangeFlags(Bund b, int clear, int set);
-  extern void	IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer);
+  extern int	IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer);
   extern int	IfaceSetRoute(Bund b, int cmd, struct u_range *dst, struct u_addr *gw);
 
   extern void	IfaceGetStats(Bund b, struct svcstat *stat);
