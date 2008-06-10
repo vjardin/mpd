@@ -748,7 +748,8 @@ IfaceIpIfaceUp(Bund b, int ready)
     };
 
     /* Set addresses */
-    if (IfaceChangeAddr(b, 1, &iface->self_addr, &iface->peer_addr)) {
+    if (!u_rangeempty(&iface->self_addr) &&
+	    IfaceChangeAddr(b, 1, &iface->self_addr, &iface->peer_addr)) {
 	Log(LG_ERR, ("[%s] IFACE: IfaceChangeAddr() error, closing IPCP", b->name));
 	FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
 	return (-1);
@@ -866,7 +867,8 @@ IfaceIpIfaceDown(Bund b)
     u_addrclear(&iface->proxy_addr);
 
     /* Remove address from interface */
-    IfaceChangeAddr(b, 0, &iface->self_addr, &iface->peer_addr);
+    if (!u_rangeempty(&iface->self_addr))
+	IfaceChangeAddr(b, 0, &iface->self_addr, &iface->peer_addr);
     
     IfaceNgIpShutdown(b);
 }
@@ -883,7 +885,6 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 {
     IfaceState		const iface = &b->iface;
     IfaceRoute		r;
-    struct u_range	rng;
 
     if (ready) {
         iface->self_ipv6_addr.family = AF_INET6;
@@ -914,12 +915,15 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     };
   
     /* Set addresses */
-    rng.addr = iface->self_ipv6_addr;
-    rng.width = 64;
-    if (IfaceChangeAddr(b, 1, &rng, &iface->peer_ipv6_addr)) {
-        Log(LG_ERR, ("[%s] IFACE: IfaceChangeAddr() failed, closing IPv6CP", b->name));
-        FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
-        return (-1);
+    if (!u_addrempty(&iface->self_ipv6_addr)) {
+	struct u_range	rng;
+	rng.addr = iface->self_ipv6_addr;
+	rng.width = 64;
+	if (IfaceChangeAddr(b, 1, &rng, &iface->peer_ipv6_addr)) {
+	    Log(LG_ERR, ("[%s] IFACE: IfaceChangeAddr() failed, closing IPv6CP", b->name));
+	    FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
+    	    return (-1);
+	}
     };
   
     /* Add static routes */
