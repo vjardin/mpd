@@ -1430,7 +1430,7 @@ IfaceSetMTU(Bund b, int mtu)
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-	Perror("[%s] IFACE: Can't get socket to set MTU!", b->name);
+	Perror("[%s] IFACE: Can't get socket to set MTU", b->name);
 	return;
     }
 
@@ -1473,7 +1473,7 @@ IfaceChangeFlags(Bund b, int clear, int set)
 	b->name, clear, set)); 
 
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-	Perror("[%s] IFACE: Can't get socket to change interface flags!", b->name);
+	Perror("[%s] IFACE: Can't get socket to change interface flags", b->name);
 	return;
     }
 
@@ -1540,7 +1540,7 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 	u_addrtosockaddr(peer, 0, &sspeer);
 
     if ((s = socket(self->addr.family, SOCK_DGRAM, 0)) < 0) {
-	Perror("[%s] IFACE: Can't get socket to change interface address!", b->name);
+	Perror("[%s] IFACE: Can't get socket to change interface address", b->name);
 	return (s);
     }
 
@@ -1631,7 +1631,7 @@ IfaceSetRoute(Bund b, int cmd, struct u_range *dst,
 
     s = socket(PF_ROUTE, SOCK_RAW, 0);
     if (s < 0) {
-	Perror("[%s] IFACE: Can't get route socket!", b->name);
+	Perror("[%s] IFACE: Can't get route socket", b->name);
 	return (-1);
     }
     memset(&rtmes, '\0', sizeof(rtmes));

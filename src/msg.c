@@ -70,7 +70,7 @@ MsgRegister2(MsgHandler *m, void (*func)(int type, void *arg), const char *dbg)
 
 	if (EventRegister(&msgevent, EVENT_READ,
 		msgpipe[PIPE_READ], EVENT_RECURRING, MsgEvent, NULL) < 0) {
-	    Perror("%s: Can't register event!", __FUNCTION__);
+	    Perror("%s: Can't register event", __FUNCTION__);
 	    DoExit(EX_ERRDEAD);
         }
     }
