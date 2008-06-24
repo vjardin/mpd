@@ -40,6 +40,7 @@
     SET_SERVER,
     SET_ME,
     SET_MEV6,
+    SET_IDENTIFIER,
     SET_TIMEOUT,
     SET_RETRIES,
     SET_CONFIG,
@@ -58,6 +59,8 @@
 	RadiusSetCommand, NULL, 2, (void *) SET_ME },
     { "v6me {ip}",			"Set NAS IPv6 address" ,
 	RadiusSetCommand, NULL, 2, (void *) SET_MEV6 },
+    { "identifier {name}",		"Set NAS identifier string" ,
+	RadiusSetCommand, NULL, 2, (void *) SET_IDENTIFIER },
     { "timeout {seconds}",		"Set timeout in seconds",
 	RadiusSetCommand, NULL, 2, (void *) SET_TIMEOUT },
     { "retries {# retries}",		"set number of retries",
@@ -216,6 +219,7 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tConfig-file  : %s\r\n", (conf->file ? conf->file : "none"));
   Printf("\tMe (NAS-IP)  : %s\r\n", inet_ntoa(conf->radius_me));
   Printf("\tv6Me (NAS-IP): %s\r\n", u_addrtoa(&conf->radius_mev6, buf1, sizeof(buf1)));
+  Printf("\tIdentifier   : %s\r\n", (conf->identifier ? conf->identifier : ""));
   
   if (conf->server != NULL) {
 
@@ -411,6 +415,19 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	}
 	break;
 
+      case SET_IDENTIFIER:
+	if (strlen(av[0]) > RAD_MAX_ATTR_LEN) {
+	  Error("RADIUS: Identifier too long.");
+	} else {
+	  if (conf->identifier)
+		Freee(conf->identifier);
+	  if (av[0][0] == 0)
+		conf->identifier = NULL;
+	  else
+		conf->identifier = Mstrdup(MB_RADIUS, av[0]);
+	}
+	break;
+
     case SET_ENABLE:
       EnableCommand(ac, av, &conf->options, gConfList);
       break;
@@ -478,18 +495,23 @@ RadiusStart(AuthData auth, short request_type)
     return (RAD_NACK);
   }
 
-  if (gethostname(host, sizeof(host)) == -1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: gethostname() for RAD_NAS_IDENTIFIER failed", 
-      auth->info.lnkname));
-    return (RAD_NACK);
-  }
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_IDENTIFIER: %s", 
-    auth->info.lnkname, host));
-  if (rad_put_string(auth->radius.handle, RAD_NAS_IDENTIFIER, host) == -1)  {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_NAS_IDENTIFIER failed %s", auth->info.lnkname,
-      rad_strerror(auth->radius.handle)));
-    return (RAD_NACK);
-  }
+    if (conf->identifier) {
+	tmpval = conf->identifier;
+    } else {
+	if (gethostname(host, sizeof(host)) == -1) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: gethostname() for RAD_NAS_IDENTIFIER failed", 
+    		auth->info.lnkname));
+	    return (RAD_NACK);
+	}
+	tmpval = host;
+    }
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_IDENTIFIER: %s", 
+	auth->info.lnkname, tmpval));
+    if (rad_put_string(auth->radius.handle, RAD_NAS_IDENTIFIER, tmpval) == -1)  {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_NAS_IDENTIFIER failed %s", auth->info.lnkname,
+    	    rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
   
   if (conf->radius_me.s_addr != 0) {
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_IP_ADDRESS: %s", 

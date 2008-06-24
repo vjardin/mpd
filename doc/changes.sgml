@@ -8,6 +8,12 @@
   <p>
     Changes since version 5.1:
     <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added 'set radius identifier' command.
+	  </item>
+	</itemize>
+	</item>
 	<item> Changes:
 	<itemize>
 	  <item> IPCP/IPv6CP now closing on interface address assign error.

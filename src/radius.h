@@ -95,6 +95,7 @@
 
   extern const	struct cmdtab RadiusSetCmds[];
 
+  /* Configuration for a radius server */
   struct radiusserver_conf {
     char	*hostname;
     char	*sharedsecret;
@@ -104,12 +105,12 @@
   };
   typedef struct radiusserver_conf *RadServe_Conf;
 
-  /* Configuration for a radius server */
   struct radiusconf {
     int		radius_timeout;
     int		radius_retries;
     struct	in_addr radius_me;
     struct	u_addr radius_mev6;
+    char	*identifier;
     char	*file;
     struct radiusserver_conf *server;
     struct optinfo	options;	/* Configured options */
