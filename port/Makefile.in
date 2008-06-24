@@ -47,7 +47,6 @@ RUN_DEPENDS+=	/boot/modules/ng_ipacct.ko:${PORTSDIR}/net-mgmt/ng_ipacct
 .endif
 .endif
 
-MTREE_FILE=	${FILESDIR}/mpd5.mtree
 MAN8=		mpd5.8
 MANCOMPRESSED=	maybe
 USE_RC_SUBR=	mpd5.sh

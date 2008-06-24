@@ -9,7 +9,6 @@ PDIR=		port.temp
 MAKEFILE=	${PDIR}/Makefile
 DESCR=		${PDIR}/pkg-descr
 DISTINFO=	${PDIR}/distinfo
-MTREE=		${PDIR}/files/mpd5.mtree
 RCSCRIPT=	${PDIR}/files/mpd5.sh.in
 
 port:
@@ -17,7 +16,6 @@ port:
 		mkdir -p ${PDIR}
 		mkdir -p ${PDIR}/files
 		cp DESCR ${DESCR}
-		cp mpd5.mtree ${MTREE}
 		cp mpd5.sh ${RCSCRIPT}
 		( cd .. && stat -f "SIZE (mpd5/mpd-${VERSION}.tar.gz) = %z" \
 		  mpd-${VERSION}.tar.gz ) > ${DISTINFO}
