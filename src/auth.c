@@ -40,12 +40,12 @@
   static void		AuthAccount(void *arg);
   static void		AuthAccountFinish(void *arg, int was_canceled);
   static void		AuthInternal(AuthData auth);
-  static void		AuthExternal(AuthData auth);
-  static void		AuthExternalAcct(AuthData auth);
+  static int		AuthExternal(AuthData auth);
+  static int		AuthExternalAcct(AuthData auth);
   static void		AuthSystem(AuthData auth);
-  static void		AuthSystemAcct(AuthData auth);
+  static int		AuthSystemAcct(AuthData auth);
   static void		AuthPAM(AuthData auth);
-  static void		AuthPAMAcct(AuthData auth);
+  static int		AuthPAMAcct(AuthData auth);
   static int		pam_conv(int n, const struct pam_message **msg,
 			    struct pam_response **resp, void *data);
   static void		AuthOpie(AuthData auth);
@@ -897,20 +897,27 @@ static void
 AuthAccount(void *arg)
 {
     AuthData	const auth = (AuthData)arg;
+    int		err = 0;
   
     Log(LG_AUTH2, ("[%s] ACCT: Thread started", auth->info.lnkname));
   
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
-	RadiusAccount(auth);
+	err |= RadiusAccount(auth);
 
     if (Enabled(&auth->conf.options, AUTH_CONF_PAM_ACCT))
-	AuthPAMAcct(auth);
+	err |= AuthPAMAcct(auth);
 
     if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_ACCT))
-	AuthSystemAcct(auth);
+	err |= AuthSystemAcct(auth);
 
     if (Enabled(&auth->conf.options, AUTH_CONF_EXT_ACCT))
-	AuthExternalAcct(auth);
+	err |= AuthExternalAcct(auth);
+	
+    if (err != 0 && auth->acct_type == AUTH_ACCT_START) {
+	Log(LG_AUTH, ("[%s] ACCT: Close link due to accounting start error", 
+	    auth->info.lnkname));
+	auth->drop_user = 1;
+    }
 }
 
 /*
@@ -948,7 +955,7 @@ AuthAccountFinish(void *arg, int was_canceled)
     }    
 
     if (auth->drop_user && auth->acct_type != AUTH_ACCT_STOP) {
-	Log(LG_AUTH, ("[%s] ACCT: Link close requested at the accounting reply", 
+	Log(LG_AUTH, ("[%s] ACCT: Link close requested by the accounting", 
 	    l->name));
 	RecordLinkUpDownReason(NULL, l, 0, STR_MANUALLY, NULL);
 	LinkClose(l);
@@ -1081,34 +1088,42 @@ AuthAsyncStart(Link l, AuthData auth)
 static void
 AuthAsync(void *arg)
 {
-  AuthData	const auth = (AuthData)arg;
+    AuthData	const auth = (AuthData)arg;
 
-  Log(LG_AUTH2, ("[%s] AUTH: Thread started", auth->info.lnkname));
+    Log(LG_AUTH2, ("[%s] AUTH: Thread started", auth->info.lnkname));
 
-  if (Enabled(&auth->conf.options, AUTH_CONF_EXT_AUTH)) {
-    auth->params.authentic = AUTH_CONF_EXT_AUTH;
-    Log(LG_AUTH, ("[%s] AUTH: Trying EXTERNAL", auth->info.lnkname));
-    AuthExternal(auth);
-    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned: %s",
-      auth->info.lnkname, AuthStatusText(auth->status)));
-    if (auth->status == AUTH_STATUS_SUCCESS 
-      || auth->status == AUTH_STATUS_UNDEF)
+    if (Enabled(&auth->conf.options, AUTH_CONF_EXT_AUTH)) {
+        auth->params.authentic = AUTH_CONF_EXT_AUTH;
+	Log(LG_AUTH, ("[%s] AUTH: Trying EXTERNAL", auth->info.lnkname));
+	if (AuthExternal(auth)) {
+	    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned error",
+    		auth->info.lnkname));
+	} else {
+	    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned: %s",
+    		auth->info.lnkname, AuthStatusText(auth->status)));
+	    if (auth->status == AUTH_STATUS_SUCCESS 
+    		    || auth->status == AUTH_STATUS_UNDEF)
+		return;
+	}
+    }
+
+    if (auth->proto == PROTO_EAP && auth->eap_radius) {
+	auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
+	RadiusEapProxy(auth);
 	return;
-  }
-
-  if (auth->proto == PROTO_EAP && auth->eap_radius) {
-    auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
-    RadiusEapProxy(auth);
-    return;
-  } else if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_AUTH)) {
-    auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
-    Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", auth->info.lnkname));
-    RadiusAuthenticate(auth);
-    Log(LG_AUTH, ("[%s] AUTH: RADIUS returned: %s", 
-      auth->info.lnkname, AuthStatusText(auth->status)));
-    if (auth->status == AUTH_STATUS_SUCCESS)
-      return;
-  }
+    } else if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_AUTH)) {
+	auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
+	Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", auth->info.lnkname));
+	if (RadiusAuthenticate(auth)) {
+	    Log(LG_AUTH, ("[%s] AUTH: RADIUS returned error",
+    		auth->info.lnkname));
+	} else {
+	    Log(LG_AUTH, ("[%s] AUTH: RADIUS returned: %s", 
+    		auth->info.lnkname, AuthStatusText(auth->status)));
+	    if (auth->status == AUTH_STATUS_SUCCESS)
+    		return;
+	}
+    }
   
   if (Enabled(&auth->conf.options, AUTH_CONF_PAM_AUTH)) {
     auth->params.authentic = AUTH_CONF_PAM_AUTH;
@@ -1304,7 +1319,7 @@ AuthSystem(AuthData auth)
  * Account with system
  */
 
-static void
+static int
 AuthSystemAcct(AuthData auth)
 {
 	struct utmp	ut;
@@ -1327,6 +1342,7 @@ AuthSystemAcct(AuthData auth)
     	    logout(ut.ut_line);
     	    logwtmp(ut.ut_line, "", "");
 	}
+	return (0);
 }
 
 /*
@@ -1430,7 +1446,7 @@ AuthPAM(AuthData auth)
  * Account with system
  */
 
-static void
+static int
 AuthPAMAcct(AuthData auth)
 {
     pam_handle_t *pamh;
@@ -1442,21 +1458,23 @@ AuthPAMAcct(AuthData auth)
     
     if (auth->acct_type != AUTH_ACCT_START &&
       auth->acct_type != AUTH_ACCT_STOP) {
-        return;
+        return (0);
     }
 
     if (pam_start("mpd", auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
 	Log(LG_ERR, ("[%s] ACCT: PAM error", auth->info.lnkname));
-	return;
+	return (-1);
     }
 
     if (auth->params.peeraddr[0] &&
 	pam_set_item(pamh, PAM_RHOST, auth->params.peeraddr) != PAM_SUCCESS) {
 	Log(LG_ERR, ("[%s] ACCT: PAM set PAM_RHOST error", auth->info.lnkname));
+	return (-1);
     }
 
     if (pam_set_item(pamh, PAM_TTY, auth->info.lnkname) != PAM_SUCCESS) {
 	Log(LG_ERR, ("[%s] ACCT: PAM set PAM_TTY error", auth->info.lnkname));
+	return (-1);
     }
 
     if (auth->acct_type == AUTH_ACCT_START) {
@@ -1471,9 +1489,11 @@ AuthPAMAcct(AuthData auth)
     if (status != PAM_SUCCESS) {
     	Log(LG_AUTH, ("[%s] ACCT: PAM session error",
 	    auth->info.lnkname));
+	return (-1);
     }
     
     pam_end(pamh, status);
+    return (0);
 }
 
 /*
@@ -1905,7 +1925,7 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
  * Authenticate via call external script extauth-script
  */
  
-static void
+static int
 AuthExternal(AuthData auth)
 {
     char	line[256];
@@ -1916,15 +1936,13 @@ AuthExternal(AuthData auth)
     if (!auth->conf.extauth_script[0]) {
 	    Log(LG_ERR, ("[%s] Ext-auth: Script not specified!", 
 		auth->info.lnkname));
-	    auth->status = AUTH_STATUS_FAIL;
-	    return;
+	    return (-1);
     }
     if (strchr(auth->params.authname, '\'') ||
 	strchr(auth->params.authname, '\n')) {
 	    Log(LG_ERR, ("[%s] Ext-auth: Denied character in USER_NAME!", 
 		auth->info.lnkname));
-	    auth->status = AUTH_STATUS_FAIL;
-	    return;
+	    return (-1);
     }
     snprintf(line, sizeof(line), "%s '%s'", 
 	auth->conf.extauth_script, auth->params.authname);
@@ -1932,7 +1950,7 @@ AuthExternal(AuthData auth)
 	auth->info.lnkname, line));
     if ((fp = popen(line, "r+")) == NULL) {
 	Perror("Popen");
-	return;
+	return (-1);
     }
 
     /* SENDING REQUEST */
@@ -2245,7 +2263,7 @@ AuthExternal(AuthData auth)
     }
  
     pclose(fp);
-    return;
+    return (0);
 }
 
 /*
@@ -2254,7 +2272,7 @@ AuthExternal(AuthData auth)
  * Accounting via call external script extacct-script
  */
  
-static void
+static int
 AuthExternalAcct(AuthData auth)
 {
     char	line[256];
@@ -2263,15 +2281,15 @@ AuthExternalAcct(AuthData auth)
     int		len;
  
     if (!auth->conf.extacct_script[0]) {
-	    Log(LG_ERR, ("[%s] Ext-acct: Script not specified!", 
-		auth->info.lnkname));
-	    return;
+	Log(LG_ERR, ("[%s] Ext-acct: Script not specified!", 
+	    auth->info.lnkname));
+	return (-1);
     }
     if (strchr(auth->params.authname, '\'') ||
-	strchr(auth->params.authname, '\n')) {
-	    Log(LG_ERR, ("[%s] Ext-acct: Denied character in USER_NAME!", 
-		auth->info.lnkname));
-	    return;
+	    strchr(auth->params.authname, '\n')) {
+	Log(LG_ERR, ("[%s] Ext-acct: Denied character in USER_NAME!", 
+	    auth->info.lnkname));
+	return (-1);
     }
     snprintf(line, sizeof(line), "%s '%s'", 
 	auth->conf.extacct_script, auth->params.authname);
@@ -2279,7 +2297,7 @@ AuthExternalAcct(AuthData auth)
 	auth->info.lnkname, line));
     if ((fp = popen(line, "r+")) == NULL) {
 	Perror("Popen");
-	return;
+	return (-1);
     }
 
     /* SENDING REQUEST */
@@ -2309,9 +2327,8 @@ AuthExternalAcct(AuthData auth)
     fprintf(fp, "FRAMED_IP_ADDRESS:%s\n",
 	inet_ntoa(auth->info.peer_addr));
 
-    if (auth->acct_type == AUTH_ACCT_STOP) {
+    if (auth->acct_type == AUTH_ACCT_STOP)
 	fprintf(fp, "ACCT_TERMINATE_CAUSE:%s\n", auth->info.downReason);
-    }
 
     if (auth->acct_type != AUTH_ACCT_START) {
 	struct svcstatrec *ssr;
@@ -2372,5 +2389,5 @@ AuthExternalAcct(AuthData auth)
     }
  
     pclose(fp);
-    return;
+    return (0);
 }

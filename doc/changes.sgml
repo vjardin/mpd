@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> IPCP/IPv6CP now closing on interface address assign error.
 	  </item>
+	  <item> Accounting start error now closes link.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:

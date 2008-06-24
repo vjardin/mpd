@@ -25,9 +25,6 @@
   #define RADIUS_EAP		3
   #define RADIUS_MAX_SERVERS	10
 
-  #define RAD_NACK		0
-  #define RAD_ACK		1
-
   #ifndef RAD_UPDATE
   #define RAD_UPDATE 3
   #endif
@@ -147,7 +144,7 @@
 
   extern void	RadiusInit(Link l);
   extern int	RadiusAuthenticate(struct authdata *auth);
-  extern void	RadiusAccount(struct authdata *auth);
+  extern int	RadiusAccount(struct authdata *auth);
   extern void	RadiusClose(struct authdata *auth);
   extern void	RadiusEapProxy(void *arg);
   extern int	RadStat(Context ctx, int ac, char *av[], void *arg);

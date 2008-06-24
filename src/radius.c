@@ -30,6 +30,7 @@
   static int	RadiusOpen(AuthData auth, short request_type);
   static int	RadiusStart(AuthData auth, short request_type);  
   static int	RadiusPutAuth(AuthData auth);
+  static int	RadiusPutAcct(AuthData auth);
   static int	RadiusGetParams(AuthData auth, int eap_proxy);
   static int	RadiusSendRequest(AuthData auth);
 
@@ -79,6 +80,9 @@
     { 0,	0,				NULL			},
   };
 
+  #define RAD_NACK		0
+  #define RAD_ACK		1
+
 /*
  * RadiusInit()
  */
@@ -102,10 +106,32 @@ RadiusAuthenticate(AuthData auth)
     if ((RadiusStart(auth, RAD_ACCESS_REQUEST) == RAD_NACK) ||
 	(RadiusPutAuth(auth) == RAD_NACK) ||
 	(RadiusSendRequest(auth) == RAD_NACK)) {
-	    return RAD_NACK;
+	    return (-1);
     }
   
-    return RAD_ACK;
+    return (0);
+}
+
+/*
+ * RadiusAccount()
+ *
+ * Do RADIUS accounting
+ * NOTE: thread-safety is needed here
+ */
+ 
+int 
+RadiusAccount(AuthData auth) 
+{
+    Log(LG_RADIUS, ("[%s] RADIUS: Accounting user '%s' (Type: %d)", 
+	auth->info.lnkname, auth->params.authname, auth->acct_type));
+
+    if ((RadiusStart(auth, RAD_ACCOUNTING_REQUEST) == RAD_NACK) ||
+	(RadiusPutAcct(auth) == RAD_NACK) ||
+	(RadiusSendRequest(auth) == RAD_NACK)) {
+	    return (-1);
+    }
+
+    return (0);
 }
 
 /*
@@ -166,292 +192,12 @@ RadiusEapProxy(void *arg)
     return;
 }
 
-/*
- * RadiusAccount()
- *
- * Do RADIUS accounting
- * NOTE: thread-safety is needed here
- */
- 
-void 
-RadiusAccount(AuthData auth) 
-{
-  char  *username;
-  int	authentic;
-
-  Log(LG_RADIUS, ("[%s] RADIUS: Accounting user '%s' (Type: %d)", 
-    auth->info.lnkname, auth->params.authname, auth->acct_type));
-
-  if (auth->params.authentic == AUTH_CONF_RADIUS_AUTH) {
-    authentic = RAD_AUTH_RADIUS;
-  } else {
-    authentic = RAD_AUTH_LOCAL;
-  }
-
-  if (RadiusStart(auth, RAD_ACCOUNTING_REQUEST) == RAD_NACK)
-    return;
-
-  if (auth->acct_type == AUTH_ACCT_START) {
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: RAD_START", 
-      auth->info.lnkname));
-    if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_START)) {
-      Log(LG_RADIUS, ("[%s] RADIUS: Put STATUS_TYPE: %s", 
-	auth->info.lnkname, rad_strerror(auth->radius.handle)));
-      return;
-    }
-  }
-
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_FRAMED_IP_ADDRESS: %s", 
-    auth->info.lnkname, inet_ntoa(auth->info.peer_addr)));
-  if (rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_ADDRESS, auth->info.peer_addr)) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_FRAMED_IP_ADDRESS: %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return;
-  }
-
-  if (auth->params.netmask != 0) {
-    struct in_addr	ip;
-    widthtoin_addr(auth->params.netmask, &ip);
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_FRAMED_IP_NETMASK: %s", 
-	auth->info.lnkname, inet_ntoa(ip)));
-    if (rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ip)) {
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_FRAMED_IP_NETMASK: %s", 
-    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
-	return;
-    }
-  }
-
-  username = auth->params.authname;
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_USER_NAME: %s", 
-    auth->info.lnkname, username));
-  if (rad_put_string(auth->radius.handle, RAD_USER_NAME, username) != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_USER_NAME: %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return;
-  }
-
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_MULTI_SESSION_ID: %s", 
-    auth->info.lnkname, auth->info.msession_id));
-  if (rad_put_string(auth->radius.handle, RAD_ACCT_MULTI_SESSION_ID, auth->info.msession_id) != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_MULTI_SESSION_ID: %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return;
-  }
-
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_BUNDLE: %s", 
-        auth->info.lnkname, auth->info.bundname));
-    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_BUNDLE, auth->info.bundname) != 0) {
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_BUNDLE: %s", auth->info.lnkname,
-	    rad_strerror(auth->radius.handle)));
-    }
-
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_IFACE: %s", 
-        auth->info.lnkname, auth->info.ifname));
-    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE, auth->info.ifname) != 0) {
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE: %s", auth->info.lnkname,
-	    rad_strerror(auth->radius.handle)));
-    }
-
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %u", 
-        auth->info.lnkname, auth->info.ifindex));
-    if (rad_put_vendor_int(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE_INDEX, auth->info.ifindex) != 0) {
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %s", auth->info.lnkname,
-	    rad_strerror(auth->radius.handle)));
-    }
-
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_LINK_COUNT: %d", 
-    auth->info.lnkname, auth->info.n_links));
-  if (rad_put_int(auth->radius.handle, RAD_ACCT_LINK_COUNT, auth->info.n_links) != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_LINK_COUNT failed: %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return;
-  }
-
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_AUTHENTIC: %d", 
-    auth->info.lnkname, authentic));
-  if (rad_put_int(auth->radius.handle, RAD_ACCT_AUTHENTIC, authentic) != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_AUTHENTIC failed: %s",
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return;
-  }
-
-  if (auth->acct_type == AUTH_ACCT_STOP 
-      || auth->acct_type == AUTH_ACCT_UPDATE) {
-    struct svcstatrec *ssr;
-
-    if (auth->acct_type == AUTH_ACCT_STOP) {
-        int	termCause = RAD_TERM_PORT_ERROR;
-
-        Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: RAD_STOP", 
-	    auth->info.lnkname));
-        if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_STOP)) {
-	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: %s", 
-		auth->info.lnkname, rad_strerror(auth->radius.handle)));
-	    return;
-        }
-
-	if ((auth->info.downReason == NULL) || (!strcmp(auth->info.downReason, ""))) {
-	  termCause = RAD_TERM_NAS_REQUEST;
-	} else if (!strncmp(auth->info.downReason, STR_MANUALLY, strlen(STR_MANUALLY))) {
-	  termCause = RAD_TERM_ADMIN_RESET;
-	} else if (!strncmp(auth->info.downReason, STR_PEER_DISC, strlen(STR_PEER_DISC))) {
-	  termCause = RAD_TERM_USER_REQUEST;
-	} else if (!strncmp(auth->info.downReason, STR_ADMIN_SHUTDOWN, strlen(STR_ADMIN_SHUTDOWN))) {
-	  termCause = RAD_TERM_ADMIN_REBOOT;
-	} else if (!strncmp(auth->info.downReason, STR_FATAL_SHUTDOWN, strlen(STR_FATAL_SHUTDOWN))) {
-	  termCause = RAD_TERM_NAS_REBOOT;
-	} else if (!strncmp(auth->info.downReason, STR_IDLE_TIMEOUT, strlen(STR_IDLE_TIMEOUT))) {
-	  termCause = RAD_TERM_IDLE_TIMEOUT;
-	} else if (!strncmp(auth->info.downReason, STR_SESSION_TIMEOUT, strlen(STR_SESSION_TIMEOUT))) {
-	  termCause = RAD_TERM_SESSION_TIMEOUT;
-	} else if (!strncmp(auth->info.downReason, STR_DROPPED, strlen(STR_DROPPED))) {
-	  termCause = RAD_TERM_LOST_CARRIER;
-	} else if (!strncmp(auth->info.downReason, STR_ECHO_TIMEOUT, strlen(STR_ECHO_TIMEOUT))) {
-	  termCause = RAD_TERM_LOST_SERVICE;
-	} else if (!strncmp(auth->info.downReason, STR_PROTO_ERR, strlen(STR_PROTO_ERR))) {
-	  termCause = RAD_TERM_SERVICE_UNAVAILABLE;
-	} else if (!strncmp(auth->info.downReason, STR_LOGIN_FAIL, strlen(STR_LOGIN_FAIL))) {
-	  termCause = RAD_TERM_USER_ERROR;
-	} else if (!strncmp(auth->info.downReason, STR_PORT_UNNEEDED, strlen(STR_PORT_UNNEEDED))) {
-	  termCause = RAD_TERM_PORT_UNNEEDED;
-	};
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_TERMINATE_CAUSE: %s, RADIUS: %d",
-	  auth->info.lnkname, auth->info.downReason, termCause));
-
-        if (rad_put_int(auth->radius.handle, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
-	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_TERMINATE_CAUSE failed: %s",
-		auth->info.lnkname, rad_strerror(auth->radius.handle)));
-	    return;
-        } 
-    } else {
-      Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: RAD_UPDATE", 
-	auth->info.lnkname));
-      if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_UPDATE)) {
-	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: %s", 
-	  auth->info.lnkname, rad_strerror(auth->radius.handle)));
-	return;
-      }
-    }
-
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_SESSION_TIME: %ld", 
-      auth->info.lnkname, (long int)(time(NULL) - auth->info.last_up)));
-    if (rad_put_int(auth->radius.handle, RAD_ACCT_SESSION_TIME, time(NULL) - auth->info.last_up) != 0) {
-      Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_SESSION_TIME failed: %s",
-	auth->info.lnkname, rad_strerror(auth->radius.handle)));
-      return;
-    }
-
-    if (auth->params.std_acct[0][0] == 0) {
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
-    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets % MAX_U_INT32)));
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_GIGAWORDS: %lu", 
-    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets / MAX_U_INT32)));
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_PACKETS: %lu", 
-    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvFrames)));
-	if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, auth->info.stats.recvOctets % MAX_U_INT32) != 0 ||
-	    rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, auth->info.stats.recvFrames) != 0 ||
-	    rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, auth->info.stats.recvOctets / MAX_U_INT32) != 0) {
-    		Log(LG_RADIUS, ("[%s] RADIUS: Put input stats: %s", auth->info.lnkname,
-		    rad_strerror(auth->radius.handle)));
-    		return;
-	}
-    }
-    if (auth->params.std_acct[1][0] == 0) {
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_OCTETS: %lu", 
-    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets % MAX_U_INT32)));
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_GIGAWORDS: %lu", 
-    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets / MAX_U_INT32)));
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_PACKETS: %lu", 
-    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitFrames)));
-	if (rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, auth->info.stats.xmitOctets % MAX_U_INT32) != 0 ||
-	    rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, auth->info.stats.xmitFrames) != 0 ||
-	    rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, auth->info.stats.xmitOctets / MAX_U_INT32) != 0) {
-    		Log(LG_RADIUS, ("[%s] RADIUS: Put output stats: %s", auth->info.lnkname,
-		    rad_strerror(auth->radius.handle)));
-    		return;
-	}
-    }
-    SLIST_FOREACH(ssr, &auth->info.ss.stat[0], next) {
-	char str[64];
-	snprintf(str, sizeof(str), "%s:%llu",
-	    ssr->name, (long long unsigned)ssr->Octets);
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_INPUT_OCTETS: %s", 
-    	    auth->info.lnkname, str));
-	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_OCTETS, str) != 0) {
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_INPUT_OCTETS: %s", auth->info.lnkname,
-		rad_strerror(auth->radius.handle)));
-	}
-	snprintf(str, sizeof(str), "%s:%llu",
-	    ssr->name, (long long unsigned)ssr->Packets);
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_INPUT_PACKETS: %s", 
-    	    auth->info.lnkname, str));
-	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_PACKETS, str) != 0) {
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_INPUT_PACKETS: %s", auth->info.lnkname,
-		rad_strerror(auth->radius.handle)));
-	}
-	if (strcmp(ssr->name,auth->params.std_acct[0]) == 0) {
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
-    		auth->info.lnkname, (long unsigned int)(ssr->Octets % MAX_U_INT32)));
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_GIGAWORDS: %lu", 
-    		auth->info.lnkname, (long unsigned int)(ssr->Octets / MAX_U_INT32)));
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_PACKETS: %lu", 
-    		auth->info.lnkname, (long unsigned int)(ssr->Packets)));
-	    if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, ssr->Octets % MAX_U_INT32) != 0 ||
-		rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, ssr->Packets) != 0 ||
-		rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, ssr->Octets / MAX_U_INT32) != 0) {
-    		    Log(LG_RADIUS, ("[%s] RADIUS: Put input stats: %s", auth->info.lnkname,
-			rad_strerror(auth->radius.handle)));
-    		    return;
-	    }
-	}
-    }
-    SLIST_FOREACH(ssr, &auth->info.ss.stat[1], next) {
-	char str[64];
-	snprintf(str, sizeof(str), "%s:%llu",
-	    ssr->name, (long long unsigned)ssr->Octets);
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_OCTETS: %s", 
-    	    auth->info.lnkname, str));
-	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_OCTETS, str) != 0) {
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_OCTETS: %s", auth->info.lnkname,
-		rad_strerror(auth->radius.handle)));
-	}
-	snprintf(str, sizeof(str), "%s:%llu",
-	    ssr->name, (long long unsigned)ssr->Packets);
-	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_PACKETS: %s", 
-    	    auth->info.lnkname, str));
-	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_PACKETS, str) != 0) {
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_PACKETS: %s", auth->info.lnkname,
-		rad_strerror(auth->radius.handle)));
-	}
-	if (strcmp(ssr->name,auth->params.std_acct[1]) == 0) {
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_OCTETS: %lu", 
-    		auth->info.lnkname, (long unsigned int)(ssr->Octets % MAX_U_INT32)));
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_GIGAWORDS: %lu", 
-    		auth->info.lnkname, (long unsigned int)(ssr->Octets / MAX_U_INT32)));
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_PACKETS: %lu", 
-    		auth->info.lnkname, (long unsigned int)(ssr->Packets)));
-	    if (rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, ssr->Octets % MAX_U_INT32) != 0 ||
-		rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, ssr->Packets) != 0 ||
-		rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, ssr->Octets / MAX_U_INT32) != 0) {
-    		    Log(LG_RADIUS, ("[%s] RADIUS: Put output stats: %s", auth->info.lnkname,
-			rad_strerror(auth->radius.handle)));
-    		    return;
-	    }
-	}
-    }
-
-  }
-
-  RadiusSendRequest(auth);
-
-}
-
 void
 RadiusClose(AuthData auth) 
 {
-  if (auth->radius.handle != NULL)
-    rad_close(auth->radius.handle);  
-  auth->radius.handle = NULL;
+    if (auth->radius.handle != NULL)
+	rad_close(auth->radius.handle);  
+    auth->radius.handle = NULL;
 }
 
 int
@@ -683,39 +429,35 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 RadiusOpen(AuthData auth, short request_type)
 {
-  RadConf 	const conf = &auth->conf.radius;
+    RadConf 	const conf = &auth->conf.radius;
 
-  if (request_type == RAD_ACCESS_REQUEST) {
+    if (request_type == RAD_ACCESS_REQUEST) {
   
-    if ((auth->radius.handle = rad_open()) == NULL) {
-      Log(LG_RADIUS, ("[%s] RADIUS: rad_open failed", auth->info.lnkname));
-      return (RAD_NACK);
+	if ((auth->radius.handle = rad_open()) == NULL) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: rad_open failed", auth->info.lnkname));
+    	    return (RAD_NACK);
+	}
+    } else { /* RAD_ACCOUNTING_REQUEST */
+  
+	if ((auth->radius.handle = rad_acct_open()) == NULL) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: rad_acct_open failed", auth->info.lnkname));
+    	    return (RAD_NACK);
+	}
+    }
+  
+    if (conf->file && strlen(conf->file)) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: using %s", auth->info.lnkname, conf->file));
+	if (rad_config(auth->radius.handle, conf->file) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: rad_config: %s", auth->info.lnkname, 
+    		rad_strerror(auth->radius.handle)));
+    	    return (RAD_NACK);
+	}
     }
 
-  /* RAD_ACCOUNTING_REQUEST */
-  } else {
+    if (RadiusAddServer(auth, request_type) == RAD_NACK)
+	return (RAD_NACK);
   
-    if ((auth->radius.handle = rad_acct_open()) == NULL) {
-      Log(LG_RADIUS, ("[%s] RADIUS: rad_acct_open failed", auth->info.lnkname));
-      return (RAD_NACK);
-    }
-
-  }
-  
-  if (conf->file && strlen(conf->file)) {
-    Log(LG_RADIUS2, ("[%s] RADIUS: using %s", auth->info.lnkname, conf->file));
-    if (rad_config(auth->radius.handle, conf->file) != 0) {
-      Log(LG_RADIUS, ("[%s] RADIUS: rad_config: %s", auth->info.lnkname, 
-        rad_strerror(auth->radius.handle)));
-      return (RAD_NACK);
-    }
-  }
-
-  if (RadiusAddServer(auth, request_type) == RAD_NACK)
-    return (RAD_NACK);
-  
-  return RAD_ACK;
-
+    return (RAD_ACK);
 }
 
 static int
@@ -785,101 +527,101 @@ RadiusStart(AuthData auth, short request_type)
   }
 #endif
 
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_SESSION_ID: %s", 
-    auth->info.lnkname, auth->info.session_id));
-  if (rad_put_string(auth->radius.handle, RAD_ACCT_SESSION_ID, auth->info.session_id) != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_SESSION_ID: %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return (RAD_NACK);
-  }
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_SESSION_ID: %s", 
+	auth->info.lnkname, auth->info.session_id));
+    if (rad_put_string(auth->radius.handle, RAD_ACCT_SESSION_ID, auth->info.session_id) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_SESSION_ID: %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
 
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_PORT: %d", 
-    auth->info.lnkname, auth->info.linkID));
-  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT, auth->info.linkID) == -1)  {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_NAS_PORT failed %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return (RAD_NACK);
-  }
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_PORT: %d", 
+	auth->info.lnkname, auth->info.linkID));
+    if (rad_put_int(auth->radius.handle, RAD_NAS_PORT, auth->info.linkID) == -1)  {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_NAS_PORT failed %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
 
 #ifdef PHYSTYPE_MODEM
-  if (auth->info.phys_type == &gModemPhysType) {
-    porttype = RAD_ASYNC;
-  } else 
+    if (auth->info.phys_type == &gModemPhysType) {
+	porttype = RAD_ASYNC;
+    } else 
 #endif
 #ifdef PHYSTYPE_NG_SOCKET
-  if (auth->info.phys_type == &gNgPhysType) {
-    porttype = RAD_SYNC;
-  } else 
+    if (auth->info.phys_type == &gNgPhysType) {
+	porttype = RAD_SYNC;
+    } else 
 #endif
 #ifdef PHYSTYPE_PPPOE
-  if (auth->info.phys_type == &gPppoePhysType) {
-    porttype = RAD_ETHERNET;
-  } else 
+    if (auth->info.phys_type == &gPppoePhysType) {
+	porttype = RAD_ETHERNET;
+    } else 
 #endif
-  {
-    porttype = RAD_VIRTUAL;
-  };
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_PORT_TYPE: %d", 
-    auth->info.lnkname, porttype));
-  if (rad_put_int(auth->radius.handle, RAD_NAS_PORT_TYPE, porttype) == -1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_NAS_PORT_TYPE failed %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return (RAD_NACK);
-  }
+    {
+	porttype = RAD_VIRTUAL;
+    };
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_PORT_TYPE: %d", 
+	auth->info.lnkname, porttype));
+    if (rad_put_int(auth->radius.handle, RAD_NAS_PORT_TYPE, porttype) == -1) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_NAS_PORT_TYPE failed %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
 
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_SERVICE_TYPE: RAD_FRAMED", 
-    auth->info.lnkname));
-  if (rad_put_int(auth->radius.handle, RAD_SERVICE_TYPE, RAD_FRAMED) == -1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_SERVICE_TYPE failed %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return (RAD_NACK);
-  }
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_SERVICE_TYPE: RAD_FRAMED", 
+	auth->info.lnkname));
+    if (rad_put_int(auth->radius.handle, RAD_SERVICE_TYPE, RAD_FRAMED) == -1) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_SERVICE_TYPE failed %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
   
-  Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_FRAMED_PROTOCOL: RAD_PPP", 
-    auth->info.lnkname));
-  if (rad_put_int(auth->radius.handle, RAD_FRAMED_PROTOCOL, RAD_PPP) == -1) {
-    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_FRAMED_PROTOCOL failed %s", 
-      auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    return (RAD_NACK);
-  }
-
-  if (auth->params.state != NULL) {
-    tmpval = Bin2Hex(auth->params.state, auth->params.state_len);
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_STATE: 0x%s", auth->info.lnkname, tmpval));
-    Freee(tmpval);
-    if (rad_put_attr(auth->radius.handle, RAD_STATE, auth->params.state, auth->params.state_len) == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_STATE failed %s", 
-        auth->info.lnkname, rad_strerror(auth->radius.handle)));
-      return (RAD_NACK);
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_FRAMED_PROTOCOL: RAD_PPP", 
+	auth->info.lnkname));
+    if (rad_put_int(auth->radius.handle, RAD_FRAMED_PROTOCOL, RAD_PPP) == -1) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_FRAMED_PROTOCOL failed %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
     }
-  }
 
-  if (auth->params.class != NULL) {
-    tmpval = Bin2Hex(auth->params.class, auth->params.class_len);
-    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CLASS: 0x%s", auth->info.lnkname, tmpval));
-    Freee(tmpval);
-    if (rad_put_attr(auth->radius.handle, RAD_CLASS, auth->params.class, auth->params.class_len) == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CLASS failed %s", 
-        auth->info.lnkname, rad_strerror(auth->radius.handle)));
-      return (RAD_NACK);
+    if (auth->params.state != NULL) {
+	tmpval = Bin2Hex(auth->params.state, auth->params.state_len);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_STATE: 0x%s", auth->info.lnkname, tmpval));
+	Freee(tmpval);
+	if (rad_put_attr(auth->radius.handle, RAD_STATE, auth->params.state, auth->params.state_len) == -1) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_STATE failed %s", 
+    		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	    return (RAD_NACK);
+	}
     }
-  }
+
+    if (auth->params.class != NULL) {
+	tmpval = Bin2Hex(auth->params.class, auth->params.class_len);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CLASS: 0x%s", auth->info.lnkname, tmpval));
+	Freee(tmpval);
+	if (rad_put_attr(auth->radius.handle, RAD_CLASS, auth->params.class, auth->params.class_len) == -1) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CLASS failed %s", 
+    		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	    return (RAD_NACK);
+	}
+    }
 
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID: %s",
         auth->info.lnkname, auth->params.callingnum));
     if (rad_put_string(auth->radius.handle, RAD_CALLING_STATION_ID,
-        auth->params.callingnum) == -1) {
-            Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID failed %s",
-        	auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    	    return (RAD_NACK);
+    	    auth->params.callingnum) == -1) {
+        Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CALLING_STATION_ID failed %s",
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	return (RAD_NACK);
     }
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_CALLED_STATION_ID: %s",
 	auth->info.lnkname, auth->params.callednum));
     if (rad_put_string(auth->radius.handle, RAD_CALLED_STATION_ID,
-    	auth->params.callednum) == -1) {
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CALLED_STATION_ID failed %s",
-	        auth->info.lnkname, rad_strerror(auth->radius.handle)));
-    	    return (RAD_NACK);
+    	    auth->params.callednum) == -1) {
+    	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_CALLED_STATION_ID failed %s",
+	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	return (RAD_NACK);
     }
 
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_PORT_ID: %s",
@@ -896,9 +638,10 @@ RadiusStart(AuthData auth, short request_type)
     if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_LINK, auth->info.lnkname) != 0) {
 	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_LINK: %s", auth->info.lnkname,
 	    rad_strerror(auth->radius.handle)));
+    	return (RAD_NACK);
     }
 
-    return RAD_ACK;
+    return (RAD_ACK);
 }
 
 static int 
@@ -1038,95 +781,360 @@ RadiusPutAuth(AuthData auth)
 }
 
 static int 
+RadiusPutAcct(AuthData auth)
+{
+    char *username;
+    int	authentic;
+
+    if (auth->acct_type == AUTH_ACCT_START) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: RAD_START", 
+    	    auth->info.lnkname));
+	if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_START)) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Put STATUS_TYPE: %s", 
+		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	    return (RAD_NACK);
+	}
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_FRAMED_IP_ADDRESS: %s", 
+	auth->info.lnkname, inet_ntoa(auth->info.peer_addr)));
+    if (rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_ADDRESS, auth->info.peer_addr)) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_FRAMED_IP_ADDRESS: %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    if (auth->params.netmask != 0) {
+        struct in_addr	ip;
+	widthtoin_addr(auth->params.netmask, &ip);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_FRAMED_IP_NETMASK: %s", 
+	    auth->info.lnkname, inet_ntoa(ip)));
+	if (rad_put_addr(auth->radius.handle, RAD_FRAMED_IP_NETMASK, ip)) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_FRAMED_IP_NETMASK: %s", 
+    		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	    return (RAD_NACK);
+	}
+    }
+
+    username = auth->params.authname;
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_USER_NAME: %s", 
+	auth->info.lnkname, username));
+    if (rad_put_string(auth->radius.handle, RAD_USER_NAME, username) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_USER_NAME: %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_MULTI_SESSION_ID: %s", 
+	auth->info.lnkname, auth->info.msession_id));
+    if (rad_put_string(auth->radius.handle, RAD_ACCT_MULTI_SESSION_ID, auth->info.msession_id) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_MULTI_SESSION_ID: %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_BUNDLE: %s", 
+        auth->info.lnkname, auth->info.bundname));
+    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_BUNDLE, auth->info.bundname) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_BUNDLE: %s", auth->info.lnkname,
+	    rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_IFACE: %s", 
+        auth->info.lnkname, auth->info.ifname));
+    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE, auth->info.ifname) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE: %s", auth->info.lnkname,
+	    rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %u", 
+        auth->info.lnkname, auth->info.ifindex));
+    if (rad_put_vendor_int(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE_INDEX, auth->info.ifindex) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %s", auth->info.lnkname,
+	    rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_LINK_COUNT: %d", 
+	auth->info.lnkname, auth->info.n_links));
+    if (rad_put_int(auth->radius.handle, RAD_ACCT_LINK_COUNT, auth->info.n_links) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_LINK_COUNT failed: %s", 
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    if (auth->params.authentic == AUTH_CONF_RADIUS_AUTH) {
+	authentic = RAD_AUTH_RADIUS;
+    } else {
+	authentic = RAD_AUTH_LOCAL;
+    }
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_AUTHENTIC: %d", 
+	auth->info.lnkname, authentic));
+    if (rad_put_int(auth->radius.handle, RAD_ACCT_AUTHENTIC, authentic) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_AUTHENTIC failed: %s",
+    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+  if (auth->acct_type == AUTH_ACCT_STOP 
+      || auth->acct_type == AUTH_ACCT_UPDATE) {
+    struct svcstatrec *ssr;
+
+    if (auth->acct_type == AUTH_ACCT_STOP) {
+        int	termCause = RAD_TERM_PORT_ERROR;
+
+        Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: RAD_STOP", 
+	    auth->info.lnkname));
+        if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_STOP)) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: %s", 
+		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	    return (RAD_NACK);
+        }
+
+	if ((auth->info.downReason == NULL) || (!strcmp(auth->info.downReason, ""))) {
+	  termCause = RAD_TERM_NAS_REQUEST;
+	} else if (!strncmp(auth->info.downReason, STR_MANUALLY, strlen(STR_MANUALLY))) {
+	  termCause = RAD_TERM_ADMIN_RESET;
+	} else if (!strncmp(auth->info.downReason, STR_PEER_DISC, strlen(STR_PEER_DISC))) {
+	  termCause = RAD_TERM_USER_REQUEST;
+	} else if (!strncmp(auth->info.downReason, STR_ADMIN_SHUTDOWN, strlen(STR_ADMIN_SHUTDOWN))) {
+	  termCause = RAD_TERM_ADMIN_REBOOT;
+	} else if (!strncmp(auth->info.downReason, STR_FATAL_SHUTDOWN, strlen(STR_FATAL_SHUTDOWN))) {
+	  termCause = RAD_TERM_NAS_REBOOT;
+	} else if (!strncmp(auth->info.downReason, STR_IDLE_TIMEOUT, strlen(STR_IDLE_TIMEOUT))) {
+	  termCause = RAD_TERM_IDLE_TIMEOUT;
+	} else if (!strncmp(auth->info.downReason, STR_SESSION_TIMEOUT, strlen(STR_SESSION_TIMEOUT))) {
+	  termCause = RAD_TERM_SESSION_TIMEOUT;
+	} else if (!strncmp(auth->info.downReason, STR_DROPPED, strlen(STR_DROPPED))) {
+	  termCause = RAD_TERM_LOST_CARRIER;
+	} else if (!strncmp(auth->info.downReason, STR_ECHO_TIMEOUT, strlen(STR_ECHO_TIMEOUT))) {
+	  termCause = RAD_TERM_LOST_SERVICE;
+	} else if (!strncmp(auth->info.downReason, STR_PROTO_ERR, strlen(STR_PROTO_ERR))) {
+	  termCause = RAD_TERM_SERVICE_UNAVAILABLE;
+	} else if (!strncmp(auth->info.downReason, STR_LOGIN_FAIL, strlen(STR_LOGIN_FAIL))) {
+	  termCause = RAD_TERM_USER_ERROR;
+	} else if (!strncmp(auth->info.downReason, STR_PORT_UNNEEDED, strlen(STR_PORT_UNNEEDED))) {
+	  termCause = RAD_TERM_PORT_UNNEEDED;
+	};
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_TERMINATE_CAUSE: %s, RADIUS: %d",
+	  auth->info.lnkname, auth->info.downReason, termCause));
+
+        if (rad_put_int(auth->radius.handle, RAD_ACCT_TERMINATE_CAUSE, termCause) != 0) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_TERMINATE_CAUSE failed: %s",
+		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	    return (RAD_NACK);
+        } 
+    } else {
+        Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: RAD_UPDATE", 
+	    auth->info.lnkname));
+        if (rad_put_int(auth->radius.handle, RAD_ACCT_STATUS_TYPE, RAD_UPDATE)) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: %s", 
+		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	    return (RAD_NACK);
+        }
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_SESSION_TIME: %ld", 
+        auth->info.lnkname, (long int)(time(NULL) - auth->info.last_up)));
+    if (rad_put_int(auth->radius.handle, RAD_ACCT_SESSION_TIME, time(NULL) - auth->info.last_up) != 0) {
+        Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_ACCT_SESSION_TIME failed: %s",
+	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+        return (RAD_NACK);
+    }
+
+    if (auth->params.std_acct[0][0] == 0) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets % MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_GIGAWORDS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets / MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_PACKETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvFrames)));
+	if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, auth->info.stats.recvOctets % MAX_U_INT32) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, auth->info.stats.recvFrames) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, auth->info.stats.recvOctets / MAX_U_INT32) != 0) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put input stats: %s", auth->info.lnkname,
+		    rad_strerror(auth->radius.handle)));
+    		return (RAD_NACK);
+	}
+    }
+    if (auth->params.std_acct[1][0] == 0) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_OCTETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets % MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_GIGAWORDS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitOctets / MAX_U_INT32)));
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_PACKETS: %lu", 
+    	    auth->info.lnkname, (long unsigned int)(auth->info.stats.xmitFrames)));
+	if (rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, auth->info.stats.xmitOctets % MAX_U_INT32) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, auth->info.stats.xmitFrames) != 0 ||
+	    rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, auth->info.stats.xmitOctets / MAX_U_INT32) != 0) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put output stats: %s", auth->info.lnkname,
+		    rad_strerror(auth->radius.handle)));
+    		return (RAD_NACK);
+	}
+    }
+    SLIST_FOREACH(ssr, &auth->info.ss.stat[0], next) {
+	char str[64];
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Octets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_INPUT_OCTETS: %s", 
+    	    auth->info.lnkname, str));
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_OCTETS, str) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_INPUT_OCTETS: %s", auth->info.lnkname,
+		rad_strerror(auth->radius.handle)));
+	}
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Packets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_INPUT_PACKETS: %s", 
+    	    auth->info.lnkname, str));
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_INPUT_PACKETS, str) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_INPUT_PACKETS: %s", auth->info.lnkname,
+		rad_strerror(auth->radius.handle)));
+	}
+	if (strcmp(ssr->name,auth->params.std_acct[0]) == 0) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets % MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_GIGAWORDS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets / MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_PACKETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Packets)));
+	    if (rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_OCTETS, ssr->Octets % MAX_U_INT32) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_PACKETS, ssr->Packets) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_INPUT_GIGAWORDS, ssr->Octets / MAX_U_INT32) != 0) {
+    		    Log(LG_RADIUS, ("[%s] RADIUS: Put input stats: %s", auth->info.lnkname,
+			rad_strerror(auth->radius.handle)));
+    		    return (RAD_NACK);
+	    }
+	}
+    }
+    SLIST_FOREACH(ssr, &auth->info.ss.stat[1], next) {
+	char str[64];
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Octets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_OCTETS: %s", 
+    	    auth->info.lnkname, str));
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_OCTETS, str) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_OCTETS: %s", auth->info.lnkname,
+		rad_strerror(auth->radius.handle)));
+	}
+	snprintf(str, sizeof(str), "%s:%llu",
+	    ssr->name, (long long unsigned)ssr->Packets);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_PACKETS: %s", 
+    	    auth->info.lnkname, str));
+	if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_OUTPUT_PACKETS, str) != 0) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_OUTPUT_PACKETS: %s", auth->info.lnkname,
+		rad_strerror(auth->radius.handle)));
+	}
+	if (strcmp(ssr->name,auth->params.std_acct[1]) == 0) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_OCTETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets % MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_GIGAWORDS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Octets / MAX_U_INT32)));
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_OUTPUT_PACKETS: %lu", 
+    		auth->info.lnkname, (long unsigned int)(ssr->Packets)));
+	    if (rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_OCTETS, ssr->Octets % MAX_U_INT32) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_PACKETS, ssr->Packets) != 0 ||
+		rad_put_int(auth->radius.handle, RAD_ACCT_OUTPUT_GIGAWORDS, ssr->Octets / MAX_U_INT32) != 0) {
+    		    Log(LG_RADIUS, ("[%s] RADIUS: Put output stats: %s", auth->info.lnkname,
+			rad_strerror(auth->radius.handle)));
+    		    return (RAD_NACK);
+	    }
+	}
+    }
+
+  }
+  return (RAD_ACK);
+}
+
+static int 
 RadiusSendRequest(AuthData auth)
 {
-  struct timeval	timelimit;
-  struct timeval	tv;
-  int 			fd, n;
+    struct timeval	timelimit;
+    struct timeval	tv;
+    int 		fd, n;
 
-  Log(LG_RADIUS2, ("[%s] RADIUS: Send request for user '%s'", 
-    auth->info.lnkname, auth->params.authname));
-  n = rad_init_send_request(auth->radius.handle, &fd, &tv);
-  if (n != 0) {
-    Log(LG_RADIUS, ("[%s] RADIUS: rad_init_send_request failed: %d %s",
-      auth->info.lnkname, n, rad_strerror(auth->radius.handle)));
-     return RAD_NACK;
-  }
-
-  gettimeofday(&timelimit, NULL);
-  timeradd(&tv, &timelimit, &timelimit);
-
-  for ( ; ; ) {
-    struct pollfd fds[1];
-
-    fds[0].fd = fd;
-    fds[0].events = POLLIN;
-    fds[0].revents = 0;
-
-    n = poll(fds,1,tv.tv_sec*1000+tv.tv_usec/1000);
-
-    if (n == -1) {
-      Log(LG_RADIUS, ("[%s] RADIUS: poll failed %s", auth->info.lnkname, 
-        strerror(errno)));
-      return RAD_NACK;
+    Log(LG_RADIUS2, ("[%s] RADIUS: Send request for user '%s'", 
+	auth->info.lnkname, auth->params.authname));
+    n = rad_init_send_request(auth->radius.handle, &fd, &tv);
+    if (n != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: rad_init_send_request failed: %d %s",
+    	    auth->info.lnkname, n, rad_strerror(auth->radius.handle)));
+        return (RAD_NACK);
     }
-
-    if ((fds[0].revents&POLLIN)!=POLLIN) {
-      /* Compute a new timeout */
-      gettimeofday(&tv, NULL);
-      timersub(&timelimit, &tv, &tv);
-      if (tv.tv_sec > 0 || (tv.tv_sec == 0 && tv.tv_usec > 0))
-	/* Continue the select */
-	continue;
-    }
-
-    Log(LG_RADIUS2, ("[%s] RADIUS: Sending request for user '%s'", 
-      auth->info.lnkname, auth->params.authname));
-    n = rad_continue_send_request(auth->radius.handle, n, &fd, &tv);
-    if (n != 0)
-      break;
 
     gettimeofday(&timelimit, NULL);
     timeradd(&tv, &timelimit, &timelimit);
-  }
 
-  switch (n) {
+    for ( ; ; ) {
+	struct pollfd fds[1];
 
-    case RAD_ACCESS_ACCEPT:
-      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_ACCEPT for user %s", 
-        auth->info.lnkname, auth->params.authname));
-      auth->status = AUTH_STATUS_SUCCESS;
-      break;
+	fds[0].fd = fd;
+	fds[0].events = POLLIN;
+	fds[0].revents = 0;
 
-    case RAD_ACCESS_CHALLENGE:
-      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_CHALLENGE for user %s", 
-        auth->info.lnkname, auth->params.authname));
-      break;
+	n = poll(fds,1,tv.tv_sec*1000+tv.tv_usec/1000);
 
-    case RAD_ACCESS_REJECT:
-      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_REJECT for user %s", 
-        auth->info.lnkname, auth->params.authname));
-      auth->status = AUTH_STATUS_FAIL;
-      break;
+	if (n == -1) {
+    	    Log(LG_RADIUS, ("[%s] RADIUS: poll failed %s", auth->info.lnkname, 
+    		strerror(errno)));
+    	    return (RAD_NACK);
+	}
 
-    case RAD_ACCOUNTING_RESPONSE:
-      Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
-        auth->info.lnkname, auth->params.authname));
-      break;
+	if ((fds[0].revents&POLLIN)!=POLLIN) {
+    	    /* Compute a new timeout */
+    	    gettimeofday(&tv, NULL);
+    	    timersub(&timelimit, &tv, &tv);
+    	    if (tv.tv_sec > 0 || (tv.tv_sec == 0 && tv.tv_usec > 0))
+		continue;	/* Continue the select */
+	}
 
-    case -1:
-      Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request failed: %s", 
-        auth->info.lnkname, rad_strerror(auth->radius.handle)));
-      return(RAD_NACK);
+	Log(LG_RADIUS2, ("[%s] RADIUS: Sending request for user '%s'", 
+    	    auth->info.lnkname, auth->params.authname));
+	n = rad_continue_send_request(auth->radius.handle, n, &fd, &tv);
+	if (n != 0)
+    	    break;
+
+	gettimeofday(&timelimit, NULL);
+	timeradd(&tv, &timelimit, &timelimit);
+    }
+
+    switch (n) {
+
+	case RAD_ACCESS_ACCEPT:
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_ACCEPT for user %s", 
+    		auth->info.lnkname, auth->params.authname));
+    	    auth->status = AUTH_STATUS_SUCCESS;
+    	    break;
+
+	case RAD_ACCESS_CHALLENGE:
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_CHALLENGE for user %s", 
+    		auth->info.lnkname, auth->params.authname));
+    	    break;
+
+	case RAD_ACCESS_REJECT:
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_REJECT for user %s", 
+    		auth->info.lnkname, auth->params.authname));
+    	    auth->status = AUTH_STATUS_FAIL;
+    	    break;
+
+	case RAD_ACCOUNTING_RESPONSE:
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
+    		auth->info.lnkname, auth->params.authname));
+    	    break;
+
+	case -1:
+    	    Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request failed: %s", 
+    		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	    return (RAD_NACK);
       
-    default:
-      Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request: unexpected return value: %d", 
-        auth->info.lnkname, n));
-      return(RAD_NACK);
-  }
+	default:
+    	    Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request: unexpected return value: %d", 
+    		auth->info.lnkname, n));
+    	    return (RAD_NACK);
+    }
 
-  RadiusGetParams(auth, n == RAD_ACCESS_CHALLENGE);
-  return RAD_ACK;
+    return (RadiusGetParams(auth, n == RAD_ACCESS_CHALLENGE));
 }
 
 static int
@@ -1685,7 +1693,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	    break;
 
 	  default:
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Dropping vendor %d  attribute: %d ", 
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Dropping vendor %d attribute: %d ", 
 	      auth->info.lnkname, vendor, res));
 	    break;
 	}
@@ -1752,7 +1760,5 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	}
     }
   
-    return RAD_ACK;
+    return (RAD_ACK);
 }
-
-
