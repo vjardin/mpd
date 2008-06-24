@@ -12,6 +12,9 @@
 	<itemize>
 	  <item> Added 'set radius identifier' command.
 	  </item>
+	  <item> Added '$CallingID' and '$CalledID' modem chat variables.
+		 Their values will be reported to the auth backend.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

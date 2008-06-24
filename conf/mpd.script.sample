@@ -54,6 +54,8 @@
 #################################################################
 
 DialPeer:
+	set $CallingID ""
+	set $CalledID $Telephone
 	if $Telephone == "00000" goto DialNullModem
 	set $optimize $OptimizeNextTime
 	set $OptimizeNextTime "no"
@@ -163,6 +165,8 @@ DialConnect:
 ##
 
 AnswerCall:
+	set $CallingID ""
+	set $CalledID ""
 	set $optimize $OptimizeNextTime
 	set $OptimizeNextTime "no"
 
@@ -219,6 +223,8 @@ AnswerCallOK:
 ##
 
 Ringback:
+	set $CallingID ""
+	set $CalledID ""
 	if $RingbackTimeout == "" set $RingbackTimeout "3600"
 	if $RingStoppedTime == "" set $RingStoppedTime "8"
 	set $ModemDetectRing RingbackWait

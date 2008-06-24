@@ -55,6 +55,8 @@
   #define CHAT_VAR_DEVICE		"$modemDevice"
   #define CHAT_VAR_IDLE_RESULT		"$IdleResult"
   #define CHAT_VAR_CONNECT_SPEED	"$ConnectionSpeed"
+  #define CHAT_VAR_CALLING		"$CallingID"
+  #define CHAT_VAR_CALLED		"$CalledID"
 
   /* Nominal link parameters */
   #define MODEM_DEFAULT_BANDWIDTH	28800	/* ~33.6 modem */
@@ -107,6 +109,8 @@
   static int		ModemIsSync(Link l);
   static int		ModemPeerAddr(Link l, void *buf, size_t buf_len);
   static int		ModemIface(Link l, void *buf, size_t buf_len);
+  static int		ModemCallingNum(Link l, void *buf, size_t buf_len);
+  static int		ModemCalledNum(Link l, void *buf, size_t buf_len);
 
   static void		ModemStart(void *arg);
   static void		ModemDoClose(Link l, int opened);
@@ -149,8 +153,8 @@
     .setaccm 		= ModemSetAccm,
     .peeraddr		= ModemPeerAddr,
     .peeriface		= ModemIface,
-    .callingnum		= NULL,
-    .callednum		= NULL,
+    .callingnum		= ModemCallingNum,
+    .callednum		= ModemCalledNum,
   };
 
   const struct cmdtab ModemSetCmds[] = {
@@ -938,6 +942,36 @@ ModemIface(Link l, void *buf, size_t buf_len)
     return(0);
 }
 
+static int
+ModemCallingNum(Link l, void *buf, size_t buf_len)
+{
+    ModemInfo	const m = (ModemInfo) l->info;
+    char	*tmp;
+
+    if ((tmp = ChatGetVar(m->chat, CHAT_VAR_CALLING)) == NULL) {
+	((char *)buf)[0] = 0;
+	return (-1);
+    }
+    strlcpy((char*)buf, tmp, buf_len);
+    Freee(tmp);
+    return(0);
+}
+
+static int
+ModemCalledNum(Link l, void *buf, size_t buf_len)
+{
+    ModemInfo	const m = (ModemInfo) l->info;
+    char	*tmp;
+
+    if ((tmp = ChatGetVar(m->chat, CHAT_VAR_CALLED)) == NULL) {
+	((char *)buf)[0] = 0;
+	return (-1);
+    }
+    strlcpy((char*)buf, tmp, buf_len);
+    Freee(tmp);
+    return(0);
+}
+
 /*
  * ModemStat()
  */
@@ -947,7 +981,7 @@ ModemStat(Context ctx)
 {
     ModemInfo			const m = (ModemInfo) ctx->lnk->info;
     struct ng_async_stat	stats;
-    char			*cspeed;
+    char			*tmp;
 
     Printf("Modem info:\r\n");
     Printf("\tDevice       : %s\r\n", m->device);
@@ -964,9 +998,18 @@ ModemStat(Context ctx)
 	Printf("\tIncoming     : %s\r\n", (m->originated?"NO":"YES"));
 
 	/* Set modem's reported connection speed (if any) as the link bandwidth */
-	if ((cspeed = ChatGetVar(m->chat, CHAT_VAR_CONNECT_SPEED)) != NULL) {
-	    Printf("\tConnect speed: %s baud\r\n", cspeed);
-	    Freee(cspeed);
+	if ((tmp = ChatGetVar(m->chat, CHAT_VAR_CONNECT_SPEED)) != NULL) {
+	    Printf("\tConnect speed: %s baud\r\n", tmp);
+	    Freee(tmp);
+	}
+
+	if ((tmp = ChatGetVar(m->chat, CHAT_VAR_CALLING)) != NULL) {
+	    Printf("\tCalling      : %s\r\n", tmp);
+	    Freee(tmp);
+	}
+	if ((tmp = ChatGetVar(m->chat, CHAT_VAR_CALLED)) != NULL) {
+	    Printf("\tCalled       : %s\r\n", tmp);
+	    Freee(tmp);
 	}
 
 	if (ctx->lnk->state == PHYS_STATE_UP && 
