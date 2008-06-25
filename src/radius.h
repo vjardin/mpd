@@ -37,8 +37,20 @@
   #define RAD_ACCT_OUTPUT_GIGAWORDS 53
   #endif
 
-  #ifndef RAD_ACCT_INTERIM_INTERVAL
-  #define RAD_ACCT_INTERIM_INTERVAL 85
+  #ifndef RAD_TUNNEL_TYPE
+  #define RAD_TUNNEL_TYPE 64
+  #endif
+
+  #ifndef RAD_TUNNEL_MEDIUM_TYPE
+  #define RAD_TUNNEL_MEDIUM_TYPE 65
+  #endif
+
+  #ifndef RAD_TUNNEL_CLIENT_ENDPOINT
+  #define RAD_TUNNEL_CLIENT_ENDPOINT 66
+  #endif
+
+  #ifndef RAD_TUNNEL_SERVER_ENDPOINT
+  #define RAD_TUNNEL_SERVER_ENDPOINT 67
   #endif
 
   #ifndef RAD_EAP_MESSAGE
@@ -49,12 +61,24 @@
   #define RAD_MESSAGE_AUTHENTIC 80
   #endif
 
+  #ifndef RAD_ACCT_INTERIM_INTERVAL
+  #define RAD_ACCT_INTERIM_INTERVAL 85
+  #endif
+
   #ifndef RAD_NAS_PORT_ID
   #define RAD_NAS_PORT_ID	87
   #endif
 
   #ifndef RAD_FRAMED_POOL
   #define RAD_FRAMED_POOL	88
+  #endif
+
+  #ifndef RAD_TUNNEL_CLIENT_AUTH_ID
+  #define RAD_TUNNEL_CLIENT_AUTH_ID 90
+  #endif
+
+  #ifndef RAD_TUNNEL_SERVER_AUTH_ID
+  #define RAD_TUNNEL_SERVER_AUTH_ID 91
   #endif
 
   #ifndef RAD_MAX_ATTR_LEN

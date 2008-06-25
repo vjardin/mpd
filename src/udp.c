@@ -74,6 +74,7 @@
   static void	UdpStat(Context ctx);
   static int	UdpOrigination(Link l);
   static int	UdpIsSync(Link l);
+  static int	UdpSelfAddr(Link l, void *buf, size_t buf_len);
   static int	UdpPeerAddr(Link l, void *buf, size_t buf_len);
   static int	UdpPeerPort(Link l, void *buf, size_t buf_len);
   static int	UdpCallingNum(Link l, void *buf, size_t buf_len);
@@ -105,6 +106,7 @@
     .showstat		= UdpStat,
     .originate		= UdpOrigination,
     .issync		= UdpIsSync,
+    .selfaddr		= UdpSelfAddr,
     .peeraddr		= UdpPeerAddr,
     .peerport		= UdpPeerPort,
     .callingnum		= UdpCallingNum,
@@ -378,6 +380,23 @@ static int
 UdpIsSync(Link l)
 {
     return (1);
+}
+
+static int
+UdpSelfAddr(Link l, void *buf, size_t buf_len)
+{
+    UdpInfo	const pi = (UdpInfo) l->info;
+
+    if (!u_addrempty(&pi->conf.self_addr)) {
+	if (u_addrtoa(&pi->conf.self_addr, buf, buf_len))
+	    return (0);
+  	else {
+	    ((char*)buf)[0]=0;
+	    return (-1);
+	}
+    }
+    ((char*)buf)[0]=0;
+    return (0);
 }
 
 static int

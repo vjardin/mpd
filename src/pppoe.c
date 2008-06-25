@@ -106,7 +106,6 @@ static int	PppoeInst(Link l, Link lt);
 static void	PppoeOpen(Link l);
 static void	PppoeClose(Link l);
 static void	PppoeShutdown(Link l);
-static int	PppoePeerAddr(Link l, void *buf, size_t buf_len);
 static int	PppoePeerMacAddr(Link l, void *buf, size_t buf_len);
 static int	PppoePeerIface(Link l, void *buf, size_t buf_len);
 static int	PppoeCallingNum(Link l, void *buf, size_t buf_len);
@@ -146,7 +145,7 @@ const struct phystype gPppoePhysType = {
     .showstat		= PppoeStat,
     .originate		= PppoeOriginated,
     .issync		= PppoeIsSync,
-    .peeraddr		= PppoePeerAddr,
+    .peeraddr		= PppoePeerMacAddr,
     .peermacaddr	= PppoePeerMacAddr,
     .peeriface		= PppoePeerIface,
     .callingnum		= PppoeCallingNum,
@@ -550,7 +549,7 @@ PppoeStat(Context ctx)
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	    Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
 	    Printf("\tIncoming     : %s\r\n", (pe->incoming?"YES":"NO"));
-	    PppoePeerAddr(ctx->lnk, buf, sizeof(buf));
+	    PppoePeerMacAddr(ctx->lnk, buf, sizeof(buf));
 	    Printf("\tCurrent peer : %s\r\n", buf);
 	    Printf("\tSession      : %s\r\n", pe->real_session);
 	}
@@ -574,18 +573,6 @@ static int
 PppoeIsSync(Link l)
 {
 	return (1);
-}
-
-static int
-PppoePeerAddr(Link l, void *buf, size_t buf_len)
-{
-	PppoeInfo	const pppoe = (PppoeInfo)l->info;
-
-	snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
-	    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
-	    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
-
-	return (0);
 }
 
 static int

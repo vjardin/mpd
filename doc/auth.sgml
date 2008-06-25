@@ -275,6 +275,10 @@ N   Name                       	   Access	 Accounting
 53  Acct-Output-Gigawords	-	-	+	-
 60  CHAP-Challenge		+	-	-	-
 61  NAS-Port-Type		+	-	+	-
+64  Tunnel-Type			+	-	+	-
+65  Tunnel-Medium-Type		+	-	+	-
+66  Tunnel-Client-Endpoint	+	-	+	-
+67  Tunnel-Server-Endpoint	+	-	+	-
 85  Acct-Interim-Interval	-	+	-	-
 87  NAS-Port-Id			+	-	+	-
 88  Framed-Pool			-	+	-	-
@@ -480,6 +484,7 @@ NAS_PORT			+	-	+	-
 NAS_PORT_TYPE			+	-	+	-
 CALLING_STATION_ID		+	-	+	-
 CALLED_STATION_ID		+	-	+	-
+SELF_ADDR			+	-	+	-
 PEER_ADDR			+	-	+	-
 PEER_PORT			+	-	+	-
 PEER_MAC_ADDR			+	-	+	-

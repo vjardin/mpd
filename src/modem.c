@@ -107,7 +107,7 @@
   static void		ModemStat(Context ctx);
   static int		ModemOriginated(Link l);
   static int		ModemIsSync(Link l);
-  static int		ModemPeerAddr(Link l, void *buf, size_t buf_len);
+  static int		ModemSelfAddr(Link l, void *buf, size_t buf_len);
   static int		ModemIface(Link l, void *buf, size_t buf_len);
   static int		ModemCallingNum(Link l, void *buf, size_t buf_len);
   static int		ModemCalledNum(Link l, void *buf, size_t buf_len);
@@ -151,7 +151,8 @@
     .originate		= ModemOriginated,
     .issync		= ModemIsSync,
     .setaccm 		= ModemSetAccm,
-    .peeraddr		= ModemPeerAddr,
+    .selfaddr		= ModemSelfAddr,
+    .peeraddr		= ModemSelfAddr,
     .peeriface		= ModemIface,
     .callingnum		= ModemCallingNum,
     .callednum		= ModemCalledNum,
@@ -925,7 +926,7 @@ ModemIsSync(Link l)
 }
 
 static int
-ModemPeerAddr(Link l, void *buf, size_t buf_len)
+ModemSelfAddr(Link l, void *buf, size_t buf_len)
 {
     ModemInfo	const m = (ModemInfo) l->info;
 

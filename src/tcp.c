@@ -75,6 +75,7 @@ static void	TcpShutdown(Link l);
 static void	TcpStat(Context ctx);
 static int	TcpOriginate(Link l);
 static int	TcpIsSync(Link l);
+static int	TcpSelfAddr(Link l, void *buf, size_t buf_len);
 static int	TcpPeerAddr(Link l, void *buf, size_t buf_len);
 static int	TcpPeerPort(Link l, void *buf, size_t buf_len);
 static int	TcpCallingNum(Link l, void *buf, size_t buf_len);
@@ -108,6 +109,7 @@ const struct phystype gTcpPhysType = {
 	.showstat	= TcpStat,
 	.originate	= TcpOriginate,
 	.issync		= TcpIsSync,
+	.selfaddr	= TcpSelfAddr,
 	.peeraddr	= TcpPeerAddr,
 	.peerport	= TcpPeerPort,
 	.callingnum	= TcpCallingNum,
@@ -577,6 +579,23 @@ static int
 TcpIsSync(Link l)
 {
 	return (1);
+}
+
+static int
+TcpSelfAddr(Link l, void *buf, size_t buf_len)
+{
+    TcpInfo const pi = (TcpInfo) l->info;
+
+    if (!u_addrempty(&pi->conf.self_addr)) {
+	if (u_addrtoa(&pi->conf.self_addr, buf, buf_len))
+	    return (0);
+  	else {
+	    ((char*)buf)[0]=0;
+	    return (-1);
+	}
+    }
+    ((char*)buf)[0]=0;
+    return (0);
 }
 
 static int

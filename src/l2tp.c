@@ -122,6 +122,7 @@
   static int	L2tpOriginated(Link l);
   static int	L2tpIsSync(Link l);
   static int	L2tpSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
+  static int	L2tpSelfAddr(Link l, void *buf, size_t buf_len);
   static int	L2tpPeerAddr(Link l, void *buf, size_t buf_len);
   static int	L2tpPeerPort(Link l, void *buf, size_t buf_len);
   static int	L2tpPeerMacAddr(Link l, void *buf, size_t buf_len);
@@ -183,6 +184,7 @@
     .setaccm 		= L2tpSetAccm,
     .setcallingnum	= L2tpSetCallingNum,
     .setcallednum	= L2tpSetCalledNum,
+    .selfaddr		= L2tpSelfAddr,
     .peeraddr		= L2tpPeerAddr,
     .peerport		= L2tpPeerPort,
     .peermacaddr	= L2tpPeerMacAddr,
@@ -750,6 +752,23 @@ L2tpSetCalledNum(Link l, void *buf)
 
     strlcpy(l2tp->conf.callednum, buf, sizeof(l2tp->conf.callednum));
     return(0);
+}
+
+static int
+L2tpSelfAddr(Link l, void *buf, size_t buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) l->info;
+
+    if (l2tp->tun && !u_addrempty(&l2tp->tun->self_addr)) {
+	if (u_addrtoa(&l2tp->tun->self_addr, buf, buf_len))
+	    return (0);
+	else {
+	    ((char*)buf)[0]=0;
+	    return (-1);
+	}
+    }
+    ((char*)buf)[0]=0;
+    return (0);
 }
 
 static int

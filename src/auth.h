@@ -137,6 +137,7 @@
 
     char		callingnum[64];	/* hr representation of the calling number */
     char		callednum[64];	/* hr representation of the called number */
+    char		selfaddr[64];	/* hr representation of the self address */
     char		peeraddr[64];	/* hr representation of the peer address */
     char		peerport[6];	/* hr representation of the peer port */
     char		peermacaddr[32];	/* hr representation of the peer MAC address */
@@ -239,6 +240,7 @@
       char		peer_ident[64];	/* LCP ident received from peer */
       struct in_addr	peer_addr;	/* currently assigned IP-Address of the client */
       short		n_links;	/* number of links in the bundle */
+      u_char		originate;	/* Who originated the connection */
     } info;
     struct authparams	params;		/* params to pass to from auth backend */
   };

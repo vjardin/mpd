@@ -15,6 +15,8 @@
 	  <item> Added '$CallingID' and '$CalledID' modem chat variables.
 		 Their values will be reported to the auth backend.
 	  </item>
+	  <item> Added some tunnel related RADIUS attributes of RFC2868.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
@@ -22,6 +24,10 @@
 	  <item> IPCP/IPv6CP now closing on interface address assign error.
 	  </item>
 	  <item> Accounting start error now closes link.
+	  </item>
+	  <item> PPPoE peer address format changed to more traditional. For
+		 "calling" compatibility use 'set link disable peer-as-calling'
+		 command.
 	  </item>
 	</itemize>
 	</item>

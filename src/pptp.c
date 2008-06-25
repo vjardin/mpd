@@ -109,6 +109,7 @@
   static int	PptpSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
   static int	PptpSetCallingNum(Link l, void *buf);
   static int	PptpSetCalledNum(Link l, void *buf);
+  static int	PptpSelfAddr(Link l, void *buf, size_t buf_len);
   static int	PptpPeerAddr(Link l, void *buf, size_t buf_len);
   static int	PptpPeerPort(Link l, void *buf, size_t buf_len);
   static int	PptpPeerMacAddr(Link l, void *buf, size_t buf_len);
@@ -172,6 +173,7 @@
     .setaccm            = PptpSetAccm,
     .setcallingnum	= PptpSetCallingNum,
     .setcallednum	= PptpSetCalledNum,
+    .selfaddr		= PptpSelfAddr,
     .peeraddr		= PptpPeerAddr,
     .peerport		= PptpPeerPort,
     .peermacaddr	= PptpPeerMacAddr,
@@ -511,6 +513,17 @@ PptpSetCalledNum(Link l, void *buf)
 
     strlcpy(pptp->conf.callednum, buf, sizeof(pptp->conf.callednum));
     return(0);
+}
+
+static int
+PptpSelfAddr(Link l, void *buf, size_t buf_len)
+{
+    PptpInfo	const pptp = (PptpInfo) l->info;
+
+    if (u_addrtoa(&pptp->self_addr, buf, buf_len))
+	return(0);
+    else
+	return(-1);
 }
 
 static int

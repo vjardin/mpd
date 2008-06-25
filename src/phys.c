@@ -304,6 +304,23 @@ PhysSetCalledNum(Link l, char *buf)
 }
 
 /*
+ * PhysGetSelfAddr()
+ */
+
+int
+PhysGetSelfAddr(Link l, char *buf, size_t buf_len)
+{
+    PhysType	const pt = l->type;
+
+    buf[0] = 0;
+
+    if (pt && pt->selfaddr)
+	return ((*pt->selfaddr)(l, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
  * PhysGetPeerAddr()
  */
 

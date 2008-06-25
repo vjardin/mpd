@@ -9,6 +9,18 @@
 #ifdef PHYSTYPE_PPPOE
 #include "pppoe.h"
 #endif
+#ifdef PHYSTYPE_PPTP
+#include "pptp.h"
+#endif
+#ifdef PHYSTYPE_L2TP
+#include "l2tp.h"
+#endif
+#ifdef PHYSTYPE_TCP
+#include "tcp.h"
+#endif
+#ifdef PHYSTYPE_UDP
+#include "udp.h"
+#endif
 #ifdef PHYSTYPE_MODEM
 #include "modem.h"
 #endif
@@ -85,6 +97,25 @@
 
   #define RAD_NACK		0
   #define RAD_ACK		1
+
+static int
+rad_put_string_tag(struct rad_handle *h, int type, u_char tag, const char *str);
+
+static int
+rad_put_string_tag(struct rad_handle *h, int type, u_char tag, const char *str)
+{
+    char *tmp;
+    int res;
+    int len = strlen(str);
+    
+    tmp = Malloc(MB_RADIUS, len + 1);
+    tmp[0] = tag;
+    memcpy(tmp + 1, str, len);
+    res = rad_put_attr(h, type, tmp, len + 1);
+    Freee(tmp);
+    return (res);
+}
+
 
 /*
  * RadiusInit()
@@ -661,6 +692,93 @@ RadiusStart(AuthData auth, short request_type)
 	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_LINK: %s", auth->info.lnkname,
 	    rad_strerror(auth->radius.handle)));
     	return (RAD_NACK);
+    }
+
+#ifdef PHYSTYPE_PPTP
+    if (auth->info.phys_type == &gPptpPhysType) {
+	porttype = 1;
+    } else 
+#endif
+#ifdef PHYSTYPE_L2TP
+    if (auth->info.phys_type == &gL2tpPhysType) {
+	porttype = 3;
+    } else 
+#endif
+#ifdef PHYSTYPE_TCP
+    if (auth->info.phys_type == &gTcpPhysType) {
+	porttype = -1;
+    } else 
+#endif
+#ifdef PHYSTYPE_UDP
+    if (auth->info.phys_type == &gUdpPhysType) {
+	porttype = -2;
+    } else 
+#endif
+#ifdef PHYSTYPE_PPPOE
+    if (auth->info.phys_type == &gPppoePhysType) {
+	porttype = -3;
+    } else 
+#endif
+    {
+	porttype = 0;
+    };
+    if (porttype > 0) {
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_TUNNEL_TYPE: %d", 
+	    auth->info.lnkname, porttype));
+	if (rad_put_int(auth->radius.handle, RAD_TUNNEL_TYPE, porttype) == -1) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_TUNNEL_TYPE failed %s", 
+    		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	    return (RAD_NACK);
+	}
+    }
+    if (porttype != 0) {
+	if (porttype == -3) {
+	    porttype = 6;
+	} else {
+	    struct in6_addr ip6;
+	    if (inet_pton(AF_INET6, auth->params.peeraddr, &ip6) == 1) {
+		porttype = 2;
+	    } else {
+		porttype = 1;
+	    }
+	}
+	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_TUNNEL_MEDIUM_TYPE: %d", 
+	    auth->info.lnkname, porttype));
+	if (rad_put_int(auth->radius.handle, RAD_TUNNEL_MEDIUM_TYPE, porttype) == -1) {
+	    Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_TUNNEL_MEDIUM_TYPE failed %s", 
+    		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	    return (RAD_NACK);
+	}
+	if (auth->info.originate == LINK_ORIGINATE_LOCAL) {
+	    tmpval = auth->params.peeraddr;
+	} else {
+	    tmpval = auth->params.selfaddr;
+	}
+	if (tmpval[0]) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_TUNNEL_SERVER_ENDPOINT: %s",
+    		auth->info.lnkname, tmpval));
+	    if (rad_put_string_tag(auth->radius.handle, RAD_TUNNEL_SERVER_ENDPOINT,
+    		    0, tmpval) == -1) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_TUNNEL_SERVER_ENDPOINT failed %s",
+    	    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    		return (RAD_NACK);
+	    }
+	}
+	if (auth->info.originate == LINK_ORIGINATE_LOCAL) {
+	    tmpval = auth->params.selfaddr;
+	} else {
+	    tmpval = auth->params.peeraddr;
+	}
+	if (tmpval[0]) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_TUNNEL_CLIENT_ENDPOINT: %s",
+    		auth->info.lnkname, tmpval));
+	    if (rad_put_string_tag(auth->radius.handle, RAD_TUNNEL_CLIENT_ENDPOINT,
+    		    0, tmpval) == -1) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_TUNNEL_CLIENT_ENDPOINT failed %s",
+    	    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    		return (RAD_NACK);
+	    }
+	}
     }
 
     return (RAD_ACK);
