@@ -353,9 +353,9 @@ Default <tt><bf>disable</bf></tt>.
 
 Forces mpd to send remote tunnel address in Calling-Station-Id 
 instead of addres supplied by remote peer via tunnel (for PPTP and L2TP).
-Can be disabled for trusted peers.
+Can be enabled for untrusted peers.
 
-Default is <tt><bf>enable</bf></tt>.
+Default is <tt><bf>disable</bf></tt>.
 
 <tag><tt>report-mac</tt></tag>
 

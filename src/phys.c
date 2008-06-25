@@ -400,7 +400,7 @@ PhysGetCallingNum(Link l, char *buf, size_t buf_len)
     buf[0] = 0;
 
     if (pt) {
-	/* For compatibility and for untrusted peers use peeraddr as calling */
+	/* For untrusted peers use peeraddr as calling */
 	if (Enabled(&l->conf.options, LINK_CONF_PEER_AS_CALLING) && pt->peeraddr)
 	    (*pt->peeraddr)(l, buf, buf_len);
 	else if (pt->callingnum)

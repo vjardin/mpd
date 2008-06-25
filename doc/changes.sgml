@@ -25,9 +25,10 @@
 	  </item>
 	  <item> Accounting start error now closes link.
 	  </item>
-	  <item> PPPoE peer address format changed to more traditional. For
-		 "calling" compatibility use 'set link disable peer-as-calling'
-		 command.
+	  <item> PPPoE peer address format changed to more traditional.
+	  </item>
+	  <item> Link peer-as-calling option default changed to disabled.
+		 PPTP and L2TP users are advised to check configurations!
 	  </item>
 	</itemize>
 	</item>

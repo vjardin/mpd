@@ -456,8 +456,6 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	Enable(&l->conf.options, LINK_CONF_SHORTSEQ);
 	Accept(&l->conf.options, LINK_CONF_SHORTSEQ);
 
-	Enable(&l->conf.options, LINK_CONF_PEER_AS_CALLING);
-
         PhysInit(l);
         LcpInit(l);
 	
