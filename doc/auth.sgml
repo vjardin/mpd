@@ -282,6 +282,8 @@ N   Name                       	   Access	 Accounting
 85  Acct-Interim-Interval	-	+	-	-
 87  NAS-Port-Id			+	-	+	-
 88  Framed-Pool			-	+	-	-
+90  Tunnel-Client-Auth-ID	+	-	+	-
+91  Tunnel-Server-Auth-ID	+	-	+	-
 95  NAS-IPv6-Address		+	-	+	-
 99  Framed-IPv6-Route		-	+	-	-
 
@@ -484,6 +486,8 @@ NAS_PORT			+	-	+	-
 NAS_PORT_TYPE			+	-	+	-
 CALLING_STATION_ID		+	-	+	-
 CALLED_STATION_ID		+	-	+	-
+SELF_NAME			+	-	+	-
+PEER_NAME			+	-	+	-
 SELF_ADDR			+	-	+	-
 PEER_ADDR			+	-	+	-
 PEER_PORT			+	-	+	-

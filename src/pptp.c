@@ -109,6 +109,8 @@
   static int	PptpSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
   static int	PptpSetCallingNum(Link l, void *buf);
   static int	PptpSetCalledNum(Link l, void *buf);
+  static int	PptpSelfName(Link l, void *buf, size_t buf_len);
+  static int	PptpPeerName(Link l, void *buf, size_t buf_len);
   static int	PptpSelfAddr(Link l, void *buf, size_t buf_len);
   static int	PptpPeerAddr(Link l, void *buf, size_t buf_len);
   static int	PptpPeerPort(Link l, void *buf, size_t buf_len);
@@ -173,6 +175,8 @@
     .setaccm            = PptpSetAccm,
     .setcallingnum	= PptpSetCallingNum,
     .setcallednum	= PptpSetCalledNum,
+    .selfname		= PptpSelfName,
+    .peername		= PptpPeerName,
     .selfaddr		= PptpSelfAddr,
     .peeraddr		= PptpPeerAddr,
     .peerport		= PptpPeerPort,
@@ -513,6 +517,28 @@ PptpSetCalledNum(Link l, void *buf)
 
     strlcpy(pptp->conf.callednum, buf, sizeof(pptp->conf.callednum));
     return(0);
+}
+
+static int
+PptpSelfName(Link l, void *buf, size_t buf_len)
+{
+    PptpInfo	const pptp = (PptpInfo) l->info;
+
+    if (pptp->cinfo.cookie)
+	return(PptpCtrlGetSelfName(&pptp->cinfo, buf, buf_len));
+    ((char*)buf)[0]=0;
+    return (0);
+}
+
+static int
+PptpPeerName(Link l, void *buf, size_t buf_len)
+{
+    PptpInfo	const pptp = (PptpInfo) l->info;
+
+    if (pptp->cinfo.cookie)
+	return(PptpCtrlGetPeerName(&pptp->cinfo, buf, buf_len));
+    ((char*)buf)[0]=0;
+    return (0);
 }
 
 static int

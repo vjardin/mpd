@@ -390,6 +390,14 @@ extern void	ppp_l2tp_ctrl_get_hook(struct ppp_l2tp_ctrl *ctrl,
 			ng_ID_t *nodep, const char **hookp);
 
 /*
+ * Get local/remote hostnames.
+ */
+extern int	ppp_l2tp_ctrl_get_self_name(struct ppp_l2tp_ctrl *ctrl,
+			void *buf, size_t buf_len);
+extern int	ppp_l2tp_ctrl_get_peer_name(struct ppp_l2tp_ctrl *ctrl,
+			void *buf, size_t buf_len);
+
+/*
  * Get the node ID and hook name for the hook that corresponds
  * to a session's data packets.
  */

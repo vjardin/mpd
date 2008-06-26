@@ -345,6 +345,12 @@ AuthStart(Link l)
     a->self_to_peer_alg = l->lcp.peer_alg;
     a->peer_to_self_alg = l->lcp.want_alg;
 
+    /* remember self's name */
+    PhysGetSelfName(l, a->params.selfname, sizeof(a->params.selfname));
+  
+    /* remember peer's name */
+    PhysGetPeerName(l, a->params.peername, sizeof(a->params.peername));
+  
     /* remember self's IP address */
     PhysGetSelfAddr(l, a->params.selfaddr, sizeof(a->params.selfaddr));
   
@@ -1987,6 +1993,8 @@ AuthExternal(AuthData auth)
     fprintf(fp, "NAS_PORT_TYPE:%s\n", auth->info.phys_type->name);
     fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
     fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
+    fprintf(fp, "SELF_NAME:%s\n", auth->params.selfname);
+    fprintf(fp, "PEER_NAME:%s\n", auth->params.peername);
     fprintf(fp, "SELF_ADDR:%s\n", auth->params.selfaddr);
     fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
     fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);
@@ -2323,6 +2331,8 @@ AuthExternalAcct(AuthData auth)
     fprintf(fp, "ACCT_LINK_COUNT:%d\n", auth->info.n_links);
     fprintf(fp, "CALLING_STATION_ID:%s\n", auth->params.callingnum);
     fprintf(fp, "CALLED_STATION_ID:%s\n", auth->params.callednum);
+    fprintf(fp, "SELF_NAME:%s\n", auth->params.selfname);
+    fprintf(fp, "PEER_NAME:%s\n", auth->params.peername);
     fprintf(fp, "SELF_ADDR:%s\n", auth->params.selfaddr);
     fprintf(fp, "PEER_ADDR:%s\n", auth->params.peeraddr);
     fprintf(fp, "PEER_PORT:%s\n", auth->params.peerport);

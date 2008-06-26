@@ -137,6 +137,8 @@
 
     char		callingnum[64];	/* hr representation of the calling number */
     char		callednum[64];	/* hr representation of the called number */
+    char		selfname[64];	/* hr representation of the self name */
+    char		peername[64];	/* hr representation of the peer name */
     char		selfaddr[64];	/* hr representation of the self address */
     char		peeraddr[64];	/* hr representation of the peer address */
     char		peerport[6];	/* hr representation of the peer port */

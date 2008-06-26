@@ -122,6 +122,8 @@
   static int	L2tpOriginated(Link l);
   static int	L2tpIsSync(Link l);
   static int	L2tpSetAccm(Link l, u_int32_t xmit, u_int32_t recv);
+  static int	L2tpSelfName(Link l, void *buf, size_t buf_len);
+  static int	L2tpPeerName(Link l, void *buf, size_t buf_len);
   static int	L2tpSelfAddr(Link l, void *buf, size_t buf_len);
   static int	L2tpPeerAddr(Link l, void *buf, size_t buf_len);
   static int	L2tpPeerPort(Link l, void *buf, size_t buf_len);
@@ -184,6 +186,8 @@
     .setaccm 		= L2tpSetAccm,
     .setcallingnum	= L2tpSetCallingNum,
     .setcallednum	= L2tpSetCalledNum,
+    .selfname		= L2tpSelfName,
+    .peername		= L2tpPeerName,
     .selfaddr		= L2tpSelfAddr,
     .peeraddr		= L2tpPeerAddr,
     .peerport		= L2tpPeerPort,
@@ -752,6 +756,28 @@ L2tpSetCalledNum(Link l, void *buf)
 
     strlcpy(l2tp->conf.callednum, buf, sizeof(l2tp->conf.callednum));
     return(0);
+}
+
+static int
+L2tpSelfName(Link l, void *buf, size_t buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) l->info;
+
+    if (l2tp->tun && l2tp->tun->ctrl)
+	return (ppp_l2tp_ctrl_get_self_name(l2tp->tun->ctrl, buf, buf_len));
+    ((char*)buf)[0]=0;
+    return (0);
+}
+
+static int
+L2tpPeerName(Link l, void *buf, size_t buf_len)
+{
+    L2tpInfo	const l2tp = (L2tpInfo) l->info;
+
+    if (l2tp->tun && l2tp->tun->ctrl)
+	return (ppp_l2tp_ctrl_get_peer_name(l2tp->tun->ctrl, buf, buf_len));
+    ((char*)buf)[0]=0;
+    return (0);
 }
 
 static int

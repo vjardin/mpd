@@ -192,6 +192,8 @@ struct ppp_l2tp_ctrl {
 	u_char			link_notified;		/* link notified down */
 	u_char			peer_notified;		/* peer notified down */
 	u_char			hide_avps;		/* enable AVPs hiding */
+	char 			self_name[MAXHOSTNAMELEN]; /* L2TP local hostname */
+	char 			peer_name[MAXHOSTNAMELEN]; /* L2TP remote hostname */
 };
 
 /* Session */
@@ -557,13 +559,17 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	}
 	if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
 	    0, AVP_HOST_NAME)) == -1) {
-		char hostname[MAXHOSTNAMELEN + 1];
-
-		(void)gethostname(hostname, sizeof(hostname) - 1);
-		hostname[sizeof(hostname) - 1] = '\0';
+		(void)gethostname(ctrl->self_name, sizeof(ctrl->self_name) - 1);
+		ctrl->self_name[sizeof(ctrl->self_name) - 1] = '\0';
 		if (ppp_l2tp_avp_list_append(ctrl->avps, 1,
-		    0, AVP_HOST_NAME, hostname, strlen(hostname)) == -1)
+		    0, AVP_HOST_NAME, ctrl->self_name, strlen(ctrl->self_name)) == -1)
 			goto fail;
+	} else {
+	    int len = ctrl->avps->avps[index].vlen;
+	    if (len >= sizeof(ctrl->self_name))
+		len = sizeof(ctrl->self_name) - 1;
+	    memcpy(ctrl->self_name, ctrl->avps->avps[index].value, len);
+	    ctrl->self_name[len] = 0;
 	}
 	if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
 	    0, AVP_FRAMING_CAPABILITIES)) == -1) {
@@ -953,6 +959,20 @@ ppp_l2tp_sess_get_serial(struct ppp_l2tp_sess *sess)
 	return(sess->serial);
 }
 
+int
+ppp_l2tp_ctrl_get_self_name(struct ppp_l2tp_ctrl *ctrl,
+			void *buf, size_t buf_len) {
+	strlcpy(buf, ctrl->self_name, buf_len);
+	return (0);
+};
+
+int
+ppp_l2tp_ctrl_get_peer_name(struct ppp_l2tp_ctrl *ctrl,
+			void *buf, size_t buf_len) {
+	strlcpy(buf, ctrl->peer_name, buf_len);
+	return (0);
+};
+
 /*
  * Get the node path and hook name for the hook that corresponds
  * to a control connection's L2TP frames.
@@ -1042,6 +1062,8 @@ ppp_l2tp_ctrl_setup_1(struct ppp_l2tp_ctrl *ctrl,
 		ctrl->peer_framing |= L2TP_FRAMING_SYNC;
 	if (ptrs->framingcap->async)
 		ctrl->peer_framing |= L2TP_FRAMING_ASYNC;
+
+	strlcpy(ctrl->peer_name, ptrs->hostname->hostname, sizeof(ctrl->peer_name));
 
 	/* Update netgraph node configuration */
 	if (NgSendMsg(ctrl->csock, NG_L2TP_HOOK_CTRL, NGM_L2TP_COOKIE,

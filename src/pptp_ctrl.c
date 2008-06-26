@@ -134,6 +134,8 @@
     PptpChan		*channels;	/* array of channels */
     int			numChannels;	/* length of channels array */
     u_int		active_sessions;	/* # non-dying sessns */
+    char 		self_name[MAXHOSTNAMELEN]; /* local hostname */
+    char		peer_name[MAXHOSTNAMELEN]; /* remote hostname */
   };
   typedef struct pptpctrl	*PptpCtrl;
 
@@ -768,6 +770,24 @@ PptpCtrlGetSessionInfo(struct pptpctrlinfo *cp,
   return(-1);	/* NOTREACHED */
 }
 
+int
+PptpCtrlGetSelfName(struct pptpctrlinfo *cp, void *buf, size_t buf_len) {
+    PptpChan	const ch = (PptpChan)cp->cookie;
+    PptpCtrl	const c = ch->ctrl;
+    
+    strlcpy(buf, c->self_name, buf_len);
+    return (0);
+};
+
+int
+PptpCtrlGetPeerName(struct pptpctrlinfo *cp, void *buf, size_t buf_len) {
+    PptpChan	const ch = (PptpChan)cp->cookie;
+    PptpCtrl	const c = ch->ctrl;
+    
+    strlcpy(buf, c->peer_name, buf_len);
+    return (0);
+};
+
 /*************************************************************************
 			CONTROL CONNECTION SETUP
 *************************************************************************/
@@ -926,7 +946,9 @@ abort:
     msg.frameCap = PPTP_FRAMECAP_ANY;
     msg.bearCap = PPTP_BEARCAP_ANY;
     msg.firmware = PPTP_FIRMWARE_REV;
-    gethostname(msg.host, sizeof(msg.host));
+    gethostname(c->self_name, sizeof(c->self_name) - 1);
+    c->self_name[sizeof(c->self_name) - 1] = '\0';
+    strlcpy(msg.host, c->self_name, sizeof(msg.host));
     strncpy(msg.vendor, MPD_VENDOR, sizeof(msg.vendor));
     PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_WAIT_CTL_REPLY);
     PptpCtrlWriteMsg(c, PPTP_StartCtrlConnRequest, &msg);
@@ -1978,40 +2000,44 @@ PptpCtrlInitCinfo(PptpChan ch, PptpCtrlInfo ci)
 static void
 PptpStartCtrlConnRequest(PptpCtrl c, struct pptpStartCtrlConnRequest *req)
 {
-  struct pptpStartCtrlConnReply	reply;
+    struct pptpStartCtrlConnReply	reply;
 
-  /* Initialize reply */
-  memset(&reply, 0, sizeof(reply));
-  reply.vers = PPTP_PROTO_VERS;
-  reply.frameCap = PPTP_FRAMECAP_ANY;
-  reply.bearCap = PPTP_BEARCAP_ANY;
-  reply.firmware = PPTP_FIRMWARE_REV;
-  reply.result = PPTP_SCCR_RESL_OK;
-  gethostname(reply.host, sizeof(reply.host));
-  strncpy(reply.vendor, MPD_VENDOR, sizeof(reply.vendor));
+    /* Initialize reply */
+    memset(&reply, 0, sizeof(reply));
+    reply.vers = PPTP_PROTO_VERS;
+    reply.frameCap = PPTP_FRAMECAP_ANY;
+    reply.bearCap = PPTP_BEARCAP_ANY;
+    reply.firmware = PPTP_FIRMWARE_REV;
+    reply.result = PPTP_SCCR_RESL_OK;
+    gethostname(c->self_name, sizeof(c->self_name) - 1);
+    c->self_name[sizeof(c->self_name) - 1] = '\0';
+    strlcpy(reply.host, c->self_name, sizeof(reply.host));
+    strncpy(reply.vendor, MPD_VENDOR, sizeof(reply.vendor));
 
 #ifdef LOOK_LIKE_NT
-  reply.firmware = 0;
-  reply.maxChan = 2;
-  memset(reply.host, 0, sizeof(reply.host));
-  snprintf(reply.host, sizeof(reply.host), "local");
-  memset(reply.vendor, 0, sizeof(reply.vendor));
-  snprintf(reply.vendor, sizeof(reply.vendor), "NT");
+    reply.firmware = 0;
+    reply.maxChan = 2;
+    memset(reply.host, 0, sizeof(reply.host));
+    snprintf(reply.host, sizeof(reply.host), "local");
+    memset(reply.vendor, 0, sizeof(reply.vendor));
+    snprintf(reply.vendor, sizeof(reply.vendor), "NT");
 #endif
 
-  /* Check protocol version */
-  if (req->vers != PPTP_PROTO_VERS) {
-    Log(LG_PHYS2, ("pptp%d: incompatible protocol 0x%04x", c->id, req->vers));
-    reply.result = PPTP_SCCR_RESL_VERS;
-    if (PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply) == -1)
+    /* Check protocol version */
+    if (req->vers != PPTP_PROTO_VERS) {
+	Log(LG_PHYS2, ("pptp%d: incompatible protocol 0x%04x", c->id, req->vers));
+	reply.result = PPTP_SCCR_RESL_VERS;
+	if (PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply) == -1)
+	    return;
+	PptpCtrlKillCtrl(c);
 	return;
-    PptpCtrlKillCtrl(c);
-    return;
-  }
+    }
 
-  /* OK */
-  PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_ESTABLISHED);
-  PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply);
+    strlcpy(c->peer_name, req->host, sizeof(c->peer_name));
+
+    /* OK */
+    PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_ESTABLISHED);
+    PptpCtrlWriteMsg(c, PPTP_StartCtrlConnReply, &reply);
 }
 
 /*
@@ -2022,30 +2048,32 @@ static void
 PptpStartCtrlConnReply(PptpCtrl c, struct pptpStartCtrlConnReply *rep)
 {
 
-  /* Is peer happy? */
-  if (rep->result != 0 && rep->result != PPTP_SCCR_RESL_OK) {
-    Log(LG_PHYS2, ("pptp%d: my %s failed, result=%s err=%s",
-      c->id, gPptpMsgInfo[PPTP_StartCtrlConnRequest].name,
-      PPTP_SCCR_RESL_CODE(rep->result), PPTP_ERROR_CODE(rep->err)));
-    PptpCtrlKillCtrl(c);
-    return;
-  }
+    /* Is peer happy? */
+    if (rep->result != 0 && rep->result != PPTP_SCCR_RESL_OK) {
+	Log(LG_PHYS2, ("pptp%d: my %s failed, result=%s err=%s",
+    	    c->id, gPptpMsgInfo[PPTP_StartCtrlConnRequest].name,
+    	    PPTP_SCCR_RESL_CODE(rep->result), PPTP_ERROR_CODE(rep->err)));
+	PptpCtrlKillCtrl(c);
+	return;
+    }
 
-  /* Check peer's protocol version */
-  if (rep->vers != PPTP_PROTO_VERS) {
-    struct pptpStopCtrlConnRequest	req;
+    /* Check peer's protocol version */
+    if (rep->vers != PPTP_PROTO_VERS) {
+	struct pptpStopCtrlConnRequest	req;
 
-    Log(LG_PHYS2, ("pptp%d: incompatible protocol 0x%04x", c->id, rep->vers));
-    memset(&req, 0, sizeof(req));
-    req.reason = PPTP_SCCR_REAS_PROTO;
-    PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_WAIT_STOP_REPLY);
-    PptpCtrlWriteMsg(c, PPTP_StopCtrlConnRequest, &req);
-    return;
-  }
+	Log(LG_PHYS2, ("pptp%d: incompatible protocol 0x%04x", c->id, rep->vers));
+	memset(&req, 0, sizeof(req));
+	req.reason = PPTP_SCCR_REAS_PROTO;
+	PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_WAIT_STOP_REPLY);
+	PptpCtrlWriteMsg(c, PPTP_StopCtrlConnRequest, &req);
+	return;
+    }
 
-  /* OK */
-  PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_ESTABLISHED);
-  PptpCtrlCheckConn(c);
+    strlcpy(c->peer_name, rep->host, sizeof(c->peer_name));
+
+    /* OK */
+    PptpCtrlNewCtrlState(c, PPTP_CTRL_ST_ESTABLISHED);
+    PptpCtrlCheckConn(c);
 }
 
 /*

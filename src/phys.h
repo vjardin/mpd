@@ -46,6 +46,10 @@
 						/* sets the calling number */
     int		(*setcallednum)(Link l, void *buf); 
 						/* sets the called number */
+    int		(*selfname)(Link l, void *buf, size_t buf_len); 
+						/* returns the self-name */
+    int		(*peername)(Link l, void *buf, size_t buf_len); 
+						/* returns the peer-name */
     int		(*selfaddr)(Link l, void *buf, size_t buf_len); 
 						/* returns the self-address (IP, MAC, whatever) */
     int		(*peeraddr)(Link l, void *buf, size_t buf_len); 
@@ -86,6 +90,8 @@
   extern int		PhysSetAccm(Link l, uint32_t xmit, u_int32_t recv);
   extern int		PhysSetCallingNum(Link l, char *buf);
   extern int		PhysSetCalledNum(Link l, char *buf);
+  extern int		PhysGetSelfName(Link l, char *buf, size_t buf_len);
+  extern int		PhysGetPeerName(Link l, char *buf, size_t buf_len);
   extern int		PhysGetSelfAddr(Link l, char *buf, size_t buf_len);
   extern int		PhysGetPeerAddr(Link l, char *buf, size_t buf_len);
   extern int		PhysGetPeerPort(Link l, char *buf, size_t buf_len);

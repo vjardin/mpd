@@ -432,6 +432,14 @@
 				  u_int16_t *selfCid, u_int16_t *peerCid,
 				  u_int16_t *peerWin, u_int16_t *peerPpd);
 
+/*
+ * Get local/remote hostnames.
+ */
+  extern int	PptpCtrlGetSelfName(struct pptpctrlinfo *cp,
+			void *buf, size_t buf_len);
+  extern int	PptpCtrlGetPeerName(struct pptpctrlinfo *cp,
+			void *buf, size_t buf_len);
+
 #endif	/* #ifndef _WANT_PPTP_FIELDS */
 #endif	/* #if !defined(_PPTP_CTRL_H_) || defined(_WANT_PPTP_FIELDS) */
 

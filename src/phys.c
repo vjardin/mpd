@@ -308,6 +308,40 @@ PhysSetCalledNum(Link l, char *buf)
  */
 
 int
+PhysGetSelfName(Link l, char *buf, size_t buf_len)
+{
+    PhysType	const pt = l->type;
+
+    buf[0] = 0;
+
+    if (pt && pt->selfname)
+	return ((*pt->selfname)(l, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
+ * PhysGetPeerAddr()
+ */
+
+int
+PhysGetPeerName(Link l, char *buf, size_t buf_len)
+{
+    PhysType	const pt = l->type;
+
+    buf[0] = 0;
+
+    if (pt && pt->peername)
+	return ((*pt->peername)(l, buf, buf_len));
+    else
+	return (0);
+}
+
+/*
+ * PhysGetSelfAddr()
+ */
+
+int
 PhysGetSelfAddr(Link l, char *buf, size_t buf_len)
 {
     PhysType	const pt = l->type;
