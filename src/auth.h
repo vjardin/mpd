@@ -135,8 +135,8 @@
 
     u_char		authentic;	/* wich backend was used */
 
-    char		callingnum[64];	/* hr representation of the calling number */
-    char		callednum[64];	/* hr representation of the called number */
+    char		callingnum[128];/* hr representation of the calling number */
+    char		callednum[128];	/* hr representation of the called number */
     char		selfname[64];	/* hr representation of the self name */
     char		peername[64];	/* hr representation of the peer name */
     char		selfaddr[64];	/* hr representation of the self address */
