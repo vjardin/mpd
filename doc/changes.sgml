@@ -15,7 +15,7 @@
 	  <item> Added '$CallingID' and '$CalledID' modem chat variables.
 		 Their values will be reported to the auth backend.
 	  </item>
-	  <item> Added some tunnel related RADIUS attributes of RFC2868.
+	  <item> Added tunnel related RADIUS attributes of RFC2868 support.
 	  </item>
 	</itemize>
 	</item>
