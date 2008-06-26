@@ -108,11 +108,17 @@ rad_put_string_tag(struct rad_handle *h, int type, u_char tag, const char *str)
     int res;
     int len = strlen(str);
     
-    tmp = Malloc(MB_RADIUS, len + 1);
-    tmp[0] = tag;
-    memcpy(tmp + 1, str, len);
-    res = rad_put_attr(h, type, tmp, len + 1);
-    Freee(tmp);
+    if (tag == 0) {
+	res = rad_put_attr(h, type, str, len);
+    } else if (tag <= 0x1F) {
+	tmp = Malloc(MB_RADIUS, len + 1);
+	tmp[0] = tag;
+	memcpy(tmp + 1, str, len);
+	res = rad_put_attr(h, type, tmp, len + 1);
+	Freee(tmp);
+    } else {
+	res = -1;
+    }
     return (res);
 }
 
