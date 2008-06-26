@@ -374,7 +374,7 @@ To enable a logging flag, add the <tt>+<em>flag</em></tt> argument.
 To disable a logging flag, add the <tt>-<em>flag</em></tt> argument.
 
 These are the various flags supported by mpd and their corresponding
-categories. Those with a * are turned on by default:
+categories:
 
 <descrip>
 <tag>auth*</tag>	Link authentication events

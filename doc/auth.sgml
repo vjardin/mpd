@@ -476,7 +476,7 @@ Supported attributes:
 <verb>
 Name                       	   Access	 Accounting
 	                	Req	Resp	Req	Resp
-USER_NAME			+	+	+	+
+USER_NAME			+	+	+	-
 AUTH_TYPE			+	-	-	-
 USER_PASSWORD			+	+	-	-
 USER_NT_HASH			-	+	-	-
