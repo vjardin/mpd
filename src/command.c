@@ -1223,11 +1223,18 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		FsmStateName(l->lcp.fsm.state),
 		gPhysStateNames[l->state]);
 	    Printf("\tSession Id      : %s\r\n", l->session_id);
+	    Printf("\tPeer ident      : %s\r\n", l->lcp.peer_ident);
 	    if (l->state == PHYS_STATE_UP)
     		Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - l->last_up));
 
+	    PhysGetSelfAddr(l, buf, sizeof(buf));
+	    Printf("\tSelf addr (name): %s", buf);
+	    PhysGetSelfName(l, buf, sizeof(buf));
+	    Printf(" (%s)\r\n", buf);
 	    PhysGetPeerAddr(l, buf, sizeof(buf));
-	    Printf("\tPeer address    : %s\r\n", buf);
+	    Printf("\tPeer addr (name): %s", buf);
+	    PhysGetPeerName(l, buf, sizeof(buf));
+	    Printf(" (%s)\r\n", buf);
 	    PhysGetPeerMacAddr(l, buf, sizeof(buf));
 	    Printf("\tPeer MAC address: %s\r\n", buf);
 	    PhysGetPeerIface(l, buf, sizeof(buf));

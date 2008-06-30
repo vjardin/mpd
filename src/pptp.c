@@ -649,10 +649,14 @@ PptpStat(Context ctx)
     Printf("PPTP status:\r\n");
     if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	Printf("\tIncoming     : %s\r\n", (pptp->originate?"NO":"YES"));
-	Printf("\tCurrent self : %s\r\n",
+	Printf("\tCurrent self : %s",
 	    u_addrtoa(&pptp->self_addr, buf, sizeof(buf)));
-	Printf("\tCurrent peer : %s, port %u\r\n",
+	PptpSelfName(ctx->lnk, buf, sizeof(buf));
+	Printf(" (%s)\r\n", buf);
+	Printf("\tCurrent peer : %s, port %u",
 	    u_addrtoa(&pptp->peer_addr, buf, sizeof(buf)), pptp->peer_port);
+	PptpPeerName(ctx->lnk, buf, sizeof(buf));
+	Printf(" (%s)\r\n", buf);
 	if (pptp->peer_iface[0]) {
 	    Printf("\tCurrent peer : %02x:%02x:%02x:%02x:%02x:%02x at %s\r\n",
 	        pptp->peer_mac_addr[0], pptp->peer_mac_addr[1],

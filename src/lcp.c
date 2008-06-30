@@ -552,6 +552,8 @@ LcpStat(Context ctx, int ac, char *av[], void *arg)
 	Printf(	"\tSHORTSEQ : %s\r\n", lcp->want_shortseq ? "Yes" : "No");
 	Printf(	"\tENDPOINTDISC: %s\r\n", MpDiscrimText(&self_discrim, buf, sizeof(buf)));
     }
+    if (l->conf.ident)
+	Printf(	"\tIDENT    : %s\r\n", l->conf.ident);
 
     Printf("Peer:\r\n");
     Printf(	"\tMRU      : %d bytes\r\n"
@@ -572,6 +574,8 @@ LcpStat(Context ctx, int ac, char *av[], void *arg)
 	Printf(	"\tSHORTSEQ : %s\r\n", lcp->peer_shortseq ? "Yes" : "No");
 	Printf(	"\tENDPOINTDISC: %s\r\n", MpDiscrimText(&lcp->peer_discrim, buf, sizeof(buf)));
     }
+    if (lcp->peer_ident[0])
+	Printf(	"\tIDENT    : %s\r\n", lcp->peer_ident);
 
     return(0);
 }

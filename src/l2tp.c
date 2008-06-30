@@ -907,10 +907,14 @@ L2tpStat(Context ctx)
     if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	Printf("\tIncoming     : %s\r\n", (l2tp->incoming?"YES":"NO"));
 	if (l2tp->tun) {
-	    Printf("\tCurrent self : %s, port %u\r\n",
+	    Printf("\tCurrent self : %s, port %u",
 		u_addrtoa(&l2tp->tun->self_addr, buf, sizeof(buf)), l2tp->tun->self_port);
-	    Printf("\tCurrent peer : %s, port %u\r\n",
+	    L2tpSelfName(ctx->lnk, buf, sizeof(buf));
+	    Printf(" (%s)\r\n", buf);
+	    Printf("\tCurrent peer : %s, port %u",
 		u_addrtoa(&l2tp->tun->peer_addr, buf, sizeof(buf)), l2tp->tun->peer_port);
+	    L2tpPeerName(ctx->lnk, buf, sizeof(buf));
+	    Printf(" (%s)\r\n", buf);
 	    if (l2tp->tun->peer_iface[0]) {
 		Printf("\tCurrent peer : %02x:%02x:%02x:%02x:%02x:%02x at %s\r\n",
 		    l2tp->tun->peer_mac_addr[0], l2tp->tun->peer_mac_addr[1],

@@ -1220,10 +1220,11 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
 	Printf("\tChildren       : %d\r\n", l->children);
     else {
 	Printf("\tState          : %s\r\n", gPhysStateNames[l->state]);
+	Printf("\tSession Id     : %s\r\n", l->session_id);
+	Printf("\tPeer ident     : %s\r\n", l->lcp.peer_ident);
 	if (l->state == PHYS_STATE_UP)
 	    Printf("\tSession time   : %ld seconds\r\n", (long int)(time(NULL) - l->last_up));
     }
-    Printf("\tSession Id     : %s\r\n", l->session_id);
     if (!l->tmpl) {
 	Printf("Up/Down stats:\r\n");
 	if (l->downReason && (!l->downReasonValid))
