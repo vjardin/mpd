@@ -111,6 +111,7 @@
 
   const u_char	gMsoftZeros[32];
   int		gMaxLogins = 0;	/* max number of concurrent logins per user */
+  int		gMaxLoginsCI = 0;
 
 /*
  * INTERNAL VARIABLES
@@ -694,7 +695,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
 
     Printf("Configuration:\r\n");
     Printf("\tMy authname     : %s\r\n", conf->authname);
-    Printf("\tMax-Logins      : %d\r\n", gMaxLogins);
+    Printf("\tMax-Logins      : %d%s\r\n", gMaxLogins, (gMaxLoginsCI?" CI":""));
     Printf("\tAcct Update     : %d\r\n", conf->acct_update);
     Printf("\t   Limit In     : %d\r\n", conf->acct_update_lim_recv);
     Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
@@ -1591,10 +1592,17 @@ AuthPreChecks(AuthData auth)
   if (gMaxLogins != 0) {
     int		ac;
     u_long	num = 0;
-    for(ac = 0; ac < gNumBundles; ac++)
-      if (gBundles[ac] && gBundles[ac]->open)
-	if (!strcmp(gBundles[ac]->params.authname, auth->params.authname))
-	  num++;
+    for(ac = 0; ac < gNumBundles; ac++) {
+      if (gBundles[ac] && gBundles[ac]->open) {
+        if (gMaxLoginsCI) {
+	    if (!strcasecmp(gBundles[ac]->params.authname, auth->params.authname))
+		num++;
+	} else {
+	    if (!strcmp(gBundles[ac]->params.authname, auth->params.authname))
+		num++;
+	}
+      }
+    }
 
     if (num >= gMaxLogins) {
 	Log(LG_AUTH, ("[%s] AUTH: Name: \"%s\" max. number of logins exceeded",
@@ -1866,7 +1874,12 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
       
     case SET_MAX_LOGINS:
-      gMaxLogins = atoi(*av);
+      gMaxLogins = atoi(av[0]);
+      if (ac >= 2 && strcasecmp(av[1], "ci") == 0) {
+        gMaxLoginsCI = 1;
+      } else {
+        gMaxLoginsCI = 0;
+      }
       break;
       
     case SET_ACCT_UPDATE:

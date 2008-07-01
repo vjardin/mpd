@@ -40,10 +40,11 @@ in <tt>mpd.secret</tt>, but rather to use
 <tt>mpd.secret</tt> and are only dialing out, you can use this
 command instead.
 
-<tag><tt>set auth max-logins <em>num</em></tt></tag>
+<tag><tt>set auth max-logins <em>num</em> [CI]</tt></tag>
 
 Limit the max. amount of concurrent logins with the same username.
-If set to zero, then this feature is disabled.
+If set to zero, then this feature is disabled. If CI argument is present
+login comparision will ba case insensitive.
 
 <tag><tt>set auth acct-update <em>seconds</em></tt></tag>
 
