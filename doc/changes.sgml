@@ -21,7 +21,8 @@
 	</item>
 	<item> Changes:
 	<itemize>
-	  <item> IPCP/IPv6CP now closing on interface address assign error.
+	  <item> IPCP/IPv6CP now closing on interface address assign error
+		 or up-script error.
 	  </item>
 	  <item> Accounting start error now closes link.
 	  </item>

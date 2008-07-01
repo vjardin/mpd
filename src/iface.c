@@ -800,6 +800,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     if (*iface->up_script) {
 	char	selfbuf[40],peerbuf[40];
 	char	ns1buf[21], ns2buf[21];
+	int	res;
 
 	if(b->ipcp.want_dns[0].s_addr != 0)
     	    snprintf(ns1buf, sizeof(ns1buf), "dns1 %s", inet_ntoa(b->ipcp.want_dns[0]));
@@ -810,11 +811,15 @@ IfaceIpIfaceUp(Bund b, int ready)
 	else
     	    ns2buf[0] = '\0';
 
-	ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s",
+	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s",
 	    iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
     	    *b->params.authname ? b->params.authname : "-", 
     	    ns1buf, ns2buf);
+	if (res != 0) {
+	    FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
+	    return (-1);
+	}
     }
     return (0);
 }
@@ -942,12 +947,17 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     /* Call "up" script */
     if (*iface->up_script) {
 	char	selfbuf[64],peerbuf[64];
+	int	res;
 
-	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
+	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
     	    iface->up_script, iface->ifname, 
     	    u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
     	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
     	    *b->params.authname ? b->params.authname : "-");
+	if (res != 0) {
+	    FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
+	    return (-1);
+	}
     }
     return (0);
 

@@ -116,10 +116,12 @@ ExecCmd(int log, const char *label, const char *fmt, ...)
 {
   int		rtn;
   char		cmd[BIG_LINE_SIZE];
+  char		cmdn[BIG_LINE_SIZE];
   va_list	ap;
 
   va_start(ap, fmt);
   vsnprintf(cmd, sizeof(cmd), fmt, ap);
+  vsnprintf(cmdn, sizeof(cmdn), fmt, ap);
   va_end(ap);
 
 /* Log command on the console */
@@ -128,12 +130,12 @@ ExecCmd(int log, const char *label, const char *fmt, ...)
 
 /* Hide any stdout output of command */
 
-  snprintf(cmd + strlen(cmd), sizeof(cmd) - strlen(cmd), " >/dev/null 2>&1");
+  snprintf(cmdn + strlen(cmdn), sizeof(cmdn) - strlen(cmdn), " >/dev/null 2>&1");
 
 /* Do command */
 
-  if ((rtn = system(cmd)))
-    Log(log, ("[%s] system: command returned %d", label, rtn));
+  if ((rtn = system(cmdn)))
+    Log(log|LG_ERR, ("[%s] system: command \"%s\" returned %d", label, cmd, rtn));
 
 /* Return command's return value */
 
@@ -219,7 +221,7 @@ ExecCmdNosh(int log, const char *label, const char *fmt, ...)
 	rtn = (pid == -1 ? -1 : pstat);
 
     if (rtn)
-	Log(log, ("[%s] exec: command returned %d", label, rtn));
+	Log(log|LG_ERR, ("[%s] system: command \"%s\" returned %d", label, cmd, rtn));
 
     /* Return command's return value */
     return(rtn);
