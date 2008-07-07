@@ -121,8 +121,8 @@ ExecCmd(int log, const char *label, const char *fmt, ...)
 
   va_start(ap, fmt);
   vsnprintf(cmd, sizeof(cmd), fmt, ap);
-  vsnprintf(cmdn, sizeof(cmdn), fmt, ap);
   va_end(ap);
+  strcpy(cmdn, cmd);
 
 /* Log command on the console */
 
