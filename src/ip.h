@@ -54,6 +54,7 @@
   extern char	*u_rangetoa(struct u_range *range, char *dst, size_t size);
 
   extern struct u_addr *u_addrcopy(const struct u_addr *src, struct u_addr *dst);
+  extern struct u_addr *u_rangecopy(const struct u_range *src, struct u_range *dst);
 
   extern struct u_addr *in_addrtou_addr(const struct in_addr *src, struct u_addr *dst);
   extern struct u_addr *in6_addrtou_addr(const struct in6_addr *src, struct u_addr *dst);

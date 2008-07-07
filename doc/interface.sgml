@@ -19,10 +19,10 @@
 <descrip>
 
 <tag><tt>
-set iface addrs <em>local-ip</em> <em>remote-ip</em>
+set iface addrs [!]<em>local-ip</em> [!]<em>remote-ip</em>
 </tt></tag>
 
-This command is only required when dial-on-demand is enabled.
+This command is usually required when dial-on-demand is enabled.
 Normally, mpd configures the interface with the IP addresses that
 were negotiated when connecting the link.  Since dial-on-demand
 configures the interface before actually connecting, mpd has to be
@@ -31,6 +31,11 @@ These addresses don't have to correspond to the ``real'' ones; in
 fact, both addresses can be completely fictional. If and when
 different addresses are negotiated later, mpd will automatically
 renumber the interface and adjust the routes.
+
+Also this command may be used to force specified addresses usage
+instead of negotiated ones. It may be useful in some specific cases,
+for example, to avoid routing loop with misconfigured PPTP server.
+In such case '!' mark specifies IPs to be forced.
 
 <tag><tt>
 set iface route <em>address[/width]</em>

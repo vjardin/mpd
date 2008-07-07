@@ -19,6 +19,8 @@
 	  </item>
 	  <item> 'set auth max-logins' feature can now be case insensitive.
 	  </item>
+	  <item> Added force ability to the 'set iface addrs' command.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

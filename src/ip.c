@@ -261,6 +261,11 @@ struct u_addr *u_addrcopy(const struct u_addr *src, struct u_addr *dst)
     return memcpy(dst,src,sizeof(struct u_addr));
 }
 
+struct u_addr *u_rangecopy(const struct u_range *src, struct u_range *dst)
+{
+    return memcpy(dst,src,sizeof(struct u_range));
+}
+
 struct u_addr *u_addrclear(struct u_addr *addr)
 {
     memset(addr,0,sizeof(struct u_addr));

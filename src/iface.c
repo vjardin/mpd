@@ -736,9 +736,15 @@ IfaceIpIfaceUp(Bund b, int ready)
     IfaceRoute		r;
     u_char		*ether;
 
-    if (ready) {
+    if (ready && !iface->conf.self_addr_force) {
 	in_addrtou_range(&b->ipcp.want_addr, 32, &iface->self_addr);
+    } else {
+	u_rangecopy(&iface->conf.self_addr, &iface->self_addr);
+    }
+    if (ready && !iface->conf.peer_addr_force) {
 	in_addrtou_addr(&b->ipcp.peer_addr, &iface->peer_addr);
+    } else {
+	u_addrcopy(&iface->conf.peer_addr, &iface->peer_addr);
     }
 
     if (IfaceNgIpInit(b, ready)) {
@@ -891,7 +897,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     IfaceState		const iface = &b->iface;
     IfaceRoute		r;
 
-    if (ready) {
+    if (ready && !iface->conf.self_ipv6_addr_force) {
         iface->self_ipv6_addr.family = AF_INET6;
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
@@ -901,7 +907,10 @@ IfaceIpv6IfaceUp(Bund b, int ready)
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.myintid)[1];
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.myintid)[2];
 	iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.myintid)[3];
-
+    } else {
+	u_addrcopy(&iface->conf.self_ipv6_addr, &iface->self_ipv6_addr);
+    }
+    if (ready && !iface->conf.peer_ipv6_addr_force) {
         iface->peer_ipv6_addr.family = AF_INET6;
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[0] = 0x80fe;  /* Network byte order */
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
@@ -911,6 +920,8 @@ IfaceIpv6IfaceUp(Bund b, int ready)
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.hisintid)[1];
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
+    } else {
+	u_addrcopy(&iface->conf.peer_ipv6_addr, &iface->peer_ipv6_addr);
     }
 
     if (IfaceNgIpv6Init(b, ready)) {
@@ -1228,24 +1239,40 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
       {
 	struct u_range	self_addr;
 	struct u_addr	peer_addr;
+	int	self_addr_force = 0, peer_addr_force = 0;
+	char	*arg;
 
 	/* Parse */
 	if (ac != 2)
 	  return(-1);
-	if (!ParseRange(av[0], &self_addr, ALLOW_IPV4|ALLOW_IPV6))
+	arg = av[0];
+	if (arg[0] == '!') {
+	    self_addr_force = 1;
+	    arg++;
+	}
+	if (!ParseRange(arg, &self_addr, ALLOW_IPV4|ALLOW_IPV6))
 	  Error("Bad IP address \"%s\"", av[0]);
-	if (!ParseAddr(av[1], &peer_addr, ALLOW_IPV4|ALLOW_IPV6))
+	arg = av[1];
+	if (arg[0] == '!') {
+	    peer_addr_force = 1;
+	    arg++;
+	}
+	if (!ParseAddr(arg, &peer_addr, ALLOW_IPV4|ALLOW_IPV6))
 	  Error("Bad IP address \"%s\"", av[1]);
 	if (self_addr.addr.family != peer_addr.family)
 	  Error("Addresses must be from the same protocol family");
 
 	/* OK */
 	if (peer_addr.family == AF_INET) {
-	    iface->self_addr = self_addr;
-	    iface->peer_addr = peer_addr;
+	    iface->conf.self_addr = self_addr;
+	    iface->conf.peer_addr = peer_addr;
+	    iface->conf.self_addr_force = self_addr_force;
+	    iface->conf.peer_addr_force = peer_addr_force;
 	} else {
-	    iface->self_ipv6_addr = self_addr.addr;
-	    iface->peer_ipv6_addr = peer_addr;
+	    iface->conf.self_ipv6_addr = self_addr.addr;
+	    iface->conf.peer_ipv6_addr = peer_addr;
+	    iface->conf.self_ipv6_addr_force = self_addr_force;
+	    iface->conf.peer_ipv6_addr_force = peer_addr_force;
 	}
       }
       break;
@@ -1343,6 +1370,18 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tMaximum MTU     : %d bytes\r\n", iface->max_mtu);
     Printf("\tIdle timeout    : %d seconds\r\n", iface->idle_timeout);
     Printf("\tSession timeout : %d seconds\r\n", iface->session_timeout);
+    if (!u_rangeempty(&iface->conf.self_addr)) {
+	Printf("\tIP Addresses    : %s%s -> ", iface->conf.self_addr_force?"!":"",
+	    u_rangetoa(&iface->conf.self_addr,buf,sizeof(buf)));
+	Printf("%s%s\r\n",  iface->conf.peer_addr_force?"!":"",
+	    u_addrtoa(&iface->conf.peer_addr,buf,sizeof(buf)));
+    }
+    if (!u_addrempty(&iface->conf.self_ipv6_addr)) {
+	Printf("\tIPv6 Addresses  : %s%s%%%s -> ",  iface->conf.self_ipv6_addr_force?"!":"",
+	    u_addrtoa(&iface->conf.self_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+	Printf("%s%s%%%s\r\n",  iface->conf.peer_ipv6_addr_force?"!":"",
+	    u_addrtoa(&iface->conf.peer_ipv6_addr,buf,sizeof(buf)), iface->ifname);
+    }
     Printf("\tEvent scripts\r\n");
     Printf("\t  up-script     : \"%s\"\r\n",
 	*iface->up_script ? iface->up_script : "<none>");

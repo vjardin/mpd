@@ -69,6 +69,17 @@
   };
 
   #define MAX_DOD_CACHE_DELAY	30
+  
+  struct ifaceconf {
+    struct u_range	self_addr;		/* Interface's IP address */
+    struct u_addr	peer_addr;		/* Peer's IP address */
+    struct u_addr	self_ipv6_addr;
+    struct u_addr	peer_ipv6_addr;
+    u_char		self_addr_force;
+    u_char		peer_addr_force;
+    u_char		self_ipv6_addr_force;
+    u_char		peer_ipv6_addr_force;
+  };
 
   struct ifaceroute {
     struct u_range	dest;			/* Destination of route */
@@ -80,6 +91,7 @@
   struct ifacestate {
     char		ifname[IFNAMSIZ];	/* Name of my interface */
     uint		ifindex;		/* System interface index */
+    struct ifaceconf	conf;
     u_char		traffic[IFACE_IDLE_SPLIT];	/* Mark any traffic */
     u_short		mtu;			/* Interface MTU */
     u_short		max_mtu;		/* Configured maximum MTU */
