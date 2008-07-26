@@ -404,6 +404,8 @@ L2tpOpen(Link l)
 	while ((tun = ghash_walk_next(gL2tpTuns, &walk)) != NULL) {
 	    if (tun->ctrl && tun->alive && tun->active_sessions < gL2TPtunlimit &&
 		(IpAddrInRange(&pi->conf.peer_addr, &tun->peer_addr)) &&
+		(u_addrempty(&pi->conf.self_addr) || u_addrempty(&tun->self_addr) ||
+		    u_addrcompare(&pi->conf.self_addr, &tun->self_addr) == 0) &&
 		(pi->conf.peer_port == 0 || pi->conf.peer_port == tun->peer_port)) {
 		    pi->tun = tun;
 		    tun->active_sessions++;
