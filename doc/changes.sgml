@@ -43,6 +43,9 @@
 	  </item>
 	  <item> Fix auth thread busy check.
 	  </item>
+	  <item> Fix incorrect L2TP self address used for outgoing calls
+		 when several different addresses configured.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
