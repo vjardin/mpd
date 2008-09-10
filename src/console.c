@@ -666,11 +666,12 @@ ConsoleSessionWrite(ConsoleSession cs, const char *fmt, ...)
 static void 
 ConsoleSessionWriteV(ConsoleSession cs, const char *fmt, va_list vl)
 {
-    char	buf[4096];
+    char	*buf;
     size_t	len;
     
-    len = vsnprintf(buf, sizeof(buf), fmt, vl);
+    len = vasprintf(&buf, fmt, vl);
     write(cs->fd, buf, len);
+    free(buf);
 }
 
 /*

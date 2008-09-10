@@ -83,7 +83,7 @@
   extern int		PhysCloseCmd(Context ctx);
   extern void		PhysClose(Link l);
   extern void		PhysUp(Link l);
-  extern void		PhysDown(Link l, const char *reason, const char *details, ...);
+  extern void		PhysDown(Link l, const char *reason, const char *details);
   extern void		PhysIncoming(Link l);
   extern int		PhysGetUpperHook(Link l, char *path, char *hook);
 

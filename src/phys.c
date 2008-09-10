@@ -165,21 +165,11 @@ PhysUp(Link l)
  */
 
 void
-PhysDown(Link l, const char *reason, const char *details, ...)
+PhysDown(Link l, const char *reason, const char *details)
 {
     Log(LG_PHYS2, ("[%s] device: DOWN event", l->name));
     if (!l->rep) {
-	if (details) {
-	    va_list	args;
-	    char	buf[256];
-	    
-	    va_start(args, details);
-	    vsnprintf(buf, sizeof(buf), details, args);
-	    va_end(args);
-	    RecordLinkUpDownReason(NULL, l, 0, reason, buf);
-	} else {
-	    RecordLinkUpDownReason(NULL, l, 0, reason, NULL);
-	}
+	RecordLinkUpDownReason(NULL, l, 0, reason, details);
 	l->upReasonValid=0;
 	LinkDown(l);
 	LinkShutdownCheck(l, l->lcp.fsm.state);

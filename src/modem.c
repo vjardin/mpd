@@ -419,7 +419,7 @@ ModemChatConnectResult(void *arg, int result, const char *msg)
 failed:
 	ModemDoClose(l, FALSE);
 	l->state = PHYS_STATE_DOWN;
-	PhysDown(l, STR_ERROR, "%s", msg);
+	PhysDown(l, STR_ERROR, msg);
 	return;
     }
 
@@ -731,21 +731,21 @@ ModemCheck(void *arg)
     	    l->name, "TIOCMGET", m->device, strerror(errno)));
 	l->state = PHYS_STATE_DOWN;
 	ModemDoClose(l, FALSE);
-	PhysDown(l, STR_ERROR, "ioctl(%s): %s", "TIOCMGET", strerror(errno));
+	PhysDown(l, STR_ERROR, strerror(errno));
 	return;
     }
     if ((m->watch & TIOCM_CAR) && !(state & TIOCM_CAR)) {
 	Log(LG_PHYS, ("[%s] MODEM: carrier detect (CD) signal lost", l->name));
 	l->state = PHYS_STATE_DOWN;
 	ModemDoClose(l, FALSE);
-	PhysDown(l, STR_DROPPED, "%s", STR_LOST_CD);
+	PhysDown(l, STR_DROPPED, STR_LOST_CD);
 	return;
     }
     if ((m->watch & TIOCM_DSR) && !(state & TIOCM_DSR)) {
 	Log(LG_PHYS, ("[%s] MODEM: data-set ready (DSR) signal lost", l->name));
 	l->state = PHYS_STATE_DOWN;
 	ModemDoClose(l, FALSE);
-	PhysDown(l, STR_DROPPED, "%s", STR_LOST_DSR);
+	PhysDown(l, STR_DROPPED, STR_LOST_DSR);
 	return;
     }
     TimerStart(&m->checkTimer);

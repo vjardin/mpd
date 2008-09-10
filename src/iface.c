@@ -841,7 +841,7 @@ IfaceIpIfaceDown(Bund b)
 {
     IfaceState	const iface = &b->iface;
     IfaceRoute	r;
-    char	buf[64];
+    char	buf[48];
 
     /* Call "down" script */
     if (*iface->down_script) {
@@ -957,7 +957,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 
     /* Call "up" script */
     if (*iface->up_script) {
-	char	selfbuf[64],peerbuf[64];
+	char	selfbuf[48],peerbuf[48];
 	int	res;
 
 	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
@@ -989,7 +989,7 @@ IfaceIpv6IfaceDown(Bund b)
 
     /* Call "down" script */
     if (*iface->down_script) {
-	char	selfbuf[64],peerbuf[64];
+	char	selfbuf[48],peerbuf[48];
 
 	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
     	    iface->down_script, iface->ifname, 
@@ -1362,7 +1362,7 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     IfaceState	const iface = &b->iface;
     IfaceRoute	r;
     int		k;
-    char	buf[64];
+    char	buf[48];
     struct acl	*a;
 
     Printf("Interface configuration:\r\n");
@@ -1581,7 +1581,7 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
     struct sockaddr_storage ssself, sspeer, ssmsk;
     int res = 0;
     int s;
-    char buf[64], buf1[64];
+    char buf[48], buf1[48];
 
     Log(LG_IFACE2, ("[%s] IFACE: %s address %s->%s %s %s",
 	b->name, add?"Add":"Remove", u_rangetoa(self, buf, sizeof(buf)), 
@@ -1680,7 +1680,7 @@ IfaceSetRoute(Bund b, int cmd, struct u_range *dst,
     char *cp;
     const char *cmdstr = (cmd == RTM_ADD ? "Add" : "Delete");
     struct sockaddr_storage sadst, samask, sagw;
-    char buf[64], buf1[64];
+    char buf[48], buf1[48];
 
     s = socket(PF_ROUTE, SOCK_RAW, 0);
     if (s < 0) {

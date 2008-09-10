@@ -1750,7 +1750,7 @@ ppp_l2tp_data_event(void *arg)
 	struct ppp_l2tp_avp_ptrs *ptrs = NULL;
 	struct ppp_l2tp_sess *sess;
 	struct ppp_l2tp_sess key;
-	static u_char buf[8192];
+	static u_char buf[4096];
 	u_int16_t msgtype;
 	char ebuf[64];
 	int len;

@@ -539,7 +539,7 @@ void
 PppoeStat(Context ctx)
 {
 	const PppoeInfo pe = (PppoeInfo)ctx->lnk->info;
-	char	buf[64];
+	char	buf[32];
 
 	Printf("PPPoE configuration:\r\n");
 	Printf("\tIface Node   : %s\r\n", pe->path);

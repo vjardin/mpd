@@ -520,7 +520,7 @@ RadiusStart(AuthData auth, short request_type)
   RadConf 	const conf = &auth->conf.radius;  
   char		host[MAXHOSTNAMELEN];
   int		porttype;
-  char		buf[64];
+  char		buf[48];
   char		*tmpval;
 
   if (RadiusOpen(auth, request_type) == RAD_NACK) 

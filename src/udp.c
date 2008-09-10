@@ -465,7 +465,7 @@ void
 UdpStat(Context ctx)
 {
 	UdpInfo const pi = (UdpInfo) ctx->lnk->info;
-	char	buf[64];
+	char	buf[48];
 
 	Printf("UDP configuration:\r\n");
 	Printf("\tSelf address : %s, port %u\r\n",
@@ -491,8 +491,8 @@ UdpAcceptEvent(int type, void *cookie)
 	socklen_t	saddrlen;
 	struct u_addr	addr;
 	in_port_t	port;
-	char		buf[64];
-	char		buf1[64];
+	char		buf[48];
+	char		buf1[48];
 	int 		k;
 	struct UdpIf 	*If=(struct UdpIf *)(cookie);
 	Link		l = NULL;
@@ -581,7 +581,7 @@ UdpListen(Link l)
 	UdpInfo const pi = (UdpInfo) l->info;
 	struct sockaddr_storage addr;
 	int error;
-	char buf[64];
+	char buf[48];
 	int opt, i, j = -1, free = -1;
 	
 	if (pi->If)
@@ -660,7 +660,7 @@ static int
 UdpUnListen(Link l)
 {
 	UdpInfo const pi = (UdpInfo) l->info;
-	char buf[64];
+	char buf[48];
 	
 	if (!pi->If)
 	    return(1);

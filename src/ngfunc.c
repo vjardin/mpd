@@ -671,7 +671,7 @@ NgFuncGetStats64(Bund b, u_int16_t linkNum, struct ng_ppp_link_stat64 *statp)
 void
 NgFuncErrx(const char *fmt, ...)
 {
-    char	buf[1024];
+    char	buf[100];
     va_list	args;
 
     va_start(args, fmt);

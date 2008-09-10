@@ -408,8 +408,7 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
     Console		c = &gConsole;
     struct console_session css;
     ConsoleSession	cs = &css;
-    char		buf[1024];
-    char		buf1[1024];
+    char		*buf;
     char		*tmp;
     int			argc, k;
     char		*argv[MAX_CONSOLE_ARGS];
@@ -425,8 +424,7 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
     cs->context.cs = cs;
     cs->context.priv = priv;
 
-    strlcpy(buf,query,sizeof(buf));
-    tmp = buf;
+    tmp = buf = Mstrdup(MB_WEB, query);
     for (argc = 0; (argv[argc] = strsep(&tmp, "&")) != NULL;)
 	if (argv[argc][0] != '\0')
     	    if (++argc >= MAX_CONSOLE_ARGS)
@@ -435,7 +433,9 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
     for (k = 0; k < argc; k++) {
 	int	ac, rtn;
 	char	*av[MAX_CONSOLE_ARGS];
+	char	*buf1;
 
+	buf1 = Malloc(MB_WEB, strlen(argv[k]) + 1);
 	http_request_url_decode(argv[k], buf1);
         Log2(LG_CONSOLE, ("[%s] WEB: %s", 
 	    cs->context.lnk ? cs->context.lnk->name :
@@ -444,8 +444,10 @@ WebRunBinCmd(FILE *f, const char *query, int priv)
 	ac = ParseLine(buf1, av, sizeof(av) / sizeof(*av), 0);
 	cs->context.errmsg[0] = 0;
 	rtn = DoCommandTab(&cs->context, gCommands, ac, av);
+	Freee(buf1);
 	fprintf(f, "RESULT: %d %s\n", rtn, cs->context.errmsg);
     }
+    Freee(buf);
     RESETREF(cs->context.lnk, NULL);
     RESETREF(cs->context.bund, NULL);
     RESETREF(cs->context.rep, NULL);
@@ -457,8 +459,7 @@ WebRunCmd(FILE *f, const char *query, int priv)
     Console		c = &gConsole;
     struct console_session css;
     ConsoleSession	cs = &css;
-    char		buf[1024];
-    char		buf1[1024+1];
+    char		*buf;
     char		*tmp;
     int			argc, k;
     char		*argv[MAX_CONSOLE_ARGS];
@@ -474,8 +475,7 @@ WebRunCmd(FILE *f, const char *query, int priv)
     cs->context.cs = cs;
     cs->context.priv = priv;
 
-    strlcpy(buf,query,sizeof(buf));
-    tmp = buf;
+    tmp = buf = Mstrdup(MB_WEB, query);
     for (argc = 0; (argv[argc] = strsep(&tmp, "&")) != NULL;)
 	if (argv[argc][0] != '\0')
     	    if (++argc >= MAX_CONSOLE_ARGS)
@@ -492,7 +492,9 @@ WebRunCmd(FILE *f, const char *query, int priv)
     for (k = 0; k < argc; k++) {
 	int	ac;
 	char	*av[MAX_CONSOLE_ARGS];
+	char	*buf1;
 
+	buf1 = Malloc(MB_WEB, strlen(argv[k]) + 1);
 	http_request_url_decode(argv[k], buf1);
         Log2(LG_CONSOLE, ("[%s] WEB: %s", 
 	    cs->context.lnk ? cs->context.lnk->name :
@@ -504,9 +506,11 @@ WebRunCmd(FILE *f, const char *query, int priv)
     
 	ac = ParseLine(buf1, av, sizeof(av) / sizeof(*av), 0);
 	DoCommand(&cs->context, ac, av, NULL, 0);
+	Freee(buf1);
     }
     fprintf(f, "</PRE>\n");
 done:
+    Freee(buf);
     fprintf(f, "<P><A href=\"/\"><< Back</A></P>\n");
     RESETREF(cs->context.lnk, NULL);
     RESETREF(cs->context.bund, NULL);

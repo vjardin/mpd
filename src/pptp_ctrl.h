@@ -411,7 +411,8 @@
   extern void*			PptpCtrlListen(struct u_addr *ip, in_port_t port);
   extern void			PptpCtrlUnListen(void *listener);
 
-  extern struct pptpctrlinfo	PptpCtrlInCall(struct pptplinkinfo linfo,
+  extern void			PptpCtrlInCall(struct pptpctrlinfo *cinfo,
+				  struct pptplinkinfo *linfo,
 				  struct u_addr *locip, struct u_addr *ip,
 				  in_port_t port, int bearType, int frameType,
 				  int minBps, int maxBps,
@@ -419,7 +420,8 @@
 				  const char *calledNum,
 				  const char *subAddress);
 
-  extern struct pptpctrlinfo	PptpCtrlOutCall(struct pptplinkinfo linfo,
+  extern void			PptpCtrlOutCall(struct pptpctrlinfo *cinfo,
+				  struct pptplinkinfo *linfo,
 				  struct u_addr *locip, struct u_addr *ip,
 				  in_port_t port, int bearType, int frameType,
 				  int minBps, int maxBps,

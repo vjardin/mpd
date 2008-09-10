@@ -135,7 +135,7 @@ int
 NatStat(Context ctx, int ac, char *av[], void *arg)
 {
     NatState	const nat = &ctx->bund->iface.nat;
-    char	buf[64];
+    char	buf[48];
 
     Printf("NAT configuration:\r\n");
     Printf("\tAlias addresses : %s\r\n", 

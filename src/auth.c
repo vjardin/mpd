@@ -688,7 +688,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
 {
     Auth	const au = &ctx->lnk->lcp.auth;
     AuthConf	const conf = &au->conf;
-    char	buf[64], buf2[16];
+    char	buf[48], buf2[16];
     struct acl	*a;
     IfaceRoute	r;
     int		k;

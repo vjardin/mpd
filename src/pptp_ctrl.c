@@ -219,9 +219,8 @@
   static void	PptpCtrlNewCtrlState(PptpCtrl c, int new);
   static void	PptpCtrlNewChanState(PptpChan ch, int new);
 
-  static struct pptpctrlinfo
-			PptpCtrlOrigCall(int incoming,
-			  struct pptplinkinfo linfo, struct u_addr *locip,
+  static void		PptpCtrlOrigCall(int incoming, struct pptpctrlinfo *cinfo,
+			  struct pptplinkinfo *linfo, struct u_addr *locip,
 			  struct u_addr *ip, in_port_t port, int bearType,
 			  int frameType, int minBps, int maxBps,
 			  const char *callingNum, const char *calledNum,
@@ -537,7 +536,7 @@ PptpCtrlInit(PptpGetInLink_t getInLink, PptpGetOutLink_t getOutLink)
 void *
 PptpCtrlListen(struct u_addr *ip, in_port_t port)
 {
-    char	buf[64];
+    char	buf[48];
     PptpLis	l;
     int		k;
 
@@ -594,7 +593,7 @@ void
 PptpCtrlUnListen(void *listener)
 {
     PptpLis	l = (PptpLis)listener;
-    char	buf[64];
+    char	buf[48];
     int		k;
 
     assert(l);
@@ -642,15 +641,15 @@ PptpCtrlListenRetry(int type, void *cookie)
  * Initiate an incoming call
  */
 
-struct pptpctrlinfo
-PptpCtrlInCall(struct pptplinkinfo linfo, struct u_addr *locip,
-	struct u_addr *ip, in_port_t port, int bearType, int frameType,
-	int minBps, int maxBps, const char *callingNum,
+void
+PptpCtrlInCall(struct pptpctrlinfo *cinfo, struct pptplinkinfo *linfo,
+	struct u_addr *locip, struct u_addr *ip, in_port_t port,
+	int bearType, int frameType, int minBps, int maxBps, const char *callingNum,
 	const char *calledNum, const char *subAddress)
 {
-  return(PptpCtrlOrigCall(TRUE, linfo, locip, ip, port,
-    bearType, frameType, minBps, maxBps,
-    callingNum, calledNum, subAddress));
+    PptpCtrlOrigCall(TRUE, cinfo, linfo, locip, ip, port,
+	bearType, frameType, minBps, maxBps,
+	callingNum, calledNum, subAddress);
 }
 
 /*
@@ -659,15 +658,15 @@ PptpCtrlInCall(struct pptplinkinfo linfo, struct u_addr *locip,
  * Initiate an outgoing call
  */
 
-struct pptpctrlinfo
-PptpCtrlOutCall(struct pptplinkinfo linfo, struct u_addr *locip,
-	struct u_addr *ip, in_port_t port, int bearType,
+void
+PptpCtrlOutCall(struct pptpctrlinfo *cinfo, struct pptplinkinfo *linfo,
+	struct u_addr *locip, struct u_addr *ip, in_port_t port, int bearType,
 	int frameType, int minBps, int maxBps,
 	const char *calledNum, const char *subAddress)
 {
-  return(PptpCtrlOrigCall(FALSE, linfo, locip, ip, port,
-    bearType, frameType, minBps, maxBps,
-    PPTP_STR_INTERNAL_CALLING, calledNum, subAddress));
+    PptpCtrlOrigCall(FALSE, cinfo, linfo, locip, ip, port,
+	bearType, frameType, minBps, maxBps,
+        PPTP_STR_INTERNAL_CALLING, calledNum, subAddress);
 }
 
 /*
@@ -681,27 +680,26 @@ PptpCtrlOutCall(struct pptplinkinfo linfo, struct u_addr *locip,
  * zero, then use the normal PPTP port.
  */
 
-static struct pptpctrlinfo
-PptpCtrlOrigCall(int incoming, struct pptplinkinfo linfo,
+static void
+PptpCtrlOrigCall(int incoming, struct pptpctrlinfo *cinfo, struct pptplinkinfo *linfo,
 	struct u_addr *locip, struct u_addr *ip, in_port_t port, int bearType,
 	int frameType, int minBps, int maxBps, const char *callingNum,
 	const char *calledNum, const char *subAddress)
 {
   PptpCtrl		c;
   PptpChan		ch;
-  struct pptpctrlinfo	cinfo;
-  char			ebuf[100];
+  char			ebuf[64];
 
   /* Init */
   assert(gInitialized);
   port = port ? port : PPTP_PORT;
-  memset(&cinfo, 0, sizeof(cinfo));
+  memset(cinfo, 0, sizeof(cinfo));
 
   /* Find/create control block */
   if ((c = PptpCtrlGetCtrl(TRUE, locip, ip, port,
       ebuf, sizeof(ebuf))) == NULL) {
     Log(LG_PHYS2, ("%s", ebuf));
-    return(cinfo);
+    return;
   }
 
   /* Get new channel */
@@ -709,16 +707,15 @@ PptpCtrlOrigCall(int incoming, struct pptplinkinfo linfo,
       bearType, frameType, minBps, maxBps,
       callingNum, calledNum, subAddress)) == NULL) {
     PptpCtrlKillCtrl(c);
-    return(cinfo);
+    return;
   }
-  ch->linfo = linfo;
+  ch->linfo = *linfo;
 
   /* Control channel may be ready already; start channel if so */
   PptpCtrlCheckConn(c);
 
   /* Return OK */
-  PptpCtrlInitCinfo(ch, &cinfo);
-  return(cinfo);
+  PptpCtrlInitCinfo(ch, cinfo);
 }
 
 /*
@@ -805,10 +802,10 @@ PptpCtrlListenEvent(int type, void *cookie)
   struct sockaddr_storage	peerst, selfst;
   struct u_addr			peer_addr, self_addr;
   in_port_t			peer_port, self_port;
-  char				ebuf[100];
+  char				ebuf[64];
   PptpCtrl			c;
   int				sock;
-  char				buf[64], buf2[64];
+  char				buf[48], buf2[48];
   socklen_t			addrLen;
   
     /* Accept connection */
@@ -854,7 +851,7 @@ PptpCtrlConnEvent(int type, void *cookie)
   PptpCtrl		const c = (PptpCtrl) cookie;
   struct sockaddr_storage	addr;
   socklen_t		addrLen = sizeof(addr);
-  char			buf[64];
+  char			buf[48];
 
   /* Get event */
   assert(c->state == PPTP_CTRL_ST_IDLE);
@@ -887,7 +884,7 @@ PptpCtrlInitCtrl(PptpCtrl c, int orig)
   static const int	one = 1;
   int			k;
   socklen_t		addrLen;
-  char			buf[64];
+  char			buf[48];
 
   /* Good time for a sanity check */
   assert(c->state == PPTP_CTRL_ST_IDLE);
@@ -1193,7 +1190,7 @@ PptpCtrlGetCtrl(int orig, struct u_addr *self_addr,
     PptpCtrl			c;
     int				k;
     struct sockaddr_storage	peer;
-    char			buf1[64];
+    char			buf1[48];
 
     /* For incoming any control is new! */
     if (orig) {
@@ -1385,7 +1382,7 @@ PptpCtrlSetLinkInfo(void *cookie, u_int32_t sa, u_int32_t ra)
 static void
 PptpCtrlCloseCtrl(PptpCtrl c)
 {
-  char	buf[64];
+  char	buf[48];
 
   Log(LG_PHYS2, ("pptp%d: closing connection with %s %u",
     c->id, u_addrtoa(&c->peer_addr,buf,sizeof(buf)), c->peer_port));
@@ -1422,7 +1419,7 @@ PptpCtrlKillCtrl(PptpCtrl c)
 {
   int		k;
   PptpPendRep	prep, next;
-  char		buf[64];
+  char		buf[48];
 
   /* Don't recurse */
   assert(c);
@@ -2441,7 +2438,7 @@ int
 PptpsStat(Context ctx, int ac, char *av[], void *arg)
 {
     int		k;
-    char	buf1[64], buf2[64];
+    char	buf1[48], buf2[48];
 
     Printf("Active PPTP tunnels:\r\n");
     for (k = 0; k < gNumPptpCtrl; k++) {

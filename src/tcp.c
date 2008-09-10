@@ -192,7 +192,7 @@ TcpOpen(Link l)
 	struct sockaddr_storage addr;
 	struct ng_async_cfg	acfg;
 	int 			rval;
-	char 			buf[64];
+	char 			buf[48];
 
 	/* Create a new netgraph node to control TCP ksocket node. */
 	if (NgMkSockNode(NULL, &pi->csock, NULL) < 0) {
@@ -394,7 +394,7 @@ TcpAcceptEvent(int type, void *cookie)
 	char path[NG_PATHSIZ];
 	struct u_addr	addr;
 	in_port_t	port;
-	char		buf[64];
+	char		buf[48];
 	int 		k;
 	struct TcpIf 	*If=(struct TcpIf *)(cookie);
 	Link		l = NULL;
@@ -664,7 +664,7 @@ void
 TcpStat(Context ctx)
 {
 	TcpInfo const pi = (TcpInfo) ctx->lnk->info;
-	char	buf[64];
+	char	buf[48];
 
 	Printf("TCP configuration:\r\n");
 	Printf("\tSelf address : %s, port %u\r\n",
@@ -687,7 +687,7 @@ TcpListen(Link l)
 	struct sockaddr_storage addr;
 	int32_t backlog = 1;
 	int error;
-	char buf[64];
+	char buf[48];
 	union {
 	    u_char buf[sizeof(struct ng_ksocket_sockopt) + sizeof(int)];
 	    struct ng_ksocket_sockopt ksso;
@@ -806,7 +806,7 @@ static void
 TcpUnListen(Link l)
 {
 	TcpInfo const pi = (TcpInfo) l->info;
-	char buf[64];
+	char buf[48];
 	
 	if (!pi->If)
 	    return;

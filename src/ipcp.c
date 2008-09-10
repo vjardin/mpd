@@ -184,7 +184,7 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
       struct ng_mesg	reply;
   }			u;
   struct slcompress	*const sls = (struct slcompress *)(void *)u.reply.data;
-  char			buf[64];
+  char			buf[48];
 
   Printf("[%s] %s [%s]\r\n", Pref(fp), Fsm(fp), FsmStateName(fp->state));
   Printf("Allowed IP address ranges:\r\n");
@@ -296,6 +296,7 @@ IpcpConfigure(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
     IpcpState	const ipcp = &b->ipcp;
+    char	buf[48];
 
     /* FSM stuff */
     ipcp->peer_reject = 0;
@@ -306,7 +307,6 @@ IpcpConfigure(Fsm fp)
 	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\" for self",
 		b->name, ipcp->conf.self_ippool));
 	} else {
-	    char buf[64];
 	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\" for self",
 		b->name,
 		u_addrtoa(&ipcp->self_allow.addr, buf, sizeof(buf)),
@@ -325,7 +325,6 @@ IpcpConfigure(Fsm fp)
 	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\" for peer",
 		b->name, b->params.ippool));
 	} else {
-	    char buf[64];
 	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\" for peer",
 		b->name,
 		u_addrtoa(&ipcp->peer_allow.addr, buf, sizeof(buf)),
@@ -338,7 +337,6 @@ IpcpConfigure(Fsm fp)
 	    Log(LG_IPCP, ("[%s] IPCP: Can't get IP from pool \"%s\"",
 		b->name, ipcp->conf.ippool));
 	} else {
-	    char buf[64];
 	    Log(LG_IPCP, ("[%s] IPCP: Got IP %s from pool \"%s\" for peer",
 		b->name,
 		u_addrtoa(&ipcp->peer_allow.addr, buf, sizeof(buf)),

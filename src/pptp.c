@@ -347,7 +347,6 @@ static int
 PptpOriginate(Link l)
 {
     PptpInfo		const pptp = (PptpInfo) l->info;
-    struct pptpctrlinfo	cinfo;
     struct pptplinkinfo	linfo;
     const u_short	port = pptp->conf.peer_port ?
 			    pptp->conf.peer_port : PPTP_PORT;
@@ -365,24 +364,23 @@ PptpOriginate(Link l)
 	int frameType = PPTP_FRAMECAP_SYNC;
 	if (l->rep && !RepIsSync(l))
 	    frameType = PPTP_FRAMECAP_ASYNC;
-	cinfo = PptpCtrlInCall(linfo, 
+	PptpCtrlInCall(&pptp->cinfo, &linfo, 
     	    &pptp->conf.self_addr, &pptp->conf.peer_addr.addr, port,
     	    PPTP_BEARCAP_ANY, frameType,
     	    PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS, 
     	    pptp->callingnum, pptp->callednum, "");
     } else {
-	cinfo = PptpCtrlOutCall(linfo, 
+	PptpCtrlOutCall(&pptp->cinfo, &linfo, 
     	    &pptp->conf.self_addr, &pptp->conf.peer_addr.addr, port,
     	    PPTP_BEARCAP_ANY, PPTP_FRAMECAP_ANY,
     	    PPTP_CALL_MIN_BPS, PPTP_CALL_MAX_BPS,
     	    pptp->callednum, "");
     }
-    if (cinfo.cookie == NULL)
+    if (pptp->cinfo.cookie == NULL)
 	return(-1);
     pptp->self_addr = pptp->conf.self_addr;
     pptp->peer_addr = pptp->conf.peer_addr.addr;
     pptp->peer_port = port;
-    pptp->cinfo = cinfo;
     return(0);
 }
 
@@ -728,7 +726,7 @@ PptpResult(void *cookie, const char *errmsg, int frameType)
     		pptp->callingnum[0]=0;
     		pptp->callednum[0]=0;
 		pptp->peer_iface[0] = 0;
-		PhysDown(l, STR_CON_FAILED, "%s", errmsg);
+		PhysDown(l, STR_CON_FAILED, errmsg);
     	    }
     	    break;
 	case PHYS_STATE_UP:

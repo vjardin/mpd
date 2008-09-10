@@ -1578,7 +1578,7 @@ L2tpListen(Link l)
 	L2tpInfo	p = (L2tpInfo)l->info;
 	struct l2tp_server *s;
 	struct sockaddr_storage sa;
-	char buf[64];
+	char buf[48];
 	struct ghash_walk walk;
 
 	if (p->server)
@@ -1650,7 +1650,7 @@ L2tpUnListen(Link l)
 {
 	L2tpInfo	p = (L2tpInfo)l->info;
 	struct l2tp_server *s = p->server;
-	char buf[64];
+	char buf[48];
 
 	if (!s)
 	    return;
