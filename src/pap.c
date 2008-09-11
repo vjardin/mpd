@@ -114,10 +114,11 @@ PapSendRequest(Link l)
 void
 PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 {
-  Auth			const a = &l->lcp.auth;
-  PapInfo		const pap = &a->pap;
-  PapParams		const pp = &auth->params.pap;
+    Auth		const a = &l->lcp.auth;
+    PapInfo		const pap = &a->pap;
+    PapParams		const pp = &auth->params.pap;
     char		failMesg[64];
+    char		buf[16];
 
   switch (auth->code) {
     case PAP_REQUEST:
@@ -125,7 +126,6 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	char		*name_ptr, name[256];
 	char		*pass_ptr, pass[256];
 	int		name_len, pass_len;
-	char		buf[32];
 
 	/* Is this appropriate? */
 	if (a->peer_to_self != PROTO_PAP) {
@@ -181,7 +181,6 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
       {
 	/* Is this appropriate? */
 	if (a->self_to_peer != PROTO_PAP) {
-	    char	buf[32];
 	    Log(LG_AUTH, ("[%s] PAP: %s not expected",
 		l->name, PapCode(auth->code, buf, sizeof(buf))));
 	    break;
