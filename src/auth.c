@@ -437,7 +437,7 @@ AuthInput(Link l, int proto, Mbuf bp)
   int			len;
   struct fsmheader	fsmh;
   u_char		*pkt;
-  char			buf[32];
+  char			buf[16];
 
   /* Sanity check */
   if (l->lcp.phase != PHASE_AUTHENTICATE && l->lcp.phase != PHASE_NETWORK) {
