@@ -803,7 +803,7 @@ AuthAccountStart(Link l, int type)
 
     LinkUpdateStats(l);
     if (type == AUTH_ACCT_STOP) {
-	Log(LG_AUTH2, ("[%s] ACCT: Accounting data for user %s: %lu seconds, %llu octets in, %llu octets out",
+	Log(LG_AUTH2, ("[%s] ACCT: Accounting data for user '%s': %lu seconds, %llu octets in, %llu octets out",
     	    l->name, a->params.authname,
     	    (unsigned long) (time(NULL) - l->last_up),
     	    (unsigned long long)l->stats.recvOctets,

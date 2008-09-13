@@ -1281,31 +1281,32 @@ RadiusSendRequest(AuthData auth)
     switch (n) {
 
 	case RAD_ACCESS_ACCEPT:
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_ACCEPT for user %s", 
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_ACCEPT for user '%s'", 
     		auth->info.lnkname, auth->params.authname));
     	    auth->status = AUTH_STATUS_SUCCESS;
     	    break;
 
 	case RAD_ACCESS_CHALLENGE:
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_CHALLENGE for user %s", 
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_CHALLENGE for user '%s'", 
     		auth->info.lnkname, auth->params.authname));
     	    break;
 
 	case RAD_ACCESS_REJECT:
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_REJECT for user %s", 
+    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCESS_REJECT for user '%s'", 
     		auth->info.lnkname, auth->params.authname));
     	    auth->status = AUTH_STATUS_FAIL;
     	    break;
 
 	case RAD_ACCOUNTING_RESPONSE:
     	    Log(auth->acct_type != AUTH_ACCT_UPDATE ? LG_RADIUS : LG_RADIUS2,
-		("[%s] RADIUS: Rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
+		("[%s] RADIUS: Rec'd RAD_ACCOUNTING_RESPONSE for user '%s'", 
     		auth->info.lnkname, auth->params.authname));
     	    break;
 
 	case -1:
-    	    Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request failed: %s", 
-    		auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    	    Log(LG_RADIUS, ("[%s] RADIUS: rad_send_request for user '%s' failed: %s",
+    		auth->info.lnkname, auth->params.authname,
+		rad_strerror(auth->radius.handle)));
     	    return (RAD_NACK);
       
 	default:
