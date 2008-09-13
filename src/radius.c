@@ -162,7 +162,8 @@ RadiusAuthenticate(AuthData auth)
 int 
 RadiusAccount(AuthData auth) 
 {
-    Log(LG_RADIUS, ("[%s] RADIUS: Accounting user '%s' (Type: %d)", 
+    Log(auth->acct_type != AUTH_ACCT_UPDATE ? LG_RADIUS : LG_RADIUS2,
+	("[%s] RADIUS: Accounting user '%s' (Type: %d)",
 	auth->info.lnkname, auth->params.authname, auth->acct_type));
 
     if ((RadiusStart(auth, RAD_ACCOUNTING_REQUEST) == RAD_NACK) ||
@@ -1297,7 +1298,8 @@ RadiusSendRequest(AuthData auth)
     	    break;
 
 	case RAD_ACCOUNTING_RESPONSE:
-    	    Log(LG_RADIUS, ("[%s] RADIUS: Rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
+    	    Log(auth->acct_type != AUTH_ACCT_UPDATE ? LG_RADIUS : LG_RADIUS2,
+		("[%s] RADIUS: Rec'd RAD_ACCOUNTING_RESPONSE for user %s", 
     		auth->info.lnkname, auth->params.authname));
     	    break;
 
