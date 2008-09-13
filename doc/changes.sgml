@@ -35,6 +35,9 @@
 	  <item> Link peer-as-calling option default changed to disabled.
 		 PPTP and L2TP users are advised to check configurations!
 	  </item>
+	  <item> Some of RADIUS accounting update log messages moved from
+		 radius to radius2 log level.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
