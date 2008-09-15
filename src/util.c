@@ -513,8 +513,10 @@ OpenConfFile(const char *name, struct configfile **cf)
   struct configfiles **tmp;
 
 /* Build full pathname */
-
-  snprintf(pathname, sizeof(pathname), "%s/%s", gConfDirectory, name);
+    if (name[0] == '/')
+	snprintf(pathname, sizeof(pathname), "%s", name);
+    else
+	snprintf(pathname, sizeof(pathname), "%s/%s", gConfDirectory, name);
 
 /* Open file */
 
