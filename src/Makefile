@@ -56,6 +56,8 @@ LDADD+=		-lpcap
 DPADD+=		${LIBPCAP}
 LDADD+=		-lpam
 DPADD+=		${LIBPAM}
+LDADD+=		-lfetch
+DPADD+=		${LIBFETCH}
 
 LDADD+=		-L${PREFIX}/lib -lpdel -lssl -lexpat
 

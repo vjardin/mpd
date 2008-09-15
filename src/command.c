@@ -30,6 +30,7 @@
 #include "ngfunc.h"
 #include "ccp_mppc.h"
 #include "util.h"
+#include <fetch.h>
 
 /*
  * DEFINITIONS
@@ -271,7 +272,7 @@
 	HelpCommand, NULL, 0, NULL },
     { "link {name}",			"Choose link",
 	LinkCommand, NULL, 0, NULL },
-    { "load {label}",			"Read from config file",
+    { "load [{file}] {label}",		"Read from config file",
 	LoadCommand, NULL, 0, NULL },
     { "log [+/-{opt} ...]",		"Set/view log options",
 	LogCommand, NULL, 2, NULL },
@@ -793,13 +794,52 @@ QuitCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 LoadCommand(Context ctx, int ac, char *av[], void *arg)
 {
-    if (ac != 1)
+    char buf[1024];
+    char filename[128];
+    FILE *f = NULL;
+    FILE *rf = NULL;
+    int fetch = 0;
+
+    if (ac < 1 || ac > 2)
 	return(-1);
     else {
 	if (ctx->depth > 20)
     	    return(CMD_ERR_RECUR);
 	ctx->depth++;
-	ReadFile(gConfigFile, *av, DoCommand, ctx);
+
+	if (ac == 1)
+	    strcpy(filename, gConfigFile);
+	else {
+	    if (strncmp(av[0], "http://", 7) == 0 ||
+		strncmp(av[0], "https://", 8) == 0 ||
+		strncmp(av[0], "ftp://", 6) == 0) {
+		    fetch = 1;
+		strcpy(filename, "/tmp/mpd.conf.XXXXXX");
+		mkstemp(filename);
+		f = fopen(filename, "w");
+		if (f == NULL) {
+		    Printf("Can't create temporal file\r\n");
+		    goto out;
+		}
+		rf = fetchGetURL(av[0], "");
+		if (rf == NULL) {
+		    Printf("Can't fetch '%s'\r\n", av[0]);
+		    fclose(f);
+		    goto out;
+		}
+		Printf("Fetching '%s' ...", av[0]);
+		while (!feof(rf)) {
+		    int b = fread(buf, 1, sizeof(buf), rf);
+		    fwrite(buf, b, 1, f);
+		}
+		Printf(" done\r\n", av[0]);
+		fclose(f);
+	    } else
+		strlcpy(filename, av[0], sizeof(filename));
+	}
+	ReadFile(filename, av[ac - 1], DoCommand, ctx);
+out:	if (fetch)
+	    unlink(filename);
 	ctx->depth--;
     }
     return(0);
