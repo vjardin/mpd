@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Added 'drop' link action and 'set link action clear' command.
 	  </item>
+	  <item> Added global traffic filters support to reduce auth-reply size.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
