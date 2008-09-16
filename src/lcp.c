@@ -745,19 +745,23 @@ LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp)
  */
 
 static void
-LcpRecvIdent (Fsm fp, Mbuf bp)
+LcpRecvIdent(Fsm fp, Mbuf bp)
 {
-  Link	l = (Link)fp->arg;
-  int	len, clen;
+    Link	l = (Link)fp->arg;
+    int		len, clen;
+
+    if (bp == NULL)
+	return;
+
+    if (l->lcp.peer_ident[0] != 0)
+	strlcat(l->lcp.peer_ident, " ", sizeof(l->lcp.peer_ident));
   
-  if (l->lcp.peer_ident[0] != 0)
-    strlcat(l->lcp.peer_ident, " ", sizeof(l->lcp.peer_ident));
-  
-  len = strlen(l->lcp.peer_ident);
-  clen = sizeof(l->lcp.peer_ident) - len;
-  if (clen > (MBLEN(bp) + 1))
-	clen = MBLEN(bp) + 1;
-  strlcpy(l->lcp.peer_ident + len, (char *) MBDATA(bp), clen);
+    len = strlen(l->lcp.peer_ident);
+    clen = sizeof(l->lcp.peer_ident) - len - 1;
+    if (clen > MBLEN(bp))
+	clen = MBLEN(bp);
+    memcpy(l->lcp.peer_ident + len, (char *) MBDATAU(bp), clen);
+    l->lcp.peer_ident[len + clen] = 0;
 }
 
 /*
