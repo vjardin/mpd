@@ -2609,14 +2609,17 @@ fail:
 static void
 IfaceSetupLimits(Bund b)
 {
-#define	ACL_MAX_PROGLEN	4096
+#define	ACL_MAX_PROGLEN	65536
     union {
 	u_char			buf[NG_BPF_HOOKPROG_SIZE(ACL_MAX_PROGLEN)];
 	struct ng_bpf_hookprog	hprog;
-    }				hpu;
-    struct ng_bpf_hookprog	*const hp = &hpu.hprog;
+    }				*hpu;
+    struct ng_bpf_hookprog	*hp;
     struct ngm_connect  cn;
     int			i;
+    
+    hpu = Malloc(MB_IFACE, sizeof(*hpu));
+    hp = &hpu->hprog;
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 	char		path[NG_PATHSIZ];
@@ -2661,28 +2664,33 @@ IfaceSetupLimits(Bund b)
 		}
 		
 		stathook[0] = 0;
-	    	memset(&hpu, 0, sizeof(hpu));
+	    	memset(hpu, 0, sizeof(hpu));
 		/* Prepare filter */
 		if (strcasecmp(av[0], "all") == 0) {
 		    hp->bpf_prog_len = MATCH_PROG_LEN;
 		    memcpy(&hp->bpf_prog, &gMatchProg,
     		        MATCH_PROG_LEN * sizeof(*gMatchProg));
 		} else if (strncasecmp(av[0], "flt", 3) == 0) {
+		    struct acl  *f;
 		    int		flt;
 		    
 		    flt = atoi(av[0] + 3);
-		    if (flt <= 0 || flt > ACL_FILTERS || b->params.acl_filters[flt - 1] == NULL) {
-			Log(LG_ERR, ("[%s] IFACE: incorrect filter: '%s'",
+		    if (flt <= 0 || flt > ACL_FILTERS) {
+			Log(LG_ERR, ("[%s] IFACE: incorrect filter number: '%s'",
+    			    b->name, av[0]));
+		    } else if ((f = b->params.acl_filters[flt - 1]) == NULL &&
+			(f = acl_filters[flt - 1]) == NULL) {
+			Log(LG_ERR, ("[%s] IFACE: Undefined filter: '%s'",
     			    b->name, av[0]));
 		    } else {
 			struct bpf_program pr;
-		    	char		buf[16384], sbuf[256];
+		    	char		*buf, sbuf[256];
 		    	int		bufbraces;
-		    	struct acl	*f;
-			    
+
+#define ACL_BUF_SIZE	256*1024
+			buf = Malloc(MB_IFACE, ACL_BUF_SIZE);
 			buf[0] = 0;
 			bufbraces = 0;
-			f = b->params.acl_filters[flt - 1];
 			while (f) {
 			    char	*b1, *b2;
 			    strlcpy(sbuf, f->rule, sizeof(sbuf));
@@ -2690,19 +2698,19 @@ IfaceSetupLimits(Bund b)
 			    b1 = strsep(&b2, " ");
 			    if (b2 != NULL) {
 			        if (strcasecmp(b1, "match") == 0) {
-			    	    strlcat(buf, "( ", sizeof(buf));
-				    strlcat(buf, b2, sizeof(buf));
-				    strlcat(buf, " ) ", sizeof(buf));
+			    	    strlcat(buf, "( ", ACL_BUF_SIZE);
+				    strlcat(buf, b2, ACL_BUF_SIZE);
+				    strlcat(buf, " ) ", ACL_BUF_SIZE);
 				    if (f->next) {
-				        strlcat(buf, "|| ( ", sizeof(buf));
+				        strlcat(buf, "|| ( ", ACL_BUF_SIZE);
 				        bufbraces++;
 				    }
 				} else if (strcasecmp(b1, "nomatch") == 0) {
-				    strlcat(buf, "( not ( ", sizeof(buf));
-				    strlcat(buf, b2, sizeof(buf));
-				    strlcat(buf, " ) ) ", sizeof(buf));
+				    strlcat(buf, "( not ( ", ACL_BUF_SIZE);
+				    strlcat(buf, b2, ACL_BUF_SIZE);
+				    strlcat(buf, " ) ) ", ACL_BUF_SIZE);
 				    if (f->next) {
-				        strlcat(buf, "&& ( ", sizeof(buf));
+				        strlcat(buf, "&& ( ", ACL_BUF_SIZE);
 				        bufbraces++;
 				    }
 				} else {
@@ -2713,10 +2721,10 @@ IfaceSetupLimits(Bund b)
 			    f = f->next;
 			}
 			for (i = 0; i < bufbraces; i++)
-			    strlcat(buf, ") ", sizeof(buf));
+			    strlcat(buf, ") ", ACL_BUF_SIZE);
 			Log(LG_IFACE2, ("[%s] IFACE: flt%d: '%s'",
         		    b->name, flt, buf));
-				
+			
 			if (pcap_compile_nopcap((u_int)-1, DLT_RAW, &pr, buf, 1, 0xffffff00)) {
 			    Log(LG_ERR, ("[%s] IFACE: filter '%s' compilation error",
     			        b->name, av[0]));
@@ -2738,6 +2746,7 @@ IfaceSetupLimits(Bund b)
     			        pr.bf_len * sizeof(struct bpf_insn));
 			    pcap_freecode(&pr);
 			}
+			Freee(buf);
 		    }
 		} else {
 		    Log(LG_ERR, ("[%s] IFACE: incorrect filter: '%s'",
@@ -2851,7 +2860,7 @@ IfaceSetupLimits(Bund b)
 		    if (ac > p) {
 			if (strcasecmp(av[p], "pass") == 0) {
 			    union {
-		    		u_char	buf[NG_BPF_HOOKPROG_SIZE(ACL_MAX_PROGLEN)];
+		    		u_char	buf[NG_BPF_HOOKPROG_SIZE(MATCH_PROG_LEN)];
 		    		struct ng_bpf_hookprog	hprog;
 			    } hpu1;
 			    struct ng_bpf_hookprog	*const hp1 = &hpu1.hprog;
@@ -2954,7 +2963,7 @@ IfaceSetupLimits(Bund b)
 	    /* Connect left hooks to output */
 	    for (i = 0; i < 2; i++) {
 		if (inhook[i][0] != 0) {
-		    memset(&hpu, 0, sizeof(hpu));
+		    memset(hpu, 0, sizeof(*hpu));
 		    strcpy(hp->thisHook, inhook[i]);
 		    hp->bpf_prog_len = MATCH_PROG_LEN;
 		    memcpy(&hp->bpf_prog, &gMatchProg,

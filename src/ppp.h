@@ -199,6 +199,8 @@
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 
+  extern struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
+
   extern struct pevent_ctx	*gPeventCtx;
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
 

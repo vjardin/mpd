@@ -100,6 +100,8 @@
   int			gChildren = 0;		/* Current number of children links */
   int			gMaxChildren = 10000;	/* Maximal number of children links */
 
+  struct acl		*acl_filters[ACL_FILTERS]; /* mpd's global internal bpf filters */
+
   struct globalconf	gGlobalConf;
 
   pthread_mutex_t	gGiantMutex;

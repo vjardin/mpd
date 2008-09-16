@@ -59,7 +59,8 @@
     SET_PPTPLIMIT,
     SET_L2TPTO,
     SET_L2TPLIMIT,
-    SET_MAX_CHILDREN
+    SET_MAX_CHILDREN,
+    SET_FILTER
   };
 
 
@@ -114,6 +115,8 @@
        	GlobalSetCommand, NULL, 2, (void *) SET_PPTPLIMIT },
     { "max-children {num}",		"Max number of children",
 	GlobalSetCommand, NULL, 2, (void *) SET_MAX_CHILDREN },
+    { "filter {num} add|clear [\"{flt}\"]",	"Global traffic filters management",
+	GlobalSetCommand, NULL, 2, (void *) SET_FILTER },
     { NULL },
   };
 
@@ -588,6 +591,55 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    gMaxChildren = val;
       break;
 
+    case SET_FILTER:
+	if (ac == 4 && strcasecmp(av[1], "add") == 0) {
+	    struct acl	**acls, *acls1;
+	    int		i;
+	    
+	    i = atol(av[0]);
+	    if (i <= 0 || i > ACL_FILTERS)
+		Error("Wrong filter number\r\n");
+	    acls = &(acl_filters[i - 1]);
+	    
+	    i = atol(av[2]);
+	    if (i <= 0)
+	        Error("Wrong acl number: %i\r\n", i);
+
+	    acls1 = Malloc(MB_AUTH, sizeof(struct acl));
+	    acls1->number = i;
+	    acls1->real_number = 0;
+	    strlcpy(acls1->rule, av[3], sizeof(acls1->rule));
+	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
+	      acls = &((*acls)->next);
+
+	    if (*acls == NULL) {
+	        acls1->next = NULL;
+	    } else if ((*acls)->number == acls1->number) {
+		Freee(acls1);
+	        Error("Duplicate acl\r\n");
+	    } else {
+	        acls1->next = *acls;
+	    }
+	    *acls = acls1;
+
+	} else if (ac == 2 && strcasecmp(av[1], "clear") == 0) {
+	    struct acl          *acls, *acls1;
+	    int i;
+	    
+	    i = atoi(av[0]);
+	    if (i <= 0 || i > ACL_FILTERS)
+		Error("Wrong filter number\r\n");
+	    	    
+	    acls = acl_filters[i - 1];
+	    while (acls != NULL) {
+	        acls1 = acls->next;
+	        Freee(acls);
+	        acls = acls1;
+	    };
+	} else
+	    return(-1);
+	break;
+	
     default:
       return(-1);
   }
@@ -746,18 +798,29 @@ ShowEvents(Context ctx, int ac, char *av[], void *arg)
 static int
 ShowGlobal(Context ctx, int ac, char *av[], void *arg)
 {
-  Printf("Global settings:\r\n");
-  Printf("	startrule	: %d\r\n", rule_pool_start);
-  Printf("	startpipe	: %d\r\n", pipe_pool_start);
-  Printf("	startqueue	: %d\r\n", queue_pool_start);
-  Printf("	starttable	: %d\r\n", table_pool_start);
-  Printf("	l2tptimeout	: %d\r\n", gL2TPto);
-  Printf("	l2tplimit	: %d\r\n", gL2TPtunlimit);
-  Printf("	pptptimeout	: %d\r\n", gPPTPto);
-  Printf("	pptplimit	: %d\r\n", gPPTPtunlimit);
-  Printf("	max-children	: %d\r\n", gMaxChildren);
-  Printf("Global options:\r\n");
-  OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
+    struct acl  *a;
+    int	k;
+
+    Printf("Global settings:\r\n");
+    Printf("	startrule	: %d\r\n", rule_pool_start);
+    Printf("	startpipe	: %d\r\n", pipe_pool_start);
+    Printf("	startqueue	: %d\r\n", queue_pool_start);
+    Printf("	starttable	: %d\r\n", table_pool_start);
+    Printf("	l2tptimeout	: %d\r\n", gL2TPto);
+    Printf("	l2tplimit	: %d\r\n", gL2TPtunlimit);
+    Printf("	pptptimeout	: %d\r\n", gPPTPto);
+    Printf("	pptplimit	: %d\r\n", gPPTPtunlimit);
+    Printf("	max-children	: %d\r\n", gMaxChildren);
+    Printf("Global options:\r\n");
+    OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
+    Printf("Global traffic filters:\r\n");
+    for (k = 0; k < ACL_FILTERS; k++) {
+        a = acl_filters[k];
+        while (a) {
+    	    Printf("\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
+    	    a = a->next;
+	}
+    }
   return 0;
 }
 
