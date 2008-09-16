@@ -6,6 +6,17 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.2:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fix possible crash on nonterminated ident string receive.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 5.1:
     <itemize>
 	<item> New features:
