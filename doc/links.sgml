@@ -13,12 +13,14 @@
 <descrip>
 
 <tag><tt>set link action (bundle|forward) <em>name</em> [ <em>regexp</em> ]</tt></tag><p>
+<tag><tt>set link action drop [ <em>regexp</em> ]</tt></tag><p>
 
 List of such command describes how incoming calls should be processed.
 "bundle" means that connection should be processed locally with
 specified bundle. "forward" means that connection should be forwarded
-using repeater to the specified link. Optional "regexp" parameneter
-defines regular expression which will be checked against peer auth name.
+using repeater to the specified link. "drop" means that connection
+should be dropped. Optional "regexp" parameneter defines regular
+expression which will be checked against peer auth name.
 
 Actions from list are checked in order of definition until regexp
 match will be found. Actions processed at three points. First time
@@ -27,6 +29,10 @@ after receiving peer's auth during LCP negotiation and third time
 when link is authenticated. As during first check there is no peer
 auth name known yet, check will be skipped if there are more then 
 one action specified for link or if action has regexp specified.
+
+<tag><tt>set link action clear</tt></tag><p>
+
+Clears link actions list.
 
 <tag><tt>set link latency <em>microseconds</em></tt></tag><p>
 <tag><tt>set link bandwidth <em>bits-per-second</em></tt></tag><p>

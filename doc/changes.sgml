@@ -8,6 +8,12 @@
   <p>
     Changes since version 5.2:
     <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added 'drop' link action and 'set link action clear' command.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fix possible crash on nonterminated ident string receive.
