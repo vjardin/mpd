@@ -35,6 +35,8 @@
   enum {
     SET_BUNDLE,
     SET_FORWARD,
+    SET_DROP,
+    SET_CLEAR,
     SET_BANDWIDTH,
     SET_LATENCY,
     SET_ACCMAP,
@@ -74,6 +76,10 @@
 	LinkSetCommand, NULL, 2, (void *) SET_BUNDLE },
     { "forward {link} [{regex}]",	"Forward incomings",
 	LinkSetCommand, NULL, 2, (void *) SET_FORWARD },
+    { "drop [{regex}]",			"drop incomings",
+	LinkSetCommand, NULL, 2, (void *) SET_DROP },
+    { "clear",				"Clear actions",
+	LinkSetCommand, NULL, 2, (void *) SET_CLEAR },
     { NULL },
   };
 
@@ -962,7 +968,7 @@ LinkNgDataEvent(int type, void *cookie)
  */
 
 Link
-LinkFind(char *name)
+LinkFind(const char *name)
 {
     int		k;
 
@@ -1135,7 +1141,7 @@ RecordLinkUpDownReason(Bund b, Link l, int up, const char *key, const char *fmt,
     }
 }
 
-char *
+const char *
 LinkMatchAction(Link l, int stage, char *login)
 {
     struct linkaction *a;
@@ -1146,11 +1152,17 @@ LinkMatchAction(Link l, int stage, char *login)
 	return (NULL);
     }
     if (stage == 1) {
-	if (SLIST_NEXT(a, next) == NULL &&
-	  a->action == LINK_ACTION_FORWARD && !a->regex[0]) {
-	    Log(LG_LINK, ("[%s] Link: Matched action 'forward \"%s\"'",
-		l->name, a->arg));
-	    return (a->arg);
+	if (SLIST_NEXT(a, next) == NULL && a->regex[0] == 0) {
+	    if (a->action == LINK_ACTION_FORWARD) {
+		    Log(LG_LINK, ("[%s] Link: Matched action 'forward \"%s\"'",
+			l->name, a->arg));
+		    return (a->arg);
+	    }
+	    if (a->action == LINK_ACTION_DROP) {
+		    Log(LG_LINK, ("[%s] Link: Matched action 'drop'",
+			l->name));
+		    return ("##DROP##");
+	    }
 	}
 	return (NULL);
     }
@@ -1159,6 +1171,11 @@ LinkMatchAction(Link l, int stage, char *login)
 	    break;
     }
     if (a) {
+	if (a->action == LINK_ACTION_DROP) {
+	    Log(LG_LINK, ("[%s] Link: Matched action 'drop'",
+		l->name));
+	    return ("##DROP##");
+	}
 	if ((stage == 2 && a->action == LINK_ACTION_FORWARD) ||
 	    (stage == 3 && a->action == LINK_ACTION_BUNDLE)) {
 	    Log(LG_LINK, ("[%s] Link: Matched action '%s \"%s\" \"%s\"'",
@@ -1209,7 +1226,8 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
     Printf("Link incoming actions:\r\n");
     SLIST_FOREACH(a, &l->actions, next) {
 	Printf("\t%s\t%s\t%s\r\n", 
-	    (a->action == LINK_ACTION_FORWARD)?"Forward":"Bundle",
+	    (a->action == LINK_ACTION_FORWARD)?"Forward":
+	    (a->action == LINK_ACTION_BUNDLE)?"Bundle":"Drop",
 	    a->arg, a->regex);
     }
     Printf("Link level options:\r\n");
@@ -1306,9 +1324,6 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     char	*nav[ac];
     const char	*av2[] = { "chap-md5", "chap-msv1", "chap-msv2" };
 
-    if (ac == 0)
-	return(-1);
-
     /* make "chap" as an alias for all chap-variants, this should keep BC */
     switch ((intptr_t)arg) {
 	case SET_ACCEPT:
@@ -1334,6 +1349,9 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     switch ((intptr_t)arg) {
 	case SET_BANDWIDTH:
+	    if (ac != 1)
+		return(-1);
+
     	    val = atoi(*av);
     	    if (val <= 0)
 		Error("[%s] Bandwidth must be positive", l->name);
@@ -1346,6 +1364,9 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 
 	case SET_LATENCY:
+	    if (ac != 1)
+		return(-1);
+
     	    val = atoi(*av);
     	    if (val < 0)
 		Error("[%s] Latency must be not negative", l->name);
@@ -1359,21 +1380,33 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 
 	case SET_BUNDLE:
 	case SET_FORWARD:
+	case SET_DROP:
 	    {
 		struct linkaction	*n, *a;
 	    
-		if (ac < 1 || ac > 2)
+		if ((ac < 1 && (intptr_t)arg != SET_DROP) || ac > 2)
 		    return(-1);
 
 		n = Malloc(MB_LINK, sizeof(struct linkaction));
-		n->action = ((intptr_t)arg == SET_BUNDLE)?
-		    LINK_ACTION_BUNDLE:LINK_ACTION_FORWARD;
-		strlcpy(n->arg, av[0], sizeof(n->arg));
-		if (ac == 2 && av[1][0]) {
-		    strlcpy(n->regex, av[1], sizeof(n->regex));
-		    if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
-			Freee(n);
-			Error("regexp \"%s\" compilation error", av[0]);
+		if ((intptr_t)arg != SET_DROP) {
+		    n->action = ((intptr_t)arg == SET_BUNDLE)?
+		        LINK_ACTION_BUNDLE:LINK_ACTION_FORWARD;
+		    strlcpy(n->arg, av[0], sizeof(n->arg));
+		    if (ac == 2 && av[1][0]) {
+		        strlcpy(n->regex, av[1], sizeof(n->regex));
+		        if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
+		    	    Freee(n);
+			    Error("regexp \"%s\" compilation error", av[0]);
+			}
+		    }
+		} else {
+		    n->action = LINK_ACTION_DROP;
+		    if (ac == 1 && av[0][0]) {
+		        strlcpy(n->regex, av[0], sizeof(n->regex));
+		        if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
+		    	    Freee(n);
+		    	    Error("regexp \"%s\" compilation error", av[0]);
+			}
 		    }
 		}
 	    
@@ -1388,8 +1421,27 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    }
     	    break;
 
+	case SET_CLEAR:
+	    {
+		struct linkaction	*a;
+	    
+		if (ac != 0)
+		    return(-1);
+
+	        while ((a = SLIST_FIRST(&l->actions)) != NULL) {
+	    	    SLIST_REMOVE_HEAD(&l->actions, next);
+    		    if (a->regex[0])
+			regfree(&a->regexp);
+		    Freee(a);
+		}
+	    }
+    	    break;
+
 	case SET_MRU:
 	case SET_MTU:
+	    if (ac != 1)
+		return(-1);
+
     	    val = atoi(*av);
     	    name = ((intptr_t)arg == SET_MTU) ? "MTU" : "MRU";
     	    if (val < LCP_MIN_MRU)
@@ -1404,6 +1456,9 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 
 	case SET_MRRU:
+	    if (ac != 1)
+		return(-1);
+
     	    val = atoi(*av);
     	    if (val < MP_MIN_MRRU)
 		Error("min MRRU is %d", MP_MIN_MRRU);
@@ -1414,6 +1469,9 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 
 	case SET_FSM_RETRY:
+	    if (ac != 1)
+		return(-1);
+
     	    val = atoi(*av);
     	    if (val < 1 || val > 10) {
 		Error("incorrect fsm-timeout value %d", val);
@@ -1423,10 +1481,16 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 
 	case SET_MAX_RETRY:
+	    if (ac != 1)
+		return(-1);
+
     	    l->conf.max_redial = atoi(*av);
     	    break;
 
 	case SET_MAX_CHILDREN:
+	    if (ac != 1)
+		return(-1);
+
 	    if (!l->tmpl)
 		Error("applicable only to templates");
 	    val = atoi(*av);
@@ -1436,6 +1500,9 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    break;
 
 	case SET_ACCMAP:
+	    if (ac != 1)
+		return(-1);
+
     	    sscanf(*av, "%x", &val);
     	    l->conf.accmap = val;
     	    break;

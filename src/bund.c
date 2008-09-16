@@ -230,9 +230,18 @@ BundJoin(Link l)
 	    }
 	}
 	if (!b) {
-	    char	*bundt;
-	    bundt = LinkMatchAction(l, 3, l->lcp.auth.params.authname);
+	    const char	*bundt;
+	    if (strncmp(l->lcp.auth.params.action, "bundle ", 7) == 0) {
+		bundt = l->lcp.auth.params.action + 7;
+	    } else {
+		bundt = LinkMatchAction(l, 3, l->lcp.auth.params.authname);
+	    }
 	    if (bundt) {
+		if (strcmp(bundt,"##DROP##") == 0) {
+		    /* Action told we must drop this connection */
+    		    Log(LG_BUND, ("[%s] Drop link", l->name));
+		    return (0);
+		}
 		if ((bt = BundFind(bundt))) {
 		    if (bt->tmpl) {
     			Log(LG_BUND, ("[%s] Creating new bundle using template \"%s\".", l->name, bundt));
@@ -1437,7 +1446,7 @@ BundShowLinks(Context ctx, Bund sb)
  */
 
 Bund
-BundFind(char *name)
+BundFind(const char *name)
 {
   int	k;
 

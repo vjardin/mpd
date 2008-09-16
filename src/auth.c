@@ -1043,15 +1043,24 @@ void
 AuthAsyncStart(Link l, AuthData auth)
 {
     Auth	const a = &l->lcp.auth;
-    char	*rept;
+    const char	*rept;
     
     /* Check link action */
     rept = LinkMatchAction(l, 2, auth->params.authname);
     if (rept) {
+	if (strcmp(rept,"##DROP##") == 0) {
+	    /* Action told we must drop this connection */
+	    Log(LG_AUTH, ("[%s] Drop connection", l->name));
+	    PhysClose(l);
+	    AuthDataDestroy(auth);
+	    return;
+	}
+	
 	/* Action told we must forward this connection */
 	if (RepCreate(l, rept)) {
 	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, rept));
 	    PhysClose(l);
+	    AuthDataDestroy(auth);
 	    return;
 	}
 	/* Create repeater */
@@ -1061,6 +1070,7 @@ AuthAsyncStart(Link l, AuthData auth)
 	/* Kill the LCP */
 	LcpDown(l);
 	LcpClose(l);
+	AuthDataDestroy(auth);
 	return;
     }
 
@@ -1219,7 +1229,31 @@ AuthAsyncFinish(void *arg, int was_canceled)
     /* Replace modified data */
     authparamsDestroy(&l->lcp.auth.params);
     authparamsMove(&auth->params,&l->lcp.auth.params);
-  
+
+    if (strcmp(l->lcp.auth.params.action, "drop") == 0) {
+	auth->status = AUTH_STATUS_FAIL;
+	auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
+    } else if (strncmp(l->lcp.auth.params.action, "forward ", 8) == 0) {
+	const char  *rept = l->lcp.auth.params.action + 8;
+
+	/* Action told we must forward this connection */
+	if (RepCreate(l, rept)) {
+	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, rept));
+	    PhysClose(l);
+	    AuthDataDestroy(auth);
+	    return;
+	}
+	/* Create repeater */
+	RepIncoming(l);
+	/* Reconnect link netgraph hook to repeater */
+	LinkNgToRep(l);
+	/* Kill the LCP */
+	LcpDown(l);
+	LcpClose(l);
+	AuthDataDestroy(auth);
+	return;
+    }
+
     auth->finish(l, auth);
 }
 
@@ -2185,6 +2219,9 @@ AuthExternal(AuthData auth)
 		Freee(auth->mschap_error);
 	/* "E=%d R=0 M=%s" */
 	auth->mschap_error = Mstrdup(MB_AUTH, val);
+
+    } else if (strcmp(attr, "MPD_ACTION") == 0) {
+	strlcpy(auth->params.action, val, sizeof(auth->params.action));
 
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;

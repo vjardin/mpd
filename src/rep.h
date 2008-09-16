@@ -42,7 +42,7 @@
 
   extern int	RepStat(Context ctx, int ac, char *av[], void *arg);
   extern int	RepCommand(Context ctx, int ac, char *av[], void *arg);
-  extern int	RepCreate(Link in, char *out);
+  extern int	RepCreate(Link in, const char *out);
   extern void	RepShutdown(Rep r);
 
   extern void	RepIncoming(Link l);

@@ -186,10 +186,16 @@ PhysDown(Link l, const char *reason, const char *details)
 void
 PhysIncoming(Link l)
 {
-    char	*rept;
+    const char	*rept;
     
     rept = LinkMatchAction(l, 1, NULL);
     if (rept) {
+	if (strcmp(rept,"##DROP##") == 0) {
+	    /* Action told we must drop this connection */
+	    Log(LG_PHYS, ("[%s] Drop connection", l->name));
+	    PhysClose(l);
+	    return;
+	}
 	if (RepCreate(l, rept)) {
 	    Log(LG_ERR, ("[%s] Repeater to \"%s\" creation error", l->name, rept));
 	    PhysClose(l);

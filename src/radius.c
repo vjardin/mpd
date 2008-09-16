@@ -1814,6 +1814,14 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    sizeof(auth->params.std_acct[1]));
 		free(tmpval);
 		break;
+	    } else if (res == RAD_MPD_ACTION) {
+		tmpval = rad_cvt_string(data, len);
+	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_ACTION: %s",
+	    	    auth->info.lnkname, tmpval));
+		strlcpy(auth->params.action, tmpval,
+		    sizeof(auth->params.action));
+		free(tmpval);
+		break;
 	    } else {
 	      Log(LG_RADIUS2, ("[%s] RADIUS: Dropping MPD vendor specific attribute: %d",
 		auth->info.lnkname, res));

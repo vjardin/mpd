@@ -42,7 +42,8 @@
 
   enum {
     LINK_ACTION_FORWARD,
-    LINK_ACTION_BUNDLE
+    LINK_ACTION_BUNDLE,
+    LINK_ACTION_DROP
   };
 
   struct linkaction {
@@ -191,13 +192,13 @@
   extern int	LinkStat(Context ctx, int ac, char *av[], void *arg);
   extern void	LinkUpdateStats(Link l);
   extern void	LinkResetStats(Link l);
-  extern Link	LinkFind(char *name);
+  extern Link	LinkFind(const char *name);
   extern int	LinkCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	SessionCommand(Context ctx, int ac, char *av[], void *arg);
   extern void	RecordLinkUpDownReason(Bund b, Link l, int up, const char *fmt,
 			  const char *arg, ...);
 
-  extern char	*LinkMatchAction(Link l, int stage, char *login);
+  extern const char	*LinkMatchAction(Link l, int stage, char *login);
 
 #endif
 

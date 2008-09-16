@@ -185,7 +185,7 @@
   extern int	BundCreate(Context ctx, int ac, char *av[], void *arg);
   extern int	BundDestroy(Context ctx, int ac, char *av[], void *arg);
   extern Bund	BundInst(Bund bt, char *name, int tmpl, int stay);
-  extern Bund	BundFind(char *name);
+  extern Bund	BundFind(const char *name);
   extern void	BundShutdown(Bund b);
   extern void   BundUpdateStats(Bund b);
   extern void	BundUpdateStatsTimer(void *cookie);

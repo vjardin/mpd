@@ -114,6 +114,8 @@
     u_char		*class;		/* copy of the class attribute, needed for accounting */
     int			class_len;
 
+    char		action[8 + LINK_MAX_NAME];
+
     struct acl		*acl_rule;	/* ipfw rules */
     struct acl		*acl_pipe;	/* ipfw pipes */
     struct acl		*acl_queue;	/* ipfw queues */

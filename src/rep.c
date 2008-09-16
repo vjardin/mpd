@@ -245,13 +245,13 @@ RepCommand(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
- * RepCreateCmd()
+ * RepCreate()
  *
  * Create a new repeater.
  */
 
 int
-RepCreate(Link in, char *out)
+RepCreate(Link in, const char *out)
 {
     Rep		r;
     Link	l;
