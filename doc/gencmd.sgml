@@ -94,13 +94,13 @@ session with multilink session ID <tt><em>msesid</em></tt>.
 This command changes the currenly active link to the link holding
 session with session ID <tt><em>sesid</em></tt>.
 
-<tag><tt>load <em>configuration</em></tt>
+<tag><tt>load [ <em>file</em> ] <em>label</em></tt>
 </tag>
 
-This command causes mpd to read the entry for
-<tt><em>configuration</em></tt> out of <tt>mpd.conf</tt> and
-execute the corresponding commands, just
-as if <tt><em>configuration</em></tt> had been specified on the command line.
+This command causes mpd to read the entry for <tt><em>label</em></tt>
+out of <tt>mpd.conf</tt> or other file if specified and
+execute the corresponding commands. <em>file</em> can be relative
+or absolute file path or http/https/ftp URL.
 
 <tag><tt>show [ <em>item</em> ] </tt>
 </tag>

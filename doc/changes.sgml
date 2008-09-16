@@ -14,6 +14,8 @@
 	  </item>
 	  <item> Added global traffic filters support to reduce auth-reply size.
 	  </item>
+	  <item> Added ability to include other local or remote config files.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
