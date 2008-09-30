@@ -189,10 +189,13 @@ The default is disable.
 
 <tag><tt>netflow-in</tt></tag><P>
 <tag><tt>netflow-out</tt></tag>
+<tag><tt>netflow-once</tt></tag>
 If enabled, the bundle will participate in
 NetFlow generation. See <ref id="netflow" name="the NetFlow chapter">
 for more information. The netflow-out option is like netflow-in, but 
 generates NetFlow data for outgoing packets instead of incoming.
+If netflow-once enabled - packet will be accounted only once while
+in kernel.
 
 The default is disable.
 

@@ -18,6 +18,9 @@
 	  </item>
 	  <item> Added ability to include other local or remote config files.
 	  </item>
+	  <item> Added support for new ng_netflow node features to improve
+		 bidirectional accounting.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:

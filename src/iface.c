@@ -94,9 +94,9 @@
   static void	IfaceNgIpv6Shutdown(Bund b);
 
 #ifdef USE_NG_NETFLOW
-  static int	IfaceInitNetflow(Bund b, char *path, char *hook, char out);
-  static int	IfaceSetupNetflow(Bund b, char out);
-  static void	IfaceShutdownNetflow(Bund b, char out);
+  static int	IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out);
+  static int	IfaceSetupNetflow(Bund b, char in, char out);
+  static void	IfaceShutdownNetflow(Bund b, char in, char out);
 #endif
 
 #ifdef USE_NG_IPACCT
@@ -171,6 +171,9 @@
     { 0,	IFACE_CONF_NAT,			"nat"		},
     { 0,	IFACE_CONF_NETFLOW_IN,		"netflow-in"	},
     { 0,	IFACE_CONF_NETFLOW_OUT,		"netflow-out"	},
+#ifdef NG_NETFLOW_CONF_ONCE
+    { 0,	IFACE_CONF_NETFLOW_ONCE,	"netflow-once"	},
+#endif
     { 0,	IFACE_CONF_IPACCT,		"ipacct"	},
     { 0,	0,				NULL		},
   };
@@ -1837,18 +1840,33 @@ IfaceNgIpInit(Bund b, int ready)
 #endif	/* USE_NG_IPACCT */
 
 #ifdef USE_NG_NETFLOW
+#ifdef NG_NETFLOW_CONF_INGRESS
+	/* Connect a netflow node if configured */
+	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN) ||
+	    Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)) {
+	    if (IfaceInitNetflow(b, path, hook, 
+		Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)?1:0,
+		Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)?1:0))
+		goto fail;
+	    if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN))
+		b->iface.nfin_up = 1;
+	    if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT))
+		b->iface.nfout_up = 1;
+	}
+#else	/* NG_NETFLOW_CONF_INGRESS */
 	/* Connect a netflow node if configured */
 	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)) {
-	    if (IfaceInitNetflow(b, path, hook, 0))
+	    if (IfaceInitNetflow(b, path, hook, 1, 0))
 		goto fail;
 	    b->iface.nfin_up = 1;
 	}
 
 	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)) {
-	    if (IfaceInitNetflow(b, path, hook, 1))
+	    if (IfaceInitNetflow(b, path, hook, 0, 1))
 		goto fail;
 	    b->iface.nfout_up = 1;
 	}
+#endif	/* NG_NETFLOW_CONF_INGRESS */
 #endif	/* USE_NG_NETFLOW */
 
     }
@@ -1875,11 +1893,16 @@ IfaceNgIpInit(Bund b, int ready)
 
     if (ready) {
 #ifdef USE_NG_NETFLOW
+#ifdef NG_NETFLOW_CONF_INGRESS
+	if (b->iface.nfin_up || b->iface.nfout_up)
+	    IfaceSetupNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+#else /* NG_NETFLOW_CONF_INGRESS */
 	if (b->iface.nfin_up)
-	    IfaceSetupNetflow(b, 0);
+	    IfaceSetupNetflow(b, 1, 0);
 
 	if (b->iface.nfout_up)
-	    IfaceSetupNetflow(b, 1);
+	    IfaceSetupNetflow(b, 0, 1);
+#endif /* NG_NETFLOW_CONF_INGRESS */
 #endif /* USE_NG_NETFLOW */
     }
 
@@ -1914,12 +1937,19 @@ IfaceNgIpShutdown(Bund b)
 	IfaceShutdownTee(b, 0);
     b->iface.tee_up = 0;
 #ifdef USE_NG_NETFLOW
+#ifdef NG_NETFLOW_CONF_INGRESS
+    if (b->iface.nfin_up || b->iface.nfout_up)
+	IfaceShutdownNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+    b->iface.nfin_up = 0;
+    b->iface.nfout_up = 0;
+#else /* NG_NETFLOW_CONF_INGRESS */
     if (b->iface.nfin_up)
-	IfaceShutdownNetflow(b, 0);
+	IfaceShutdownNetflow(b, 1, 0);
     b->iface.nfin_up = 0;
     if (b->iface.nfout_up)
-	IfaceShutdownNetflow(b, 1);
+	IfaceShutdownNetflow(b, 0, 1);
     b->iface.nfout_up = 0;
+#endif /* NG_NETFLOW_CONF_INGRESS */
 #endif
 #ifdef USE_NG_IPACCT
     if (b->iface.ipacct_up)
@@ -2258,9 +2288,16 @@ IfaceShutdownIpacct(Bund b)
 
 #ifdef USE_NG_NETFLOW
 static int
-IfaceInitNetflow(Bund b, char *path, char *hook, char out)
+IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out)
 {
     struct ngm_connect	cn;
+    int nif;
+
+#ifdef NG_NETFLOW_CONF_INGRESS
+    nif = gNetflowIface + b->id;
+#else
+    nif = gNetflowIface + b->id*2 + out;
+#endif
 
     Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow (%s)", b->name, out?"out":"in"));
   
@@ -2273,13 +2310,17 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
     /* Connect ng_netflow(4) node to the ng_bpf(4)/ng_tee(4) node. */
     strcpy(cn.ourhook, hook);
     snprintf(cn.path, sizeof(cn.path), "[%x]:", gNetflowNodeID);
+#ifndef NG_NETFLOW_CONF_INGRESS
     if (out) {
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface + b->id*2 + out);
+	    nif);
     } else {
+#endif
 	snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface + b->id*2 + out);
+	    nif);
+#ifndef NG_NETFLOW_CONF_INGRESS
     }
+#endif
     if (NgSendMsg(gLinksCsock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	sizeof(cn)) < 0) {
       Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
@@ -2288,26 +2329,38 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char out)
     }
     strlcat(path, ".", NG_PATHSIZ);
     strlcat(path, hook, NG_PATHSIZ);
+#ifndef NG_NETFLOW_CONF_INGRESS
     if (out) {
-	snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface + b->id*2 + out);
+	snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA, nif);
     } else {
-	snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface + b->id*2 + out);
+#endif
+	snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_OUT, nif);
+#ifndef NG_NETFLOW_CONF_INGRESS
     }
+#endif
     return (0);
 }
 
 static int
-IfaceSetupNetflow(Bund b, char out)
+IfaceSetupNetflow(Bund b, char in, char out)
 {
     char path[NG_PATHSIZ];
     struct ng_netflow_setdlt	 nf_setdlt;
     struct ng_netflow_setifindex nf_setidx;
+#ifdef NG_NETFLOW_CONF_INGRESS
+    struct ng_netflow_setconfig  nf_setconf;
+#endif
+    int nif;
+
+#ifdef NG_NETFLOW_CONF_INGRESS
+    nif = gNetflowIface + b->id;
+#else
+    nif = gNetflowIface + b->id*2 + out;
+#endif
     
     /* Configure data link type and interface index. */
     snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
-    nf_setdlt.iface = gNetflowIface + b->id*2 + out;
+    nf_setdlt.iface = nif;
     nf_setdlt.dlt = DLT_RAW;
     if (NgSendMsg(gLinksCsock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
 	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
@@ -2315,8 +2368,23 @@ IfaceSetupNetflow(Bund b, char out)
 	path, strerror(errno)));
       goto fail;
     }
+#ifdef NG_NETFLOW_CONF_INGRESS
+    nf_setconf.iface = nif;
+    nf_setconf.conf = 
+	(in?NG_NETFLOW_CONF_INGRESS:0) |
+	(out?NG_NETFLOW_CONF_EGRESS:0) |
+	(Enabled(&b->iface.options, IFACE_CONF_NETFLOW_ONCE)?NG_NETFLOW_CONF_ONCE:0);
+    if (NgSendMsg(gLinksCsock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETCONFIG,
+	&nf_setconf, sizeof(nf_setconf)) < 0) {
+      Log(LG_ERR, ("[%s] can't set config on %s: %s", b->name,
+	path, strerror(errno)));
+      goto fail;
+    }
+#endif
+#ifndef NG_NETFLOW_CONF_INGRESS
     if (!out) {
-	nf_setidx.iface = gNetflowIface + b->id*2 + out;
+#endif
+	nf_setidx.iface = nif;
 	nf_setidx.index = if_nametoindex(b->iface.ifname);
 	if (NgSendMsg(gLinksCsock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
 	    &nf_setidx, sizeof(nf_setidx)) < 0) {
@@ -2324,7 +2392,9 @@ IfaceSetupNetflow(Bund b, char out)
 	    path, strerror(errno)));
     	  goto fail;
 	}
+#ifndef NG_NETFLOW_CONF_INGRESS
     }
+#endif
 
     return 0;
 fail:
@@ -2332,17 +2402,22 @@ fail:
 }
 
 static void
-IfaceShutdownNetflow(Bund b, char out)
+IfaceShutdownNetflow(Bund b, char in, char out)
 {
     char	path[NG_PATHSIZ];
     char	hook[NG_HOOKSIZ];
+    int nif;
+
+#ifdef NG_NETFLOW_CONF_INGRESS
+    nif = gNetflowIface + b->id;
+#else
+    nif = gNetflowIface + b->id*2 + out;
+#endif
 
     snprintf(path, NG_PATHSIZ, "[%x]:", gNetflowNodeID);
-    snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA,
-	    gNetflowIface + b->id*2 + out);
+    snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA, nif);
     NgFuncDisconnect(gLinksCsock, b->name, path, hook);
-    snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_OUT,
-	    gNetflowIface + b->id*2 + out);
+    snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_OUT, nif);
     NgFuncDisconnect(gLinksCsock, b->name, path, hook);
 }
 #endif
