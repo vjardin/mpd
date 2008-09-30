@@ -3054,6 +3054,7 @@ IfaceSetupLimits(Bund b)
 	    }
 	}
     }
+    Freee(hpu);
 }
 
 static void
