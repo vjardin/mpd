@@ -21,6 +21,8 @@
 	  <item> Added support for new ng_netflow node features to improve
 		 bidirectional accounting.
 	  </item>
+	  <item> Improved build modularization to allow more customized builds.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
