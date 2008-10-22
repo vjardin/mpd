@@ -467,7 +467,7 @@ TcpAcceptEvent(int type, void *cookie)
 		if (NgSendMsg(If->csock, path,
 		    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
 			Log(LG_ERR, ("[%s] can't name %s node: %s",
-			    l->name, NG_BPF_NODE_TYPE, strerror(errno)));
+			    l->name, NG_KSOCKET_NODE_TYPE, strerror(errno)));
 		}
 
 		pi->incoming=1;

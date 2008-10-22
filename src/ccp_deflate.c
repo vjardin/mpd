@@ -347,7 +347,7 @@ DeflateStat(Context ctx, int dir)
     if (NgFuncSendQuery(path, NGM_DEFLATE_COOKIE, NGM_DEFLATE_GET_STATS, NULL, 0, 
 	&u.reply, sizeof(u), NULL) < 0) {
 	    Log(LG_ERR, ("[%s] can't get %s stats: %s",
-		b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+		b->name, NG_DEFLATE_NODE_TYPE, strerror(errno)));
 	    return(0);
     }
     memcpy(&stats, u.reply.data, sizeof(stats));
