@@ -11,9 +11,7 @@
 #include "netgraph.h"
 #include "util.h"
 
-#ifdef USE_NG_NAT
 #include <netgraph/ng_nat.h>
-#endif
 
 /*
  * DEFINITIONS

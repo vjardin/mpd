@@ -33,12 +33,16 @@
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
 #include <netgraph/iface/ng_iface.h>
+#ifdef USE_NG_BPF
 #include <netgraph/bpf/ng_bpf.h>
+#endif
 #include <netgraph/tee/ng_tee.h>
 #include <netgraph/ksocket/ng_ksocket.h>
 #else
 #include <netgraph/ng_iface.h>
+#ifdef USE_NG_BPF
 #include <netgraph/ng_bpf.h>
+#endif
 #include <netgraph/ng_tee.h>
 #include <netgraph/ng_ksocket.h>
 #endif
@@ -62,7 +66,9 @@
 #include <netgraph/ng_car.h>
 #endif
 
+#ifdef USE_NG_BPF
 #include <pcap.h>
+#endif
 
 /*
  * DEFINITIONS
@@ -113,13 +119,17 @@
   static int	IfaceInitTee(Bund b, char *path, char *hook, int v6);
   static void	IfaceShutdownTee(Bund b, int v6);
 
+#if defined(USE_NG_TCPMSS) || (!defined(USE_NG_TCPMSS) && defined(USE_NG_BPF))
   static int    IfaceInitMSS(Bund b, char *path, char *hook);
   static void	IfaceSetupMSS(Bund b, uint16_t maxMSS);
   static void	IfaceShutdownMSS(Bund b);
+#endif
 
+#ifdef USE_NG_BPF
   static int    IfaceInitLimits(Bund b, char *path, char *hook);
   static void	IfaceSetupLimits(Bund b);
   static void	IfaceShutdownLimits(Bund b);
+#endif
 
   static int	IfaceSetCommand(Context ctx, int ac, char *av[], void *arg);
   static void	IfaceSessionTimeout(void *arg);
@@ -129,9 +139,11 @@
   static void	IfaceCachePkt(Bund b, int proto, Mbuf pkt);
   static int	IfaceIsDemand(int proto, Mbuf pkt);
 
+#ifdef USE_IPFW
   static int	IfaceAllocACL (struct acl_pool ***ap, int start, char * ifname, int number);
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
   static char *	IFaceParseACL (char * src, char * ifname);
+#endif
   
 /*
  * GLOBAL VARIABLES
@@ -148,8 +160,10 @@
 	IfaceSetCommand, NULL, 2, (void *) SET_UP_SCRIPT },
     { "down-script [{progname}]",	"Interface down script",
 	IfaceSetCommand, NULL, 2, (void *) SET_DOWN_SCRIPT },
+#ifdef USE_NG_BPF
     { "idle {seconds}",			"Idle timeout",
 	IfaceSetCommand, NULL, 2, (void *) SET_IDLE },
+#endif
     { "session {seconds}",		"Session timeout",
 	IfaceSetCommand, NULL, 2, (void *) SET_SESSION },
     { "enable [opt ...]",		"Enable option",
@@ -178,6 +192,7 @@
     { 0,	0,				NULL		},
   };
 
+#ifdef USE_IPFW
   struct acl_pool * rule_pool = NULL; /* Pointer to the first element in the list of rules */
   struct acl_pool * pipe_pool = NULL; /* Pointer to the first element in the list of pipes */
   struct acl_pool * queue_pool = NULL; /* Pointer to the first element in the list of queues */
@@ -186,7 +201,9 @@
   int pipe_pool_start = 10000; /* Initial number of ipfw dummynet pipe pool */
   int queue_pool_start = 10000; /* Initial number of ipfw dummynet queue pool */
   int table_pool_start = 32; /* Initial number of ipfw tables pool */
+#endif
 
+#ifdef USE_NG_BPF
   /* A BPF filter that matches TCP SYN packets */
   static const struct bpf_insn gTCPSYNProg[] = {
 /*00*/	BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 9),		/* A <- IP protocol */
@@ -215,6 +232,7 @@
   };
 
   #define MATCH_PROG_LEN	(sizeof(gMatchProg) / sizeof(*gMatchProg))
+#endif /* USE_NG_BPF */
 
 #define IN6MASK128	{{{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
 			    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }}}
@@ -236,9 +254,13 @@ IfaceInit(Bund b)
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
+#ifdef	USE_NG_NAT
   NatInit(b);
+#endif
+#ifdef USE_NG_BPF
   SLIST_INIT(&iface->ss[0]);
   SLIST_INIT(&iface->ss[1]);
+#endif
 }
 
 /*
@@ -347,12 +369,14 @@ IfaceUp(Bund b, int ready)
 {
   IfaceState	const iface = &b->iface;
   int		session_timeout = 0, idle_timeout = 0;
+#ifdef USE_IPFW
   struct acl	*acls, *acl;
   char			*buf;
   struct acl_pool 	**poollast;
   int 			poollaststart;
   int		prev_number;
   int		prev_real_number;
+#endif
 
   Log(LG_IFACE, ("[%s] IFACE: Up event", b->name));
   iface->last_up = time(NULL);
@@ -404,6 +428,7 @@ IfaceUp(Bund b, int ready)
 	memset(&iface->idleStats, 0, sizeof(iface->idleStats));
     }
 
+#ifdef USE_IPFW
   /* Allocate ACLs */
   acls = b->params.acl_pipe;
   poollast = &pipe_pool;
@@ -478,6 +503,7 @@ IfaceUp(Bund b, int ready)
     Freee(buf);
     acls = acls->next;
   };
+#endif /* USE_IPFW */
 
   };
 
@@ -499,9 +525,11 @@ void
 IfaceDown(Bund b)
 {
   IfaceState	const iface = &b->iface;
+#ifdef USE_IPFW
   struct acl_pool	**rp, *rp1;
   char		cb[32768];
   struct acl    *acl, *aclnext;
+#endif
 
   Log(LG_IFACE, ("[%s] IFACE: Down event", b->name));
 
@@ -511,6 +539,7 @@ IfaceDown(Bund b)
   TimerStop(&iface->idleTimer);
   TimerStop(&iface->sessionTimer);
 
+#ifdef USE_IPFW
   /* Remove rule ACLs */
   rp = &rule_pool;
   cb[0]=0;
@@ -582,6 +611,7 @@ IfaceDown(Bund b)
   if (cb[0]!=0)
     ExecCmdNosh(LG_IFACE2, b->name, "%s pipe delete%s",
       PATH_IPFW, cb);
+#endif /* USE_IPFW */
 
 }
 
@@ -610,6 +640,7 @@ IfaceListenInput(Bund b, int proto, Mbuf pkt)
     }
 }
 
+#ifdef USE_IPFW
 /*
  * IfaceAllocACL ()
  *
@@ -722,6 +753,7 @@ IFaceParseACL (char * src, char * ifname)
     Freee(buf1);
     return(buf);
 }
+#endif /* USE_IPFW */
 
 /*
  * IfaceIpIfaceUp()
@@ -1364,9 +1396,13 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     Bund	const b = ctx->bund;
     IfaceState	const iface = &b->iface;
     IfaceRoute	r;
+#ifdef USE_NG_BPF
     int		k;
+#endif
     char	buf[48];
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
     struct acl	*a;
+#endif
 
     Printf("Interface configuration:\r\n");
     Printf("\tName            : %s\r\n", iface->ifname);
@@ -1423,6 +1459,7 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 	SLIST_FOREACH(r, &ctx->bund->params.routes, next) {
 	    Printf("\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
 	}
+#ifdef USE_IPFW
 	Printf("IPFW pipes:\r\n");
 	a = ctx->bund->params.acl_pipe;
 	while (a) {
@@ -1450,6 +1487,8 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 	    Printf("\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 	    a = a->next;
 	}
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
 	Printf("Traffic filters:\r\n");
 	for (k = 0; k < ACL_FILTERS; k++) {
 	    a = ctx->bund->params.acl_filters[k];
@@ -1467,6 +1506,7 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 		a = a->next;
 	    }
 	}
+#endif /* USE_NG_BPF */
     }
     return(0);
 }
@@ -1513,9 +1553,11 @@ IfaceSetMTU(Bund b, int mtu)
     /* Save MTU */
     iface->mtu = mtu;
 
+#if defined(USE_NG_TCPMSS) || (!defined(USE_NG_TCPMSS) && defined(USE_NG_BPF))
     /* Update tcpmssfix config */
     if (iface->mss_up)
         IfaceSetupMSS(b, MAXMSS(mtu));
+#endif
 
 }
 
@@ -1871,14 +1913,18 @@ IfaceNgIpInit(Bund b, int ready)
 
     }
 
+#if defined(USE_NG_TCPMSS) || (!defined(USE_NG_TCPMSS) && defined(USE_NG_BPF))
     if (Enabled(&b->iface.options, IFACE_CONF_TCPMSSFIX)) {
 	if (IfaceInitMSS(b, path, hook))
     	    goto fail;
 	b->iface.mss_up = 1;
     }
+#endif
 
+#ifdef USE_NG_BPF
     if (IfaceInitLimits(b, path, hook))
 	goto fail;
+#endif
 
     /* Connect graph to the iface node. */
     strcpy(cn.ourhook, hook);
@@ -1906,10 +1952,14 @@ IfaceNgIpInit(Bund b, int ready)
 #endif /* USE_NG_NETFLOW */
     }
 
+#if defined(USE_NG_TCPMSS) || (!defined(USE_NG_TCPMSS) && defined(USE_NG_BPF))
     if (b->iface.mss_up)
         IfaceSetupMSS(b, MAXMSS(b->iface.mtu));
+#endif
     
+#ifdef USE_NG_BPF
     IfaceSetupLimits(b);
+#endif
 
     /* OK */
     return(0);
@@ -1927,7 +1977,9 @@ IfaceNgIpShutdown(Bund b)
 {
     char		path[NG_PATHSIZ];
 
+#ifdef USE_NG_BPF
     IfaceShutdownLimits(b); /* Limits must shutdown first to save final stats. */
+#endif
 #ifdef USE_NG_NAT
     if (b->iface.nat_up)
 	IfaceShutdownNAT(b);
@@ -1956,8 +2008,10 @@ IfaceNgIpShutdown(Bund b)
 	IfaceShutdownIpacct(b);
     b->iface.ipacct_up = 0;
 #endif
+#if defined(USE_NG_TCPMSS) || (!defined(USE_NG_TCPMSS) && defined(USE_NG_BPF))
     if (b->iface.mss_up)
 	IfaceShutdownMSS(b);
+#endif
     b->iface.mss_up = 0;
 
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
@@ -2137,7 +2191,7 @@ IfaceShutdownNAT(Bund b)
     snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
     NgFuncShutdownNode(gLinksCsock, b->name, path);
 }
-#endif
+#endif /* USE_NG_NAT */
 
 static int
 IfaceInitTee(Bund b, char *path, char *hook, int v6)
@@ -2422,6 +2476,7 @@ IfaceShutdownNetflow(Bund b, char in, char out)
 }
 #endif
 
+#if defined(USE_NG_TCPMSS) || (!defined(USE_NG_TCPMSS) && defined(USE_NG_BPF))
 static int
 IfaceInitMSS(Bund b, char *path, char *hook)
 {
@@ -2503,7 +2558,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
     	goto fail;
     }
-#endif
+#endif /* USE_NG_TCPMSS */
 
     return (0);
 fail:
@@ -2627,7 +2682,9 @@ IfaceShutdownMSS(Bund b)
 	NgFuncShutdownNode(gLinksCsock, b->name, path);
 #endif
 }
+#endif /* defined(USE_NG_TCPMSS) || (!defined(USE_NG_TCPMSS) && defined(USE_NG_BPF)) */
 
+#ifdef USE_NG_BPF
 static int
 IfaceInitLimits(Bund b, char *path, char *hook)
 {
@@ -3180,3 +3237,4 @@ IfaceFreeStats(struct svcstat *stat)
 	}
     }
 }
+#endif /* USE_NG_BPF */

@@ -23,11 +23,13 @@
 
 #include <netgraph.h>
 #include <sys/mbuf.h>
+#ifdef USE_NG_VJC
 #include <net/slcompress.h>
 #ifdef __DragonFly__
 #include <netgraph/vjc/ng_vjc.h>
 #else
 #include <netgraph/ng_vjc.h>
+#endif
 #endif
 
 /*
@@ -56,9 +58,11 @@
   #define IPCP_REJECTED(p,x)	((p)->peer_reject & (1<<o2b(x)))
   #define IPCP_PEER_REJ(p,x)	do{(p)->peer_reject |= (1<<o2b(x));}while(0)
 
+#ifdef USE_NG_VJC
   #define IPCP_VJCOMP_MIN_MAXCHAN	(NG_VJC_MIN_CHANNELS - 1)
   #define IPCP_VJCOMP_MAX_MAXCHAN	(NG_VJC_MAX_CHANNELS - 1)
   #define IPCP_VJCOMP_DEFAULT_MAXCHAN	IPCP_VJCOMP_MAX_MAXCHAN
+#endif
 
   /* Set menu options */
   enum {
@@ -88,8 +92,10 @@
   static void	IpcpLayerDown(Fsm fp);
   static void	IpcpFailure(Fsm fp, enum fsmfail reason);
 
+#ifdef USE_NG_VJC
   static int	IpcpNgInitVJ(Bund b);
   static void	IpcpNgShutdownVJ(Bund b);
+#endif
 
   static int	IpcpSetCommand(Context ctx, int ac, char *av[], void *arg);
 
@@ -125,7 +131,9 @@
 
   static const struct fsmoptinfo	gIpcpConfOpts[] = {
     { "IPADDRS",	TY_IPADDRS,		8, 8, FALSE },
+#ifdef USE_NG_VJC
     { "COMPPROTO",	TY_COMPPROTO,		4, 4, TRUE },
+#endif
     { "IPADDR",		TY_IPADDR,		4, 4, TRUE },
     { "PRIDNS",		TY_PRIMARYDNS,		4, 4, TRUE },
     { "PRINBNS",	TY_PRIMARYNBNS,		4, 4, TRUE },
@@ -135,7 +143,9 @@
   };
 
   static const struct confinfo gConfList[] = {
+#ifdef USE_NG_VJC
     { 1,	IPCP_CONF_VJCOMP,	"vjcomp"	},
+#endif
     { 0,	IPCP_CONF_REQPRIDNS,	"req-pri-dns"	},
     { 0,	IPCP_CONF_REQSECDNS,	"req-sec-dns"	},
     { 0,	IPCP_CONF_REQPRINBNS,	"req-pri-nbns"	},
@@ -176,14 +186,18 @@
 int
 IpcpStat(Context ctx, int ac, char *av[], void *arg)
 {
+#ifdef USE_NG_VJC
   char			path[NG_PATHSIZ];
+#endif
   IpcpState		const ipcp = &ctx->bund->ipcp;
   Fsm			fp = &ipcp->fsm;
+#ifdef USE_NG_VJC
   union {
       u_char		buf[sizeof(struct ng_mesg) + sizeof(struct slcompress)];
       struct ng_mesg	reply;
   }			u;
   struct slcompress	*const sls = (struct slcompress *)(void *)u.reply.data;
+#endif
   char			buf[48];
 
   Printf("[%s] %s [%s]\r\n", Pref(fp), Fsm(fp), FsmStateName(fp->state));
@@ -207,6 +221,7 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
   Printf("Current addressing:\r\n");
   Printf("\tSelf: %s\r\n", inet_ntoa(ipcp->want_addr));
   Printf("\tPeer: %s\r\n", inet_ntoa(ipcp->peer_addr));
+#ifdef USE_NG_VJC
   Printf("Compression:\r\n");
   Printf("\tSelf: ");
   if (ipcp->want_comp.proto != 0)
@@ -222,6 +237,7 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
       ipcp->peer_comp.maxchan + 1, ipcp->peer_comp.compcid ? "" : "not ");
   else
     Printf("None\r\n");
+#endif /* USE_NG_VJC */
   Printf("Server info we give to peer:\r\n");
   Printf("DNS servers : %15s", inet_ntoa(ipcp->conf.peer_dns[0]));
   Printf("  %15s\r\n", inet_ntoa(ipcp->conf.peer_dns[1]));
@@ -233,6 +249,7 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
   Printf("NBNS servers: %15s", inet_ntoa(ipcp->want_nbns[0]));
   Printf("  %15s\r\n", inet_ntoa(ipcp->want_nbns[1]));
 
+#ifdef USE_NG_VJC
   /* Get VJC state */
   snprintf(path, sizeof(path), "mpd%d-%s:%s", gPid, ctx->bund->name, NG_PPP_HOOK_VJC_IP);
   if (NgFuncSendQuery(path, NGM_VJC_COOKIE, NGM_VJC_GET_STATE,
@@ -248,6 +265,7 @@ IpcpStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tIn uncomp: %d\r\n", sls->sls_uncompressedin);
   Printf("\tIn error : %d\r\n", sls->sls_errorin);
   Printf("\tIn tossed: %d\r\n", sls->sls_tossed);
+#endif /* USE_NG_VJC */
   return(0);
 }
 
@@ -268,9 +286,11 @@ IpcpInit(Bund b)
   u_rangeclear(&ipcp->conf.self_allow);
   GetAnyIpAddress(&ipcp->conf.self_allow.addr, NULL);
 
+#ifdef USE_NG_VJC
   /* Default we want VJ comp */
   Enable(&ipcp->conf.options, IPCP_CONF_VJCOMP);
   Accept(&ipcp->conf.options, IPCP_CONF_VJCOMP);
+#endif
 }
 
 /*
@@ -351,6 +371,7 @@ IpcpConfigure(Fsm fp)
     u_addrtoin_addr(&ipcp->self_allow.addr, &ipcp->want_addr);
     u_addrtoin_addr(&ipcp->peer_allow.addr, &ipcp->peer_addr);
 
+#ifdef USE_NG_VJC
     /* Van Jacobson compression */
     ipcp->peer_comp.proto = 0;
     ipcp->peer_comp.maxchan = IPCP_VJCOMP_DEFAULT_MAXCHAN;
@@ -361,14 +382,15 @@ IpcpConfigure(Fsm fp)
 	    htons(PROTO_VJCOMP) : 0;
     ipcp->want_comp.maxchan = IPCP_VJCOMP_MAX_MAXCHAN;
 
-    /* DNS and NBNS servers */
-    memset(&ipcp->want_dns, 0, sizeof(ipcp->want_dns));
-    memset(&ipcp->want_nbns, 0, sizeof(ipcp->want_nbns));
-
     /* If any of our links are unable to give receive error indications, we must
      tell the peer not to compress the slot-id in VJCOMP packets (cf. RFC1144).
      To be on the safe side, we always say this. */
     ipcp->want_comp.compcid = 0;
+#endif
+
+    /* DNS and NBNS servers */
+    memset(&ipcp->want_dns, 0, sizeof(ipcp->want_dns));
+    memset(&ipcp->want_nbns, 0, sizeof(ipcp->want_nbns));
 }
 
 /*
@@ -414,9 +436,11 @@ IpcpBuildConfigReq(Fsm fp, u_char *cp)
     if (!IPCP_REJECTED(ipcp, TY_IPADDR) || ipcp->want_addr.s_addr == 0)
 	cp = FsmConfValue(cp, TY_IPADDR, 4, &ipcp->want_addr.s_addr);
 
+#ifdef USE_NG_VJC
     /* Put in my requested compression protocol */
     if (ipcp->want_comp.proto != 0 && !IPCP_REJECTED(ipcp, TY_COMPPROTO))
 	cp = FsmConfValue(cp, TY_COMPPROTO, 4, &ipcp->want_comp);
+#endif
 
   /* Request peer's DNS and NBNS servers */
   {
@@ -481,8 +505,10 @@ IpcpLayerUp(Fsm fp)
     Bund 			b = (Bund)fp->arg;
     IpcpState			const ipcp = &b->ipcp;
     char			ipbuf[20];
+#ifdef USE_NG_VJC
     char			path[NG_PATHSIZ];
     struct ngm_vjc_config	vjc;
+#endif
     struct u_addr		tmp;
 
     /* Determine actual address we'll use for ourselves */
@@ -510,6 +536,7 @@ IpcpLayerUp(Fsm fp)
     strlcpy(ipbuf, inet_ntoa(ipcp->peer_addr), sizeof(ipbuf));
     Log(LG_IPCP, ("[%s]   %s -> %s", b->name, inet_ntoa(ipcp->want_addr), ipbuf));
 
+#ifdef USE_NG_VJC
     memset(&vjc, 0, sizeof(vjc));
     if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP) {
@@ -528,13 +555,16 @@ IpcpLayerUp(Fsm fp)
     		b->name, NG_VJC_NODE_TYPE, strerror(errno)));
 	}
     }
+#endif /* USE_NG_VJC */
 
     BundNcpsJoin(b, NCP_IPCP);
 
     /* Enable IP packets in the PPP node */
     b->pppConfig.bund.enableIP = 1;
+#ifdef USE_NG_VJC
     b->pppConfig.bund.enableVJCompression = vjc.enableComp;
     b->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
+#endif
     NgFuncSetConfig(b);
 }
 
@@ -548,18 +578,24 @@ static void
 IpcpLayerDown(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
+#ifdef USE_NG_VJC
     IpcpState	const ipcp = &b->ipcp;
+#endif
 
     /* Turn off IP packets */
     b->pppConfig.bund.enableIP = 0;
+#ifdef USE_NG_VJC
     b->pppConfig.bund.enableVJCompression = 0;
     b->pppConfig.bund.enableVJDecompression = 0;
+#endif
     NgFuncSetConfig(b);
 
+#ifdef USE_NG_VJC
     if (ntohs(ipcp->peer_comp.proto) == PROTO_VJCOMP || 
 	    ntohs(ipcp->want_comp.proto) == PROTO_VJCOMP) {
 	IpcpNgShutdownVJ(b);
     }
+#endif /* USE_NG_VJC */
 
     BundNcpsLeave(b, NCP_IPCP);
 }
@@ -732,6 +768,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	}
 	break;
 
+#ifdef USE_NG_VJC
       case TY_COMPPROTO:
 	{
 	  struct ipcpvjcomp	vj;
@@ -787,6 +824,7 @@ IpcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 	  }
 	}
 	break;
+#endif /* USE_NG_VJC */
 
       case TY_PRIMARYDNS:
         if (b->params.peer_dns[0].s_addr != 0)
@@ -863,6 +901,7 @@ IpcpInput(Bund b, Mbuf bp)
     FsmInput(&b->ipcp.fsm, bp);
 }
 
+#ifdef USE_NG_VJC
 static int
 IpcpNgInitVJ(Bund b)
 {
@@ -934,6 +973,7 @@ IpcpNgShutdownVJ(Bund b)
     snprintf(path, sizeof(path), "[%x]:%s", b->nodeID, NG_PPP_HOOK_VJC_IP);
     NgFuncShutdownNode(gLinksCsock, b->name, path);
 }
+#endif /* USE_NG_VJC */
 
 /*
  * IpcpSetCommand()

@@ -100,7 +100,9 @@
   int			gChildren = 0;		/* Current number of children links */
   int			gMaxChildren = 10000;	/* Maximal number of children links */
 
+#ifdef USE_NG_BPF
   struct acl		*acl_filters[ACL_FILTERS]; /* mpd's global internal bpf filters */
+#endif
 
   struct globalconf	gGlobalConf;
 

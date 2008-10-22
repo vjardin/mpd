@@ -4,6 +4,16 @@ CONFIG="config.h"
 
 echo "/* System features detected by configure */" > $CONFIG
 
+echo -n "Looking for ng_bpf ..."
+if [ -e /usr/include/netgraph/ng_bpf.h \
+  -o -e /usr/include/bpf/netgraph/ng_bpf.h ]
+then
+    echo " found."
+    echo "#define	HAVE_NG_BPF	1" >> $CONFIG
+else
+    echo " not found."
+fi
+
 echo -n "Looking for ng_car ..."
 if [ -e /usr/include/netgraph/ng_car.h \
   -o -e /usr/local/include/netgraph/ng_car.h ]
@@ -15,8 +25,7 @@ else
 fi
 
 echo -n "Looking for ng_deflate ..."
-if [ -e /usr/include/netgraph/ng_deflate.h \
-  -o -e /usr/local/include/netgraph/ng_deflate.h ]
+if [ -e /usr/include/netgraph/ng_deflate.h ]
 then
     echo " found."
     echo "#define	HAVE_NG_DEFLATE	1" >> $CONFIG
@@ -35,8 +44,7 @@ else
 fi
 
 echo -n "Looking for ng_nat ..."
-if [ -e /usr/include/netgraph/ng_nat.h \
-  -o -e /usr/local/include/netgraph/ng_nat.h ]
+if [ -e /usr/include/netgraph/ng_nat.h ]
 then
     echo " found."
     echo "#define	HAVE_NG_NAT	1" >> $CONFIG
@@ -66,8 +74,7 @@ else
 fi
 
 echo -n "Looking for ng_pred1 ..."
-if [ -e /usr/include/netgraph/ng_pred1.h \
-  -o -e /usr/local/include/netgraph/ng_pred1.h ]
+if [ -e /usr/include/netgraph/ng_pred1.h ]
 then
     echo " found."
     echo "#define	HAVE_NG_PRED1	1" >> $CONFIG
@@ -76,11 +83,29 @@ else
 fi
 
 echo -n "Looking for ng_tcpmss ..."
-if [ -e /usr/include/netgraph/ng_tcpmss.h \
-  -o -e /usr/local/include/netgraph/ng_tcpmss.h ]
+if [ -e /usr/include/netgraph/ng_tcpmss.h ]
 then
     echo " found."
     echo "#define	HAVE_NG_TCPMSS	1" >> $CONFIG
+else
+    echo " not found."
+fi
+
+echo -n "Looking for ng_vjc ..."
+if [ -e /usr/include/netgraph/ng_vjc.h \
+  -o -e /usr/include/vjc/netgraph/ng_vjc.h ]
+then
+    echo " found."
+    echo "#define	HAVE_NG_VJC	1" >> $CONFIG
+else
+    echo " not found."
+fi
+
+echo -n "Looking for ipfw ..."
+if [ -e /sbin/ipfw  ]
+then
+    echo " found."
+    echo "#define	HAVE_IPFW	1" >> $CONFIG
 else
     echo " not found."
 fi

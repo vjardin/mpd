@@ -20,26 +20,35 @@
  */
 
   /* Compile time configuring. */
-#ifdef HAVE_NG_CAR
-  #define      USE_NG_CAR
+#ifndef HAVE_NG_CAR
+  #undef USE_NG_CAR
 #endif
-#ifdef HAVE_NG_DEFLATE
-  #define      USE_NG_DEFLATE
+#ifndef HAVE_NG_DEFLATE
+  #undef USE_NG_DEFLATE
 #endif
-#ifdef HAVE_NG_IPACCT
-  #define      USE_NG_IPACCT
+#ifndef HAVE_NG_IPACCT
+  #undef USE_NG_IPACCT
 #endif
-#ifdef HAVE_NG_NAT
-  #define      USE_NG_NAT
+#ifndef HAVE_NG_NAT
+  #undef USE_NG_NAT
 #endif
-#ifdef HAVE_NG_NETFLOW
-  #define      USE_NG_NETFLOW
+#ifndef HAVE_NG_NETFLOW
+  #undef USE_NG_NETFLOW
 #endif
-#ifdef HAVE_NG_PRED1
-  #define      USE_NG_PRED1
+#ifndef HAVE_NG_PRED1
+  #undef USE_NG_PRED1
 #endif
-#ifdef HAVE_NG_TCPMSS
-  #define      USE_NG_TCPMSS
+#ifndef HAVE_NG_TCPMSS
+  #undef USE_NG_TCPMSS
+#endif
+#ifndef HAVE_NG_VJC
+  #undef USE_NG_VJC
+#endif
+#ifndef HAVE_NG_BPF
+  #undef USE_NG_BPF
+#endif
+#ifndef HAVE_IPFW
+  #undef USE_IPFW
 #endif
 
   /* Boolean */
@@ -78,7 +87,9 @@
 
   #define PATH_IFCONFIG		"/sbin/ifconfig"
   #define PATH_ARP		"/usr/sbin/arp"
+#ifdef USE_IPFW
   #define PATH_IPFW		"/sbin/ipfw"
+#endif
   #define PATH_NETSTAT		"/usr/bin/netstat"
 
   #define AUTH_MAX_AUTHNAME	64

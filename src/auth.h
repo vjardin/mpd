@@ -81,6 +81,7 @@
     AUTH_CONF_MAX_LOGINS
   };  
 
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
   struct acl {			/* List of ACLs received from auth */
     u_short number;		/* ACL number given by auth server */
     u_short real_number;	/* ACL number allocated my mpd */
@@ -88,6 +89,7 @@
     char name[ACL_NAME_LEN]; 	/* Name of ACL */
     char rule[ACL_LEN]; 	/* Text of ACL */
   };
+#endif
 
   struct authparams {
     char		authname[AUTH_MAX_AUTHNAME];
@@ -116,15 +118,19 @@
 
     char		action[8 + LINK_MAX_NAME];
 
+#ifdef USE_IPFW
     struct acl		*acl_rule;	/* ipfw rules */
     struct acl		*acl_pipe;	/* ipfw pipes */
     struct acl		*acl_queue;	/* ipfw queues */
     struct acl		*acl_table;	/* ipfw tables */
+#endif
 
+#ifdef USE_NG_BPF
     struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
     struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
 
     char 		std_acct[ACL_DIRS][ACL_NAME_LEN]; /* Names of ACL rerurned in standard accounting */
+#endif
     
     u_int		session_timeout;	/* Session-Timeout */
     u_int		idle_timeout;		/* Idle-Timeout */
@@ -236,7 +242,9 @@
       char		bundname[LINK_MAX_NAME];/* name of the bundle */
       char		lnkname[LINK_MAX_NAME];	/* name of the link */
       struct ng_ppp_link_stat64	stats;		/* Current link statistics */
+#ifdef USE_NG_BPF
       struct svcstat	ss;
+#endif
       char		*downReason;	/* Reason for link going down */
       time_t		last_up;	/* Time this link last got up */
       PhysType		phys_type;	/* Device type descriptor */

@@ -21,7 +21,9 @@
 #include "bund.h"
 #include "link.h"
 #include "lcp.h"
+#ifdef	USE_NG_NAT
 #include "nat.h"
+#endif
 #include "ipcp.h"
 #include "ip.h"
 #include "ippool.h"
@@ -30,7 +32,9 @@
 #include "ngfunc.h"
 #include "ccp_mppc.h"
 #include "util.h"
+#ifdef USE_FETCH
 #include <fetch.h>
+#endif
 
 /*
  * DEFINITIONS
@@ -51,16 +55,20 @@
   enum {
     SET_ENABLE,
     SET_DISABLE,
+#ifdef USE_IPFW
     SET_RULE,
     SET_QUEUE,
     SET_PIPE,
     SET_TABLE,
+#endif
     SET_PPTPTO,
     SET_PPTPLIMIT,
     SET_L2TPTO,
     SET_L2TPLIMIT,
     SET_MAX_CHILDREN,
+#ifdef USE_NG_BPF
     SET_FILTER
+#endif
   };
 
 
@@ -97,6 +105,7 @@
        	GlobalSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable {opt ...}", 		"Disable option" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_DISABLE },
+#ifdef USE_IPFW
     { "startrule {num}",		"Initial ipfw rule number" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_RULE },
     { "startqueue {num}", 		"Initial ipfw queue number" ,
@@ -105,6 +114,7 @@
        	GlobalSetCommand, NULL, 2, (void *) SET_PIPE },
     { "starttable {num}", 		"Initial ipfw table number" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_TABLE },
+#endif /* USE_IPFW */
     { "l2tptimeout {sec}", 		"L2TP tunnel unused timeout" ,
        	GlobalSetCommand, NULL, 2, (void *) SET_L2TPTO },
     { "l2tplimit {num}", 		"Calls per L2TP tunnel limit" ,
@@ -115,8 +125,10 @@
        	GlobalSetCommand, NULL, 2, (void *) SET_PPTPLIMIT },
     { "max-children {num}",		"Max number of children",
 	GlobalSetCommand, NULL, 2, (void *) SET_MAX_CHILDREN },
+#ifdef USE_NG_BPF
     { "filter {num} add|clear [\"{flt}\"]",	"Global traffic filters management",
 	GlobalSetCommand, NULL, 2, (void *) SET_FILTER },
+#endif
     { NULL },
   };
 
@@ -189,8 +201,10 @@
 	RadStat, AdmitLink, 0, NULL },
     { "lcp",				"LCP status",
 	LcpStat, AdmitLink, 0, NULL },
+#ifdef	USE_NG_NAT
     { "nat",				"NAT status",
 	NatStat, AdmitBund, 0, NULL },
+#endif
     { "mem",				"Memory map",
 	MemStat, NULL, 0, NULL },
     { "console",			"Console status",
@@ -249,8 +263,10 @@
     { "netflow ...", 			"NetFlow settings",
 	CMD_SUBMENU, NULL, 2, (void *) NetflowSetCmds },
 #endif
+#ifdef	USE_NG_NAT
     { "nat ...", 			"Nat settings",
 	CMD_SUBMENU, NULL, 2, (void *) NatSetCmds },
+#endif
     { "debug level",			"Set netgraph debug level",
 	SetDebugCommand, NULL, 2, NULL },
 #define _WANT_DEVICE_CMDS
@@ -503,6 +519,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
       DisableCommand(ac, av, &gGlobalConf.options, gGlobalConfList);
       break;
 
+#ifdef USE_IPFW
     case SET_RULE:
 	if (rule_pool) 
 	    Error("Rule pool is not empty. Impossible to set initial number");
@@ -550,6 +567,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 		table_pool_start = val;
 	}
       break;
+#endif /* USE_IPFW */
 
     case SET_L2TPTO:
 	val = atoi(*av);
@@ -591,6 +609,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    gMaxChildren = val;
       break;
 
+#ifdef USE_NG_BPF
     case SET_FILTER:
 	if (ac == 4 && strcasecmp(av[1], "add") == 0) {
 	    struct acl	**acls, *acls1;
@@ -639,6 +658,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	} else
 	    return(-1);
 	break;
+#endif /* USE_NG_BPF */
 	
     default:
       return(-1);
@@ -798,14 +818,17 @@ ShowEvents(Context ctx, int ac, char *av[], void *arg)
 static int
 ShowGlobal(Context ctx, int ac, char *av[], void *arg)
 {
-    struct acl  *a;
+#ifdef USE_NG_BPF
     int	k;
+#endif
 
     Printf("Global settings:\r\n");
+#ifdef USE_IPFW
     Printf("	startrule	: %d\r\n", rule_pool_start);
     Printf("	startpipe	: %d\r\n", pipe_pool_start);
     Printf("	startqueue	: %d\r\n", queue_pool_start);
     Printf("	starttable	: %d\r\n", table_pool_start);
+#endif
     Printf("	l2tptimeout	: %d\r\n", gL2TPto);
     Printf("	l2tplimit	: %d\r\n", gL2TPtunlimit);
     Printf("	pptptimeout	: %d\r\n", gPPTPto);
@@ -813,14 +836,16 @@ ShowGlobal(Context ctx, int ac, char *av[], void *arg)
     Printf("	max-children	: %d\r\n", gMaxChildren);
     Printf("Global options:\r\n");
     OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
+#ifdef USE_NG_BPF
     Printf("Global traffic filters:\r\n");
     for (k = 0; k < ACL_FILTERS; k++) {
-        a = acl_filters[k];
+        struct acl *a = acl_filters[k];
         while (a) {
     	    Printf("\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
     	    a = a->next;
 	}
     }
+#endif
   return 0;
 }
 
@@ -857,11 +882,13 @@ QuitCommand(Context ctx, int ac, char *av[], void *arg)
 static int
 LoadCommand(Context ctx, int ac, char *av[], void *arg)
 {
-    char buf[1024];
     char filename[128];
+#ifdef USE_FETCH
+    char buf[1024];
     FILE *f = NULL;
     FILE *rf = NULL;
     int fetch = 0;
+#endif
 
     if (ac < 1 || ac > 2)
 	return(-1);
@@ -873,6 +900,7 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 	if (ac == 1)
 	    strcpy(filename, gConfigFile);
 	else {
+#ifdef USE_FETCH
 	    if (strncmp(av[0], "http://", 7) == 0 ||
 		strncmp(av[0], "https://", 8) == 0 ||
 		strncmp(av[0], "ftp://", 6) == 0) {
@@ -898,11 +926,14 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 		Printf(" done\r\n", av[0]);
 		fclose(f);
 	    } else
+#endif
 		strlcpy(filename, av[0], sizeof(filename));
 	}
 	ReadFile(filename, av[ac - 1], DoCommand, ctx);
+#ifdef USE_FETCH
 out:	if (fetch)
 	    unlink(filename);
+#endif
 	ctx->depth--;
     }
     return(0);
@@ -1196,9 +1227,11 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
     Bund	b = ctx->bund;
     IfaceState	iface;
     IfaceRoute	r;
-    int		k, j;
+    int		j;
     char	buf[64];
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
     struct acl	*a;
+#endif
 
     if (b && b->iface.ifname[0]) {
 	iface = &b->iface;
@@ -1207,8 +1240,10 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 	Printf("\tStatus          : %s\r\n", iface->up ? (iface->dod?"DoD":"UP") : "DOWN");
 	if (iface->up) {
 	    Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - iface->last_up));
+#ifdef USE_NG_BPF
 	    if (b->params.idle_timeout || iface->idle_timeout)
 		Printf("\tIdle timeout    : %d seconds\r\n", b->params.idle_timeout?b->params.idle_timeout:iface->idle_timeout);
+#endif
 	    if (b->params.session_timeout || iface->session_timeout)
 		Printf("\tSession timeout : %d seconds\r\n", b->params.session_timeout?b->params.session_timeout:iface->session_timeout);
 	    Printf("\tMTU             : %d bytes\r\n", iface->mtu);
@@ -1230,6 +1265,7 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		SLIST_FOREACH(r, &b->params.routes, next)
 		    Printf("\t\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
 	    }
+#ifdef USE_IPFW
 	    if (b->params.acl_pipe) {
 		Printf("\tIPFW pipes      :\r\n");
 		a = b->params.acl_pipe;
@@ -1265,7 +1301,10 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 	    	    a = a->next;
 		}
 	    }
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
 	    if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
+		int k;
 		Printf("\tTraffic filters :\r\n");
 		for (k = 0; k < ACL_FILTERS; k++) {
 		    a = b->params.acl_filters[k];
@@ -1284,6 +1323,7 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		    }
 		}
 	    }
+#endif /* USE_NG_BPF */
 	}
     }
     if (b) {

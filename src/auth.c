@@ -137,9 +137,13 @@ void	authparamsInit(struct authparams *ap) {
 }
 
 void	authparamsDestroy(struct authparams *ap) {
+#if defined(USE_IPFW) || defined(USE_NG_BPF)
     struct acl		*acls, *acls1;
+#endif
     IfaceRoute		r;
+#ifdef USE_NG_BPF
     int i;
+#endif
   
     if (ap->eapmsg) {
 	Freee(ap->eapmsg);
@@ -151,6 +155,7 @@ void	authparamsDestroy(struct authparams *ap) {
 	Freee(ap->class);
     }
 
+#ifdef USE_IPFW
     acls = ap->acl_rule;
     while (acls != NULL) {
 	acls1 = acls->next;
@@ -175,7 +180,9 @@ void	authparamsDestroy(struct authparams *ap) {
 	Freee(acls);
 	acls = acls1;
     };
+#endif /* USE_IPFW */
 
+#ifdef USE_NG_BPF
     for (i = 0; i < ACL_FILTERS; i++) {
 	acls = ap->acl_filters[i];
 	while (acls != NULL) {
@@ -193,6 +200,7 @@ void	authparamsDestroy(struct authparams *ap) {
 	    acls = acls1;
 	};
     };
+#endif /* USE_NG_BPF */
 
     while ((r = SLIST_FIRST(&ap->routes)) != NULL) {
 	SLIST_REMOVE_HEAD(&ap->routes, next);
@@ -207,10 +215,14 @@ void	authparamsDestroy(struct authparams *ap) {
 }
 
 void	authparamsCopy(struct authparams *src, struct authparams *dst) {
+#if defined(USE_IPFW) || defined(USE_NG_BPF)
     struct acl		*acls;
     struct acl		**pacl;
+#endif
     IfaceRoute		r, r1;
+#ifdef USE_NG_BPF
     int			i;
+#endif
 
     memcpy(dst,src,sizeof(struct authparams));
   
@@ -221,6 +233,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     if (src->class)
 	dst->class = Mdup(MB_AUTH, src->class, src->class_len);
 
+#ifdef USE_IPFW
     acls = src->acl_rule;
     pacl = &dst->acl_rule;
     while (acls != NULL) {
@@ -253,7 +266,9 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	pacl = &((*pacl)->next);
     };
     *pacl = NULL;
+#endif /* USE_IPFW */
 
+#ifdef USE_NG_BPF
     for (i = 0; i < ACL_FILTERS; i++) {
 	acls = src->acl_filters[i];
 	pacl = &dst->acl_filters[i];
@@ -275,6 +290,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	};
 	*pacl = NULL;
     };
+#endif
 
     SLIST_INIT(&dst->routes);
     SLIST_FOREACH(r, &src->routes, next) {
@@ -623,11 +639,13 @@ AuthDataNew(Link l)
     /* Copy current link statistics */
     memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));
     
+#ifdef USE_NG_BPF
     /* If it is present copy services statistics */
     if (l->bund) {
 	IfaceGetStats(l->bund, &auth->info.ss);
 	IfaceAddStats(&auth->info.ss, &l->bund->iface.prevstats);
     }
+#endif
 
     if (l->downReasonValid)
 	auth->info.downReason = Mstrdup(MB_AUTH, l->downReason);
@@ -655,7 +673,9 @@ AuthDataDestroy(AuthData auth)
     Freee(auth->reply_message);
     Freee(auth->mschap_error);
     Freee(auth->mschapv2resp);
+#ifdef USE_NG_BPF
     IfaceFreeStats(&auth->info.ss);
+#endif
     Freee(auth);
 }
 
@@ -689,9 +709,13 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     Auth	const au = &ctx->lnk->lcp.auth;
     AuthConf	const conf = &au->conf;
     char	buf[48], buf2[16];
+#if defined(USE_IPFW) || defined(USE_NG_BPF)
     struct acl	*a;
+#endif
     IfaceRoute	r;
+#ifdef USE_NG_BPF
     int		k;
+#endif
 
     Printf("Configuration:\r\n");
     Printf("\tMy authname     : %s\r\n", conf->authname);
@@ -725,6 +749,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     SLIST_FOREACH(r, &au->params.routes, next) {
         Printf("\t\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
     }
+#ifdef USE_IPFW
     Printf("\tIPFW rules      :\r\n");
     a = au->params.acl_rule;
     while (a) {
@@ -752,6 +777,8 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     	    Printf("\t\t#%d\t: '%s'\r\n", a->real_number, a->rule);
         a = a->next;
     }
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
     Printf("\tTraffic filters :\r\n");
     for (k = 0; k < ACL_FILTERS; k++) {
         a = au->params.acl_filters[k];
@@ -769,6 +796,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
 	    a = a->next;
 	}
     }
+#endif /* USE_NG_BPF */
     Printf("\tMS-Domain       : %s\r\n", au->params.msdomain);  
     Printf("\tMPPE Types      : %s\r\n", AuthMPPEPolicyname(au->params.msoft.policy));
     Printf("\tMPPE Policy     : %s\r\n", AuthMPPETypesname(au->params.msoft.types, buf, sizeof(buf)));
@@ -2223,11 +2251,15 @@ AuthExternal(AuthData auth)
     } else if (strcmp(attr, "MPD_ACTION") == 0) {
 	strlcpy(auth->params.action, val, sizeof(auth->params.action));
 
+#if defined(USE_IPFW) || defined(USE_NG_BPF)
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;
 	char		*acl, *acl1, *acl2, *acl3;
 	int		i;
 	
+	    acl1 = NULL;
+	    acls = NULL;
+#ifdef USE_IPFW
 	    if (strcmp(attr, "MPD_RULE") == 0) {
 	      acl1 = acl = val;
 	      acls = &(auth->params.acl_rule);
@@ -2243,7 +2275,10 @@ AuthExternal(AuthData auth)
 	    } else if (strcmp(attr, "MPD_TABLE_STATIC") == 0) {
 	      acl1 = acl = val;
 	      acls = &(auth->params.acl_table);
-	    } else if (strcmp(attr, "MPD_FILTER") == 0) {
+	    } else
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
+            if (strcmp(attr, "MPD_FILTER") == 0) {
 	      acl1 = acl = val;
 	      acl2 = strsep(&acl1, "#");
 	      i = atol(acl2);
@@ -2271,6 +2306,7 @@ AuthExternal(AuthData auth)
 		auth->info.lnkname, attr));
 	      continue;
 	    }
+#endif /* USE_NG_BPF */
 
 	    if (acl1 == NULL) {
 	      Log(LG_ERR, ("[%s] Ext-auth: incorrect acl!",
@@ -2318,6 +2354,7 @@ AuthExternal(AuthData auth)
 	      acls1->next = *acls;
 	    }
 	    *acls = acls1;
+#endif /* USE_IPFW or USE_NG_BPF */
 
     } else {
 	Log(LG_ERR, ("[%s] Ext-auth: Unknown attr:'%s'", 
@@ -2397,7 +2434,9 @@ AuthExternalAcct(AuthData auth)
 	fprintf(fp, "ACCT_TERMINATE_CAUSE:%s\n", auth->info.downReason);
 
     if (auth->acct_type != AUTH_ACCT_START) {
+#ifdef USE_NG_BPF
 	struct svcstatrec *ssr;
+#endif
 	fprintf(fp, "ACCT_SESSION_TIME:%ld\n", 
 	    (long int)(time(NULL) - auth->info.last_up));
 	fprintf(fp, "ACCT_INPUT_OCTETS:%llu\n", 
@@ -2408,6 +2447,7 @@ AuthExternalAcct(AuthData auth)
 	    (long long unsigned)auth->info.stats.xmitOctets);
 	fprintf(fp, "ACCT_OUTPUT_PACKETS:%llu\n", 
 	    (long long unsigned)auth->info.stats.xmitFrames);
+#ifdef USE_NG_BPF
 	SLIST_FOREACH(ssr, &auth->info.ss.stat[0], next) {
 	    fprintf(fp, "MPD_INPUT_OCTETS:%s:%llu\n",
 		ssr->name, (long long unsigned)ssr->Octets);
@@ -2420,6 +2460,7 @@ AuthExternalAcct(AuthData auth)
 	    fprintf(fp, "MPD_OUTPUT_PACKETS:%s:%llu\n",
 		ssr->name, (long long unsigned)ssr->Packets);
 	}
+#endif /* USE_NG_BPF */
     }
 
     /* REQUEST DONE */

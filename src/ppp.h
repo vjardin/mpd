@@ -130,6 +130,7 @@
   };
 #endif
 
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
   /* max. length of acl rule */
   #define ACL_LEN	256
   #define ACL_NAME_LEN	16
@@ -137,7 +138,9 @@
   #define ACL_FILTERS	16
   /* There are two directions for acl_limits */
   #define ACL_DIRS	2
+#endif
 
+#ifdef USE_NG_BPF
   struct svcssrc {
     int				type;
   #define SSSS_IN	1
@@ -164,6 +167,7 @@
   struct svcstat {
     SLIST_HEAD(, svcstatrec)	stat[ACL_DIRS];
   };
+#endif /* USE_NG_BPF */
 
 #include "bund.h"
 #include "link.h"
@@ -199,7 +203,9 @@
 
   extern struct globalconf	gGlobalConf;	/* Global config settings */
 
+#ifdef USE_NG_BPF
   extern struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
+#endif
 
   extern struct pevent_ctx	*gPeventCtx;
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */

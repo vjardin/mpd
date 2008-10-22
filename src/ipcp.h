@@ -66,10 +66,10 @@
 
     u_char		self_ippool_used;
     u_char		ippool_used;
-
+#ifdef USE_NG_VJC
     struct ipcpvjcomp	peer_comp;	/* Peer's IP compression config */
     struct ipcpvjcomp	want_comp;	/* My IP compression config */
-
+#endif
     struct in_addr	want_dns[2];	/* DNS servers we got from peer */
     struct in_addr	want_nbns[2];	/* NBNS servers we got from peer */
 

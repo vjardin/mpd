@@ -1059,7 +1059,9 @@ RadiusPutAcct(AuthData auth)
 
   if (auth->acct_type == AUTH_ACCT_STOP 
       || auth->acct_type == AUTH_ACCT_UPDATE) {
+#ifdef USE_NG_BPF
     struct svcstatrec *ssr;
+#endif
 
     if (auth->acct_type == AUTH_ACCT_STOP) {
         int	termCause = RAD_TERM_PORT_ERROR;
@@ -1123,6 +1125,7 @@ RadiusPutAcct(AuthData auth)
         return (RAD_NACK);
     }
 
+#ifdef USE_NG_BPF
     if (auth->params.std_acct[0][0] == 0) {
 	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_INPUT_OCTETS: %lu", 
     	    auth->info.lnkname, (long unsigned int)(auth->info.stats.recvOctets % MAX_U_INT32)));
@@ -1221,6 +1224,7 @@ RadiusPutAcct(AuthData auth)
 	    }
 	}
     }
+#endif /* USE_NG_BPF */
 
   }
   return (RAD_ACK);
@@ -1325,10 +1329,13 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   size_t	len;
   const void	*data;
   u_int32_t	vendor;
-  char		*route, *acl, *acl1, *acl2, *acl3;
+  char		*route;
   char		*tmpval;
   struct in_addr	ip;
+#if defined(USE_NG_BPF) && defined(USE_IPFW)
   struct acl		**acls, *acls1;
+  char		*acl, *acl1, *acl2, *acl3;
+#endif
   struct ifaceroute	*r, *r1;
   struct u_range	range;
 #if (!defined(__FreeBSD__) || __FreeBSD_version >= 503100)
@@ -1739,6 +1746,21 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 	  case RAD_VENDOR_MPD:
 
+	    if (res == RAD_MPD_DROP_USER) {
+	        auth->drop_user = rad_cvt_int(data);
+	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_DROP_USER: %d",
+		    auth->info.lnkname, auth->drop_user));
+	        break;
+	    } else if (res == RAD_MPD_ACTION) {
+		tmpval = rad_cvt_string(data, len);
+	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_ACTION: %s",
+	    	    auth->info.lnkname, tmpval));
+		strlcpy(auth->params.action, tmpval,
+		    sizeof(auth->params.action));
+		free(tmpval);
+		break;
+	    } else
+#ifdef USE_IPFW
 	    if (res == RAD_MPD_RULE) {
 	      acl1 = acl = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_RULE: %s",
@@ -1764,7 +1786,10 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	      Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_TABLE_STATIC: %s",
 	        auth->info.lnkname, acl));
 	      acls = &(auth->params.acl_table);
-	    } else if (res == RAD_MPD_FILTER) {
+	    } else
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
+	    if (res == RAD_MPD_FILTER) {
 	      acl1 = acl = rad_cvt_string(data, len);
 	      Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_FILTER: %s",
 	        auth->info.lnkname, acl));
@@ -1793,11 +1818,6 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	        break;
 	      }
 	      acls = &(auth->params.acl_limits[i]);
-	    } else if (res == RAD_MPD_DROP_USER) {
-	      auth->drop_user = rad_cvt_int(data);
-	      Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_DROP_USER: %d",
-		auth->info.lnkname, auth->drop_user));
-	      break;
 	    } else if (res == RAD_MPD_INPUT_ACCT) {
 		tmpval = rad_cvt_string(data, len);
 	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_INPUT_ACCT: %s",
@@ -1814,20 +1834,14 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    sizeof(auth->params.std_acct[1]));
 		free(tmpval);
 		break;
-	    } else if (res == RAD_MPD_ACTION) {
-		tmpval = rad_cvt_string(data, len);
-	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_ACTION: %s",
-	    	    auth->info.lnkname, tmpval));
-		strlcpy(auth->params.action, tmpval,
-		    sizeof(auth->params.action));
-		free(tmpval);
-		break;
-	    } else {
+	    } else
+#endif /* USE_NG_BPF */
+	    {
 	      Log(LG_RADIUS2, ("[%s] RADIUS: Dropping MPD vendor specific attribute: %d",
 		auth->info.lnkname, res));
 	      break;
 	    }
-
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
 	    if (acl1 == NULL) {
 	      Log(LG_ERR, ("[%s] RADIUS: Incorrect acl!",
 		auth->info.lnkname));
@@ -1880,6 +1894,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 	    free(acl);
 	    break;
+#endif /* USE_NG_BPF or USE_IPFW */
 
 	  default:
 	    Log(LG_RADIUS2, ("[%s] RADIUS: Dropping vendor %d attribute: %d ", 

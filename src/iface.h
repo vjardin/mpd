@@ -20,14 +20,20 @@
 #include <netgraph/ng_message.h>
 #ifdef __DragonFly__
 #include <netgraph/ppp/ng_ppp.h>
+#ifdef USE_NG_BPF
 #include <netgraph/bpf/ng_bpf.h>
+#endif
 #else
 #include <netgraph/ng_ppp.h>
+#ifdef USE_NG_BPF
 #include <netgraph/ng_bpf.h>
+#endif
 #endif
 #include "mbuf.h"
 #include "timer.h"
+#ifdef	USE_NG_NAT
 #include "nat.h"
+#endif
 #include "vars.h"
 
 /*
@@ -100,7 +106,9 @@
     u_int		idle_timeout;		/* Idle timeout */
     u_int		session_timeout;	/* Session timeout */
     SLIST_HEAD(, ifaceroute) routes;
+#ifdef USE_IPFW
     struct acl 		*tables;		/* List of IP added to tables by iface */
+#endif
     struct u_range	self_addr;		/* Interface's IP address */
     struct u_addr	peer_addr;		/* Peer's IP address */
     struct u_addr	proxy_addr;		/* Proxied IP address */
@@ -110,9 +118,11 @@
     struct pppTimer	sessionTimer;		/* Session timer */
     char		up_script[IFACE_MAX_SCRIPT];
     char		down_script[IFACE_MAX_SCRIPT];
+#ifdef USE_NG_BPF
     ng_ID_t		limitID;		/* ID of limit (bpf) node */
     SLIST_HEAD(, svcs)	ss[ACL_DIRS];		/* Where to get service stats */
     struct svcstat	prevstats;		/* Stats from gone layers */
+#endif
     time_t		last_up;		/* Time this iface last got up */
     u_char		open:1;			/* In an open state */
     u_char		dod:1;			/* Interface flagged -link0 */
@@ -129,18 +139,22 @@
     
     struct dodcache	dodCache;		/* Dial-on-demand cache */
     
+#ifdef	USE_NG_NAT
     struct natstate	nat;			/* NAT config */
+#endif
 
     struct ng_ppp_link_stat64	idleStats;	/* Statistics for idle timeout */
   };
   typedef struct ifacestate	*IfaceState;
 
+#ifdef USE_IPFW
   struct acl_pool {			/* Pool of used ACL numbers */
     char		ifname[IFNAMSIZ];     /* Name of interface */
     unsigned short	acl_number;		/* ACL number given by RADIUS unique on this interface */
     unsigned short	real_number;		/* Real ACL number unique on this system */
     struct acl_pool	*next;
   };
+#endif
 
 /*
  * VARIABLES
@@ -148,6 +162,7 @@
 
   extern const struct cmdtab	IfaceSetCmds[];
 
+#ifdef USE_IPFW
   extern struct acl_pool * rule_pool; /* Pointer to the first element in the list of rules */
   extern struct acl_pool * pipe_pool; /* Pointer to the first element in the list of pipes */
   extern struct acl_pool * queue_pool; /* Pointer to the first element in the list of queues */
@@ -156,6 +171,7 @@
   extern int pipe_pool_start; /* Initial number of ipfw dummynet pipe pool */
   extern int queue_pool_start; /* Initial number of ipfw dummynet queue pool */
   extern int table_pool_start; /* Initial number of ipfw tables pool */
+#endif
 
 /*
  * FUNCTIONS
@@ -184,9 +200,11 @@
   extern int	IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer);
   extern int	IfaceSetRoute(Bund b, int cmd, struct u_range *dst, struct u_addr *gw);
 
+#ifdef USE_NG_BPF
   extern void	IfaceGetStats(Bund b, struct svcstat *stat);
   extern void	IfaceAddStats(struct svcstat *stat1, struct svcstat *stat2);
   extern void	IfaceFreeStats(struct svcstat *stat);
+#endif
 
 #endif
 
