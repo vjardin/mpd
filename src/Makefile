@@ -59,7 +59,10 @@ DPADD+=		${LIBPAM}
 LDADD+=		-lfetch
 DPADD+=		${LIBFETCH}
 
-LDADD+=		-L${PREFIX}/lib -lpdel -lssl -lexpat
+LDADD+=		-L${PREFIX}/lib
+LDADD+=		-lpdel
+LDADD+=		-lssl
+LDADD+=		-lexpat
 
 MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
 
