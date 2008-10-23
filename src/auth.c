@@ -341,6 +341,22 @@ AuthInit(Link l)
 }
 
 /*
+ * AuthInst()
+ *
+ * Instantiate auth structure from template
+ */
+
+void
+AuthInst(Auth auth, Auth autht)
+{
+    memcpy(auth, autht, sizeof(*auth));
+    if (auth->conf.extauth_script)
+	autht->conf.extauth_script = Mstrdup(MB_AUTH, auth->conf.extauth_script);
+    if (auth->conf.extacct_script)
+	autht->conf.extacct_script = Mstrdup(MB_AUTH, auth->conf.extacct_script);
+}
+
+/*
  * AuthShutdown()
  */
 
@@ -353,6 +369,10 @@ AuthShutdown(Link l)
 	paction_cancel(&a->thread);
     if (a->acct_thread)
 	paction_cancel(&a->acct_thread);
+    if (a->conf.extauth_script)
+	Freee(a->conf.extauth_script);
+    if (a->conf.extacct_script)
+	Freee(a->conf.extacct_script);
 }
 
 /*
@@ -740,8 +760,8 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\t   Limit In     : %d\r\n", conf->acct_update_lim_recv);
     Printf("\t   Limit Out    : %d\r\n", conf->acct_update_lim_xmit);
     Printf("\tAuth timeout    : %d\r\n", conf->timeout);
-    Printf("\tExtAuth script  : %s\r\n", conf->extauth_script);
-    Printf("\tExtAcct script  : %s\r\n", conf->extacct_script);
+    Printf("\tExtAuth script  : %s\r\n", conf->extauth_script?conf->extauth_script:"");
+    Printf("\tExtAcct script  : %s\r\n", conf->extacct_script?conf->extacct_script:"");
   
     Printf("Auth options\r\n");
     OptStat(ctx, &conf->options, gConfList);
@@ -1961,12 +1981,16 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
       
     case SET_EXTAUTH_SCRIPT:
-      strlcpy(autc->extauth_script, *av, sizeof(autc->extauth_script));
-      break;
+	if (autc->extauth_script)
+	    Freee(autc->extauth_script);
+	autc->extauth_script = Mstrdup(MB_AUTH, *av);
+	break;
       
     case SET_EXTACCT_SCRIPT:
-      strlcpy(autc->extacct_script, *av, sizeof(autc->extacct_script));
-      break;
+	if (autc->extacct_script)
+	    Freee(autc->extacct_script);
+	autc->extacct_script = Mstrdup(MB_AUTH, *av);
+	break;
       
     case SET_MAX_LOGINS:
       gMaxLogins = atoi(av[0]);
@@ -2051,7 +2075,7 @@ AuthExternal(AuthData auth)
     char	*attr, *val;
     int		len;
  
-    if (!auth->conf.extauth_script[0]) {
+    if (!auth->conf.extauth_script || !auth->conf.extauth_script[0]) {
 	    Log(LG_ERR, ("[%s] Ext-auth: Script not specified!", 
 		auth->info.lnkname));
 	    return (-1);
@@ -2413,7 +2437,7 @@ AuthExternalAcct(AuthData auth)
     char	*attr, *val;
     int		len;
  
-    if (!auth->conf.extacct_script[0]) {
+    if (!auth->conf.extacct_script || !auth->conf.extacct_script[0]) {
 	Log(LG_ERR, ("[%s] Ext-acct: Script not specified!", 
 	    auth->info.lnkname));
 	return (-1);

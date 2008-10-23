@@ -94,7 +94,6 @@
 
   #define AUTH_MAX_AUTHNAME	64
   #define AUTH_MAX_PASSWORD	64
-  #define AUTH_MAX_EXTCMD	128
   #define AUTH_MAX_SESSIONID	32
 
   #define LINK_MAX_NAME		16

@@ -187,8 +187,8 @@
     u_int		acct_update_lim_xmit;
     int			timeout;	/* Authorization timeout in seconds */
     struct optinfo	options;	/* Configured options */
-    char		extauth_script[AUTH_MAX_EXTCMD];/*  External auth script */
-    char		extacct_script[AUTH_MAX_EXTCMD];/*  External acct script */
+    char		*extauth_script;/*  External auth script */
+    char		*extacct_script;/*  External acct script */
     char		ippool[LINK_MAX_NAME];
   };
   typedef struct authconf	*AuthConf;
@@ -278,6 +278,7 @@
  */
 
   extern void		AuthInit(Link l);
+  extern void		AuthInst(Auth auth, Auth autht);
   extern void		AuthShutdown(Link l);
   extern void		AuthStart(Link l);
   extern void		AuthStop(Link l);
