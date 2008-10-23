@@ -626,10 +626,10 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    if (i <= 0)
 	        Error("Wrong acl number: %i\r\n", i);
 
-	    acls1 = Malloc(MB_AUTH, sizeof(struct acl));
+	    acls1 = Malloc(MB_AUTH, sizeof(struct acl) + strlen(av[3]));
 	    acls1->number = i;
 	    acls1->real_number = 0;
-	    strlcpy(acls1->rule, av[3], sizeof(acls1->rule));
+	    strcpy(acls1->rule, av[3]);
 	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
 	      acls = &((*acls)->next);
 
@@ -657,6 +657,7 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	        Freee(acls);
 	        acls = acls1;
 	    };
+	    acl_filters[i - 1] = NULL;
 	} else
 	    return(-1);
 	break;

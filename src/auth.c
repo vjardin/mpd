@@ -253,7 +253,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     acls = src->acl_rule;
     pacl = &dst->acl_rule;
     while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -261,7 +261,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     acls = src->acl_pipe;
     pacl = &dst->acl_pipe;
     while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -269,7 +269,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     acls = src->acl_queue;
     pacl = &dst->acl_queue;
     while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -277,7 +277,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
     acls = src->acl_table;
     pacl = &dst->acl_table;
     while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
+	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
 	acls = acls->next;
 	pacl = &((*pacl)->next);
     };
@@ -289,7 +289,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = src->acl_filters[i];
 	pacl = &dst->acl_filters[i];
 	while (acls != NULL) {
-	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
+	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
 	    acls = acls->next;
 	    pacl = &((*pacl)->next);
 	};
@@ -300,7 +300,7 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	acls = src->acl_limits[i];
 	pacl = &dst->acl_limits[i];
 	while (acls != NULL) {
-	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl));
+	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
 	    acls = acls->next;
 	    pacl = &((*pacl)->next);
 	};
@@ -2393,7 +2393,7 @@ AuthExternal(AuthData auth)
 	      Log(LG_ERR, ("[%s] Ext-auth: wrong acl", auth->info.lnkname));
 	      continue;
 	    }
-	    acls1 = Malloc(MB_AUTH, sizeof(struct acl));
+	    acls1 = Malloc(MB_AUTH, sizeof(struct acl) + strlen(acl3));
 	    if (strcmp(attr, "MPD_TABLE_STATIC") != 0) {
 		    acls1->number = i;
 		    acls1->real_number = 0;
@@ -2403,7 +2403,7 @@ AuthExternal(AuthData auth)
 	    }
 	    if (acl2)
 		strlcpy(acls1->name, acl2, sizeof(acls1->name));
-	    strlcpy(acls1->rule, acl3, sizeof(acls1->rule));
+	    strcpy(acls1->rule, acl3);
 	    while ((*acls != NULL) && ((*acls)->number < acls1->number))
 	      acls = &((*acls)->next);
 

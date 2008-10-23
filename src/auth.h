@@ -91,7 +91,7 @@
     u_short real_number;	/* ACL number allocated my mpd */
     struct acl *next;
     char name[ACL_NAME_LEN]; 	/* Name of ACL */
-    char rule[ACL_LEN]; 	/* Text of ACL */
+    char rule[1]; 		/* Text of ACL (Dynamically sized!) */
   };
 #endif
 
