@@ -188,7 +188,7 @@ See <ref id="nat" name="the NAT chapter"> for more information.
 The default is disable.
 
 <tag><tt>netflow-in</tt></tag><P>
-<tag><tt>netflow-out</tt></tag>
+<tag><tt>netflow-out</tt></tag><P>
 <tag><tt>netflow-once</tt></tag>
 If enabled, the bundle will participate in
 NetFlow generation. See <ref id="netflow" name="the NetFlow chapter">
