@@ -21,13 +21,12 @@
   struct rep {
     char		name[LINK_MAX_NAME];	/* Name of this repeater */
     int			id;			/* Index of this link in gReps */
-    Link		links[2];		/* Links used by repeater */
     int			csock;			/* Socket node control socket */
-    int			p_open;			/* Opened phys */
-    int			p_up;			/* Up phys */
     ng_ID_t		node_id;		/* ng_tee node ID */
+    Link		links[2];		/* Links used by repeater */
     int			refs;			/* Number of references */
-    int			dead;			/* Dead flag */
+    u_char		p_up;			/* Up phys */
+    u_char		dead;			/* Dead flag */
   };
   
 /*

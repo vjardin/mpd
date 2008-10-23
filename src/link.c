@@ -355,8 +355,8 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 {
     Link 	l, lt = NULL;
     PhysType    pt = NULL;
-    int 	tmpl = 0;
-    int 	stay = 0;
+    u_char 	tmpl = 0;
+    u_char 	stay = 0;
     int 	k;
 
     RESETREF(ctx->lnk, NULL);

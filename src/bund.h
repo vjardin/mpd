@@ -118,8 +118,9 @@
   struct bundle {
     char		name[LINK_MAX_NAME];	/* Name of this bundle */
     int			id;			/* Index of this bundle in gBundles */
-    int			tmpl;			/* This is template, not an instance */
-    int			stay;			/* Must not disappear */
+    u_char		tmpl;			/* This is template, not an instance */
+    u_char		stay;			/* Must not disappear */
+    u_char		dead;			/* Dead flag */
     Link		links[NG_PPP_MAX_LINKS];	/* Real links in this bundle */
     u_short		n_links;		/* Number of links in bundle */
     u_short		n_up;			/* Number of links joined the bundle */
@@ -127,7 +128,6 @@
     char		hook[NG_HOOKSIZ];	/* session hook name */
     MsgHandler		msgs;			/* Bundle events */
     int			refs;			/* Number of references */
-    int			dead;			/* Dead flag */
 
     /* PPP node config */
     struct ng_ppp_node_conf	pppConfig;
