@@ -5,7 +5,9 @@
  *
  */
 
+#ifdef CCP_MPPC
 #include <netgraph/ng_mppc.h>
+#endif
 #include <radlib.h>
 
 #include <net/if.h>

@@ -11,6 +11,9 @@
 #define _CCP_MPPC_H_
 
 #include "defs.h"
+
+#ifdef CCP_MPPC
+
 #include "mbuf.h"
 #include "comp.h"
 
@@ -49,6 +52,8 @@
 
   extern int	MppcStat(Context ctx, int ac, char *av[], void *arg);
   extern int 	MppcTestCap(void);
+
+#endif
 
 #endif
 

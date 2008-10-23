@@ -19,7 +19,9 @@
 #include "ngfunc.h"
 #include "util.h"
 #include "ippool.h"
+#ifdef CCP_MPPC
 #include "ccp_mppc.h"
+#endif
 
 #include <netgraph.h>
 
@@ -211,7 +213,9 @@ main(int ac, char *av[])
     /* Do some initialization */
     MpSetDiscrim();
     IPPoolInit();
+#ifdef CCP_MPPC
     MppcTestCap();
+#endif
     LinksInit();
     CcpsInit();
     EcpsInit();

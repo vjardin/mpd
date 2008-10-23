@@ -30,7 +30,9 @@
 #include "devices.h"
 #include "netgraph.h"
 #include "ngfunc.h"
+#ifdef CCP_MPPC
 #include "ccp_mppc.h"
+#endif
 #include "util.h"
 #ifdef USE_FETCH
 #include <fetch.h>
@@ -165,8 +167,10 @@
 	RepStat, AdmitRep, 0, NULL },
     { "ccp",				"CCP status",
 	CcpStat, AdmitBund, 0, NULL },
+#ifdef CCP_MPPC
     { "mppc",				"MPPC status",
 	MppcStat, AdmitBund, 0, NULL },
+#endif
     { "ecp",				"ECP status",
 	EcpStat, AdmitBund, 0, NULL },
     { "eap",				"EAP status",
@@ -243,8 +247,10 @@
 	CMD_SUBMENU, NULL, 2, (void *) IPPoolSetCmds },
     { "ccp ...",			"CCP specific stuff",
 	CMD_SUBMENU, AdmitBund, 2, (void *) CcpSetCmds },
+#ifdef CCP_MPPC
     { "mppc ...",			"MPPC specific stuff",
 	CMD_SUBMENU, AdmitBund, 2, (void *) MppcSetCmds },
+#endif
     { "ecp ...",			"ECP specific stuff",
 	CMD_SUBMENU, AdmitBund, 2, (void *) EcpSetCmds },
     { "eap ...",			"EAP specific stuff",
@@ -778,8 +784,13 @@ ShowVersion(Context ctx, int ac, char *av[], void *arg)
 #else
   Printf("	ng_ipacct	: no\r\n");
 #endif
+#ifdef  CCP_MPPC
   Printf("	ng_mppc (MPPC)	: %s\r\n", MPPCPresent?"yes":"no");
   Printf("	ng_mppc (MPPE)	: %s\r\n", MPPEPresent?"yes":"no");
+#else
+  Printf("	ng_mppc (MPPC)	: no\r\n");
+  Printf("	ng_mppc (MPPE)	: no\r\n");
+#endif
 #ifdef	USE_NG_NAT
   Printf("	ng_nat		: yes\r\n");
 #else

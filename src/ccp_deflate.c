@@ -7,7 +7,7 @@
 
 #include "defs.h"
 
-#ifdef USE_NG_DEFLATE
+#ifdef CCP_DEFLATE
 
 #include "ppp.h"
 #include "ccp.h"
@@ -386,4 +386,4 @@ DeflateStat(Context ctx, int dir)
     return (0);
 }
 
-#endif /* USE_NG_DEFLATE */
+#endif /* CCP_DEFLATE */

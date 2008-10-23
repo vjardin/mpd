@@ -7,6 +7,10 @@
  * See ``COPYRIGHT.whistle''
  */
 
+#include "defs.h"
+
+#ifdef CCP_MPPC
+
 #include "ppp.h"
 #include "ccp.h"
 #include "msoft.h"
@@ -856,3 +860,5 @@ MppcSetCommand(Context ctx, int ac, char *av[], void *arg)
   }
   return(0);
 }
+
+#endif

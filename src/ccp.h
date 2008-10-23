@@ -18,11 +18,15 @@
 #include "command.h"
 #include "log.h"
 
+#ifdef CCP_PRED1
 #include "ccp_pred1.h"
-#ifdef USE_NG_DEFLATE
+#endif
+#ifdef CCP_DEFLATE
 #include "ccp_deflate.h"
 #endif
+#ifdef CCP_MPPC
 #include "ccp_mppc.h"
+#endif
 
 #include <netgraph/ng_message.h>
 
@@ -57,11 +61,15 @@
     CompType		recv;		/* recv protocol */
     uint32_t		self_reject;	/* types rejected by me */
     uint32_t		peer_reject;	/* types rejected by peer */
+#ifdef CCP_PRED1
     struct pred1info	pred1;		/* Predictor-1 state */
-#ifdef USE_NG_DEFLATE
+#endif
+#ifdef CCP_DEFLATE
     struct deflateinfo	deflate;	/* Deflate state */
 #endif
+#ifdef CCP_MPPC
     struct mppcinfo	mppc;		/* MPPC/MPPE state */
+#endif
     ng_ID_t		comp_node_id;	/* compressor node id */
     ng_ID_t		decomp_node_id;	/* decompressor node id */
     uint32_t		recv_resets;	/* Number of ResetReq we have got from other side */

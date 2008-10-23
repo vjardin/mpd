@@ -109,7 +109,7 @@
 
   static const EncType gEncTypes[] =
   {
-#ifdef ENCRYPTION_DES
+#ifdef ECP_DES
     &gDeseBisEncType,
     &gDeseEncType,
 #endif

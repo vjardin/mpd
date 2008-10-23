@@ -43,6 +43,16 @@ else
     echo " not found."
 fi
 
+echo -n "Looking for ng_mppc ..."
+if [ -e /usr/include/netgraph/ng_mppc.h \
+  -o -e /usr/include/netgraph/mppc/ng_mppc.h ]
+then
+    echo " found."
+    echo "#define	HAVE_NG_MPPC	1" >> $CONFIG
+else
+    echo " not found."
+fi
+
 echo -n "Looking for ng_nat ..."
 if [ -e /usr/include/netgraph/ng_nat.h ]
 then

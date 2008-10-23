@@ -23,11 +23,16 @@
 #ifndef HAVE_NG_CAR
   #undef USE_NG_CAR
 #endif
-#ifndef HAVE_NG_DEFLATE
+#if !defined(HAVE_NG_DEFLATE) || !defined(USE_NG_DEFLATE) || !defined(CCP_DEFLATE)
+  #undef CCP_DEFLATE
   #undef USE_NG_DEFLATE
 #endif
 #ifndef HAVE_NG_IPACCT
   #undef USE_NG_IPACCT
+#endif
+#if !defined(HAVE_NG_MPPC) || !defined(USE_NG_MPPC) || !defined(CCP_MPPC)
+  #undef CCP_MPPC
+  #undef USE_NG_MPPC
 #endif
 #ifndef HAVE_NG_NAT
   #undef USE_NG_NAT
@@ -35,7 +40,7 @@
 #ifndef HAVE_NG_NETFLOW
   #undef USE_NG_NETFLOW
 #endif
-#ifndef HAVE_NG_PRED1
+#if !defined(HAVE_NG_PRED1) || !defined(CCP_PRED1)
   #undef USE_NG_PRED1
 #endif
 #ifndef HAVE_NG_TCPMSS

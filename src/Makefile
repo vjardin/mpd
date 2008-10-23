@@ -28,9 +28,15 @@ PHYSTYPE_PPTP=		yes
 PHYSTYPE_PPPOE=		yes
 PHYSTYPE_L2TP=		yes
 
-# Define supported encryption types
+# Define supported CCP types
 
-ENCRYPTION_DES=		yes
+CCP_DEFLATE=		yes
+CCP_MPPC=		yes
+CCP_PRED1=		yes
+
+# Define supported ECP types
+
+ECP_DES=		yes
 
 # Define system features wanted to use (if present)
 
@@ -38,6 +44,7 @@ USE_NG_BPF=		yes
 USE_NG_CAR=		yes
 USE_NG_DEFLATE=		yes
 USE_NG_IPACCT=		yes
+USE_NG_MPPC=		yes
 USE_NG_NAT=		yes
 USE_NG_NETFLOW=		yes
 USE_NG_PRED1=		yes
@@ -125,8 +132,7 @@ STDSRCS=        assert.c auth.c bund.c rep.c ccp.c chap.c \
 		console.c command.c ecp.c event.c fsm.c iface.c input.c \
 		ip.c ipcp.c ipv6cp.c lcp.c link.c log.c main.c mbuf.c mp.c \
 		msg.c ngfunc.c pap.c phys.c proto.c radius.c timer.c \
-		util.c vars.c eap.c ccp_mppc.c msoft.c web.c ippool.c \
-		ccp_pred1.c ccp_deflate.c
+		util.c vars.c eap.c msoft.c web.c ippool.c
 
 # Add sources and flags for the various physical layer types
 
@@ -161,12 +167,34 @@ SRCS+=		l2tp.c l2tp_avp.c l2tp_ctrl.c
 COPTS+=		-DPHYSTYPE_L2TP
 .endif
 
-# Encryption
+# CCP
 
-.if defined ( ENCRYPTION_DES )
+.if defined ( CCP_DEFLATE ) && defined ( USE_NG_DEFLATE )
+SRCS+=		ccp_deflate.c
+COPTS+=		-DCCP_DEFLATE
+COPTS+=         -DUSE_NG_DEFLATE
+.endif
+
+.if defined ( CCP_MPPC ) && defined ( USE_NG_MPPC )
+SRCS+=		ccp_mppc.c
+COPTS+=		-DCCP_MPPC
+COPTS+=         -DUSE_NG_MPPC
+.endif
+
+.if defined ( CCP_PRED1 )
+SRCS+=		ccp_pred1.c
+COPTS+=		-DCCP_PRED1
+.if defined ( USE_NG_PRED1 )
+COPTS+=         -DUSE_NG_PRED1
+.endif
+.endif
+
+# ECP
+
+.if defined ( ECP_DES )
 SRCS+=		ecp_dese.c
 SRCS+=		ecp_dese_bis.c
-COPTS+=		-DENCRYPTION_DES
+COPTS+=		-DECP_DES
 NEED_DES=	yes
 .endif
 
@@ -180,9 +208,6 @@ DPADD+=		${LIBPCAP}
 .if defined ( USE_NG_CAR )
 COPTS+=         -DUSE_NG_CAR
 .endif
-.if defined ( USE_NG_DEFLATE )
-COPTS+=         -DUSE_NG_DEFLATE
-.endif
 .if defined ( USE_NG_IPACCT )
 COPTS+=         -DUSE_NG_IPACCT
 .endif
@@ -192,9 +217,6 @@ COPTS+=         -DUSE_NG_NAT
 .endif
 .if defined ( USE_NG_NETFLOW )
 COPTS+=         -DUSE_NG_NETFLOW
-.endif
-.if defined ( USE_NG_PRED1 )
-COPTS+=         -DUSE_NG_PRED1
 .endif
 .if defined ( USE_NG_TCPMSS )
 COPTS+=         -DUSE_NG_TCPMSS

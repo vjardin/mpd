@@ -95,11 +95,15 @@
 
   /* These should be listed in order of preference */
   static const CompType		gCompTypes[] = {
+#ifdef CCP_MPPC
     &gCompMppcInfo,
-#ifdef USE_NG_DEFLATE
+#endif
+#ifdef CCP_DEFLATE
     &gCompDeflateInfo,
 #endif
+#ifdef CCP_PRED1
     &gCompPred1Info,
+#endif
   };
   #define CCP_NUM_PROTOS	(sizeof(gCompTypes) / sizeof(*gCompTypes))
 
@@ -342,7 +346,9 @@ CcpNgCtrlEvent(int type, void *cookie)
     /* Examine message */
     switch (u.msg.header.typecookie) {
 
+#ifdef USE_NG_MPPC
 	case NGM_MPPC_COOKIE:
+#endif
 #ifdef USE_NG_DEFLATE
 	case NGM_DEFLATE_COOKIE:
 #endif
@@ -440,6 +446,7 @@ CcpRecvMsg(Bund b, struct ng_mesg *msg, int len)
   Fsm		const fp = &ccp->fsm;
 
   switch (msg->header.typecookie) {
+#ifdef USE_NG_MPPC
     case NGM_MPPC_COOKIE:
       switch (msg->header.cmd) {
 	case NGM_MPPC_RESETREQ: {
@@ -450,6 +457,7 @@ CcpRecvMsg(Bund b, struct ng_mesg *msg, int len)
 	  break;
       }
       break;
+#endif
 #ifdef USE_NG_DEFLATE
     case NGM_DEFLATE_COOKIE:
       switch (msg->header.cmd) {
@@ -577,7 +585,9 @@ CcpStat(Context ctx, int ac, char *av[], void *arg)
   Printf("Enabled protocols:\r\n");
   OptStat(ctx, &ccp->options, gConfList);
 
+#ifdef CCP_MPPC
   MppcStat(ctx, ac, av, arg);
+#endif
   Printf("Outgoing compression:\r\n");
   Printf("\tProto\t: %s (%s)\r\n", !ccp->xmit ? "none" : ccp->xmit->name,
     (ccp->xmit && ccp->xmit->Describe) ? (*ccp->xmit->Describe)(ctx->bund, COMP_DIR_XMIT, buf, sizeof(buf)) : "");
@@ -1004,8 +1014,11 @@ CcpCheckEncryption(Bund b)
   if (!OPEN_STATE(ccp->fsm.state)
       || !ccp->xmit || ccp->xmit->type != CCP_TY_MPPC
       || !ccp->recv || ccp->recv->type != CCP_TY_MPPC
+#ifdef CCP_MPPC
       || !(ccp->mppc.recv_bits & MPPE_BITS)
-      || !(ccp->mppc.xmit_bits & MPPE_BITS))
+      || !(ccp->mppc.xmit_bits & MPPE_BITS)
+#endif
+      )
     goto fail;
 
   /* Looks OK */

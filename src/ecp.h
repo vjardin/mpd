@@ -16,7 +16,7 @@
 #include "encrypt.h"
 #include "command.h"
 
-#ifdef ENCRYPTION_DES
+#ifdef ECP_DES
 #include "ecp_dese.h"
 #include "ecp_dese_bis.h"
 #endif
@@ -50,7 +50,7 @@
     uint32_t		peer_reject;
     struct fsm		fsm;		/* PPP FSM */
     struct optinfo	options;	/* Configured options */
-#ifdef ENCRYPTION_DES
+#ifdef ECP_DES
     struct desinfo	des;		/* DESE info */
     struct desebisinfo	desebis;	/* DESE-bis info */
 #endif

@@ -172,9 +172,11 @@
       u_char	msChal[CHAP_MSOFTv2_CHAL_LEN]; /* MSOFT challng */
       u_char	ntResp[CHAP_MSOFTv2_RESP_LEN]; /* MSOFT response */
 
+#ifdef CCP_MPPC
       /* Keys when using MS-CHAPv2 or EAP */
       u_char	xmit_key[MPPE_KEY_LEN];	/* xmit start key */
       u_char	recv_key[MPPE_KEY_LEN];	/* recv start key */
+#endif
     } msoft;
   };
 
