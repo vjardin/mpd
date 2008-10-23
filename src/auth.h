@@ -17,8 +17,12 @@
 #include "eap.h"
 #include "radius.h"
 
+#ifdef USE_SYSTEM
 #include <pwd.h>
+#endif
+#ifdef USE_OPIE
 #include <opie.h>
+#endif
 #include <utmp.h>
   
 /*
@@ -231,9 +235,11 @@
     struct {
       struct rad_handle	*handle;	/* the RADIUS handle */
     } radius;
+#ifdef USE_OPIE
     struct {
       struct opie	data;
     } opie;
+#endif
     struct {		/* informational (read-only) data needed for e.g. accouting */
       char		msession_id[AUTH_MAX_SESSIONID]; /* multi-session-id */
       char		session_id[AUTH_MAX_SESSIONID];	/* session-id */

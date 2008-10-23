@@ -18,13 +18,17 @@
 #include "util.h"
 
 #include <libutil.h>
+#ifdef USE_PAM
 #include <security/pam_appl.h>	
+#endif
 
 /*
  * DEFINITIONS
  */
     
+#ifdef USE_OPIE
   #define OPIE_ALG_MD5	5
+#endif
   
 /*
  * INTERNAL FUNCTIONS
@@ -42,13 +46,19 @@
   static void		AuthInternal(AuthData auth);
   static int		AuthExternal(AuthData auth);
   static int		AuthExternalAcct(AuthData auth);
+#ifdef USE_SYSTEM
   static void		AuthSystem(AuthData auth);
   static int		AuthSystemAcct(AuthData auth);
+#endif
+#ifdef USE_PAM
   static void		AuthPAM(AuthData auth);
   static int		AuthPAMAcct(AuthData auth);
   static int		pam_conv(int n, const struct pam_message **msg,
 			    struct pam_response **resp, void *data);
+#endif
+#ifdef USE_OPIE
   static void		AuthOpie(AuthData auth);
+#endif
   static const char	*AuthCode(int proto, u_char code, char *buf, size_t len);
   static int		AuthSetCommand(Context ctx, int ac, char *av[], void *arg);
 
@@ -123,11 +133,17 @@
     { 0,	AUTH_CONF_INTERNAL,	"internal"	},
     { 0,	AUTH_CONF_EXT_AUTH,	"ext-auth"	},
     { 0,	AUTH_CONF_EXT_ACCT,	"ext-acct"	},
+#ifdef USE_SYSTEM
     { 0,	AUTH_CONF_SYSTEM_AUTH,	"system-auth"	},
     { 0,	AUTH_CONF_SYSTEM_ACCT,	"system-acct"	},
+#endif
+#ifdef USE_PAM
     { 0,	AUTH_CONF_PAM_AUTH,	"pam-auth"	},
     { 0,	AUTH_CONF_PAM_ACCT,	"pam-acct"	},
+#endif
+#ifdef USE_OPIE
     { 0,	AUTH_CONF_OPIE,		"opie"		},
+#endif
     { 0,	0,			NULL		},
   };
 
@@ -891,8 +907,12 @@ AuthAccountStart(Link l, int type)
     }
 
     if (Enabled(&a->conf.options, AUTH_CONF_RADIUS_ACCT) ||
+#ifdef USE_PAM
 	Enabled(&a->conf.options, AUTH_CONF_PAM_ACCT) ||
+#endif
+#ifdef USE_SYSTEM
 	Enabled(&a->conf.options, AUTH_CONF_SYSTEM_ACCT) ||
+#endif
 	Enabled(&a->conf.options, AUTH_CONF_EXT_ACCT)) {
     
 	auth = AuthDataNew(l);
@@ -942,13 +962,14 @@ AuthAccount(void *arg)
   
     if (Enabled(&auth->conf.options, AUTH_CONF_RADIUS_ACCT))
 	err |= RadiusAccount(auth);
-
+#ifdef USE_PAM
     if (Enabled(&auth->conf.options, AUTH_CONF_PAM_ACCT))
 	err |= AuthPAMAcct(auth);
-
+#endif
+#ifdef USE_SYSTEM
     if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_ACCT))
 	err |= AuthSystemAcct(auth);
-
+#endif
     if (Enabled(&auth->conf.options, AUTH_CONF_EXT_ACCT))
 	err |= AuthExternalAcct(auth);
 	
@@ -1174,6 +1195,7 @@ AuthAsync(void *arg)
 	}
     }
   
+#ifdef USE_PAM
   if (Enabled(&auth->conf.options, AUTH_CONF_PAM_AUTH)) {
     auth->params.authentic = AUTH_CONF_PAM_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying PAM", auth->info.lnkname));
@@ -1184,7 +1206,9 @@ AuthAsync(void *arg)
       || auth->status == AUTH_STATUS_UNDEF)
         return;
   }
+#endif
 
+#ifdef USE_SYSTEM
   if (Enabled(&auth->conf.options, AUTH_CONF_SYSTEM_AUTH)) {
     auth->params.authentic = AUTH_CONF_SYSTEM_AUTH;
     Log(LG_AUTH, ("[%s] AUTH: Trying SYSTEM", auth->info.lnkname));
@@ -1195,7 +1219,9 @@ AuthAsync(void *arg)
       || auth->status == AUTH_STATUS_UNDEF)
         return;
   }
+#endif
   
+#ifdef USE_OPIE
   if (Enabled(&auth->conf.options, AUTH_CONF_OPIE)) {
     auth->params.authentic = AUTH_CONF_OPIE;
     Log(LG_AUTH, ("[%s] AUTH: Trying OPIE", auth->info.lnkname));
@@ -1206,6 +1232,7 @@ AuthAsync(void *arg)
       || auth->status == AUTH_STATUS_UNDEF)
         return;
   }    
+#endif /* USE_OPIE */
   
   if (Enabled(&auth->conf.options, AUTH_CONF_INTERNAL)) {
     auth->params.authentic = AUTH_CONF_INTERNAL;
@@ -1306,6 +1333,7 @@ AuthInternal(AuthData auth)
     auth->status = AUTH_STATUS_UNDEF;
 }
 
+#ifdef USE_SYSTEM
 /*
  * AuthSystem()
  * 
@@ -1417,7 +1445,9 @@ AuthSystemAcct(AuthData auth)
 	}
 	return (0);
 }
+#endif /* USE_SYSTEM */
 
+#ifdef USE_PAM
 /*
  * AuthPAM()
  * 
@@ -1568,7 +1598,9 @@ AuthPAMAcct(AuthData auth)
     pam_end(pamh, status);
     return (0);
 }
+#endif /* USE_PAM */
 
+#ifdef USE_OPIE
 /*
  * AuthOpie()
  */
@@ -1635,6 +1667,7 @@ AuthOpie(AuthData auth)
   opiebtoe(english, &key);
   strlcpy(auth->params.password, english, sizeof(auth->params.password));
 }
+#endif /* USE_OPIE */
 
 /*
  * AuthPreChecks()

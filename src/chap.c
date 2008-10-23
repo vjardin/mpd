@@ -569,9 +569,11 @@ ChapInputFinish(Link l, AuthData auth)
     }
   
 goodResponse:
+#ifdef USE_OPIE
     /* make a dummy verify to force an update of the opiekeys database */
     if (a->params.authentic == AUTH_CONF_OPIE)
 	opieverify(&auth->opie.data, a->params.password);
+#endif
 
     /* Need to remember MS-CHAP stuff for use with MPPE encryption */
     if (l->originate == LINK_ORIGINATE_REMOTE &&

@@ -1122,7 +1122,6 @@ TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
 {
   int	new_sock;
   socklen_t size=sizeof(struct sockaddr_storage);
-  struct request_info req;
 
 /* Accept incoming connection */
 
@@ -1132,7 +1131,9 @@ TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
     return(-1);
   }
   
+#ifdef USE_WRAP
     if (Enabled(&gGlobalConf.options, GLOBAL_CONF_TCPWRAPPER)) {
+      struct request_info req;
       request_init(&req, RQ_DAEMON, "mpd", RQ_FILE, new_sock, NULL);
       fromhost(&req);
       if (!hosts_access(&req)) {
@@ -1142,6 +1143,7 @@ TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block)
 	return(-1);
       }
     }
+#endif
   
   if (!block) 
   {

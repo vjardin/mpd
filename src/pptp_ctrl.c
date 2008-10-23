@@ -18,9 +18,6 @@
  * DEFINITIONS
  */
 
-  /* #define LOOK_LIKE_NT */
-  #define RANDOMIZE_CID /* */
-
   #define PPTP_FIRMWARE_REV		0x0101
 
   #define PPTP_STR_INTERNAL_CALLING	"Internally originated VPN call"

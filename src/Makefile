@@ -45,32 +45,55 @@ USE_NG_TCPMSS=		yes
 USE_NG_VJC=		yes
 USE_IPFW=		yes
 USE_FETCH=		yes
+USE_TCP_WRAP=		yes
+USE_AUTH_OPIE=		yes
+USE_AUTH_PAM=		yes
+USE_AUTH_SYSTEM=	yes
 
 # Set syslog logging facility. Change LOG_DAEMON to whatever you like.
 
 SYSLOG_FACILITY=	LOG_DAEMON
+COPTS+=			-DPROTO_NAME_LIST
 
 # Compiler & linker flags
 
-LDADD+=		-lmd 
-DPADD+=		${LIBMD}
+.if defined ( USE_TCP_WRAP )
+## filter TCP accept connections
 LDADD+=		-lwrap
 DPADD+=		${LIBWRAP}
-LDADD+=		-lcrypt
-DPADD+=		${LIBCRYPT}
-LDADD+=		-lopie -lmd
-DPADD+=		${LIBOPIE} ${LIBMD}
-LDADD+=		-lutil
-DPADD+=		${LIBUTIL}
-LDADD+=		-lnetgraph
-DPADD+=		${LIBNETGRAPH}
-LDADD+=		-L/usr/lib -lradius
-DPADD+=		${LIBRADIUS}
+COPTS+=		-DUSE_WRAP
+.endif
+
+## authentication methods: opie, pam, /etc/password
+.if defined ( USE_AUTH_OPIE )
+LDADD+=		-lopie
+DPADD+=		${LIBOPIE}
+COPTS+=		-DUSE_OPIE
+.endif
+
+.if defined ( USE_AUTH_PAM )
 LDADD+=		-lpam
 DPADD+=		${LIBPAM}
+COPTS+=		-DUSE_PAM
+.endif
 
+.if defined ( USE_AUTH_SYSTEM )
+## based on /etc/password
+LDADD+=		-lcrypt -lutil
+DPADD+=		${LIBCRYPT} ${LIBUTIL}
+COPTS+=		-DUSE_SYSTEM
+.endif
+
+LDADD+=		-lnetgraph
+DPADD+=		${LIBNETGRAPH}
+
+LDADD+=		-L/usr/lib -lradius
+DPADD+=		${LIBRADIUS}
+
+## libpdel needs ssl and libexpat (libxml2 cannot be used)
 LDADD+=		-L${PREFIX}/lib
 LDADD+=		-lpdel
+LDADD+=		-lssl
 LDADD+=		-lexpat
 
 MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
@@ -126,6 +149,8 @@ COPTS+=		-DPHYSTYPE_NG_SOCKET
 .if defined ( PHYSTYPE_PPTP )
 SRCS+=		pptp.c pptp_ctrl.c
 COPTS+=		-DPHYSTYPE_PPTP
+COPTS+=		-DRANDOMIZE_CID
+#COPTS+=		-DLOOK_LIKE_NT
 .endif
 .if defined ( PHYSTYPE_PPPOE )
 SRCS+=		pppoe.c
