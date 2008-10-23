@@ -384,7 +384,8 @@ mpd-rule += "100=allow all from any to any",
 
 When mpd receives these parameters it will call ipfw(8) to create
 firewall rules, pipes and queues with unique numbers starting from 10000
-(configurable via 'set global start...').
+(configurable via 'set global start...'). %rX, %pX, %qX, %tX
+macroses will be expanded within mpd-rule and mpd-queue.
 To the end of each rule will be added "via ngX" to make the rule apply
 only to that client's networking interface.
 
