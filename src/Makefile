@@ -228,7 +228,7 @@ COPTS+=         -DUSE_NG_VJC
 COPTS+=         -DUSE_IPFW
 .endif
 .if defined ( USE_FETCH )
-COPTS+=         -DUSE_IPFW
+COPTS+=         -DUSE_FETCH
 LDADD+=		-lfetch
 DPADD+=		${LIBFETCH}
 .endif
