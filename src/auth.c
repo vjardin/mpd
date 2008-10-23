@@ -657,6 +657,10 @@ AuthDataNew(Link l)
 
     auth = Malloc(MB_AUTH, sizeof(*auth));
     auth->conf = l->lcp.auth.conf;
+    if (l->lcp.auth.conf.extauth_script)
+	auth->conf.extauth_script = Mstrdup(MB_AUTH, l->lcp.auth.conf.extauth_script);
+    if (l->lcp.auth.conf.extacct_script)
+	auth->conf.extacct_script = Mstrdup(MB_AUTH, l->lcp.auth.conf.extacct_script);
 
     strlcpy(auth->info.lnkname, l->name, sizeof(auth->info.lnkname));
     strlcpy(auth->info.msession_id, l->msession_id, sizeof(auth->info.msession_id));
@@ -712,6 +716,10 @@ AuthDataDestroy(AuthData auth)
 #ifdef USE_NG_BPF
     IfaceFreeStats(&auth->info.ss);
 #endif
+    if (auth->conf.extauth_script)
+	Freee(auth->conf.extauth_script);
+    if (auth->conf.extacct_script)
+	Freee(auth->conf.extacct_script);
     Freee(auth);
 }
 
