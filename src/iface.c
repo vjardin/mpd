@@ -476,9 +476,7 @@ IfaceUp(Bund b, int ready)
   /* Set ACLs */
   acls = b->params.acl_pipe;
   while (acls != NULL) {
-    buf = IFaceParseACL(acls->rule, iface->ifname);
     ExecCmd(LG_IFACE2, b->name, "%s pipe %d config %s", PATH_IPFW, acls->real_number, acls->rule);
-    Freee(buf);
     acls = acls->next;
   }
   acls = b->params.acl_queue;
