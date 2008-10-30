@@ -322,7 +322,7 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 		a->self_to_peer_alg = CHAP_ALG_MD5;
 		auth->code = CHAP_CHALLENGE;
 		ChapInput(l, auth, &pkt[1], len - 1);
-		break;
+		return;
 
 	      default:
 		assert(0);
@@ -360,7 +360,7 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	case EAP_TYPE_MD5CHAL:
 	  auth->code = CHAP_RESPONSE;
 	  ChapInput(l, auth, &pkt[1], len - 1);
-	  break;
+	  return;
 
 	default:
 	  Log(LG_AUTH, ("[%s] EAP: unknown type %d", l->name, type));
@@ -370,17 +370,17 @@ EapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 
     case EAP_SUCCESS:
       AuthFinish(l, AUTH_SELF_TO_PEER, TRUE);
-      return;
+      break;
 
     case EAP_FAILURE:
       AuthFinish(l, AUTH_SELF_TO_PEER, FALSE);
-      return;
+      break;
 
     default:
       Log(LG_AUTH, ("[%s] EAP: unknown code %d", l->name, auth->code));
       AuthFinish(l, AUTH_PEER_TO_SELF, FALSE);
   }
-
+  AuthDataDestroy(auth);
 }
 
 /*

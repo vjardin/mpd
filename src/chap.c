@@ -392,12 +392,10 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 
 	/* Send response to peer */
 	ChapSendResponse(l);
-	AuthDataDestroy(auth);
       }
       break;
 
     case CHAP_RESPONSE:
-      {
 	auth->alg = a->peer_to_self_alg;
 
 	/* Stop challenge timer */
@@ -428,9 +426,7 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 	
 	auth->finish = ChapInputFinish;
 	AuthAsyncStart(l, auth);
-
-      }
-      break;
+	return;
 
     case CHAP_SUCCESS:
     case CHAP_FAILURE:
@@ -454,27 +450,24 @@ ChapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
       /* Log message */
       ShowMesg(LG_AUTH, l->name, (char *) pkt, len);
       AuthFinish(l, AUTH_SELF_TO_PEER, auth->code == CHAP_SUCCESS);
-      AuthDataDestroy(auth);
       break;
       
     case CHAP_MS_V1_CHANGE_PW:
       Log(LG_AUTH, ("[%s] CHAP: Sorry changing passwords using MS-CHAPv1 is not yet implemented",
 	l->name));
       goto badResponse;
-      break;
 
     case CHAP_MS_V2_CHANGE_PW:
       Log(LG_AUTH, ("[%s] CHAP: Sorry changing passwords using MS-CHAPv2 is not yet implemented",
 	l->name));
       goto badResponse;
-      break;
 
     default:
       Log(LG_AUTH, ("[%s] CHAP: unknown code %d", l->name, auth->code));
       break;
   }
-  
-  return;
+    AuthDataDestroy(auth);
+    return;
   
 badResponse:
   {

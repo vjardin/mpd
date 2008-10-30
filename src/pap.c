@@ -134,14 +134,13 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 		    l->name));
 		AuthOutput(l, PROTO_PAP, PAP_ACK, auth->id,
 		    (u_char *) AUTH_MSG_WELCOME, strlen(AUTH_MSG_WELCOME), 1, 0);
-		AuthDataDestroy(auth);
 		break;
 	    }
 	    Log(LG_AUTH, ("[%s] PAP: %s not expected",
 		l->name, PapCode(auth->code, buf, sizeof(buf))));
 	    auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
 	    PapInputFinish(l, auth);
-	    break;
+	    return;
 	}
 
 	/* Sanity check packet and extract fields */
@@ -172,7 +171,7 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 
 	auth->finish = PapInputFinish;
 	AuthAsyncStart(l, auth);
-
+	return;
       }
       break;
 
@@ -200,16 +199,15 @@ PapInput(Link l, AuthData auth, const u_char *pkt, u_short len)
 
 	/* Done with my auth to peer */
 	AuthFinish(l, AUTH_SELF_TO_PEER, auth->code == PAP_ACK);	
-	AuthDataDestroy(auth);
       }
       break;
 
     default:
       Log(LG_AUTH, ("[%s] PAP: unknown code", l->name));
-      AuthDataDestroy(auth);
       break;
   }
-  return;
+    AuthDataDestroy(auth);
+    return;
 
 error:
     Log(LG_AUTH, ("[%s] PAP: Bad PAP packet", l->name));

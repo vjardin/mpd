@@ -35,6 +35,8 @@
 	<itemize>
 	  <item> Fix possible crash on nonterminated ident string receive.
 	  </item>
+	  <item> Fix memory leaks on auth failures.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
