@@ -225,7 +225,7 @@ FsmOutputMbuf(Fsm fp, u_int code, u_int id, Mbuf payload)
     hdr.length = htons(sizeof(hdr) + MBLEN(payload));
 
     /* Prepend to payload */
-    bp = mbcopyback(payload, -sizeof(hdr), &hdr, sizeof(hdr));
+    bp = mbcopyback(payload, -(int)sizeof(hdr), &hdr, sizeof(hdr));
 
     /* Send it out */
     if (fp->type->link_layer) {
@@ -1118,7 +1118,7 @@ FsmSendEchoReq(Fsm fp, Mbuf payload)
     return;
 
   /* Prepend my magic number */
-  bp = mbcopyback(payload, -sizeof(self_magic), &self_magic, sizeof(self_magic));
+  bp = mbcopyback(payload, -(int)sizeof(self_magic), &self_magic, sizeof(self_magic));
 
   /* Send it */
   Log(LG_ECHO, ("[%s] %s: SendEchoReq #%d", Pref(fp), Fsm(fp), fp->echoid));
@@ -1199,7 +1199,7 @@ FsmRecvEchoReq(Fsm fp, FsmHeader lhp, Mbuf bp)
 
   /* Stick my magic number in there instead */
   self_magic = htonl(((Link)(fp->arg))->lcp.want_magic);
-  bp = mbcopyback(bp, -sizeof(self_magic), &self_magic, sizeof(self_magic));
+  bp = mbcopyback(bp, -(int)sizeof(self_magic), &self_magic, sizeof(self_magic));
 
   /* Send it back, preserving everything else */
   Log(LG_ECHO, ("[%s] %s: SendEchoRep #%d", Pref(fp), Fsm(fp), lhp->id));
