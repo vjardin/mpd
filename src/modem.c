@@ -356,21 +356,20 @@ ModemDoClose(Link l, int opened)
     TimerStop(&m->checkTimer);
     TimerStop(&m->startTimer);
     TimerStop(&m->reportTimer);
-    (void) write(m->fd, &ch, 1);	/* USR kludge to prevent dial lockup */
-#if NGM_TTY_COOKIE < 1226109660
     if (*m->ttynode != '\0') {
 	char	path[NG_PATHSIZ];
 
 	snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
 	NgFuncShutdownNode(m->csock, l->name, path);
+	snprintf(path, sizeof(path), "%s:", m->ttynode);
+	NgFuncShutdownNode(m->csock, l->name, path);
 	*m->ttynode = '\0';
     }
-#endif
+    (void) write(m->fd, &ch, 1);	/* USR kludge to prevent dial lockup */
     if (m->csock > 0) {
 	close(m->csock);
 	m->csock = -1;
     }
-
     ExclusiveCloseDevice(l->name, m->fd, m->device);
     m->lastClosed = time(NULL);
     m->answering = FALSE;
