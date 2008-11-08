@@ -348,7 +348,6 @@ static void
 ModemDoClose(Link l, int opened)
 {
     ModemInfo	const m = (ModemInfo) l->info;
-    char	path[NG_PATHSIZ];
     const char	ch = ' ';
 
     /* Shutdown everything */
@@ -358,11 +357,15 @@ ModemDoClose(Link l, int opened)
     TimerStop(&m->startTimer);
     TimerStop(&m->reportTimer);
     (void) write(m->fd, &ch, 1);	/* USR kludge to prevent dial lockup */
+#if NGM_TTY_COOKIE < 1226109660
     if (*m->ttynode != '\0') {
+	char	path[NG_PATHSIZ];
+
 	snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
 	NgFuncShutdownNode(m->csock, l->name, path);
 	*m->ttynode = '\0';
     }
+#endif
     if (m->csock > 0) {
 	close(m->csock);
 	m->csock = -1;
@@ -514,12 +517,23 @@ static int
 ModemInstallNodes(Link l)
 {
     ModemInfo 		m = (ModemInfo) l->info;
-    struct nodeinfo	ngtty;
     struct ngm_mkpeer	ngm;
     struct ngm_connect	cn;
     char       		path[NG_PATHSIZ];
     int			hotchar = PPP_FLAG;
+#if NGM_TTY_COOKIE < 1226109660
+    struct nodeinfo	ngtty;
     int			ldisc = NETGRAPHDISC;
+#else
+    struct ngm_rmhook	rm;
+    union {
+	u_char buf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
+	struct ng_mesg reply;
+    } repbuf;
+    struct ng_mesg *const reply = &repbuf.reply;
+    struct nodeinfo *ninfo = (struct nodeinfo *)&reply->data;
+    int	tty[2];
+#endif
 
     /* Get a temporary netgraph socket node */
     if (NgMkSockNode(NULL, &m->csock, NULL) == -1) {
@@ -527,6 +541,7 @@ ModemInstallNodes(Link l)
     	return(-1);
     }
 
+#if NGM_TTY_COOKIE < 1226109660
     /* Install ng_tty line discipline */
     if (ioctl(m->fd, TIOCSETD, &ldisc) < 0) {
 
@@ -552,9 +567,51 @@ ModemInstallNodes(Link l)
 	return(-1);
     }
     strlcpy(m->ttynode, ngtty.name, sizeof(m->ttynode));
+#else
+    /* Attach a TTY node */
+    snprintf(ngm.type, sizeof(ngm.type), "%s", NG_TTY_NODE_TYPE);
+    snprintf(ngm.ourhook, sizeof(ngm.ourhook), "%s", NG_TTY_HOOK);
+    snprintf(ngm.peerhook, sizeof(ngm.peerhook), "%s", NG_TTY_HOOK);
+    if (NgSendMsg(m->csock, ".", NGM_GENERIC_COOKIE,
+    	    NGM_MKPEER, &ngm, sizeof(ngm)) < 0) {
+        Log(LG_ERR, ("[%s] MODEM: can't connect %s node on %s", l->name,
+    	    NG_TTY_NODE_TYPE, "."));
+        close(m->csock);
+	return(-1);
+    }
+    snprintf(path, sizeof(path), ".:%s", NG_TTY_HOOK);
+    if (NgSendMsg(m->csock, path,
+	    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) != -1) {
+        if (NgRecvMsg(m->csock, reply, sizeof(repbuf), NULL) < 0) {
+            Log(LG_ERR, ("[%s] MODEM: can't locate %s node on %s (%d)", l->name,
+        	NG_TTY_NODE_TYPE, path, errno));
+	    close(m->csock);
+	    return(-1);
+	}
+    }
+    snprintf(m->ttynode, sizeof(m->ttynode), "[%x]", ninfo->id);
+    /* Attach to the TTY */
+    tty[0] = gPid;
+    tty[1] = m->fd;
+    if (NgSendMsg(m->csock, path, NGM_TTY_COOKIE,
+          NGM_TTY_SET_TTY, &tty, sizeof(tty)) < 0) {
+        Log(LG_ERR, ("[%s] MODEM: can't hook tty to fd %d", l->name, m->fd));
+        close(m->csock);
+	return(-1);
+    }
+    /* Disconnect temporary hook. */
+    snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_TTY_HOOK);
+    if (NgSendMsg(m->csock, ".",
+    	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
+        Log(LG_ERR, ("[%s] MODEM: can't remove hook %s: %s", l->name,
+	    NG_TTY_HOOK, strerror(errno)));
+    	close(m->csock);
+    	return(-1);
+    }
+#endif
 
     /* Set the ``hot char'' on the TTY node */
-    snprintf(path, sizeof(path), "%s:", ngtty.name);
+    snprintf(path, sizeof(path), "%s:", m->ttynode);
     if (NgSendMsg(m->csock, path, NGM_TTY_COOKIE,
       NGM_TTY_SET_HOTCHAR, &hotchar, sizeof(hotchar)) < 0) {
 	Log(LG_ERR, ("[%s] MODEM: can't set hotchar", l->name));
@@ -574,7 +631,7 @@ ModemInstallNodes(Link l)
     }
 
     /* Configure the async converter node */
-    snprintf(path, sizeof(path), "%s:%s", ngtty.name, NG_TTY_HOOK);
+    snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
     memset(&m->acfg, 0, sizeof(m->acfg));
     m->acfg.enabled = TRUE;
     m->acfg.accm = ~0;
