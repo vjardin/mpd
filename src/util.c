@@ -1483,7 +1483,11 @@ GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 	mib[2] = 0;
 	mib[3] = addr->family;
 	mib[4] = NET_RT_FLAGS;
+#ifdef RTF_LLINFO
 	mib[5] = RTF_LLINFO;
+#else
+	mib[5] = 0;
+#endif
 	if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0) {
 		Log(LG_ERR, ("route-sysctl-estimate"));
 		return (0);
