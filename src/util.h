@@ -36,7 +36,8 @@
 
   #define MAX_U_INT32 0xffffffffU
 
-  #define MAX_INTERFACES	2048
+  #define IFCONF_BUFFSIZE	16384
+  #define IFCONF_BUFFMAXSIZE	1048576
 
   struct configfile {
     char		*label;

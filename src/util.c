@@ -1265,6 +1265,7 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
   struct ifreq		*ifr, *ifend;
   struct ifreq		ifreq;
   struct ifconf		ifc;
+  unsigned int		buffsize = IFCONF_BUFFSIZE;
 
     /* use cached IP to reduce number of syscalls */
     if (ifname == NULL && have_nipa) {
@@ -1295,14 +1296,28 @@ GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname)
     /* If simple is not enouth try complex call */
     if (ipa.s_addr == 0) {
       struct ifreq *ifs;
-      ifc.ifc_len = sizeof(struct ifreq) * MAX_INTERFACES;
-      ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
-      if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-        Freee(ifs);
-	if (errno != ENXIO)
-    	    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
-        close(s);
-        return(-1);
+      while (1) {
+        ifc.ifc_len = buffsize;
+        ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
+        if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+          Freee(ifs);
+          if (errno != ENXIO)
+    	     Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
+          close(s);
+          return(-1);
+        }
+        
+        /* if used size is too close to allocated size retry with a larger buffer */
+        if (ifc.ifc_len + 128 < buffsize)
+          break;
+        
+         Freee(ifs);
+        if (buffsize >= IFCONF_BUFFMAXSIZE) {
+       	  Log(LG_ERR, ("%s: Max buffer size reached", __FUNCTION__));
+          close(s);
+          return(-1);
+        }
+        buffsize *= 2;
       }
 
       for (ifend = (struct ifreq *)(void *)(ifc.ifc_buf + ifc.ifc_len),
@@ -1364,6 +1379,7 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
   struct ifreq		ifreq;
   struct ifconf		ifc;
   struct ifreq 		*ifs;
+  unsigned int buffsize = IFCONF_BUFFSIZE;
   
   static struct sockaddr_dl nhwaddr;
   static int		have_nhwaddr = 0;
@@ -1375,20 +1391,34 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 	return(0);
     }
 
-  /* Get interface list */
-  if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-    Perror("%s: Socket creation error", __FUNCTION__);
-    return(-1);
-  }
+    /* Get interface list */
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Perror("%s: Socket creation error", __FUNCTION__);
+	return(-1);
+    }
 
-  ifc.ifc_len = sizeof(struct ifreq) * MAX_INTERFACES;
-  ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
-  if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
-    Freee(ifs);
-    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
-    close(s);
-    return(-1);
-  }
+    while (1) {
+	ifc.ifc_len = buffsize;
+	ifc.ifc_req = ifs = Malloc(MB_UTIL, ifc.ifc_len);
+	if (ioctl(s, SIOCGIFCONF, &ifc) < 0) {
+	    Freee(ifs);
+	    Perror("%s: ioctl(SIOCGIFCONF)", __FUNCTION__);
+    	    close(s);
+	    return(-1);
+	}
+	 
+	/* if used size is too close to allocated size retry with a larger buffer */
+	if (ifc.ifc_len + 128 < buffsize)
+	    break;
+	 
+	Freee(ifs);
+	if (buffsize >= IFCONF_BUFFMAXSIZE) {
+	    Log(LG_ERR, ("%s: Max buffer size reached", __FUNCTION__));
+    	    close(s);
+	    return(-1);
+	}
+	buffsize *= 2;
+    }
 
   /*
    * Scan through looking for an interface with an IP
