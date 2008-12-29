@@ -21,6 +21,9 @@
 	  <item> Added support for new ng_netflow node features to improve
 		 bidirectional accounting.
 	  </item>
+	  <item> Added 'acct-mandatory' auth option to control accounting start
+		 errors handeling.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

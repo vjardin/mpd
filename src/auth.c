@@ -144,6 +144,7 @@
 #ifdef USE_OPIE
     { 0,	AUTH_CONF_OPIE,		"opie"		},
 #endif
+    { 0,	AUTH_CONF_ACCT_MANDATORY,	"acct-mandatory"	},
     { 0,	0,			NULL		},
   };
 
@@ -335,6 +336,7 @@ AuthInit(Link l)
   
     ac->timeout = 40;
     Enable(&ac->options, AUTH_CONF_INTERNAL);
+    Enable(&ac->options, AUTH_CONF_ACCT_MANDATORY);
 
     EapInit(l);
     RadiusInit(l);
@@ -1001,7 +1003,8 @@ AuthAccount(void *arg)
     if (Enabled(&auth->conf.options, AUTH_CONF_EXT_ACCT))
 	err |= AuthExternalAcct(auth);
 	
-    if (err != 0 && auth->acct_type == AUTH_ACCT_START) {
+    if (err != 0 && auth->acct_type == AUTH_ACCT_START &&
+	    Enabled(&auth->conf.options, AUTH_CONF_ACCT_MANDATORY)) {
 	Log(LG_AUTH, ("[%s] ACCT: Close link due to accounting start error", 
 	    auth->info.lnkname));
 	auth->drop_user = 1;

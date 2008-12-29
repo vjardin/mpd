@@ -164,6 +164,13 @@ with their secret pass phrase.
 
 Default <tt><bf>disable</bf></tt>.
 
+<tag><tt>acct-mandatory</tt></tag>
+
+Makes accounting start mandatory. If enabled, on accounting start failure 
+connection will be dropped.
+
+Default <tt><bf>enable</bf></tt>.
+
 </descrip>
 </p>
 
