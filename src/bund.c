@@ -349,7 +349,8 @@ BundJoin(Link l)
 
 	/* Configure the bundle */
 	b->pppConfig.bund.enableMultilink = (lcp->peer_mrru && lcp->want_mrru)?1:0;
-	b->pppConfig.bund.mrru = lcp->peer_mrru;
+	/* ng_ppp does not allow MRRU less then 1500 bytes. */
+	b->pppConfig.bund.mrru = (lcp->peer_mrru < 1500) ? 1500 : lcp->peer_mrru;
 	b->pppConfig.bund.xmitShortSeq = lcp->peer_shortseq;
 	b->pppConfig.bund.recvShortSeq = lcp->want_shortseq;
 	b->pppConfig.bund.enableRoundRobin =
