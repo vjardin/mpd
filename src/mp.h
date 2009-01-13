@@ -38,7 +38,7 @@
 
 /* Bounds on things */
 
-  #define MP_MIN_MRRU		LCP_DEFAULT_MRU		/* Per RFC 1990 */
+  #define MP_MIN_MRRU		LCP_MIN_MRU		/* Per RFC 1990 */
   #define MP_MAX_MRRU		4096
   #define MP_DEFAULT_MRRU	2048
 

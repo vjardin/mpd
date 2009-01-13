@@ -32,6 +32,9 @@
 	  </item>
 	  <item> Reduced memory usage.
 	  </item>
+	  <item> Allowes MRRU less then 1500 bytes. RFC claims that 1500 must be
+		 supported, but lower values are acceptable.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:
