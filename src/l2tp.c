@@ -345,6 +345,7 @@ L2tpOpen(Link l)
 	struct sockaddr_storage sas;
 	char hook[NG_HOOKSIZ];
 	char namebuf[64];
+	char buf[32], buf2[32];
 	char hostname[MAXHOSTNAMELEN];
 	ng_ID_t node_id;
 	int csock = -1;
@@ -522,6 +523,10 @@ L2tpOpen(Link l)
 	}
 	ppp_l2tp_ctrl_set_cookie(tun->ctrl, tun);
 
+	Log(LG_PHYS, ("L2TP: Initiating control connection %p %s %u <-> %s %u",
+	    tun->ctrl, u_addrtoa(&tun->self_addr,buf,sizeof(buf)), tun->self_port,
+	    u_addrtoa(&tun->peer_addr,buf2,sizeof(buf2)), tun->peer_port));
+
 	/* Get a temporary netgraph socket node */
 	if (NgMkSockNode(NULL, &csock, &dsock) == -1) {
 		Log(LG_ERR, ("[%s] NgMkSockNode: %s", 
@@ -608,7 +613,9 @@ L2tpOpen(Link l)
 	}
 	pi->tun = tun;
 	tun->active_sessions++;
-	Log(LG_PHYS, ("L2TP: Control connection %p initiated", tun->ctrl));
+	Log(LG_PHYS2, ("L2TP: Control connection %p %s %u <-> %s %u initiated",
+	    tun->ctrl, u_addrtoa(&tun->self_addr,buf,sizeof(buf)), tun->self_port,
+	    u_addrtoa(&tun->peer_addr,buf2,sizeof(buf2)), tun->peer_port));
 	ppp_l2tp_ctrl_initiate(tun->ctrl);
 
 	/* Clean up and return */
@@ -942,9 +949,12 @@ ppp_l2tp_ctrl_connected_cb(struct ppp_l2tp_ctrl *ctrl)
 	struct ppp_l2tp_sess *sess;
 	struct ppp_l2tp_avp_list *avps = NULL;
 	struct sockaddr_dl  hwa;
+	char	buf[32], buf2[32];
 	int	k;
 
-	Log(LG_PHYS, ("L2TP: Control connection %p connected", ctrl));
+	Log(LG_PHYS, ("L2TP: Control connection %p %s %u <-> %s %u connected",
+	    ctrl, u_addrtoa(&tun->self_addr,buf,sizeof(buf)), tun->self_port,
+	    u_addrtoa(&tun->peer_addr,buf2,sizeof(buf2)), tun->peer_port));
 	
 	if (GetPeerEther(&tun->peer_addr, &hwa)) {
 	    if_indextoname(hwa.sdl_index, tun->peer_iface);
@@ -1354,6 +1364,7 @@ L2tpServerEvent(int type, void *arg)
 	char hostname[MAXHOSTNAMELEN];
 	socklen_t sas_len;
 	char namebuf[64];
+	char buf1[32], buf2[32];
 	ng_ID_t node_id;
 	int csock = -1;
 	int dsock = -1;
@@ -1545,6 +1556,10 @@ L2tpServerEvent(int type, void *arg)
 		Log(LG_ERR, ("L2TP: %s: %s", "ghash_put", strerror(errno)));
 		goto fail;
 	}
+
+	Log(LG_PHYS2, ("L2TP: Control connection %p %s %u <-> %s %u accepted",
+	    tun->ctrl, u_addrtoa(&tun->self_addr,buf1,sizeof(buf1)), tun->self_port,
+	    u_addrtoa(&tun->peer_addr,buf2,sizeof(buf2)), tun->peer_port));
 
 	/* Clean up and return */
 	ppp_l2tp_avp_list_destroy(&avps);
