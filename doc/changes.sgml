@@ -43,6 +43,8 @@
 	  </item>
 	  <item> Fix memory leaks on auth failures.
 	  </item>
+	  <item> Change NCPs join/leave sequences to avoid ENXIO errors on connect.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

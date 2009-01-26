@@ -557,8 +557,6 @@ IpcpLayerUp(Fsm fp)
     }
 #endif /* USE_NG_VJC */
 
-    BundNcpsJoin(b, NCP_IPCP);
-
     /* Enable IP packets in the PPP node */
     b->pppConfig.bund.enableIP = 1;
 #ifdef USE_NG_VJC
@@ -566,6 +564,8 @@ IpcpLayerUp(Fsm fp)
     b->pppConfig.bund.enableVJDecompression = vjc.enableDecomp;
 #endif
     NgFuncSetConfig(b);
+
+    BundNcpsJoin(b, NCP_IPCP);
 }
 
 /*
@@ -582,6 +582,8 @@ IpcpLayerDown(Fsm fp)
     IpcpState	const ipcp = &b->ipcp;
 #endif
 
+    BundNcpsLeave(b, NCP_IPCP);
+
     /* Turn off IP packets */
     b->pppConfig.bund.enableIP = 0;
 #ifdef USE_NG_VJC
@@ -596,8 +598,6 @@ IpcpLayerDown(Fsm fp)
 	IpcpNgShutdownVJ(b);
     }
 #endif /* USE_NG_VJC */
-
-    BundNcpsLeave(b, NCP_IPCP);
 }
 
 /*

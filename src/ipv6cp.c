@@ -285,18 +285,18 @@ static void
 Ipv6cpLayerUp(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
-  Ipv6cpState		const ipv6cp = &b->ipv6cp;
+    Ipv6cpState		const ipv6cp = &b->ipv6cp;
 
-  /* Report */
-  Log(fp->log, ("[%s]   %04x:%04x:%04x:%04x -> %04x:%04x:%04x:%04x", b->name,
-    ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]),
-    ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3])));
+    /* Report */
+    Log(fp->log, ("[%s]   %04x:%04x:%04x:%04x -> %04x:%04x:%04x:%04x", b->name,
+	ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]),
+	ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3])));
 
-  BundNcpsJoin(b, NCP_IPV6CP);
+    /* Enable IP packets in the PPP node */
+    b->pppConfig.bund.enableIPv6 = 1;
+    NgFuncSetConfig(b);
 
-  /* Enable IP packets in the PPP node */
-  b->pppConfig.bund.enableIPv6 = 1;
-  NgFuncSetConfig(b);
+    BundNcpsJoin(b, NCP_IPV6CP);
 }
 
 /*
@@ -309,12 +309,12 @@ static void
 Ipv6cpLayerDown(Fsm fp)
 {
     Bund 	b = (Bund)fp->arg;
-  /* Turn off IP packets */
-  b->pppConfig.bund.enableIPv6 = 0;
-  NgFuncSetConfig(b);
 
-  BundNcpsLeave(b, NCP_IPV6CP);
+    BundNcpsLeave(b, NCP_IPV6CP);
 
+    /* Turn off IP packets */
+    b->pppConfig.bund.enableIPv6 = 0;
+    NgFuncSetConfig(b);
 }
 
 /*
