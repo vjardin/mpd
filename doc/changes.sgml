@@ -45,6 +45,8 @@
 	  </item>
 	  <item> Change NCPs join/leave sequences to avoid ENXIO errors on connect.
 	  </item>
+	  <item> Use separate socket for getting CCP node ID to avoid fake reports.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

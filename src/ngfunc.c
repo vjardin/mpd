@@ -771,6 +771,22 @@ NgGetNodeID(int csock, const char *path)
     }                   u;
     struct nodeinfo     *const ni = (struct nodeinfo *)(void *)u.reply.data;
     
+    if (csock < 0) {
+	if (!gNgStatSock) {
+	    char		name[NG_NODESIZ];
+	
+	    /* Create a netgraph socket node */
+	    snprintf(name, sizeof(name), "mpd%d-stats", gPid);
+	    if (NgMkSockNode(name, &gNgStatSock, NULL) < 0) {
+    		Log(LG_ERR, ("NgFuncSendQuery: can't create %s node: %s",
+    	    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
+    		return(-1);
+	    }
+	    (void) fcntl(gNgStatSock, F_SETFD, 1);
+	}
+	csock = gNgStatSock;
+    }
+
     if (NgSendMsg(csock, path,
       NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0)
         return (0);

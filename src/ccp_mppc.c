@@ -198,7 +198,7 @@ MppcInit(Bund b, int dir)
 
     strlcat(path, ppphook, sizeof(path));
 
-    id = NgGetNodeID(gCcpCsock, path);
+    id = NgGetNodeID(-1, path);
     if (dir == COMP_DIR_XMIT) {
 	b->ccp.comp_node_id = id;
     } else {
