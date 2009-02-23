@@ -130,6 +130,12 @@ mpd-filter += "1#1=match dst net 10.0.0.0/8",
 mpd-limit += "in#1#Local=flt1 pass",
 mpd-limit += "in#2#Biz=all shape 64000 4000",
 </verb>
+  , or for ext-auth:
+<verb>
+MPD_FILTER:1#1=match dst net 10.0.0.0/8
+MPD_LIMIT:in#1#Local=flt1 pass
+MPD_LIMIT:in#2#Biz=all shape 64000 4000
+</verb>
   will instruct mpd to account traffic of two types: "Local" and "Biz".
   Traffic going from client to the 10.0.0.0/8 network will be accounted
   as "Local", all other incoming traffic after shaping will be accounted as "Biz".
@@ -139,6 +145,13 @@ mpd-input-packets = Local:213213
 mpd-input-octets = Local:32132132
 mpd-input-packets = Biz:21321
 mpd-input-octets = Biz:3213213
+</verb>
+  , and for ext-acct:
+<verb>
+ACCT_INPUT_PACKETS:Local:213213
+ACCT_INPUT_OCTETS:Local:32132132
+ACCT_INPUT_PACKETS:Biz:21321
+ACCT_INPUT_OCTETS:Biz:3213213
 </verb>
 
   To simplify AAA integration mpd able to return specified traffic types
