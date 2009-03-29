@@ -719,17 +719,17 @@ LcpRecvProtoRej(Fsm fp, int proto, Mbuf bp)
   switch (proto) {
     case PROTO_CCP:
     case PROTO_COMPD:
-      rej = &l->bund->ccp.fsm;
+      rej = l->bund ? &l->bund->ccp.fsm : NULL;
       break;
     case PROTO_ECP:
     case PROTO_CRYPT:
-      rej = &l->bund->ecp.fsm;
+      rej = l->bund ? &l->bund->ecp.fsm : NULL;
       break;
     case PROTO_IPCP:
-      rej = &l->bund->ipcp.fsm;
+      rej = l->bund ? &l->bund->ipcp.fsm : NULL;
       break;
     case PROTO_IPV6CP:
-      rej = &l->bund->ipv6cp.fsm;
+      rej = l->bund ? &l->bund->ipv6cp.fsm : NULL;
       break;
     default:
       break;
