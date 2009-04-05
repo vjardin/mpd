@@ -815,9 +815,9 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 static const struct pppoe_tag*
 get_tag(const struct pppoe_hdr* ph, uint16_t idx)
 {
-	const char *const end = ((const char*)&ph->tag[0])
+	const char *const end = ((const char *)(ph + 1))
 	            + ntohs(ph->length);
-	const struct pppoe_tag *pt = &ph->tag[0];
+	const struct pppoe_tag *pt = (const void *)(ph + 1);
 	const char *ptn;
 
 	/*
@@ -894,7 +894,7 @@ PppoeListenEvent(int type, void *arg)
 	    int len = ntohs(tag->tag_len);
 	    if (len >= sizeof(real_session))
 		len = sizeof(real_session)-1;
-	    memcpy(real_session, tag->tag_data, len);
+	    memcpy(real_session, tag + 1, len);
 	    real_session[len] = 0;
 	} else {
 	    strlcpy(real_session, session, sizeof(real_session));
