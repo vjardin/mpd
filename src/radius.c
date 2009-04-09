@@ -1378,8 +1378,8 @@ RadiusGetParams(AuthData auth, int eap_proxy)
       case RAD_EAP_MESSAGE:
 	if (auth->params.eapmsg != NULL) {
 	  char *tbuf;
-	  Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_EAP_MESSAGE: len %ju of %ju",
-	    auth->info.lnkname, len, auth->params.eapmsg_len + len));
+	  Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_EAP_MESSAGE: len %d of %d",
+	    auth->info.lnkname, (int)len, (int)(auth->params.eapmsg_len + len)));
 	  tbuf = Malloc(MB_AUTH, auth->params.eapmsg_len + len);
 	  memcpy(tbuf, auth->params.eapmsg, auth->params.eapmsg_len);
 	  memcpy(&tbuf[auth->params.eapmsg_len], data, len);
@@ -1387,8 +1387,8 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  Freee(auth->params.eapmsg);
 	  auth->params.eapmsg = tbuf;
 	} else {
-	  Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_EAP_MESSAGE: len %ju",
-	    auth->info.lnkname, len));
+	  Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_EAP_MESSAGE: len %d",
+	    auth->info.lnkname, (int)len));
 	  auth->params.eapmsg = Mdup(MB_AUTH, data, len);
 	  auth->params.eapmsg_len = len;
 	}
