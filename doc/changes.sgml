@@ -12,17 +12,22 @@
 	<itemize>
 	  <item> Added 'drop' link action and 'set link action clear' command.
 	  </item>
-	  <item> Added ability to receive link action in auth reply.
+	  <item> Added ability to receive link action from AAA in auth reply.
+		 It allows AAA to select bundle/repeater configuration for
+		 specific user or session.
 	  </item>
 	  <item> Added global traffic filters support to reduce auth reply size.
+		 'set global filter ...' commands.
 	  </item>
 	  <item> Added ability to include other local or remote config files.
+		 'load ...' command able to accept configuration file path/URI
+		 as first argument.
 	  </item>
 	  <item> Added support for new ng_netflow node features to improve
-		 bidirectional accounting.
+		 bidirectional accounting performance.
 	  </item>
 	  <item> Added 'acct-mandatory' auth option to control accounting start
-		 errors handeling.
+		 errors handeling. Default is enabled.
 	  </item>
 	</itemize>
 	</item>
@@ -30,7 +35,7 @@
 	<itemize>
 	  <item> Improved build modularization to allow more customized builds.
 	  </item>
-	  <item> Reduced memory usage.
+	  <item> Reduced memory usage by more effective ACL memory allocation.
 	  </item>
 	  <item> Allowed MRRU less then 1500 bytes. RFC claims that 1500 must be
 		 supported, but lower values are acceptable.

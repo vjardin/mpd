@@ -100,7 +100,8 @@ session with session ID <tt><em>sesid</em></tt>.
 This command causes mpd to read the entry for <tt><em>label</em></tt>
 out of <tt>mpd.conf</tt> or other file if specified and
 execute the corresponding commands. <em>file</em> can be relative
-or absolute file path or http/https/ftp URL.
+or absolute file path or http/https/ftp URL. Note, that remote file
+access may be less reliable.
 
 <tag><tt>show [ <em>item</em> ] </tt>
 </tag>
@@ -222,6 +223,14 @@ This option specifies global maximum number of links, created using
 template, that could exist at the same time.
 
 The default value is 10000.
+
+<tag><tt>
+set global filter <em>num</em> add <em>fltnum</em> <em>flt</em>
+<newline>set global filter <em>num</em> clear
+</tt></tag>
+
+These commands define or clear traffic filters to be used by rules submitted
+by <ref id="radius" name="AAA"> during authentication.
 
 <tag><tt>
 set global enable <em>option ...</em>
