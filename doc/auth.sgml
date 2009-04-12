@@ -460,9 +460,9 @@ mpd-limit += "out#2#Biz=all rate-limit 1024000 150000 300000",
 
 As result, one ng_bpf node will be created to implement traffic filters 
 and several (two for this example) ng_car nodes for traffic shaping 
-and rate-limiting. Incoming traffic from 10.0.0.0/8 except 10.0.0.0/24
+and rate-limiting. Incoming traffic to 10.0.0.0/8 except 10.0.0.0/24
 will be passed, other traffic will be shaped to 64Kbits/s. Outgoing
-traffic to 10.0.0.0/8 except 10.0.0.0/24 will be passed, all other
+traffic from 10.0.0.0/8 except 10.0.0.0/24 will be passed, all other
 will be limited to 1024Kbit/s. Also traffic that passed mpd-limit rules
 marked "Biz" will be accordingly accounted and present with that name
 in AAA accounting requests.
