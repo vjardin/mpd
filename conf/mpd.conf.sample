@@ -95,7 +95,7 @@ dialin:
 # Set bundle to use
 	set link action bundle B1
 # Authenticate peer with chap-md5
-	set link no chap pap eap
+	set link no pap chap eap
 	set link enable chap-md5
 # Configure modem
 	set modem device /dev/cuad0
@@ -156,7 +156,7 @@ sync:
 	create link static L1 ng
 	set link action bundle B1
 	set link max-redial 0
-	set link no chap pap
+	set link no pap chap eap
 	set ng node sr0:
 	set ng hook rawdata
 	open
@@ -208,7 +208,7 @@ pptp_server:
 # Multilink adds some overhead, but gives full 1500 MTU.
 	set link enable multilink
 	set link yes acfcomp protocomp
-	set link no pap chap
+	set link no pap chap eap
 	set link enable chap
 # We can use use RADIUS authentication/accounting by including
 # another config section with label 'radius'.
@@ -257,7 +257,7 @@ pptp_vpn:
 	create link static L1 pptp
 	set link action bundle B1
 # Enable both sides to authenticat each other with CHAP
-	set link no pap
+	set link no pap chap eap
 	set link yes chap
 	set auth authname "VpnLogin"
 	set auth password "VpnPassword"
