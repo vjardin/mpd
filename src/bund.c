@@ -210,7 +210,6 @@ int
 BundJoin(Link l)
 {
     Bund	b, bt;
-    BundBm	bm;
     LcpState	const lcp = &l->lcp;
     int		k;
 
@@ -295,7 +294,6 @@ BundJoin(Link l)
     }
 
     b = l->bund;
-    bm = &b->bm;
 
     Log(LG_LINK, ("[%s] Link: Join bundle \"%s\"", l->name, b->name));
 
