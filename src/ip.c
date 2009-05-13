@@ -114,6 +114,8 @@ ParseAddr(const char *s, struct u_addr *addr, u_char allow)
     	    return (FALSE);
 	}
 	for (k = 0; hptr->h_addr_list[k]; k++);
+	if (k == 0)
+	    k = 1;
 	memcpy(&addr->u.ip4, hptr->h_addr_list[random() % k], sizeof(addr->u.ip4));
 	addr->family=AF_INET;
   } 

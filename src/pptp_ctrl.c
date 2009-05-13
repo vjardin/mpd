@@ -815,6 +815,7 @@ PptpCtrlListenEvent(int type, void *cookie)
     if (getsockname(sock, (struct sockaddr *) &selfst, &addrLen) < 0) {
 	Log(LG_ERR, ("PPTP: %s getsockname(): %s", __func__, strerror(errno)));
 	u_addrclear(&self_addr);
+	self_port = 0;
     } else {
 	sockaddrtou_addr(&selfst, &self_addr, &self_port);
     }

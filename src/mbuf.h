@@ -64,14 +64,14 @@
 
 /* Replacements for malloc() & free() */
 
-  extern void	*Malloc(const char *type, size_t size);
-  extern void	*Mdup(const char *type, const void *src, size_t size);
-  extern void	*Mstrdup(const char *type, const void *src);
+  extern void	*Malloc(const char *type, size_t size) __malloc_like;
+  extern void	*Mdup(const char *type, const void *src, size_t size) __malloc_like;
+  extern void	*Mstrdup(const char *type, const void *src) __malloc_like;
   extern void	Freee(void *ptr);
 
 /* Mbuf manipulation */
 
-  extern Mbuf	mballoc(int size);
+  extern Mbuf	mballoc(int size) __malloc_like;
   extern void	mbfree(Mbuf bp);
   extern Mbuf	mbread(Mbuf bp, void *ptr, int cnt);
   extern int	mbcopy(Mbuf bp, int offset, void *buf, int cnt);

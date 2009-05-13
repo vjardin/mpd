@@ -890,8 +890,8 @@ LinkNgDataEvent(int type, void *cookie)
 
 		if (MBLEN(bp) <= 4) {
 		    LogDumpBp(LG_FRAME|LG_ERR, bp,
-    			"[%s] rec'd truncated %d bytes frame from link=%d",
-    			b->name, MBLEN(bp), (int16_t)linkNum);
+    			"[%s] rec'd truncated %d bytes frame",
+    			b->name, MBLEN(bp));
 		    continue;
 		}
 

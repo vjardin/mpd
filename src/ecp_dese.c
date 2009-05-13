@@ -175,8 +175,8 @@ DesEncrypt(Bund b, Mbuf plain)
 
 /* Copy in sequence number */
 
-  MBDATA(cypher)[0] = des->xmit_seq >> 8;
-  MBDATA(cypher)[1] = des->xmit_seq & 0xff;
+  MBDATAU(cypher)[0] = des->xmit_seq >> 8;
+  MBDATAU(cypher)[1] = des->xmit_seq & 0xff;
   des->xmit_seq++;
 
 /* Copy in plaintext */

@@ -405,7 +405,6 @@ int
 NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
 	size_t arglen, struct ng_mesg *rbuf, size_t replen, char *raddr)
 {
-    int 	token, len;
 
     if (!gNgStatSock) {
 	char		name[NG_NODESIZ];
@@ -421,11 +420,11 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
     }
 
     /* Send message */
-    if ((token = NgSendMsg(gNgStatSock, path, cookie, cmd, args, arglen)) < 0)
+    if (NgSendMsg(gNgStatSock, path, cookie, cmd, args, arglen) < 0)
 	return (-1);
 
     /* Read message */
-    if ((len = NgRecvMsg(gNgStatSock, rbuf, replen, raddr)) < 0) {
+    if (NgRecvMsg(gNgStatSock, rbuf, replen, raddr) < 0) {
 	Log(LG_ERR, ("NgFuncSendQuery: can't read unexpected message: %s",
     	    strerror(errno)));
 	return (-1);

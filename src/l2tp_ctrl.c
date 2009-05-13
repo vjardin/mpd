@@ -1994,10 +1994,9 @@ ppp_l2tp_ctrl_event(void *arg)
 	} buf;
 	struct ng_mesg *const msg = &buf.msg;
 	char raddr[NG_PATHSIZ];
-	int len;
 
 	/* Read netgraph control message */
-	if ((len = NgRecvMsg(ctrl->csock, msg, sizeof(buf), raddr)) < 0) {
+	if (NgRecvMsg(ctrl->csock, msg, sizeof(buf), raddr) < 0) {
 		Log(LOG_ERR, ("L2TP: error reading control message: %s", strerror(errno)));
 		ppp_l2tp_ctrl_close(ctrl, L2TP_RESULT_ERROR,
 		    L2TP_ERROR_GENERIC, strerror(errno));

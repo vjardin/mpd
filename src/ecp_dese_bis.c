@@ -176,8 +176,8 @@ DeseBisEncrypt(Bund b, Mbuf plain)
 
 /* Copy in sequence number */
 
-  MBDATA(cypher)[0] = des->xmit_seq >> 8;
-  MBDATA(cypher)[1] = des->xmit_seq & 0xff;
+  MBDATAU(cypher)[0] = des->xmit_seq >> 8;
+  MBDATAU(cypher)[1] = des->xmit_seq & 0xff;
   des->xmit_seq++;
 
 /* Copy in plaintext */
@@ -279,9 +279,9 @@ DeseBisDecrypt(Bund b, Mbuf cypher)
   }
 
 /* Strip padding */
-  if (MBDATA(plain)[clen-1]>0 &&
-    MBDATA(plain)[clen-1]<=8) {
-      clen -= MBDATA(plain)[clen-1];
+  if (MBDATAU(plain)[clen-1]>0 &&
+    MBDATAU(plain)[clen-1]<=8) {
+      clen -= MBDATAU(plain)[clen-1];
       mbtrunc(plain, clen);
   }
 
