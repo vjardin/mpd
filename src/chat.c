@@ -1735,14 +1735,23 @@ ChatDumpBuf(ChatInfo c, const char *buf, int len, const char *fmt, ...)
   for (pos = 0; pos < len; pos += DUMP_BYTES_PER_LINE) {
     *cbuf = '\0';
     for (k = 0; k < DUMP_BYTES_PER_LINE; k++) {
-      snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf),
-	((pos + k < len) ? " %02x" : "   "), buf[pos + k]);
+	if (pos + k < len) {
+	    snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf),
+		" %02x", buf[pos + k]);
+	} else {
+	    snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf),
+		"   ");
+	}
     }
     snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf), "  ");
     for (k = 0; k < DUMP_BYTES_PER_LINE; k++) {
-      snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf),
-	((pos + k < len) ? "%c" : " "),
-	isprint(buf[pos + k]) ? buf[pos + k] : '.');
+	if (pos + k < len) {
+	    snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf),
+		"%c", isprint(buf[pos + k]) ? buf[pos + k] : '.');
+	} else {
+	    snprintf(cbuf + strlen(cbuf), sizeof(cbuf) - strlen(cbuf),
+		" ");
+	}
     }
     (*c->log)(c->arg, CHAT_LG_DEBUG, "%s", cbuf);
   }

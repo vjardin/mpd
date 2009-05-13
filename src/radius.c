@@ -297,7 +297,6 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
 static int
 RadiusAddServer(AuthData auth, short request_type)
 {
-  int		i;
   RadConf	const c = &auth->conf.radius;
   RadServe_Conf	s;
 
@@ -305,7 +304,6 @@ RadiusAddServer(AuthData auth, short request_type)
     return (RAD_ACK);
 
   s = c->server;
-  i = 1;
   while (s) {
 
     if (request_type == RAD_ACCESS_REQUEST) {

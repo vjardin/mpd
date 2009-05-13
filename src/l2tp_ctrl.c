@@ -549,8 +549,8 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 		goto fail;
 
 	/* Add required AVP's */
-	if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
-	    0, AVP_PROTOCOL_VERSION)) == -1) {
+	if (ppp_l2tp_avp_list_find(ctrl->avps,
+	    0, AVP_PROTOCOL_VERSION)== -1) {
 		const u_char pv[] = { L2TP_PROTO_VERS, L2TP_PROTO_REV };
 
 		if (ppp_l2tp_avp_list_append(ctrl->avps, 1,
@@ -571,8 +571,8 @@ ppp_l2tp_ctrl_create(struct pevent_ctx *ctx, pthread_mutex_t *mutex,
 	    memcpy(ctrl->self_name, ctrl->avps->avps[index].value, len);
 	    ctrl->self_name[len] = 0;
 	}
-	if ((index = ppp_l2tp_avp_list_find(ctrl->avps,
-	    0, AVP_FRAMING_CAPABILITIES)) == -1) {
+	if (ppp_l2tp_avp_list_find(ctrl->avps,
+	    0, AVP_FRAMING_CAPABILITIES) == -1) {
 		const u_int32_t value = htonl(L2TP_FRAMING_SYNC|L2TP_FRAMING_ASYNC);
 
 		if (ppp_l2tp_avp_list_append(ctrl->avps, 1,
@@ -673,7 +673,6 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 {
 	struct ppp_l2tp_sess *sess;
 	u_int32_t value32;
-	int index;
 	int i;
 
 	/* Debugging */
@@ -718,22 +717,22 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 	/* Add other AVP's required by OCRQ */
 	if (!out)
 		goto send_msg;
-	if ((index = ppp_l2tp_avp_list_find(sess->my_avps,
-	    0, AVP_MINIMUM_BPS)) == -1) {
+	if (ppp_l2tp_avp_list_find(sess->my_avps,
+	    0, AVP_MINIMUM_BPS) == -1) {
 		value32 = htonl(0);
 		if (ppp_l2tp_avp_list_append(sess->my_avps, 1,
 		    0, AVP_MINIMUM_BPS, &value32, sizeof(value32)) == -1)
 			goto fail;
 	}
-	if ((index = ppp_l2tp_avp_list_find(sess->my_avps,
-	    0, AVP_MAXIMUM_BPS)) == -1) {
+	if (ppp_l2tp_avp_list_find(sess->my_avps,
+	    0, AVP_MAXIMUM_BPS) == -1) {
 		value32 = htonl(0x7fffffff);
 		if (ppp_l2tp_avp_list_append(sess->my_avps, 1,
 		    0, AVP_MAXIMUM_BPS, &value32, sizeof(value32)) == -1)
 			goto fail;
 	}
-	if ((index = ppp_l2tp_avp_list_find(sess->my_avps,
-	    0, AVP_BEARER_TYPE)) == -1) {
+	if (ppp_l2tp_avp_list_find(sess->my_avps,
+	    0, AVP_BEARER_TYPE) == -1) {
 		value32 = (ctrl->peer_bearer
 		    & (L2TP_BEARER_DIGITAL|L2TP_BEARER_ANALOG));
 		value32 = htonl(value32);
@@ -741,8 +740,8 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 		    0, AVP_BEARER_TYPE, &value32, sizeof(value32)) == -1)
 			goto fail;
 	}
-	if ((index = ppp_l2tp_avp_list_find(sess->my_avps,
-	    0, AVP_FRAMING_TYPE)) == -1) {
+	if (ppp_l2tp_avp_list_find(sess->my_avps,
+	    0, AVP_FRAMING_TYPE) == -1) {
 		value32 = (ctrl->peer_framing
 		    & (L2TP_FRAMING_SYNC|L2TP_FRAMING_ASYNC));
 		value32 = htonl(value32);
@@ -750,8 +749,8 @@ ppp_l2tp_initiate(struct ppp_l2tp_ctrl *ctrl, int out,
 		    0, AVP_FRAMING_TYPE, &value32, sizeof(value32)) == -1)
 			goto fail;
 	}
-	if ((index = ppp_l2tp_avp_list_find(sess->my_avps,
-	    0, AVP_CALLED_NUMBER)) == -1) {
+	if (ppp_l2tp_avp_list_find(sess->my_avps,
+	    0, AVP_CALLED_NUMBER) == -1) {
 		if (ppp_l2tp_avp_list_append(sess->my_avps, 1,
 		    0, AVP_CALLED_NUMBER, NULL, 0) == -1)
 			goto fail;

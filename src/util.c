@@ -1559,7 +1559,7 @@ GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 void
 ppp_util_ascify(char *buf, size_t bsiz, const char *data, size_t len)
 {
-	char *bp = buf;
+	char *bp;
 	int i;
 
 	for (bp = buf, i = 0; i < len; i++) {

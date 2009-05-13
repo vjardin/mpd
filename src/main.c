@@ -119,7 +119,7 @@
  * INTERNAL FUNCTIONS
  */
 
-  static void		Usage(int ex);
+  static void		Usage(int ex) __dead2;
   static void		OptParse(int ac, char *av[]);
   static int		OptApply(Option opt, int ac, char *av[]);
   static Option		OptDecode(char *arg, int longform);

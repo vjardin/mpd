@@ -1317,7 +1317,7 @@ L2tpHookUp(Link l)
 	    goto fail;
 	}
 	snprintf(path, sizeof(path), "[%lx]:", (u_long)node_id);
-	snprintf(cn.ourhook, sizeof(cn.ourhook), hook);
+	strlcpy(cn.ourhook, hook, sizeof(cn.ourhook));
 	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, 
 	    &cn, sizeof(cn)) < 0) {
 		Log(LG_ERR, ("[%s] L2TP: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
@@ -1344,7 +1344,6 @@ static void
 L2tpServerEvent(int type, void *arg)
 {
 	struct l2tp_server *const s = arg;
-	Link l = NULL;
 	L2tpInfo pi = NULL;
 	struct ppp_l2tp_avp_list *avps = NULL;
 	struct l2tp_tun *tun = NULL;
@@ -1419,7 +1418,6 @@ L2tpServerEvent(int type, void *arg)
 		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == tun->peer_port)) {
 			
 			if (pi == NULL || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
-				l = l2;
 				pi = pi2;
 				if (u_rangehost(&pi->conf.peer_addr)) {
 					break;	/* Nothing could be better */

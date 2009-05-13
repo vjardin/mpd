@@ -2322,32 +2322,32 @@ AuthExternal(AuthData auth)
 #if defined(USE_IPFW) || defined(USE_NG_BPF)
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;
-	char		*acl, *acl1, *acl2, *acl3;
+	char		*acl1, *acl2, *acl3;
 	int		i;
 	
 	    acl1 = NULL;
 	    acls = NULL;
 #ifdef USE_IPFW
 	    if (strcmp(attr, "MPD_RULE") == 0) {
-	      acl1 = acl = val;
+	      acl1 = val;
 	      acls = &(auth->params.acl_rule);
 	    } else if (strcmp(attr, "MPD_PIPE") == 0) {
-	      acl1 = acl = val;
+	      acl1 = val;
 	      acls = &(auth->params.acl_pipe);
 	    } else if (strcmp(attr, "MPD_QUEUE") == 0) {
-	      acl1 = acl = val;
+	      acl1 = val;
 	      acls = &(auth->params.acl_queue);
 	    } else if (strcmp(attr, "MPD_TABLE") == 0) {
-	      acl1 = acl = val;
+	      acl1 = val;
 	      acls = &(auth->params.acl_table);
 	    } else if (strcmp(attr, "MPD_TABLE_STATIC") == 0) {
-	      acl1 = acl = val;
+	      acl1 = val;
 	      acls = &(auth->params.acl_table);
 	    } else
 #endif /* USE_IPFW */
 #ifdef USE_NG_BPF
             if (strcmp(attr, "MPD_FILTER") == 0) {
-	      acl1 = acl = val;
+	      acl1 = val;
 	      acl2 = strsep(&acl1, "#");
 	      i = atol(acl2);
 	      if (i <= 0 || i > ACL_FILTERS) {
@@ -2357,7 +2357,7 @@ AuthExternal(AuthData auth)
 	      }
 	      acls = &(auth->params.acl_filters[i - 1]);
 	    } else if (strcmp(attr, "MPD_LIMIT") == 0) {
-	      acl1 = acl = val;
+	      acl1 = val;
 	      acl2 = strsep(&acl1, "#");
 	      if (strcasecmp(acl2, "in") == 0) {
 	        i = 0;

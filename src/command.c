@@ -1424,14 +1424,8 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 int
 AdmitBund(Context ctx, CmdTab cmd)
 {
-    const char	*c;
-    if (cmd)
-	c = cmd->name;
-    else
-	c = "";
-    if (!ctx->bund) {
+    if (!ctx->bund)
 	return(FALSE);
-    }
     return(TRUE);
 }
 
@@ -1442,14 +1436,8 @@ AdmitBund(Context ctx, CmdTab cmd)
 int
 AdmitLink(Context ctx, CmdTab cmd)
 {
-    const char	*c;
-    if (cmd)
-	c = cmd->name;
-    else
-	c = "";
-    if (!ctx->lnk) {
+    if (!ctx->lnk)
 	return(FALSE);
-    }
     return(TRUE);
 }
 
@@ -1460,14 +1448,8 @@ AdmitLink(Context ctx, CmdTab cmd)
 int
 AdmitRep(Context ctx, CmdTab cmd)
 {
-    const char	*c;
-    if (cmd)
-	c = cmd->name;
-    else
-	c = "";
-    if (!ctx->rep) {
+    if (!ctx->rep)
 	return(FALSE);
-    }
     return(TRUE);
 }
 
@@ -1478,17 +1460,12 @@ AdmitRep(Context ctx, CmdTab cmd)
 int
 AdmitDev(Context ctx, CmdTab cmd)
 {
-    const char	*c;
-    if (cmd)
-	c = cmd->name;
-    else
-	c = "";
-    if (!ctx->lnk) {
+    if (!cmd)
 	return(FALSE);
-    }
-    if (strncmp(cmd->name, ctx->lnk->type->name, strlen(ctx->lnk->type->name))) {
+    if (!ctx->lnk)
 	return(FALSE);
-    }
+    if (strncmp(cmd->name, ctx->lnk->type->name, strlen(ctx->lnk->type->name)))
+	return(FALSE);
     return(TRUE);
 }
 

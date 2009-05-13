@@ -686,7 +686,6 @@ TcpListen(Link l)
 	struct ngm_mkpeer mkp;
 	struct sockaddr_storage addr;
 	int32_t backlog = 1;
-	int error;
 	char buf[48];
 	union {
 	    u_char buf[sizeof(struct ng_ksocket_sockopt) + sizeof(int)];
@@ -746,7 +745,6 @@ TcpListen(Link l)
 	    &mkp, sizeof(mkp)) < 0) {
 		Log(LG_ERR, ("TCP: can't attach %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
-		error = errno;
 		goto fail2;
 	}
 
@@ -758,7 +756,6 @@ TcpListen(Link l)
 	    NGM_KSOCKET_SETOPT, &u, sizeof(u)) < 0) {
 		Log(LG_ERR, ("TCP: can't setsockopt() %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
-		error = errno;
 		goto fail2;
 	}
 
@@ -768,7 +765,6 @@ TcpListen(Link l)
 	    NGM_KSOCKET_BIND, &addr, addr.ss_len) < 0) {
 		Log(LG_ERR, ("TCP: can't bind() %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
-		error = errno;
 		goto fail2;
 	}
 
@@ -777,7 +773,6 @@ TcpListen(Link l)
 	    NGM_KSOCKET_LISTEN, &backlog, sizeof(backlog)) < 0) {
 		Log(LG_ERR, ("TCP: can't listen() on %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
-		error = errno;
 		goto fail2;
 	}
 
@@ -786,7 +781,6 @@ TcpListen(Link l)
 	    NGM_KSOCKET_ACCEPT, NULL, 0) < 0) {
 		Log(LG_ERR, ("TCP: can't accept() on %s node: %s",
 		    NG_KSOCKET_NODE_TYPE, strerror(errno)));
-		error = errno;
 		goto fail2;
 	}
 

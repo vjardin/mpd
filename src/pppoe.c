@@ -929,7 +929,6 @@ PppoeListenEvent(int type, void *arg)
 		    (strcmp(pi2->session, session) == 0) &&
 		    Enabled(&l2->conf.options, LINK_CONF_INCOMING)) {
 			l = l2;
-			pi = pi2;
 			break;
 		}
 	}
@@ -955,7 +954,7 @@ PppoeListenEvent(int type, void *arg)
 		
 	/* Create ng_tee(4) node and connect it to ng_pppoe(4). */
 	strcpy(mp.type, NG_TEE_NODE_TYPE);
-	snprintf(mp.ourhook, sizeof(mp.ourhook), session_hook);
+	strlcpy(mp.ourhook, session_hook, sizeof(mp.ourhook));
 	snprintf(mp.peerhook, sizeof(mp.peerhook), "left");
 	if (NgSendMsg(pi->PIf->csock, path, NGM_GENERIC_COOKIE, NGM_MKPEER,
 	    &mp, sizeof(mp)) < 0) {

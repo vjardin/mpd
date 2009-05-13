@@ -220,8 +220,8 @@
 
   extern void		Greetings(void);
   extern void		SendSignal(int sig);
-  extern void		DoExit(int code);
-  extern void		DoAssert(const char *file, int line, const char *x);
+  extern void		DoExit(int code) __dead2;
+  extern void		DoAssert(const char *file, int line, const char *x) __dead2;
   extern void		CheckOneShot(void);
 
 #endif

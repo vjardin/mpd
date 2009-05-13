@@ -580,7 +580,6 @@ UdpListen(Link l)
 {
 	UdpInfo const pi = (UdpInfo) l->info;
 	struct sockaddr_storage addr;
-	int error;
 	char buf[48];
 	int opt, i, j = -1, free = -1;
 	
@@ -628,7 +627,6 @@ UdpListen(Link l)
 	if (setsockopt(pi->If->csock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt))) {
 		Log(LG_ERR, ("UDP: can't setsockopt socket: %s",
 		    strerror(errno)));
-		error = errno;
 		goto fail2;
 	};
 
@@ -637,7 +635,6 @@ UdpListen(Link l)
 	if (bind(pi->If->csock, (struct sockaddr *)(&addr), addr.ss_len)) {
 		Log(LG_ERR, ("UDP: can't bind socket: %s",
 		    strerror(errno)));
-		error = errno;
 		goto fail2;
 	}
 
