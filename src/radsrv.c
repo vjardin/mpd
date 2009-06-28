@@ -86,7 +86,9 @@ static void
 RadsrvEvent(int type, void *cookie)
 {
     Radsrv w = (Radsrv)cookie;
-    int result;
+    const void	*data;
+    size_t	len;
+    int res, result;
 
     result = rad_receive_request(w->handle);
     if (result < 0) {
@@ -96,21 +98,40 @@ RadsrvEvent(int type, void *cookie)
     switch (result) {
 	case RAD_DISCONNECT_REQUEST:
 	    if (!Enabled(&w->options, RADSRV_DISCONNECT)) {
-		Log(LG_ERR, ("radsrv: DISCONNECT request disabled"));
+		Log(LG_ERR, ("radsrv: DISCONNECT request, support disabled"));
+		rad_create_response(w->handle, RAD_DISCONNECT_NAK);
+		rad_put_int(w->handle, RAD_ERROR_CAUSE, 501);
+		rad_send_response(w->handle);
 		return;
 	    }
-	    Log(LG_ERR, ("radsrv: DISCONNECT request not yet supported"));
+	    Log(LG_ERR, ("radsrv: DISCONNECT request"));
 	    break;
 	case RAD_COA_REQUEST:
 	    if (!Enabled(&w->options, RADSRV_COA)) {
-		Log(LG_ERR, ("radsrv: CoA request disabled"));
+		Log(LG_ERR, ("radsrv: CoA request, support disabled"));
+		rad_create_response(w->handle, RAD_COA_NAK);
+		rad_put_int(w->handle, RAD_ERROR_CAUSE, 501);
+		rad_send_response(w->handle);
 		return;
 	    }
-	    Log(LG_ERR, ("radsrv: CoA request not yet supported"));
-	    break;
+	    Log(LG_ERR, ("radsrv: CoA request, not yet supported"));
+	    rad_create_response(w->handle, RAD_COA_NAK);
+	    rad_put_int(w->handle, RAD_ERROR_CAUSE, 406);
+	    rad_send_response(w->handle);
+	    return;
 	default:
 	    Log(LG_ERR, ("radsrv: unsupported request: %d", result));
+	    return;
     }
+    while ((res = rad_get_attr(w->handle, &data, &len)) > 0) {
+	switch (res) {
+	    case RAD_USER_NAME:
+		break;
+	}
+    }
+
+    rad_create_response(w->handle, RAD_DISCONNECT_NAK);
+    rad_send_response(w->handle);
 }
 
 /*
