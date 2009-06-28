@@ -85,10 +85,17 @@ RadsrvInit(Radsrv w)
 static void
 RadsrvEvent(int type, void *cookie)
 {
-    Radsrv w = (Radsrv)cookie;
+    Radsrv	w = (Radsrv)cookie;
     const void	*data;
     size_t	len;
-    int res, result;
+    int		res, result, found, err, anysesid, l;
+    Bund	B;
+    Link  	L;
+    char	*username = NULL, *called = NULL, *calling = NULL, *sesid = NULL;
+    char	*msesid = NULL;
+    int		nasport = -1;
+    struct in_addr ip = { -1 };
+    char	buf[64];
 
     result = rad_receive_request(w->handle);
     if (result < 0) {
@@ -123,15 +130,134 @@ RadsrvEvent(int type, void *cookie)
 	    Log(LG_ERR, ("radsrv: unsupported request: %d", result));
 	    return;
     }
+    anysesid = 0;
     while ((res = rad_get_attr(w->handle, &data, &len)) > 0) {
 	switch (res) {
 	    case RAD_USER_NAME:
+		anysesid = 1;
+		username = rad_cvt_string(data, len);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s ",
+		    username));
+		break;
+	    case RAD_CALLED_STATION_ID:
+		anysesid = 1;
+		called = rad_cvt_string(data, len);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLED_STATION_ID: %s ",
+		    called));
+	    case RAD_CALLING_STATION_ID:
+		anysesid = 1;
+		called = rad_cvt_string(data, len);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLING_STATION_ID: %s ",
+		    calling));
+		break;
+	    case RAD_ACCT_SESSION_ID:
+		anysesid = 1;
+		sesid = rad_cvt_string(data, len);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_SESSION_ID: %s ",
+		    sesid));
+		break;
+	    case RAD_ACCT_MULTI_SESSION_ID:
+		anysesid = 1;
+		sesid = rad_cvt_string(data, len);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_MULTI_SESSION_ID: %s ",
+		    msesid));
+		break;
+	    case RAD_FRAMED_IP_ADDRESS:
+		anysesid = 1;
+		ip = rad_cvt_addr(data);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_FRAMED_IP_ADDRESS: %s ",
+		    inet_ntoa(ip)));
+		break;
+	    case RAD_NAS_PORT:
+		anysesid = 1;
+		nasport = rad_cvt_int(data);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_NAS_PORT: %d ",
+		    nasport));
+		break;
+	    case RAD_MESSAGE_AUTHENTIC:
+		Log(LG_RADIUS2, ("radsrv: Got RAD_MESSAGE_AUTHENTIC"));
+		break;
+	    default:
+		Log(LG_RADIUS2, ("radsrv: Unknown attribute: %d ", 
+		    res));
 		break;
 	}
     }
-
-    rad_create_response(w->handle, RAD_DISCONNECT_NAK);
+    if (anysesid == 0) {
+	Log(LG_ERR, ("radsrv: request without session identification"));
+	if (result == RAD_DISCONNECT_REQUEST)
+	    rad_create_response(w->handle, RAD_DISCONNECT_NAK);
+	else
+	    rad_create_response(w->handle, RAD_COA_NAK);
+	rad_put_int(w->handle, RAD_ERROR_CAUSE, 402);
+	rad_send_response(w->handle);
+	return;
+    }
+    found = 0;
+    err = 503;
+    for (l = 0; l < gNumLinks; l++) {
+	if ((L = gLinks[l]) != NULL) {
+	    B = L->bund;
+	    if (nasport != -1 && nasport != l)
+		continue;
+	    if (username && strcmp(username, L->lcp.auth.params.authname))
+		continue;
+	    if (called && !PhysGetCalledNum(L, buf, sizeof(buf)) &&
+		    strcmp(called, buf))
+		continue;
+	    if (calling && !PhysGetCallingNum(L, buf, sizeof(buf)) &&
+		    strcmp(calling, buf))
+		continue;
+	    if (sesid && strcmp(sesid, L->session_id))
+		continue;
+	    if (msesid && strcmp(msesid, L->msession_id))
+		continue;
+	    if (ip.s_addr != -1 && B &&
+		    ip.s_addr != B->iface.peer_addr.u.ip4.s_addr)
+		continue;
+		
+	    Log(LG_RADIUS2, ("radsrv: Matched link: %s",
+		L->name));
+	    found++;
+	    
+	    if (result == RAD_DISCONNECT_REQUEST) {
+		if (L->tmpl) {
+		    Log(LG_ERR, ("radsrv: Impossible to close template"));
+		    found--;
+		    err = 504;
+		} else {
+		    RecordLinkUpDownReason(NULL, L, 0, STR_MANUALLY, NULL);
+		    LinkClose(L);
+		}
+	    }
+	}
+    }
+    if (result == RAD_DISCONNECT_REQUEST) {
+	if (found) {
+	    rad_create_response(w->handle, RAD_DISCONNECT_ACK);
+	} else {
+	    rad_create_response(w->handle, RAD_DISCONNECT_NAK);
+	    rad_put_int(w->handle, RAD_ERROR_CAUSE, err);
+	}
+    } else {
+	if (found) {
+	    rad_create_response(w->handle, RAD_COA_ACK);
+	} else {
+	    rad_create_response(w->handle, RAD_COA_NAK);
+	    rad_put_int(w->handle, RAD_ERROR_CAUSE, err);
+	}
+    }
     rad_send_response(w->handle);
+    if (username)
+	free(username);
+    if (called)
+	free(called);
+    if (calling)
+	free(calling);
+    if (sesid)
+	free(sesid);
+    if (msesid)
+	free(msesid);
 }
 
 /*
