@@ -14,6 +14,7 @@
 #include "ppp.h"
 #include "console.h"
 #include "web.h"
+#include "radsrv.h"
 #include "command.h"
 #include "ccp.h"
 #include "iface.h"
@@ -205,6 +206,10 @@
 	AuthStat, AdmitLink, 0, NULL },
     { "radius",				"RADIUS status",
 	RadStat, AdmitLink, 0, NULL },
+#ifdef RAD_COA_REQUEST
+    { "radsrv",				"RADIUS server status",
+	RadsrvStat, NULL, 0, NULL },
+#endif
     { "lcp",				"LCP status",
 	LcpStat, AdmitLink, 0, NULL },
 #ifdef	USE_NG_NAT
@@ -259,6 +264,10 @@
 	CMD_SUBMENU, AdmitLink, 2, (void *) AuthSetCmds },
     { "radius ...",			"RADIUS specific stuff",
 	CMD_SUBMENU, AdmitLink, 2, (void *) RadiusSetCmds },
+#ifdef RAD_COA_REQUEST
+    { "radsrv ...",			"RADIUS server specific stuff",
+	CMD_SUBMENU, NULL, 2, (void *) RadsrvSetCmds },
+#endif
     { "console ...",			"Console specific stuff",
 	CMD_SUBMENU, NULL, 0, (void *) ConsoleSetCmds },
     { "web ...",			"Web specific stuff",

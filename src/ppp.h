@@ -188,6 +188,7 @@
   extern int		gNumBundles;		/* Total number of bundles */
   extern struct console	gConsole;
   extern struct web	gWeb;
+  extern struct radsrv	gRadsrv;
   extern int		gBackground;
   extern int		gShutdownInProgress;
   extern int		gOverload;

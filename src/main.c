@@ -16,6 +16,7 @@
 #include "command.h"
 #include "console.h"
 #include "web.h"
+#include "radsrv.h"
 #include "ngfunc.h"
 #include "util.h"
 #include "ippool.h"
@@ -85,6 +86,7 @@
   int			gNumBundles;
   struct console	gConsole;
   struct web		gWeb;
+  struct radsrv		gRadsrv;
   int			gBackground = FALSE;
   int			gShutdownInProgress = FALSE;
   int			gOverload = 0;
@@ -184,6 +186,11 @@ main(int ac, char *av[])
 
     /* init web-stuff */
     WebInit(&gWeb);
+
+#ifdef RAD_COA_REQUEST
+    /* init RADIUS server */
+    RadsrvInit(&gRadsrv);
+#endif
 
     /* Set up libnetgraph logging */
     NgSetErrLog(NgFuncErr, NgFuncErrx);

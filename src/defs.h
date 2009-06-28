@@ -109,6 +109,9 @@
   #define DEFAULT_WEB_PORT	5006
   #define DEFAULT_WEB_IP	"127.0.0.1"
 
+  #define DEFAULT_RADSRV_PORT	3799
+  #define DEFAULT_RADSRV_IP	"0.0.0.0"
+
   /* Forward decl's */
   struct linkst;
   typedef struct linkst *Link;
