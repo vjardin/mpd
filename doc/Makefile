@@ -15,7 +15,7 @@ SRCS+=		interface.sgml links.sgml ipcp.sgml  ipv6cp.sgml
 SRCS+=		compression.sgml encryption.sgml modem.sgml nat.sgml
 SRCS+=		netgraph.sgml tcp.sgml udp.sgml pptp.sgml l2tp.sgml pppoe.sgml
 SRCS+=		chat.sgml trouble.sgml refs.sgml int-auth.sgml
-SRCS+=		todo.sgml trafacct.sgml ippool.sgml auth.sgml
+SRCS+=		todo.sgml trafacct.sgml ippool.sgml auth.sgml dynauth.sgml
 
 CLEANFILES+=	version.sgml mpd.8 mpd.ps
 

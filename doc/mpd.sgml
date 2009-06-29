@@ -22,6 +22,7 @@
 <!ENTITY gencmd SYSTEM "gencmd.sgml">
 <!ENTITY links SYSTEM "links.sgml">
 <!ENTITY authentication SYSTEM "auth.sgml">
+<!ENTITY dynauth SYSTEM "dynauth.sgml">
 <!ENTITY bundle SYSTEM "bundle.sgml">
 <!ENTITY ipcp SYSTEM "ipcp.sgml">
 <!ENTITY ipv6cp SYSTEM "ipv6cp.sgml">
@@ -109,6 +110,7 @@ all mpd features.
 	&ipv6cp;
 	&interface;
 	&authentication;
+	&dynauth;
 	&trafacct;
 	&ippool;
 	&nat;
