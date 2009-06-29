@@ -23,7 +23,7 @@
 
   <tag>Control consoles</tag>
 
-  The basic mathod of controlling mpd is it's STDIN and TCP
+  The basic method of controlling mpd is it's STDIN and TCP
   <bf><ref id="console" name="consoles"></bf>.
 
   You can disconnect any session by connecting to console, selecting
@@ -41,7 +41,7 @@
   "Current status summary" web page on mpd built-in web server.
 
   Binary web interface provides API for executing any of control console
-  commands via HTTP request, for example, to disconnect session on
+  commands via HTTP request. For example, to disconnect session on
   link named L125 you may use such HTTP request:
   <em>/bincmd?link%20L125&amp;close</em>
 
@@ -64,11 +64,13 @@
   request types: Disconnect-Request and CoA-Request, to be sent from AAA
   server to dedicated UDP port on NAS with regular RADIUS protocol.
 
-  To have this function working mpd should be built with <em>libradius</em>
+  To have this function working, mpd should be built with <em>libradius</em>
   library, having RADIUS server functionality.
 
   This chapter describes commands that configure mpd's built-in RADIUS
   server. All of these commands are executed in global context.
+
+<descrip>
 
 <tag><tt>
 set radsrv open
@@ -125,6 +127,7 @@ This option enables Disconnect-Request support on RADIUS server.
 
 The default is enable.
 
+</descrip>
 </descrip>
 
 </p>
