@@ -6,7 +6,8 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
-    Changes since version 5.3:
+    Changes since version 5.3 (most of this work was sponsored by
+    <htmlurl url="http://ufanet.ru/" name="JSC 'Ufanet'">):
     <itemize>
 	<item> New features:
 	<itemize>
@@ -916,8 +917,8 @@
   </p>
 
   <p>
-    Changes since version 3 (most of this work was sponsored by 
-    SURFnet <htmlurl url="http://www.surfnet.nl/" name="SURFnet">):
+    Changes since version 3 (most of this work was sponsored by
+    <htmlurl url="http://www.surfnet.nl/" name="SURFnet">):
     <itemize>
     <item>
 	Design changes:
