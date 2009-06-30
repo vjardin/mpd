@@ -58,6 +58,10 @@
   #define MB_VJCOMP	"VJCOMP"
   #define MB_IPPOOL	"IPPOOL"
 
+#ifndef __malloc_like
+#define __malloc_like
+#endif
+
 /*
  * FUNCTIONS
  */
