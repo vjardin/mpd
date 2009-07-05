@@ -128,6 +128,31 @@ This option enables Disconnect-Request support on RADIUS server.
 The default is enable.
 
 </descrip>
+Dynamic authorization RADIUS server receives three groups of attributes:
+NAS identification (to be sure that request got to the right server),
+session identification (to identify session that should be affected)
+and session parameters (to describe new session state to set).
+NAS and session identification attributes are native part of any
+Disconnect or CoA request, while session parameters could be used only
+with CoA. If there are several identification attributes present in request,
+session should match all of them to be affected.
+<p>
+NAS identification attributes are not supported by mpd now.
+<p>
+Session identification attributes supported by mpd:
+<VERB>
+N   Name
+1   User-Name
+5   NAS-Port
+8   Framed-IP-Address
+30  Called-Station-Id
+31  Calling-Station-Id
+44  Acct-Session-Id
+50  Acct-Multi-Session-Id
+</VERB>
+<p>
+Session parameners attributes supported by mpd:
+
 </descrip>
 
 </p>
