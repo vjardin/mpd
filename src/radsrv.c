@@ -200,6 +200,10 @@ RadsrvEvent(int type, void *cookie)
 	    B = L->bund;
 	    if (nasport != -1 && nasport != l)
 		continue;
+	    if (sesid && strcmp(sesid, L->session_id))
+		continue;
+	    if (msesid && strcmp(msesid, L->msession_id))
+		continue;
 	    if (username && strcmp(username, L->lcp.auth.params.authname))
 		continue;
 	    if (called && !PhysGetCalledNum(L, buf, sizeof(buf)) &&
@@ -207,10 +211,6 @@ RadsrvEvent(int type, void *cookie)
 		continue;
 	    if (calling && !PhysGetCallingNum(L, buf, sizeof(buf)) &&
 		    strcmp(calling, buf))
-		continue;
-	    if (sesid && strcmp(sesid, L->session_id))
-		continue;
-	    if (msesid && strcmp(msesid, L->msession_id))
 		continue;
 	    if (ip.s_addr != -1 && B &&
 		    ip.s_addr != B->iface.peer_addr.u.ip4.s_addr)
