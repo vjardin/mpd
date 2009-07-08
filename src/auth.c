@@ -148,15 +148,35 @@
     { 0,	0,			NULL		},
   };
 
+void
+ACLCopy(struct acl *src, struct acl **dst)
+{
+    while (src != NULL) {
+	*dst = Mdup(MB_AUTH, src, sizeof(struct acl) + strlen(src->rule));
+	src = src->next;
+	dst = &((*dst)->next);
+    };
+    *dst = NULL;
+}
+
+void
+ACLDestroy(struct acl *acl)
+{
+    struct acl *acl1;
+
+    while (acl != NULL) {
+	acl1 = acl->next;
+	Freee(acl);
+	acl = acl1;
+    };
+}
+
 void	authparamsInit(struct authparams *ap) {
     memset(ap,0,sizeof(struct authparams));
     SLIST_INIT(&ap->routes);
 }
 
 void	authparamsDestroy(struct authparams *ap) {
-#if defined(USE_IPFW) || defined(USE_NG_BPF)
-    struct acl		*acls, *acls1;
-#endif
     IfaceRoute		r;
 #ifdef USE_NG_BPF
     int i;
@@ -173,50 +193,17 @@ void	authparamsDestroy(struct authparams *ap) {
     }
 
 #ifdef USE_IPFW
-    acls = ap->acl_rule;
-    while (acls != NULL) {
-	acls1 = acls->next;
-	Freee(acls);
-	acls = acls1;
-    };
-    acls = ap->acl_pipe;
-    while (acls != NULL) {
-	acls1 = acls->next;
-	Freee(acls);
-	acls = acls1;
-    };
-    acls = ap->acl_queue;
-    while (acls != NULL) {
-	acls1 = acls->next;
-	Freee(acls);
-	acls = acls1;
-    };
-    acls = ap->acl_table;
-    while (acls != NULL) {
-	acls1 = acls->next;
-	Freee(acls);
-	acls = acls1;
-    };
+    ACLDestroy(ap->acl_rule);
+    ACLDestroy(ap->acl_pipe);
+    ACLDestroy(ap->acl_queue);
+    ACLDestroy(ap->acl_table);
 #endif /* USE_IPFW */
 
 #ifdef USE_NG_BPF
-    for (i = 0; i < ACL_FILTERS; i++) {
-	acls = ap->acl_filters[i];
-	while (acls != NULL) {
-	    acls1 = acls->next;
-	    Freee(acls);
-	    acls = acls1;
-	};
-    };
-
-    for (i = 0; i < ACL_DIRS; i++) {
-	acls = ap->acl_limits[i];
-	while (acls != NULL) {
-	    acls1 = acls->next;
-	    Freee(acls);
-	    acls = acls1;
-	};
-    };
+    for (i = 0; i < ACL_FILTERS; i++)
+	ACLDestroy(ap->acl_filters[i]);
+    for (i = 0; i < ACL_DIRS; i++)
+	ACLDestroy(ap->acl_limits[i]);
 #endif /* USE_NG_BPF */
 
     while ((r = SLIST_FIRST(&ap->routes)) != NULL) {
@@ -232,10 +219,6 @@ void	authparamsDestroy(struct authparams *ap) {
 }
 
 void	authparamsCopy(struct authparams *src, struct authparams *dst) {
-#if defined(USE_IPFW) || defined(USE_NG_BPF)
-    struct acl		*acls;
-    struct acl		**pacl;
-#endif
     IfaceRoute		r, r1;
 #ifdef USE_NG_BPF
     int			i;
@@ -251,62 +234,16 @@ void	authparamsCopy(struct authparams *src, struct authparams *dst) {
 	dst->class = Mdup(MB_AUTH, src->class, src->class_len);
 
 #ifdef USE_IPFW
-    acls = src->acl_rule;
-    pacl = &dst->acl_rule;
-    while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
-	acls = acls->next;
-	pacl = &((*pacl)->next);
-    };
-    *pacl = NULL;
-    acls = src->acl_pipe;
-    pacl = &dst->acl_pipe;
-    while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
-	acls = acls->next;
-	pacl = &((*pacl)->next);
-    };
-    *pacl = NULL;
-    acls = src->acl_queue;
-    pacl = &dst->acl_queue;
-    while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
-	acls = acls->next;
-	pacl = &((*pacl)->next);
-    };
-    *pacl = NULL;
-    acls = src->acl_table;
-    pacl = &dst->acl_table;
-    while (acls != NULL) {
-	*pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
-	acls = acls->next;
-	pacl = &((*pacl)->next);
-    };
-    *pacl = NULL;
+    ACLCopy(src->acl_rule, &dst->acl_rule);
+    ACLCopy(src->acl_pipe, &dst->acl_pipe);
+    ACLCopy(src->acl_queue, &dst->acl_queue);
+    ACLCopy(src->acl_table, &dst->acl_table);
 #endif /* USE_IPFW */
-
 #ifdef USE_NG_BPF
-    for (i = 0; i < ACL_FILTERS; i++) {
-	acls = src->acl_filters[i];
-	pacl = &dst->acl_filters[i];
-	while (acls != NULL) {
-	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
-	    acls = acls->next;
-	    pacl = &((*pacl)->next);
-	};
-	*pacl = NULL;
-    };
-
-    for (i = 0; i < ACL_DIRS; i++) {
-	acls = src->acl_limits[i];
-	pacl = &dst->acl_limits[i];
-	while (acls != NULL) {
-	    *pacl = Mdup(MB_AUTH, acls, sizeof(struct acl) + strlen(acls->rule));
-	    acls = acls->next;
-	    pacl = &((*pacl)->next);
-	};
-	*pacl = NULL;
-    };
+    for (i = 0; i < ACL_FILTERS; i++)
+	ACLCopy(src->acl_filters[i], &dst->acl_filters[i]);
+    for (i = 0; i < ACL_DIRS; i++)
+	ACLCopy(src->acl_limits[i], &dst->acl_limits[i]);
 #endif
 
     SLIST_INIT(&dst->routes);

@@ -302,6 +302,8 @@
   extern const char	*AuthMPPEPolicyname(int policy);
   extern const char	*AuthMPPETypesname(int types, char *buf, size_t len);
 
+  extern void		ACLCopy(struct acl *src, struct acl **dst);
+  extern void		ACLDestroy(struct acl *acl);
   extern void		authparamsInit(struct authparams *ap);
   extern void		authparamsCopy(struct authparams *src, struct authparams *dst);
   extern void		authparamsMove(struct authparams *src, struct authparams *dst);

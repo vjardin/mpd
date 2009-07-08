@@ -8,6 +8,8 @@
 #include "ppp.h"
 #include "radsrv.h"
 #include "util.h"
+#include <radlib.h>
+#include <radlib_vs.h>
 
 #ifdef RAD_COA_REQUEST
 
@@ -91,11 +93,34 @@ RadsrvEvent(int type, void *cookie)
     int		res, result, found, err, anysesid, l;
     Bund	B;
     Link  	L;
+    char        *tmpval;
     char	*username = NULL, *called = NULL, *calling = NULL, *sesid = NULL;
     char	*msesid = NULL;
-    int		nasport = -1;
+    int		nasport = -1, i;
     struct in_addr ip = { -1 };
     char	buf[64];
+    u_int32_t	vendor;
+#if defined(USE_NG_BPF) && defined(USE_IPFW)
+    struct acl	**acls, *acls1;
+    char	*acl, *acl1, *acl2, *acl3;
+#endif
+
+#ifdef USE_IPFW
+    struct acl		*acl_rule = NULL;	/* ipfw rules */
+    struct acl		*acl_pipe = NULL;	/* ipfw pipes */
+    struct acl		*acl_queue = NULL;	/* ipfw queues */
+    struct acl		*acl_table = NULL;	/* ipfw tables */
+#endif
+
+#ifdef USE_NG_BPF
+    struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
+    struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
+
+    char 		std_acct[ACL_DIRS][ACL_NAME_LEN]; /* Names of ACL rerurned in standard accounting */
+#endif
+    bzero(acl_filters, sizeof(acl_filters));
+    bzero(acl_limits, sizeof(acl_limits));
+    bzero(std_acct, sizeof(std_acct));
 
     result = rad_receive_request(w->handle);
     if (result < 0) {
@@ -121,11 +146,8 @@ RadsrvEvent(int type, void *cookie)
 		rad_send_response(w->handle);
 		return;
 	    }
-	    Log(LG_ERR, ("radsrv: CoA request, not yet supported"));
-	    rad_create_response(w->handle, RAD_COA_NAK);
-	    rad_put_int(w->handle, RAD_ERROR_CAUSE, 406);
-	    rad_send_response(w->handle);
-	    return;
+	    Log(LG_ERR, ("radsrv: CoA request"));
+	    break;
 	default:
 	    Log(LG_ERR, ("radsrv: unsupported request: %d", result));
 	    return;
@@ -177,6 +199,150 @@ RadsrvEvent(int type, void *cookie)
 	    case RAD_MESSAGE_AUTHENTIC:
 		Log(LG_RADIUS2, ("radsrv: Got RAD_MESSAGE_AUTHENTIC"));
 		break;
+	    case RAD_VENDOR_SPECIFIC:
+		if ((res = rad_get_vendor_attr(&vendor, &data, &len)) == -1) {
+		    Log(LG_RADIUS, ("radsrv: Get vendor attr failed: %s ",
+			rad_strerror(w->handle)));
+		    break;
+		}
+		switch (vendor) {
+		    case RAD_VENDOR_MPD:
+#ifdef USE_IPFW
+		        if (res == RAD_MPD_RULE) {
+    			  acl1 = acl = rad_cvt_string(data, len);
+		    	  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_RULE: %s",
+			    acl));
+		    	  acls = &acl_rule;
+			} else if (res == RAD_MPD_PIPE) {
+			  acl1 = acl = rad_cvt_string(data, len);
+		          Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_PIPE: %s",
+			    acl));
+		          acls = &acl_pipe;
+		        } else if (res == RAD_MPD_QUEUE) {
+			  acl1 = acl = rad_cvt_string(data, len);
+			  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_QUEUE: %s",
+			    acl));
+			  acls = &acl_queue;
+			} else if (res == RAD_MPD_TABLE) {
+			  acl1 = acl = rad_cvt_string(data, len);
+			  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_TABLE: %s",
+			    acl));
+			  acls = &acl_table;
+			} else if (res == RAD_MPD_TABLE_STATIC) {
+			  acl1 = acl = rad_cvt_string(data, len);
+			  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_TABLE_STATIC: %s",
+			    acl));
+			  acls = &acl_table;
+			} else
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
+			if (res == RAD_MPD_FILTER) {
+			  acl1 = acl = rad_cvt_string(data, len);
+			  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_FILTER: %s",
+		            acl));
+		          acl2 = strsep(&acl1, "#");
+		          i = atol(acl2);
+		          if (i <= 0 || i > ACL_FILTERS) {
+		            Log(LG_RADIUS, ("radsrv: Wrong filter number: %i", i));
+		            free(acl);
+	    		    break;
+			  }
+			  acls = &(acl_filters[i - 1]);
+			} else if (res == RAD_MPD_LIMIT) {
+			  acl1 = acl = rad_cvt_string(data, len);
+		          Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_LIMIT: %s",
+			    acl));
+		          acl2 = strsep(&acl1, "#");
+		          if (strcasecmp(acl2, "in") == 0) {
+		            i = 0;
+		          } else if (strcasecmp(acl2, "out") == 0) {
+		            i = 1;
+		          } else {
+		            Log(LG_ERR, ("radsrv: Wrong limit direction: '%s'",
+		    		acl2));
+		            free(acl);
+			    break;
+		          }
+		          acls = &(acl_limits[i]);
+		        } else if (res == RAD_MPD_INPUT_ACCT) {
+			  tmpval = rad_cvt_string(data, len);
+	    		  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_INPUT_ACCT: %s",
+	    		    tmpval));
+			  strlcpy(std_acct[0], tmpval, sizeof(std_acct[0]));
+			  free(tmpval);
+			  break;
+			} else if (res == RAD_MPD_OUTPUT_ACCT) {
+			  tmpval = rad_cvt_string(data, len);
+	    		  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_OUTPUT_ACCT: %s",
+	    		    tmpval));
+			  strlcpy(std_acct[1], tmpval, sizeof(std_acct[1]));
+			  free(tmpval);
+			  break;
+			} else
+#endif /* USE_NG_BPF */
+			{
+			  Log(LG_RADIUS2, ("radsrv: Dropping MPD vendor specific attribute: %d",
+			    res));
+	    		  break;
+			}
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
+		    if (acl1 == NULL) {
+		      Log(LG_ERR, ("radsrv: Incorrect acl!"));
+		      break;
+		    }
+	    
+		    acl3 = acl1;
+		    strsep(&acl3, "=");
+		    acl2 = acl1;
+		    strsep(&acl2, "#");
+		    i = atol(acl1);
+		    if (i <= 0) {
+		      Log(LG_ERR, ("radsrv: Wrong acl number: %i", i));
+		      free(acl);
+		      break;
+		    }
+		    if ((acl3 == NULL) || (acl3[0] == 0)) {
+		      Log(LG_ERR, ("radsrv: Wrong acl"));
+		      free(acl);
+		      break;
+		    }
+		    acls1 = Malloc(MB_AUTH, sizeof(struct acl) + strlen(acl3));
+		    if (res != RAD_MPD_TABLE_STATIC) {
+			    acls1->number = i;
+			    acls1->real_number = 0;
+		    } else {
+			    acls1->number = 0;
+			    acls1->real_number = i;
+		    }
+		    if (acl2)
+	    		strlcpy(acls1->name, acl2, sizeof(acls1->name));
+		    strcpy(acls1->rule, acl3);
+		    while ((*acls != NULL) && ((*acls)->number < acls1->number))
+		      acls = &((*acls)->next);
+
+		    if (*acls == NULL) {
+		      acls1->next = NULL;
+		    } else if (((*acls)->number == acls1->number) &&
+			(res != RAD_MPD_TABLE) &&
+			(res != RAD_MPD_TABLE_STATIC)) {
+		      Log(LG_ERR, ("radsrv: Duplicate acl"));
+		      free(acl);
+		      break;
+		    } else {
+		      acls1->next = *acls;
+		    }
+		    *acls = acls1;
+
+		    free(acl);
+		    break;
+#endif /* USE_NG_BPF or USE_IPFW */
+
+		  default:
+		    Log(LG_RADIUS2, ("radsrv: Dropping vendor %d attribute: %d ", 
+		      vendor, res));
+		    break;
+		}
+		break;
 	    default:
 		Log(LG_RADIUS2, ("radsrv: Unknown attribute: %d ", 
 		    res));
@@ -218,16 +384,60 @@ RadsrvEvent(int type, void *cookie)
 		
 	    Log(LG_RADIUS2, ("radsrv: Matched link: %s",
 		L->name));
+	    if (L->tmpl) {
+		Log(LG_ERR, ("radsrv: Impossible to affect template"));
+		err = 504;
+		continue;
+	    }
 	    found++;
 	    
 	    if (result == RAD_DISCONNECT_REQUEST) {
-		if (L->tmpl) {
-		    Log(LG_ERR, ("radsrv: Impossible to close template"));
-		    found--;
-		    err = 504;
-		} else {
-		    RecordLinkUpDownReason(NULL, L, 0, STR_MANUALLY, NULL);
-		    LinkClose(L);
+		RecordLinkUpDownReason(NULL, L, 0, STR_MANUALLY, NULL);
+		LinkClose(L);
+	    } else { /* CoA */
+		if (B && B->iface.up && !B->iface.dod) {
+		    if (B->iface.ip_up)
+			IfaceIpIfaceDown(B);
+		    if (B->iface.ipv6_up)
+			IfaceIpv6IfaceDown(B);
+		    IfaceDown(B);
+		}
+#ifdef USE_IPFW
+	        ACLDestroy(L->lcp.auth.params.acl_rule);
+	        ACLDestroy(L->lcp.auth.params.acl_pipe);
+	        ACLDestroy(L->lcp.auth.params.acl_queue);
+	        ACLDestroy(L->lcp.auth.params.acl_table);
+	        L->lcp.auth.params.acl_rule = NULL;
+	        L->lcp.auth.params.acl_pipe = NULL;
+	        L->lcp.auth.params.acl_queue = NULL;
+	        L->lcp.auth.params.acl_table = NULL;
+	        ACLCopy(acl_rule, &L->lcp.auth.params.acl_rule);
+	        ACLCopy(acl_pipe, &L->lcp.auth.params.acl_pipe);
+	        ACLCopy(acl_queue, &L->lcp.auth.params.acl_queue);
+	        ACLCopy(acl_table, &L->lcp.auth.params.acl_table);
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
+	        for (i = 0; i < ACL_FILTERS; i++) {
+	    	    ACLDestroy(L->lcp.auth.params.acl_filters[i]);
+	    	    L->lcp.auth.params.acl_filters[i] = NULL;
+	    	    ACLCopy(acl_filters[i], &L->lcp.auth.params.acl_filters[i]);
+		}
+	        for (i = 0; i < ACL_DIRS; i++) {
+	    	    ACLDestroy(L->lcp.auth.params.acl_limits[i]);
+	    	    L->lcp.auth.params.acl_limits[i] = NULL;
+	    	    ACLCopy(acl_limits[i], &L->lcp.auth.params.acl_limits[i]);
+		}
+#endif
+		strcpy(L->lcp.auth.params.std_acct[0], std_acct[0]);
+		strcpy(L->lcp.auth.params.std_acct[1], std_acct[1]);
+		if (B && B->iface.up && !B->iface.dod) {
+		    authparamsDestroy(&B->params);
+		    authparamsCopy(&L->lcp.auth.params,&B->params);
+		    if (B->iface.ip_up)
+			IfaceIpIfaceUp(B, 1);
+		    if (B->iface.ipv6_up)
+			IfaceIpv6IfaceUp(B, 1);
+		    IfaceUp(B, 1);
 		}
 	    }
 	}
@@ -258,6 +468,18 @@ RadsrvEvent(int type, void *cookie)
 	free(sesid);
     if (msesid)
 	free(msesid);
+#ifdef USE_IPFW
+    ACLDestroy(acl_rule);
+    ACLDestroy(acl_pipe);
+    ACLDestroy(acl_queue);
+    ACLDestroy(acl_table);
+#endif /* USE_IPFW */
+#ifdef USE_NG_BPF
+    for (i = 0; i < ACL_FILTERS; i++)
+	ACLDestroy(acl_filters[i]);
+    for (i = 0; i < ACL_DIRS; i++)
+	ACLDestroy(acl_limits[i]);
+#endif /* USE_NG_BPF */
 }
 
 /*

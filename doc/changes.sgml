@@ -16,6 +16,8 @@
 	  </item>
 	  <item> Added Disconnect-Request extension support from RFC 3576.
 	  </item>
+	  <item> Added CoA-Request extension support from RFC 3576.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

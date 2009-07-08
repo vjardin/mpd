@@ -137,7 +137,7 @@ Disconnect or CoA request, while session parameters could be used only
 with CoA. If there are several identification attributes present in request,
 session should match all of them to be affected.
 <p>
-NAS identification attributes are not supported by mpd now.
+NAS identification attributes are not supported by mpd.
 <p>
 Session identification attributes supported by mpd:
 <VERB>
@@ -152,6 +152,19 @@ N   Name
 </VERB>
 <p>
 Session parameners attributes supported by mpd:
+<VERB>
+N   Name
+    mpd VSA (12341)
+1   mpd-rule
+2   mpd-pipe
+3   mpd-queue
+4   mpd-table
+5   mpd-table-static
+7   mpd-filter
+8   mpd-limit
+16  mpd-input-acct
+17  mpd-output-acct
+</VERB>
 
 </descrip>
 
