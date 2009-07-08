@@ -10,7 +10,7 @@
 PROG?=			mpd5
 PREFIX?=		/usr/local
 BINDIR?=		${PREFIX}/sbin
-VERSION=		5.3
+VERSION=		5.4a1
 NOMAN=
 NO_MAN=
 
