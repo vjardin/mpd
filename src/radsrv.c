@@ -644,18 +644,24 @@ RadsrvClose(Radsrv w)
 int
 RadsrvStat(Context ctx, int ac, char *av[], void *arg)
 {
-  Radsrv		w = &gRadsrv;
-  char		addrstr[64];
+    Radsrv	w = &gRadsrv;
+    char	addrstr[64];
+    struct radiusclient_conf *client;
 
-  Printf("Radsrv configuration:\r\n");
-  Printf("\tState         : %s\r\n", w->handle ? "OPENED" : "CLOSED");
-  Printf("\tIP-Address    : %s\r\n", u_addrtoa(&w->addr,addrstr,sizeof(addrstr)));
-  Printf("\tPort          : %d\r\n", w->port);
+    Printf("Radsrv configuration:\r\n");
+    Printf("\tState         : %s\r\n", w->handle ? "OPENED" : "CLOSED");
+    Printf("\tSelf          : %s %d\r\n",
+	u_addrtoa(&w->addr,addrstr,sizeof(addrstr)), w->port);
+    Printf("\tPeer:\r\n");
+    client = w->clients;
+    while (client) {
+      Printf("\t  %s ********\r\n", client->hostname);
+      client = client->next;
+    }
+    Printf("Radsrv options:\r\n");
+    OptStat(ctx, &w->options, gConfList);
 
-  Printf("Radsrv options:\r\n");
-  OptStat(ctx, &w->options, gConfList);
-
-  return 0;
+    return (0);
 }
 
 /*
