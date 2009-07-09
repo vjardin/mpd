@@ -100,18 +100,19 @@ RadsrvEvent(int type, void *cookie)
     struct in_addr ip = { -1 };
     char	buf[64];
     u_int32_t	vendor;
+    u_char	*state = NULL;
+    int		state_len = 0;
+    int		authentic = 0;
 #if defined(USE_NG_BPF) && defined(USE_IPFW)
     struct acl	**acls, *acls1;
     char	*acl, *acl1, *acl2, *acl3;
 #endif
-
 #ifdef USE_IPFW
     struct acl		*acl_rule = NULL;	/* ipfw rules */
     struct acl		*acl_pipe = NULL;	/* ipfw pipes */
     struct acl		*acl_queue = NULL;	/* ipfw queues */
     struct acl		*acl_table = NULL;	/* ipfw tables */
 #endif
-
 #ifdef USE_NG_BPF
     struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
     struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
@@ -161,11 +162,21 @@ RadsrvEvent(int type, void *cookie)
 		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s ",
 		    username));
 		break;
+    	    case RAD_STATE:
+		tmpval = Bin2Hex(data, len);
+		Log(LG_RADIUS2, ("radsrv: Get RAD_STATE: 0x%s", tmpval));
+		Freee(tmpval);
+		state_len = len;
+		if (state != NULL)
+		    Freee(state);
+		state = Mdup(MB_AUTH, data, len);
+		break;
 	    case RAD_CALLED_STATION_ID:
 		anysesid = 1;
 		called = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLED_STATION_ID: %s ",
 		    called));
+		break;
 	    case RAD_CALLING_STATION_ID:
 		anysesid = 1;
 		called = rad_cvt_string(data, len);
@@ -198,6 +209,7 @@ RadsrvEvent(int type, void *cookie)
 		break;
 	    case RAD_MESSAGE_AUTHENTIC:
 		Log(LG_RADIUS2, ("radsrv: Got RAD_MESSAGE_AUTHENTIC"));
+		authentic = 1;
 		break;
 	    case RAD_VENDOR_SPECIFIC:
 		if ((res = rad_get_vendor_attr(&vendor, &data, &len)) == -1) {
@@ -355,7 +367,11 @@ RadsrvEvent(int type, void *cookie)
 	    rad_create_response(w->handle, RAD_DISCONNECT_NAK);
 	else
 	    rad_create_response(w->handle, RAD_COA_NAK);
+	if (state != NULL)
+	    rad_put_attr(w->handle, RAD_STATE, state, state_len);
 	rad_put_int(w->handle, RAD_ERROR_CAUSE, 402);
+	if (authentic)
+	    rad_put_message_authentic(w->handle);
 	rad_send_response(w->handle);
 	return;
     }
@@ -457,7 +473,12 @@ RadsrvEvent(int type, void *cookie)
 	    rad_put_int(w->handle, RAD_ERROR_CAUSE, err);
 	}
     }
+    if (state != NULL)
+        rad_put_attr(w->handle, RAD_STATE, state, state_len);
+    if (authentic)
+	rad_put_message_authentic(w->handle);
     rad_send_response(w->handle);
+
     if (username)
 	free(username);
     if (called)
