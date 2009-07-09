@@ -149,6 +149,12 @@ N   Name
 31  Calling-Station-Id
 44  Acct-Session-Id
 50  Acct-Multi-Session-Id
+
+    mpd VSA (12341)
+12  mpd-link
+13  mpd-bundle
+14  mpd-iface
+15  mpd-iface-index
 </VERB>
 <p>
 Session parameners attributes supported by mpd:

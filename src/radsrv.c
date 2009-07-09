@@ -95,8 +95,8 @@ RadsrvEvent(int type, void *cookie)
     Link  	L;
     char        *tmpval;
     char	*username = NULL, *called = NULL, *calling = NULL, *sesid = NULL;
-    char	*msesid = NULL;
-    int		nasport = -1, serv_type = 0, i;
+    char	*msesid = NULL, *link = NULL, *bundle = NULL, *iface = NULL;
+    int		nasport = -1, serv_type = 0, ifindex = -1, i;
     struct in_addr ip = { -1 };
     char	buf[64];
     u_int32_t	vendor;
@@ -224,6 +224,37 @@ RadsrvEvent(int type, void *cookie)
 		}
 		switch (vendor) {
 		    case RAD_VENDOR_MPD:
+			if (res == RAD_MPD_LINK) {
+			    if (link)
+				free(link);
+			    link = rad_cvt_string(data, len);
+	    		    Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_LINK: %s",
+				link));
+			    anysesid = 1;
+			    break;
+			} else if (res == RAD_MPD_BUNDLE) {
+			    if (bundle)
+				free(bundle);
+			    bundle = rad_cvt_string(data, len);
+	    		    Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_BINDLE: %s",
+				bundle));
+			    anysesid = 1;
+			    break;
+			} else if (res == RAD_MPD_IFACE) {
+			    if (iface)
+				free(iface);
+			    iface = rad_cvt_string(data, len);
+	    		    Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_IFACE: %s",
+				iface));
+			    anysesid = 1;
+			    break;
+			} else if (res == RAD_MPD_IFACE_INDEX) {
+			    ifindex = rad_cvt_int(data);
+	    		    Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_IFACE_INDEX: %d",
+				ifindex));
+			    anysesid = 1;
+			    break;
+			} else 
 #ifdef USE_IPFW
 		        if (res == RAD_MPD_RULE) {
     			  acl1 = acl = rad_cvt_string(data, len);
@@ -394,6 +425,8 @@ RadsrvEvent(int type, void *cookie)
 		continue;
 	    if (sesid && strcmp(sesid, L->session_id))
 		continue;
+	    if (link && strcmp(link, L->name))
+		continue;
 	    if (msesid && strcmp(msesid, L->msession_id))
 		continue;
 	    if (username && strcmp(username, L->lcp.auth.params.authname))
@@ -404,8 +437,14 @@ RadsrvEvent(int type, void *cookie)
 	    if (calling && !PhysGetCallingNum(L, buf, sizeof(buf)) &&
 		    strcmp(calling, buf))
 		continue;
-	    if (ip.s_addr != -1 && B &&
-		    ip.s_addr != B->iface.peer_addr.u.ip4.s_addr)
+	    if (bundle && (!B || strcmp(bundle, B->name)))
+		continue;
+	    if (iface && (!B || strcmp(iface, B->iface.ifname)))
+		continue;
+	    if (ifindex >= 0 && (!B || ifindex != B->iface.ifindex))
+		continue;
+	    if (ip.s_addr != -1 && (!B ||
+		    ip.s_addr != B->iface.peer_addr.u.ip4.s_addr))
 		continue;
 		
 	    Log(LG_RADIUS2, ("radsrv: Matched link: %s",
@@ -499,6 +538,12 @@ RadsrvEvent(int type, void *cookie)
 	free(sesid);
     if (msesid)
 	free(msesid);
+    if (link)
+	free(link);
+    if (bundle)
+	free(bundle);
+    if (iface)
+	free(iface);
 #ifdef USE_IPFW
     ACLDestroy(acl_rule);
     ACLDestroy(acl_pipe);
