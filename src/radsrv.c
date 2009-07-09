@@ -96,7 +96,7 @@ RadsrvEvent(int type, void *cookie)
     char        *tmpval;
     char	*username = NULL, *called = NULL, *calling = NULL, *sesid = NULL;
     char	*msesid = NULL;
-    int		nasport = -1, i;
+    int		nasport = -1, serv_type = 0, i;
     struct in_addr ip = { -1 };
     char	buf[64];
     u_int32_t	vendor;
@@ -159,8 +159,13 @@ RadsrvEvent(int type, void *cookie)
 	    case RAD_USER_NAME:
 		anysesid = 1;
 		username = rad_cvt_string(data, len);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s",
 		    username));
+		break;
+	    case RAD_SERVICE_TYPE:
+		serv_type = rad_cvt_int(data);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_SERVICE_TYPE: %d",
+		    serv_type));
 		break;
     	    case RAD_STATE:
 		tmpval = Bin2Hex(data, len);
@@ -361,15 +366,20 @@ RadsrvEvent(int type, void *cookie)
 		break;
 	}
     }
-    if (anysesid == 0) {
-	Log(LG_ERR, ("radsrv: request without session identification"));
+    if (anysesid == 0 || serv_type != 0) {
 	if (result == RAD_DISCONNECT_REQUEST)
 	    rad_create_response(w->handle, RAD_DISCONNECT_NAK);
 	else
 	    rad_create_response(w->handle, RAD_COA_NAK);
 	if (state != NULL)
 	    rad_put_attr(w->handle, RAD_STATE, state, state_len);
-	rad_put_int(w->handle, RAD_ERROR_CAUSE, 402);
+	if (anysesid == 0) {
+	    Log(LG_ERR, ("radsrv: request without session identification"));
+	    rad_put_int(w->handle, RAD_ERROR_CAUSE, 402);
+	} else {
+	    Log(LG_ERR, ("radsrv: Service-Type attribute not supported"));
+	    rad_put_int(w->handle, RAD_ERROR_CAUSE, 405);
+	}
 	if (authentic)
 	    rad_put_message_authentic(w->handle);
 	rad_send_response(w->handle);
