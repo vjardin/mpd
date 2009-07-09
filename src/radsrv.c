@@ -98,6 +98,7 @@ RadsrvEvent(int type, void *cookie)
     char	*msesid = NULL, *link = NULL, *bundle = NULL, *iface = NULL;
     int		nasport = -1, serv_type = 0, ifindex = -1, i;
     struct in_addr ip = { -1 };
+    struct in_addr nas_ip = { -1 };
     char	buf[64];
     u_int32_t	vendor;
     u_char	*state = NULL;
@@ -161,6 +162,11 @@ RadsrvEvent(int type, void *cookie)
 		username = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s",
 		    username));
+		break;
+	    case RAD_NAS_IP_ADDRESS:
+		nas_ip = rad_cvt_addr(data);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_NAS_IP_ADDRESS: %s ",
+		    inet_ntoa(nas_ip)));
 		break;
 	    case RAD_SERVICE_TYPE:
 		serv_type = rad_cvt_int(data);
@@ -397,20 +403,25 @@ RadsrvEvent(int type, void *cookie)
 		break;
 	}
     }
-    if (anysesid == 0 || serv_type != 0) {
+    err = 0;
+    if (w->addr.u.ip4.s_addr != 0 && nas_ip.s_addr != -1 && w->addr.u.ip4.s_addr != nas_ip.s_addr) {
+        Log(LG_ERR, ("radsrv: incorrect NAS-IP-Address"));
+	err = 403;
+    } else if (anysesid == 0) {
+        Log(LG_ERR, ("radsrv: request without session identification"));
+	err = 402;
+    } else if (serv_type != 0) {
+        Log(LG_ERR, ("radsrv: Service-Type attribute not supported"));
+	err = 405;
+    }
+    if (err) {
 	if (result == RAD_DISCONNECT_REQUEST)
 	    rad_create_response(w->handle, RAD_DISCONNECT_NAK);
 	else
 	    rad_create_response(w->handle, RAD_COA_NAK);
+        rad_put_int(w->handle, RAD_ERROR_CAUSE, err);
 	if (state != NULL)
 	    rad_put_attr(w->handle, RAD_STATE, state, state_len);
-	if (anysesid == 0) {
-	    Log(LG_ERR, ("radsrv: request without session identification"));
-	    rad_put_int(w->handle, RAD_ERROR_CAUSE, 402);
-	} else {
-	    Log(LG_ERR, ("radsrv: Service-Type attribute not supported"));
-	    rad_put_int(w->handle, RAD_ERROR_CAUSE, 405);
-	}
 	if (authentic)
 	    rad_put_message_authentic(w->handle);
 	rad_send_response(w->handle);
