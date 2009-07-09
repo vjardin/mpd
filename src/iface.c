@@ -3118,10 +3118,14 @@ IfaceShutdownLimits(Bund b)
     char path[NG_PATHSIZ];
     struct svcs *ss;
     struct svcssrc *sss;
+    struct svcstat curstats;
     int		i;
 
-    if (b->n_up > 0)
-	IfaceGetStats(b, &b->iface.prevstats);
+    if (b->n_up > 0) {
+    	IfaceGetStats(b, &curstats);
+    	IfaceAddStats(&b->iface.prevstats, &curstats);
+	IfaceFreeStats(&curstats);
+    }
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
 	snprintf(path, sizeof(path), "[%x]:", b->iface.limitID);
