@@ -3122,6 +3122,7 @@ IfaceShutdownLimits(Bund b)
     int		i;
 
     if (b->n_up > 0) {
+	bzero(&curstats, sizeof(curstats));
     	IfaceGetStats(b, &curstats);
     	IfaceAddStats(&b->iface.prevstats, &curstats);
 	IfaceFreeStats(&curstats);
