@@ -104,7 +104,7 @@ RadsrvEvent(int type, void *cookie)
     u_char	*state = NULL;
     int		state_len = 0;
     int		authentic = 0;
-#if defined(USE_NG_BPF) && defined(USE_IPFW)
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
     struct acl	**acls, *acls1;
     char	*acl, *acl1, *acl2, *acl3;
 #endif
