@@ -1444,17 +1444,18 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  free(route);
 	  break;
 	}
-	free(route);
 	r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
 	r->dest = range;
 	r->ok = 0;
 	j = 0;
 	SLIST_FOREACH(r1, &auth->params.routes, next) {
 	  if (!u_rangecompare(&r->dest, &r1->dest)) {
-	    Log(LG_RADIUS, ("[%s] RADIUS: Duplicate route", auth->info.lnkname));
+	    Log(LG_RADIUS, ("[%s] RADIUS: Duplicate route %s",
+		auth->info.lnkname, route));
 	    j = 1;
 	  }
 	};
+	free(route);
 	if (j == 0) {
 	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
 	} else {
@@ -1471,17 +1472,18 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  free(route);
 	  break;
 	}
-	free(route);
 	r = Malloc(MB_AUTH, sizeof(struct ifaceroute));
 	r->dest = range;
 	r->ok = 0;
 	j = 0;
 	SLIST_FOREACH(r1, &auth->params.routes, next) {
 	  if (!u_rangecompare(&r->dest, &r1->dest)) {
-	    Log(LG_RADIUS, ("[%s] RADIUS: Duplicate route", auth->info.lnkname));
+	    Log(LG_RADIUS, ("[%s] RADIUS: Duplicate route %s",
+		auth->info.lnkname, route));
 	    j = 1;
 	  }
 	};
+	free(route);
 	if (j == 0) {
 	    SLIST_INSERT_HEAD(&auth->params.routes, r, next);
 	} else {
