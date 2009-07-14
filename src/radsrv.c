@@ -502,9 +502,9 @@ RadsrvEvent(int type, void *cookie)
 	    	    L->lcp.auth.params.acl_limits[i] = NULL;
 	    	    ACLCopy(acl_limits[i], &L->lcp.auth.params.acl_limits[i]);
 		}
-#endif
 		strcpy(L->lcp.auth.params.std_acct[0], std_acct[0]);
 		strcpy(L->lcp.auth.params.std_acct[1], std_acct[1]);
+#endif
 		if (B && B->iface.up && !B->iface.dod) {
 		    authparamsDestroy(&B->params);
 		    authparamsCopy(&L->lcp.auth.params,&B->params);
