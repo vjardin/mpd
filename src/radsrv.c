@@ -117,13 +117,12 @@ RadsrvEvent(int type, void *cookie)
 #ifdef USE_NG_BPF
     struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
     struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
-
     char 		std_acct[ACL_DIRS][ACL_NAME_LEN]; /* Names of ACL rerurned in standard accounting */
-#endif
+
     bzero(acl_filters, sizeof(acl_filters));
     bzero(acl_limits, sizeof(acl_limits));
     bzero(std_acct, sizeof(std_acct));
-
+#endif
     result = rad_receive_request(w->handle);
     if (result < 0) {
 	Log(LG_ERR, ("radsrv: request receive error: %d", result));
