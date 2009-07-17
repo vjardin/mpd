@@ -527,10 +527,8 @@ RadsrvEvent(int type, void *cookie)
 		    L->lcp.auth.params.idle_timeout = idle_timeout;
 		if (acct_update != -1) {
 		    L->lcp.auth.params.acct_update = acct_update;
-		    if (TimerStarted(&L->lcp.auth.acct_timer)) {
-			/* Stop accounting update timer if running. */
-			TimerStop(&L->lcp.auth.acct_timer);
-		    }
+		    /* Stop accounting update timer if running. */
+		    TimerStop(&L->lcp.auth.acct_timer);
 		    if (B) {
 			/* Start accounting update timer if needed. */
 			u_int	updateInterval;
