@@ -134,7 +134,8 @@ session identification (to identify session that should be affected)
 and session parameters (to describe new session state to set).
 NAS and session identification attributes are native part of any
 Disconnect or CoA request, while session parameters could be used only
-with CoA. If there are several identification attributes present in request,
+with CoA. At least one session identification attribute must be present
+in request. If there are several identification attributes present,
 session should match all of them to be affected.
 <p>
 NAS identification attributes supported by mpd:
