@@ -97,6 +97,7 @@ RadsrvEvent(int type, void *cookie)
     char	*username = NULL, *called = NULL, *calling = NULL, *sesid = NULL;
     char	*msesid = NULL, *link = NULL, *bundle = NULL, *iface = NULL;
     int		nasport = -1, serv_type = 0, ifindex = -1, i;
+    u_int	session_timeout = -1, idle_timeout = -1, acct_update = -1;
     struct in_addr ip = { -1 };
     struct in_addr nas_ip = { -1 };
     char	buf[64];
@@ -216,6 +217,21 @@ RadsrvEvent(int type, void *cookie)
 		nasport = rad_cvt_int(data);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_NAS_PORT: %d ",
 		    nasport));
+		break;
+	    case RAD_SESSION_TIMEOUT:
+	        session_timeout = rad_cvt_int(data);
+	        Log(LG_RADIUS2, ("radsrv: Got RAD_SESSION_TIMEOUT: %u ",
+	    	    session_timeout));
+	        break;
+	    case RAD_IDLE_TIMEOUT:
+	        idle_timeout = rad_cvt_int(data);
+	        Log(LG_RADIUS2, ("radsrv: Got RAD_IDLE_TIMEOUT: %u ",
+	            idle_timeout));
+	        break;
+	    case RAD_ACCT_INTERIM_INTERVAL:
+		acct_update = rad_cvt_int(data);
+	        Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_INTERIM_INTERVAL: %u ",
+	    	    acct_update));
 		break;
 	    case RAD_MESSAGE_AUTHENTIC:
 		Log(LG_RADIUS2, ("radsrv: Got RAD_MESSAGE_AUTHENTIC"));
@@ -505,6 +521,30 @@ RadsrvEvent(int type, void *cookie)
 		strcpy(L->lcp.auth.params.std_acct[0], std_acct[0]);
 		strcpy(L->lcp.auth.params.std_acct[1], std_acct[1]);
 #endif
+		if (session_timeout != -1)
+		    L->lcp.auth.params.session_timeout = session_timeout;
+		if (idle_timeout != -1)
+		    L->lcp.auth.params.idle_timeout = idle_timeout;
+		if (acct_update != -1) {
+		    L->lcp.auth.params.acct_update = acct_update;
+		    if (TimerStarted(&L->lcp.auth.acct_timer)) {
+			/* Stop accounting update timer if running. */
+			TimerStop(&L->lcp.auth.acct_timer);
+		    }
+		    if (B) {
+			/* Start accounting update timer if needed. */
+			u_int	updateInterval;
+			if (L->lcp.auth.params.acct_update > 0)
+		    	    updateInterval = L->lcp.auth.params.acct_update;
+			else
+		    	    updateInterval = L->lcp.auth.conf.acct_update;
+			if (updateInterval > 0) {
+	    		    TimerInit(&L->lcp.auth.acct_timer, "AuthAccountTimer",
+				updateInterval * SECONDS, AuthAccountTimeout, L);
+			    TimerStartRecurring(&L->lcp.auth.acct_timer);
+			}
+		    }
+		}
 		if (B && B->iface.up && !B->iface.dod) {
 		    authparamsDestroy(&B->params);
 		    authparamsCopy(&L->lcp.auth.params,&B->params);

@@ -165,6 +165,10 @@ N   Name
 Session parameners attributes supported by mpd:
 <VERB>
 N   Name
+27  Session-Timeout
+28  Idle-Timeout
+85  Acct-Interim-Interval
+
     mpd VSA (12341)
 1   mpd-rule
 2   mpd-pipe
@@ -176,6 +180,14 @@ N   Name
 16  mpd-input-acct
 17  mpd-output-acct
 </VERB>
+
+Received in CoA session parameters replace existing ones. If some parameter
+is not received, it keeps it's previous value for standard attributes,
+or getting cleared for mpd's VSAs.
+
+Nots, that CoA request always restarts Session and Idle timers for matching
+interfaces, and restarts Accounting Update timer for matching links, if new
+value received.
 
 </descrip>
 

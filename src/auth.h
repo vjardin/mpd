@@ -292,6 +292,7 @@
   extern void		AuthCleanup(Link l);
   extern int		AuthStat(Context ctx, int ac, char *av[], void *arg);
   extern void		AuthAccountStart(Link l, int type);
+  extern void		AuthAccountTimeout(void *arg);
   extern AuthData	AuthDataNew(Link l);
   extern void		AuthDataDestroy(AuthData auth);
   extern int		AuthGetData(char *authname, char *password, size_t passlen, 

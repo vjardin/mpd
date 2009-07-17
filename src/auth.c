@@ -40,7 +40,6 @@
   static void		AuthAsync(void *arg);
   static void		AuthAsyncFinish(void *arg, int was_canceled);
   static int		AuthPreChecks(AuthData auth);
-  static void		AuthAccountTimeout(void *arg);
   static void		AuthAccount(void *arg);
   static void		AuthAccountFinish(void *arg, int was_canceled);
   static void		AuthInternal(AuthData auth);
@@ -901,7 +900,7 @@ AuthAccountStart(Link l, int type)
  * Timer function for accounting updates
  */
  
-static void
+void
 AuthAccountTimeout(void *arg)
 {
     Link	l = (Link)arg;
