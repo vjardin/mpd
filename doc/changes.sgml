@@ -18,6 +18,9 @@
 	  </item>
 	  <item> Added CoA-Request extension support from RFC 3576.
 	  </item>
+	  <item> Added `authname ...` command to choose active link by peer
+		 auth name.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

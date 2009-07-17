@@ -1076,6 +1076,48 @@ SessionCommand(Context ctx, int ac, char *av[], void *arg)
 }
 
 /*
+ * AuthnameCommand()
+ */
+
+int
+AuthnameCommand(Context ctx, int ac, char *av[], void *arg)
+{
+    int		k;
+
+    if (ac > 1)
+	return (-1);
+
+    if (ac == 0) {
+    	Printf("Present users:\r\n");
+	for (k = 0; k < gNumLinks; k++) {
+	    if (gLinks[k] && gLinks[k]->lcp.auth.params.authname[0])
+    		Printf("\t%s\r\n", gLinks[k]->lcp.auth.params.authname);
+	}
+	return (0);
+    }
+
+    /* Find link */
+    for (k = 0;
+	k < gNumLinks && (gLinks[k] == NULL || 
+	    strcmp(gLinks[k]->lcp.auth.params.authname, av[0]));
+	k++);
+    if (k == gNumLinks) {
+	/* Change default link and bundle */
+	RESETREF(ctx->lnk, NULL);
+	RESETREF(ctx->bund, NULL);
+	RESETREF(ctx->rep, NULL);
+	Error("User \"%s\" is not found", av[0]);
+    }
+
+    /* Change default link and bundle */
+    RESETREF(ctx->lnk, gLinks[k]);
+    RESETREF(ctx->bund, ctx->lnk->bund);
+    RESETREF(ctx->rep, NULL);
+
+    return(0);
+}
+
+/*
  * RecordLinkUpDownReason()
  *
  * This is called whenever a reason for the link going up or

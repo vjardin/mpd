@@ -94,6 +94,12 @@ session with multilink session ID <tt><em>msesid</em></tt>.
 This command changes the currenly active link to the link holding
 session with session ID <tt><em>sesid</em></tt>.
 
+<tag><tt>authname [ <em>name</em> ] </tt>
+</tag>
+
+This command changes the currenly active link to the link holding
+session with peer auth name <tt><em>name</em></tt>.
+
 <tag><tt>load [ <em>file</em> ] <em>label</em></tt>
 </tag>
 

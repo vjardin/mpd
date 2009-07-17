@@ -292,6 +292,8 @@
   };
 
   const struct cmdtab gCommands[] = {
+    { "authname {name}",		"Choose link by auth name",
+	AuthnameCommand, NULL, 0, NULL },
     { "bundle [{name}]",		"Choose/list bundles",
 	BundCommand, NULL, 0, NULL },
     { "close [{layer}]",		"Close a layer",

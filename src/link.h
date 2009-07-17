@@ -195,6 +195,7 @@
   extern Link	LinkFind(const char *name);
   extern int	LinkCommand(Context ctx, int ac, char *av[], void *arg);
   extern int	SessionCommand(Context ctx, int ac, char *av[], void *arg);
+  extern int	AuthnameCommand(Context ctx, int ac, char *av[], void *arg);
   extern void	RecordLinkUpDownReason(Bund b, Link l, int up, const char *fmt,
 			  const char *arg, ...);
 
