@@ -140,7 +140,7 @@ down.
 
 If <tt><em>seconds</em></tt> is zero, echo packets are disabled.
 The default values are five second intervals with a maximum no-reply
-time of fourty.
+time of forty.
 
 This feature is especially useful with modems when the carrier
 detect signal is unreliable. However, in situations where lines are
