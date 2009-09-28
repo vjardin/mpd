@@ -21,6 +21,10 @@
 	  <item> Added `authname ...` command to choose active link by peer
 		 auth name.
 	  </item>
+	  <item> Added support for DSL Forum vendor-specific
+		 Circuit-ID/Remote-ID PPPoE tags and respective RFC 4679
+		 RADIUS VSA.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

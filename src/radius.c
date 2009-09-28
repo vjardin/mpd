@@ -122,7 +122,6 @@ rad_put_string_tag(struct rad_handle *h, int type, u_char tag, const char *str)
     return (res);
 }
 
-
 /*
  * RadiusInit()
  */
@@ -817,6 +816,30 @@ RadiusStart(AuthData auth, short request_type)
 	    }
 	}
     }
+#ifdef PHYSTYPE_PPPOE
+    if (auth->info.phys_type == &gPppoePhysType) {
+	if (auth->params.selfname[0]) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put Agent-Circuit-Id: %s",
+    		auth->info.lnkname, auth->params.selfname));
+	    if (rad_put_vendor_string(auth->radius.handle, 3561, 1,
+    		    auth->params.selfname) == -1) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put Agent-Circuit-Id failed %s",
+    	    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    		return (RAD_NACK);
+	    }
+	}
+	if (auth->params.peername[0]) {
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put Agent-Remote-Id: %s",
+    		auth->info.lnkname, auth->params.peername));
+	    if (rad_put_vendor_string(auth->radius.handle, 3561, 2,
+    		    auth->params.peername) == -1) {
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put Agent-Remote-Id failed %s",
+    	    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+    		return (RAD_NACK);
+	    }
+	}
+    }
+#endif
 
     return (RAD_ACK);
 }
