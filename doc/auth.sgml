@@ -313,8 +313,8 @@ N   Name                       	   Access	 Accounting
 31  MS-Secondary-NBNS-Server	-	+	-	-
 
     DSL Forum VSA (3561)
-1   Agent-Circuit-Id		+	-	+	-
-2   Agent-Remote-Id		+	-	+	-
+1   ADSL-Agent-Circuit-Id	+	-	+	-
+2   ADSL-Agent-Remote-Id	+	-	+	-
 
     mpd VSA (12341)
 1   mpd-rule			-	+	-	-
