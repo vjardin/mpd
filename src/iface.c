@@ -850,7 +850,7 @@ IfaceIpIfaceUp(Bund b, int ready)
 	else
     	    ns2buf[0] = '\0';
 
-	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s '%s'",
+	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' '%s' '%s' '%s'",
 	    iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
     	    *b->params.authname ? b->params.authname : "-", 
