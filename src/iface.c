@@ -2817,7 +2817,7 @@ IfaceSetupLimits(Bund b)
     			    b->name, av[0]));
 		    } else {
 			struct bpf_program pr;
-		    	char		*buf, sbuf[256];
+		    	char		*buf;
 		    	int		bufbraces;
 
 #define ACL_BUF_SIZE	256*1024
@@ -2825,8 +2825,8 @@ IfaceSetupLimits(Bund b)
 			buf[0] = 0;
 			bufbraces = 0;
 			while (f) {
-			    char	*b1, *b2;
-			    strlcpy(sbuf, f->rule, sizeof(sbuf));
+			    char	*b1, *b2, *sbuf;
+			    sbuf = Mstrdup(MB_IFACE, f->rule);
 			    b2 = sbuf;
 			    b1 = strsep(&b2, " ");
 			    if (b2 != NULL) {
@@ -2851,6 +2851,7 @@ IfaceSetupLimits(Bund b)
         		    		b->name, b1));
 				}
 			    };
+			    Freee(sbuf);
 			    f = f->next;
 			}
 			for (i = 0; i < bufbraces; i++)
