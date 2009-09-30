@@ -850,11 +850,11 @@ IfaceIpIfaceUp(Bund b, int ready)
 	else
     	    ns2buf[0] = '\0';
 
-	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s",
+	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' %s %s '%s'",
 	    iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
     	    *b->params.authname ? b->params.authname : "-", 
-    	    ns1buf, ns2buf);
+    	    ns1buf, ns2buf, *b->params.peeraddr ? b->params.peeraddr : "-");
 	if (res != 0) {
 	    FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
 	    return (-1);
@@ -880,10 +880,11 @@ IfaceIpIfaceDown(Bund b)
     if (*iface->down_script) {
 	char	selfbuf[40],peerbuf[40];
 
-	ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s'",
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' '%s'",
     	    iface->down_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
-    	    *b->params.authname ? b->params.authname : "-");
+    	    *b->params.authname ? b->params.authname : "-",
+    	    *b->params.peeraddr ? b->params.peeraddr : "-");
     }
 
     /* Delete dynamic routes */
@@ -993,11 +994,12 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 	char	selfbuf[48],peerbuf[48];
 	int	res;
 
-	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
+	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s' '%s'",
     	    iface->up_script, iface->ifname, 
     	    u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
     	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
-    	    *b->params.authname ? b->params.authname : "-");
+    	    *b->params.authname ? b->params.authname : "-",
+    	    *b->params.peeraddr ? b->params.peeraddr : "-");
 	if (res != 0) {
 	    FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
 	    return (-1);
@@ -1024,11 +1026,12 @@ IfaceIpv6IfaceDown(Bund b)
     if (*iface->down_script) {
 	char	selfbuf[48],peerbuf[48];
 
-	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s'",
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s' '%s'",
     	    iface->down_script, iface->ifname, 
     	    u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
     	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
-    	    *b->params.authname ? b->params.authname : "-");
+    	    *b->params.authname ? b->params.authname : "-",
+    	    *b->params.peeraddr ? b->params.peeraddr : "-");
     }
 
     /* Delete dynamic routes */
