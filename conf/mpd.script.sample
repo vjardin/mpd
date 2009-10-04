@@ -16,6 +16,7 @@
 ##  $SpeakerOff		Set to "yes" to quiet modem speakers
 ##  $Serial230K		If "yes", we can support 230K serial port speed
 ##  $CountryCode	Country code for Winmodem
+##  $InitString		External initialization string
 ##
 ## ISDN Terminal Adapter specific variables (all start with "TA_"):
 ##
@@ -322,6 +323,7 @@ ModemIdent:
 	set $ModemAnsSetupFunc ""
 	set $ModemDetectRing ""
 	set $ModemIsAnalog "yes"
+	if $InitString != "" goto ModemIdentCustom
 	print "ATI8\r\n"
 	match "BitSURFR PRO\r" ModemIdentBitsurfr
 	match "BitSURFR PRO EZ" ModemIdentBitsurfrEZ
@@ -363,6 +365,11 @@ ModemIdent:
 ModemIdentGeneric:
 	set $ModemDescription "Hayes compatible modem"
 	set $ModemSetupFunc GenericSetup
+	return
+
+ModemIdentCustom:
+	set $ModemDescription "Custom modem"
+	set $ModemSetupFunc CustomSetup
 	return
 
 ModemIdentUsr:
@@ -444,6 +451,12 @@ GenericSetup:
 	set $temp "M1"
 	if $SpeakerOff == "yes" set $temp "M0"
 	set $modemCmd "&F&C1&D2E0S0=0${temp}"
+	call ModemCmd2
+	return
+
+CustomSetup:
+	set $noDialToneSubr GenericNoDialtone
+	set $modemCmd "${InitString}"
 	call ModemCmd2
 	return
 
