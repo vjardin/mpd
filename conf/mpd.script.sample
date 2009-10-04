@@ -17,6 +17,7 @@
 ##  $Serial230K		If "yes", we can support 230K serial port speed
 ##  $CountryCode	Country code for Winmodem
 ##  $InitString		External initialization string
+##  $LoginScript	If "yes", look for script login
 ##
 ## ISDN Terminal Adapter specific variables (all start with "TA_"):
 ##
@@ -87,7 +88,7 @@ DialPeerOK:
 	if $ConnectionSpeed == "" goto DialPeer3
 	log "Connected at $ConnectionSpeed."
 DialPeer3:
-	if $noLoginScript != "yes" call AutoLogin
+	if $LoginScript == "yes" call AutoLogin
 	set $OptimizeNextTime "yes"
 	success
 
@@ -523,7 +524,6 @@ ModemLucentSetup:
 #################################################################
 
 BitsurfrSetup:
-	set $noLoginScript "yes"
 	set $noDialToneSubr BitsurfrNoDialtone
 	set $factory "1"
 	if $bitsEZ == "yes" set $factory "0"
@@ -751,7 +751,6 @@ BitsurfrDetectReadCID:
 #################################################################
 
 ImpactIQSetup:
-	set $noLoginScript "yes"
 	set $noDialToneSubr ImpactIQNoDialtone
 	set $modemCmd "Z&F%C2E0"
 	call ModemCmd2
@@ -1002,7 +1001,6 @@ ImpactIQDetectReadCID:
 #################################################################
 
 AtermSetup:
-	set $noLoginScript "yes"
 	if $AtermHardReset == "yes" goto AtermSetup2
 
 # Do hardware reset, which takes a while and doesn't give back "OK"
@@ -1078,7 +1076,6 @@ NTKSetup:
 #################################################################
 
 AdtranXRTSetup:
-	set $noLoginScript "yes"
 	set $noDialToneSubr ImpactIQNoDialtone
 	set $dialErrorSubr AdtranXRTDialError
 	set $bonding "&F1"
