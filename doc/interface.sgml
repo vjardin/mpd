@@ -99,6 +99,7 @@ The <tt><bf>up-script</bf></tt> is called like this:
 <tscreen><tt>
 <em>script</em> <em>interface</em> <em>proto</em> <em>local-ip</em> 
 <em>remote-ip</em> <em>authname</em> [ dns1 <em>server-ip</em> ] [ dns2 <em>server-ip</em> ]
+<em>peer-address</em>
 </tt></tscreen>
 
 If up-script exit status is not 0, mpd will kill respective protocol.

@@ -25,6 +25,8 @@
 		 Circuit-ID/Remote-ID PPPoE tags and respective RFC 4679
 		 RADIUS VSA.
 	  </item>
+	  <item> Peer address argument added to interface up-script.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
