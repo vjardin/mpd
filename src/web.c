@@ -82,7 +82,7 @@ int
 WebInit(Web w)
 {
   /* setup web-defaults */
-  memset(&gWeb, 0, sizeof(gWeb));
+  memset(w, 0, sizeof(*w));
 
   Enable(&w->options, WEB_AUTH);  
   
