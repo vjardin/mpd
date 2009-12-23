@@ -948,7 +948,7 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 		    int b = fread(buf, 1, sizeof(buf), rf);
 		    fwrite(buf, b, 1, f);
 		}
-		Printf(" done\r\n", av[0]);
+		Printf(" done\r\n");
 		fclose(f);
 	    } else
 #endif
