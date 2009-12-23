@@ -1536,6 +1536,7 @@ GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 	}
 	if (st == -1) {
 		Log(LG_ERR, ("actual retrieval of routing table"));
+		Freee(buf);
 		return (0);
 	}
 	lim = buf + needed;
