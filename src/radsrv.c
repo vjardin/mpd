@@ -73,7 +73,7 @@ int
 RadsrvInit(Radsrv w)
 {
     /* setup radsrv-defaults */
-    memset(&gRadsrv, 0, sizeof(gRadsrv));
+    memset(w, 0, sizeof(*w));
 
     Enable(&w->options, RADSRV_DISCONNECT);
     Enable(&w->options, RADSRV_COA);
