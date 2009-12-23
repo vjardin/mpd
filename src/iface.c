@@ -74,8 +74,6 @@
  * DEFINITIONS
  */
 
-  #define TEMPHOOK		"temphook"
-
 /* Set menu options */
 
   enum {
