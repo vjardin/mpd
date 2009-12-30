@@ -850,6 +850,7 @@ PptpHookUp(Link l)
 	tun->peer_addr = u_peer_addr;
 	if (ghash_put(gPptpTuns, tun) == -1) {
 	    Log(LG_ERR, ("[%s] PPTP: ghash_put: %s", l->name, strerror(errno)));
+	    Freee(tun);
 	    close(csock);
 	    return(-1);
 	}
@@ -867,6 +868,7 @@ PptpHookUp(Link l)
 	    Log(LG_ERR, ("[%s] PPTP: can't attach %s node: %s",
     		l->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
 	    ghash_remove(gPptpTuns, tun);
+	    Freee(tun);
 	    close(csock);
 	    return(-1);
 	}
@@ -876,6 +878,7 @@ PptpHookUp(Link l)
 	    Log(LG_ERR, ("[%s] Cannot get %s node id: %s",
 		l->name, NG_PPTPGRE_NODE_TYPE, strerror(errno)));
 	    ghash_remove(gPptpTuns, tun);
+	    Freee(tun);
 	    close(csock);
 	    return(-1);
 	};
