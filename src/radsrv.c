@@ -395,6 +395,7 @@ RadsrvEvent(int type, void *cookie)
 			(res != RAD_MPD_TABLE) &&
 			(res != RAD_MPD_TABLE_STATIC)) {
 		      Log(LG_ERR, ("radsrv: Duplicate acl"));
+		      Freee(acls1);
 		      free(acl);
 		      break;
 		    } else {
