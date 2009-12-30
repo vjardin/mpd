@@ -1912,6 +1912,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		(res != RAD_MPD_TABLE_STATIC)) {
 	      Log(LG_ERR, ("[%s] RADIUS: Duplicate acl",
 		auth->info.lnkname));
+	      free(acls1);
 	      free(acl);
 	      break;
 	    } else {
