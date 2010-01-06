@@ -211,8 +211,8 @@ LogCommand(Context ctx, int ac, char *av[], void *arg)
     if (ac == 0) {
 #define LG_FMT	"    %-12s  %-10s  %s\r\n"
 
-	Printf(LG_FMT, "Log Option", "Enabled", "Description\r\n");
-	Printf(LG_FMT, "----------", "-------", "-----------\r\n");
+	Printf(LG_FMT, "Log Option", "Enabled", "Description");
+	Printf(LG_FMT, "----------", "-------", "-----------");
 	for (k = 0; k < NUM_LOG_LEVELS; k++) {
     	    Printf("  " LG_FMT, LogOptionList[k].name,
 		(gLogOptions & LogOptionList[k].mask) ? "Yes" : "No",
