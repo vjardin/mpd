@@ -6,6 +6,17 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.4:
+    <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added `set link redial-delay ...` command.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 5.3 (most of this work was sponsored by
     <htmlurl url="http://ufanet.ru/" name="JSC 'Ufanet'">):
     <itemize>
