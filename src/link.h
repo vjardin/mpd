@@ -86,6 +86,7 @@
     uint32_t		accmap;		/* Initial ACCMAP value */
     short		retry_timeout;	/* FSM timeout for retries */
     short		max_redial;	/* Max failed connect attempts */
+    short		redial_delay;	/* Failed connect retry time */
     char		*ident;		/* LCP ident string */
     struct optinfo	options;	/* Configured options */
     int			max_children;	/* Maximal number of children */

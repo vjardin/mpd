@@ -151,8 +151,8 @@ value may need to be bumped up to a more generous value.
 set link max-redial <em>num</em>
 </tt></tag>
 
-When a link fails to connect, mpd automatically retries the connection
-immediately. This command limits the number of consecutive retries.
+When a link fails to connect, mpd automatically retries the connection.
+This command limits the number of consecutive retries.
 After <tt><em>num</em></tt> attempts, mpd will give up.
 
 When there is another open event, new dial-on-demand traffic, etc.
@@ -164,6 +164,14 @@ This setting should be used with links that are dedicated for dial-in.
 If <tt>max-redial</tt> is set to 0, then mpd will redial infinitely.
 
 The default value is -1.
+
+<tag><tt>
+set link redial-delay <em>seconds</em>
+</tt></tag>
+
+This command defines time between connection retries.
+
+The default value is 1.
 
 <tag><tt>
 set link max-children <em>num</em>

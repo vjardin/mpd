@@ -45,6 +45,7 @@
     SET_MTU,
     SET_FSM_RETRY,
     SET_MAX_RETRY,
+    SET_RETRY_DELAY,
     SET_MAX_CHILDREN,
     SET_KEEPALIVE,
     SET_IDENT,
@@ -102,6 +103,8 @@
 	LinkSetCommand, NULL, 2, (void *) SET_FSM_RETRY },
     { "max-redial {num}",		"Max connect attempts",
 	LinkSetCommand, NULL, 2, (void *) SET_MAX_RETRY },
+    { "redial-delay {num}",		"Delay between connect attempts",
+	LinkSetCommand, NULL, 2, (void *) SET_RETRY_DELAY },
     { "max-children {num}",		"Max number of children",
 	LinkSetCommand, NULL, 2, (void *) SET_MAX_CHILDREN },
     { "keep-alive {secs} {max}",	"LCP echo keep-alives",
@@ -272,7 +275,7 @@ LinkDown(Link l)
 	    LcpClose(l);
             LcpDown(l);
 	} else {
-	    int delay = 1 + ((random() ^ l->id ^ gPid) & 3);
+	    int delay = l->conf.redial_delay + ((random() ^ l->id ^ gPid) & 3);
 
 	    TimerStop(&l->openTimer);
 	    TimerInit(&l->openTimer, "PhysOpen",
@@ -422,6 +425,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
 	l->conf.mrru = MP_DEFAULT_MRRU;
         l->conf.accmap = 0x000a0000;
         l->conf.max_redial = -1;
+        l->conf.redial_delay = 1;
         l->conf.retry_timeout = LINK_DEFAULT_RETRY;
 	l->conf.max_children = 10000;
         l->bandwidth = LINK_DEFAULT_BANDWIDTH;
@@ -1251,9 +1255,10 @@ LinkStat(Context ctx, int ac, char *av[], void *arg)
     if (l->conf.max_redial < 0)
 	Printf("no redial\r\n");
     else if (l->conf.max_redial == 0) 
-	Printf("unlimited\r\n");
+	Printf("unlimited, delay %ds\r\n", l->conf.redial_delay);
     else
-	Printf("%d connect attempts\r\n", l->conf.max_redial);
+	Printf("%d connect attempts, delay %ds\r\n",
+	    l->conf.max_redial, l->conf.redial_delay);
     Printf("\tBandwidth      : %d bits/sec\r\n", l->bandwidth);
     Printf("\tLatency        : %d usec\r\n", l->latency);
     Printf("\tKeep-alive     : ");
@@ -1528,6 +1533,15 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     	    l->conf.max_redial = atoi(*av);
     	    break;
+
+	case SET_RETRY_DELAY:
+	    if (ac != 1)
+		return(-1);
+
+	    l->conf.redial_delay = atoi(*av);
+	    if (l->conf.redial_delay < 1)
+		l->conf.redial_delay = 1;
+	    break;
 
 	case SET_MAX_CHILDREN:
 	    if (ac != 1)
