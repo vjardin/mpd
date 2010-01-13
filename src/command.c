@@ -923,7 +923,7 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 	ctx->depth++;
 
 	if (ac == 1)
-	    strcpy(filename, gConfigFile);
+	    strlcpy(filename, gConfigFile, sizeof(filename));
 	else {
 #ifdef USE_FETCH
 	    if (strncmp(av[0], "http://", 7) == 0 ||
