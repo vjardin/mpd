@@ -2057,7 +2057,7 @@ AuthExternal(AuthData auth)
 		fprintf(fp, " MSOFTv2\n");
 	        break;
 	    default:
-	        fprintf(fp, " 0x%02x", auth->alg);
+	        fprintf(fp, " 0x%02x\n", auth->alg);
 	        break;
 	}
     } else
