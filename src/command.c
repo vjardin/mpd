@@ -1333,6 +1333,8 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		Printf("\tTraffic filters :\r\n");
 		for (k = 0; k < ACL_FILTERS; k++) {
 		    a = b->params.acl_filters[k];
+		    if (a == NULL)
+			a = acl_filters[k];
 		    while (a) {
 			Printf("\t\t%d#%d\t'%s'\r\n", (k + 1), a->number, a->rule);
 			a = a->next;
