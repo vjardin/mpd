@@ -2086,6 +2086,7 @@ AuthExternal(AuthData auth)
     fprintf(fp, "\n");
 
     /* REPLY PROCESSING */
+    auth->status = AUTH_STATUS_FAIL;
     while (fgets(line, sizeof(line), fp)) {
 	/* trim trailing newline */
 	len = strlen(line);
