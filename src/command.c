@@ -400,7 +400,7 @@ int
 DoCommand(Context ctx, int ac, char *av[], const char *file, int line)
 {
     int		rtn, i;
-    char	filebuf[100], cmd[100];
+    char	filebuf[100], cmd[256];
 
     ctx->errmsg[0] = 0;
     rtn = DoCommandTab(ctx, gCommands, ac, av);
@@ -698,7 +698,7 @@ HelpCommand(Context ctx, int ac, char *av[], void *arg)
   CmdTab	menu, cmd;
   char		*mark, *mark_save;
   const char	*errfmt;
-  char		buf[100];
+  char		buf[256];
   int		err;
 
   for (mark = buf, depth = *buf = 0, menu = gCommands;
