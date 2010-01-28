@@ -12,6 +12,18 @@
 	<itemize>
 	  <item> Added `set link redial-delay ...` command.
 	  </item>
+	  <item> Print global filters on `show iface|customer` commands.
+	  </item>
+	  <item> Added utmpx support on 9-CURRENT.
+	  </item>
+	</itemize>
+	</item>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fix memory leaks on pptp and radius on some reason.
+	  </item>
+	  <item> Really make RESULT a mandatory option in ext-auth.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

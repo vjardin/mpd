@@ -17,9 +17,16 @@
 #include "msoft.h"
 #include "util.h"
 
-#include <libutil.h>
 #ifdef USE_PAM
 #include <security/pam_appl.h>	
+#endif
+#ifdef USE_SYSTEM
+#if __FreeBSD_version >= 900007
+#include <utmpx.h>
+#else
+#include <utmp.h>
+#include <libutil.h>
+#endif
 #endif
 
 /*
@@ -1387,6 +1394,30 @@ AuthSystem(AuthData auth)
  * Account with system
  */
 
+#if __FreeBSD_version >= 900007
+static int
+AuthSystemAcct(AuthData auth)
+{
+	struct utmpx	ut;
+
+	memset(&ut, 0, sizeof(ut));
+	snprintf(ut.ut_id, sizeof(ut.ut_id), "mpd%x", auth->info.linkID);
+
+	if (auth->acct_type == AUTH_ACCT_START) {
+		ut.ut_type = USER_PROCESS;
+		strlcpy(ut.ut_host, auth->params.peeraddr, sizeof(ut.ut_host));
+		strlcpy(ut.ut_user, auth->params.authname, sizeof(ut.ut_user));
+		gettimeofday(&ut.ut_tv, NULL);
+		Log(LG_AUTH, ("[%s] ACCT: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line,
+			ut.ut_user, ut.ut_host));
+	} else if (auth->acct_type == AUTH_ACCT_STOP) {
+		ut.ut_type = DEAD_PROCESS;
+		Log(LG_AUTH, ("[%s] ACCT: wtmp %s logout", auth->info.lnkname, ut.ut_line));
+	}
+	pututxline(&ut);
+	return (0);
+}
+#else
 static int
 AuthSystemAcct(AuthData auth)
 {
@@ -1412,6 +1443,7 @@ AuthSystemAcct(AuthData auth)
 	}
 	return (0);
 }
+#endif /* __FreeBSD_version >= 900007 */
 #endif /* USE_SYSTEM */
 
 #ifdef USE_PAM

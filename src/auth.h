@@ -23,8 +23,7 @@
 #ifdef USE_OPIE
 #include <opie.h>
 #endif
-#include <utmp.h>
-  
+
 /*
  * DEFINITIONS
  */
@@ -303,8 +302,10 @@
   extern const char	*AuthMPPEPolicyname(int policy);
   extern const char	*AuthMPPETypesname(int types, char *buf, size_t len);
 
+#if defined(USE_NG_BPF) || defined(USE_IPFW)
   extern void		ACLCopy(struct acl *src, struct acl **dst);
   extern void		ACLDestroy(struct acl *acl);
+#endif
   extern void		authparamsInit(struct authparams *ap);
   extern void		authparamsCopy(struct authparams *src, struct authparams *dst);
   extern void		authparamsMove(struct authparams *src, struct authparams *dst);
