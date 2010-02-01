@@ -1402,6 +1402,7 @@ AuthSystemAcct(AuthData auth)
 
 	memset(&ut, 0, sizeof(ut));
 	snprintf(ut.ut_id, sizeof(ut.ut_id), "mpd%x", auth->info.linkID);
+	strlcpy(ut.ut_line, auth->info.lnkname, sizeof(ut.ut_line));
 
 	if (auth->acct_type == AUTH_ACCT_START) {
 		ut.ut_type = USER_PROCESS;
