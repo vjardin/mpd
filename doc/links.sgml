@@ -232,7 +232,7 @@ link.  Mpd supports MD5 style CHAP and Microsoft style CHAP versions
 1 and 2.  Mpd will prefer Microsoft CHAP over MD5 CHAP to get
 encryption keys.
 
-This option is an alias for <tt>md5-chap</tt> <tt>ms-chapv1</tt> <tt>ms-chapv2</tt>
+This option is an alias for <tt>chap-md5</tt> <tt>chap-msv1</tt> <tt>chap-msv2</tt>
 
 <tag><tt>chap-md5</tt></tag>
 
