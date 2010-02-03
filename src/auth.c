@@ -1411,11 +1411,12 @@ AuthSystemAcct(AuthData auth)
 		gettimeofday(&ut.ut_tv, NULL);
 		Log(LG_AUTH, ("[%s] ACCT: wtmp %s %s %s login", auth->info.lnkname, ut.ut_line,
 			ut.ut_user, ut.ut_host));
+		pututxline(&ut);
 	} else if (auth->acct_type == AUTH_ACCT_STOP) {
 		ut.ut_type = DEAD_PROCESS;
 		Log(LG_AUTH, ("[%s] ACCT: wtmp %s logout", auth->info.lnkname, ut.ut_line));
+		pututxline(&ut);
 	}
-	pututxline(&ut);
 	return (0);
 }
 #else
