@@ -346,6 +346,8 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
   RadServe_Conf	t_server;
   int		val, count;
   struct u_addr t;
+  int 		auth_port = 1812;
+  int 		acct_port = 1813;
 
   if (ac == 0)
       return(-1);
@@ -363,51 +365,34 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  count++;
 	}
 	if (count > RADIUS_MAX_SERVERS) {
-	  Error("cannot configure more than %d servers",
-	    RADIUS_MAX_SERVERS);
+	    Error("cannot configure more than %d servers",
+		RADIUS_MAX_SERVERS);
 	}
+	if (strlen(av[0]) > MAXHOSTNAMELEN)
+	    Error("Hostname too long. > %d char.", MAXHOSTNAMELEN);
+	if (strlen(av[1]) > 127)
+	    Error("Shared Secret too long. > 127 char.");
+	if (ac > 2) {
+	    auth_port = atoi(av[2]);
+	    if (auth_port < 0 || auth_port >= 65535)
+		Error("Auth Port number too high. > 65535");
+	}
+	if (ac > 3) {
+	    acct_port = atoi(av[3]);
+	    if (acct_port < 0 || acct_port >= 65535)
+		Error("Acct Port number too high > 65535");
+	}
+	if (auth_port == 0 && acct_port == 0)
+	    Error("At least one port must be specified.");
 
 	server = Malloc(MB_RADIUS, sizeof(*server));
-	server->auth_port = 1812;
-	server->acct_port = 1813;
+	server->auth_port = auth_port;
+	server->acct_port = acct_port;
 	server->next = NULL;
-
-	if (strlen(av[0]) > 255) {
-	    Freee(server);
-	    Error("Hostname too long. > 255 char.");
-	}
-
-	if (strlen(av[1]) > 127) {
-	    Freee(server);
-	    Error("Shared Secret too long. > 127 char.");
-	}
-
-	if (ac > 2 && atoi(av[2]) < 65535 && atoi(av[2]) >= 0) {
-	    server->auth_port = atoi (av[2]);
-
-	} else if ( ac > 2 ) {
-	    Freee(server);
-	    Error("Auth Port number too high. > 65535");
-	}
-
-	if (ac > 3 && atoi(av[3]) < 65535 && atoi(av[3]) >= 0) {
-	    server->acct_port = atoi (av[3]);
-	} else if ( ac > 3 ) {
-	    Freee(server);
-	    Error("Acct Port number too high > 65535");
-	}
-
-	if (server->auth_port == 0 && server->acct_port == 0) {
-	    Freee(server);
-	    Error("At least one port must be specified.");
-	}
-
 	server->hostname = Mstrdup(MB_RADIUS, av[0]);
 	server->sharedsecret = Mstrdup(MB_RADIUS, av[1]);
-
 	if (conf->server != NULL)
-	  server->next = conf->server;
-
+	    server->next = conf->server;
 	conf->server = server;
 
 	break;
