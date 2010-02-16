@@ -58,9 +58,6 @@
 #ifdef USE_NG_NETFLOW
 #include <netgraph/netflow/ng_netflow.h>
 #endif
-#ifdef USE_NG_NAT
-#include <netgraph/ng_nat.h>
-#endif
 #ifdef USE_NG_PRED1
 #include <netgraph/ng_pred1.h>
 #endif

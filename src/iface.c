@@ -49,9 +49,6 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#ifdef USE_NG_NAT
-#include <netgraph/ng_nat.h>
-#endif
 #ifdef USE_NG_TCPMSS
 #include <netgraph/ng_tcpmss.h>
 #endif
@@ -2169,6 +2166,7 @@ IfaceSetupNAT(Bund b)
 {
     NatState	const nat = &b->iface.nat;
     char	path[NG_PATHSIZ];
+    int k;
 
     if (u_addrempty(&nat->alias_addr)) {
 	snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
@@ -2180,6 +2178,39 @@ IfaceSetupNAT(Bund b)
     		b->name, strerror(errno)));
 	    return (-1);
 	}
+    }
+    /* redirect-port */
+    for(k = 0; k < NM_PORT; k++) {
+      if(nat->nrpt_id[k]) {
+	if (NgSendMsg(gLinksCsock, path,
+		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PORT, &nat->nrpt[k],
+		sizeof(struct ng_nat_redirect_port)) < 0) {
+	    Log(LG_ERR, ("[%s] can't set NAT redirect-port: %s",
+		b->name, strerror(errno)));
+	}
+      }
+    }
+    /* redirect-addr */
+    for(k = 0; k < NM_ADDR; k++) {
+      if(nat->nrad_id[k]) {
+	if (NgSendMsg(gLinksCsock, path,
+		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_ADDR, &nat->nrad[k],
+		sizeof(struct ng_nat_redirect_addr)) < 0) {
+	    Log(LG_ERR, ("[%s] can't set NAT redirect-addr: %s",
+		b->name, strerror(errno)));
+	}
+      }
+    }
+    /* redirect-proto */
+    for(k = 0; k < NM_PROTO; k++) {
+      if(nat->nrpr_id[k]) {
+	if (NgSendMsg(gLinksCsock, path,
+		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PROTO, &nat->nrpr[k],
+		sizeof(struct ng_nat_redirect_proto)) < 0) {
+	    Log(LG_ERR, ("[%s] can't set NAT redirect-proto: %s",
+		b->name, strerror(errno)));
+	}
+      }
     }
     return (0);
 }
