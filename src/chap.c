@@ -558,7 +558,12 @@ ChapInputFinish(Link l, AuthData auth)
     	    pv->peerChal, a->params.chap.chal_data, a->params.authname, authresp);
 	for (i = 0; i < 20; i++)
     	    sprintf(hex + (i * 2), "%02X", authresp[i]);
-	snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
+    	/* If we have reply message, send it. */
+	if (auth->reply_message != NULL) {
+	    snprintf(ackMesg, sizeof(ackMesg), "S=%s M=%s",
+		hex, auth->reply_message);
+	} else
+	    snprintf(ackMesg, sizeof(ackMesg), "S=%s", hex);
     }
   
 goodResponse:
