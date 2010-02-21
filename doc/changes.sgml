@@ -14,6 +14,8 @@
 	  </item>
 	  <item> Print global filters on `show iface|customer` commands.
 	  </item>
+	  <item> Added protocol/port forwarding support for NAT.
+	  </item>
 	  <item> Added utmpx support on 9-CURRENT.
 	  </item>
 	</itemize>
