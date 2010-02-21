@@ -24,18 +24,10 @@
 
 #include <netgraph.h>
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/socket/ng_socket.h>
-#include <netgraph/iface/ng_iface.h>
-#ifdef USE_NG_VJC
-#include <netgraph/vjc/ng_vjc.h>
-#endif
-#else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_iface.h>
 #ifdef USE_NG_VJC
 #include <netgraph/ng_vjc.h>
-#endif
 #endif
 
 /*

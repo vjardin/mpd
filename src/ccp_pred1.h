@@ -16,11 +16,7 @@
 #include "comp.h"
 
 #ifdef USE_NG_PRED1
-#ifdef __DragonFly__
-#include <netgraph/pred1/ng_pred1.h>
-#else
 #include <netgraph/ng_pred1.h>
-#endif
 #endif
 
 /*

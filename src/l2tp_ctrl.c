@@ -41,15 +41,9 @@
 #include "ppp.h"
 #include <netgraph.h>
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/socket/ng_socket.h>
-#include <netgraph/l2tp/ng_l2tp.h>
-#include <netgraph/tee/ng_tee.h>
-#else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_l2tp.h>
 #include <netgraph/ng_tee.h>
-#endif
 #include <openssl/md5.h>
 #include "l2tp_avp.h"
 #include "l2tp_ctrl.h"

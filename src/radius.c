@@ -553,7 +553,6 @@ RadiusStart(AuthData auth, short request_type)
     }
   }
 
-#if (!defined(__FreeBSD__) || __FreeBSD_version >= 503100)
   /* Insert the Message Authenticator RFC 3579
    * If using EAP this is mandatory
    */
@@ -567,7 +566,6 @@ RadiusStart(AuthData auth, short request_type)
       return (RAD_NACK);
     }
   }
-#endif
 
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_SESSION_ID: %s", 
 	auth->info.lnkname, auth->info.session_id));
@@ -1348,7 +1346,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 #endif
   struct ifaceroute	*r, *r1;
   struct u_range	range;
-#if defined(CCP_MPPC) && (!defined(__FreeBSD__) || __FreeBSD_version >= 503100)
+#ifdef CCP_MPPC
   u_char	*tmpkey;
   size_t	tmpkey_len;
 #endif
@@ -1653,7 +1651,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		  auth->info.lnkname, auth->params.msdomain));
 		break;
 
-#if defined(CCP_MPPC) && (!defined(__FreeBSD__) || __FreeBSD_version >= 503100)
+#ifdef CCP_MPPC
               /* MPPE Keys MS-CHAPv2 and EAP-TLS */
 	      case RAD_MICROSOFT_MS_MPPE_RECV_KEY:
 		Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MICROSOFT_MS_MPPE_RECV_KEY",

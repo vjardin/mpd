@@ -29,18 +29,6 @@
 
 #include <netgraph/ng_message.h>
 
-#ifdef __DragonFly__
-#include <netgraph/socket/ng_socket.h>
-#include <netgraph/ksocket/ng_ksocket.h>
-#include <netgraph/iface/ng_iface.h>
-#ifdef USE_NG_VJC
-#include <netgraph/vjc/ng_vjc.h>
-#endif
-#ifdef USE_NG_BPF
-#include <netgraph/bpf/ng_bpf.h>
-#endif
-#include <netgraph/tee/ng_tee.h>
-#else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_ksocket.h>
 #include <netgraph/ng_iface.h>
@@ -51,7 +39,6 @@
 #include <netgraph/ng_bpf.h>
 #endif
 #include <netgraph/ng_tee.h>
-#endif
 #ifdef USE_NG_TCPMSS
 #include <netgraph/ng_tcpmss.h>
 #endif

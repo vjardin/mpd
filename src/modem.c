@@ -19,15 +19,9 @@
 #include "log.h"
 
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/socket/ng_socket.h>
-#include <netgraph/async/ng_async.h>
-#include <netgraph/tty/ng_tty.h>
-#else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_async.h>
 #include <netgraph/ng_tty.h>
-#endif
 #include <netgraph.h>
 
 /*

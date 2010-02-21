@@ -19,15 +19,9 @@
 #include <pdel/util/ghash.h>
 
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/socket/ng_socket.h>
-#include <netgraph/ksocket/ng_ksocket.h>
-#include <netgraph/l2tp/ng_l2tp.h>
-#else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_ksocket.h>
 #include <netgraph/ng_l2tp.h>
-#endif
 #include <netgraph.h>
 
 /*

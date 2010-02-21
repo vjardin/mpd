@@ -25,11 +25,7 @@
 #include <sys/mbuf.h>
 #ifdef USE_NG_VJC
 #include <net/slcompress.h>
-#ifdef __DragonFly__
-#include <netgraph/vjc/ng_vjc.h>
-#else
 #include <netgraph/ng_vjc.h>
-#endif
 #endif
 
 /*

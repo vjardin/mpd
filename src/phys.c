@@ -13,11 +13,7 @@
 #include "devices.h"
 #include "util.h"
 
-#ifdef __DragonFly__
-#include <netgraph/tee/ng_tee.h>
-#else
 #include <netgraph/ng_tee.h>
-#endif
 
 /*
  * The physical layer has four states: DOWN, OPENING, CLOSING, and UP.

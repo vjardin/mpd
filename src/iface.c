@@ -31,21 +31,12 @@
 #include <netinet/if_ether.h>
 #include <netinet6/nd6.h>
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/iface/ng_iface.h>
-#ifdef USE_NG_BPF
-#include <netgraph/bpf/ng_bpf.h>
-#endif
-#include <netgraph/tee/ng_tee.h>
-#include <netgraph/ksocket/ng_ksocket.h>
-#else
 #include <netgraph/ng_iface.h>
 #ifdef USE_NG_BPF
 #include <netgraph/ng_bpf.h>
 #endif
 #include <netgraph/ng_tee.h>
 #include <netgraph/ng_ksocket.h>
-#endif
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>

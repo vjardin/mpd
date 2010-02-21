@@ -34,11 +34,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <machine/endian.h>
-#ifdef __DragonFly__
-#include <net/ppp_layer/ppp_defs.h>
-#else
 #include <net/ppp_defs.h>
-#endif
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -51,11 +47,7 @@
 #include <pdel/util/ghash.h>
 
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/ppp/ng_ppp.h>
-#else
 #include <netgraph/ng_ppp.h>
-#endif
 
 #include "defs.h"
 

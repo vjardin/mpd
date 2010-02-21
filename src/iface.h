@@ -18,16 +18,9 @@
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/ppp/ng_ppp.h>
-#ifdef USE_NG_BPF
-#include <netgraph/bpf/ng_bpf.h>
-#endif
-#else
 #include <netgraph/ng_ppp.h>
 #ifdef USE_NG_BPF
 #include <netgraph/ng_bpf.h>
-#endif
 #endif
 #include "mbuf.h"
 #include "timer.h"

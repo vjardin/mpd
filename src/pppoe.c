@@ -15,15 +15,9 @@
 
 #include <net/ethernet.h>
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/pppoe/ng_pppoe.h>
-#include <netgraph/ether/ng_ether.h>
-#include <netgraph/tee/ng_tee.h>
-#else
 #include <netgraph/ng_pppoe.h>
 #include <netgraph/ng_ether.h>
 #include <netgraph/ng_tee.h>
-#endif
 #include <netgraph.h>
 
 #include <sys/param.h>

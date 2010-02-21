@@ -19,13 +19,8 @@
 
 #include <netgraph.h>
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/socket/ng_socket.h>
-#include <netgraph/tee/ng_tee.h>
-#else
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_tee.h>
-#endif
 
 /*
  * DEFINITIONS

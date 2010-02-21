@@ -9,11 +9,7 @@
 #define _CCP_DEFLATE_H_
 
 #include <netgraph/ng_message.h>
-#ifdef __DragonFly__
-#include <netgraph/deflate/ng_deflate.h>
-#else
 #include <netgraph/ng_deflate.h>
-#endif
 
 #include "defs.h"
 #include "mbuf.h"
