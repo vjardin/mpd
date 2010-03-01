@@ -38,12 +38,14 @@ static int	NatSetCommand(Context ctx, int ac, char *av[], void *arg);
 	NatSetCommand, NULL, 2, (void *) SET_ADDR },
     { "target {addr}",		"Set target address",
 	NatSetCommand, NULL, 2, (void *) SET_TARGET },
+#ifdef NG_NAT_DESC_LENGTH
     { "red-port {proto} {alias_addr} {alias_port} {local_addr} {local_port} [{remote_addr} {remote_port}]",	"Redirect port",
 	NatSetCommand, NULL, 2, (void *) SET_REDIRECT_PORT },
     { "red-addr {alias_addr} {local_addr}",	"Redirect address",
 	NatSetCommand, NULL, 2, (void *) SET_REDIRECT_ADDR },
     { "red-proto {proto} {alias-addr} {local_addr} [{remote-addr}]",	"Redirect protocol",
 	NatSetCommand, NULL, 2, (void *) SET_REDIRECT_PROTO },
+#endif
     { "enable [opt ...]",		"Enable option",
 	NatSetCommand, NULL, 2, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
@@ -79,12 +81,14 @@ NatInit(Bund b)
   Enable(&nat->options, NAT_CONF_INCOMING);
   Enable(&nat->options, NAT_CONF_SAME_PORTS);
   Disable(&nat->options, NAT_CONF_UNREG_ONLY);
+#ifdef NG_NAT_DESC_LENGTH
   bzero(nat->nrpt, sizeof(nat->nrpt));
   bzero(nat->nrpt_id, sizeof(nat->nrpt_id));
   bzero(nat->nrad, sizeof(nat->nrad));
   bzero(nat->nrad_id, sizeof(nat->nrad_id));
   bzero(nat->nrpr, sizeof(nat->nrpr));
   bzero(nat->nrpr_id, sizeof(nat->nrpr_id));
+#endif
 }
 
 
@@ -124,6 +128,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
       }
       break;
 
+#ifdef NG_NAT_DESC_LENGTH
     case SET_REDIRECT_PORT:
       {
 	struct protoent	*proto;
@@ -239,6 +244,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  Error("max number of redirect-proto \"%d\" reached", NM_PROTO);
       }
       break;
+#endif
 
     case SET_ENABLE:
       EnableCommand(ac, av, &nat->options, gConfList);
@@ -270,6 +276,7 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
 	u_addrtoa(&nat->alias_addr,buf,sizeof(buf)));
     Printf("\tTarget addresses: %s\r\n", 
 	u_addrtoa(&nat->target_addr,buf,sizeof(buf)));
+#ifdef NG_NAT_DESC_LENGTH
     Printf("Redirect ports:\r\n");
     for (k=0;k<NM_PORT;k++) {
       if (nat->nrpt_id[k]) {
@@ -305,6 +312,7 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
 	Printf("\t%s %s %s %s\r\n", proto->p_name, ai, li, ri);
       }
     }
+#endif
     Printf("NAT options:\r\n");
     OptStat(ctx, &nat->options, gConfList);
     return(0);

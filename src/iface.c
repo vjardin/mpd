@@ -2170,6 +2170,7 @@ IfaceSetupNAT(Bund b)
 	    return (-1);
 	}
     }
+#ifdef NG_NAT_DESC_LENGTH
     /* redirect-port */
     for(k = 0; k < NM_PORT; k++) {
       if(nat->nrpt_id[k]) {
@@ -2203,6 +2204,7 @@ IfaceSetupNAT(Bund b)
 	}
       }
     }
+#endif
     return (0);
 }
 

@@ -6,6 +6,17 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.5:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Fix build on older FreeBSD versions.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 5.4:
     <itemize>
 	<item> New features:
