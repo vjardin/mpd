@@ -133,7 +133,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
       {
 	struct protoent	*proto;
 	struct in_addr	l_addr, a_addr, r_addr;
-	int lp, ap, rp, k;
+	int lp, ap, rp = 0, k;
 
 	/* Parse */
 	if (ac != 5 && ac != 7)
