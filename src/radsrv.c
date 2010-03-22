@@ -770,19 +770,12 @@ RadsrvSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  Error("cannot configure more than %d peers",
 	    RADSRV_MAX_SERVERS);
 	}
+	if (strlen(av[0]) > 255)
+	    Error("Hostname too long. > 255 char.");
+	if (strlen(av[1]) > 127)
+	    Error("Shared Secret too long. > 127 char.");
 
 	peer = Malloc(MB_RADIUS, sizeof(*peer));
-
-	if (strlen(av[0]) > 255) {
-	    Freee(peer);
-	    Error("Hostname too long. > 255 char.");
-	}
-
-	if (strlen(av[1]) > 127) {
-	    Freee(peer);
-	    Error("Shared Secret too long. > 127 char.");
-	}
-
 	peer->hostname = Mstrdup(MB_RADIUS, av[0]);
 	peer->sharedsecret = Mstrdup(MB_RADIUS, av[1]);
 	peer->next = w->clients;
