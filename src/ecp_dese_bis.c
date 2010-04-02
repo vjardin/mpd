@@ -345,9 +345,9 @@ DeseBisDecodeConfigReq(Fsm fp, FsmOption opt, int mode)
       FsmRej(fp, opt);
     return;
   }
-  Log(LG_ECP, ("[%s]   nonce 0x%08lx%08lx", b->name,
-    (unsigned long)ntohl(((u_int32_t *) opt->data)[0]),
-    (unsigned long)ntohl(((u_int32_t *) opt->data)[1])));
+  Log(LG_ECP, ("[%s]   nonce 0x%02x%02x%02x%02x%02x%02x%02x%02x", b->name,
+    opt->data[0], opt->data[1],opt->data[2],opt->data[3],
+    opt->data[4], opt->data[5],opt->data[6],opt->data[7]));
   switch (mode)
   {
     case MODE_REQ:

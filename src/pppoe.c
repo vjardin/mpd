@@ -663,7 +663,10 @@ PppoePeerName(Link l, void *buf, size_t buf_len)
 static int 
 CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 {
-	u_char	rbuf[2048];
+        union {
+		u_char          buf[sizeof(struct ng_mesg) + 2048];
+		struct ng_mesg  reply;
+	} u;
 	struct ng_mesg *resp;
 	const struct hooklist *hlist;
 	const struct nodeinfo *ninfo;
@@ -705,8 +708,8 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 		}
 
 		/* Get response. */
-		resp = (struct ng_mesg *)rbuf;
-		if (NgRecvMsg(PIf->csock, resp, sizeof(rbuf), NULL) <= 0) {
+		resp = &u.reply;
+		if (NgRecvMsg(PIf->csock, resp, sizeof(u.buf), NULL) <= 0) {
 			Log(LG_ERR, ("[%s] PPPoE: Cannot get netgraph response: %s",
 			    iface, strerror(errno)));
 			close(PIf->csock);
@@ -748,8 +751,8 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	}
 
 	/* Get our list back. */
-	resp = (struct ng_mesg *)rbuf;
-	if (NgRecvMsg(PIf->csock, resp, sizeof(rbuf), NULL) <= 0) {
+	resp = &u.reply;
+	if (NgRecvMsg(PIf->csock, resp, sizeof(u.buf), NULL) <= 0) {
 		Log(LG_ERR, ("[%s] Cannot get netgraph response: %s",
 		    iface, strerror(errno)));
 		close(PIf->csock);

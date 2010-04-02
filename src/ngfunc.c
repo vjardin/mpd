@@ -549,8 +549,11 @@ NgFuncWritePppFrameLink(Link l, int proto, Mbuf bp)
 int
 NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 {
-    u_char		buf[sizeof(struct sockaddr_ng) + NG_HOOKSIZ];
-    struct sockaddr_ng	*ng = (struct sockaddr_ng *)buf;
+    union {
+        u_char          buf[sizeof(struct sockaddr_ng) + NG_HOOKSIZ];
+	struct sockaddr_ng sa_ng;
+    }                   u;
+    struct sockaddr_ng	*ng = &u.sa_ng;
     int			rtn;
 
     /* Write frame */
@@ -558,7 +561,7 @@ NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
 	return (-1);
 
     /* Set dest address */
-    memset(&buf, 0, sizeof(buf));
+    memset(&u.buf, 0, sizeof(u.buf));
     strlcpy(ng->sg_data, hookname, NG_HOOKSIZ);
     ng->sg_family = AF_NETGRAPH;
     ng->sg_len = 3 + strlen(ng->sg_data);

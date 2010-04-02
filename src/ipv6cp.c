@@ -139,8 +139,12 @@ Ipv6cpStat(Context ctx, int ac, char *av[], void *arg)
 
   Printf("[%s] %s [%s]\r\n", Pref(fp), Fsm(fp), FsmStateName(fp->state));
   Printf("Interface identificators:\r\n");
-  Printf("\tSelf: %04x:%04x:%04x:%04x\r\n", ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]));
-  Printf("\tPeer: %04x:%04x:%04x:%04x\r\n", ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3]));
+  Printf("\tSelf: %02x%02x:%02x%02x:%02x%02x:%02x%02x\r\n",
+    ipv6cp->myintid[0], ipv6cp->myintid[1], ipv6cp->myintid[2], ipv6cp->myintid[3],
+    ipv6cp->myintid[4], ipv6cp->myintid[5], ipv6cp->myintid[6], ipv6cp->myintid[7]);
+  Printf("\tPeer: %02x%02x:%02x%02x:%02x%02x:%02x%02x\r\n",
+    ipv6cp->hisintid[0], ipv6cp->hisintid[1], ipv6cp->hisintid[2], ipv6cp->hisintid[3],
+    ipv6cp->hisintid[4], ipv6cp->hisintid[5], ipv6cp->hisintid[6], ipv6cp->hisintid[7]);
   Printf("IPV6CP Options:\r\n");
   OptStat(ctx, &ipv6cp->conf.options, gConfList);
 
@@ -288,9 +292,11 @@ Ipv6cpLayerUp(Fsm fp)
     Ipv6cpState		const ipv6cp = &b->ipv6cp;
 
     /* Report */
-    Log(fp->log, ("[%s]   %04x:%04x:%04x:%04x -> %04x:%04x:%04x:%04x", b->name,
-	ntohs(((u_short*)ipv6cp->myintid)[0]), ntohs(((u_short*)ipv6cp->myintid)[1]), ntohs(((u_short*)ipv6cp->myintid)[2]), ntohs(((u_short*)ipv6cp->myintid)[3]),
-	ntohs(((u_short*)ipv6cp->hisintid)[0]), ntohs(((u_short*)ipv6cp->hisintid)[1]), ntohs(((u_short*)ipv6cp->hisintid)[2]), ntohs(((u_short*)ipv6cp->hisintid)[3])));
+    Log(fp->log, ("[%s]   %02x%02x:%02x%02x:%02x%02x:%02x%02x -> %02x%02x:%02x%02x:%02x%02x:%02x%02x", b->name,
+	ipv6cp->myintid[0], ipv6cp->myintid[1], ipv6cp->myintid[2], ipv6cp->myintid[3],
+	ipv6cp->myintid[4], ipv6cp->myintid[5], ipv6cp->myintid[6], ipv6cp->myintid[7],
+	ipv6cp->hisintid[0], ipv6cp->hisintid[1], ipv6cp->hisintid[2], ipv6cp->hisintid[3],
+	ipv6cp->hisintid[4], ipv6cp->hisintid[5], ipv6cp->hisintid[6], ipv6cp->hisintid[7]));
 
     /* Enable IP packets in the PPP node */
     b->pppConfig.bund.enableIPv6 = 1;
@@ -435,8 +441,9 @@ Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
     switch (opt->type) {
       case TY_INTIDENT:
 	{
-	  Log(LG_IPV6CP2, ("[%s]   %s %04x:%04x:%04x:%04x", b->name, oi->name,
-	    ntohs(((u_short*)opt->data)[0]), ntohs(((u_short*)opt->data)[1]), ntohs(((u_short*)opt->data)[2]), ntohs(((u_short*)opt->data)[3])));
+	  Log(LG_IPV6CP2, ("[%s]   %s %02x%02x:%02x%02x:%02x%02x:%02x%02x", b->name, oi->name,
+	    opt->data[0], opt->data[1], opt->data[2], opt->data[3],
+	    opt->data[4], opt->data[5], opt->data[6], opt->data[7]));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if ((((u_int32_t*)opt->data)[0]==0) && (((u_int32_t*)opt->data)[1]==0)) {
@@ -444,7 +451,7 @@ Ipv6cpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 		CreateInterfaceID(ipv6cp->hisintid, 1);
 	        memcpy(opt->data, ipv6cp->hisintid, 8);
 	        FsmNak(fp, opt);
-	      } else if ((((u_int32_t*)opt->data)[0]==((u_int32_t*)ipv6cp->myintid)[0]) && (((u_int32_t*)opt->data)[1]==((u_int32_t*)ipv6cp->myintid)[1])) {
+	      } else if (bcmp(opt->data, ipv6cp->myintid, 8) == 0) {
 		Log(LG_IPV6CP2, ("[%s]     Duplicate INTIDENT, generate and propose other.", b->name));
 		CreateInterfaceID(ipv6cp->hisintid, 1);
 	        memcpy(opt->data, ipv6cp->hisintid, 8);

@@ -494,7 +494,7 @@ UdpAcceptEvent(int type, void *cookie)
 	UdpInfo		pi = NULL;
 
 	char		pktbuf[UDP_MRU+100];
-	char		pktlen;
+	ssize_t		pktlen;
 
 	assert(type == EVENT_READ);
 

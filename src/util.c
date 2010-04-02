@@ -626,7 +626,8 @@ static char *
 ReadLine(FILE *fp, int *lineNum, char *result, int resultsize)
 {
   int		empty;
-  char		ch, *s;
+  char		*s;
+  int		ch;
 
     if ((!result) || (resultsize <= 0))
 	return (NULL);
