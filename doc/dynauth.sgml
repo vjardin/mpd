@@ -184,7 +184,7 @@ N   Name
 
 Received in CoA session parameters replace existing ones. If some parameter
 is not received, it keeps it's previous value for standard attributes,
-or getting cleared for mpd's VSAs.
+and getting cleared for mpd's VSAs.
 
 Nots, that CoA request always restarts Session and Idle timers for matching
 interfaces, and restarts Accounting Update timer for matching links, if new
