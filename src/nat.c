@@ -35,21 +35,21 @@ static int	NatSetCommand(Context ctx, int ac, char *av[], void *arg);
 
   const struct cmdtab NatSetCmds[] = {
     { "address {addr}",		"Set alias address",
-	NatSetCommand, NULL, 2, (void *) SET_ADDR },
+	NatSetCommand, AdmitBund, 2, (void *) SET_ADDR },
     { "target {addr}",		"Set target address",
-	NatSetCommand, NULL, 2, (void *) SET_TARGET },
+	NatSetCommand, AdmitBund, 2, (void *) SET_TARGET },
 #ifdef NG_NAT_DESC_LENGTH
     { "red-port {proto} {alias_addr} {alias_port} {local_addr} {local_port} [{remote_addr} {remote_port}]",	"Redirect port",
-	NatSetCommand, NULL, 2, (void *) SET_REDIRECT_PORT },
+	NatSetCommand, AdmitBund, 2, (void *) SET_REDIRECT_PORT },
     { "red-addr {alias_addr} {local_addr}",	"Redirect address",
-	NatSetCommand, NULL, 2, (void *) SET_REDIRECT_ADDR },
+	NatSetCommand, AdmitBund, 2, (void *) SET_REDIRECT_ADDR },
     { "red-proto {proto} {alias-addr} {local_addr} [{remote-addr}]",	"Redirect protocol",
-	NatSetCommand, NULL, 2, (void *) SET_REDIRECT_PROTO },
+	NatSetCommand, AdmitBund, 2, (void *) SET_REDIRECT_PROTO },
 #endif
     { "enable [opt ...]",		"Enable option",
-	NatSetCommand, NULL, 2, (void *) SET_ENABLE },
+	NatSetCommand, AdmitBund, 2, (void *) SET_ENABLE },
     { "disable [opt ...]",		"Disable option",
-	NatSetCommand, NULL, 2, (void *) SET_DISABLE },
+	NatSetCommand, AdmitBund, 2, (void *) SET_DISABLE },
     { NULL },
   };
 
@@ -162,11 +162,11 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  if (nat->nrpt_id[k] == 0) {
 	    memcpy(&nat->nrpt[k].local_addr, &l_addr, sizeof(struct in_addr));
 	    memcpy(&nat->nrpt[k].alias_addr, &a_addr, sizeof(struct in_addr));
-	    nat->nrpt[k].local_port = htons(lp);
-	    nat->nrpt[k].alias_port = htons(ap);
+	    nat->nrpt[k].local_port = lp;
+	    nat->nrpt[k].alias_port = ap;
 	    if (ac == 7) {
 	      memcpy(&nat->nrpt[k].remote_addr, &r_addr, sizeof(struct in_addr));
-	      nat->nrpt[k].remote_port = htons(rp);
+	      nat->nrpt[k].remote_port = rp;
 	    }
 	    nat->nrpt[k].proto = (uint8_t)proto->p_proto;
 	    snprintf(nat->nrpt[k].description, NG_NAT_DESC_LENGTH, "nat-port-%d", k);
