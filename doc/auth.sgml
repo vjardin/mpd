@@ -205,11 +205,15 @@ set radius timeout <em>seconds</em>
 
 Set the timeout for completion of RADIUS requests.
 
+The default is 5 second.
+
 <tag><tt>
 set radius retries <em>#retries</em>
 </tt></tag>
 
 Set the number of retries for RADIUS requests.
+
+The default is 3 retries.
 
 <tag><tt>
 set radius me <em>IP</em>|<em>ifname</em>|<em>hostname</em>
