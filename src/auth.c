@@ -188,15 +188,9 @@ void	authparamsDestroy(struct authparams *ap) {
     int i;
 #endif
   
-    if (ap->eapmsg) {
-	Freee(ap->eapmsg);
-    }
-    if (ap->state) {
-	Freee(ap->state);
-    }
-    if (ap->class) {
-	Freee(ap->class);
-    }
+    Freee(ap->eapmsg);
+    Freee(ap->state);
+    Freee(ap->class);
 
 #ifdef USE_IPFW
     ACLDestroy(ap->acl_rule);
@@ -217,9 +211,7 @@ void	authparamsDestroy(struct authparams *ap) {
 	Freee(r);
     }
 
-    if (ap->msdomain) {
-	Freee(ap->msdomain);
-    }
+    Freee(ap->msdomain);
     
     memset(ap,0,sizeof(struct authparams));
 }
@@ -314,10 +306,8 @@ AuthShutdown(Link l)
 	paction_cancel(&a->thread);
     if (a->acct_thread)
 	paction_cancel(&a->acct_thread);
-    if (a->conf.extauth_script)
-	Freee(a->conf.extauth_script);
-    if (a->conf.extacct_script)
-	Freee(a->conf.extacct_script);
+    Freee(a->conf.extauth_script);
+    Freee(a->conf.extacct_script);
 }
 
 /*
@@ -661,10 +651,8 @@ AuthDataDestroy(AuthData auth)
 #ifdef USE_NG_BPF
     IfaceFreeStats(&auth->info.ss);
 #endif
-    if (auth->conf.extauth_script)
-	Freee(auth->conf.extauth_script);
-    if (auth->conf.extacct_script)
-	Freee(auth->conf.extacct_script);
+    Freee(auth->conf.extauth_script);
+    Freee(auth->conf.extacct_script);
     Freee(auth);
 }
 
@@ -1962,14 +1950,12 @@ AuthSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
       
     case SET_EXTAUTH_SCRIPT:
-	if (autc->extauth_script)
-	    Freee(autc->extauth_script);
+	Freee(autc->extauth_script);
 	autc->extauth_script = Mstrdup(MB_AUTH, *av);
 	break;
       
     case SET_EXTACCT_SCRIPT:
-	if (autc->extacct_script)
-	    Freee(autc->extacct_script);
+	Freee(autc->extacct_script);
 	autc->extacct_script = Mstrdup(MB_AUTH, *av);
 	break;
       
@@ -2277,13 +2263,11 @@ AuthExternal(AuthData auth)
 	strlcpy(auth->params.ippool, val, sizeof(auth->params.ippool));
 
     } else if (strcmp(attr, "REPLY_MESSAGE") == 0) {
-	if (auth->reply_message)
-		Freee(auth->reply_message);
+	Freee(auth->reply_message);
 	auth->reply_message = Mstrdup(MB_AUTH, val);
 
     } else if (strcmp(attr, "MS_CHAP_ERROR") == 0) {
-	if (auth->mschap_error)
-		Freee(auth->mschap_error);
+	Freee(auth->mschap_error);
 	/* "E=%d R=0 M=%s" */
 	auth->mschap_error = Mstrdup(MB_AUTH, val);
 

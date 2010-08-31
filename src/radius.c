@@ -429,8 +429,7 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	if (strlen(av[0]) > PATH_MAX) {
 	  Error("RADIUS: Config file name too long.");
 	} else {
-	  if (conf->file)
-		Freee(conf->file);
+	  Freee(conf->file);
 	  conf->file = Mstrdup(MB_RADIUS, av[0]);
 	}
 	break;
@@ -439,8 +438,7 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 	if (strlen(av[0]) > RAD_MAX_ATTR_LEN) {
 	  Error("RADIUS: Identifier too long.");
 	} else {
-	  if (conf->identifier)
-		Freee(conf->identifier);
+	  Freee(conf->identifier);
 	  if (av[0][0] == 0)
 		conf->identifier = NULL;
 	  else
@@ -1363,8 +1361,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_STATE: 0x%s", auth->info.lnkname, tmpval));
 	Freee(tmpval);
 	auth->params.state_len = len;
-	if (auth->params.state != NULL)
-	  Freee(auth->params.state);
+	Freee(auth->params.state);
 	auth->params.state = Mdup(MB_AUTH, data, len);
 	continue;
 
@@ -1373,8 +1370,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_CLASS: 0x%s", auth->info.lnkname, tmpval));
 	Freee(tmpval);
 	auth->params.class_len = len;
-	if (auth->params.class != NULL)
-	  Freee(auth->params.class);
+	Freee(auth->params.class);
 	auth->params.class = Mdup(MB_AUTH, data, len);
 	continue;
 
@@ -1592,10 +1588,8 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	    switch (res) {
 
 	      case RAD_MICROSOFT_MS_CHAP_ERROR:
-	        if (auth->mschap_error != NULL) {
-	    	    Freee(auth->mschap_error);
-		    auth->mschap_error = NULL;
-		}
+	    	Freee(auth->mschap_error);
+		auth->mschap_error = NULL;
 		if (len == 0)
 		    break;
 
@@ -1614,10 +1608,8 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 
 	      /* this was taken from userland ppp */
 	      case RAD_MICROSOFT_MS_CHAP2_SUCCESS:
-	        if (auth->mschapv2resp != NULL) {
-	    	    Freee(auth->mschapv2resp);
-		    auth->mschapv2resp = NULL;
-		}
+	    	Freee(auth->mschapv2resp);
+		auth->mschapv2resp = NULL;
 		if (len == 0)
 		    break;
 		if (len < 3 || ((const char *)data)[1] != '=') {
