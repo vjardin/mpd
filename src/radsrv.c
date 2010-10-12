@@ -118,7 +118,7 @@ RadsrvEvent(int type, void *cookie)
 #ifdef USE_NG_BPF
     struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
     struct acl		*acl_limits[ACL_DIRS];	/* traffic limits based on mpd's filters */
-    char 		std_acct[ACL_DIRS][ACL_NAME_LEN]; /* Names of ACL rerurned in standard accounting */
+    char 		std_acct[ACL_DIRS][ACL_NAME_LEN]; /* Names of ACL returned in standard accounting */
 
     bzero(acl_filters, sizeof(acl_filters));
     bzero(acl_limits, sizeof(acl_limits));
@@ -190,7 +190,7 @@ RadsrvEvent(int type, void *cookie)
 		break;
 	    case RAD_CALLING_STATION_ID:
 		anysesid = 1;
-		called = rad_cvt_string(data, len);
+		calling = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLING_STATION_ID: %s ",
 		    calling));
 		break;
@@ -202,7 +202,7 @@ RadsrvEvent(int type, void *cookie)
 		break;
 	    case RAD_ACCT_MULTI_SESSION_ID:
 		anysesid = 1;
-		sesid = rad_cvt_string(data, len);
+		msesid = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_MULTI_SESSION_ID: %s ",
 		    msesid));
 		break;
