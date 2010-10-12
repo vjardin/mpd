@@ -1847,6 +1847,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	    if (acl1 == NULL) {
 	      Log(LG_ERR, ("[%s] RADIUS: Incorrect acl!",
 		auth->info.lnkname));
+	      free(acl);
 	      break;
 	    }
 	    

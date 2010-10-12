@@ -357,6 +357,7 @@ RadsrvEvent(int type, void *cookie)
 #if defined(USE_NG_BPF) || defined(USE_IPFW)
 		    if (acl1 == NULL) {
 		      Log(LG_ERR, ("radsrv: Incorrect acl!"));
+		      free(acl);
 		      break;
 		    }
 	    
@@ -441,7 +442,7 @@ RadsrvEvent(int type, void *cookie)
 	if (authentic)
 	    rad_put_message_authentic(w->handle);
 	rad_send_response(w->handle);
-	return;
+	goto cleanup;
     }
     found = 0;
     err = 503;
@@ -577,6 +578,7 @@ RadsrvEvent(int type, void *cookie)
 	rad_put_message_authentic(w->handle);
     rad_send_response(w->handle);
 
+cleanup:
     if (username)
 	free(username);
     if (called)
@@ -593,6 +595,8 @@ RadsrvEvent(int type, void *cookie)
 	free(bundle);
     if (iface)
 	free(iface);
+    if (state != NULL)
+	Freee(state);
 #ifdef USE_IPFW
     ACLDestroy(acl_rule);
     ACLDestroy(acl_pipe);
