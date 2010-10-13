@@ -444,6 +444,7 @@ PptpUnhook(Link l)
 	    /* Disconnect session hook. */
 	    NgFuncShutdownNode(csock, l->name, path);
 	    ghash_remove(gPptpTuns, pptp->tun);
+	    Freee(pptp->tun);
 #ifdef	NG_PPTPGRE_HOOK_SESSION_F
 	} else {
 	    char	hook[NG_HOOKSIZ];
