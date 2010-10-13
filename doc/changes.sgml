@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Fix build on older FreeBSD versions.
 	  </item>
+	  <item> Fix several memory leaks.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
