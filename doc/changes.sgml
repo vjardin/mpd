@@ -8,6 +8,13 @@
   <p>
     Changes since version 5.5:
     <itemize>
+	<item> Changes:
+	<itemize>
+	  <item> Remove dependency from libpdel library.
+		 Import required files into the MPD tree.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Fix build on older FreeBSD versions.

@@ -14,8 +14,6 @@ DIST_SUBDIR=	mpd5
 MAINTAINER=	mav@FreeBSD.org
 COMMENT=	Multi-link PPP daemon based on netgraph(4)
 
-LIB_DEPENDS=	pdel.0:${PORTSDIR}/devel/libpdel
-
 LATEST_LINK=	mpd5
 
 OPTIONS=	NG_CAR "Use ng_car kernel module from port (< 7.0 only)" off\

@@ -10,10 +10,17 @@
 
 #include "defs.h"
 #include <openssl/ssl.h>
+#ifdef NOLIBPDEL
+#include "contrib/libpdel/http/http_defs.h"
+#include "contrib/libpdel/http/http_server.h"
+#include "contrib/libpdel/http/http_servlet.h"
+#include "contrib/libpdel/http/servlet/basicauth.h"
+#else
 #include <pdel/http/http_defs.h>
 #include <pdel/http/http_server.h>
 #include <pdel/http/http_servlet.h>
 #include <pdel/http/servlet/basicauth.h>
+#endif
 
 /*
  * DEFINITIONS

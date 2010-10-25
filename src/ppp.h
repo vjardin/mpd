@@ -39,12 +39,21 @@
 #include <arpa/inet.h>
 
 #include <pthread.h>
+#ifdef NOLIBPDEL
+#include "contrib/libpdel/structs/structs.h"
+#include "contrib/libpdel/structs/type/array.h"
+#include "contrib/libpdel/util/typed_mem.h"
+#include "contrib/libpdel/util/pevent.h"
+#include "contrib/libpdel/util/paction.h"
+#include "contrib/libpdel/util/ghash.h"
+#else
 #include <pdel/structs/structs.h>
 #include <pdel/structs/type/array.h>
 #include <pdel/util/typed_mem.h>
 #include <pdel/util/pevent.h>
 #include <pdel/util/paction.h>
 #include <pdel/util/ghash.h>
+#endif
 
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_ppp.h>

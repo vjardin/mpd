@@ -15,7 +15,11 @@
 #ifdef SYSLOG_FACILITY
 #include <syslog.h>
 #endif
+#ifdef NOLIBPDEL
+#include "contrib/libpdel/sys/alog.h"
+#else
 #include <pdel/sys/alog.h>
+#endif
 
 /*
  * DEFINITIONS

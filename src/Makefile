@@ -10,7 +10,7 @@
 PROG?=			mpd5
 PREFIX?=		/usr/local
 BINDIR?=		${PREFIX}/sbin
-VERSION=		5.5
+VERSION=		5.6a1
 NOMAN=
 NO_MAN=
 
@@ -53,9 +53,13 @@ USE_NG_VJC=		yes
 USE_IPFW=		yes
 USE_FETCH=		yes
 USE_TCP_WRAP=		yes
-USE_AUTH_OPIE=		yes
+#USE_AUTH_OPIE=		yes
 USE_AUTH_PAM=		yes
 USE_AUTH_SYSTEM=	yes
+
+# Build with builtin libpdel
+
+NOLIBPDEL=		yes
 
 # Set syslog logging facility. Change LOG_DAEMON to whatever you like.
 
@@ -98,10 +102,12 @@ LDADD+=		-L/usr/lib -lradius
 DPADD+=		${LIBRADIUS}
 
 ## libpdel needs ssl and libexpat (libxml2 cannot be used)
+.if !defined ( NOLIBPDEL )
 LDADD+=		-L${PREFIX}/lib
 LDADD+=		-lpdel
-LDADD+=		-lssl
 LDADD+=		-lexpat
+.endif
+LDADD+=		-lssl
 
 MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
 
@@ -133,6 +139,46 @@ STDSRCS=        assert.c auth.c bund.c rep.c ccp.c chap.c \
 		ip.c ipcp.c ipv6cp.c lcp.c link.c log.c main.c mbuf.c mp.c \
 		msg.c ngfunc.c pap.c phys.c proto.c radius.c radsrv.c timer.c \
 		util.c vars.c eap.c msoft.c web.c ippool.c
+
+.if defined ( NOLIBPDEL )
+COPTS+=		-DNOLIBPDEL -I./contrib/libpdel
+PDPATH1=	contrib/libpdel/util:contrib/libpdel/structs
+PDPATH2=	contrib/libpdel/http:contrib/libpdel/http/servlet
+PDPATH3=	contrib/libpdel/sys:contrib/libpdel/io
+PDPATH4=	contrib/libpdel/structs/type
+VPATH+=		$(PDPATH1):$(PDPATH2):$(PDPATH3):$(PDPATH4)
+PDELSRCS=	typed_mem.c \
+		pevent.c \
+		paction.c \
+		ghash.c \
+		gtree.c \
+		mesg_port.c \
+		structs.c \
+		structs_generic.c \
+		structs_type_array.c \
+		structs_type_int.c \
+		structs_type_ip4.c \
+		structs_type_pointer.c \
+		structs_type_string.c \
+		structs_type_struct.c \
+		structs_type_time.c \
+		http_connection.c \
+		http_head.c \
+		http_message.c \
+		http_mime.c \
+		http_request.c \
+		http_response.c \
+		http_server.c \
+		http_servlet_basicauth.c \
+		http_ssl.c \
+		http_status.c \
+		alog.c \
+		logfile.c \
+		boundary_fp.c \
+		ssl_fp.c \
+		string_fp.c \
+		timeout_fp.c
+.endif
 
 # Add sources and flags for the various physical layer types
 
@@ -243,5 +289,9 @@ DPADD+=		${LIBCRYPTO}
 # Now add standard sources
 
 SRCS+=		${STDSRCS}
+
+.if defined ( NOLIBPDEL )
+SRCS+=		${PDELSRCS}
+.endif
 
 .include <bsd.prog.mk>

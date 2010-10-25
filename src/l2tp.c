@@ -16,7 +16,11 @@
 #include "util.h"
 
 #include <sys/types.h>
+#ifdef NOLIBPDEL
+#include "contrib/libpdel/util/ghash.h"
+#else
 #include <pdel/util/ghash.h>
+#endif
 
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_socket.h>
