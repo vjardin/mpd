@@ -15,11 +15,6 @@
 #ifdef SYSLOG_FACILITY
 #include <syslog.h>
 #endif
-#ifdef NOLIBPDEL
-#include "contrib/libpdel/sys/alog.h"
-#else
-#include <pdel/sys/alog.h>
-#endif
 
 /*
  * DEFINITIONS
@@ -42,21 +37,14 @@
  * GLOBAL VARIABLES
  */
 
-  struct alog_config	gLogConf;
-
   int	gLogOptions = LG_DEFAULT_OPT | LG_ALWAYS;
 #ifdef SYSLOG_FACILITY
   char	gSysLogIdent[32];
 #endif
-  int	gLogInfo;
 
 /*
  * INTERNAL VARIABLES
  */
-
-#ifndef SYSLOG_FACILITY
-  static FILE		*logfp = stderr;
-#endif
 
   #define ADD_OPT(x,d)	{ LG_ ##x, #x, d },
 
@@ -157,39 +145,17 @@
   #define NUM_LOG_LEVELS (sizeof(LogOptionList) / sizeof(*LogOptionList))
 
 /*
- * INTERNAL FUNCTIONS
- */
-
-#ifndef SYSLOG_FACILITY
-  static void	LogTimeStamp(int (*func)(const char *fmt, ...));
-#else
-  #define LogTimeStamp(c)	do{}while(0)
-#endif
-
-/*
  * LogOpen()
  */
 
 int
 LogOpen(void)
 {
-    memset(&gLogConf, 0, sizeof(gLogConf));
+#ifdef SYSLOG_FACILITY
     if (!*gSysLogIdent)
 	strcpy(gSysLogIdent, "mpd");
-    gLogInfo = alog_severity("info");
-#ifdef SYSLOG_FACILITY
-    gLogConf.name = gSysLogIdent;
-    gLogConf.facility = alog_facility_name(SYSLOG_FACILITY);
-    gLogConf.min_severity = gLogInfo;
-#else
-    gLogConf.path = LG_FILE;
+    openlog(gSysLogIdent, 0, LOG_DAEMON);
 #endif
-
-    if (alog_configure(0, &gLogConf) == -1) {
-	warn("alog_configure failed");
-	return(-1);
-    }
-    alog_set_channel(0);
     return(0);
 }
 
@@ -200,7 +166,9 @@ LogOpen(void)
 void
 LogClose(void)
 {
-    alog_shutdown(0);
+#ifdef SYSLOG_FACILITY
+    closelog();
+#endif
 }
 
 /*
@@ -279,22 +247,24 @@ LogPrintf(const char *fmt, ...)
 void
 vLogPrintf(const char *fmt, va_list args)
 {
-    LogTimeStamp(logprintf);
     if (!SLIST_EMPTY(&gConsole.sessions)) {
 	char		buf[256];
 	ConsoleSession	s;
 
         vsnprintf(buf, sizeof(buf), fmt, args);
-	alog(gLogInfo, "%s", buf);
-
+#ifdef SYSLOG_FACILITY
+        syslog(LOG_INFO, "%s", buf);
+#endif
 	RWLOCK_RDLOCK(gConsole.lock);
 	SLIST_FOREACH(s, &gConsole.sessions, next) {
 	    if (Enabled(&s->options, CONSOLE_LOGGING))
 		s->write(s, "%s\r\n", buf);
 	}
 	RWLOCK_UNLOCK(gConsole.lock);
+#ifdef SYSLOG_FACILITY
     } else {
-	valog(gLogInfo, fmt, args);
+        vsyslog(LOG_INFO, fmt, args);
+#endif
     }
 }
 
@@ -317,8 +287,9 @@ LogPrintf2(const char *fmt, ...)
 void
 vLogPrintf2(const char *fmt, va_list args)
 {
-    LogTimeStamp(logprintf);
-    valog(gLogInfo, fmt, args);
+#ifdef SYSLOG_FACILITY
+    vsyslog(LOG_INFO, fmt, args);
+#endif
 }
 
 /*
@@ -434,29 +405,6 @@ LogDumpBuf2(const u_char *buf, int count, const char *fmt, ...)
 	    }
 	}
 }
-
-#ifndef SYSLOG_FACILITY
-
-/*
- * LogTimeStamp()
- *
- * Print a timestamp
- */
-
-static void
-LogTimeStamp(int (*func)(const char *fmt, ...))
-{
-    struct tm	*ptm;
-    time_t	now;
-
-    now = time(NULL);
-    ptm = localtime(&now);
-    (*func)("%02d-%02d %02d:%02d:%02d ",
-	ptm->tm_mon + 1, ptm->tm_mday,
-	ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
-}
-
-#endif
 
 /*
  * Perror()

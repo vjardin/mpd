@@ -577,7 +577,9 @@ OptParse(int ac, char *av[])
 static int
 OptApply(Option opt, int ac, char *av[])
 {
+#ifdef SYSLOG_FACILITY
     memset(gSysLogIdent, 0, sizeof(gSysLogIdent));
+#endif
 
     if (opt == NULL)
 	Usage(EX_USAGE);

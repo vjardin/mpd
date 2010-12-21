@@ -61,7 +61,11 @@
 #include "util/typed_mem.h"
 #include "util/mesg_port.h"
 #include "util/pevent.h"
-#include "sys/alog.h"
+#ifdef SYSLOG_FACILITY
+#define alogf(sev, fmt, arg...) syslog(sev, "%s: " fmt, __FUNCTION__ , ## arg)
+#else
+#define alogf(sev, fmt, arg...) do{}while(0)
+#endif
 
 #include "internal.h"
 #include "debug/debug.h"

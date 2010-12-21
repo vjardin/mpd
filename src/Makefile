@@ -157,11 +157,8 @@ PDELSRCS=	typed_mem.c \
 		structs_generic.c \
 		structs_type_array.c \
 		structs_type_int.c \
-		structs_type_ip4.c \
-		structs_type_pointer.c \
 		structs_type_string.c \
 		structs_type_struct.c \
-		structs_type_time.c \
 		http_connection.c \
 		http_head.c \
 		http_message.c \
@@ -172,8 +169,6 @@ PDELSRCS=	typed_mem.c \
 		http_servlet_basicauth.c \
 		http_ssl.c \
 		http_status.c \
-		alog.c \
-		logfile.c \
 		boundary_fp.c \
 		ssl_fp.c \
 		string_fp.c \
