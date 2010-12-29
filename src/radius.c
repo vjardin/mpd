@@ -810,11 +810,11 @@ RadiusStart(AuthData auth, short request_type)
 	    }
 	}
 	if (auth->params.peername[0]) {
-	    Log(LG_RADIUS2, ("[%s] RADIUS: Put Agent-Remote-Id: %s",
+	    Log(LG_RADIUS2, ("[%s] RADIUS: Put ADSL-Agent-Remote-Id: %s",
     		auth->info.lnkname, auth->params.peername));
 	    if (rad_put_vendor_string(auth->radius.handle, 3561, 2,
     		    auth->params.peername) == -1) {
-    		Log(LG_RADIUS, ("[%s] RADIUS: Put Agent-Remote-Id failed %s",
+    		Log(LG_RADIUS, ("[%s] RADIUS: Put ADSL-Agent-Remote-Id failed %s",
     	    	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
     		return (RAD_NACK);
 	    }
