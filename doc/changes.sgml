@@ -29,6 +29,7 @@
 	  <item> Fix several memory leaks.
 	  </item>
 	  <item> Fix building without SYSLOG_FACILITY option.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
