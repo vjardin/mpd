@@ -8,6 +8,13 @@
   <p>
     Changes since version 5.5:
     <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added `set l2tp|pptp|tcp|udp resolve-once ...` command.
+		They allow to resolve peer address every time on reconnect.
+	  </item>
+	</itemize>
+	</item>
 	<item> Changes:
 	<itemize>
 	  <item> Remove dependency from libpdel library.
@@ -21,6 +28,7 @@
 	  </item>
 	  <item> Fix several memory leaks.
 	  </item>
+	  <item> Fix building without SYSLOG_FACILITY option.
 	</itemize>
 	</item>
     </itemize>
