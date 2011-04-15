@@ -30,6 +30,8 @@
 	  </item>
 	  <item> Fix building without SYSLOG_FACILITY option.
 	  </item>
+	  <item> Fix byte order in ports in `set nat red-port`.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
