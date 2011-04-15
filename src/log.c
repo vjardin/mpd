@@ -280,16 +280,10 @@ LogPrintf2(const char *fmt, ...)
     va_list       args;
 
     va_start(args, fmt);
-    vLogPrintf2(fmt, args);
-    va_end(args);
-}
-
-void
-vLogPrintf2(const char *fmt, va_list args)
-{
 #ifdef SYSLOG_FACILITY
     vsyslog(LOG_INFO, fmt, args);
 #endif
+    va_end(args);
 }
 
 /*
