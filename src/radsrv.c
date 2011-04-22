@@ -180,7 +180,7 @@ RadsrvEvent(int type, void *cookie)
 		state_len = len;
 		if (state != NULL)
 		    Freee(state);
-		state = Mdup(MB_AUTH, data, len);
+		state = Mdup(MB_RADSRV, data, len);
 		break;
 	    case RAD_CALLED_STATION_ID:
 		anysesid = 1;
