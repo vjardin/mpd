@@ -628,7 +628,7 @@ static Option
 OptDecode(char *arg, int longform)
 {
     Option	opt;
-    int		k;
+    size_t	k;
 
     for (k = 0; k < OPTLIST_SIZE; k++) {
 	opt = OptList + k;
@@ -648,7 +648,7 @@ Usage(int ex)
 {
     Option		opt;
     char		buf[100];
-    int			k;
+    size_t		k;
 
     fprintf(stderr, "Usage: mpd %s\n", UsageStr);
     fprintf(stderr, "Options:\n");
