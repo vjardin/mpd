@@ -178,7 +178,8 @@ LogClose(void)
 int
 LogCommand(Context ctx, int ac, char *av[], void *arg)
 {
-    int	k, bits, add;
+    u_int	k;
+    int		bits, add;
 
     if (ac == 0) {
 #define LG_FMT	"    %-12s  %-10s  %s\r\n"
