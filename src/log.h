@@ -137,7 +137,6 @@
 #ifdef SYSLOG_FACILITY
   extern char	gSysLogIdent[32];
 #endif
-  extern int	gLogInfo;
 
 /*
  * FUNCTIONS
