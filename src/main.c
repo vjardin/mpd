@@ -93,13 +93,17 @@
   pid_t          	gPid;
   int			gRouteSeq = 0;
 
+#ifdef PHYSTYPE_PPTP
   int			gPPTPto = 10;
   int			gPPTPtunlimit = 100;
+#endif
+#ifdef PHYSTYPE_L2TP
   int			gL2TPto = 10;
 #if ((__FreeBSD_version > 603100 && __FreeBSD_version < 700000) || __FreeBSD_version >= 700055)
   int			gL2TPtunlimit = 100;
 #else
   int			gL2TPtunlimit = 10;
+#endif
 #endif
   int			gChildren = 0;		/* Current number of children links */
   int			gMaxChildren = 10000;	/* Maximal number of children links */
