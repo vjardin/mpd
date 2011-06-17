@@ -521,6 +521,8 @@ DoCommandTab(Context ctx, CmdTab cmdlist, int ac, char *av[])
         if ((intptr_t)cmd->arg == (intptr_t)ShowSessCmds) {
             if (ac > 1)
 	        rtn = DoCommandTab(ctx, (CmdTab) cmd->arg, ac - 1, av + 1);
+            else
+                rtn = ShowSessions(ctx, 0, NULL, NULL);
         } else
             rtn = DoCommandTab(ctx, (CmdTab) cmd->arg, ac - 1, av + 1);
     } else
