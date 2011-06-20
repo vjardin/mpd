@@ -113,8 +113,6 @@
   static int		ModemChatSetBaudrate(void *arg, int baud);
   static void		ModemChatLog(void *arg,
 				int level, const char *fmt, ...);
-  static void		*ModemChatMalloc(void *arg, size_t size);
-  static void		ModemChatFree(void *arg, void *mem);
   static void		ModemChatConnectResult(void *arg,
 				int rslt, const char *msg);
   static void		ModemChatIdleResult(void *arg, int rslt,
@@ -193,7 +191,7 @@ ModemInit(Link l)
     m = (ModemInfo) (l->info = Malloc(MB_PHYS, sizeof(*m)));
     m->watch = TIOCM_CAR;
     m->chat = ChatInit(l, ModemChatSetBaudrate,
-		ModemChatLog, ModemChatMalloc, ModemChatFree);
+		ModemChatLog);
     m->fd = -1;
     m->opened = FALSE;
 
@@ -731,26 +729,6 @@ ModemChatLog(void *arg, int level, const char *fmt, ...)
 
     /* Log it */
     LogPrintf("%s", buf);
-}
-
-/*
- * ModemChatMalloc()
- */
-
-static void *
-ModemChatMalloc(void *arg, size_t size)
-{
-    return Malloc(MB_CHAT, size);
-}
-
-/*
- * ModemChatFree()
- */
-
-static void
-ModemChatFree(void *arg, void *mem)
-{
-    Freee(mem);
 }
 
 /*

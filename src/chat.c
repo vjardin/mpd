@@ -153,8 +153,6 @@
     int			readBufLen;
     chatlogfunc_t	log /*__printflike(2, 3)*/;
     chatbaudfunc_t	setBaudrate;
-    chatmallocfunc_t	malloc;
-    chatfreefunc_t	free;
     chatresultfunc_t	result;
   };
 
@@ -240,7 +238,7 @@
 
 ChatInfo
 ChatInit(void *arg, chatbaudfunc_t setBaudrate,
-	chatlogfunc_t logger, chatmallocfunc_t malloc, chatfreefunc_t free)
+	chatlogfunc_t logger)
 {
   ChatInfo	c;
 
@@ -248,8 +246,6 @@ ChatInit(void *arg, chatbaudfunc_t setBaudrate,
   c->arg = arg;
   c->setBaudrate = setBaudrate;
   c->log = logger;
-  c->malloc = malloc;
-  c->free = free;
   return(c);
 }
 
