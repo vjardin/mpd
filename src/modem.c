@@ -111,8 +111,6 @@
 
   /* Chat callbacks */
   static int		ModemChatSetBaudrate(void *arg, int baud);
-  static void		ModemChatLog(void *arg,
-				int level, const char *fmt, ...);
   static void		ModemChatConnectResult(void *arg,
 				int rslt, const char *msg);
   static void		ModemChatIdleResult(void *arg, int rslt,
@@ -190,8 +188,7 @@ ModemInit(Link l)
 
     m = (ModemInfo) (l->info = Malloc(MB_PHYS, sizeof(*m)));
     m->watch = TIOCM_CAR;
-    m->chat = ChatInit(l, ModemChatSetBaudrate,
-		ModemChatLog);
+    m->chat = ChatInit(l, ModemChatSetBaudrate);
     m->fd = -1;
     m->opened = FALSE;
 
@@ -685,50 +682,6 @@ ModemChatSetBaudrate(void *arg, int baud)
 	return(-1);
     }
     return(0);
-}
-
-/*
- * ModemChatLog()
- */
-
-static void
-ModemChatLog(void *arg, int level, const char *fmt, ...)
-{
-    Link	const l = (Link) arg;
-    char	buf[128];
-    va_list	args;
-    int		logLevel;
-
-    /* Convert level */
-    switch (level) {
-	default:
-	case CHAT_LG_NORMAL:
-    	    logLevel = LG_CHAT;
-    	    break;
-	case CHAT_LG_ERROR:
-    	    logLevel = LG_ERR;
-    	    break;
-	case CHAT_LG_DEBUG:
-    	    logLevel = LG_CHAT2;
-    	    break;
-    }
-    if ((gLogOptions & logLevel) == 0)
-	return;
-
-    /* Concat prefix and message */
-    va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);
-    if (*buf != ' ')
-	snprintf(buf, sizeof(buf), "[%s] chat: ", l->name);
-    else
-	*buf = '\0';
-    va_start(args, fmt);
-    vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, args);
-    va_end(args);
-
-    /* Log it */
-    LogPrintf("%s", buf);
 }
 
 /*

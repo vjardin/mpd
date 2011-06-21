@@ -42,7 +42,6 @@
 
 /* Callback function types */
 
-  typedef void	(*chatlogfunc_t)(void *arg, int level, const char *fmt, ...);
   typedef int	(*chatbaudfunc_t)(void *arg, int rate);
   typedef void	(*chatresultfunc_t)(void *arg, int r, const char *msg);
 
@@ -50,8 +49,7 @@
  * FUNCTIONS
  */
 
-  extern ChatInfo	ChatInit(void *arg, chatbaudfunc_t setBaudrate,
-			  chatlogfunc_t logger);
+  extern ChatInfo	ChatInit(void *arg, chatbaudfunc_t setBaudrate);
   extern void		ChatPresetVar(ChatInfo c,
 			  const char *var, const char *value);
   extern char		*ChatGetVar(ChatInfo c, const char *var);

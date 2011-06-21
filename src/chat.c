@@ -151,7 +151,6 @@
     char		lineBuf[CHAT_MAX_LINE];		/* line buffer */
     char		readBuf[CHAT_READBUF_SIZE];	/* read buffer */
     int			readBufLen;
-    chatlogfunc_t	log /*__printflike(2, 3)*/;
     chatbaudfunc_t	setBaudrate;
     chatresultfunc_t	result;
   };
@@ -237,15 +236,13 @@
  */
 
 ChatInfo
-ChatInit(void *arg, chatbaudfunc_t setBaudrate,
-	chatlogfunc_t logger)
+ChatInit(void *arg, chatbaudfunc_t setBaudrate)
 {
   ChatInfo	c;
 
   c = (ChatInfo) Malloc(MB_CHAT, sizeof(*c));
   c->arg = arg;
   c->setBaudrate = setBaudrate;
-  c->log = logger;
   return(c);
 }
 
