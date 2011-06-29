@@ -331,8 +331,10 @@ BundJoin(Link l)
     b->pppConfig.links[l->bundleIndex].mru = lcp->peer_mru;
     b->pppConfig.links[l->bundleIndex].enableACFComp = lcp->peer_acfcomp;
     b->pppConfig.links[l->bundleIndex].enableProtoComp = lcp->peer_protocomp;
-    b->pppConfig.links[l->bundleIndex].bandwidth = (l->bandwidth / 8 + 5) / 10;
-    b->pppConfig.links[l->bundleIndex].latency = (l->latency + 500) / 1000;
+    b->pppConfig.links[l->bundleIndex].bandwidth =
+	MIN((l->bandwidth / 8 + 5) / 10, NG_PPP_MAX_BANDWIDTH);
+    b->pppConfig.links[l->bundleIndex].latency =
+	MIN((l->latency + 500) / 1000, NG_PPP_MAX_LATENCY);
 
     /* What to do when the first link comes up */
     if (b->n_up == 1) {
