@@ -1264,8 +1264,8 @@ ShowSessions(Context ctx, int ac, char *av[], void *arg)
 	    B = L->bund;
 	    u_addrtoa(&B->iface.peer_addr, addr, sizeof(addr));
 	    PhysGetPeerAddr(L, peer, sizeof(peer));
-	    if (ac != 1)
-	        continue;
+	    if (ac == 0)
+	        goto out;
 	    switch ((intptr_t)arg) {
 		case SHOW_IFACE:
 		    if (strcmp(av[0], B->iface.ifname))
@@ -1312,6 +1312,7 @@ ShowSessions(Context ctx, int ac, char *av[], void *arg)
 		default:
 		    return (-1);
 	    }
+out:
 	    Printf("%s\t%s\t%s\t%s\t", B->iface.ifname,
 		addr, B->name, B->msession_id);
 	    Printf("%s\t%d\t%s\t%s\t%s", 
