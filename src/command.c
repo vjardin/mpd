@@ -213,7 +213,7 @@
     { "ecp",				"ECP status",
 	EcpStat, AdmitBund, 0, NULL },
     { "eap",				"EAP status",
-	EapStat, AdmitBund, 0, NULL },
+	EapStat, AdmitLink, 0, NULL },
     { "events",				"Current events",
 	ShowEvents, NULL, 0, NULL },
     { "ipcp",				"IPCP status",
