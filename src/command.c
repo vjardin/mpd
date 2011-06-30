@@ -1133,6 +1133,7 @@ ShowLayers(Context ctx, int ac, char *av[], void *arg)
   int	k;
 
   Printf("\tName\t\tDescription\r\n");
+  Printf("\t----\t\t-----------\r\n");
   for (k = 0; k < NUM_LAYERS; k++)
     Printf("\t%s\t\t%s\r\n", gLayers[k].name, gLayers[k].desc);
   return(0);
