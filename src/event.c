@@ -60,7 +60,7 @@ EventDump(Context ctx, const char *msg)
   u_int	n;
 
   n = pevent_ctx_count(gPeventCtx);
-  Printf("%d Events registered\n", n);
+  Printf("%d Events registered\r\n", n);
 }
 
 /*
