@@ -154,7 +154,7 @@
   };
 
   static const struct confinfo	gGlobalConfList[] = {
-#ifdef USE_SYSTEM
+#ifdef USE_WRAP
     { 0,	GLOBAL_CONF_TCPWRAPPER,	"tcp-wrapper"	},
 #endif
     { 0,	GLOBAL_CONF_ONESHOT,	"one-shot"	},
