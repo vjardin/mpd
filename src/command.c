@@ -1026,7 +1026,9 @@ LoadCommand(Context ctx, int ac, char *av[], void *arg)
 #endif
 		strlcpy(filename, av[0], sizeof(filename));
 	}
-	ReadFile(filename, av[ac - 1], DoCommand, ctx);
+	if (ReadFile(filename, av[ac - 1], DoCommand, ctx) < 0)
+	    Printf("can't read configuration for \"%s\" from \"%s\"\r\n",
+		av[ac -1], filename);
 #ifdef USE_FETCH
 out:	if (fetch)
 	    unlink(filename);
