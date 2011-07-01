@@ -1569,7 +1569,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
       case RAD_FRAMED_POOL:
 	tmpval = rad_cvt_string(data, len);
 	/* copy it into the persistent data struct */
-	strcpy(auth->params.ippool, tmpval);
+	strlcpy(auth->params.ippool, tmpval, sizeof(auth->params.ippool));
 	free(tmpval);
 	Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_FRAMED_POOL: %s ",
 	  auth->info.lnkname, auth->params.ippool));
