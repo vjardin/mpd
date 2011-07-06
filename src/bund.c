@@ -1668,6 +1668,7 @@ BundNgInit(Bund b)
       Log(LG_ERR, ("[%s] can't create netgraph interface", b->name));
       goto fail;
     }
+    strlcpy(b->iface.ngname, b->iface.ifname, sizeof(b->iface.ngname));
     newIface = 1;
     b->iface.ifindex = if_nametoindex(b->iface.ifname);
     Log(LG_BUND|LG_IFACE, ("[%s] Bundle: Interface %s created",
@@ -1717,7 +1718,7 @@ BundNgShutdown(Bund b, int iface, int ppp)
     char	path[NG_PATHSIZ];
 
     if (iface) {
-	snprintf(path, sizeof(path), "%s:", b->iface.ifname);
+	snprintf(path, sizeof(path), "%s:", b->iface.ngname);
 	NgFuncShutdownNode(gLinksCsock, b->name, path);
     }
     if (ppp) {

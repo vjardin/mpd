@@ -70,6 +70,10 @@
     SET_ADDRS,
     SET_ROUTE,
     SET_MTU,
+    SET_NAME,
+#ifdef SIOCSIFDESCR
+    SET_DESCR,
+#endif
     SET_UP_SCRIPT,
     SET_DOWN_SCRIPT,
     SET_ENABLE,
@@ -130,6 +134,11 @@
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
   static char *	IFaceParseACL (char * src, char * ifname);
 #endif
+
+  static int	IfaceSetName(Context ctx, const char * ifname);
+#ifdef SIOCSIFDESCR
+  static int	IfaceSetDescr(Context ctx, const char * ifdescr);
+#endif
   
 /*
  * GLOBAL VARIABLES
@@ -142,6 +151,12 @@
 	IfaceSetCommand, NULL, 2, (void *) SET_ROUTE },
     { "mtu {size}",			"Set max allowed interface MTU",
 	IfaceSetCommand, NULL, 2, (void *) SET_MTU },
+    { "name [{name}]",			"Set interface name",
+	IfaceSetCommand, NULL, 2, (void *) SET_NAME },
+#ifdef SIOCSIFDESCR
+    { "description [{descr}]",		"Set interface description",
+	IfaceSetCommand, NULL, 2, (void *) SET_DESCR },
+#endif
     { "up-script [{progname}]",		"Interface up script",
 	IfaceSetCommand, NULL, 2, (void *) SET_UP_SCRIPT },
     { "down-script [{progname}]",	"Interface down script",
@@ -1247,8 +1262,23 @@ static int
 IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
   IfaceState	const iface = &ctx->bund->iface;
+  int		empty_arg;
 
-  if (ac == 0)
+  switch ((intptr_t)arg) {
+    case SET_NAME:
+#ifdef SIOCSIFDESCR
+    case SET_DESCR:
+#endif
+    case SET_UP_SCRIPT:
+    case SET_DOWN_SCRIPT:
+      empty_arg = TRUE;
+      break;
+    default:
+      empty_arg = FALSE;
+      break;
+  }
+
+  if ((ac == 0) && (empty_arg == FALSE))
     return(-1);
   switch ((intptr_t)arg) {
     case SET_IDLE:
@@ -1326,6 +1356,10 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
       {
 	int	max_mtu;
 
+	/* Check */
+	if (ac != 1)
+	  return(-1);
+
 	max_mtu = atoi(av[0]);
 	if (max_mtu < IFACE_MIN_MTU || max_mtu > IFACE_MAX_MTU)
 	  Error("Invalid interface mtu %d", max_mtu);
@@ -1333,6 +1367,34 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
       }
       break;
 
+    case SET_NAME:
+	switch (ac) {
+	  case 0:
+	    if (strcmp(iface->ifname, iface->ngname) != 0)
+		return IfaceSetName(ctx, iface->ngname);
+	    break;
+	  case 1:
+	    if (strcmp(iface->ifname, av[0]) != 0)
+		return IfaceSetName(ctx, av[0]);
+	    break;
+	  default:
+	    return(-1);
+	}
+	break;
+#ifdef SIOCSIFDESCR
+    case SET_DESCR:
+	switch (ac) {
+	  case 0:
+	    return IfaceSetDescr(ctx, "");
+	    break;
+	  case 1:
+	    return IfaceSetDescr(ctx, av[0]);
+	    break;
+	  default:
+	    return(-1);
+	}
+	break;
+#endif
     case SET_UP_SCRIPT:
       switch (ac) {
 	case 0:
@@ -1917,7 +1979,7 @@ IfaceNgIpInit(Bund b, int ready)
 
     /* Connect graph to the iface node. */
     strcpy(cn.ourhook, hook);
-    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ngname);
     strcpy(cn.peerhook, NG_IFACE_HOOK_INET);
     if (NgSendMsg(gLinksCsock, path,
     	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
@@ -2006,7 +2068,7 @@ IfaceNgIpShutdown(Bund b)
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
     NgFuncDisconnect(gLinksCsock, b->name, path, NG_PPP_HOOK_INET);
 
-    snprintf(path, sizeof(path), "%s:", b->iface.ifname);
+    snprintf(path, sizeof(path), "%s:", b->iface.ngname);
     NgFuncDisconnect(gLinksCsock, b->name, path, NG_IFACE_HOOK_INET);
 }
 
@@ -2037,7 +2099,7 @@ IfaceNgIpv6Init(Bund b, int ready)
 
     /* Connect graph to the iface node. */
     strcpy(cn.ourhook, hook);
-    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ifname);
+    snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ngname);
     strcpy(cn.peerhook, NG_IFACE_HOOK_INET6);
     if (NgSendMsg(gLinksCsock, path,
     	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
@@ -2069,7 +2131,7 @@ IfaceNgIpv6Shutdown(Bund b)
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
     NgFuncDisconnect(gLinksCsock, b->name, path, NG_PPP_HOOK_IPV6);
 
-    snprintf(path, sizeof(path), "%s:", b->iface.ifname);
+    snprintf(path, sizeof(path), "%s:", b->iface.ngname);
     NgFuncDisconnect(gLinksCsock, b->name, path, NG_IFACE_HOOK_INET6);
 }
 
@@ -3269,3 +3331,80 @@ IfaceFreeStats(struct svcstat *stat)
     }
 }
 #endif /* USE_NG_BPF */
+
+int
+IfaceSetName(Context ctx, const char * ifname)
+{
+    IfaceState	const iface = &ctx->bund->iface;
+    struct ifreq ifr;
+    int s;
+
+    if (strlen(ifname) >= IF_NAMESIZE)
+	Error("Interface name too long, >%d characters", IF_NAMESIZE-1);
+
+    /* Get socket */
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
+	Error("[%s] IFACE: Can't get socket to set name", ctx->bund->name);
+
+    /* Set name of interface */
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, iface->ifname, sizeof(ifr.ifr_name));
+    ifr.ifr_data = (caddr_t)ifname;
+    Log(LG_IFACE2, ("[%s] IFACE: setting \"%s\" name to \"%s\"",
+	ctx->bund->name, iface->ifname, ifname));
+
+    if (ioctl(s, SIOCSIFNAME, (caddr_t)&ifr) < 0) {
+	Perror("[%s] IFACE: ioctl(%s, %s)",
+	     ctx->bund->name, iface->ifname, "SIOCSIFNAME");
+	close(s);
+	return(CMD_ERR_OTHER);
+    }
+
+    close(s);
+    /* Save name */
+    strlcpy(iface->ifname, ifname, sizeof(iface->ifname));
+    return(0);
+}
+
+#ifdef SIOCSIFDESCR
+int
+IfaceSetDescr(Context ctx, const char * ifdescr)
+{
+    IfaceState	const iface = &ctx->bund->iface;
+    struct ifreq ifr;
+    int s;
+    char *newdescr;
+
+    /* Get socket */
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
+	Error("[%s] IFACE: Can't get socket to set description",
+	    ctx->bund->name);
+
+    /* Set description of interface */
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, iface->ifname, sizeof(ifr.ifr_name));
+    ifr.ifr_buffer.length = strlen(ifdescr) + 1;
+    if (ifr.ifr_buffer.length == 1) {
+	ifr.ifr_buffer.buffer = newdescr = NULL;
+	ifr.ifr_buffer.length = 0;
+    } else {
+	newdescr = Mstrdup(MB_IFACE, ifdescr);
+	ifr.ifr_buffer.buffer = newdescr;
+    }
+
+    Log(LG_IFACE2, ("[%s] IFACE: setting \"%s\" description to \"%s\"",
+	ctx->bund->name, iface->ifname, ifdescr));
+
+    if (ioctl(s, SIOCSIFDESCR, (caddr_t)&ifr) < 0) {
+	Perror("[%s] IFACE: ioctl(%s, %s)", ctx->bund->name,
+	iface->ifname, "SIOCSIFDESCR");
+	Freee(newdescr);
+	close(s);
+	return(CMD_ERR_OTHER);
+    }
+
+    Freee(newdescr);
+    close(s);
+    return(0);
+}
+#endif /* SIOCSIFDESCR */
