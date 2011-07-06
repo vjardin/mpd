@@ -28,9 +28,9 @@
 	</item>
 	<item> Bugfixes:
 	<itemize>
-	  <item> Fix invoke 'set iface up|down-script' without arguments.
+	  <item> Fix invoke `set iface up|down-script` without arguments.
 	  </item>
-	  <item> Fix 'show eap' command
+	  <item> Fix `show eap` command
 	  </item>
 	  <item> Fix build on older FreeBSD versions.
 	  </item>
