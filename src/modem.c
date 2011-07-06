@@ -524,9 +524,9 @@ ModemInstallNodes(Link l)
 #endif
 
     /* Get a temporary netgraph socket node */
-    if (NgMkSockNode(NULL, &m->csock, NULL) == -1) {
-    	Log(LG_ERR, ("MODEM: NgMkSockNode: %s", strerror(errno)));
-    	return(-1);
+    if (NgMkSockNode(NULL, &m->csock, NULL) < 0) {
+	Perror("MODEM: NgMkSockNode");
+	return(-1);
     }
 
 #if NGM_TTY_COOKIE < 1226109660
@@ -542,8 +542,7 @@ ModemInstallNodes(Link l)
 		NG_TTY_NODE_TYPE, NG_TTY_HOOK);
 	}
 	if (ioctl(m->fd, TIOCSETD, &ldisc) < 0) {
-    	    Log(LG_ERR, ("[%s] ioctl(TIOCSETD, %d): %s",
-		l->name, ldisc, strerror(errno))); 
+    	    Perror("[%s] ioctl(TIOCSETD, %d)", l->name, ldisc);
     	    close(m->csock);
     	    return(-1);
 	}
@@ -551,7 +550,7 @@ ModemInstallNodes(Link l)
 
     /* Get the name of the ng_tty node */
     if (ioctl(m->fd, NGIOCGINFO, &ngtty) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: ioctl(NGIOCGINFO): %s", l->name, strerror(errno))); 
+	Perror("[%s] MODEM: ioctl(NGIOCGINFO)", l->name);
 	return(-1);
     }
     strlcpy(m->ttynode, ngtty.name, sizeof(m->ttynode));
@@ -562,8 +561,8 @@ ModemInstallNodes(Link l)
     snprintf(ngm.peerhook, sizeof(ngm.peerhook), "%s", NG_TTY_HOOK);
     if (NgSendMsg(m->csock, ".", NGM_GENERIC_COOKIE,
     	    NGM_MKPEER, &ngm, sizeof(ngm)) < 0) {
-        Log(LG_ERR, ("[%s] MODEM: can't connect %s node on %s", l->name,
-    	    NG_TTY_NODE_TYPE, "."));
+        Perror("[%s] MODEM: can't connect %s node on %s", l->name,
+    	    NG_TTY_NODE_TYPE, ".");
         close(m->csock);
 	return(-1);
     }
@@ -571,8 +570,8 @@ ModemInstallNodes(Link l)
     if (NgSendMsg(m->csock, path,
 	    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) != -1) {
         if (NgRecvMsg(m->csock, reply, sizeof(repbuf), NULL) < 0) {
-            Log(LG_ERR, ("[%s] MODEM: can't locate %s node on %s (%d)", l->name,
-        	NG_TTY_NODE_TYPE, path, errno));
+            Perror("[%s] MODEM: can't locate %s node on %s (%d)", l->name,
+        	NG_TTY_NODE_TYPE, path, errno);
 	    close(m->csock);
 	    return(-1);
 	}
@@ -583,7 +582,7 @@ ModemInstallNodes(Link l)
     tty[1] = m->fd;
     if (NgSendMsg(m->csock, path, NGM_TTY_COOKIE,
           NGM_TTY_SET_TTY, &tty, sizeof(tty)) < 0) {
-        Log(LG_ERR, ("[%s] MODEM: can't hook tty to fd %d", l->name, m->fd));
+        Perror("[%s] MODEM: can't hook tty to fd %d", l->name, m->fd);
         close(m->csock);
 	return(-1);
     }
@@ -591,8 +590,7 @@ ModemInstallNodes(Link l)
     snprintf(rm.ourhook, sizeof(rm.ourhook), "%s", NG_TTY_HOOK);
     if (NgSendMsg(m->csock, ".",
     	    NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
-        Log(LG_ERR, ("[%s] MODEM: can't remove hook %s: %s", l->name,
-	    NG_TTY_HOOK, strerror(errno)));
+        Perror("[%s] MODEM: can't remove hook %s: %s", l->name, NG_TTY_HOOK);
     	close(m->csock);
     	return(-1);
     }
@@ -602,7 +600,7 @@ ModemInstallNodes(Link l)
     snprintf(path, sizeof(path), "%s:", m->ttynode);
     if (NgSendMsg(m->csock, path, NGM_TTY_COOKIE,
       NGM_TTY_SET_HOTCHAR, &hotchar, sizeof(hotchar)) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't set hotchar", l->name));
+	Perror("[%s] MODEM: can't set hotchar", l->name);
 	close(m->csock);
 	return(-1);
     }
@@ -613,7 +611,7 @@ ModemInstallNodes(Link l)
     strcpy(ngm.peerhook, NG_ASYNC_HOOK_ASYNC);
     if (NgSendMsg(m->csock, path, NGM_GENERIC_COOKIE,
       NGM_MKPEER, &ngm, sizeof(ngm)) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't connect %s node", l->name, NG_ASYNC_NODE_TYPE));
+	Perror("[%s] MODEM: can't connect %s node", l->name, NG_ASYNC_NODE_TYPE);
 	close(m->csock);
 	return(-1);
     }
@@ -627,7 +625,7 @@ ModemInstallNodes(Link l)
     m->acfg.smru = MODEM_MTU;
     if (NgSendMsg(m->csock, path, NGM_ASYNC_COOKIE,
       NGM_ASYNC_CMD_SET_CONFIG, &m->acfg, sizeof(m->acfg)) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't config %s", l->name, path));
+	Perror("[%s] MODEM: can't config %s", l->name, path);
 	close(m->csock);
 	return(-1);
     }
@@ -641,8 +639,8 @@ ModemInstallNodes(Link l)
     snprintf(cn.ourhook, sizeof(cn.ourhook), NG_ASYNC_HOOK_SYNC);
     if (NgSendMsg(m->csock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, 
         &cn, sizeof(cn)) < 0) {
-    	    Log(LG_ERR, ("[%s] MODEM: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-	        l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	    Perror("[%s] MODEM: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+	        l->name, path, cn.ourhook, cn.path, cn.peerhook);
 	    close(m->csock);
 	    return (-1);
     }
@@ -667,18 +665,15 @@ ModemChatSetBaudrate(void *arg, int baud)
 
     /* Change baud rate */
     if (tcgetattr(m->fd, &attr) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't tcgetattr \"%s\": %s",
-    	    l->name, m->device, strerror(errno)));
+	Perror("[%s] MODEM: can't tcgetattr \"%s\"", l->name, m->device);
 	return(-1);
     }
     if (cfsetspeed(&attr, (speed_t) baud) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't set speed %d: %s",
-    	    l->name, baud, strerror(errno)));
+	Perror("[%s] MODEM: can't set speed %d", l->name, baud);
 	return(-1);
     }
     if (tcsetattr(m->fd, TCSANOW, &attr) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't tcsetattr \"%s\": %s",
-    	    l->name, m->device, strerror(errno)));
+	Perror("[%s] MODEM: can't tcsetattr \"%s\"", l->name, m->device);
 	return(-1);
     }
     return(0);
@@ -708,8 +703,7 @@ ModemCheck(void *arg)
     int		state;
 
     if (ioctl(m->fd, TIOCMGET, &state) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't ioctl(%s) %s: %s",
-    	    l->name, "TIOCMGET", m->device, strerror(errno)));
+	Perror("[%s] MODEM: can't ioctl(TIOCMGET) %s", l->name, m->device);
 	l->state = PHYS_STATE_DOWN;
 	ModemDoClose(l, FALSE);
 	PhysDown(l, STR_ERROR, strerror(errno));
@@ -781,7 +775,7 @@ ModemGetNgStats(Link l, struct ng_async_stat *sp)
     snprintf(path, sizeof(path), "%s:%s", m->ttynode, NG_TTY_HOOK);
     if (NgFuncSendQuery(path, NGM_ASYNC_COOKIE, NGM_ASYNC_CMD_GET_STATS,
       NULL, 0, &u.resp, sizeof(u), NULL) < 0) {
-	Log(LG_ERR, ("[%s] MODEM: can't get stats: %s", l->name, strerror(errno)));
+	Perror("[%s] MODEM: can't get stats", l->name);
 	return(-1);
     }
 
