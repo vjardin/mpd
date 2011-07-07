@@ -3339,6 +3339,9 @@ IfaceSetName(Context ctx, const char * ifname)
     struct ifreq ifr;
     int s;
 
+    if (ctx->bund->tmpl)
+	Error("Impossible to apply on template");
+
     if (strlen(ifname) >= IF_NAMESIZE)
 	Error("Interface name too long, >%d characters", IF_NAMESIZE-1);
 
@@ -3374,6 +3377,9 @@ IfaceSetDescr(Context ctx, const char * ifdescr)
     struct ifreq ifr;
     int s;
     char *newdescr;
+
+    if (ctx->bund->tmpl)
+	Error("Impossible to apply on template");
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
