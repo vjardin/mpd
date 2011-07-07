@@ -13,7 +13,9 @@
 
 #include "ppp.h"
 #include "console.h"
+#ifndef NOWEB
 #include "web.h"
+#endif
 #include "radsrv.h"
 #include "command.h"
 #include "ccp.h"
@@ -258,8 +260,10 @@
 	MemStat, NULL, 0, NULL },
     { "console",			"Console status",
 	ConsoleStat, NULL, 0, NULL },
+#ifndef NOWEB
     { "web",				"Web status",
 	WebStat, NULL, 0, NULL },
+#endif
     { "user",				"Console users" ,
       	UserStat, NULL, 0, NULL },
     { "global",				"Global settings",
@@ -308,8 +312,10 @@
 #endif
     { "console ...",			"Console specific stuff",
 	CMD_SUBMENU, NULL, 0, (void *) ConsoleSetCmds },
+#ifndef NOWEB
     { "web ...",			"Web specific stuff",
 	CMD_SUBMENU, NULL, 2, (void *) WebSetCmds },
+#endif
     { "user {name} {password} [{priv}]",	"Add console user" ,
       	UserCommand, NULL, 2, NULL },
     { "global ...",			"Global settings",

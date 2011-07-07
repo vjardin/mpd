@@ -15,7 +15,9 @@
 #include "iface.h"
 #include "command.h"
 #include "console.h"
+#ifndef NOWEB
 #include "web.h"
+#endif
 #include "radsrv.h"
 #include "ngfunc.h"
 #include "util.h"
@@ -85,7 +87,9 @@
   int			gNumLinks;
   int			gNumBundles;
   struct console	gConsole;
+#ifndef NOWEB
   struct web		gWeb;
+#endif
   struct radsrv		gRadsrv;
   int			gBackground = FALSE;
   int			gShutdownInProgress = FALSE;
@@ -188,8 +192,10 @@ main(int ac, char *av[])
     	    c = &gCtx;
     }
 
+#ifndef NOWEB
     /* init web-stuff */
     WebInit(&gWeb);
+#endif
 
 #ifdef RAD_COA_REQUEST
     /* init RADIUS server */
