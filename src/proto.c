@@ -58,6 +58,8 @@
 
   static const struct protoname protoNames[] = {
 #ifdef PROTO_NAME_LIST
+
+/* Network layer protocols */
     { 0x0001,	"Padding Protocol" },
     { 0x0021,	"Internet Protocol" },
     { 0x0023,	"OSI Network Layer" },
@@ -131,6 +133,8 @@
     { 0x4003,	"CDPD Mobile Network Registration Protocol" },
     { 0x4021,	"Stacker LZS" },
 
+/* Network layer control protocols */
+
     { 0x8021,	"Internet Protocol Control Protocol" },
     { 0x8023,	"OSI Network Layer Control Protocol" },
     { 0x8025,	"Xerox NS IDP Control Protocol" },
@@ -179,6 +183,8 @@
     { 0x8285,	"IEEE p1284.4 standard - Protocol Control" },
     { 0x8287,	"ETSI TETRA NSP1 Control Protocol" },
     { 0x8289,	"Multichannel Flow Treatment Protocol" },
+
+/* Link layer control protocols */
 
     { 0xc021,	"Link Control Protocol" },
     { 0xc023,	"Password Authentication Protocol" },
