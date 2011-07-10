@@ -681,6 +681,15 @@ RadiusStart(AuthData auth, short request_type)
     	return (RAD_NACK);
     }
 
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_PEER_IDENT: %s",
+	auth->info.lnkname, auth->info.peer_ident));
+    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD,
+      RAD_MPD_PEER_IDENT, auth->info.peer_ident) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_PEER_IDENT failed %s",
+	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
 #ifdef PHYSTYPE_PPTP
     if (auth->info.phys_type == &gPptpPhysType) {
 	porttype = 1;
@@ -1035,6 +1044,14 @@ RadiusPutAcct(AuthData auth)
     if (rad_put_vendor_int(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_IFACE_INDEX, auth->info.ifindex) != 0) {
 	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_IFACE_INDEX: %s", auth->info.lnkname,
 	    rad_strerror(auth->radius.handle)));
+	return (RAD_NACK);
+    }
+
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_MPD_PEER_IDENT: %s",
+	auth->info.lnkname, auth->info.peer_ident));
+    if (rad_put_vendor_string(auth->radius.handle, RAD_VENDOR_MPD, RAD_MPD_PEER_IDENT, auth->info.peer_ident) != 0) {
+	Log(LG_RADIUS, ("[%s] RADIUS: Put RAD_MPD_PEER_IDENT failed %s",
+	    auth->info.lnkname, rad_strerror(auth->radius.handle)));
 	return (RAD_NACK);
     }
 
