@@ -160,8 +160,7 @@ LinksInit(void)
     /* Create a netgraph socket node */
     snprintf(name, sizeof(name), "mpd%d-lso", gPid);
     if (NgMkSockNode(name, &gLinksCsock, &gLinksDsock) < 0) {
-	Log(LG_ERR, ("LinksInit(): can't create %s node: %s",
-    	    NG_SOCKET_NODE_TYPE, strerror(errno)));
+	Perror("LinksInit(): can't create %s node", NG_SOCKET_NODE_TYPE);
 	return(-1);
     }
     (void) fcntl(gLinksCsock, F_SETFD, 1);
@@ -659,8 +658,8 @@ LinkNgInit(Link l)
     strcpy(mp.peerhook, NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-	Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-    	    l->name, mp.type, ".:", mp.ourhook, strerror(errno)));
+	Perror("[%s] can't create %s node at \"%s\"->\"%s\"",
+	    l->name, mp.type, ".:", mp.ourhook);
 	goto fail;
     }
     strlcpy(l->hook, mp.ourhook, sizeof(l->hook));
@@ -669,15 +668,14 @@ LinkNgInit(Link l)
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lt", gPid, l->name);
     if (NgSendMsg(gLinksCsock, l->hook,
       NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-	Log(LG_ERR, ("[%s] can't name %s node \"%s\": %s",
-    	    l->name, NG_TEE_NODE_TYPE, l->hook, strerror(errno)));
+	Perror("[%s] can't name %s node \"%s\"",
+	    l->name, NG_TEE_NODE_TYPE, l->hook);
 	goto fail;
     }
 
     /* Get TEE node ID */
     if ((l->nodeID = NgGetNodeID(gLinksCsock, l->hook)) == 0) {
-	Log(LG_ERR, ("[%s] Cannot get %s node id: %s",
-	    l->name, NG_TEE_NODE_TYPE, strerror(errno)));
+	Perror("[%s] Cannot get %s node id", l->name, NG_TEE_NODE_TYPE);
 	goto fail;
     };
 
@@ -707,8 +705,8 @@ LinkNgJoin(Link l)
 	NG_PPP_HOOK_LINK_PREFIX, l->bundleIndex);
     if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+	    l->name, path, cn.ourhook, cn.path, cn.peerhook);
 	return(-1);
     }
     
@@ -731,8 +729,8 @@ LinkNgLeave(Link l)
     strcpy(cn.peerhook, NG_TEE_HOOK_LEFT2RIGHT);
     if (NgSendMsg(gLinksCsock, ".:",
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    l->name, ".:", cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+	    l->name, ".:", cn.ourhook, cn.path, cn.peerhook);
 	return(-1);
     }
 
@@ -760,8 +758,8 @@ LinkNgToRep(Link l)
     }
     if (NgSendMsg(gLinksCsock, path,
       NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    l->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+	    l->name, path, cn.ourhook, cn.path, cn.peerhook);
 	return(-1);
     }
 

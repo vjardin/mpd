@@ -373,7 +373,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
       if (n < 0) {
 	if (errno == EAGAIN)
 	  goto out;
-	Log(LG_ERR, ("CONSOLE: Error while reading: %s", strerror(errno)));
+	Perror("CONSOLE: Error while reading");
       } else {
         if (cs->fd == 0)
 	  goto out;

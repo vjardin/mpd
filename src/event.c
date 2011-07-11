@@ -84,7 +84,7 @@ EventRegister2(EventRef *refp, int type, int val, int flags,
 
     if (pevent_register(gPeventCtx, &refp->pe, flags, &gGiantMutex, EventHandler,
 	    refp, type, val) == -1) {
-        Log(LG_ERR, ("%s: error pevent_register: %s", __FUNCTION__, strerror(errno)));
+        Perror("%s: error pevent_register", __FUNCTION__);
         return(-1);
     }
   

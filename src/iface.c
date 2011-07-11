@@ -1165,8 +1165,7 @@ IfaceCacheSend(Bund b)
 	else {
     	    if (NgFuncWritePppFrame(b, NG_PPP_BUNDLE_LINKNUM,
 		    iface->dodCache.proto, iface->dodCache.pkt) < 0) {
-		Log(LG_ERR, ("[%s] can't write cached pkt: %s",
-	    	    b->name, strerror(errno)));
+		Perror("[%s] can't write cached pkt", b->name);
     	    }
 	}
 	iface->dodCache.pkt = NULL;
@@ -1983,8 +1982,8 @@ IfaceNgIpInit(Bund b, int ready)
     strcpy(cn.peerhook, NG_IFACE_HOOK_INET);
     if (NgSendMsg(gLinksCsock, path,
     	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+	    b->name, path, cn.ourhook, cn.path, cn.peerhook);
 	goto fail;
     }
 
@@ -2103,8 +2102,8 @@ IfaceNgIpv6Init(Bund b, int ready)
     strcpy(cn.peerhook, NG_IFACE_HOOK_INET6);
     if (NgSendMsg(gLinksCsock, path,
     	    NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+	    b->name, path, cn.ourhook, cn.path, cn.peerhook);
 	goto fail;
     }
 
@@ -2153,8 +2152,8 @@ IfaceInitNAT(Bund b, char *path, char *hook)
     strcpy(mp.peerhook, NG_NAT_HOOK_IN);
     if (NgSendMsg(gLinksCsock, path,
 	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-	b->name, NG_NAT_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      Perror("[%s] can't create %s node at \"%s\"->\"%s\"",
+	b->name, NG_NAT_NODE_TYPE, path, mp.ourhook);
       return(-1);
     }
     strlcat(path, ".", NG_PATHSIZ);
@@ -2162,8 +2161,7 @@ IfaceInitNAT(Bund b, char *path, char *hook)
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-nat", gPid, b->name);
     if (NgSendMsg(gLinksCsock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-      Log(LG_ERR, ("[%s] can't name %s node: %s",
-	b->name, NG_NAT_NODE_TYPE, strerror(errno)));
+      Perror("[%s] can't name %s node", b->name, NG_NAT_NODE_TYPE);
       return(-1);
     }
     strcpy(hook, NG_NAT_HOOK_OUT);
@@ -2175,10 +2173,8 @@ IfaceInitNAT(Bund b, char *path, char *hook)
 	ip = nat->alias_addr.u.ip4;
     }
     if (NgSendMsg(gLinksCsock, path,
-	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &ip, sizeof(ip)) < 0) {
-	Log(LG_ERR, ("[%s] can't set NAT ip: %s",
-    	    b->name, strerror(errno)));
-    }
+	    NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &ip, sizeof(ip)) < 0)
+	Perror("[%s] can't set NAT ip", b->name);
 
 #ifdef NG_NAT_LOG
     /* Set NAT mode */
@@ -2195,18 +2191,15 @@ IfaceInitNAT(Bund b, char *path, char *hook)
     mode.mask = NG_NAT_LOG | NG_NAT_DENY_INCOMING | 
 	NG_NAT_SAME_PORTS | NG_NAT_UNREGISTERED_ONLY;
     if (NgSendMsg(gLinksCsock, path,
-	    NGM_NAT_COOKIE, NGM_NAT_SET_MODE, &mode, sizeof(mode)) < 0) {
-	Log(LG_ERR, ("[%s] can't set NAT mode: %s",
-    	    b->name, strerror(errno)));
-    }
+	    NGM_NAT_COOKIE, NGM_NAT_SET_MODE, &mode, sizeof(mode)) < 0)
+	Perror("[%s] can't set NAT mode", b->name);
 
     /* Set NAT target IP */
     if (!u_addrempty(&nat->target_addr)) {
 	ip = nat->target_addr.u.ip4;
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR, &ip, sizeof(ip)) < 0) {
-	    Log(LG_ERR, ("[%s] can't set NAT target IP: %s",
-    		b->name, strerror(errno)));
+	    Perror("[%s] can't set NAT target IP", b->name);
 	}
     }
 #endif
@@ -2227,8 +2220,7 @@ IfaceSetupNAT(Bund b)
     		NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR,
 		&b->iface.self_addr.addr.u.ip4,
 		sizeof(b->iface.self_addr.addr.u.ip4)) < 0) {
-	    Log(LG_ERR, ("[%s] can't set NAT ip: %s",
-    		b->name, strerror(errno)));
+	    Perror("[%s] can't set NAT ip", b->name);
 	    return (-1);
 	}
     }
@@ -2239,8 +2231,7 @@ IfaceSetupNAT(Bund b)
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PORT, &nat->nrpt[k],
 		sizeof(struct ng_nat_redirect_port)) < 0) {
-	    Log(LG_ERR, ("[%s] can't set NAT redirect-port: %s",
-		b->name, strerror(errno)));
+	    Perror("[%s] can't set NAT redirect-port", b->name);
 	}
       }
     }
@@ -2250,8 +2241,7 @@ IfaceSetupNAT(Bund b)
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_ADDR, &nat->nrad[k],
 		sizeof(struct ng_nat_redirect_addr)) < 0) {
-	    Log(LG_ERR, ("[%s] can't set NAT redirect-addr: %s",
-		b->name, strerror(errno)));
+	    Perror("[%s] can't set NAT redirect-addr", b->name);
 	}
       }
     }
@@ -2261,8 +2251,7 @@ IfaceSetupNAT(Bund b)
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PROTO, &nat->nrpr[k],
 		sizeof(struct ng_nat_redirect_proto)) < 0) {
-	    Log(LG_ERR, ("[%s] can't set NAT redirect-proto: %s",
-		b->name, strerror(errno)));
+	    Perror("[%s] can't set NAT redirect-proto", b->name);
 	}
       }
     }
@@ -2293,8 +2282,8 @@ IfaceInitTee(Bund b, char *path, char *hook, int v6)
     strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
     if (NgSendMsg(gLinksCsock, path,
 	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      Perror("[%s] can't create %s node at \"%s\"->\"%s\"",
+	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook);
       return(-1);
     }
     strlcat(path, ".", NG_PATHSIZ);
@@ -2302,8 +2291,7 @@ IfaceInitTee(Bund b, char *path, char *hook, int v6)
     snprintf(nm.name, sizeof(nm.name), "%s-tee%s", b->iface.ifname, v6?"6":"");
     if (NgSendMsg(gLinksCsock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-      Log(LG_ERR, ("[%s] can't name %s node: %s",
-	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
+      Perror("[%s] can't name %s node", b->name, NG_TEE_NODE_TYPE);
       return(-1);
     }
     strcpy(hook, NG_TEE_HOOK_LEFT);
@@ -2340,8 +2328,8 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     strcpy(mp.peerhook, NG_TEE_HOOK_RIGHT);
     if (NgSendMsg(gLinksCsock, path,
 	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      Perror("[%s] can't create %s node at \"%s\"->\"%s\"",
+	b->name, NG_TEE_NODE_TYPE, path, mp.ourhook);
       return(-1);
     }
     strlcat(path, ".", NG_PATHSIZ);
@@ -2349,8 +2337,7 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     snprintf(nm.name, sizeof(nm.name), "%s_acct_tee", b->iface.ifname);
     if (NgSendMsg(gLinksCsock, path,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-      Log(LG_ERR, ("[%s] can't name %s node: %s",
-	b->name, NG_TEE_NODE_TYPE, strerror(errno)));
+      Perror("[%s] can't name %s node", b->name, NG_TEE_NODE_TYPE);
       return(-1);
     }
     strcpy(hook, NG_TEE_HOOK_LEFT);
@@ -2360,16 +2347,15 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     snprintf(mp.peerhook, sizeof(mp.peerhook), "%s_in", b->iface.ifname);
     if (NgSendMsg(gLinksCsock, path,
 	NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-      Log(LG_ERR, ("[%s] can't create %s node at \"%s\"->\"%s\": %s",
-	b->name, NG_IPACCT_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+      Perror("[%s] can't create %s node at \"%s\"->\"%s\"",
+	b->name, NG_IPACCT_NODE_TYPE, path, mp.ourhook);
       return(-1);
     }
     snprintf(path1, sizeof(path1), "%s.%s", path, NG_TEE_HOOK_RIGHT2LEFT);
     snprintf(nm.name, sizeof(nm.name), "%s_ip_acct", b->iface.ifname);
     if (NgSendMsg(gLinksCsock, path1,
 	NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-      Log(LG_ERR, ("[%s] can't name %s node: %s",
-	b->name, NG_IPACCT_NODE_TYPE, strerror(errno)));
+      Perror("[%s] can't name %s node", b->name, NG_IPACCT_NODE_TYPE);
       return(-1);
     }
     strcpy(cn.ourhook, NG_TEE_HOOK_LEFT2RIGHT);
@@ -2377,8 +2363,8 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s_out", b->iface.ifname);
     if (NgSendMsg(gLinksCsock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	sizeof(cn)) < 0) {
-      Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
-        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+      Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+        b->name, path, cn.ourhook, cn.path, cn.peerhook);
       return (-1);
     }
     
@@ -2386,15 +2372,13 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     ipam.data = DLT_RAW;
     if (NgSendMsg(gLinksCsock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_SETDLT, 
 	&ipam, sizeof(ipam)) < 0) {
-      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
-        b->name, path, ipam.m.hname, strerror(errno)));
+      Perror("[%s] can't set DLT \"%s\"->\"%s\"", b->name, path, ipam.m.hname);
       return (-1);
     }
     ipam.data = 10000;
     if (NgSendMsg(gLinksCsock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_STHRS, 
 	&ipam, sizeof(ipam)) < 0) {
-      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
-        b->name, path, ipam.m.hname, strerror(errno)));
+      Perror("[%s] can't set DLT \"%s\"->\"%s\"", b->name, path, ipam.m.hname);
       return (-1);
     }
     
@@ -2402,15 +2386,13 @@ IfaceInitIpacct(Bund b, char *path, char *hook)
     ipam.data = DLT_RAW;
     if (NgSendMsg(gLinksCsock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_SETDLT, 
 	&ipam, sizeof(ipam)) < 0) {
-      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
-        b->name, path, ipam.m.hname, strerror(errno)));
+      Perror("[%s] can't set DLT \"%s\"->\"%s\"", b->name, path, ipam.m.hname);
       return (-1);
     }
     ipam.data = 10000;
     if (NgSendMsg(gLinksCsock, path1, NGM_IPACCT_COOKIE, NGM_IPACCT_STHRS, 
 	&ipam, sizeof(ipam)) < 0) {
-      Log(LG_ERR, ("[%s] can't set DLT \"%s\"->\"%s\": %s", 
-        b->name, path, ipam.m.hname, strerror(errno)));
+      Perror("[%s] can't set DLT \"%s\"->\"%s\"", b->name, path, ipam.m.hname);
       return (-1);
     }
 
@@ -2464,8 +2446,8 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out)
 #endif
     if (NgSendMsg(gLinksCsock, path, NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	sizeof(cn)) < 0) {
-      Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
-        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+      Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+        b->name, path, cn.ourhook, cn.path, cn.peerhook);
       return (-1);
     }
     strlcat(path, ".", NG_PATHSIZ);
@@ -2505,8 +2487,7 @@ IfaceSetupNetflow(Bund b, char in, char out)
     nf_setdlt.dlt = DLT_RAW;
     if (NgSendMsg(gLinksCsock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETDLT,
 	&nf_setdlt, sizeof(nf_setdlt)) < 0) {
-      Log(LG_ERR, ("[%s] can't configure data link type on %s: %s", b->name,
-	path, strerror(errno)));
+      Perror("[%s] can't configure data link type on %s", b->name, path);
       goto fail;
     }
 #ifdef NG_NETFLOW_CONF_INGRESS
@@ -2517,8 +2498,7 @@ IfaceSetupNetflow(Bund b, char in, char out)
 	(Enabled(&b->iface.options, IFACE_CONF_NETFLOW_ONCE)?NG_NETFLOW_CONF_ONCE:0);
     if (NgSendMsg(gLinksCsock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETCONFIG,
 	&nf_setconf, sizeof(nf_setconf)) < 0) {
-      Log(LG_ERR, ("[%s] can't set config on %s: %s", b->name,
-	path, strerror(errno)));
+      Perror("[%s] can't set config on %s", b->name, path);
       goto fail;
     }
 #endif
@@ -2529,8 +2509,7 @@ IfaceSetupNetflow(Bund b, char in, char out)
 	nf_setidx.index = if_nametoindex(b->iface.ifname);
 	if (NgSendMsg(gLinksCsock, path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_SETIFINDEX,
 	    &nf_setidx, sizeof(nf_setidx)) < 0) {
-    	  Log(LG_ERR, ("[%s] can't configure interface index on %s: %s", b->name,
-	    path, strerror(errno)));
+    	  Perror("[%s] can't configure interface index on %s", b->name, path);
     	  goto fail;
 	}
 #ifndef NG_NETFLOW_CONF_INGRESS
@@ -2582,8 +2561,8 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 	strcpy(mp.peerhook, "in");
 	if (NgSendMsg(gLinksCsock, path,
     		NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-    		NG_TCPMSS_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+    	    Perror("can't create %s node at \"%s\"->\"%s\"",
+    		NG_TCPMSS_NODE_TYPE, path, mp.ourhook);
 	    goto fail;
 	}
 
@@ -2595,8 +2574,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-mss", gPid, b->name);
 	if (NgSendMsg(gLinksCsock, path,
     		NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    	    Log(LG_ERR, ("can't name %s node: %s", NG_TCPMSS_NODE_TYPE,
-    		strerror(errno)));
+    	    Perror("can't name %s node", NG_TCPMSS_NODE_TYPE);
 	    goto fail;
 	}
 
@@ -2607,8 +2585,8 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     strcpy(mp.peerhook, "ppp");
     if (NgSendMsg(gLinksCsock, path,
 	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    	Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-    	    NG_BPF_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+	Perror("can't create %s node at \"%s\"->\"%s\"",
+	    NG_BPF_NODE_TYPE, path, mp.ourhook);
 	goto fail;
     }
 
@@ -2620,8 +2598,7 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-mss", gPid, b->name);
     if (NgSendMsg(gLinksCsock, path,
 	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    	Log(LG_ERR, ("can't name tcpmssfix %s node: %s", NG_BPF_NODE_TYPE,
-    	    strerror(errno)));
+	Perror("can't name tcpmssfix %s node", NG_BPF_NODE_TYPE);
 	goto fail;
     }
 
@@ -2631,8 +2608,8 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     strcpy(cn.peerhook, MPD_HOOK_TCPMSS_IN);
     if (NgSendMsg(gLinksCsock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
-    	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
-    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+    	    b->name, path, cn.ourhook, cn.path, cn.peerhook);
     	goto fail;
     }
 
@@ -2641,8 +2618,8 @@ IfaceInitMSS(Bund b, char *path, char *hook)
     strcpy(cn.peerhook, MPD_HOOK_TCPMSS_OUT);
     if (NgSendMsg(gLinksCsock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
     	    sizeof(cn)) < 0) {
-    	Log(LG_ERR, ("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s", 
-    	    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+    	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+    	    b->name, path, cn.ourhook, cn.path, cn.peerhook);
     	goto fail;
     }
 #endif /* USE_NG_TCPMSS */
@@ -2675,15 +2652,13 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
   snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "out");
   if (NgSendMsg(gLinksCsock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
       &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
-    Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
-      NG_TCPMSS_NODE_TYPE, strerror(errno)));
+    Perror("[%s] can't configure %s node program", b->name, NG_TCPMSS_NODE_TYPE);
   }
   snprintf(tcpmsscfg.inHook, sizeof(tcpmsscfg.inHook), "out");
   snprintf(tcpmsscfg.outHook, sizeof(tcpmsscfg.outHook), "in");
   if (NgSendMsg(gLinksCsock, path, NGM_TCPMSS_COOKIE, NGM_TCPMSS_CONFIG,
       &tcpmsscfg, sizeof(tcpmsscfg)) < 0) {
-    Log(LG_ERR, ("[%s] can't configure %s node program: %s", b->name,
-      NG_TCPMSS_NODE_TYPE, strerror(errno)));
+    Perror("[%s] can't configure %s node program", b->name, NG_TCPMSS_NODE_TYPE);
   }
 #else
     union {
@@ -2705,10 +2680,8 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     strcpy(hp->ifNotMatch, "iface");
 
     if (NgSendMsg(gLinksCsock, hook, NGM_BPF_COOKIE,
-	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-	Log(LG_ERR, ("[%s] can't set %s node program: %s",
-    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
-    }
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0)
+	Perror("[%s] can't set %s node program", b->name, NG_BPF_NODE_TYPE);
 
     memset(&u, 0, sizeof(u));
     strcpy(hp->thisHook, MPD_HOOK_TCPMSS_IN);
@@ -2719,10 +2692,8 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     strcpy(hp->ifNotMatch, "ppp");
 
     if (NgSendMsg(gLinksCsock, hook, NGM_BPF_COOKIE,
-	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-	Log(LG_ERR, ("[%s] can't set %s node program: %s",
-    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
-    }
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0)
+	Perror("[%s] can't set %s node program", b->name, NG_BPF_NODE_TYPE);
 
     snprintf(hook, sizeof(hook), "o%d", b->id);
     memset(&u, 0, sizeof(u));
@@ -2734,10 +2705,8 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     strcpy(hp->ifNotMatch, "ppp");
 
     if (NgSendMsg(gLinksCsock, hook, NGM_BPF_COOKIE,
-	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-	Log(LG_ERR, ("[%s] can't set %s node program: %s",
-    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
-    }
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0)
+	Perror("[%s] can't set %s node program", b->name, NG_BPF_NODE_TYPE);
 
     memset(&u, 0, sizeof(u));
     strcpy(hp->thisHook, MPD_HOOK_TCPMSS_OUT);
@@ -2748,10 +2717,8 @@ IfaceSetupMSS(Bund b, uint16_t maxMSS)
     strcpy(hp->ifNotMatch, "iface");
 
     if (NgSendMsg(gLinksCsock, hook, NGM_BPF_COOKIE,
-	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-	Log(LG_ERR, ("[%s] can't set %s node program: %s",
-    	    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
-    }
+	    NGM_BPF_SET_PROGRAM, hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0)
+	Perror("[%s] can't set %s node program", b->name, NG_BPF_NODE_TYPE);
 
 #endif /* USE_NG_TCPMSS */
 }
@@ -2788,8 +2755,8 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	strcpy(mp.peerhook, "ppp");
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-    	    Log(LG_ERR, ("can't create %s node at \"%s\"->\"%s\": %s", 
-    		NG_BPF_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+	    Perror("can't create %s node at \"%s\"->\"%s\"",
+		NG_BPF_NODE_TYPE, path, mp.ourhook);
 	    goto fail;
 	}
 
@@ -2798,17 +2765,14 @@ IfaceInitLimits(Bund b, char *path, char *hook)
 	strcpy(hook, "iface");
 
 	b->iface.limitID = NgGetNodeID(gLinksCsock, path);
-	if (b->iface.limitID == 0) {
-    	    Log(LG_ERR, ("can't get limits %s node ID: %s", NG_BPF_NODE_TYPE,
-    		strerror(errno)));
-	}
+	if (b->iface.limitID == 0)
+	    Perror("can't get limits %s node ID", NG_BPF_NODE_TYPE);
 
 	/* Set the new node's name. */
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-lim", gPid, b->name);
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
-    	    Log(LG_ERR, ("can't name limits %s node: %s", NG_BPF_NODE_TYPE,
-    		strerror(errno)));
+	    Perror("can't name limits %s node", NG_BPF_NODE_TYPE);
 	    goto fail;
 	}
 
@@ -2993,8 +2957,8 @@ IfaceSetupLimits(Bund b)
 			strcpy(cn.peerhook, inhookn[0]);
 			if (NgSendMsg(gLinksCsock, path,
 		        	NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-		    	    Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-			        b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+			    Perror("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+			        b->name, path, cn.ourhook, cn.path, cn.peerhook);
 			}
 			strcpy(stathook, inhookn[0]);
 		    }
@@ -3018,9 +2982,9 @@ IfaceSetupLimits(Bund b)
 		    snprintf(mp.ourhook, sizeof(mp.ourhook), "%d-%d-m", dir, num);
 		    strcpy(mp.peerhook, ((dir == 0)?NG_CAR_HOOK_LOWER:NG_CAR_HOOK_UPPER));
 		    if (NgSendMsg(gLinksCsock, path,
-		    	    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
-		    	Log(LG_ERR, ("[%s] IFACE: can't create %s node at \"%s\"->\"%s\": %s", 
-		    	    b->name, NG_CAR_NODE_TYPE, path, mp.ourhook, strerror(errno)));
+			    NGM_GENERIC_COOKIE, NGM_MKPEER, &mp, sizeof(mp)) < 0) {
+			Perror("[%s] IFACE: can't create %s node at \"%s\"->\"%s\"", 
+			    b->name, NG_CAR_NODE_TYPE, path, mp.ourhook);
 		    }
 
 		    snprintf(tmppath, sizeof(tmppath), "%s%d-%d-m", path, dir, num);
@@ -3031,8 +2995,8 @@ IfaceSetupLimits(Bund b)
 		    strcpy(cn.peerhook, ((dir == 0)?NG_CAR_HOOK_UPPER:NG_CAR_HOOK_LOWER));
 		    if (NgSendMsg(gLinksCsock, path,
 		            NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-		        Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-			    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+			Perror("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+			    b->name, path, cn.ourhook, cn.path, cn.peerhook);
 		    }
 			
 		    bzero(&car, sizeof(car));
@@ -3073,8 +3037,8 @@ IfaceSetupLimits(Bund b)
 						
 		    if (NgSendMsg(gLinksCsock, tmppath,
 		            NGM_CAR_COOKIE, NGM_CAR_SET_CONF, &car, sizeof(car)) < 0) {
-		        Log(LG_ERR, ("[%s] IFACE: can't set %s configuration: %s",
-			    b->name, NG_CAR_NODE_TYPE, strerror(errno)));
+		        Perror("[%s] IFACE: can't set %s configuration",
+			    b->name, NG_CAR_NODE_TYPE);
 		    }
 			
 		    if (ac > p) {
@@ -3094,8 +3058,8 @@ IfaceSetupLimits(Bund b)
 		    	    sprintf(hp1->thisHook, "%d-%d-mi", dir, num);
 			    if (NgSendMsg(gLinksCsock, path, NGM_BPF_COOKIE, NGM_BPF_SET_PROGRAM,
 			    	    hp1, NG_BPF_HOOKPROG_SIZE(hp1->bpf_prog_len)) < 0) {
-				Log(LG_ERR, ("[%s] IFACE: can't set %s node program: %s",
-	    			    b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+				Perror("[%s] IFACE: can't set %s node program",
+	    			    b->name, NG_BPF_NODE_TYPE);
 			    }
 			    			    
 			    strcpy(stathook, hp1->thisHook);
@@ -3129,8 +3093,8 @@ IfaceSetupLimits(Bund b)
 		    strcpy(cn.peerhook, inhookn[1]);
 		    if (NgSendMsg(gLinksCsock, path,
 		            NGM_GENERIC_COOKIE, NGM_CONNECT, &cn, sizeof(cn)) < 0) {
-		        Log(LG_ERR, ("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-			    b->name, path, cn.ourhook, cn.path, cn.peerhook, strerror(errno)));
+			Perror("[%s] IFACE: can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+			    b->name, path, cn.ourhook, cn.path, cn.peerhook);
 		    }
 		} else {
 		    /* There is no next limit, pass nomatch. */
@@ -3170,8 +3134,8 @@ IfaceSetupLimits(Bund b)
 		        strcpy(hp->thisHook, inhook[i]);
 		        if (NgSendMsg(gLinksCsock, path, NGM_BPF_COOKIE, NGM_BPF_SET_PROGRAM,
 		    		hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-			    Log(LG_ERR, ("[%s] IFACE: can't set %s node program: %s",
-	    		        b->name, NG_BPF_NODE_TYPE, strerror(errno)));
+			    Perror("[%s] IFACE: can't set %s node program",
+	    		        b->name, NG_BPF_NODE_TYPE);
 			}
 		    }
 		    strcpy(inhook[i], inhookn[i]);
@@ -3192,8 +3156,8 @@ IfaceSetupLimits(Bund b)
 		    strcpy(hp->ifNotMatch, outhook);
 		    if (NgSendMsg(gLinksCsock, path, NGM_BPF_COOKIE, NGM_BPF_SET_PROGRAM, 
 			    hp, NG_BPF_HOOKPROG_SIZE(hp->bpf_prog_len)) < 0) {
-			Log(LG_ERR, ("[%s] IFACE: can't set %s node %s %s program (2): %s",
-	    		    b->name, NG_BPF_NODE_TYPE, path, hp->thisHook, strerror(errno)));
+			Perror("[%s] IFACE: can't set %s node %s %s program (2)",
+			    b->name, NG_BPF_NODE_TYPE, path, hp->thisHook);
 		    }
 		}
 	    }
