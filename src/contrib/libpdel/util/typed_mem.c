@@ -572,6 +572,8 @@ typed_mem_vasprintf(
 
 	if ((r = vasprintf(ret, fmt, args)) == -1)
 		return (-1);
+	if (!typed_mem_enabled)
+		return r;
 	s = *ret;
 #if TYPED_MEM_TRACE
 	*ret = typed_mem_strdup(file, line, type, s);
