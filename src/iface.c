@@ -135,9 +135,9 @@
   static char *	IFaceParseACL (char * src, char * ifname);
 #endif
 
-  static int	IfaceSetName(Context ctx, const char * ifname);
+  static int	IfaceSetName(Bund b, const char * ifname);
 #ifdef SIOCSIFDESCR
-  static int	IfaceSetDescr(Context ctx, const char * ifdescr);
+  static int	IfaceSetDescr(Bund b, const char * ifdescr);
 #endif
   
 /*
@@ -252,6 +252,9 @@ IfaceInit(Bund b)
   /* Default configuration */
   iface->mtu = NG_IFACE_MTU_DEFAULT;
   iface->max_mtu = NG_IFACE_MTU_DEFAULT;
+#ifdef SIOCSIFDESCR
+  iface->ifdescr = NULL;
+#endif
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
@@ -1367,14 +1370,19 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
 
     case SET_NAME:
+	if (ctx->bund->tmpl)
+	    Error("Impossible to apply on template");
 	switch (ac) {
 	  case 0:
 	    if (strcmp(iface->ifname, iface->ngname) != 0)
-		return IfaceSetName(ctx, iface->ngname);
+		return IfaceSetName(ctx->bund, iface->ngname);
 	    break;
 	  case 1:
-	    if (strcmp(iface->ifname, av[0]) != 0)
-		return IfaceSetName(ctx, av[0]);
+	    if (strcmp(iface->ifname, av[0]) != 0) {
+		if (strlen(av[0]) >= IF_NAMESIZE)
+		    Error("Interface name too long, >%d characters", IF_NAMESIZE-1);
+		return IfaceSetName(ctx->bund, av[0]);
+	    }
 	    break;
 	  default:
 	    return(-1);
@@ -1382,12 +1390,14 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	break;
 #ifdef SIOCSIFDESCR
     case SET_DESCR:
+	if (ctx->bund->tmpl)
+	    Error("Impossible to apply on template");
 	switch (ac) {
 	  case 0:
-	    return IfaceSetDescr(ctx, "");
+	    return IfaceSetDescr(ctx->bund, "");
 	    break;
 	  case 1:
-	    return IfaceSetDescr(ctx, av[0]);
+	    return IfaceSetDescr(ctx->bund, av[0]);
 	    break;
 	  default:
 	    return(-1);
@@ -1454,6 +1464,10 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 
     Printf("Interface configuration:\r\n");
     Printf("\tName            : %s\r\n", iface->ifname);
+#ifdef SIOCSIFDESCR
+    Printf("\tDescription     : \"%s\"\r\n",
+	(iface->ifdescr != NULL) ? iface->ifdescr : "<none>");
+#endif
     Printf("\tMaximum MTU     : %d bytes\r\n", iface->max_mtu);
     Printf("\tIdle timeout    : %d seconds\r\n", iface->idle_timeout);
     Printf("\tSession timeout : %d seconds\r\n", iface->session_timeout);
@@ -3297,58 +3311,62 @@ IfaceFreeStats(struct svcstat *stat)
 #endif /* USE_NG_BPF */
 
 int
-IfaceSetName(Context ctx, const char * ifname)
+IfaceSetName(Bund b, const char * ifname)
 {
-    IfaceState	const iface = &ctx->bund->iface;
+    IfaceState	const iface = &b->iface;
     struct ifreq ifr;
     int s;
 
-    if (ctx->bund->tmpl)
-	Error("Impossible to apply on template");
-
-    if (strlen(ifname) >= IF_NAMESIZE)
-	Error("Interface name too long, >%d characters", IF_NAMESIZE-1);
+    if (b->tmpl) {
+	Log(LG_ERR, ("Impossible ioctl(SIOCSIFNAME) on template"));
+	return(-1);
+    }
 
     /* Get socket */
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
-	Error("[%s] IFACE: Can't get socket to set name", ctx->bund->name);
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Log(LG_ERR, ("[%s] IFACE: Can't get socket to set name", b->name));
+	return(-1);
+    }
 
     /* Set name of interface */
     memset(&ifr, 0, sizeof(ifr));
     strlcpy(ifr.ifr_name, iface->ifname, sizeof(ifr.ifr_name));
     ifr.ifr_data = (caddr_t)ifname;
     Log(LG_IFACE2, ("[%s] IFACE: setting \"%s\" name to \"%s\"",
-	ctx->bund->name, iface->ifname, ifname));
+	b->name, iface->ifname, ifname));
 
     if (ioctl(s, SIOCSIFNAME, (caddr_t)&ifr) < 0) {
-	Perror("[%s] IFACE: ioctl(%s, %s)",
-	     ctx->bund->name, iface->ifname, "SIOCSIFNAME");
+	Perror("[%s] IFACE: ioctl(%s, SIOCSIFNAME)", b->name, iface->ifname);
 	close(s);
-	return(CMD_ERR_OTHER);
+	return(-1);
     }
 
     close(s);
     /* Save name */
     strlcpy(iface->ifname, ifname, sizeof(iface->ifname));
+    strlcpy(b->ifname, ifname, sizeof(b->ifname));
     return(0);
 }
 
 #ifdef SIOCSIFDESCR
 int
-IfaceSetDescr(Context ctx, const char * ifdescr)
+IfaceSetDescr(Bund b, const char * ifdescr)
 {
-    IfaceState	const iface = &ctx->bund->iface;
+    IfaceState	const iface = &b->iface;
     struct ifreq ifr;
     int s;
     char *newdescr;
 
-    if (ctx->bund->tmpl)
-	Error("Impossible to apply on template");
+    if (b->tmpl) {
+	Log(LG_ERR, ("Impossible ioctl(SIOCSIFDESCR) on template"));
+	return(-1);
+    }
 
     /* Get socket */
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
-	Error("[%s] IFACE: Can't get socket to set description",
-	    ctx->bund->name);
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Log(LG_ERR, ("[%s] IFACE: Can't get socket to set description", b->name));
+	return(-1);
+    }
 
     /* Set description of interface */
     memset(&ifr, 0, sizeof(ifr));
@@ -3363,17 +3381,17 @@ IfaceSetDescr(Context ctx, const char * ifdescr)
     }
 
     Log(LG_IFACE2, ("[%s] IFACE: setting \"%s\" description to \"%s\"",
-	ctx->bund->name, iface->ifname, ifdescr));
+	b->name, iface->ifname, ifdescr));
 
     if (ioctl(s, SIOCSIFDESCR, (caddr_t)&ifr) < 0) {
-	Perror("[%s] IFACE: ioctl(%s, %s)", ctx->bund->name,
-	iface->ifname, "SIOCSIFDESCR");
+	Perror("[%s] IFACE: ioctl(%s, SIOCSIFDESCR)", b->name, iface->ifname);
 	Freee(newdescr);
 	close(s);
-	return(CMD_ERR_OTHER);
+	return(-1);
     }
-
-    Freee(newdescr);
+    if (b->ifdescr != NULL)
+        Freee(b->ifdescr);
+    b->ifdescr = iface->ifdescr = newdescr;
     close(s);
     return(0);
 }
