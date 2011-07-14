@@ -1778,7 +1778,26 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 		    sizeof(auth->params.action));
 		free(tmpval);
 		break;
+	    } else if (res == RAD_MPD_IFACE_NAME) {
+		tmpval = rad_cvt_string(data, len);
+	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_IFACE_NAME: %s",
+	    	    auth->info.lnkname, tmpval));
+		strlcpy(auth->params.ifname, tmpval,
+		    sizeof(auth->params.ifname));
+		free(tmpval);
+		break;
 	    } else
+#ifdef SIOCSIFDESCR
+	    if (res == RAD_MPD_IFACE_DESCR) {
+		tmpval = rad_cvt_string(data, len);
+	        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_MPD_IFACE_DESCR: %s",
+	    	    auth->info.lnkname, tmpval));
+		Freee(auth->params.ifdescr);
+		auth->params.ifdescr = Mdup(MB_AUTH, tmpval, len + 1);
+		free(tmpval);
+		break;
+	    } else
+#endif /* SIOCSIFDESCR */
 #ifdef USE_IPFW
 	    if (res == RAD_MPD_RULE) {
 	      acl1 = acl = rad_cvt_string(data, len);

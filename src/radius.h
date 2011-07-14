@@ -114,6 +114,8 @@
   #define RAD_MPD_OUTPUT_ACCT	17
   #define RAD_MPD_ACTION	18
   #define RAD_MPD_PEER_IDENT	19
+  #define RAD_MPD_IFACE_NAME	20
+  #define RAD_MPD_IFACE_DESCR	21
   #define RAD_MPD_DROP_USER	154
 
   /* Configuration options */
