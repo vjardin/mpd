@@ -1673,6 +1673,18 @@ BundNgInit(Bund b)
     b->iface.ifindex = if_nametoindex(b->iface.ifname);
     Log(LG_BUND|LG_IFACE, ("[%s] Bundle: Interface %s created",
 	b->name, b->iface.ifname));
+    if (strlen(b->params.ifname) > 0) {
+       if (IfaceSetName(b, b->params.ifname) != -1)
+	    Log(LG_BUND|LG_IFACE, ("[%s] Bundle: Rename interface to %s",
+	b->name, b->params.ifname));
+    }
+#ifdef SIOCSIFDESCR
+    if (b->params.ifdescr != NULL) {
+       if (IfaceSetDescr(b, b->params.ifdescr) != -1)
+	    Log(LG_BUND|LG_IFACE, ("[%s] Bundle: Add description \"%s\"",
+	b->name, b->params.ifdescr));
+    }
+#endif
  
     /* Create new PPP node */
     snprintf(b->hook, sizeof(b->hook), "b%d", b->id);
