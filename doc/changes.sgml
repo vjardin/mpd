@@ -10,6 +10,10 @@
     <itemize>
 	<item> New features:
 	<itemize>
+	  <item> Added `mpd-iface-name` RADIUS arrtibute.
+	  </item>
+	  <item> Added `mpd-iface-descr` RADIUS arrtibute.
+	  </item>
 	  <item> Added `mpd-peer-ident` RADIUS arrtibute.
 	  </item>
 	  <item> Added `set iface name ...` command.
