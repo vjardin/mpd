@@ -497,10 +497,6 @@ BundMsg(int type, void *arg)
     Bund	b = (Bund)arg;
 
     if (b->dead) {
-#ifdef SIOCSIFDESCR
-	if (b->ifdescr != NULL)
-            Freee(b->ifdescr);
-#endif
 	UNREF(b);
 	return;
     }
@@ -521,10 +517,6 @@ BundMsg(int type, void *arg)
     default:
         assert(FALSE);
     }
-#ifdef SIOCSIFDESCR
-    if (b->ifdescr != NULL)
-        Freee(b->ifdescr);
-#endif
     UNREF(b);
 }
 
@@ -1102,9 +1094,6 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	strlcpy(b->name, av[0 + stay], sizeof(b->name));
 	b->tmpl = tmpl;
 	b->stay = stay;
-#ifdef SIOCSIFDESCR
-	b->ifdescr = NULL;
-#endif
 
 	/* Add bundle to the list of bundles and make it the current active bundle */
 	for (k = 0; k < gNumBundles && gBundles[k] != NULL; k++);
@@ -1210,9 +1199,6 @@ BundInst(Bund bt, char *name, int tmpl, int stay)
     b->tmpl = tmpl;
     b->stay = stay;
     b->refs = 0;
-#ifdef SIOCSIFDESCR
-    b->ifdescr = NULL;
-#endif
 
     /* Add bundle to the list of bundles and make it the current active bundle */
     for (k = 0; k < gNumBundles && gBundles[k] != NULL; k++);
@@ -1271,10 +1257,6 @@ BundShutdown(Bund b)
     gBundles[b->id] = NULL;
     MsgUnRegister(&b->msgs);
     b->dead = 1;
-#ifdef SIOCSIFDESCR
-    if (b->ifdescr != NULL)
-        Freee(b->ifdescr);
-#endif
     UNREF(b);
 }
 

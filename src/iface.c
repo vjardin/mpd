@@ -3344,7 +3344,6 @@ IfaceSetName(Bund b, const char * ifname)
     close(s);
     /* Save name */
     strlcpy(iface->ifname, ifname, sizeof(iface->ifname));
-    strlcpy(b->ifname, ifname, sizeof(b->ifname));
     return(0);
 }
 
@@ -3359,7 +3358,7 @@ IfaceSetDescr(Bund b, const char * ifdescr)
 
     if (b->tmpl) {
 	Log(LG_ERR, ("Impossible ioctl(SIOCSIFDESCR) on template"));
-	if (b->ifdescr != NULL)
+	if (b->params.ifdescr != NULL)
 	    iface->ifdescr = NULL;
 	return(-1);
     }
@@ -3367,7 +3366,7 @@ IfaceSetDescr(Bund b, const char * ifdescr)
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 	Log(LG_ERR, ("[%s] IFACE: Can't get socket to set description", b->name));
-	if (b->ifdescr != NULL)
+	if (b->params.ifdescr != NULL)
 	    iface->ifdescr = NULL;
 	return(-1);
     }
@@ -3390,14 +3389,17 @@ IfaceSetDescr(Bund b, const char * ifdescr)
     if (ioctl(s, SIOCSIFDESCR, (caddr_t)&ifr) < 0) {
 	Perror("[%s] IFACE: ioctl(%s, SIOCSIFDESCR)", b->name, iface->ifname);
 	Freee(newdescr);
-	if (b->ifdescr != NULL)
+	if (b->params.ifdescr != NULL)
 	    iface->ifdescr = NULL;
 	close(s);
 	return(-1);
     }
-    if (b->ifdescr != NULL)
-        Freee(b->ifdescr);
-    b->ifdescr = iface->ifdescr = newdescr;
+    iface->ifdescr = newdescr;
+    /* If we got params from auth */
+    if (b->params.ifdescr != NULL) {
+	Freee(b->params.ifdescr);
+	b->params.ifdescr = iface->ifdescr;
+    }
     close(s);
     return(0);
 }

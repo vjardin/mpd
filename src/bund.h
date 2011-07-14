@@ -160,12 +160,6 @@
     u_char		originate;	/* Who originated the connection */
     
     struct authparams   params;         /* params to pass to from auth backend */
-
-    /* Iface stuff */
-    char		ifname[IFNAMSIZ];	/* Interface name */
-#ifdef SIOCSIFDESCR
-    char		*ifdescr;		/* Interface description */
-#endif
   };
   
 /*
