@@ -2288,15 +2288,15 @@ AuthExternal(AuthData auth)
 
     } else if (strcmp(attr, "MPD_ACTION") == 0) {
 	strlcpy(auth->params.action, val, sizeof(auth->params.action));
-/*
-XXXXXXXXXXXX
 
-    } eeeelse if (strcmp(attr, "MPD_IFACE_NAME") == 0) {
-	strlcpy(auth->params.action, val, sizeof(auth->params.action));
+    } else if (strcmp(attr, "MPD_IFACE_NAME") == 0) {
+	strlcpy(auth->params.ifname, val, sizeof(auth->params.ifname));
 
+#ifdef SIOCSIFDESCR
     } else if (strcmp(attr, "MPD_IFACE_DESCR") == 0) {
-	strlcpy(auth->params.action, val, sizeof(auth->params.action));
-*/
+	Freee(auth->params.ifdescr);
+	auth->params.ifdescr = Mstrdup(MB_AUTH, val);
+#endif /* SIOCSIFDESCR */
 #if defined(USE_IPFW) || defined(USE_NG_BPF)
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;
