@@ -203,5 +203,11 @@
   extern void	IfaceFreeStats(struct svcstat *stat);
 #endif
 
+  extern int	IfaceSetName(Bund b, const char * ifname);
+#ifdef SIOCSIFDESCR
+  extern int	IfaceSetDescr(Bund b, const char * ifdescr);
+#endif
+
+
 #endif
 

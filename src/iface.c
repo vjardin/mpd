@@ -135,11 +135,6 @@
   static char *	IFaceParseACL (char * src, char * ifname);
 #endif
 
-  static int	IfaceSetName(Bund b, const char * ifname);
-#ifdef SIOCSIFDESCR
-  static int	IfaceSetDescr(Bund b, const char * ifdescr);
-#endif
-  
 /*
  * GLOBAL VARIABLES
  */
