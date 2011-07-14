@@ -3359,12 +3359,16 @@ IfaceSetDescr(Bund b, const char * ifdescr)
 
     if (b->tmpl) {
 	Log(LG_ERR, ("Impossible ioctl(SIOCSIFDESCR) on template"));
+	if (b->ifdescr != NULL)
+	    iface->ifdescr = NULL;
 	return(-1);
     }
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 	Log(LG_ERR, ("[%s] IFACE: Can't get socket to set description", b->name));
+	if (b->ifdescr != NULL)
+	    iface->ifdescr = NULL;
 	return(-1);
     }
 
@@ -3386,6 +3390,8 @@ IfaceSetDescr(Bund b, const char * ifdescr)
     if (ioctl(s, SIOCSIFDESCR, (caddr_t)&ifr) < 0) {
 	Perror("[%s] IFACE: ioctl(%s, SIOCSIFDESCR)", b->name, iface->ifname);
 	Freee(newdescr);
+	if (b->ifdescr != NULL)
+	    iface->ifdescr = NULL;
 	close(s);
 	return(-1);
     }
