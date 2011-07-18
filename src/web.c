@@ -274,6 +274,7 @@ WebShowSummary(FILE *f, int priv)
 		}
 	    } else {
 	    	fprintf(f, "<TD></TD>\n");
+	    	fprintf(f, "<TD></TD>\n");
 	    	fprintf(f, "<TD colspan=3></TD>\n");
 	    }
 	    if (priv) {
@@ -318,7 +319,7 @@ WebShowSummary(FILE *f, int priv)
 	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20ecp\">%s</a></TD>\n", 
 	    rows, B->tmpl?"d":FSM_COLOR(B->ecp.fsm.state), B->name,FsmStateName(B->ecp.fsm.state));
 	if (B->n_links == 0) {
-	    fprintf(f, "<TD colspan=\"10\">&nbsp;</a></TD>\n</TR>\n");
+	    fprintf(f, "<TD colspan=\"11\">&nbsp;</a></TD>\n</TR>\n");
 	}
 	for (l = 0; l < NG_PPP_MAX_LINKS; l++) {
 	    if ((L=B->links[l]) != NULL) {
@@ -353,6 +354,7 @@ WebShowSummary(FILE *f, int priv)
 				buf, buf2);
 		    }
 		} else {
+			fprintf(f, "<TD></TD>\n");
 			fprintf(f, "<TD></TD>\n");
 			fprintf(f, "<TD colspan=3></TD>\n");
 		}
@@ -417,6 +419,7 @@ WebShowSummary(FILE *f, int priv)
 		    }
 		} else {
 			fprintf(f, "<TD></TD>\n");
+			fprintf(f, "<TD></TD>\n");
 			fprintf(f, "<TD colspan=3></TD>\n");
 		}
 		fprintf(f, "<TD></TD>\n");
@@ -426,7 +429,7 @@ WebShowSummary(FILE *f, int priv)
 	    }
 	}
 	if (!shown) {
-	    fprintf(f, "<TD colspan = \"10\"></TD>\n");
+	    fprintf(f, "<TD colspan = \"11\"></TD>\n");
 	    fprintf(f, "</TR>\n");
 	}
     }
