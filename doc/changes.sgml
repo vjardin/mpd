@@ -20,7 +20,7 @@
 	  </item>
 	  <item> Added `set iface description ...` command.
 	  </item>
-	  <item> Added `set l2tp|pptp|tcp|udp resolve-once ...` command.
+	  <item> Added `set l2tp|pptp|tcp|udp resolve-once ...` commands.
 		They allow to resolve peer address every time on reconnect.
 	  </item>
 	</itemize>
