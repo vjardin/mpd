@@ -79,6 +79,10 @@
     u_char		peer_addr_force;
     u_char		self_ipv6_addr_force;
     u_char		peer_ipv6_addr_force;
+    char		ifname[IFNAMSIZ];	/* Name of my interface */
+#ifdef SIOCSIFDESCR
+    char		*ifdescr;		/* Interface description*/
+#endif
   };
 
   struct ifaceroute {
@@ -176,6 +180,7 @@
 
   extern void	IfaceInit(Bund b);
   extern void	IfaceInst(Bund b, Bund bt);
+  extern void	IfaceDestroy(Bund b);
   extern void	IfaceOpen(Bund b);
   extern void	IfaceClose(Bund b);
   extern int	IfaceOpenCmd(Context ctx);
@@ -202,12 +207,6 @@
   extern void	IfaceAddStats(struct svcstat *stat1, struct svcstat *stat2);
   extern void	IfaceFreeStats(struct svcstat *stat);
 #endif
-
-  extern int	IfaceSetName(Bund b, const char * ifname);
-#ifdef SIOCSIFDESCR
-  extern int	IfaceSetDescr(Bund b, const char * ifdescr);
-#endif
-
 
 #endif
 

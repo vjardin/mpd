@@ -135,6 +135,11 @@
   static char *	IFaceParseACL (char * src, char * ifname);
 #endif
 
+  static int	IfaceSetName(Bund b, const char * ifname);
+#ifdef SIOCSIFDESCR
+  static int	IfaceSetDescr(Bund b, const char * ifdescr);
+#endif
+
 /*
  * GLOBAL VARIABLES
  */
@@ -249,6 +254,7 @@ IfaceInit(Bund b)
   iface->max_mtu = NG_IFACE_MTU_DEFAULT;
 #ifdef SIOCSIFDESCR
   iface->ifdescr = NULL;
+  iface->conf.ifdescr = NULL;
 #endif
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
@@ -272,6 +278,19 @@ IfaceInst(Bund b, Bund bt)
     IfaceState	const iface = &b->iface;
 
     memcpy(iface, &bt->iface, sizeof(*iface));
+}
+
+/*
+ * IfaceDestroy()
+ */
+
+void
+IfaceDestroy(Bund b)
+{
+    IfaceState	const iface = &b->iface;
+
+    if (iface->conf.ifdescr != NULL)
+	Freee(iface->conf.ifdescr);
 }
 
 /*
@@ -426,6 +445,22 @@ IfaceUp(Bund b, int ready)
 	/* Reset statistics */
 	memset(&iface->idleStats, 0, sizeof(iface->idleStats));
     }
+
+    /* Update interface name and description */
+    if (strlen(b->params.ifname) > 0) {
+       if (IfaceSetName(b, b->params.ifname) != -1)
+	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
+		b->name, b->iface.ngname, b->params.ifname));
+    }
+#ifdef SIOCSIFDESCR
+    if (b->params.ifdescr != NULL) {
+       if (IfaceSetDescr(b, b->params.ifdescr) != -1) {
+	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add description \"%s\"",
+		b->name, b->params.ifdescr));
+	    iface->ifdescr = b->params.ifdescr;
+	}
+    }
+#endif
 
 #ifdef USE_IPFW
   /* Allocate ACLs */
@@ -609,6 +644,41 @@ IfaceDown(Bund b)
     ExecCmdNosh(LG_IFACE2, b->name, "%s pipe delete%s",
       PATH_IPFW, cb);
 #endif /* USE_IPFW */
+
+    /* Revert interface name and description */
+
+    if (strcmp(iface->ngname, iface->ifname) != 0) {
+	if (strlen(iface->conf.ifname) > 0) {
+	    /* Restore to config defined */
+	    if (IfaceSetName(b, iface->conf.ifname) != -1)
+		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
+		    b->name, b->iface.ifname, iface->conf.ifname));
+	} else {
+	    /* Restore to original interface name */
+	    if (IfaceSetName(b, iface->ngname) != -1)
+		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
+		    b->name, b->iface.ifname, iface->ngname));
+	}
+    }
+#ifdef SIOCSIFDESCR
+    if (iface->ifdescr != NULL) {
+	if (iface->conf.ifdescr != NULL) {
+	    /* Restore to config defined */
+	    if (IfaceSetDescr(b, iface->conf.ifdescr) != -1) {
+		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add description \"%s\"",
+		    b->name, iface->conf.ifdescr));
+		iface->ifdescr = iface->conf.ifdescr;
+	    }
+	} else {
+	    /* Restore to original (empty) */
+	    if (IfaceSetDescr(b, "") != -1) {
+		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Clear description",
+		    b->name));
+		iface->ifdescr = NULL;
+	    }
+	}
+    }
+#endif
 
 }
 
@@ -1376,6 +1446,7 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    if (strcmp(iface->ifname, av[0]) != 0) {
 		if (strlen(av[0]) >= IF_NAMESIZE)
 		    Error("Interface name too long, >%d characters", IF_NAMESIZE-1);
+		strlcpy(iface->conf.ifname, av[0], sizeof(iface->conf.ifname));
 		return IfaceSetName(ctx->bund, av[0]);
 	    }
 	    break;
@@ -1461,7 +1532,7 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tName            : %s\r\n", iface->ifname);
 #ifdef SIOCSIFDESCR
     Printf("\tDescription     : \"%s\"\r\n",
-	(iface->ifdescr != NULL) ? iface->ifdescr : "<none>");
+	(iface->conf.ifdescr != NULL) ? iface->conf.ifdescr : "<none>");
 #endif
     Printf("\tMaximum MTU     : %d bytes\r\n", iface->max_mtu);
     Printf("\tIdle timeout    : %d seconds\r\n", iface->idle_timeout);
@@ -1494,6 +1565,10 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     Printf("Interface status:\r\n");
     Printf("\tAdmin status    : %s\r\n", iface->open ? "OPEN" : "CLOSED");
     Printf("\tStatus          : %s\r\n", iface->up ? (iface->dod?"DoD":"UP") : "DOWN");
+#ifdef SIOCSIFDESCR
+    Printf("\tDescription     : \"%s\"\r\n",
+	(iface->ifdescr != NULL) ? iface->ifdescr : "<none>");
+#endif
     if (iface->up) {
 	Printf("\tSession time    : %ld seconds\r\n", (long int)(time(NULL) - iface->last_up));
 	if (b->params.idle_timeout || iface->idle_timeout)
@@ -3347,22 +3422,18 @@ int
 IfaceSetDescr(Bund b, const char * ifdescr)
 {
     IfaceState	const iface = &b->iface;
-    struct ifreq ifr;
-    int s;
-    char *newdescr;
+    struct	ifreq ifr;
+    int		s;
+    char	*newdescr;
 
     if (b->tmpl) {
 	Log(LG_ERR, ("Impossible ioctl(SIOCSIFDESCR) on template"));
-	if (b->params.ifdescr != NULL)
-	    iface->ifdescr = NULL;
 	return(-1);
     }
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 	Log(LG_ERR, ("[%s] IFACE: Can't get socket to set description", b->name));
-	if (b->params.ifdescr != NULL)
-	    iface->ifdescr = NULL;
 	return(-1);
     }
 
@@ -3373,27 +3444,20 @@ IfaceSetDescr(Bund b, const char * ifdescr)
     if (ifr.ifr_buffer.length == 1) {
 	ifr.ifr_buffer.buffer = newdescr = NULL;
 	ifr.ifr_buffer.length = 0;
+	Log(LG_IFACE2, ("[%s] IFACE: clearing \"%s\" description",
+	    b->name, iface->ifname));
     } else {
 	newdescr = Mstrdup(MB_IFACE, ifdescr);
 	ifr.ifr_buffer.buffer = newdescr;
+	Log(LG_IFACE2, ("[%s] IFACE: setting \"%s\" description to \"%s\"",
+	    b->name, iface->ifname, ifdescr));
     }
-
-    Log(LG_IFACE2, ("[%s] IFACE: setting \"%s\" description to \"%s\"",
-	b->name, iface->ifname, ifdescr));
 
     if (ioctl(s, SIOCSIFDESCR, (caddr_t)&ifr) < 0) {
 	Perror("[%s] IFACE: ioctl(%s, SIOCSIFDESCR)", b->name, iface->ifname);
 	Freee(newdescr);
-	if (b->params.ifdescr != NULL)
-	    iface->ifdescr = NULL;
 	close(s);
 	return(-1);
-    }
-    iface->ifdescr = newdescr;
-    /* If we got params from auth */
-    if (b->params.ifdescr != NULL) {
-	Freee(b->params.ifdescr);
-	b->params.ifdescr = iface->ifdescr;
     }
     close(s);
     return(0);
