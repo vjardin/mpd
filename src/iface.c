@@ -668,14 +668,15 @@ IfaceDown(Bund b)
 		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add description \"%s\"",
 		    b->name, iface->conf.ifdescr));
 		iface->ifdescr = iface->conf.ifdescr;
-	    }
+	    } else
+		iface->ifdescr = NULL;
 	} else {
 	    /* Restore to original (empty) */
 	    if (IfaceSetDescr(b, "") != -1) {
 		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Clear description",
 		    b->name));
-		iface->ifdescr = NULL;
 	    }
+	    iface->ifdescr = NULL;
 	}
     }
 #endif
@@ -3391,6 +3392,10 @@ IfaceSetName(Bund b, const char * ifname)
 	Log(LG_ERR, ("Impossible ioctl(SIOCSIFNAME) on template"));
 	return(-1);
     }
+
+    /* Do not wait ioctl error "file already exist" */
+    if (strncmp(iface->ifname, ifname, sizeof(iface->ifname)) == 0)
+	return(0);
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
