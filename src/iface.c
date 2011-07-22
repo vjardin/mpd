@@ -447,7 +447,7 @@ IfaceUp(Bund b, int ready)
     }
 
     /* Update interface name and description */
-    if (strlen(b->params.ifname) > 0) {
+    if (b->params.ifname[0] != 0) {
        if (IfaceSetName(b, b->params.ifname) != -1)
 	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
 		b->name, b->iface.ngname, b->params.ifname));
@@ -648,7 +648,7 @@ IfaceDown(Bund b)
     /* Revert interface name and description */
 
     if (strcmp(iface->ngname, iface->ifname) != 0) {
-	if (strlen(iface->conf.ifname) > 0) {
+	if (iface->conf.ifname[0] != 0) {
 	    /* Restore to config defined */
 	    if (IfaceSetName(b, iface->conf.ifname) != -1)
 		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
