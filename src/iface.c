@@ -1447,7 +1447,9 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 		int ifmaxlen = IF_NAMESIZE - ctx->bund->tmpl * IFNUMLEN;
 		if (strlen(av[0]) >= ifmaxlen)
 		    Error("Interface name too long, >%d characters", ifmaxlen-1);
-		if (ctx->bund->tmpl && (strcmp(av[0], "ng") == 0))
+		if ((strncmp(av[0], "ng", 2) == 0) &&
+		  ((ctx->bund->tmpl && av[0][2] == 0) ||
+		  (av[0][2] >= '0' && av[0][2] <= '9')))
 		    Error("This interface name is reserved");
 		strlcpy(iface->conf.ifname, av[0], sizeof(iface->conf.ifname));
 		return IfaceSetName(ctx->bund, av[0]);
