@@ -108,6 +108,9 @@
   #define DEFAULT_RADSRV_PORT	3799
   #define DEFAULT_RADSRV_IP	"0.0.0.0"
 
+  /* Characters, leave for interface number. For example: ppp99999 */
+  #define IFNUMLEN		(sizeof("99999") - 1)
+
   /* Forward decl's */
   struct linkst;
   typedef struct linkst *Link;

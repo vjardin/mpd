@@ -1436,17 +1436,19 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
 
     case SET_NAME:
-	if (ctx->bund->tmpl)
-	    Error("Impossible to apply on template");
 	switch (ac) {
 	  case 0:
+	    /* Restore original interface name */
 	    if (strcmp(iface->ifname, iface->ngname) != 0)
 		return IfaceSetName(ctx->bund, iface->ngname);
 	    break;
 	  case 1:
 	    if (strcmp(iface->ifname, av[0]) != 0) {
-		if (strlen(av[0]) >= IF_NAMESIZE)
-		    Error("Interface name too long, >%d characters", IF_NAMESIZE-1);
+		int ifmaxlen = IF_NAMESIZE - ctx->bund->tmpl * IFNUMLEN;
+		if (strlen(av[0]) >= ifmaxlen)
+		    Error("Interface name too long, >%d characters", ifmaxlen-1);
+		if (ctx->bund->tmpl && (strcmp(av[0], "ng") == 0))
+		    Error("This interface name is reserved");
 		strlcpy(iface->conf.ifname, av[0], sizeof(iface->conf.ifname));
 		return IfaceSetName(ctx->bund, av[0]);
 	    }
@@ -3389,7 +3391,7 @@ IfaceSetName(Bund b, const char * ifname)
     int s;
 
     if (b->tmpl) {
-	Log(LG_ERR, ("Impossible ioctl(SIOCSIFNAME) on template"));
+	/* XXX Temporary do nothing */
 	return(-1);
     }
 
