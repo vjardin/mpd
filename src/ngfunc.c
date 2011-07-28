@@ -64,6 +64,10 @@
     SET_PEER,
     SET_SELF,
     SET_TIMEOUTS,
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    SET_TEMPLATE,
+    SET_MTU,
+#endif
     SET_NODE,
     SET_HOOK
   };
@@ -88,6 +92,12 @@
         NetflowSetCommand, NULL, 2, (void *) SET_SELF },
     { "timeouts {inactive} {active}", "Set NetFlow timeouts" ,
         NetflowSetCommand, NULL, 2, (void *) SET_TIMEOUTS },
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    { "template {time} {packets}", "Set NetFlow v9 template" ,
+        NetflowSetCommand, NULL, 2, (void *) SET_TEMPLATE },
+    { "mtu {mtu}", "Set NetFlow v9 MTU" ,
+        NetflowSetCommand, NULL, 2, (void *) SET_MTU },
+#endif
     { "node {name}", "Set node name to use" ,
         NetflowSetCommand, NULL, 2, (void *) SET_NODE },
     { "hook {number}", "Set initial hook number" ,
@@ -113,6 +123,11 @@
   struct sockaddr_storage gNetflowSource;
   uint32_t gNetflowInactive = 0;
   uint32_t gNetflowActive = 0;
+#if NGM_NETFLOW_COOKIE >= 1309868867
+  uint16_t gNetflowTime = 0;
+  uint16_t gNetflowPackets = 0;
+  uint16_t gNetflowMTU = 0;
+#endif
 #endif
   
   static int	gNgStatSock=0;
@@ -196,6 +211,33 @@ NgFuncInitGlobalNetflow(void)
 	    goto fail2;
 	}
     }
+
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    if (gNetflowTime != 0 && gNetflowPackets != 0) {
+	struct ng_netflow_settemplate nf_settempl;
+
+	nf_settempl.time = gNetflowTime;
+	nf_settempl.packets = gNetflowPackets;
+	if (NgSendMsg(csock, path, NGM_NETFLOW_COOKIE,
+	  NGM_NETFLOW_SETTEMPLATE, &nf_settempl, sizeof(nf_settempl)) < 0) {
+	    Perror("NETFLOW: Can't set NetFlow v9 template on netflow %s node",
+		NG_NETFLOW_NODE_TYPE);
+	    goto fail2;
+	}
+    }
+
+    if (gNetflowMTU != 0) {
+	struct ng_netflow_setmtu nf_setmtu;
+
+	nf_setmtu.mtu = gNetflowMTU;
+	if (NgSendMsg(csock, path, NGM_NETFLOW_COOKIE,
+	  NGM_NETFLOW_SETMTU, &nf_setmtu, sizeof(nf_setmtu)) < 0) {
+	    Perror("NETFLOW: Can't set NetFlow v9 MTU on netflow %s node",
+		NG_NETFLOW_NODE_TYPE);
+	  goto fail2;
+	}
+    }
+#endif
 
     /* Configure export destination and source on ng_ksocket(4). */
     strlcat(path, NG_NETFLOW_HOOK_EXPORT, sizeof(path));
@@ -707,6 +749,15 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    gNetflowInactive = atoi(av[0]);
     	    gNetflowActive = atoi(av[1]);
     	    break;
+#if NGM_NETFLOW_COOKIE >= 1309868867
+	case SET_MTU:
+    	    if (ac != 1)
+		return (-1);
+    	    if (atoi(av[0]) < NG_IFACE_MTU_MIN || atoi(av[0]) > NG_IFACE_MTU_MAX)
+		Error("Bad netflow v9 MTU \"%s\"", av[0]);
+    	    gNetflowMTU = atoi(av[0]);
+    	    break;
+#endif
 	case SET_NODE:
     	    if (ac != 1)
 		return (-1);
