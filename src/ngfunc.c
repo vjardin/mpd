@@ -44,6 +44,10 @@
 #endif
 #ifdef USE_NG_NETFLOW
 #include <netgraph/netflow/ng_netflow.h>
+#if NGM_NETFLOW_COOKIE >= 1309868867
+#include <netgraph/netflow/netflow.h>
+#include <netgraph/netflow/netflow_v9.h>
+#endif
 #endif
 #ifdef USE_NG_PRED1
 #include <netgraph/ng_pred1.h>
@@ -775,22 +779,22 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 		return (-1);
     	    if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0)
 		Error("Bad netflow v9 template values \"%s %s\"", av[0], av[1]);
-    	    gNetflowTime = atoi(av[0]);
-    	    gNetflowPackets = atoi(av[1]);
+    	    gNetflowTime = atoi(av[0]);		/* Default 600 */
+    	    gNetflowPackets = atoi(av[1]);	/* Default 500 */
     	    break;
 	case SET_MTU:
     	    if (ac != 1)
 		return (-1);
-    	    if (atoi(av[0]) < NG_IFACE_MTU_MIN || atoi(av[0]) > NG_IFACE_MTU_MAX)
+    	    if (atoi(av[0]) < MIN_MTU || atoi(av[0]) > MAX_MTU)
 		Error("Bad netflow v9 MTU \"%s\"", av[0]);
-    	    gNetflowMTU = atoi(av[0]);
+    	    gNetflowMTU = atoi(av[0]);		/* Default 1500 */
     	    break;
 	case SET_VERSION:
     	    if (ac != 1)
 		return (-1);
     	    if (atoi(av[0]) != 5 && atoi(av[0]) != 9)
 		Error("Bad netflow export version \"%s\"", av[0]);
-    	    gNetflowVer = atoi(av[0]);
+    	    gNetflowVer = atoi(av[0]);		/* Default 5 */
     	    break;
 #endif
 	case SET_NODE:
