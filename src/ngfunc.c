@@ -67,6 +67,7 @@
 #if NGM_NETFLOW_COOKIE >= 1309868867
     SET_TEMPLATE,
     SET_MTU,
+    SET_VERSION,
 #endif
     SET_NODE,
     SET_HOOK
@@ -97,6 +98,8 @@
         NetflowSetCommand, NULL, 2, (void *) SET_TEMPLATE },
     { "mtu {mtu}", "Set NetFlow v9 MTU" ,
         NetflowSetCommand, NULL, 2, (void *) SET_MTU },
+    { "version {version}", "Set version to export" ,
+        NetflowSetCommand, NULL, 2, (void *) SET_VERSION },
 #endif
     { "node {name}", "Set node name to use" ,
         NetflowSetCommand, NULL, 2, (void *) SET_NODE },
@@ -127,6 +130,7 @@
   uint16_t gNetflowTime = 0;
   uint16_t gNetflowPackets = 0;
   uint16_t gNetflowMTU = 0;
+  u_int gNetflowVer = 5;
 #endif
 #endif
   
@@ -183,7 +187,15 @@ NgFuncInitGlobalNetflow(void)
 
     /* Connect ng_ksocket(4) node for export. */
     strcpy(mp.type, NG_KSOCKET_NODE_TYPE);
-    strcpy(mp.ourhook, NG_NETFLOW_HOOK_EXPORT);
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    if (gNetflowVer == 5) {
+#endif
+	strcpy(mp.ourhook, NG_NETFLOW_HOOK_EXPORT);
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    } else {
+	strcpy(mp.ourhook, NG_NETFLOW_HOOK_EXPORT9);
+    }
+#endif
     if (gNetflowExport.ss_family==AF_INET6) {
 	snprintf(mp.peerhook, sizeof(mp.peerhook), "%d/%d/%d", PF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     } else {
@@ -240,7 +252,15 @@ NgFuncInitGlobalNetflow(void)
 #endif
 
     /* Configure export destination and source on ng_ksocket(4). */
-    strlcat(path, NG_NETFLOW_HOOK_EXPORT, sizeof(path));
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    if (gNetflowVer == 5) {
+#endif
+	strlcat(path, NG_NETFLOW_HOOK_EXPORT, sizeof(path));
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    } else {
+	strlcat(path, NG_NETFLOW_HOOK_EXPORT9, sizeof(path));
+    }
+#endif
     if (gNetflowSource.ss_len != 0) {
 	if (NgSendMsg(csock, path, NGM_KSOCKET_COOKIE,
 	  NGM_KSOCKET_BIND, &gNetflowSource, sizeof(gNetflowSource)) < 0) {
@@ -750,12 +770,27 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    gNetflowActive = atoi(av[1]);
     	    break;
 #if NGM_NETFLOW_COOKIE >= 1309868867
+	case SET_TEMPLATE:
+    	    if (ac != 2)
+		return (-1);
+    	    if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0)
+		Error("Bad netflow v9 template values \"%s %s\"", av[0], av[1]);
+    	    gNetflowTime = atoi(av[0]);
+    	    gNetflowPackets = atoi(av[1]);
+    	    break;
 	case SET_MTU:
     	    if (ac != 1)
 		return (-1);
     	    if (atoi(av[0]) < NG_IFACE_MTU_MIN || atoi(av[0]) > NG_IFACE_MTU_MAX)
 		Error("Bad netflow v9 MTU \"%s\"", av[0]);
     	    gNetflowMTU = atoi(av[0]);
+    	    break;
+	case SET_VERSION:
+    	    if (ac != 1)
+		return (-1);
+    	    if (atoi(av[0]) != 5 && atoi(av[0]) != 9)
+		Error("Bad netflow export version \"%s\"", av[0]);
+    	    gNetflowVer = atoi(av[0]);
     	    break;
 #endif
 	case SET_NODE:
