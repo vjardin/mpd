@@ -181,15 +181,23 @@
   static const struct confinfo	gConfList[] = {
     { 0,	IFACE_CONF_ONDEMAND,		"on-demand"	},
     { 0,	IFACE_CONF_PROXY,		"proxy-arp"	},
+#ifdef USE_NG_TCPMSS
     { 0,	IFACE_CONF_TCPMSSFIX,           "tcpmssfix"	},
+#endif
     { 0,	IFACE_CONF_TEE,			"tee"		},
+#ifdef USE_NG_NAT
     { 0,	IFACE_CONF_NAT,			"nat"		},
+#endif
+#ifdef USE_NG_NETFLOW
     { 0,	IFACE_CONF_NETFLOW_IN,		"netflow-in"	},
     { 0,	IFACE_CONF_NETFLOW_OUT,		"netflow-out"	},
 #ifdef NG_NETFLOW_CONF_ONCE
     { 0,	IFACE_CONF_NETFLOW_ONCE,	"netflow-once"	},
 #endif
+#endif
+#ifdef USE_NG_IPACCT
     { 0,	IFACE_CONF_IPACCT,		"ipacct"	},
+#endif
     { 0,	0,				NULL		},
   };
 
@@ -665,7 +673,7 @@ IfaceDown(Bund b)
 	if (iface->conf.ifdescr != NULL) {
 	    /* Restore to config defined */
 	    if (IfaceSetDescr(b, iface->conf.ifdescr) != -1) {
-		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add description \"%s\"",
+		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Set description \"%s\"",
 		    b->name, iface->conf.ifdescr));
 		iface->ifdescr = iface->conf.ifdescr;
 	    } else
