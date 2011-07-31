@@ -777,6 +777,10 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_TEMPLATE:
     	    if (ac != 2)
 		return (-1);
+	    /*
+	     * RFC 3954 clause 7.3
+	     * "Both options MUST be configurable by the user on the Exporter."
+	     */
     	    if (atoi(av[0]) <= 0 || atoi(av[1]) <= 0)
 		Error("Bad netflow v9 template values \"%s %s\"", av[0], av[1]);
     	    gNetflowTime = atoi(av[0]);		/* Default 600 */
