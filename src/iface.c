@@ -286,6 +286,13 @@ IfaceInst(Bund b, Bund bt)
     IfaceState	const iface = &b->iface;
 
     memcpy(iface, &bt->iface, sizeof(*iface));
+
+    /* Copy interface name from template config to current */
+    if (bt->iface.conf.ifname[0] != 0 && b->tmpl == 0) {
+        snprintf(iface->conf.ifname, sizeof(iface->conf.ifname), "%s%d",
+             bt->iface.conf.ifname, b->id);
+        Log(LG_IFACE2, ("[%s] IFACE: Set conf.ifname to ", iface->conf.ifname));
+    }
 }
 
 /*
@@ -458,7 +465,11 @@ IfaceUp(Bund b, int ready)
     if (b->params.ifname[0] != 0) {
        if (IfaceSetName(b, b->params.ifname) != -1)
 	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
-		b->name, b->iface.ngname, b->params.ifname));
+		b->name, iface->ngname, b->params.ifname));
+    } else if (iface->conf.ifname[0] != 0) {
+       if (IfaceSetName(b, iface->conf.ifname) != -1)
+	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
+		b->name, iface->ngname, iface->conf.ifname));
     }
 #ifdef SIOCSIFDESCR
     if (b->params.ifdescr != NULL) {
@@ -660,12 +671,12 @@ IfaceDown(Bund b)
 	    /* Restore to config defined */
 	    if (IfaceSetName(b, iface->conf.ifname) != -1)
 		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
-		    b->name, b->iface.ifname, iface->conf.ifname));
+		    b->name, iface->ifname, iface->conf.ifname));
 	} else {
 	    /* Restore to original interface name */
 	    if (IfaceSetName(b, iface->ngname) != -1)
 		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Rename interface %s to %s",
-		    b->name, b->iface.ifname, iface->ngname));
+		    b->name, iface->ifname, iface->ngname));
 	}
     }
 #ifdef SIOCSIFDESCR
@@ -1447,8 +1458,10 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	switch (ac) {
 	  case 0:
 	    /* Restore original interface name */
-	    if (strcmp(iface->ifname, iface->ngname) != 0)
+	    if (strcmp(iface->ifname, iface->ngname) != 0) {
+		iface->conf.ifname[0] = '\0';
 		return IfaceSetName(ctx->bund, iface->ngname);
+	    }
 	    break;
 	  case 1:
 	    if (strcmp(iface->ifname, av[0]) != 0) {
@@ -3400,10 +3413,9 @@ IfaceSetName(Bund b, const char * ifname)
     struct ifreq ifr;
     int s;
 
-    if (b->tmpl) {
-	/* XXX Temporary do nothing */
-	return(-1);
-    }
+    /* Do not rename interface on template */
+    if (b->tmpl)
+	return(0);
 
     /* Do not wait ioctl error "file already exist" */
     if (strncmp(iface->ifname, ifname, sizeof(iface->ifname)) == 0)
