@@ -20,6 +20,7 @@
 #include "util.h"
 
 #include <sys/sockio.h>
+#include <sys/sysctl.h>
 #include <net/if.h>
 #include <net/if_types.h>
 #include <net/if_dl.h>
@@ -3452,11 +3453,23 @@ IfaceSetDescr(Bund b, const char * ifdescr)
 {
     IfaceState	const iface = &b->iface;
     struct	ifreq ifr;
-    int		s;
+    int		s, ifdescr_maxlen;
     char	*newdescr;
+    size_t	sz = sizeof(int);
 
     if (b->tmpl) {
 	Log(LG_ERR, ("Impossible ioctl(SIOCSIFDESCR) on template"));
+	return(-1);
+    }
+
+    if (sysctlbyname("net.ifdescr_maxlen", &ifdescr_maxlen, &sz, NULL, 0) < 0) {
+	Perror("[%s] IFACE: sysctl net.ifdescr_maxlen  failed", b->name);
+	return(-1);
+    }
+
+    if (ifdescr_maxlen < strlen(ifdescr) + 1) {
+	Log(LG_ERR, ("[%s] IFACE: Description too long, >%d characters",
+	    b->name, ifdescr_maxlen-1));
 	return(-1);
     }
 
