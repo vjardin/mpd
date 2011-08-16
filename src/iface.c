@@ -1485,12 +1485,21 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
     case SET_DESCR:
 	if (ctx->bund->tmpl)
 	    Error("Impossible to apply on template");
+	if (iface->conf.ifdescr != NULL)
+	    Freee(iface->conf.ifdescr);
+	iface->conf.ifdescr = NULL;
+	iface->ifdescr = NULL;
 	switch (ac) {
 	  case 0:
 	    return IfaceSetDescr(ctx->bund, "");
 	    break;
 	  case 1:
-	    return IfaceSetDescr(ctx->bund, av[0]);
+	    iface->conf.ifdescr = Mstrdup(MB_IFACE, av[0]);
+	    if (IfaceSetDescr(ctx->bund, av[0]) == 0) {
+		iface->ifdescr = iface->conf.ifdescr;
+		return(0);
+	    } else
+		return(-1);
 	    break;
 	  default:
 	    return(-1);
@@ -3501,6 +3510,7 @@ IfaceSetDescr(Bund b, const char * ifdescr)
 	close(s);
 	return(-1);
     }
+    Freee(newdescr);
     close(s);
     return(0);
 }
