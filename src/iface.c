@@ -1542,6 +1542,8 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    Error("Groupnames may not end in a digit");
 	if (strlen(av[0]) >= IFNAMSIZ)
 	    Error("Group name %s too long", av[0]);
+	if (iface->conf.ifgroup[0] != 0)
+	    IfaceDelGroup(ctx->bund, iface->conf.ifgroup);
 	strlcpy(iface->conf.ifgroup, av[0], IFNAMSIZ);
 	return IfaceAddGroup(ctx->bund, av[0]);
       break;
