@@ -725,6 +725,7 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tInterface descr.: \"%s\"\r\n", 
 	au->params.ifdescr != NULL ? au->params.ifdescr : "<none>");
 #endif
+    Printf("\tInterface group : %s\r\n", au->params.ifgroup);
     Printf("\tIP range        : %s\r\n", (au->params.range_valid)?
 	u_rangetoa(&au->params.range,buf,sizeof(buf)):"");
     Printf("\tIP pool         : %s\r\n", au->params.ippool);
@@ -2297,6 +2298,10 @@ AuthExternal(AuthData auth)
 	Freee(auth->params.ifdescr);
 	auth->params.ifdescr = Mstrdup(MB_AUTH, val);
 #endif /* SIOCSIFDESCR */
+#ifdef SIOCAIFGROUP
+    } else if (strcmp(attr, "MPD_IFACE_GROUP") == 0) {
+	strlcpy(auth->params.ifgroup, val, sizeof(auth->params.ifgroup));
+#endif
 #if defined(USE_IPFW) || defined(USE_NG_BPF)
     } else if (strncmp(attr, "MPD_", 4) == 0) {
 	struct acl	**acls, *acls1;

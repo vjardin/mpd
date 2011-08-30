@@ -83,6 +83,9 @@
 #ifdef SIOCSIFDESCR
     char		*ifdescr;		/* Interface description*/
 #endif
+#ifdef SIOCAIFGROUP
+    char		ifgroup[IFNAMSIZ];	/* Group of my interface */
+#endif
   };
 
   struct ifaceroute {

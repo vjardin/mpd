@@ -75,6 +75,9 @@
 #ifdef SIOCSIFDESCR
     SET_DESCR,
 #endif
+#ifdef SIOCAIFGROUP
+    SET_GROUP,
+#endif
     SET_UP_SCRIPT,
     SET_DOWN_SCRIPT,
     SET_ENABLE,
@@ -140,7 +143,10 @@
 #ifdef SIOCSIFDESCR
   static int	IfaceSetDescr(Bund b, const char * ifdescr);
 #endif
-
+#ifdef SIOCAIFGROUP
+  static int	IfaceAddGroup(Bund b, const char * ifgroup);
+  static int	IfaceDelGroup(Bund b, const char * ifgroup);
+#endif
 /*
  * GLOBAL VARIABLES
  */
@@ -157,6 +163,10 @@
 #ifdef SIOCSIFDESCR
     { "description [{descr}]",		"Set interface description",
 	IfaceSetCommand, NULL, 2, (void *) SET_DESCR },
+#endif
+#ifdef SIOCAIFGROUP
+    { "group [{group}]",		"Set interface group",
+	IfaceSetCommand, NULL, 2, (void *) SET_GROUP },
 #endif
     { "up-script [{progname}]",		"Interface up script",
 	IfaceSetCommand, NULL, 2, (void *) SET_UP_SCRIPT },
@@ -481,7 +491,18 @@ IfaceUp(Bund b, int ready)
 	}
     }
 #endif
-
+#ifdef SIOCAIFGROUP
+    if (iface->conf.ifgroup[0] != 0) {
+       if (IfaceAddGroup(b, iface->conf.ifgroup) != -1)
+	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add group %s to %s",
+		b->name, iface->conf.ifgroup, iface->ngname));
+    }
+    if (b->params.ifgroup[0] != 0) {
+       if (IfaceAddGroup(b, b->params.ifgroup) != -1)
+	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add group %s to %s",
+		b->name, b->params.ifgroup, iface->ngname));
+    }
+#endif
 #ifdef USE_IPFW
   /* Allocate ACLs */
   acls = b->params.acl_pipe;
@@ -700,7 +721,13 @@ IfaceDown(Bund b)
 	}
     }
 #endif
-
+#ifdef SIOCAIFGROUP
+    if (b->params.ifgroup[0] != 0) {
+       if (IfaceDelGroup(b, b->params.ifgroup) != -1)
+	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Remove group %s from %s",
+		b->name, b->params.ifgroup, iface->ngname));
+    }
+#endif
 }
 
 /*
@@ -1506,6 +1533,19 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	}
 	break;
 #endif
+#ifdef SIOCAIFGROUP
+    case SET_GROUP:
+	if (ac != 1)
+	  return(-1);
+
+	if (av[0][0] && isdigit(av[0][strlen(av[0]) - 1]))
+	    Error("Groupnames may not end in a digit");
+	if (strlen(av[0]) >= IFNAMSIZ)
+	    Error("Group name %s too long", av[0]);
+	strlcpy(iface->conf.ifgroup, av[0], IFNAMSIZ);
+	return IfaceAddGroup(ctx->bund, av[0]);
+      break;
+#endif
     case SET_UP_SCRIPT:
       switch (ac) {
 	case 0:
@@ -1565,10 +1605,13 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
 #endif
 
     Printf("Interface configuration:\r\n");
-    Printf("\tName            : %s\r\n", iface->ifname);
+    Printf("\tName            : %s\r\n", iface->conf.ifname);
 #ifdef SIOCSIFDESCR
     Printf("\tDescription     : \"%s\"\r\n",
 	(iface->conf.ifdescr != NULL) ? iface->conf.ifdescr : "<none>");
+#endif
+#ifdef SIOCAIFGROUP
+    Printf("\tGroup           : %s\r\n", iface->conf.ifgroup);
 #endif
     Printf("\tMaximum MTU     : %d bytes\r\n", iface->max_mtu);
     Printf("\tIdle timeout    : %d seconds\r\n", iface->idle_timeout);
@@ -1601,6 +1644,7 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     Printf("Interface status:\r\n");
     Printf("\tAdmin status    : %s\r\n", iface->open ? "OPEN" : "CLOSED");
     Printf("\tStatus          : %s\r\n", iface->up ? (iface->dod?"DoD":"UP") : "DOWN");
+    Printf("\tName            : %s\r\n", iface->ifname);
 #ifdef SIOCSIFDESCR
     Printf("\tDescription     : \"%s\"\r\n",
 	(iface->ifdescr != NULL) ? iface->ifdescr : "<none>");
@@ -3416,6 +3460,10 @@ IfaceFreeStats(struct svcstat *stat)
 }
 #endif /* USE_NG_BPF */
 
+/*
+ * IfaceSetName()
+ */
+
 int
 IfaceSetName(Bund b, const char * ifname)
 {
@@ -3457,6 +3505,10 @@ IfaceSetName(Bund b, const char * ifname)
 }
 
 #ifdef SIOCSIFDESCR
+/*
+ * IfaceSetDescr()
+ */
+
 int
 IfaceSetDescr(Bund b, const char * ifdescr)
 {
@@ -3515,3 +3567,87 @@ IfaceSetDescr(Bund b, const char * ifdescr)
     return(0);
 }
 #endif /* SIOCSIFDESCR */
+#ifdef SIOCAIFGROUP
+/*
+ * IfaceAddGroup()
+ */
+
+int
+IfaceAddGroup(Bund b, const char * ifgroup)
+{
+    IfaceState	const iface = &b->iface;
+    struct ifgroupreq	ifgr;
+    int	s, i;
+
+    /* Do not add group on template */
+    if (b->tmpl)
+	return(0);
+
+    if (ifgroup[0] && isdigit(ifgroup[strlen(ifgroup) - 1])) {
+	Perror("[%s] IFACE: groupnames may not end in a digit", b->name);
+	return(-1);
+    }
+
+    /* Get socket */
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Perror("[%s] IFACE: Can't get socket to add group", b->name);
+	return(-1);
+    }
+
+    /* Add interface group */
+    memset(&ifgr, 0, sizeof(ifgr));
+    strlcpy(ifgr.ifgr_name, iface->ifname, sizeof(ifgr.ifgr_name));
+    strlcpy(ifgr.ifgr_group, ifgroup, sizeof(ifgr.ifgr_group));
+
+    Log(LG_IFACE2, ("[%s] IFACE: adding interface %s to group %s",
+	b->name, iface->ifname, ifgroup));
+
+    i = ioctl(s, SIOCAIFGROUP, (caddr_t)&ifgr);
+    if (i < 0 && i != EEXIST) {
+	Perror("[%s] IFACE: ioctl(%s, SIOCAIFGROUP)", b->name, iface->ifname);
+        close(s);
+        return(-1);
+    }
+
+    close(s);
+    return(0);
+}
+
+/*
+ * IfaceDelGroup()
+ */
+int
+IfaceDelGroup(Bund b, const char * ifgroup)
+{
+    IfaceState	const iface = &b->iface;
+    struct ifgroupreq	ifgr;
+    int	s;
+
+    /* Get socket */
+    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	Perror("[%s] IFACE: Can't get socket to delete from group", b->name);
+	return(-1);
+    }
+
+    if (ifgroup[0] && isdigit(ifgroup[strlen(ifgroup) - 1])) {
+	Perror("[%s] IFACE: groupnames may not end in a digit", b->name);
+	return(-1);
+    }
+
+    /* Set interface group */
+    memset(&ifgr, 0, sizeof(ifgr));
+    strlcpy(ifgr.ifgr_name, iface->ifname, sizeof(ifgr.ifgr_name));
+    strlcpy(ifgr.ifgr_group, ifgroup, sizeof(ifgr.ifgr_group));
+
+    Log(LG_IFACE2, ("[%s] IFACE: remove interface %s from group %s",
+	b->name, iface->ifname, ifgroup));
+
+    if (ioctl(s, SIOCDIFGROUP, (caddr_t)&ifgr) == -1) {
+	Perror("[%s] IFACE: ioctl(%s, SIOCDIFGROUP)", b->name, iface->ifname);
+	close(s);
+	return(-1);
+    }
+    close(s);
+    return(0);
+}
+#endif

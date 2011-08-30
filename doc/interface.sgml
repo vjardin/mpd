@@ -33,6 +33,12 @@ set iface description [ <em>description</em> ]
 This command changes interface description.
 
 <tag><tt>
+set iface group [ <em>group</em> ]
+</tt></tag>
+
+This command add interface to specific group.
+
+<tag><tt>
 set iface addrs [!]<em>local-ip</em> [!]<em>remote-ip</em>
 </tt></tag>
 
