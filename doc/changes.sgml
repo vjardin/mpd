@@ -24,6 +24,8 @@
 	  </item>
 	  <item> Added `set iface group ...` command.
 	  </item>
+	  <item> Added support for NetFlow v9 export.
+	  </item>
 	  <item> Added `set l2tp|pptp|tcp|udp resolve-once ...` command.
 		They allow to resolve peer address every time on reconnect.
 	  </item>
