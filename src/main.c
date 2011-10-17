@@ -233,9 +233,8 @@ main(int ac, char *av[])
 #ifdef CCP_MPPC
     MppcTestCap();
 #endif
-    LinksInit();
-    CcpsInit();
-    EcpsInit();
+    if ((LinksInit() != 0) || (CcpsInit() != 0) || (EcpsInit() != 0))
+	exit(EX_UNAVAILABLE);
     
     /* Init device types. */
     for (k = 0; (pt = gPhysTypes[k]); k++) {
