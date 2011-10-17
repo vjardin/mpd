@@ -539,7 +539,8 @@ LinkInst(Link lt, char *name, int tmpl, int stay)
     SLIST_INIT(&l->actions);
     SLIST_FOREACH(at, &lt->actions, next) {
 	a = Mdup(MB_AUTH, at, sizeof(*a));
-	regcomp(&a->regexp, a->regex, REG_EXTENDED);
+	if (a->regex[0])
+	    regcomp(&a->regexp, a->regex, REG_EXTENDED);
 	if (!ap)
 	    SLIST_INSERT_HEAD(&l->actions, a, next);
 	else
@@ -1436,7 +1437,7 @@ LinkSetCommand(Context ctx, int ac, char *av[], void *arg)
 		        strlcpy(n->regex, av[1], sizeof(n->regex));
 		        if (regcomp(&n->regexp, n->regex, REG_EXTENDED)) {
 		    	    Freee(n);
-			    Error("regexp \"%s\" compilation error", av[0]);
+			    Error("regexp \"%s\" compilation error", av[1]);
 			}
 		    }
 		} else {
