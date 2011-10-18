@@ -268,9 +268,13 @@ static int
 PptpInst(Link l, Link lt)
 {
     PptpInfo	pptp;
+    PptpInfo	const pptpt = (PptpInfo) lt->info;
 
     /* Initialize this link */
     pptp = (PptpInfo) (l->info = Mdup(MB_PHYS, lt->info, sizeof(*pptp)));
+    if (pptpt->conf.fqdn_peer_addr != NULL)
+        pptp->conf.fqdn_peer_addr =
+            Mstrdup(MB_PHYS, pptpt->conf.fqdn_peer_addr);
     pptp->listener = NULL;
 
     return(0);

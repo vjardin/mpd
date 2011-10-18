@@ -312,9 +312,13 @@ static int
 L2tpInst(Link l, Link lt)
 {
 	L2tpInfo pi;
-	l->info = Mdup(MB_PHYS, lt->info, sizeof(struct l2tpinfo));
-	pi = (L2tpInfo) l->info;
-    
+	L2tpInfo	const pit = (L2tpInfo) lt->info;
+
+	/* Initialize this link */
+	pi = (L2tpInfo) (l->info = Mdup(MB_PHYS, lt->info, sizeof(*pit)));
+	if (pit->conf.fqdn_peer_addr != NULL)
+	    pi->conf.fqdn_peer_addr =
+	        Mstrdup(MB_PHYS, pit->conf.fqdn_peer_addr);
 	if (pi->server)
 	    pi->server->refs++;
 	

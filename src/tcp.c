@@ -184,8 +184,13 @@ static int
 TcpInst(Link l, Link lt)
 {
 	TcpInfo pi;
-	l->info = Mdup(MB_PHYS, lt->info, sizeof(struct tcpinfo));
-	pi = (TcpInfo) l->info;
+	TcpInfo const pit = (TcpInfo) lt->info;
+
+	/* Initialize this link */
+	pi = (TcpInfo) (l->info = Mdup(MB_PHYS, lt->info, sizeof(*pi)));
+	if (pit->conf.fqdn_peer_addr != NULL)
+	    pi->conf.fqdn_peer_addr =
+		Mstrdup(MB_PHYS, pit->conf.fqdn_peer_addr);
     
 	if (pi->If)
 	    pi->If->refs++;

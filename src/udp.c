@@ -185,8 +185,13 @@ static int
 UdpInst(Link l, Link lt)
 {
     UdpInfo	pi;
-    l->info = Mdup(MB_PHYS, lt->info, sizeof(struct udpinfo));
-    pi = (UdpInfo) l->info;
+    UdpInfo const pit = (UdpInfo) lt->info;
+
+    /* Initialize this link */
+    pi = (UdpInfo) (l->info = Mdup(MB_PHYS, lt->info, sizeof(*pi)));
+    if (pit->conf.fqdn_peer_addr != NULL)
+        pi->conf.fqdn_peer_addr =
+            Mstrdup(MB_PHYS, pit->conf.fqdn_peer_addr);
     
     if (pi->If)
 	pi->If->refs++;
