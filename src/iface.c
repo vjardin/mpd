@@ -313,10 +313,12 @@ IfaceInst(Bund b, Bund bt)
 void
 IfaceDestroy(Bund b)
 {
+#ifdef SIOCSIFDESCR
     IfaceState	const iface = &b->iface;
 
     if (iface->conf.ifdescr != NULL)
 	Freee(iface->conf.ifdescr);
+#endif
 }
 
 /*
