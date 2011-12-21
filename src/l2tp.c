@@ -1336,6 +1336,7 @@ fail:
 	/* Clean up after failure */
 	ppp_l2tp_terminate(pi->sess, L2TP_RESULT_ERROR,
 	    L2TP_ERROR_GENERIC, strerror(errno));
+	pi->sess = NULL;
 	if (csock != -1)
 		(void)close(csock);
 }
