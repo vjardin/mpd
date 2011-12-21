@@ -289,7 +289,8 @@ NgFuncInitGlobalNetflow(void)
     }
 
     /* Disconnect temporary hook. */
-    strcpy(rm.ourhook, TEMPHOOK);
+    memset(&rm, 0, sizeof(rm));
+    strncpy(rm.ourhook, TEMPHOOK, sizeof(rm.ourhook));
     if (NgSendMsg(csock, ".:",
       NGM_GENERIC_COOKIE, NGM_RMHOOK, &rm, sizeof(rm)) < 0) {
 	Perror("can't remove hook %s", TEMPHOOK);
@@ -504,6 +505,7 @@ NgFuncDisconnect(int csock, char *label, const char *path, const char *hook)
     int		retry = 10, delay = 1000;
 
     /* Disconnect hook */
+    memset(&rm, 0, sizeof(rm));
     strlcpy(rm.ourhook, hook, sizeof(rm.ourhook));
 retry:
     if (NgSendMsg(csock, path,

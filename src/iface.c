@@ -2145,6 +2145,7 @@ IfaceNgIpInit(Bund b, int ready)
 #endif
 
     /* Connect graph to the iface node. */
+    memset(&cn, 0, sizeof(cn));
     strcpy(cn.ourhook, hook);
     snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ngname);
     strcpy(cn.peerhook, NG_IFACE_HOOK_INET);

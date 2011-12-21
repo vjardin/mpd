@@ -348,7 +348,6 @@ L2tpOpen(Link l)
 	} ugetsas;
 	struct sockaddr_storage	*const getsas = (struct sockaddr_storage *)(void *)ugetsas.reply.data;
 	struct ngm_mkpeer mkpeer;
-	struct sockaddr_storage peer_sas;
 	struct sockaddr_storage sas;
 	char hook[NG_HOOKSIZ];
 	char namebuf[64];
@@ -491,7 +490,7 @@ L2tpOpen(Link l)
 
 	/* There is no tun which we need. Create a new one. */
 	tun = Malloc(MB_PHYS, sizeof(*tun));
-	sockaddrtou_addr(&peer_sas,&tun->peer_addr,&tun->peer_port);
+	memset(tun, 0, sizeof(*tun));
 	u_addrcopy(&pi->conf.peer_addr.addr, &tun->peer_addr);
 	tun->peer_port = pi->conf.peer_port?pi->conf.peer_port:L2TP_PORT;
 	u_addrcopy(&pi->conf.self_addr, &tun->self_addr);
@@ -1314,6 +1313,9 @@ L2tpHookUp(Link l)
 
 	/* Get this link's node and hook */
 	ppp_l2tp_sess_get_hook(pi->sess, &node_id, &hook);
+
+	/* Initialize cn */
+	memset(&cn, 0, sizeof(cn));
 
 	/* Connect our ng_ppp(4) node link hook and ng_l2tp(4) node. */
 	if (!PhysGetUpperHook(l, cn.path, cn.peerhook)) {

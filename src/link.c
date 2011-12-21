@@ -653,6 +653,10 @@ LinkNgInit(Link l)
     struct ngm_mkpeer	mp;
     struct ngm_name	nm;
 
+    /* Initialize structures */
+    memset(&mp, 0, sizeof(mp));
+    memset(&nm, 0, sizeof(nm));
+
     /* Create TEE node */
     strcpy(mp.type, NG_TEE_NODE_TYPE);
     snprintf(mp.ourhook, sizeof(mp.ourhook), "l%d", l->id);
@@ -700,6 +704,7 @@ LinkNgJoin(Link l)
 
     snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
 
+    memset(&cn, 0, sizeof(cn));
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->bund->nodeID);
     strcpy(cn.ourhook, NG_TEE_HOOK_RIGHT);
     snprintf(cn.peerhook, sizeof(cn.peerhook), "%s%d", 
@@ -725,6 +730,7 @@ LinkNgLeave(Link l)
     char		path[NG_PATHSIZ];
     struct ngm_connect	cn;
 
+    memset(&cn, 0, sizeof(cn));
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->nodeID);
     strcpy(cn.ourhook, l->hook);
     strcpy(cn.peerhook, NG_TEE_HOOK_LEFT2RIGHT);

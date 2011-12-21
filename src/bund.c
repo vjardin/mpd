@@ -1683,7 +1683,7 @@ BundNgInit(Bund b)
 
     /* Create new PPP node */
     snprintf(b->hook, sizeof(b->hook), "b%d", b->id);
-
+    memset(&mp, 0, sizeof(mp));
     strcpy(mp.type, NG_PPP_NODE_TYPE);
     strcpy(mp.ourhook, b->hook);
     strcpy(mp.peerhook, NG_PPP_HOOK_BYPASS);
@@ -1699,6 +1699,7 @@ BundNgInit(Bund b)
     b->nodeID = NgGetNodeID(gLinksCsock, b->hook);
 
     /* Give it a name */
+    memset(&nm, 0, sizeof(nm));
     snprintf(nm.name, sizeof(nm.name), "mpd%d-%s", gPid, b->name);
     if (NgSendMsg(gLinksCsock, b->hook,
     	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
