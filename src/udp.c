@@ -232,6 +232,7 @@ UdpOpen(Link l)
         }
 
 	/* Attach ksocket node to PPP node */
+	memset(&mkp, 0, sizeof(mkp));
 	strcpy(mkp.type, NG_KSOCKET_NODE_TYPE);
 	strlcpy(mkp.ourhook, hook, sizeof(mkp.ourhook));
 	if ((pi->conf.self_addr.family==AF_INET6) || 
@@ -251,6 +252,7 @@ UdpOpen(Link l)
 	strlcat(path, hook, sizeof(path));
 
 	/* Give it a name */
+	memset(&nm, 0, sizeof(nm));
 	snprintf(nm.name, sizeof(nm.name), "mpd%d-%s-kso", gPid, l->name);
 	if (NgSendMsg(csock, path,
 	    NGM_GENERIC_COOKIE, NGM_NAME, &nm, sizeof(nm)) < 0) {
