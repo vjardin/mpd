@@ -1248,9 +1248,14 @@ BundShutdown(Bund b)
 
     Log(LG_BUND, ("[%s] Bundle: Shutdown", b->name));
     for (k = 0; k < NG_PPP_MAX_LINKS; k++) {
-	if ((l = b->links[k]) != NULL)
+	if ((l = b->links[k]) != NULL) {
 	    if (!l->stay)
 		LinkShutdown(l);
+	    else {
+		l->bund = NULL;
+		b->links[k] = NULL;
+	    }
+	}
     }
 
     if (b->hook[0])
