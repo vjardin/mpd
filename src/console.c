@@ -349,6 +349,7 @@ StdConsoleSessionClose(ConsoleSession cs)
     /* Restore original STDxxx flags. */
     if (gOrigFlags>=0)
 	fcntl(cs->fd, F_SETFL, gOrigFlags);
+    cs->close = NULL;
     return;
 }
 
@@ -822,6 +823,21 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
   }
 
   return 0;
+}
+
+/*
+ * ConsoleShutdown()
+ */
+
+void
+ConsoleShutdown(Console c)
+{
+    ConsoleSession s, tmp;
+
+    SLIST_FOREACH_SAFE(s, &c->sessions, next, tmp) {
+	if (s->close != NULL)
+		s->close(s);
+    }
 }
 
 /*

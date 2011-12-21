@@ -396,6 +396,7 @@ DoExit(int code)
     LinksShutdown();
 
     /* Remove our PID file and exit */
+    ConsoleShutdown(&gConsole);
     Log(LG_ALWAYS, ("process %d terminated", gPid));
     LogClose();
     (void) unlink(gPidFile);
