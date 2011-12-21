@@ -52,6 +52,8 @@
 	  </item>
 	  <item> Fix byte order in ports in `set nat red-port`.
 	  </item>
+	  <item> Fix some potential crashes because of NULL dereferences.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
