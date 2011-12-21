@@ -263,8 +263,9 @@ PppoeOpen(Link l)
 		/* Path to the ng_tee node */
 		snprintf(path, sizeof(path), "[%x]:%s", 
 		    pe->PIf->node_id, session_hook);
-		    
+
 		/* Connect ng_tee(4) node to the ng_ppp(4) node. */
+		memset(&cn, 0, sizeof(cn));
 		if (!PhysGetUpperHook(l, cn.path, cn.peerhook)) {
 		    Log(LG_PHYS, ("[%s] PPPoE: can't get upper hook", l->name));
 		    goto fail3;
@@ -799,6 +800,7 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 		char	path2[NG_PATHSIZ];
 
 		/* Create new PPPoE node. */
+		memset(&mp, 0, sizeof(mp));
 		strcpy(mp.type, NG_PPPOE_NODE_TYPE);
 		strlcpy(mp.ourhook, hook, sizeof(mp.ourhook));
 		strcpy(mp.peerhook, NG_PPPOE_HOOK_ETHERNET);
@@ -1029,6 +1031,7 @@ PppoeListenEvent(int type, void *arg)
 	    gPid, l->id);
 		
 	/* Create ng_tee(4) node and connect it to ng_pppoe(4). */
+	memset(&mp, 0, sizeof(mp));
 	strcpy(mp.type, NG_TEE_NODE_TYPE);
 	strlcpy(mp.ourhook, session_hook, sizeof(mp.ourhook));
 	snprintf(mp.peerhook, sizeof(mp.peerhook), "left");
@@ -1043,6 +1046,7 @@ PppoeListenEvent(int type, void *arg)
 	snprintf(path1, sizeof(path), "%s%s", path, session_hook);
 
 	/* Connect our socket node link hook to the ng_tee(4) node. */
+	memset(&cn, 0, sizeof(cn));
 	strlcpy(cn.ourhook, l->name, sizeof(cn.ourhook));
 	strlcpy(cn.path, path1, sizeof(cn.path));
 	strcpy(cn.peerhook, "left2right");
@@ -1054,7 +1058,7 @@ PppoeListenEvent(int type, void *arg)
 	}
 
 	/* Put the PPPoE node into OFFER mode. */
-	memset(idata, 0, sizeof(idata));
+	memset(idata, 0, sizeof(*idata));
 	strlcpy(idata->hook, session_hook, sizeof(idata->hook));
 	if (pi->acname[0] != 0) {
 		strlcpy(idata->data, pi->acname, MAX_SESSION);
@@ -1076,7 +1080,7 @@ PppoeListenEvent(int type, void *arg)
 		goto shutdown_tee;
 	}
 
-	memset(idata, 0, sizeof(idata));
+	memset(idata, 0, sizeof(*idata));
 	strlcpy(idata->hook, session_hook, sizeof(idata->hook));
 	idata->data_len = strlen(pi->session);
 	strncpy(idata->data, pi->session, MAX_SESSION);
@@ -1244,6 +1248,7 @@ PppoeListen(Link l)
 	snprintf(path, sizeof(path), "[%x]:", PIf->node_id);
 	
 	/* Connect our socket node link hook to the ng_pppoe(4) node. */
+	memset(&cn, 0, sizeof(cn));
 	strcpy(cn.path, path);
 	snprintf(cn.ourhook, sizeof(cn.peerhook), "listen-%s", pi->session);
 	strcpy(cn.peerhook, cn.ourhook);
@@ -1257,7 +1262,7 @@ PppoeListen(Link l)
 	}
 
 	/* Tell the PPPoE node to be a server. */
-	memset(idata, 0, sizeof(idata));
+	memset(idata, 0, sizeof(*idata));
 	snprintf(idata->hook, sizeof(idata->hook), "listen-%s", pi->session);
 	idata->data_len = strlen(pi->session);
 	strncpy(idata->data, pi->session, MAX_SESSION);
