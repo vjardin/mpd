@@ -6,6 +6,17 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.6:
+    <itemize>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Restore `show sessions` as unprivileged command.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 5.5:
     <itemize>
 	<item> New features:
