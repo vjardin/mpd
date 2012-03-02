@@ -12,6 +12,9 @@
 	<itemize>
 	  <item> Restore `show sessions` as unprivileged command.
 	  </item>
+	  <item> Fix infinite event loop when STDIN redirected to /dev/null
+		 after it recently got non-blocking mode support.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
