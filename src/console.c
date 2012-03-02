@@ -376,7 +376,7 @@ ConsoleSessionReadEvent(int type, void *cookie)
 	  goto out;
 	Perror("CONSOLE: Error while reading");
       } else {
-        if (cs->fd == 0)
+        if (cs->fd == 0 && isatty(cs->fd))
 	  goto out;
 	Log(LG_ERR, ("CONSOLE: Connection closed by peer"));
       }
