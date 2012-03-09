@@ -725,7 +725,9 @@ AuthStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tInterface descr.: \"%s\"\r\n", 
 	au->params.ifdescr != NULL ? au->params.ifdescr : "<none>");
 #endif
+#ifdef SIOCAIFGROUP
     Printf("\tInterface group : %s\r\n", au->params.ifgroup);
+#endif
     Printf("\tIP range        : %s\r\n", (au->params.range_valid)?
 	u_rangetoa(&au->params.range,buf,sizeof(buf)):"");
     Printf("\tIP pool         : %s\r\n", au->params.ippool);
