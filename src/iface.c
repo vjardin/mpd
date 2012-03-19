@@ -565,7 +565,7 @@ IfaceUp(Bund b, int ready)
   }
   acls = b->params.acl_table;
   while (acls != NULL) {
-    acl = Mdup(MB_IFACE, acls, sizeof(struct acl) + strlen(acls->rule));
+    acl = Mdup(MB_IPFW, acls, sizeof(struct acl) + strlen(acls->rule));
     acl->next = iface->tables;
     iface->tables = acl;
     ExecCmd(LG_IFACE2, b->name, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
@@ -770,7 +770,7 @@ IfaceAllocACL(struct acl_pool ***ap, int start, char *ifname, int number)
     int	i;
     struct acl_pool **rp,*rp1;
 
-    rp1 = Malloc(MB_IFACE, sizeof(struct acl_pool));
+    rp1 = Malloc(MB_IPFW, sizeof(struct acl_pool));
     strlcpy(rp1->ifname, ifname, sizeof(rp1->ifname));
     rp1->acl_number = number;
 
@@ -831,8 +831,8 @@ IFaceParseACL (char * src, char * ifname)
     int num,real_number;
     struct acl_pool *ap;
     
-    buf = Malloc(MB_IFACE, ACL_LEN);
-    buf1 = Malloc(MB_IFACE, ACL_LEN);
+    buf = Malloc(MB_IPFW, ACL_LEN);
+    buf1 = Malloc(MB_IPFW, ACL_LEN);
 
     strlcpy(buf, src, ACL_LEN);
     do {
@@ -2976,7 +2976,7 @@ IfaceSetupLimits(Bund b)
     struct ngm_connect  cn;
     int			i;
     
-    hpu = Malloc(MB_IFACE, sizeof(*hpu));
+    hpu = Malloc(MB_ACL, sizeof(*hpu));
     hp = &hpu->hprog;
 
     if (b->params.acl_limits[0] || b->params.acl_limits[1]) {
@@ -3046,12 +3046,12 @@ IfaceSetupLimits(Bund b)
 		    	int		bufbraces;
 
 #define ACL_BUF_SIZE	256*1024
-			buf = Malloc(MB_IFACE, ACL_BUF_SIZE);
+			buf = Malloc(MB_ACL, ACL_BUF_SIZE);
 			buf[0] = 0;
 			bufbraces = 0;
 			while (f) {
 			    char	*b1, *b2, *sbuf;
-			    sbuf = Mstrdup(MB_IFACE, f->rule);
+			    sbuf = Mstrdup(MB_ACL, f->rule);
 			    b2 = sbuf;
 			    b1 = strsep(&b2, " ");
 			    if (b2 != NULL) {
@@ -3284,13 +3284,13 @@ IfaceSetupLimits(Bund b)
 			    break;
 		    }
 		    if (ss == NULL) {
-			ss = Malloc(MB_IFACE, sizeof(*ss));
+			ss = Malloc(MB_ACL, sizeof(*ss));
 			strlcpy(ss->name, l->name, sizeof(ss->name));
 			SLIST_INIT(&ss->src);
 			SLIST_INSERT_HEAD(&b->iface.ss[dir], ss, next);
 		    }
 		    if (stathook[0]) {
-			sss = Malloc(MB_IFACE, sizeof(*sss));
+			sss = Malloc(MB_ACL, sizeof(*sss));
 			strlcpy(sss->hook, stathook, sizeof(sss->hook));
 			sss->type = SSSS_IN;
 			SLIST_INSERT_HEAD(&ss->src, sss, next);
@@ -3300,7 +3300,7 @@ IfaceSetupLimits(Bund b)
 		for (i = 0; i < 2; i++) {
 		    if (inhook[i][0] != 0) {
 			if (l->name[0] && !stathook[0]) {
-			    sss = Malloc(MB_IFACE, sizeof(*sss));
+			    sss = Malloc(MB_ACL, sizeof(*sss));
 			    strlcpy(sss->hook, inhook[i], sizeof(sss->hook));
 			    sss->type = SSSS_MATCH;
 			    SLIST_INSERT_HEAD(&ss->src, sss, next);
@@ -3398,7 +3398,7 @@ IfaceGetStats(Bund b, struct svcstat *stat)
 		    break;
 	    }
 	    if (!ssr) {
-		ssr = Malloc(MB_IFACE, sizeof(*ssr));
+		ssr = Malloc(MB_ACL, sizeof(*ssr));
 		strlcpy(ssr->name, ss->name, sizeof(ssr->name));
 		SLIST_INSERT_HEAD(&stat->stat[dir], ssr, next);
 	    }
@@ -3446,7 +3446,7 @@ IfaceAddStats(struct svcstat *stat1, struct svcstat *stat2)
 		    break;
 	    }
 	    if (!ssr1) {
-		ssr1 = Malloc(MB_IFACE, sizeof(*ssr1));
+		ssr1 = Malloc(MB_ACL, sizeof(*ssr1));
 		strlcpy(ssr1->name, ssr2->name, sizeof(ssr1->name));
 		SLIST_INSERT_HEAD(&stat1->stat[dir], ssr1, next);
 	    }
