@@ -1902,8 +1902,14 @@ IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer)
 
 	res = ioctl(s, add?SIOCAIFADDR_IN6:SIOCDIFADDR_IN6, &ifra6);
 	if (res == -1) {
-	    Perror("[%s] IFACE: %s IPv6 address %s %s failed", 
-		b->name, add?"Adding":"Removing", add?"to":"from", b->iface.ifname);
+		if (add && errno == EEXIST) {
+			/* this can happen if the kernel has already automatically added
+			   the same link-local address - ignore the error */
+			res = 0;
+		} else {
+			Perror("[%s] IFACE: %s IPv6 address %s %s failed", 
+				b->name, add?"Adding":"Removing", add?"to":"from", b->iface.ifname);
+		}
 	}
 	break;
 
