@@ -324,6 +324,12 @@ Sets console specific configuration parameters
 Sets web server specific configuration parameters
 </descrip>
 
+<tag><tt>unset ...</tt></tag>
+
+<p>
+This command allows to unsets some of configuration information set using
+<tt>set</tt> command.
+
 <tag><tt>open [ <em>layer</em> ] </tt>
 </tag>
 

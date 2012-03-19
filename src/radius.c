@@ -49,6 +49,7 @@
 /* Set menu options */
 
   enum {
+	UNSET_SERVER,
     SET_SERVER,
     SET_ME,
     SET_MEV6,
@@ -63,7 +64,12 @@
 /*
  * GLOBAL VARIABLES
  */
-
+  const struct cmdtab RadiusUnSetCmds[] = {
+	  { "server {name} [{auth port}] [{acct port}]", "Unset (remove) radius server" ,
+		  RadiusSetCommand, NULL, 2, (void *) UNSET_SERVER },
+	  { NULL },
+  };
+  
   const struct cmdtab RadiusSetCmds[] = {
     { "server {name} {secret} [{auth port}] [{acct port}]", "Set radius server parameters" ,
 	RadiusSetCommand, NULL, 2, (void *) SET_SERVER },
@@ -344,6 +350,7 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
   RadConf	const conf = &ctx->lnk->lcp.auth.conf.radius;
   RadServe_Conf	server;
   RadServe_Conf	t_server;
+  RadServe_Conf	next, prev;
   int		val, count;
   struct u_addr t;
   int 		auth_port = 1812;
@@ -353,6 +360,37 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
       return(-1);
 
     switch ((intptr_t)arg) {
+
+      case UNSET_SERVER:
+	
+	if (ac > 3 || ac < 1) {
+		return(-1);
+	}
+	for ( prev = NULL, t_server = conf->server ;
+	    t_server != NULL && (next = t_server->next, 1) ;
+	    prev = t_server, t_server = next) {
+		
+		if (strcmp(t_server->hostname, av[0]) != 0)
+			continue;
+		if (ac > 1 && t_server->auth_port != atoi(av[1]))
+			continue;
+		if (ac > 2 && t_server->acct_port != atoi(av[2]))
+			continue;
+		
+		if (t_server == conf->server) {
+			conf->server = t_server->next;
+		} else {
+			prev->next = t_server->next;
+			t_server->next = NULL;
+		}
+		
+		Freee(t_server->hostname);
+		Freee(t_server->sharedsecret);
+		Freee(t_server);
+		t_server = prev;
+	}
+	
+	break;
 
       case SET_SERVER:
 	if (ac > 4 || ac < 2) {

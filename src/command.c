@@ -279,6 +279,12 @@
     { NULL },
   };
 
+  static const struct cmdtab UnSetCommands[] = {
+   { "radius ...",			"RADIUS stuff",
+	CMD_SUBMENU, AdmitLink, 2, (void *) RadiusUnSetCmds },
+	{ NULL },
+  };
+  
   static const struct cmdtab SetCommands[] = {
     { "bundle ...",			"Bundle specific stuff",
 	CMD_SUBMENU, AdmitBund, 2, (void *) BundSetCmds },
@@ -370,6 +376,8 @@
 	SessionCommand, NULL, 0, NULL },
     { "set ...",			"Set parameters",
 	CMD_SUBMENU, NULL, 0, (void *) SetCommands },
+	{ "unset ...",			"Unset parameters",
+	CMD_SUBMENU, NULL, 0, (void *) UnSetCommands },
     { "show ...",			"Show status",
 	CMD_SUBMENU, NULL, 0, (void *) ShowCommands },
     { NULL },

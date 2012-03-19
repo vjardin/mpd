@@ -125,6 +125,7 @@
   };
 
   extern const	struct cmdtab RadiusSetCmds[];
+  extern const	struct cmdtab RadiusUnSetCmds[];
 
   /* Configuration for a radius server */
   struct radiusserver_conf {
