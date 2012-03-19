@@ -1186,12 +1186,19 @@ Bin2Hex(const unsigned char *bin, size_t len)
   size_t	i, j;
   char		*buf;
   
-  buf = Malloc(MB_UTIL, len * 2 + 1);
-  for (i = j = 0; i < len; i++) {
-    buf[j++] = hexconvtab[bin[i] >> 4];
-    buf[j++] = hexconvtab[bin[i] & 15];
+  if (len > 0) {
+    buf = Malloc(MB_UTIL, len * 2 + 1);
+    for (i = j = 0; i < len; i++) {
+      buf[j++] = hexconvtab[bin[i] >> 4];
+      buf[j++] = hexconvtab[bin[i] & 15];
+    }
+    buf[j] = 0;
+  } else {
+    buf = Malloc(MB_UTIL, 3);
+    buf[0] = '0';
+    buf[1] = '0';
+    buf[2] = 0;
   }
-  buf[j] = 0;
   return buf;
 }
 
