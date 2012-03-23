@@ -1785,8 +1785,8 @@ IfaceChangeFlags(Bund b, int clear, int set)
     struct ifreq ifrq;
     int s, new_flags;
 
-    Log(LG_IFACE2, ("[%s] IFACE: Change interface flags: -%d +%d",
-	b->name, clear, set)); 
+    Log(LG_IFACE2, ("[%s] IFACE: Change interface %s flags: -%d +%d",
+	b->name, b->iface.ifname, clear, set));
 
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to change interface flags", b->name);
@@ -1795,9 +1795,8 @@ IfaceChangeFlags(Bund b, int clear, int set)
 
     memset(&ifrq, '\0', sizeof(ifrq));
     strlcpy(ifrq.ifr_name, b->iface.ifname, sizeof(ifrq.ifr_name));
-    ifrq.ifr_name[sizeof(ifrq.ifr_name) - 1] = '\0';
     if (ioctl(s, SIOCGIFFLAGS, &ifrq) < 0) {
-	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCGIFFLAGS");
+	Perror("[%s] IFACE: ioctl(SIOCGIFFLAGS, %s)", b->name, b->iface.ifname);
 	close(s);
 	return;
     }
@@ -1810,7 +1809,7 @@ IfaceChangeFlags(Bund b, int clear, int set)
     ifrq.ifr_flagshigh = new_flags >> 16;
 
     if (ioctl(s, SIOCSIFFLAGS, &ifrq) < 0) {
-	Perror("[%s] IFACE: ioctl(%s, %s)", b->name, b->iface.ifname, "SIOCSIFFLAGS");
+	Perror("[%s] IFACE: ioctl(SIOCSIFFLAGS, %s)", b->name, b->iface.ifname);
 	close(s);
 	return;
     }
