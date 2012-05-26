@@ -163,9 +163,11 @@ N   Name
 15  mpd-iface-index
 </VERB>
 <p>
-Session parameners attributes supported by mpd:
+Session parameters attributes supported by mpd:
 <VERB>
 N   Name
+24  State
+25  Class
 27  Session-Timeout
 28  Idle-Timeout
 85  Acct-Interim-Interval

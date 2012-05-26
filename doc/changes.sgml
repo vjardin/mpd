@@ -12,6 +12,8 @@
 	<itemize>
 	  <item> Added `unset radius server ...` command.
 	  </item>
+	  <item> Added `Class` CoA attribute from RFC 2865.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:

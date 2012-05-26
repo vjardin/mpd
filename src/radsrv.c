@@ -102,8 +102,9 @@ RadsrvEvent(int type, void *cookie)
     struct in_addr nas_ip = { -1 };
     char	buf[64];
     u_int32_t	vendor;
-    u_char	*state = NULL;
+    u_char	*state = NULL, *rad_class = NULL;
     int		state_len = 0;
+    int		class_len = 0;
     int		authentic = 0;
 #if defined(USE_NG_BPF) || defined(USE_IPFW)
     struct acl	**acls, *acls1;
@@ -160,12 +161,20 @@ RadsrvEvent(int type, void *cookie)
 	    case RAD_USER_NAME:
 		anysesid = 1;
 		username = rad_cvt_string(data, len);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s",
-		    username));
+		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s", username));
+		break;
+	    case RAD_CLASS:
+		tmpval = Bin2Hex(data, len);
+		Log(LG_RADIUS2, ("radsrv: Got RAD_CLASS: %s", tmpval));
+		Freee(tmpval);
+		class_len = len;
+		if (rad_class != NULL)
+		    Freee(rad_class);
+		rad_class = Mdup(MB_AUTH, data, len);
 		break;
 	    case RAD_NAS_IP_ADDRESS:
 		nas_ip = rad_cvt_addr(data);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_NAS_IP_ADDRESS: %s ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_NAS_IP_ADDRESS: %s",
 		    inet_ntoa(nas_ip)));
 		break;
 	    case RAD_SERVICE_TYPE:
@@ -175,7 +184,7 @@ RadsrvEvent(int type, void *cookie)
 		break;
     	    case RAD_STATE:
 		tmpval = Bin2Hex(data, len);
-		Log(LG_RADIUS2, ("radsrv: Get RAD_STATE: 0x%s", tmpval));
+		Log(LG_RADIUS2, ("radsrv: Got RAD_STATE: 0x%s", tmpval));
 		Freee(tmpval);
 		state_len = len;
 		if (state != NULL)
@@ -185,52 +194,52 @@ RadsrvEvent(int type, void *cookie)
 	    case RAD_CALLED_STATION_ID:
 		anysesid = 1;
 		called = rad_cvt_string(data, len);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLED_STATION_ID: %s ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLED_STATION_ID: %s",
 		    called));
 		break;
 	    case RAD_CALLING_STATION_ID:
 		anysesid = 1;
 		calling = rad_cvt_string(data, len);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLING_STATION_ID: %s ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLING_STATION_ID: %s",
 		    calling));
 		break;
 	    case RAD_ACCT_SESSION_ID:
 		anysesid = 1;
 		sesid = rad_cvt_string(data, len);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_SESSION_ID: %s ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_SESSION_ID: %s",
 		    sesid));
 		break;
 	    case RAD_ACCT_MULTI_SESSION_ID:
 		anysesid = 1;
 		msesid = rad_cvt_string(data, len);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_MULTI_SESSION_ID: %s ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_MULTI_SESSION_ID: %s",
 		    msesid));
 		break;
 	    case RAD_FRAMED_IP_ADDRESS:
 		anysesid = 1;
 		ip = rad_cvt_addr(data);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_FRAMED_IP_ADDRESS: %s ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_FRAMED_IP_ADDRESS: %s",
 		    inet_ntoa(ip)));
 		break;
 	    case RAD_NAS_PORT:
 		anysesid = 1;
 		nasport = rad_cvt_int(data);
-		Log(LG_RADIUS2, ("radsrv: Got RAD_NAS_PORT: %d ",
+		Log(LG_RADIUS2, ("radsrv: Got RAD_NAS_PORT: %d",
 		    nasport));
 		break;
 	    case RAD_SESSION_TIMEOUT:
 	        session_timeout = rad_cvt_int(data);
-	        Log(LG_RADIUS2, ("radsrv: Got RAD_SESSION_TIMEOUT: %u ",
+	        Log(LG_RADIUS2, ("radsrv: Got RAD_SESSION_TIMEOUT: %u",
 	    	    session_timeout));
 	        break;
 	    case RAD_IDLE_TIMEOUT:
 	        idle_timeout = rad_cvt_int(data);
-	        Log(LG_RADIUS2, ("radsrv: Got RAD_IDLE_TIMEOUT: %u ",
+	        Log(LG_RADIUS2, ("radsrv: Got RAD_IDLE_TIMEOUT: %u",
 	            idle_timeout));
 	        break;
 	    case RAD_ACCT_INTERIM_INTERVAL:
 		acct_update = rad_cvt_int(data);
-	        Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_INTERIM_INTERVAL: %u ",
+	        Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_INTERIM_INTERVAL: %u",
 	    	    acct_update));
 		break;
 	    case RAD_MESSAGE_AUTHENTIC:
@@ -239,7 +248,7 @@ RadsrvEvent(int type, void *cookie)
 		break;
 	    case RAD_VENDOR_SPECIFIC:
 		if ((res = rad_get_vendor_attr(&vendor, &data, &len)) == -1) {
-		    Log(LG_RADIUS, ("radsrv: Get vendor attr failed: %s ",
+		    Log(LG_RADIUS, ("radsrv: Get vendor attr failed: %s",
 			rad_strerror(w->handle)));
 		    break;
 		}
@@ -409,14 +418,13 @@ RadsrvEvent(int type, void *cookie)
 #endif /* USE_NG_BPF or USE_IPFW */
 
 		  default:
-		    Log(LG_RADIUS2, ("radsrv: Dropping vendor %d attribute: %d ", 
+		    Log(LG_RADIUS2, ("radsrv: Dropping vendor %d attribute: %d",
 		      vendor, res));
 		    break;
 		}
 		break;
 	    default:
-		Log(LG_RADIUS2, ("radsrv: Unknown attribute: %d ", 
-		    res));
+		Log(LG_RADIUS2, ("radsrv: Unknown attribute: %d", res));
 		break;
 	}
     }
@@ -475,15 +483,14 @@ RadsrvEvent(int type, void *cookie)
 		    ip.s_addr != B->iface.peer_addr.u.ip4.s_addr))
 		continue;
 		
-	    Log(LG_RADIUS2, ("radsrv: Matched link: %s",
-		L->name));
+	    Log(LG_RADIUS2, ("radsrv: Matched link: %s", L->name));
 	    if (L->tmpl) {
 		Log(LG_ERR, ("radsrv: Impossible to affect template"));
 		err = 504;
 		continue;
 	    }
 	    found++;
-	    
+	
 	    if (result == RAD_DISCONNECT_REQUEST) {
 		RecordLinkUpDownReason(NULL, L, 0, STR_MANUALLY, NULL);
 		LinkClose(L);
@@ -509,6 +516,12 @@ RadsrvEvent(int type, void *cookie)
 	        ACLCopy(acl_queue, &L->lcp.auth.params.acl_queue);
 	        ACLCopy(acl_table, &L->lcp.auth.params.acl_table);
 #endif /* USE_IPFW */
+		if (rad_class != NULL) {
+		    if (L->lcp.auth.params.class)
+			Freee(L->lcp.auth.params.class);
+		    L->lcp.auth.params.class = rad_class;
+		    L->lcp.auth.params.class_len = class_len;
+		}
 #ifdef USE_NG_BPF
 	        for (i = 0; i < ACL_FILTERS; i++) {
 	    	    ACLDestroy(L->lcp.auth.params.acl_filters[i]);
@@ -581,6 +594,8 @@ RadsrvEvent(int type, void *cookie)
 cleanup:
     if (username)
 	free(username);
+    if (rad_class != NULL)
+	Freee(rad_class);
     if (called)
 	free(called);
     if (calling)
@@ -665,7 +680,7 @@ RadsrvOpen(Radsrv w)
 	s = s->next;
     }
 
-    Log(LG_ERR, ("radsrv: listening on %s %d", 
+    Log(LG_ERR, ("radsrv: listening on %s %d",
 	u_addrtoa(&w->addr,addrstr,sizeof(addrstr)), w->port));
     return (0);
 }
