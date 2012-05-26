@@ -587,10 +587,7 @@ PppoePeerMacAddr(Link l, void *buf, size_t buf_len)
 {
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
-	snprintf(buf, buf_len, "%02x:%02x:%02x:%02x:%02x:%02x",
-	    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
-	    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
-
+	ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
 	return (0);
 }
 
@@ -613,9 +610,7 @@ PppoeCallingNum(Link l, void *buf, size_t buf_len)
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
 	if (pppoe->incoming) {
-	    snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
-		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
-		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+	    ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
 	} else {
 	    strlcpy(buf, pppoe->real_session, buf_len);
 	}
@@ -629,9 +624,7 @@ PppoeCalledNum(Link l, void *buf, size_t buf_len)
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
 	if (!pppoe->incoming) {
-	    snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
-		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2], 
-		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+	    ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
 	} else {
 	    strlcpy(buf, pppoe->real_session, buf_len);
 	}

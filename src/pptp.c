@@ -16,6 +16,7 @@
 #include "log.h"
 #include "util.h"
 
+#include <net/ethernet.h>
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_ksocket.h>
@@ -591,10 +592,7 @@ PptpPeerMacAddr(Link l, void *buf, size_t buf_len)
     PptpInfo	const pptp = (PptpInfo) l->info;
 
     if (pptp->peer_iface[0]) {
-	snprintf(buf, buf_len, "%02x:%02x:%02x:%02x:%02x:%02x",
-	    pptp->peer_mac_addr[0], pptp->peer_mac_addr[1],
-	    pptp->peer_mac_addr[2], pptp->peer_mac_addr[3],
-	    pptp->peer_mac_addr[4], pptp->peer_mac_addr[5]);
+	ether_ntoa_r((struct ether_addr *)pptp->peer_mac_addr, buf);
 	return (0);
     }
     ((char*)buf)[0]=0;
@@ -670,11 +668,8 @@ PptpStat(Context ctx)
 	PptpPeerName(ctx->lnk, buf, sizeof(buf));
 	Printf(" (%s)\r\n", buf);
 	if (pptp->peer_iface[0]) {
-	    Printf("\tCurrent peer : %02x:%02x:%02x:%02x:%02x:%02x at %s\r\n",
-	        pptp->peer_mac_addr[0], pptp->peer_mac_addr[1],
-	        pptp->peer_mac_addr[2], pptp->peer_mac_addr[3],
-	        pptp->peer_mac_addr[4], pptp->peer_mac_addr[5],
-	        pptp->peer_iface);
+	    ether_ntoa_r((struct ether_addr *)pptp->peer_mac_addr, buf);
+	    Printf("\tCurrent peer : %s at %s\r\n", buf, pptp->peer_iface);
 	}
 	Printf("\tFraming      : %s\r\n", (pptp->sync?"Sync":"Async"));
 	Printf("\tCalling number: %s\r\n", pptp->callingnum);

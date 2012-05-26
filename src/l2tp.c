@@ -22,6 +22,7 @@
 #include <pdel/util/ghash.h>
 #endif
 
+#include <net/ethernet.h>
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_ksocket.h>
@@ -851,10 +852,7 @@ L2tpPeerMacAddr(Link l, void *buf, size_t buf_len)
     L2tpInfo	const l2tp = (L2tpInfo) l->info;
 
     if (l2tp->tun && l2tp->tun->peer_iface[0]) {
-	snprintf(buf, buf_len, "%02x:%02x:%02x:%02x:%02x:%02x",
-	    l2tp->tun->peer_mac_addr[0], l2tp->tun->peer_mac_addr[1],
-	    l2tp->tun->peer_mac_addr[2], l2tp->tun->peer_mac_addr[3],
-	    l2tp->tun->peer_mac_addr[4], l2tp->tun->peer_mac_addr[5]);
+	ether_ntoa_r((struct ether_addr *)l2tp->tun->peer_mac_addr, buf);
 	return (0);
     }
     ((char*)buf)[0]=0;
@@ -931,13 +929,10 @@ L2tpStat(Context ctx)
 	    L2tpPeerName(ctx->lnk, buf, sizeof(buf));
 	    Printf(" (%s)\r\n", buf);
 	    if (l2tp->tun->peer_iface[0]) {
-		Printf("\tCurrent peer : %02x:%02x:%02x:%02x:%02x:%02x at %s\r\n",
-		    l2tp->tun->peer_mac_addr[0], l2tp->tun->peer_mac_addr[1],
-		    l2tp->tun->peer_mac_addr[2], l2tp->tun->peer_mac_addr[3],
-		    l2tp->tun->peer_mac_addr[4], l2tp->tun->peer_mac_addr[5],
+		ether_ntoa_r((struct ether_addr *)l2tp->tun->peer_mac_addr, buf);
+		Printf("\tCurrent peer : %s at %s\r\n", buf,
 		    l2tp->tun->peer_iface);
 	    }
-
 	    Printf("\tFraming      : %s\r\n", (l2tp->sync?"Sync":"Async"));
 	}
 	Printf("\tCalling number: %s\r\n", l2tp->callingnum);
