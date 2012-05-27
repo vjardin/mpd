@@ -11,6 +11,7 @@
  * See ``COPYRIGHT.whistle''
  */
 
+#include "msg.h"
 #include "ppp.h"
 #include "console.h"
 #ifndef NOWEB
@@ -75,6 +76,7 @@
     SET_L2TPLIMIT,
 #endif
     SET_MAX_CHILDREN,
+    SET_QTHRESHOLD,
 #ifdef USE_NG_BPF
     SET_FILTER
 #endif
@@ -148,6 +150,8 @@
 #endif
     { "max-children {num}",		"Max number of children",
 	GlobalSetCommand, NULL, 2, (void *) SET_MAX_CHILDREN },
+    { "qthreshold {min} {max}",		"Message queue limit thresholds",
+        GlobalSetCommand, NULL, 2, (void *) SET_QTHRESHOLD },
 #ifdef USE_NG_BPF
     { "filter {num} add|clear [\"{flt}\"]",	"Global traffic filters management",
 	GlobalSetCommand, NULL, 2, (void *) SET_FILTER },
@@ -742,6 +746,26 @@ GlobalSetCommand(Context ctx, int ac, char *av[], void *arg)
 	break;
 #endif /* USE_NG_BPF */
 	
+    case SET_QTHRESHOLD:
+        if (ac == 2) {
+            int val_max;
+
+            val = atoi(av[0]);
+            if (val < 0 || val >= MSG_QUEUE_LEN-1)
+                Error("Incorrect minimum threshold for message queue, "
+                      "must be between 0 and %d", MSG_QUEUE_LEN-1);
+            val_max = atoi(av[1]);
+            if (val_max <= val || val_max >= MSG_QUEUE_LEN)
+                Error("Incorrect maximum threshold for message queue, "
+                      "must be greater than minimum and less than %d",
+                      MSG_QUEUE_LEN);
+            gQThresMin = val;
+            gQThresMax = val_max;
+            gQThresDiff = val_max - val;
+        }
+        else
+            return (-1);
+        break;
     default:
       return(-1);
   }
@@ -945,6 +969,7 @@ ShowGlobal(Context ctx, int ac, char *av[], void *arg)
     Printf("	pptplimit	: %d\r\n", gPPTPtunlimit);
 #endif
     Printf("	max-children	: %d\r\n", gMaxChildren);
+    Printf("	qthreshold      : %d %d\r\n", gQThresMin, gQThresMax);
     Printf("Global options:\r\n");
     OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
 #ifdef USE_NG_BPF

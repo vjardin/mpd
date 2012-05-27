@@ -59,6 +59,7 @@
 #include <netgraph/ng_ppp.h>
 
 #include "defs.h"
+#include "msg.h"
 
 /*
  * DEFINITIONS
@@ -77,17 +78,18 @@
   #define RWLOCK_RDLOCK(m)	assert(pthread_rwlock_rdlock(&m) == 0)
   #define RWLOCK_WRLOCK(m)	assert(pthread_rwlock_wrlock(&m) == 0)
   #define RWLOCK_UNLOCK(m)	assert(pthread_rwlock_unlock(&m) == 0)
-  
-  #define SETOVERLOAD(q)	do {					\
-				    int t = (q);			\
-				    if (t > 60) {			\
-					gOverload = 100;		\
-				    } else if (t > 10) {		\
-					gOverload = (t - 10) * 2;	\
-				    } else {				\
-					gOverload = 0;			\
-				    }					\
-				} while (0)
+
+  #define SETOVERLOAD(q)						\
+	do {								\
+		int t = (q);						\
+		if (t > gQThresMax) {					\
+			gOverload = 100;				\
+		} else if (t > gQThresMin) {				\
+			gOverload = (t - gQThresMin) * 100/gQThresDiff;	\
+		} else {						\
+			gOverload = 0;					\
+		}							\
+	} while (0)
 
   #define OVERLOAD()		(gOverload > (random() % 100))
   

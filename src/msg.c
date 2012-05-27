@@ -28,9 +28,6 @@
   };
   typedef struct mpmsg	*Msg;
 
-  #define	MSG_QUEUE_LEN	8192
-  #define	MSG_QUEUE_MASK	0x1FFF
-
   struct mpmsg	msgqueue[MSG_QUEUE_LEN];
   int		msgqueueh = 0;
   int		msgqueuet = 0;
@@ -40,6 +37,14 @@
   int           msgpipe[2];
   int		msgpipesent = 0;
   EventRef	msgevent;
+
+/*
+ * GLOBAL VARIABLES
+ */
+
+  int		gQThresMin = 64;
+  int		gQThresMax = 256;
+  int		gQThresDiff = 256 - 64;
 
 /*
  * INTERNAL FUNCTIONS

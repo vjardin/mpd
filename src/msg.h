@@ -22,6 +22,15 @@
   #define MSG_DOWN		4	/* Lower layer went down */
   #define MSG_SHUTDOWN		5	/* Object should disappear */
 
+  #define MSG_QUEUE_LEN		8192	/* Internal messages queue length */
+  #define MSG_QUEUE_MASK	0x1FFF	/* Mask for this length */
+
+/*
+ * GLOBAL VARIABLES
+ */
+
+  extern int	gQThresMin, gQThresMax, gQThresDiff;
+
 /* Forward decl */
 
   struct msghandler
