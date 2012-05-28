@@ -517,9 +517,9 @@ RadsrvEvent(int type, void *cookie)
 	        ACLCopy(acl_table, &L->lcp.auth.params.acl_table);
 #endif /* USE_IPFW */
 		if (rad_class != NULL) {
-		    if (L->lcp.auth.params.class)
+		    if (L->lcp.auth.params.class != NULL)
 			Freee(L->lcp.auth.params.class);
-		    L->lcp.auth.params.class = rad_class;
+		    L->lcp.auth.params.class = Mdup(MB_AUTH, rad_class, class_len);
 		    L->lcp.auth.params.class_len = class_len;
 		}
 #ifdef USE_NG_BPF
