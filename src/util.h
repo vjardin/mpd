@@ -84,7 +84,9 @@
   extern void		ShowMesg(int log, const char *pref, const char *buf, int len);
   extern char		*Bin2Hex(const unsigned char *bin, size_t len);
   extern u_char		*Hex2Bin(char *hexstr);
+#ifndef USE_NG_PRED1
   extern u_short	Crc16(u_short fcs, u_char *cp, int len);
+#endif
   extern u_long		GenerateMagic(void);
 
   extern int		GetAnyIpAddress(struct u_addr *ipaddr, const char *ifname);

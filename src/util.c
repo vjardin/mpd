@@ -32,6 +32,7 @@
  * INTERNAL VARIABLES
  */
 
+#ifndef USE_NG_PRED1
 static const u_int16_t Crc16Table[256] = {
 /* 00 */    0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
 /* 08 */    0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -66,6 +67,7 @@ static const u_int16_t Crc16Table[256] = {
 /* f0 */    0xf78f, 0xe606, 0xd49d, 0xc514, 0xb1ab, 0xa022, 0x92b9, 0x8330,
 /* f8 */    0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 };
+#endif
 
   static FILE			*lockFp = NULL;
 
@@ -1235,6 +1237,7 @@ HexVal(char c)
   }
 }
 
+#ifndef USE_NG_PRED1
 /*
  * Crc16()
  *
@@ -1249,6 +1252,7 @@ Crc16(u_short crc, u_char *cp, int len)
     crc = (crc >> 8) ^ Crc16Table[(crc ^ *cp++) & 0xff];
   return(crc);
 }
+#endif
 
 /*
  * GetAnyIpAddress()
@@ -1521,7 +1525,7 @@ GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
 	mib[5] = 0;
 #endif
 	if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0) {
-		Log(LG_ERR, ("route-sysctl-estimate"));
+		Perror("route-sysctl-estimate");
 		return (0);
 	}
 	if (needed == 0)	/* empty table */

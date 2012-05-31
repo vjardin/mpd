@@ -3491,7 +3491,7 @@ IfaceSetName(Bund b, const char * ifname)
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-	Log(LG_ERR, ("[%s] IFACE: Can't get socket to set name", b->name));
+	Perror("[%s] IFACE: Can't get socket to set name", b->name);
 	return(-1);
     }
 
@@ -3546,7 +3546,7 @@ IfaceSetDescr(Bund b, const char * ifdescr)
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-	Log(LG_ERR, ("[%s] IFACE: Can't get socket to set description", b->name));
+	Perror("[%s] IFACE: Can't get socket to set description", b->name);
 	return(-1);
     }
 
