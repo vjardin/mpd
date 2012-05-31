@@ -10,6 +10,8 @@
     <itemize>
 	<item> New features:
 	<itemize>
+	  <item> Added global `qthreshold` option.
+	  </item>
 	  <item> Added `unset radius server ...` command.
 	  </item>
 	  <item> Added `Class` CoA attribute from RFC 2865.

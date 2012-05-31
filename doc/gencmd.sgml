@@ -231,6 +231,14 @@ template, that could exist at the same time.
 The default value is 10000.
 
 <tag><tt>
+set global qthreshold <em>min</em> <em>max</em>
+</tt></tag>
+
+This option specifies global message queue limit thresholds.
+
+The default values are 64 and 256.
+
+<tag><tt>
 set global filter <em>num</em> add <em>fltnum</em> <em>flt</em>
 <newline>set global filter <em>num</em> clear
 </tt></tag>
