@@ -690,7 +690,7 @@ PptpCtrlOrigCall(int incoming, struct pptpctrlinfo *cinfo, struct pptplinkinfo *
   /* Init */
   assert(gInitialized);
   port = port ? port : PPTP_PORT;
-  memset(cinfo, 0, sizeof(cinfo));
+  memset(cinfo, 0, sizeof(*cinfo));
 
   /* Find/create control block */
   if ((c = PptpCtrlGetCtrl(TRUE, locip, ip, port,
