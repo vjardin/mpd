@@ -84,7 +84,6 @@
 
   #define LG_FILE		"/var/log/mpd"
   #define PID_FILE		"/var/run/mpd.pid"
-  #define PATH_LOCKFILENAME	"/var/spool/lock/LCK..%s"
 
   #define PATH_ARP		"/usr/sbin/arp"
 #ifdef USE_IPFW

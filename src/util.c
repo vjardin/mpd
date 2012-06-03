@@ -12,6 +12,7 @@
 #include <termios.h>
 #include <paths.h>
 
+#include <libutil.h>
 #include <netdb.h>
 #include <tcpd.h>
 #include <sys/wait.h>
@@ -75,9 +76,6 @@ static const u_int16_t Crc16Table[256] = {
 /*
  * INTERNAL FUNCTIONS
  */
-
-  static int		UuLock(const char *devname);
-  static int		UuUnlock(const char *devname);
 
   static void		Escape(char *line);
   static char		*ReadLine(FILE *fp, int *lineNum, char *result, int resultsize);
@@ -742,11 +740,11 @@ ExclusiveOpenDevice(const char *label, const char *pathname)
 
   if (!strncmp(pathname, _PATH_DEV, 5))
   {
+    int res;
     ttyname = pathname + 5;
-    if (UuLock(ttyname) < 0)
-    {
-      Log(LG_ERR, ("[%s] can't lock device %s", label, ttyname));
-      return(-1);
+    if ((res = uu_lock(ttyname)) != UU_LOCK_OK) {
+      Log(LG_ERR, ("uu_lock(%s): %s", ttyname, uu_lockerr(res)));
+      return -1;
     }
     locked = TRUE;
   }
@@ -760,7 +758,7 @@ ExclusiveOpenDevice(const char *label, const char *pathname)
     {
       Perror("[%s] can't open %s", label, pathname);
       if (locked)
-	UuUnlock(ttyname);
+	uu_unlock(ttyname);
       return(-1);
     }
 
@@ -771,7 +769,7 @@ ExclusiveOpenDevice(const char *label, const char *pathname)
     Log(LG_ERR, ("[%s] can't open %s after %d secs",
       label, pathname, MAX_OPEN_DELAY));
     if (locked)
-      UuUnlock(ttyname);
+      uu_unlock(ttyname);
     return(-1);
   }
   (void) fcntl(fd, F_SETFD, 1);
@@ -816,87 +814,9 @@ ExclusiveCloseDevice(const char *label, int fd, const char *pathname)
   if (!strncmp(pathname, _PATH_DEV, 5))
   {
     ttyname = pathname + 5;
-    if (UuUnlock(ttyname) < 0)
+    if (uu_unlock(ttyname) < 0)
       Perror("[%s] can't unlock %s", label, ttyname);
   }
-}
-
-/*
- * UuLock()
- *
- * Try to atomically create lockfile. Returns negative if failed.
- */
-
-static int
-UuLock(const char *ttyname)
-{
-  int	fd, pid;
-  char	tbuf[sizeof(PATH_LOCKFILENAME) + MAX_FILENAME];
-  char	pid_buf[64];
-
-  snprintf(tbuf, sizeof(tbuf), PATH_LOCKFILENAME, ttyname);
-  if ((fd = open(tbuf, O_RDWR|O_CREAT|O_EXCL, 0664)) < 0)
-  {
-
-  /* File is already locked; Check to see if the process
-   * holding the lock still exists */
-
-    if ((fd = open(tbuf, O_RDWR, 0)) < 0)
-    {
-      Perror("%s: open(%s)", __FUNCTION__, tbuf);
-      return(-1);
-    }
-
-    if (read(fd, pid_buf, sizeof(pid_buf)) <= 0)
-    {
-      (void)close(fd);
-      Perror("%s: read", __FUNCTION__);
-      return(-1);
-    }
-
-    pid = atoi(pid_buf);
-
-    if (kill(pid, 0) == 0 || errno != ESRCH)
-    {
-      (void)close(fd);  /* process is still running */
-      return(-1);
-    }
-
-  /* The process that locked the file isn't running, so we'll lock it */
-
-    if (lseek(fd, (off_t) 0, L_SET) < 0)
-    {
-      (void)close(fd);
-      Perror("%s: lseek", __FUNCTION__);
-      return(-1);
-    }
-  }
-
-/* Finish the locking process */
-
-  sprintf(pid_buf, "%10u\n", (int) gPid);
-  if (write(fd, pid_buf, strlen(pid_buf)) != strlen(pid_buf))
-  {
-    (void)close(fd);
-    (void)unlink(tbuf);
-    Perror("%s: write", __FUNCTION__);
-    return(-1);
-  }
-  (void)close(fd);
-  return(0);
-}
-
-/*
- * UuUnlock()
- */
-
-static int
-UuUnlock(const char *ttyname)
-{
-  char	tbuf[sizeof(PATH_LOCKFILENAME) + MAX_FILENAME];
-
-  (void) sprintf(tbuf, PATH_LOCKFILENAME, ttyname);
-  return(unlink(tbuf));
 }
 
 /*
