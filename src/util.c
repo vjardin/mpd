@@ -10,6 +10,7 @@
 #include "ppp.h"
 #include "util.h"
 #include <termios.h>
+#include <paths.h>
 
 #include <netdb.h>
 #include <tcpd.h>
@@ -132,7 +133,7 @@ ExecCmd(int log, const char *label, const char *fmt, ...)
 
 /* Hide any stdout output of command */
 
-  snprintf(cmdn + strlen(cmdn), sizeof(cmdn) - strlen(cmdn), " >/dev/null 2>&1");
+  snprintf(cmdn + strlen(cmdn), sizeof(cmdn) - strlen(cmdn), " >%s 2>&1", _PATH_DEVNULL);
 
 /* Do command */
 
@@ -204,9 +205,9 @@ ExecCmdNosh(int log, const char *label, const char *fmt, ...)
 		(void)sigaction(SIGQUIT,  &quitact, NULL);
 		(void)sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 		close(1);
-		open("/dev/null", O_WRONLY);
+		open(_PATH_DEVNULL, O_WRONLY);
 		close(2);
-		open("/dev/null", O_WRONLY);
+		open(_PATH_DEVNULL, O_WRONLY);
 		execv(argv[0], argv);
 		exit(127);
 	default:			/* parent */
@@ -739,7 +740,7 @@ ExclusiveOpenDevice(const char *label, const char *pathname)
 
 /* Lock device UUCP style, if it resides in /dev */
 
-  if (!strncmp(pathname, "/dev/", 5))
+  if (!strncmp(pathname, _PATH_DEV, 5))
   {
     ttyname = pathname + 5;
     if (UuLock(ttyname) < 0)
@@ -812,7 +813,7 @@ ExclusiveCloseDevice(const char *label, int fd, const char *pathname)
 
 /* Remove lock */
 
-  if (!strncmp(pathname, "/dev/", 5))
+  if (!strncmp(pathname, _PATH_DEV, 5))
   {
     ttyname = pathname + 5;
     if (UuUnlock(ttyname) < 0)
