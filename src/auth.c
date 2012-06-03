@@ -900,8 +900,7 @@ AuthAccountStart(Link l, int type)
 
 	if (paction_start(&a->acct_thread, &gGiantMutex, AuthAccount, 
 		AuthAccountFinish, auth) == -1) {
-	    Log(LG_ERR, ("[%s] ACCT: Couldn't start thread: %d", 
-    		l->name, errno));
+	    Perror("[%s] ACCT: Couldn't start thread", l->name);
 	    AuthDataDestroy(auth);
 	}
     }
@@ -1121,8 +1120,7 @@ AuthAsyncStart(Link l, AuthData auth)
 
     if (paction_start(&a->thread, &gGiantMutex, AuthAsync, 
 	AuthAsyncFinish, auth) == -1) {
-	Log(LG_ERR, ("[%s] AUTH: Couldn't start thread: %d", 
-    	    l->name, errno));
+	Perror("[%s] AUTH: Couldn't start thread", l->name);
 	auth->status = AUTH_STATUS_FAIL;
 	auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
 	auth->finish(l, auth);
