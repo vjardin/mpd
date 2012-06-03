@@ -94,12 +94,12 @@ COPTS+=		-DUSE_PAM
 
 .if defined ( USE_AUTH_SYSTEM )
 ## based on /etc/password
-LDADD+=		-lcrypt -lutil
+LDADD+=		-lcrypt
 DPADD+=		${LIBCRYPT} ${LIBUTIL}
 COPTS+=		-DUSE_SYSTEM
 .endif
 
-LDADD+=		-lnetgraph
+LDADD+=		-lnetgraph -lutil
 DPADD+=		${LIBNETGRAPH}
 
 LDADD+=		-L/usr/lib -lradius
