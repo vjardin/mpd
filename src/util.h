@@ -68,9 +68,11 @@
   extern int		TcpAcceptConnection(int sock, struct sockaddr_storage *addr, int block);
   extern int		GetInetSocket(int type, struct u_addr *addr, in_port_t port, int block, char *ebuf, size_t len);
 
+#ifdef PHYSTYPE_MODEM
   extern int		OpenSerialDevice(const char *label, const char *path, int baudrate);
   extern int		ExclusiveOpenDevice(const char *label, const char *path);
   extern void		ExclusiveCloseDevice(const char *label, int fd, const char *path);
+#endif
 
   extern int		PIDCheck(const char *lockfile, int killem);
 
@@ -97,4 +99,3 @@
 			    const char *bytes, size_t len);
 
 #endif
-

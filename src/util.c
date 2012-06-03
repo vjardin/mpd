@@ -667,6 +667,7 @@ ReadLine(FILE *fp, int *lineNum, char *result, int resultsize)
     return(result);
 }
 
+#ifdef PHYSTYPE_MODEM
 /*
  * OpenSerialDevice()
  *
@@ -818,6 +819,8 @@ ExclusiveCloseDevice(const char *label, int fd, const char *pathname)
       Perror("[%s] can't unlock %s", label, ttyname);
   }
 }
+#endif /* PHYSTYPE_MODEM */
+
 
 /*
  * GenerateMagic()
@@ -1366,8 +1369,10 @@ GetEther(struct u_addr *addr, struct sockaddr_dl *hwaddr)
       ifreq.ifr_addr = ifr->ifr_addr;
 
       /* Check that the interface is up, and not point-to-point or loopback */
-      if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0)
+      if (ioctl(s, SIOCGIFFLAGS, &ifreq) < 0) {
+	Log(LG_IFACE2, ("ioctl(SIOCGIFFLAGS, %s): %d", ifr->ifr_name, errno));
 	continue;
+      }
       if ((ifreq.ifr_flags &
 	  (IFF_UP|IFF_BROADCAST|IFF_POINTOPOINT|IFF_LOOPBACK|IFF_NOARP))
 	  != (IFF_UP|IFF_BROADCAST))
