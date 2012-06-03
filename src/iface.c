@@ -3021,7 +3021,7 @@ IfaceSetupLimits(Bund b)
 		}
 		
 		stathook[0] = 0;
-	    	memset(hpu, 0, sizeof(hpu));
+	    	memset(hpu, 0, sizeof(*hpu));
 		/* Prepare filter */
 		if (strcasecmp(av[0], "all") == 0) {
 		    hp->bpf_prog_len = MATCH_PROG_LEN;
