@@ -743,8 +743,8 @@ ExclusiveOpenDevice(const char *label, const char *pathname)
     int res;
     ttyname = pathname + 5;
     if ((res = uu_lock(ttyname)) != UU_LOCK_OK) {
-      Log(LG_ERR, ("uu_lock(%s): %s", ttyname, uu_lockerr(res)));
-      return -1;
+      Log(LG_ERR, ("[%s] uu_lock(%s): %s", label, ttyname, uu_lockerr(res)));
+      return(-1);
     }
     locked = TRUE;
   }
