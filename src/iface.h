@@ -197,11 +197,8 @@
   extern int	IfaceStat(Context ctx, int ac, char *av[], void *arg);
 
   extern void	IfaceListenInput(Bund b, int proto, Mbuf pkt);
-  #ifndef USE_NG_TCPMSS
+#ifndef USE_NG_TCPMSS
   extern void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
-  #endif
-#ifdef SIOCSIFDESCR
-  extern void	IfaceFreeDescr(IfaceState iface);
 #endif
   extern void	IfaceSetMTU(Bund b, int mtu);
   extern void	IfaceChangeFlags(Bund b, int clear, int set);

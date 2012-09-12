@@ -146,6 +146,7 @@
   static int	IfaceSetName(Bund b, const char * ifname);
 #ifdef SIOCSIFDESCR
   static int	IfaceSetDescr(Bund b, const char * ifdescr);
+  static void	IfaceFreeDescr(IfaceState iface);
 #endif
 #ifdef SIOCAIFGROUP
   static int	IfaceAddGroup(Bund b, const char * ifgroup);

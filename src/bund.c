@@ -1135,9 +1135,7 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	    /* Setup netgraph stuff */
 	    if (BundNgInit(b) < 0) {
 		gBundles[b->id] = NULL;
-#ifdef SIOCSIFDESCR
-                IfaceFreeDescr(&b->iface);
-#endif
+		IfaceDestroy(b);
 		Freee(b);
 		Error("Bundle netgraph initialization failed");
 	    }
