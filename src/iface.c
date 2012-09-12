@@ -286,8 +286,10 @@ IfaceInit(Bund b)
   /* Default configuration */
   iface->mtu = NG_IFACE_MTU_DEFAULT;
   iface->max_mtu = NG_IFACE_MTU_DEFAULT;
+#ifdef SIOCSIFDESCR
   iface->ifdescr = NULL;
   iface->conf.ifdescr = NULL;
+#endif
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
@@ -739,7 +741,6 @@ IfaceDown(Bund b)
     }
 #endif
 #ifdef SIOCAIFGROUP
-    
     if (b->params.ifgroup[0] != 0) {
        if (IfaceDelGroup(b, b->params.ifgroup) != -1)
 	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Remove group %s from %s",
