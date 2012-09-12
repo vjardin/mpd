@@ -1135,6 +1135,9 @@ BundCreate(Context ctx, int ac, char *av[], void *arg)
 	    /* Setup netgraph stuff */
 	    if (BundNgInit(b) < 0) {
 		gBundles[b->id] = NULL;
+#ifdef SIOCSIFDESCR
+                IfaceFreeDescr(&b->iface);
+#endif
 		Freee(b);
 		Error("Bundle netgraph initialization failed");
 	    }
@@ -1317,6 +1320,12 @@ BundStat(Context ctx, int ac, char *av[], void *arg)
 
   /* Show configuration */
   Printf("Configuration:\r\n");
+#ifdef SIOCSIFDESCR
+  Printf("\tDesc. template : %s\r\n",
+	sb->iface.conf.ifdescr ? sb->iface.conf.ifdescr : "<none>");
+  Printf("\tDescription    : %s\r\n",
+	sb->iface.ifdescr ? sb->iface.ifdescr : "<none>");
+#endif
   Printf("\tRetry timeout  : %d seconds\r\n", sb->conf.retry_timeout);
   Printf("\tBW-manage:\r\n");
   Printf("\t  Period       : %d seconds\r\n", sb->conf.bm_S);

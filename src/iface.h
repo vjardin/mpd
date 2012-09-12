@@ -81,7 +81,7 @@
     u_char		peer_ipv6_addr_force;
     char		ifname[IFNAMSIZ];	/* Name of my interface */
 #ifdef SIOCSIFDESCR
-    char		*ifdescr;		/* Interface description*/
+    char		*ifdescr;		/* Interface description template */
 #endif
 #ifdef SIOCAIFGROUP
     char		ifgroup[IFNAMSIZ];	/* Group of my interface */
@@ -100,7 +100,7 @@
     char		ngname[IFNAMSIZ];	/* Name of my Netgraph node */
     uint		ifindex;		/* System interface index */
 #ifdef SIOCSIFDESCR
-    char		*ifdescr;		/* Interface description*/
+    char		*ifdescr;		/* Interface description */
 #endif
     struct ifaceconf	conf;
     u_char		traffic[IFACE_IDLE_SPLIT];	/* Mark any traffic */
@@ -200,6 +200,9 @@
   #ifndef USE_NG_TCPMSS
   extern void	IfaceCorrectMSS(Mbuf pkt, uint16_t maxmss);
   #endif
+#ifdef SIOCSIFDESCR
+  extern void	IfaceFreeDescr(IfaceState iface);
+#endif
   extern void	IfaceSetMTU(Bund b, int mtu);
   extern void	IfaceChangeFlags(Bund b, int clear, int set);
   extern int	IfaceChangeAddr(Bund b, int add, struct u_range *self, struct u_addr *peer);

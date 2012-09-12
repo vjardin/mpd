@@ -19,8 +19,10 @@
 #include "netgraph.h"
 #include "util.h"
 
+#include <sys/types.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
+#include <sys/param.h>
 #include <net/if.h>
 #include <net/if_types.h>
 #include <net/if_dl.h>
@@ -58,6 +60,8 @@
 #ifdef USE_NG_BPF
 #include <pcap.h>
 #endif
+
+#include <string.h>
 
 /*
  * DEFINITIONS
@@ -258,6 +262,17 @@
 			    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }}}
 static const struct in6_addr in6mask128 = IN6MASK128;
 
+#ifdef SIOCSIFDESCR
+void
+IfaceFreeDescr(IfaceState iface)
+{
+  if (iface->ifdescr != NULL)
+	Freee(iface->ifdescr);
+  if (iface->conf.ifdescr != NULL)
+	Freee(iface->conf.ifdescr);
+  iface->ifdescr = iface->conf.ifdescr = NULL;
+}
+#endif
 
 /*
  * IfaceInit()
@@ -271,10 +286,8 @@ IfaceInit(Bund b)
   /* Default configuration */
   iface->mtu = NG_IFACE_MTU_DEFAULT;
   iface->max_mtu = NG_IFACE_MTU_DEFAULT;
-#ifdef SIOCSIFDESCR
   iface->ifdescr = NULL;
   iface->conf.ifdescr = NULL;
-#endif
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
@@ -298,6 +311,13 @@ IfaceInst(Bund b, Bund bt)
 
     memcpy(iface, &bt->iface, sizeof(*iface));
 
+#ifdef SIOCSIFDESCR
+    /* Copy interface description from template config to current */
+    if (bt->iface.conf.ifdescr)
+	iface->conf.ifdescr = Mstrdup(MB_IFACE, bt->iface.conf.ifdescr);
+    if (bt->iface.ifdescr)
+	iface->ifdescr = Mstrdup(MB_IFACE, bt->iface.ifdescr);
+#endif
     /* Copy interface name from template config to current */
     if (bt->iface.conf.ifname[0] != 0 && b->tmpl == 0) {
         snprintf(iface->conf.ifname, sizeof(iface->conf.ifname), "%s%d",
@@ -316,8 +336,7 @@ IfaceDestroy(Bund b)
 #ifdef SIOCSIFDESCR
     IfaceState	const iface = &b->iface;
 
-    if (iface->conf.ifdescr != NULL)
-	Freee(iface->conf.ifdescr);
+    IfaceFreeDescr(iface);
 #endif
 }
 
@@ -488,8 +507,12 @@ IfaceUp(Bund b, int ready)
     if (b->params.ifdescr != NULL) {
        if (IfaceSetDescr(b, b->params.ifdescr) != -1) {
 	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add description \"%s\"",
-		b->name, b->params.ifdescr));
-	    iface->ifdescr = b->params.ifdescr;
+		b->name, iface->ifdescr));
+	}
+    } else if (iface->conf.ifdescr != NULL) {
+       if (IfaceSetDescr(b, iface->conf.ifdescr) != -1) {
+	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Add description \"%s\"",
+		b->name, iface->ifdescr));
 	}
     }
 #endif
@@ -704,26 +727,19 @@ IfaceDown(Bund b)
 	}
     }
 #ifdef SIOCSIFDESCR
-    if (iface->ifdescr != NULL) {
+    if ((iface->ifdescr != NULL)
+    && (IfaceSetDescr(b, iface->conf.ifdescr) != -1)) {
 	if (iface->conf.ifdescr != NULL) {
-	    /* Restore to config defined */
-	    if (IfaceSetDescr(b, iface->conf.ifdescr) != -1) {
 		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Set description \"%s\"",
-		    b->name, iface->conf.ifdescr));
-		iface->ifdescr = iface->conf.ifdescr;
-	    } else
-		iface->ifdescr = NULL;
+		    b->name, iface->ifdescr));
 	} else {
-	    /* Restore to original (empty) */
-	    if (IfaceSetDescr(b, "") != -1) {
 		Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Clear description",
 		    b->name));
-	    }
-	    iface->ifdescr = NULL;
 	}
     }
 #endif
 #ifdef SIOCAIFGROUP
+    
     if (b->params.ifgroup[0] != 0) {
        if (IfaceDelGroup(b, b->params.ifgroup) != -1)
 	    Log(LG_BUND|LG_IFACE, ("[%s] IFACE: Remove group %s from %s",
@@ -1512,23 +1528,14 @@ IfaceSetCommand(Context ctx, int ac, char *av[], void *arg)
 	break;
 #ifdef SIOCSIFDESCR
     case SET_DESCR:
-	if (ctx->bund->tmpl)
-	    Error("Impossible to apply on template");
-	if (iface->conf.ifdescr != NULL)
-	    Freee(iface->conf.ifdescr);
-	iface->conf.ifdescr = NULL;
-	iface->ifdescr = NULL;
+	IfaceFreeDescr(iface);
 	switch (ac) {
 	  case 0:
 	    return IfaceSetDescr(ctx->bund, "");
 	    break;
 	  case 1:
 	    iface->conf.ifdescr = Mstrdup(MB_IFACE, av[0]);
-	    if (IfaceSetDescr(ctx->bund, av[0]) == 0) {
-		iface->ifdescr = iface->conf.ifdescr;
-		return(0);
-	    } else
-		return(-1);
+	    return IfaceSetDescr(ctx->bund, av[0]);
 	    break;
 	  default:
 	    return(-1);
@@ -1612,7 +1619,7 @@ IfaceStat(Context ctx, int ac, char *av[], void *arg)
     Printf("\tName            : %s\r\n", iface->conf.ifname);
 #ifdef SIOCSIFDESCR
     Printf("\tDescription     : \"%s\"\r\n",
-	(iface->conf.ifdescr != NULL) ? iface->conf.ifdescr : "<none>");
+	(iface->ifdescr != NULL) ? iface->ifdescr : "<none>");
 #endif
 #ifdef SIOCAIFGROUP
     Printf("\tGroup           : %s\r\n", iface->conf.ifgroup);
@@ -3517,62 +3524,228 @@ IfaceSetName(Bund b, const char * ifname)
 #ifdef SIOCSIFDESCR
 /*
  * IfaceSetDescr()
+ *
+ * Set/clear our own interface description accessible in console/web interface
+ * and kernel level interface description if it is available.
+ *
+ * Template may contain conversion specifications:
+ *
+ * %% expands to single % sign;
+ * %a for interface local address;
+ * %A for peer address;
+ * %i for system interface index;
+ * %I for interface name;
+ * %l for name of bundle's first link
+ * %M for peer MAC address of bundle's first link
+ * %S for interface status (DoD/UP/DOWN)
+ * %t for type of bundle's first link (pppoe, pptp, l2tp etc.)
+ * %u for self auth name (or dash if self auth name not used)
+ * %U for peer auth name (or dash if peer has not authenticated)
  */
-
 int
-IfaceSetDescr(Bund b, const char * ifdescr)
+IfaceSetDescr(Bund b, const char * template)
 {
     IfaceState	const iface = &b->iface;
     struct	ifreq ifr;
-    int		s, ifdescr_maxlen;
+    int		s;
+    unsigned	int ifdescr_maxlen = 1024;	/* used as limit for old kernels */
     char	*newdescr;
-    size_t	sz = sizeof(int);
+    size_t	sz = sizeof(ifdescr_maxlen);
+    char	*limit, *ifname;
+    const char	*src;
+    int		proceed;
+    char	buf[64];
 
-    if (b->tmpl) {
-	Log(LG_ERR, ("Impossible ioctl(SIOCSIFDESCR) on template"));
-	return(-1);
+    static	int mib[2] = { -1, 0 };	/* MIB for net.ifdescr_maxlen */
+    size_t	miblen = sizeof(mib) / sizeof(mib[0]);
+
+    /*
+     * Check whether running kernel supports interface description.
+     * Perform the check only once.
+     */
+    if (mib[0] < 0 && sysctlnametomib("net.ifdescr_maxlen", mib, &miblen) < 0) {
+      mib[0] = 0;
+      Perror("[%s] IFACE: sysctl net.ifdescr_maxlen  failed", b->name);
     }
 
-    if (sysctlbyname("net.ifdescr_maxlen", &ifdescr_maxlen, &sz, NULL, 0) < 0) {
-	Perror("[%s] IFACE: sysctl net.ifdescr_maxlen  failed", b->name);
-	return(-1);
+    /*
+     * Fetch net.ifdescr_maxlen value every time to catch up with changes
+     */
+    if (mib[0] && sysctl(mib, 2, &ifdescr_maxlen, &sz, NULL, 0) < 0) {
+      /* unexpected error from the kernel, use default value */
+      Perror("[%s] IFACE: sysctl net.ifdescr_maxlen  failed", b->name);
+      ifdescr_maxlen = 1024;
     }
 
-    if (ifdescr_maxlen < strlen(ifdescr) + 1) {
-	Log(LG_ERR, ("[%s] IFACE: Description too long, >%d characters",
-	    b->name, ifdescr_maxlen-1));
-	return(-1);
+    newdescr = NULL;
+    ifname = iface->ifname;
+    if (iface->ifdescr != NULL) {
+	Freee(iface->ifdescr);
+	iface->ifdescr = NULL;
     }
+    if ((src = template) != NULL) {
+
+      /* Will use Mstrdup() later for iface->ifdescr to free extra memory */
+      if ((iface->ifdescr = newdescr = Malloc(MB_IFACE, ifdescr_maxlen)) == NULL) {
+	Log(LG_IFACE2, ("[%s] IFACE: no memory for interface %s description",
+    	    b->name, ifname ? ifname : ""));
+        return(-1);
+      }
+
+      /* ifdescr_maxlen includes terminating zero */
+      limit = newdescr + ifdescr_maxlen - 1;
+
+      /*
+       * Perform template expansion
+       */
+      proceed = 1;
+      while (proceed && *src && newdescr < limit) {
+	if (*src != '%') {	/* ordinary symbol, just copy it and proceed */
+	  *newdescr++ = *src++;
+	  continue;
+	}
+	if (!*(src+1)) {	/* '%' at the end of template, just copy */
+	  *newdescr++ = *src++;
+	  continue;
+	}
+	switch(*++src) {	/* expand */
+	  case '%':		/* %% got replaced with single % */
+	    *newdescr++ = *src;
+	    break;
+
+#define DST_COPY(a)				\
+  do { const char *temp = a;			\
+    if (temp && *temp) {			\
+      if ((newdescr + strlen (temp)) <= limit) {\
+	newdescr = stpcpy (newdescr, temp);	\
+      } else {					\
+	proceed = 0;				\
+      }						\
+    } else {					\
+      *newdescr++ = '-';			\
+    }						\
+  } while(0)
+
+	  /* self address */
+	  case 'a':
+	    {
+	      char *sep;
+	      u_rangetoa(&iface->self_addr, buf, sizeof(buf));
+	      /* cut netmask */
+	      if ((sep = strchr(buf, '/')))
+	        *sep = '\0';
+	      DST_COPY(buf);
+	    }
+	    break;
+	  /* peer address */
+	  case 'A':
+	    {
+	      u_addrtoa (&iface->peer_addr, buf, sizeof(buf));
+	      DST_COPY(buf);
+	    }
+	    break;
+	  /* interface index */
+	  case 'i':
+	    {
+	      snprintf (buf, sizeof(buf), "%u", iface->ifindex);
+	      DST_COPY(buf);
+	    }
+	    break;
+	  /* interface name */
+	  case 'I':
+	    DST_COPY(iface->ifname);
+	    break;
+	  /* first link name */
+	  case 'l':
+	    DST_COPY(b->links[0] ? b->links[0]->name : NULL);
+	    break;
+	  case 'M':
+	    if(b->links[0]) {
+	      PhysType const pt = b->links[0]->type;
+	      if (pt && pt->peermacaddr) {
+	        (*pt->peermacaddr)(b->links[0], buf, sizeof(buf));
+	        DST_COPY(buf);
+	      } else {
+		  DST_COPY("-");
+	      }
+	    } else {
+		DST_COPY("-");
+	    }
+	    break;
+	  /* interface status */
+	  case 'S':
+	    DST_COPY(iface->up ? (iface->dod ? "DoD" : "UP") : "DOWN");
+	    break;
+	  /* first link type */
+	  case 't':
+	    DST_COPY(b->links[0] ? b->links[0]->type->name : NULL);
+	    break;
+	  /* self auth name */
+	  case 'u':
+	    DST_COPY(b->links[0] ? b->links[0]->lcp.auth.conf.authname : NULL);
+	    break;
+	  /* peer auth name */
+	  case 'U':
+	    DST_COPY(b->params.authname);
+	    break;
+#undef DST_COPY
+	  default: /* unrecognized specification, just copy */
+	    *newdescr++ = '%';
+	    if (newdescr < limit)
+		*newdescr++ = *src;
+	} /* switch(*++src) */
+	++src;
+      } /* while */
+      *newdescr = '\0';
+
+      /* includes terminating zero */
+      sz = newdescr - iface->ifdescr + 1;
+      if ((newdescr = Mstrdup(MB_IFACE, iface->ifdescr)) == NULL) {
+        Log(LG_IFACE2, ("[%s] IFACE: no memory for interface %s description",
+			b->name, ifname ? ifname : ""));
+        Freee(iface->ifdescr);
+	iface->ifdescr = NULL;
+        return(-1);
+      }
+      Freee(iface->ifdescr);
+      iface->ifdescr = newdescr;
+    } /* template != NULL */
+
+    /* Set description of interface */
+    if (mib[0] == 0)
+	return(0);		/* do not bother kernel if it is too old */
+
+    if (ifname == NULL || *ifname == '\0')
+	return(0);		/* we have not set system interface name yet */
 
     /* Get socket */
     if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-	Perror("[%s] IFACE: Can't get socket to set description", b->name);
+	Perror("[%s] IFACE: Can't get socket to set description for %s",
+	        b->name, ifname);
 	return(-1);
     }
 
-    /* Set description of interface */
     memset(&ifr, 0, sizeof(ifr));
-    strlcpy(ifr.ifr_name, iface->ifname, sizeof(ifr.ifr_name));
-    ifr.ifr_buffer.length = strlen(ifdescr) + 1;
-    if (ifr.ifr_buffer.length == 1) {
-	ifr.ifr_buffer.buffer = newdescr = NULL;
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (!newdescr || !*newdescr) {	/* empty description or clearing request */
+	ifr.ifr_buffer.buffer = NULL;
 	ifr.ifr_buffer.length = 0;
 	Log(LG_IFACE2, ("[%s] IFACE: clearing \"%s\" description",
-	    b->name, iface->ifname));
+	    b->name, ifname));
     } else {
-	newdescr = Mstrdup(MB_IFACE, ifdescr);
+	ifr.ifr_buffer.length = (unsigned)sz;
 	ifr.ifr_buffer.buffer = newdescr;
 	Log(LG_IFACE2, ("[%s] IFACE: setting \"%s\" description to \"%s\"",
-	    b->name, iface->ifname, ifdescr));
+	    b->name, ifname, newdescr));
     }
 
     if (ioctl(s, SIOCSIFDESCR, (caddr_t)&ifr) < 0) {
-	Perror("[%s] IFACE: ioctl(%s, SIOCSIFDESCR)", b->name, iface->ifname);
-	Freee(newdescr);
+	Perror("[%s] IFACE: ioctl(%s, SIOCSIFDESCR, \"%s\")",
+	        b->name, ifname, newdescr ? newdescr : "" );
 	close(s);
 	return(-1);
     }
-    Freee(newdescr);
     close(s);
     return(0);
 }
