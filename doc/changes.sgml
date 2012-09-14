@@ -455,7 +455,7 @@
 	  </item>
 	  <item> MPPC related options moved from 'set ccp' to the new 'set mppc' command.
 	  </item>
-	  <item> 'set bundle retry' commend renamed to 'set bundle fsm-timeout'.
+	  <item> 'set bundle retry' command renamed to 'set bundle fsm-timeout'.
 	  </item>
 	  <item> Number of auth retries increased to 5.
 	  </item>
