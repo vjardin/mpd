@@ -714,6 +714,12 @@ IfaceDown(Bund b)
       PATH_IPFW, cb);
 #endif /* USE_IPFW */
 
+    /* Clearing self and peer addresses */
+    u_rangeclear(&iface->self_addr);
+    u_addrclear(&iface->peer_addr);
+    u_addrclear(&iface->self_ipv6_addr);
+    u_addrclear(&iface->peer_ipv6_addr);
+
     /* Revert interface name and description */
 
     if (strcmp(iface->ngname, iface->ifname) != 0) {

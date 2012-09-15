@@ -10,6 +10,8 @@
     <itemize>
 	<item> New features:
 	<itemize>
+	  <item> Added ability to make interface description from template.
+	  </item>
 	  <item> Added global `qthreshold` option.
 	  </item>
 	  <item> Added `unset radius server ...` command.
