@@ -258,70 +258,62 @@ char   *u_rangetoa(struct u_range *range, char *dst, size_t size)
     return dst;
 }
 
-struct u_addr *u_addrcopy(const struct u_addr *src, struct u_addr *dst)
+void u_addrcopy(const struct u_addr *src, struct u_addr *dst)
 {
-    return memcpy(dst,src,sizeof(struct u_addr));
+    memcpy(dst,src,sizeof(struct u_addr));
 }
 
-struct u_addr *u_rangecopy(const struct u_range *src, struct u_range *dst)
+void  u_rangecopy(const struct u_range *src, struct u_range *dst)
 {
-    return memcpy(dst,src,sizeof(struct u_range));
+    memcpy(dst,src,sizeof(struct u_range));
 }
 
-struct u_addr *u_addrclear(struct u_addr *addr)
+void u_addrclear(struct u_addr *addr)
 {
     memset(addr,0,sizeof(struct u_addr));
-    return addr;
 }
 
-struct u_range *u_rangeclear(struct u_range *range)
+void u_rangeclear(struct u_range *range)
 {
     memset(range,0,sizeof(struct u_range));
-    return range;
 }
 
-struct u_addr *in_addrtou_addr(const struct in_addr *src, struct u_addr *dst)
+void in_addrtou_addr(const struct in_addr *src, struct u_addr *dst)
 {
     u_addrclear(dst);
     dst->family=AF_INET;
     dst->u.ip4=*src;
-    return dst;
 }
 
-struct u_addr *in6_addrtou_addr(const struct in6_addr *src, struct u_addr *dst)
+void in6_addrtou_addr(const struct in6_addr *src, struct u_addr *dst)
 {
     u_addrclear(dst);
     dst->family=AF_INET6;
     dst->u.ip6=*src;
-    return dst;
 }
 
-struct in_addr *u_addrtoin_addr(const struct u_addr *src, struct in_addr *dst)
+void u_addrtoin_addr(const struct u_addr *src, struct in_addr *dst)
 {
     *dst=src->u.ip4;
-    return dst;
 }
 
-struct in6_addr *u_addrtoin6_addr(const struct u_addr *src, struct in6_addr *dst)
+void u_addrtoin6_addr(const struct u_addr *src, struct in6_addr *dst)
 {
     *dst=src->u.ip6;
-    return dst;
 }
 
-struct u_range *in_addrtou_range(const struct in_addr *src, u_char width, struct u_range *dst)
+void in_addrtou_range(const struct in_addr *src, u_char width, struct u_range *dst)
 {
     u_rangeclear(dst);
     in_addrtou_addr(src, &dst->addr);
     dst->width = width;
-    return dst;
 }
 
-struct u_range *in6_addrtou_range(const struct in6_addr *src, u_char width, struct u_range *dst)
+void in6_addrtou_range(const struct in6_addr *src, u_char width, struct u_range *dst)
 {
     u_rangeclear(dst);
     in6_addrtou_addr(src, &dst->addr);
     dst->width = width;
-    return dst;
 }
 
 int u_addrempty(struct u_addr *addr)
@@ -382,7 +374,7 @@ bits2mask6(int bits)
   return result;
 }
 
-struct sockaddr_storage *u_rangetosockaddrs(struct u_range *range, struct sockaddr_storage *dst, struct sockaddr_storage *msk)
+void u_rangetosockaddrs(struct u_range *range, struct sockaddr_storage *dst, struct sockaddr_storage *msk)
 {
     memset(dst,0,sizeof(struct sockaddr_storage));
     memset(msk,0,sizeof(struct sockaddr_storage));
@@ -404,10 +396,9 @@ struct sockaddr_storage *u_rangetosockaddrs(struct u_range *range, struct sockad
 		dst->ss_len=sizeof(struct sockaddr_storage);
 	    break;
     }
-    return dst;
 }
 
-struct sockaddr_storage *u_addrtosockaddr(struct u_addr *addr, in_port_t port, struct sockaddr_storage *dst)
+void u_addrtosockaddr(struct u_addr *addr, in_port_t port, struct sockaddr_storage *dst)
 {
     memset(dst,0,sizeof(struct sockaddr_storage));
     dst->ss_family=addr->family;
@@ -426,7 +417,6 @@ struct sockaddr_storage *u_addrtosockaddr(struct u_addr *addr, in_port_t port, s
 		dst->ss_len=sizeof(struct sockaddr_storage);
 	    break;
     }
-    return dst;
 }
 
 void sockaddrtou_addr(struct sockaddr_storage *src, struct u_addr *addr, in_port_t *port)

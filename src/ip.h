@@ -53,24 +53,24 @@
   extern char	*u_addrtoa(struct u_addr *addr, char *dst, size_t size);
   extern char	*u_rangetoa(struct u_range *range, char *dst, size_t size);
 
-  extern struct u_addr *u_addrcopy(const struct u_addr *src, struct u_addr *dst);
-  extern struct u_addr *u_rangecopy(const struct u_range *src, struct u_range *dst);
+  extern void	u_addrcopy(const struct u_addr *src, struct u_addr *dst);
+  extern void	u_rangecopy(const struct u_range *src, struct u_range *dst);
 
-  extern struct u_addr *in_addrtou_addr(const struct in_addr *src, struct u_addr *dst);
-  extern struct u_addr *in6_addrtou_addr(const struct in6_addr *src, struct u_addr *dst);
+  extern void	in_addrtou_addr(const struct in_addr *src, struct u_addr *dst);
+  extern void	in6_addrtou_addr(const struct in6_addr *src, struct u_addr *dst);
 
-  extern struct in_addr *u_addrtoin_addr(const struct u_addr *src, struct in_addr *dst);
-  extern struct in6_addr *u_addrtoin6_addr(const struct u_addr *src, struct in6_addr *dst);
+  extern void	u_addrtoin_addr(const struct u_addr *src, struct in_addr *dst);
+  extern void	u_addrtoin6_addr(const struct u_addr *src, struct in6_addr *dst);
 
-  extern struct u_range *in_addrtou_range(const struct in_addr *src, u_char width, struct u_range *dst);
-  extern struct u_range *in6_addrtou_range(const struct in6_addr *src, u_char width, struct u_range *dst);
+  extern void	in_addrtou_range(const struct in_addr *src, u_char width, struct u_range *dst);
+  extern void	in6_addrtou_range(const struct in6_addr *src, u_char width, struct u_range *dst);
 
-  extern struct sockaddr_storage *u_rangetosockaddrs(struct u_range *range, struct sockaddr_storage *dst, struct sockaddr_storage *msk);
-  extern struct sockaddr_storage *u_addrtosockaddr(struct u_addr *addr, in_port_t port, struct sockaddr_storage *dst);
-  extern void 	sockaddrtou_addr(struct sockaddr_storage *src, struct u_addr *addr, in_port_t *port);
+  extern void	u_rangetosockaddrs(struct u_range *range, struct sockaddr_storage *dst, struct sockaddr_storage *msk);
+  extern void	u_addrtosockaddr(struct u_addr *addr, in_port_t port, struct sockaddr_storage *dst);
+  extern void	sockaddrtou_addr(struct sockaddr_storage *src, struct u_addr *addr, in_port_t *port);
 
-  extern struct u_addr *u_addrclear(struct u_addr *addr);
-  extern struct u_range *u_rangeclear(struct u_range *range);
+  extern void	u_addrclear(struct u_addr *addr);
+  extern void	u_rangeclear(struct u_range *range);
 
   extern int 	u_addrempty(struct u_addr *addr);
   extern int 	u_rangeempty(struct u_range *range);
