@@ -280,6 +280,10 @@
 	CMD_SUBMENU, NULL, 0, (void *) ShowSessCmds},
     { "summary",			"Daemon status summary",
 	ShowSummary, NULL, 0, NULL },
+#ifdef USE_NG_NETFLOW
+    { "netflow ...", 			"Netflow settings",
+	ShowNetflow, NULL, 0, NULL },
+#endif
     { NULL },
   };
 

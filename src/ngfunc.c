@@ -826,6 +826,45 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     return (0);
 }
+
+/*
+ * ShowNetflow()
+ *
+ * Show state of a Netflow
+ */
+
+int
+ShowNetflow(Context ctx, int ac, char *av[], void *arg)
+{
+    struct u_addr addr;
+    in_port_t port;
+    char buf[64];
+
+    Printf("Netflow settings:\r\n");
+    Printf("\tNode name      : %s\r\n", gNetflowNodeName);
+    Printf("\tInitial hook   : %d\r\n", gNetflowIface);
+    Printf("\tTimeouts, sec:\r\n");
+    Printf("\t  Active       : %d\r\n", gNetflowActive);
+    Printf("\t  Inactive     : %d\r\n", gNetflowInactive);
+    sockaddrtou_addr(&gNetflowExport, &addr, &port);
+    Printf("\tExport address : %s port %d\r\n",
+        u_addrtoa(&addr, buf, sizeof(buf)), (int)port);
+    sockaddrtou_addr(&gNetflowSource, &addr, &port);
+    Printf("\tSource address : %s port %d\r\n",
+        u_addrtoa(&addr, buf, sizeof(buf)), (int)port);
+#if NGM_NETFLOW_COOKIE >= 1309868867
+    Printf("\tExport version : v%d\r\n", gNetflowVer);
+    Printf("Netflow v9 configuration:\r\n");
+    Printf("\tTemplate:\r\n");
+    Printf("\t  Time         : %d\r\n",
+        gNetflowTime ? gNetflowTime : NETFLOW_V9_MAX_TIME_TEMPL);
+    Printf("\t  Packets      : %d\r\n",
+        gNetflowPackets ? gNetflowPackets : NETFLOW_V9_MAX_PACKETS_TEMPL);
+    Printf("\tNetflow v9 MTU : %d\r\n",
+        gNetflowMTU ? gNetflowMTU : BASE_MTU);
+#endif
+    return(0);
+}
 #endif /* USE_NG_NETFLOW */
 
 ng_ID_t
