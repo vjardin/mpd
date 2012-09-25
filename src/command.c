@@ -281,7 +281,7 @@
     { "summary",			"Daemon status summary",
 	ShowSummary, NULL, 0, NULL },
 #ifdef USE_NG_NETFLOW
-    { "netflow ...", 			"Netflow settings",
+    { "netflow",			"Netflow settings",
 	ShowNetflow, NULL, 0, NULL },
 #endif
     { NULL },
