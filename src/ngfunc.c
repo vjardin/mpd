@@ -839,7 +839,8 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     struct u_addr addr;
     in_port_t port;
     char buf[64];
-
+    Printf("Netflow status:\r\n");
+    Printf("\tNode created   : %s\r\n", gNetflowNodeID ? "Yes" : "No");
     Printf("Netflow settings:\r\n");
     Printf("\tNode name      : %s\r\n", gNetflowNodeName);
     Printf("\tInitial hook   : %d\r\n", gNetflowIface);
@@ -863,6 +864,50 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     Printf("\tNetflow v9 MTU : %d\r\n",
         gNetflowMTU ? gNetflowMTU : BASE_MTU);
 #endif
+    if (gNetflowNodeID>0 && gNetflowNode==TRUE && gNetflowNodeShutdown==TRUE) {
+        char path[NG_PATHSIZ];
+        int csock;
+        struct ng_netflow_info ni;
+
+        /* Create a netgraph socket node */
+        if (NgMkSockNode(NULL, &csock, NULL) < 0) {
+            Perror("ShowNetflow: can't create %s node", NG_SOCKET_NODE_TYPE);
+            return(0);
+        }
+        snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
+        memset(&ni, 0, sizeof(ni));
+        if (NgSendMsg(csock, path,
+            NGM_NETFLOW_COOKIE, NGM_NETFLOW_INFO, &ni, sizeof(ni)) < 0) {
+            Perror("ShowNetflow: can't get stats");
+            close(csock);
+            return(0);
+        }
+        close(csock);
+        Printf("Traffic stats:\r\n");
+        Printf("\tAccounted IPv4 octets  : %llu\r\n", (unsigned long long)ni.nfinfo_bytes);
+        Printf("\tAccounted IPv4 packets : %d\r\n", ni.nfinfo_packets);
+#if NGM_NETFLOW_COOKIE >= 1309868867
+        Printf("\tAccounted IPv6 octets  : %llu\r\n", (unsigned long long)ni.nfinfo_bytes6);
+        Printf("\tAccounted IPv6 packets : %d\r\n", ni.nfinfo_packets6);
+        Printf("\tSkipped IPv4 octets    : %llu\r\n", (unsigned long long)ni.nfinfo_sbytes);
+        Printf("\tSkipped IPv4 packets   : %d\r\n", ni.nfinfo_spackets);
+        Printf("\tSkipped IPv6 octets    : %llu\r\n", (unsigned long long)ni.nfinfo_sbytes6);
+        Printf("\tSkipped IPv6 packets   : %d\r\n", ni.nfinfo_spackets6);
+#endif
+        Printf("\tUsed IPv4 cache records: %d\r\n", ni.nfinfo_used);
+#if NGM_NETFLOW_COOKIE >= 1309868867
+        Printf("\tUsed IPv6 cache records: %d\r\n", ni.nfinfo_used6);
+#endif
+        Printf("\tFailed allocations     : %d\r\n", ni.nfinfo_alloc_failed);
+        Printf("\tFailed v5 export       : %d\r\n", ni.nfinfo_export_failed);
+#if NGM_NETFLOW_COOKIE >= 1309868867
+        Printf("\tFailed v9 export       : %d\r\n", ni.nfinfo_export9_failed);
+        Printf("\tRallocated mbufs       : %d\r\n", ni.nfinfo_realloc_mbuf);
+        Printf("\tFibs allocated         : %d\r\n", ni.nfinfo_alloc_fibs);
+#endif
+        Printf("\tActive expiries        : %d\r\n", ni.nfinfo_act_exp);
+        Printf("\tInactive expiries      : %d\r\n", ni.nfinfo_inact_exp);
+    }
     return(0);
 }
 #endif /* USE_NG_NETFLOW */
