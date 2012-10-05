@@ -845,8 +845,10 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     Printf("\tNode name      : %s\r\n", gNetflowNodeName);
     Printf("\tInitial hook   : %d\r\n", gNetflowIface);
     Printf("\tTimeouts, sec:\r\n");
-    Printf("\t  Active       : %d\r\n", gNetflowActive);
-    Printf("\t  Inactive     : %d\r\n", gNetflowInactive);
+    Printf("\t  Active       : %d\r\n",
+        gNetflowActive ? gNetflowActive : ACTIVE_TIMEOUT);
+    Printf("\t  Inactive     : %d\r\n",
+        gNetflowInactive ? gNetflowInactive : INACTIVE_TIMEOUT);
     sockaddrtou_addr(&gNetflowExport, &addr, &port);
     Printf("\tExport address : %s port %d\r\n",
         u_addrtoa(&addr, buf, sizeof(buf)), (int)port);
