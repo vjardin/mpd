@@ -460,8 +460,10 @@ NgFuncSendQuery(const char *path, int cookie, int cmd, const void *args,
     }
 
     /* Send message */
-    if (NgSendMsg(gNgStatSock, path, cookie, cmd, args, arglen) < 0)
+    if (NgSendMsg(gNgStatSock, path, cookie, cmd, args, arglen) < 0) {
+	Perror("NgFuncSendQuery: can't send message");
 	return (-1);
+    }
 
     /* Read message */
     if (NgRecvMsg(gNgStatSock, rbuf, replen, raddr) < 0) {
@@ -839,6 +841,20 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     struct u_addr addr;
     in_port_t port;
     char buf[64];
+    char path[NG_PATHSIZ];
+    union {
+        u_char buf[sizeof(struct ng_mesg) + sizeof(struct ng_netflow_info)];
+        struct ng_mesg reply;
+    } u;
+    struct ng_netflow_info *const ni = (struct ng_netflow_info *)(void *)u.reply.data;
+
+    if (gNetflowNodeID>0) {
+        snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
+        if (NgFuncSendQuery(path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_INFO,
+        NULL, 0, &u.reply, sizeof(u), NULL) < 0)
+            return(-7);
+    }
+
     Printf("Netflow status:\r\n");
     Printf("\tNode created   : %s\r\n", gNetflowNodeID ? "Yes" : "No");
     Printf("Netflow settings:\r\n");
@@ -846,9 +862,11 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     Printf("\tInitial hook   : %d\r\n", gNetflowIface);
     Printf("\tTimeouts, sec:\r\n");
     Printf("\t  Active       : %d\r\n",
-        gNetflowActive ? gNetflowActive : ACTIVE_TIMEOUT);
+        (gNetflowNodeID>0) ? ni->nfinfo_act_t :
+        (gNetflowActive ? gNetflowActive : ACTIVE_TIMEOUT));
     Printf("\t  Inactive     : %d\r\n",
-        gNetflowInactive ? gNetflowInactive : INACTIVE_TIMEOUT);
+        (gNetflowNodeID>0) ? ni->nfinfo_inact_t :
+        (gNetflowInactive ? gNetflowInactive : INACTIVE_TIMEOUT));
     sockaddrtou_addr(&gNetflowExport, &addr, &port);
     Printf("\tExport address : %s port %d\r\n",
         u_addrtoa(&addr, buf, sizeof(buf)), (int)port);
@@ -865,50 +883,32 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
         gNetflowPackets ? gNetflowPackets : NETFLOW_V9_MAX_PACKETS_TEMPL);
     Printf("\tNetflow v9 MTU : %d\r\n",
         gNetflowMTU ? gNetflowMTU : BASE_MTU);
+    if (gNetflowNodeID>0) {
 #endif
-    if (gNetflowNodeID>0 && gNetflowNode==TRUE && gNetflowNodeShutdown==TRUE) {
-        char path[NG_PATHSIZ];
-        int csock;
-        struct ng_netflow_info ni;
-
-        /* Create a netgraph socket node */
-        if (NgMkSockNode(NULL, &csock, NULL) < 0) {
-            Perror("ShowNetflow: can't create %s node", NG_SOCKET_NODE_TYPE);
-            return(0);
-        }
-        snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
-        memset(&ni, 0, sizeof(ni));
-        if (NgSendMsg(csock, path,
-            NGM_NETFLOW_COOKIE, NGM_NETFLOW_INFO, &ni, sizeof(ni)) < 0) {
-            Perror("ShowNetflow: can't get stats");
-            close(csock);
-            return(0);
-        }
-        close(csock);
         Printf("Traffic stats:\r\n");
-        Printf("\tAccounted IPv4 octets  : %llu\r\n", (unsigned long long)ni.nfinfo_bytes);
-        Printf("\tAccounted IPv4 packets : %d\r\n", ni.nfinfo_packets);
+        Printf("\tAccounted IPv4 octets  : %llu\r\n", (unsigned long long)ni->nfinfo_bytes);
+        Printf("\tAccounted IPv4 packets : %d\r\n", ni->nfinfo_packets);
 #if NGM_NETFLOW_COOKIE >= 1309868867
-        Printf("\tAccounted IPv6 octets  : %llu\r\n", (unsigned long long)ni.nfinfo_bytes6);
-        Printf("\tAccounted IPv6 packets : %d\r\n", ni.nfinfo_packets6);
-        Printf("\tSkipped IPv4 octets    : %llu\r\n", (unsigned long long)ni.nfinfo_sbytes);
-        Printf("\tSkipped IPv4 packets   : %d\r\n", ni.nfinfo_spackets);
-        Printf("\tSkipped IPv6 octets    : %llu\r\n", (unsigned long long)ni.nfinfo_sbytes6);
-        Printf("\tSkipped IPv6 packets   : %d\r\n", ni.nfinfo_spackets6);
+        Printf("\tAccounted IPv6 octets  : %llu\r\n", (unsigned long long)ni->nfinfo_bytes6);
+        Printf("\tAccounted IPv6 packets : %d\r\n", ni->nfinfo_packets6);
+        Printf("\tSkipped IPv4 octets    : %llu\r\n", (unsigned long long)ni->nfinfo_sbytes);
+        Printf("\tSkipped IPv4 packets   : %d\r\n", ni->nfinfo_spackets);
+        Printf("\tSkipped IPv6 octets    : %llu\r\n", (unsigned long long)ni->nfinfo_sbytes6);
+        Printf("\tSkipped IPv6 packets   : %d\r\n", ni->nfinfo_spackets6);
 #endif
-        Printf("\tUsed IPv4 cache records: %d\r\n", ni.nfinfo_used);
+        Printf("\tUsed IPv4 cache records: %d\r\n", ni->nfinfo_used);
 #if NGM_NETFLOW_COOKIE >= 1309868867
-        Printf("\tUsed IPv6 cache records: %d\r\n", ni.nfinfo_used6);
+        Printf("\tUsed IPv6 cache records: %d\r\n", ni->nfinfo_used6);
 #endif
-        Printf("\tFailed allocations     : %d\r\n", ni.nfinfo_alloc_failed);
-        Printf("\tFailed v5 export       : %d\r\n", ni.nfinfo_export_failed);
+        Printf("\tFailed allocations     : %d\r\n", ni->nfinfo_alloc_failed);
+        Printf("\tFailed v5 export       : %d\r\n", ni->nfinfo_export_failed);
 #if NGM_NETFLOW_COOKIE >= 1309868867
-        Printf("\tFailed v9 export       : %d\r\n", ni.nfinfo_export9_failed);
-        Printf("\tRallocated mbufs       : %d\r\n", ni.nfinfo_realloc_mbuf);
-        Printf("\tFibs allocated         : %d\r\n", ni.nfinfo_alloc_fibs);
+        Printf("\tFailed v9 export       : %d\r\n", ni->nfinfo_export9_failed);
+        Printf("\tRallocated mbufs       : %d\r\n", ni->nfinfo_realloc_mbuf);
+        Printf("\tFibs allocated         : %d\r\n", ni->nfinfo_alloc_fibs);
 #endif
-        Printf("\tActive expiries        : %d\r\n", ni.nfinfo_act_exp);
-        Printf("\tInactive expiries      : %d\r\n", ni.nfinfo_inact_exp);
+        Printf("\tActive expiries        : %d\r\n", ni->nfinfo_act_exp);
+        Printf("\tInactive expiries      : %d\r\n", ni->nfinfo_inact_exp);
     }
     return(0);
 }
