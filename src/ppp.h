@@ -215,6 +215,10 @@
   extern struct acl		*acl_filters[ACL_FILTERS]; /* mpd's internal bpf filters */
 #endif
 
+#ifdef USE_PAM
+  extern char			gPamService[32];
+#endif
+
   extern struct pevent_ctx	*gPeventCtx;
   extern pthread_mutex_t	gGiantMutex;	/* Giant Mutex */
 

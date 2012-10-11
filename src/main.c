@@ -65,6 +65,10 @@
     { 1, 's',	"syslog-ident",	"ident",
 				"Identifier to use for syslog"	},
 #endif
+#ifdef USE_PAM
+    { 1, 'm',	"pam-service",	"service",
+				"PAM service name"	},
+#endif
     { 0, 'v',	"version",	"",
 				"Show version information"	},
     { 0, 'h',	"help",		"",
@@ -114,6 +118,10 @@
 
 #ifdef USE_NG_BPF
   struct acl		*acl_filters[ACL_FILTERS]; /* mpd's global internal bpf filters */
+#endif
+
+#ifdef USE_PAM
+  char			gPamService[32];
 #endif
 
   struct globalconf	gGlobalConf;
@@ -201,6 +209,12 @@ main(int ac, char *av[])
     /* init RADIUS server */
     RadsrvInit(&gRadsrv);
 #endif
+
+#ifdef USE_PAM
+    if (!*gPamService)
+	strcpy(gPamService, "mpd");
+#endif
+
 
     /* Set up libnetgraph logging */
     NgSetErrLog(NgFuncErr, NgFuncErrx);
@@ -590,6 +604,9 @@ OptApply(Option opt, int ac, char *av[])
 #ifdef SYSLOG_FACILITY
     memset(gSysLogIdent, 0, sizeof(gSysLogIdent));
 #endif
+#ifdef USE_PAM
+    memset(gPamService, 0, sizeof(gPamService));
+#endif
 
     if (opt == NULL)
 	Usage(EX_USAGE);
@@ -617,6 +634,11 @@ OptApply(Option opt, int ac, char *av[])
 #ifdef SYSLOG_FACILITY
 	case 's':
     	    strlcpy(gSysLogIdent, *av, sizeof(gSysLogIdent));
+    	    return(1);
+#endif
+#ifdef USE_PAM
+	case 'm':
+    	    strlcpy(gPamService, *av, sizeof(gPamService));
     	    return(1);
 #endif
 	case 'v':

@@ -84,6 +84,13 @@
 	<tt>mpd</tt>. This option allows you to change that identifier.
 
 	<tag><tt>
+	-m  --pam-service <em>service</em>
+	</tt></tag>
+
+	Mpd normally invoke <tt>pam(3)</tt> with the service
+	<tt>mpd</tt>. This option allows you to change that service.
+
+	<tag><tt>
 	-v  --version
 	</tt></tag>
 

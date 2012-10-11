@@ -1501,7 +1501,7 @@ AuthPAM(AuthData auth)
 	return;
     }
     
-    if (pam_start("mpd", auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
+    if (pam_start(gPamService, auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
 	Log(LG_ERR, ("[%s] AUTH: PAM error", auth->info.lnkname));
 	auth->status = AUTH_STATUS_FAIL;
 	auth->why_fail = AUTH_FAIL_NOT_EXPECTED;
@@ -1570,7 +1570,7 @@ AuthPAMAcct(AuthData auth)
         return (0);
     }
 
-    if (pam_start("mpd", auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
+    if (pam_start(gPamService, auth->params.authname, &pamc, &pamh) != PAM_SUCCESS) {
 	Log(LG_ERR, ("[%s] ACCT: PAM error", auth->info.lnkname));
 	return (-1);
     }
