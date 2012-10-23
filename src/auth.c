@@ -179,6 +179,9 @@ ACLDestroy(struct acl *acl)
 
 void	authparamsInit(struct authparams *ap) {
     memset(ap,0,sizeof(struct authparams));
+    ap->eapmsg = NULL;
+    ap->state = NULL;
+    ap->class = NULL;
     ap->msdomain = NULL;
 #ifdef SIOCSIFDESCR
     ap->ifdescr = NULL;
