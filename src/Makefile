@@ -14,6 +14,7 @@ VERSION=		5.7a
 NOMAN=
 NO_MAN=
 
+
 # Default configuration directory
 
 MPD_CONF_DIR?=		${PREFIX}/etc/mpd5
@@ -58,17 +59,22 @@ USE_AUTH_PAM=		yes
 USE_AUTH_SYSTEM=	yes
 
 # Build with builtin libpdel
-
 NOLIBPDEL=		yes
 
-# Build without builtin web server
-
+# Build without builtin web server.
 #NOWEB=			yes
 
 # Set syslog logging facility. Change LOG_DAEMON to whatever you like.
-
+# Comment this line disable syslog (3) support
 SYSLOG_FACILITY=	LOG_DAEMON
+
+# Print wide protocol names instead of short names.
+# Comment this line, to save about 10 KB space
 COPTS+=			-DPROTO_NAME_LIST
+
+# Reduce some internal structures size to save more memory
+# This is to limit amount of active sessions
+SMALL_SYSTEM=		yes
 
 # Compiler & linker flags
 

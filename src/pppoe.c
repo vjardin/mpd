@@ -35,7 +35,11 @@
 
 #define ETHER_DEFAULT_HOOK	NG_ETHER_HOOK_ORPHAN
 
+#ifndef SMALL_SYSTEM
 #define PPPOE_MAXPARENTIFS	1024
+#else
+#define PPPOE_MAXPARENTIFS	32
+#endif
 
 #define MAX_PATH		64	/* XXX should be NG_PATHSIZ */
 #define MAX_SESSION		64	/* max length of PPPoE session name */
