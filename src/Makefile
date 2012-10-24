@@ -74,7 +74,7 @@ COPTS+=			-DPROTO_NAME_LIST
 
 # Reduce some internal structures size to save more memory
 # This is to limit amount of active sessions
-SMALL_SYSTEM=		yes
+#SMALL_SYSTEM=		yes
 
 # Compiler & linker flags
 
