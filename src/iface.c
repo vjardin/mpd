@@ -98,7 +98,7 @@
   static void	IfaceNgIpv6Shutdown(Bund b);
 
 #ifdef USE_NG_NETFLOW
-  static int	IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out);
+  static int	IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out, int v6);
   static int	IfaceSetupNetflow(Bund b, char in, char out);
   static void	IfaceShutdownNetflow(Bund b, char in, char out);
 #endif
@@ -2126,7 +2126,7 @@ IfaceNgIpInit(Bund b, int ready)
 	    Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)) {
 	    if (IfaceInitNetflow(b, path, hook, 
 		Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)?1:0,
-		Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)?1:0))
+		Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)?1:0, 0))
 		goto fail;
 	    if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN))
 		b->iface.nfin_up = 1;
@@ -2136,13 +2136,13 @@ IfaceNgIpInit(Bund b, int ready)
 #else	/* NG_NETFLOW_CONF_INGRESS */
 	/* Connect a netflow node if configured */
 	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)) {
-	    if (IfaceInitNetflow(b, path, hook, 1, 0))
+	    if (IfaceInitNetflow(b, path, hook, 1, 0, 0))
 		goto fail;
 	    b->iface.nfin_up = 1;
 	}
 
 	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)) {
-	    if (IfaceInitNetflow(b, path, hook, 0, 1))
+	    if (IfaceInitNetflow(b, path, hook, 0, 1, 0))
 		goto fail;
 	    b->iface.nfout_up = 1;
 	}
@@ -2283,6 +2283,35 @@ IfaceNgIpv6Init(Bund b, int ready)
 	    b->iface.tee6_up = 1;
 	}
   
+#ifdef USE_NG_NETFLOW
+#ifdef NG_NETFLOW_CONF_INGRESS
+	/* Connect a netflow node if configured */
+	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN) ||
+	    Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)) {
+	    if (IfaceInitNetflow(b, path, hook, 
+		Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)?1:0,
+		Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)?1:0, 1))
+		goto fail;
+	    if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN))
+		b->iface.nfin_up = 1;
+	    if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT))
+		b->iface.nfout_up = 1;
+	}
+#else	/* NG_NETFLOW_CONF_INGRESS */
+	/* Connect a netflow node if configured */
+	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN, 1)) {
+	    if (IfaceInitNetflow(b, path, hook, 1, 0))
+		goto fail;
+	    b->iface.nfin_up = 1;
+	}
+
+	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_OUT)) {
+	    if (IfaceInitNetflow(b, path, hook, 0, 1, 1))
+		goto fail;
+	    b->iface.nfout_up = 1;
+	}
+#endif	/* NG_NETFLOW_CONF_INGRESS */
+#endif	/* USE_NG_NETFLOW */
     }
 
     /* Connect graph to the iface node. */
@@ -2294,6 +2323,21 @@ IfaceNgIpv6Init(Bund b, int ready)
 	Perror("[%s] can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
 	    b->name, path, cn.ourhook, cn.path, cn.peerhook);
 	goto fail;
+    }
+
+    if (ready) {
+#ifdef USE_NG_NETFLOW
+#ifdef NG_NETFLOW_CONF_INGRESS
+	if (b->iface.nfin_up || b->iface.nfout_up)
+	    IfaceSetupNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+#else /* NG_NETFLOW_CONF_INGRESS */
+	if (b->iface.nfin_up)
+	    IfaceSetupNetflow(b, 1, 0);
+
+	if (b->iface.nfout_up)
+	    IfaceSetupNetflow(b, 0, 1);
+#endif /* NG_NETFLOW_CONF_INGRESS */
+#endif /* USE_NG_NETFLOW */
     }
 
     /* OK */
@@ -2315,6 +2359,21 @@ IfaceNgIpv6Shutdown(Bund b)
     if (b->iface.tee6_up)
 	IfaceShutdownTee(b, 1);
     b->iface.tee6_up = 0;
+#ifdef USE_NG_NETFLOW
+#ifdef NG_NETFLOW_CONF_INGRESS
+    if (b->iface.nfin_up || b->iface.nfout_up)
+	IfaceShutdownNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+    b->iface.nfin_up = 0;
+    b->iface.nfout_up = 0;
+#else /* NG_NETFLOW_CONF_INGRESS */
+    if (b->iface.nfin_up)
+	IfaceShutdownNetflow(b, 1, 0);
+    b->iface.nfin_up = 0;
+    if (b->iface.nfout_up)
+	IfaceShutdownNetflow(b, 0, 1);
+    b->iface.nfout_up = 0;
+#endif /* NG_NETFLOW_CONF_INGRESS */
+#endif
 
     snprintf(path, sizeof(path), "[%x]:", b->nodeID);
     NgFuncDisconnect(gLinksCsock, b->name, path, NG_PPP_HOOK_IPV6);
@@ -2600,7 +2659,7 @@ IfaceShutdownIpacct(Bund b)
 
 #ifdef USE_NG_NETFLOW
 static int
-IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out)
+IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out, int v6)
 {
     struct ngm_connect	cn;
     int nif;
@@ -2611,7 +2670,8 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out)
     nif = gNetflowIface + b->id*2 + out;
 #endif
 
-    Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow (%s)", b->name, out?"out":"in"));
+    Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow%s (%s)",
+	b->name, v6?"6":"",  out?"out":"in"));
   
     /* Create global ng_netflow(4) node if not yet. */
     if (gNetflowNodeID == 0) {
