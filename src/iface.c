@@ -2458,9 +2458,16 @@ IfaceInitNAT(Bund b, char *path, char *hook)
 static int
 IfaceSetupNAT(Bund b)
 {
-    NatState	const nat = &b->iface.nat;
     char	path[NG_PATHSIZ];
+#ifdef NG_NAT_DESC_LENGTH
+    NatState	const nat = &b->iface.nat;
     int k;
+    union {
+        u_char buf[sizeof(struct ng_mesg) + sizeof(uint32_t)];
+        struct ng_mesg reply;
+    } u;
+    uint32_t *const nat_id = (uint32_t *)(void *)u.reply.data;
+#endif
 
     if (u_addrempty(&nat->alias_addr)) {
 	snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
@@ -2475,31 +2482,46 @@ IfaceSetupNAT(Bund b)
 #ifdef NG_NAT_DESC_LENGTH
     /* redirect-port */
     for(k = 0; k < NM_PORT; k++) {
-      if(nat->nrpt_id[k]) {
+      if(nat->nrpt_id[k] == -1) {
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PORT, &nat->nrpt[k],
 		sizeof(struct ng_nat_redirect_port)) < 0) {
 	    Perror("[%s] can't set NAT redirect-port", b->name);
+	} else {
+	    if (NgRecvMsg(gLinksCsock, &u.reply, sizeof(u), NULL) < 0) {
+		Perror("[%s] can't recv NAT redirect-port message", b->name);
+	    } else
+		nat->nrpt_id[k] = *nat_id;
 	}
       }
     }
     /* redirect-addr */
     for(k = 0; k < NM_ADDR; k++) {
-      if(nat->nrad_id[k]) {
+      if(nat->nrad_id[k] == -1) {
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_ADDR, &nat->nrad[k],
 		sizeof(struct ng_nat_redirect_addr)) < 0) {
 	    Perror("[%s] can't set NAT redirect-addr", b->name);
+	} else {
+	    if (NgRecvMsg(gLinksCsock, &u.reply, sizeof(u), NULL) < 0) {
+		Perror("[%s] can't recv NAT redirect-addr message", b->name);
+	    } else
+		nat->nrad_id[k] = *nat_id;
 	}
       }
     }
     /* redirect-proto */
     for(k = 0; k < NM_PROTO; k++) {
-      if(nat->nrpr_id[k]) {
+      if(nat->nrpr_id[k] == -1) {
 	if (NgSendMsg(gLinksCsock, path,
 		NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PROTO, &nat->nrpr[k],
 		sizeof(struct ng_nat_redirect_proto)) < 0) {
 	    Perror("[%s] can't set NAT redirect-proto", b->name);
+	} else {
+	    if (NgRecvMsg(gLinksCsock, &u.reply, sizeof(u), NULL) < 0) {
+		Perror("[%s] can't recv NAT redirect-proto message", b->name);
+	    } else
+		nat->nrpr_id[k] = *nat_id;
 	}
       }
     }
@@ -2511,9 +2533,27 @@ static void
 IfaceShutdownNAT(Bund b)
 {
     char	path[NG_PATHSIZ];
+#ifdef NG_NAT_DESC_LENGTH
+    NatState	const nat = &b->iface.nat;
+    int		k;
+#endif
 
     snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
     NgFuncShutdownNode(gLinksCsock, b->name, path);
+#ifdef NG_NAT_DESC_LENGTH
+    /* redirect-port */
+    for(k = 0; k < NM_PORT; k++)
+      if(nat->nrpt_id[k] > 0)
+        nat->nrpt_id[k] = -1;
+    /* redirect-addr */
+    for(k = 0; k < NM_ADDR; k++)
+      if(nat->nrad_id[k] > 0)
+        nat->nrad_id[k] = -1;
+    /* redirect-proto */
+    for(k = 0; k < NM_PROTO; k++)
+      if(nat->nrpr_id[k] > 0)
+        nat->nrpr_id[k] = -1;
+#endif
 }
 #endif /* USE_NG_NAT */
 

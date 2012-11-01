@@ -170,7 +170,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    }
 	    nat->nrpt[k].proto = (uint8_t)proto->p_proto;
 	    snprintf(nat->nrpt[k].description, NG_NAT_DESC_LENGTH, "nat-port-%d", k);
-	    nat->nrpt_id[k] = 1;
+	    nat->nrpt_id[k] = -1;
 	    break;
 	  }
 	}
@@ -198,7 +198,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    memcpy(&nat->nrad[k].local_addr, &l_addr, sizeof(struct in_addr));
 	    memcpy(&nat->nrad[k].alias_addr, &a_addr, sizeof(struct in_addr));
 	    snprintf(nat->nrad[k].description, NG_NAT_DESC_LENGTH, "nat-addr-%d", k);
-	    nat->nrad_id[k] = 1;
+	    nat->nrad_id[k] = -1;
 	    break;
 	  }
 	}
@@ -236,7 +236,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	      memcpy(&nat->nrpr[k].remote_addr, &r_addr, sizeof(struct in_addr));
 	    nat->nrpr[k].proto = (uint8_t)proto->p_proto;
 	    snprintf(nat->nrpr[k].description, NG_NAT_DESC_LENGTH, "nat-proto-%d", k);
-	    nat->nrpr_id[k] = 1;
+	    nat->nrpr_id[k] = -1;
 	    break;
 	  }
 	}
@@ -279,7 +279,7 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
 #ifdef NG_NAT_DESC_LENGTH
     Printf("Redirect ports:\r\n");
     for (k=0;k<NM_PORT;k++) {
-      if (nat->nrpt_id[k]) {
+      if (nat->nrpt_id[k] != 0) {
 	struct protoent	*proto;
 	char	li[15], ai[15], ri[15];
 	inet_ntop(AF_INET, &nat->nrpt[k].local_addr, li, sizeof(li));
@@ -293,7 +293,7 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
     }
     Printf("Redirect address:\r\n");
     for (k=0;k<NM_ADDR;k++) {
-      if (nat->nrad_id[k]) {
+      if (nat->nrad_id[k] != 0) {
 	char	li[15], ai[15];
 	inet_ntop(AF_INET, &nat->nrad[k].local_addr, li, sizeof(li));
 	inet_ntop(AF_INET, &nat->nrad[k].alias_addr, ai, sizeof(ai));
@@ -302,7 +302,7 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
     }
     Printf("Redirect proto:\r\n");
     for (k=0;k<NM_PROTO;k++) {
-      if (nat->nrpr_id[k]) {
+      if (nat->nrpr_id[k] != 0) {
 	struct protoent	*proto;
 	char	li[15], ai[15], ri[15];
 	proto = getprotobynumber(nat->nrpr[k].proto);
