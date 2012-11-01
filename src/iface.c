@@ -2458,9 +2458,9 @@ IfaceInitNAT(Bund b, char *path, char *hook)
 static int
 IfaceSetupNAT(Bund b)
 {
+    NatState	const nat = &b->iface.nat;
     char	path[NG_PATHSIZ];
 #ifdef NG_NAT_DESC_LENGTH
-    NatState	const nat = &b->iface.nat;
     int k;
     union {
         u_char buf[sizeof(struct ng_mesg) + sizeof(uint32_t)];
