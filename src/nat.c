@@ -281,35 +281,36 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
     for (k=0;k<NM_PORT;k++) {
       if (nat->nrpt_id[k] != 0) {
 	struct protoent	*proto;
-	char	li[15], ai[15], ri[15];
+	char	li[16], ai[16], ri[16];
 	inet_ntop(AF_INET, &nat->nrpt[k].local_addr, li, sizeof(li));
 	inet_ntop(AF_INET, &nat->nrpt[k].alias_addr, ai, sizeof(ai));
 	inet_ntop(AF_INET, &nat->nrpt[k].remote_addr, ri, sizeof(ri));
 	proto = getprotobynumber(nat->nrpt[k].proto);
-	Printf("\t%s %s:%d %s:%d %s:%d\r\n", proto->p_name,
+	Printf("\t%s %s:%d %s:%d %s:%d (%sactive)\r\n", proto->p_name,
 	    ai, nat->nrpt[k].alias_port, li, nat->nrpt[k].local_port,
-	    ri, nat->nrpt[k].remote_port);
+	    ri, nat->nrpt[k].remote_port, nat->nrpt_id[k]<0?"in":"");
       }
     }
     Printf("Redirect address:\r\n");
     for (k=0;k<NM_ADDR;k++) {
       if (nat->nrad_id[k] != 0) {
-	char	li[15], ai[15];
+	char	li[16], ai[16];
 	inet_ntop(AF_INET, &nat->nrad[k].local_addr, li, sizeof(li));
 	inet_ntop(AF_INET, &nat->nrad[k].alias_addr, ai, sizeof(ai));
-	Printf("\t%s %s\r\n", ai, li);
+	Printf("\t%s %s (%sactive)\r\n", ai, li, nat->nrad_id[k]<0?"in":"");
       }
     }
     Printf("Redirect proto:\r\n");
     for (k=0;k<NM_PROTO;k++) {
       if (nat->nrpr_id[k] != 0) {
 	struct protoent	*proto;
-	char	li[15], ai[15], ri[15];
+	char	li[16], ai[16], ri[16];
 	proto = getprotobynumber(nat->nrpr[k].proto);
 	inet_ntop(AF_INET, &nat->nrpr[k].local_addr, li, sizeof(li));
 	inet_ntop(AF_INET, &nat->nrpr[k].alias_addr, ai, sizeof(ai));
 	inet_ntop(AF_INET, &nat->nrpr[k].remote_addr, ri, sizeof(ri));
-	Printf("\t%s %s %s %s\r\n", proto->p_name, ai, li, ri);
+	Printf("\t%s %s %s %s (%sactive)\r\n", proto->p_name,
+	    ai, li, ri, nat->nrpr_id[k]<0?"in":"");
       }
     }
 #endif
