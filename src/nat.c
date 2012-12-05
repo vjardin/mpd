@@ -9,6 +9,9 @@
 #include "nat.h"
 #include "iface.h"
 #include "netgraph.h"
+#ifdef NG_NAT_DESC_LENGTH
+#include "ngfunc.h"
+#endif
 #include "util.h"
 
 /*
@@ -100,6 +103,17 @@ static int
 NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
   NatState	const nat = &ctx->bund->iface.nat;
+  IfaceState	const iface = &ctx->bund->iface;
+#ifdef NG_NAT_DESC_LENGTH
+  char	path[NG_PATHSIZ];
+  union {
+    u_char buf[sizeof(struct ng_mesg) + sizeof(uint32_t)];
+    struct ng_mesg reply;
+  } u;
+  uint32_t *const nat_id = (uint32_t *)(void *)u.reply.data;
+
+  snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, (char *)&ctx->bund->name);
+#endif
 
   if (ac == 0)
     return(-1);
@@ -171,6 +185,12 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    nat->nrpt[k].proto = (uint8_t)proto->p_proto;
 	    snprintf(nat->nrpt[k].description, NG_NAT_DESC_LENGTH, "nat-port-%d", k);
 	    nat->nrpt_id[k] = -1;
+	    if (iface->up) {
+	      if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PORT,
+	        &nat->nrpt[k], sizeof(struct ng_nat_redirect_port),
+	        &u.reply, sizeof(u), NULL) == 0)
+	          nat->nrpt_id[k] = *nat_id;
+	    }
 	    break;
 	  }
 	}
