@@ -185,7 +185,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    nat->nrpt[k].proto = (uint8_t)proto->p_proto;
 	    snprintf(nat->nrpt[k].description, NG_NAT_DESC_LENGTH, "nat-port-%d", k);
 	    nat->nrpt_id[k] = -1;
-	    if (iface->up) {
+	    if (iface->up && iface->nat_up) {
 	      if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PORT,
 	        &nat->nrpt[k], sizeof(struct ng_nat_redirect_port),
 	        &u.reply, sizeof(u), NULL) == 0)
@@ -219,6 +219,12 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    memcpy(&nat->nrad[k].alias_addr, &a_addr, sizeof(struct in_addr));
 	    snprintf(nat->nrad[k].description, NG_NAT_DESC_LENGTH, "nat-addr-%d", k);
 	    nat->nrad_id[k] = -1;
+	    if (iface->up && iface->nat_up) {
+	      if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_ADDR,
+	        &nat->nrad[k], sizeof(struct ng_nat_redirect_addr),
+	        &u.reply, sizeof(u), NULL) == 0)
+	          nat->nrad_id[k] = *nat_id;
+	    }
 	    break;
 	  }
 	}
@@ -257,6 +263,12 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    nat->nrpr[k].proto = (uint8_t)proto->p_proto;
 	    snprintf(nat->nrpr[k].description, NG_NAT_DESC_LENGTH, "nat-proto-%d", k);
 	    nat->nrpr_id[k] = -1;
+	    if (iface->up && iface->nat_up) {
+	      if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PROTO,
+	        &nat->nrpr[k], sizeof(struct ng_nat_redirect_proto),
+	        &u.reply, sizeof(u), NULL) == 0)
+	          nat->nrpr_id[k] = *nat_id;
+	    }
 	    break;
 	  }
 	}

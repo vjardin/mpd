@@ -12,7 +12,7 @@
 
 #ifdef NG_NAT_DESC_LENGTH
 /* max. number of red-port rules */
-#define NM_PORT		16
+#define NM_PORT		32
 /* max. number of red-addr rules */
 #define NM_ADDR		8
 /* max. number of red-proto rules */
