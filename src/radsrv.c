@@ -319,7 +319,7 @@ RadsrvEvent(int type, void *cookie)
 			  Log(LG_RADIUS2, ("radsrv: Get RAD_MPD_FILTER: %s",
 		            acl));
 		          acl2 = strsep(&acl1, "#");
-		          i = atol(acl2);
+		          i = atoi(acl2);
 		          if (i <= 0 || i > ACL_FILTERS) {
 		            Log(LG_RADIUS, ("radsrv: Wrong filter number: %i", i));
 		            free(acl);
@@ -374,7 +374,7 @@ RadsrvEvent(int type, void *cookie)
 		    strsep(&acl3, "=");
 		    acl2 = acl1;
 		    strsep(&acl2, "#");
-		    i = atol(acl1);
+		    i = atoi(acl1);
 		    if (i <= 0) {
 		      Log(LG_ERR, ("radsrv: Wrong acl number: %i", i));
 		      free(acl);
