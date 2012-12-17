@@ -160,6 +160,8 @@ RadsrvEvent(int type, void *cookie)
 	switch (res) {
 	    case RAD_USER_NAME:
 		anysesid = 1;
+		if (username)
+		    free(username);
 		username = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_USER_NAME: %s", username));
 		break;
@@ -193,24 +195,32 @@ RadsrvEvent(int type, void *cookie)
 		break;
 	    case RAD_CALLED_STATION_ID:
 		anysesid = 1;
+		if (called)
+		    free(called);
 		called = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLED_STATION_ID: %s",
 		    called));
 		break;
 	    case RAD_CALLING_STATION_ID:
 		anysesid = 1;
+		if (calling)
+		    free(calling);
 		calling = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_CALLING_STATION_ID: %s",
 		    calling));
 		break;
 	    case RAD_ACCT_SESSION_ID:
 		anysesid = 1;
+		if (sesid)
+		    free(sesid);
 		sesid = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_SESSION_ID: %s",
 		    sesid));
 		break;
 	    case RAD_ACCT_MULTI_SESSION_ID:
 		anysesid = 1;
+		if (msesid)
+		    free(msesid);
 		msesid = rad_cvt_string(data, len);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_ACCT_MULTI_SESSION_ID: %s",
 		    msesid));

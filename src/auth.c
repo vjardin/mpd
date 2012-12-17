@@ -605,6 +605,9 @@ AuthDataNew(Link l)
     Auth	a = &l->lcp.auth;  
 
     auth = Malloc(MB_AUTH, sizeof(*auth));
+    auth->reply_message = NULL;
+    auth->mschap_error = NULL;
+    auth->mschapv2resp = NULL;
     auth->conf = l->lcp.auth.conf;
     if (l->lcp.auth.conf.extauth_script)
 	auth->conf.extauth_script = Mstrdup(MB_AUTH, l->lcp.auth.conf.extauth_script);
@@ -616,6 +619,7 @@ AuthDataNew(Link l)
     strlcpy(auth->info.session_id, l->session_id, sizeof(auth->info.session_id));
     strlcpy(auth->info.peer_ident, l->lcp.peer_ident, sizeof(l->lcp.peer_ident));
     auth->info.originate = l->originate;
+    auth->info.downReason = NULL;
 
     if (l->bund) {
 	strlcpy(auth->info.ifname, l->bund->iface.ifname, sizeof(auth->info.ifname));
