@@ -51,7 +51,7 @@ dialup:
 # Create static modem link named L1
 	create link static L1 modem
 # Configure modem
-	set modem device /dev/cuad0
+	set modem device /dev/cuau0
 	set modem var $DialPrefix "DT"
 	set modem var $Telephone "1-415-555-1212"
 	set modem script DialPeer
@@ -98,7 +98,7 @@ dialin:
 	set link no pap chap eap
 	set link enable chap-md5
 # Configure modem
-	set modem device /dev/cuad0
+	set modem device /dev/cuau0
 	set modem var $DialPrefix "DT"
 	set modem idle-script AnswerCall
 # Permit incoming calls using this link
@@ -119,12 +119,12 @@ multi_dialup:
 # Create links and open them
 	create link static L1 modem
 	load common
-	set modem device /dev/cuad0
+	set modem device /dev/cuau0
 	open
 
 	create link static L2 modem
 	load common
-	set modem device /dev/cuad1
+	set modem device /dev/cuau1
 	open
 
 common:

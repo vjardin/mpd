@@ -170,13 +170,15 @@ Available params: iface, ip, bundle, msession, link, session, user, peer.
 <tag>customer</tag>
 Show active customer details.
 <tag>summary</tag>
-Show status summary
+Show status summary.
 <tag>console</tag>
-Show console summary
+Show console summary.
 <tag>web</tag>
-Show web server summary
+Show web server summary.
 <tag>user</tag>
-Show defined console users
+Show defined console users.
+<tag>netflow</tag>
+Show status information about NetFlow.
 
 </descrip>
 

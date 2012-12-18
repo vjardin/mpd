@@ -10,13 +10,24 @@
     <itemize>
 	<item> New features:
 	<itemize>
-	  <item> Added ability to make interface description from template.
-	  </item>
 	  <item> Added global `qthreshold` option.
 	  </item>
 	  <item> Added `unset radius server ...` command.
 	  </item>
 	  <item> Added `Class` CoA attribute from RFC 2865.
+	  </item>
+	  <item> New command 'show netflow' added.
+	  </item>
+	</itemize>
+	</item>
+	<item> Changes:
+	<itemize>
+	  <item> NAT rules may be added without shutdowning interface.
+	  </item>
+	  <item> NetFlow can export IPv6 data.
+	  </item>
+	  <item> Interface description may be construct from predefined
+		 variables in bundle template.
 	  </item>
 	</itemize>
 	</item>
@@ -26,6 +37,10 @@
 	  </item>
 	  <item> Fix infinite event loop when STDIN redirected to /dev/null
 		 after it recently got non-blocking mode support.
+	  </item>
+	  <item> Fix invalid output of `show nat` command in some times.
+	  </item>
+	  <item> Fix some possible memory leaks.
 	  </item>
 	</itemize>
 	</item>
