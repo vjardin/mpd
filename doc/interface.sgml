@@ -37,7 +37,7 @@ Template may contain conversion specifications:
 <verb>
 %% expands to single % sign;
 %a for interface local address;
-%A for peer address;
+%A for peer local address;
 %i for system interface index;
 %I for interface name;
 %l for name of bundle's first link
