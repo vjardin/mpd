@@ -41,6 +41,9 @@
 #ifdef USE_FETCH
 #include <fetch.h>
 #endif
+#ifdef USE_NG_NETFLOW
+#include <netgraph/netflow/ng_netflow.h>
+#endif
 
 /*
  * DEFINITIONS
@@ -919,6 +922,11 @@ ShowVersion(Context ctx, int ac, char *av[], void *arg)
 #endif
 #ifdef	USE_NG_NETFLOW
   Printf("	ng_netflow	: yes\r\n");
+#if NGM_NETFLOW_COOKIE >= 1309868867
+  Printf("	netflow v9	: yes\r\n");
+#else
+  Printf("	netflow v9	: no\r\n");
+#endif
 #else
   Printf("	ng_netflow	: no\r\n");
 #endif
@@ -973,7 +981,7 @@ ShowGlobal(Context ctx, int ac, char *av[], void *arg)
     Printf("	pptplimit	: %d\r\n", gPPTPtunlimit);
 #endif
     Printf("	max-children	: %d\r\n", gMaxChildren);
-    Printf("	qthreshold      : %d %d\r\n", gQThresMin, gQThresMax);
+    Printf("	qthreshold	: %d %d\r\n", gQThresMin, gQThresMax);
     Printf("Global options:\r\n");
     OptStat(ctx, &gGlobalConf.options, gGlobalConfList);
 #ifdef USE_NG_BPF
@@ -986,6 +994,8 @@ ShowGlobal(Context ctx, int ac, char *av[], void *arg)
 	}
     }
 #endif
+    Printf("Global state:\r\n");
+    Printf("	children	: %d\r\n", gChildren);
   return 0;
 }
 
