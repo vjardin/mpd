@@ -846,13 +846,27 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
         u_char buf[sizeof(struct ng_mesg) + sizeof(struct ng_netflow_info)];
         struct ng_mesg reply;
     } u;
-    struct ng_netflow_info *const ni = (struct ng_netflow_info *)(void *)u.reply.data;
+    struct ng_netflow_info *const ni = \
+        (struct ng_netflow_info *)(void *)u.reply.data;
+#ifdef NGM_NETFLOW_V9_COOKIE
+    union {
+        u_char buf[sizeof(struct ng_mesg) + sizeof(struct ng_netflow_v9info)];
+        struct ng_mesg reply;
+    } uv9;
+    struct ng_netflow_v9info *const niv9 = \
+        (struct ng_netflow_v9info *)(void *)uv9.reply.data;
+#endif /* NGM_NETFLOW_V9_COOKIE */
 
     if (gNetflowNodeID>0) {
         snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
         if (NgFuncSendQuery(path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_INFO,
         NULL, 0, &u.reply, sizeof(u), NULL) < 0)
             return(-7);
+#ifdef NGM_NETFLOW_V9_COOKIE
+        if (NgFuncSendQuery(path, NGM_NETFLOW_COOKIE, NGM_NETFLOW_V9INFO,
+        NULL, 0, &uv9.reply, sizeof(uv9), NULL) < 0)
+            return(-7);
+#endif /* NGM_NETFLOW_V9_COOKIE */
     }
 
     Printf("Netflow status:\r\n");
@@ -877,12 +891,24 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     Printf("\tExport version : v%d\r\n", gNetflowVer);
     Printf("Netflow v9 configuration:\r\n");
     Printf("\tTemplate:\r\n");
+#ifdef NGM_NETFLOW_V9_COOKIE
+    Printf("\t  Time         : %d\r\n",
+        (gNetflowNodeID>0) ? niv9->templ_time :
+        (gNetflowTime ? gNetflowTime : NETFLOW_V9_MAX_TIME_TEMPL));
+    Printf("\t  Packets      : %d\r\n",
+        (gNetflowNodeID>0) ? niv9->templ_packets :
+        (gNetflowPackets ? gNetflowPackets : NETFLOW_V9_MAX_PACKETS_TEMPL));
+    Printf("\tNetflow v9 MTU : %d\r\n",
+        (gNetflowNodeID>0) ? niv9->mtu :
+        (gNetflowMTU ? gNetflowMTU : BASE_MTU));
+#else
     Printf("\t  Time         : %d\r\n",
         gNetflowTime ? gNetflowTime : NETFLOW_V9_MAX_TIME_TEMPL);
     Printf("\t  Packets      : %d\r\n",
         gNetflowPackets ? gNetflowPackets : NETFLOW_V9_MAX_PACKETS_TEMPL);
     Printf("\tNetflow v9 MTU : %d\r\n",
         gNetflowMTU ? gNetflowMTU : BASE_MTU);
+#endif /* NGM_NETFLOW_V9_COOKIE */
     if (gNetflowNodeID>0) {
 #endif
         Printf("Traffic stats:\r\n");
