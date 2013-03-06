@@ -214,7 +214,37 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  if (k == NM_PORT)
 	    Error("max number of redirect-port \"%d\" reached", NM_PORT);
 	} else {
-	  Error("Not implemented");
+	  struct ng_nat_redirect_port	tmp_rule;
+
+	  bzero(&tmp_rule, sizeof(struct ng_nat_redirect_port));
+	  memcpy(&tmp_rule.local_addr, &l_addr, sizeof(struct in_addr));
+	  memcpy(&tmp_rule.alias_addr, &a_addr, sizeof(struct in_addr));
+	  tmp_rule.local_port = lp;
+	  tmp_rule.alias_port = ap;
+	  if (ac == 7) {
+	    memcpy(&tmp_rule.remote_addr, &r_addr, sizeof(struct in_addr));
+	    tmp_rule.remote_port = rp;
+	  }
+	  tmp_rule.proto = (uint8_t)proto->p_proto;
+	  /* hack to fill misaligned space */
+	  snprintf(tmp_rule.description, NG_NAT_DESC_LENGTH, "nat-port-0");
+	  for (k=0;k<NM_PORT;k++) {
+	    if ((nat->nrpt_id[k] != 0) && (memcmp(&tmp_rule, &nat->nrpt[k],
+	      sizeof(struct ng_nat_redirect_port)-NG_NAT_DESC_LENGTH) == 0)) {
+	      if (iface->up && iface->nat_up) {
+	        if (NgSendMsg(gLinksCsock, path, NGM_NAT_COOKIE,
+	          NGM_NAT_REDIRECT_DELETE, &k, sizeof(k)) < 0) {
+	          Perror("Can't delete nat rule");
+	          break;
+	        }
+	      }
+	      nat->nrpt_id[k] = 0;
+	      bzero(&nat->nrpt[k], sizeof(struct ng_nat_redirect_port));
+	      break;
+	    }
+	  }
+	  if (k == NM_PORT)
+	    Error("Rule not found");
 	}
       }
       break;
@@ -253,7 +283,30 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  if (k == NM_ADDR)
 	    Error("max number of redirect-addr \"%d\" reached", NM_ADDR);
 	} else {
-	  Error("Not implemented");
+	  struct ng_nat_redirect_addr	tmp_rule;
+
+	  bzero(&tmp_rule, sizeof(struct ng_nat_redirect_addr));
+	  memcpy(&tmp_rule.local_addr, &l_addr, sizeof(struct in_addr));
+	  memcpy(&tmp_rule.alias_addr, &a_addr, sizeof(struct in_addr));
+	  /* hack to fill misaligned space */
+	  snprintf(tmp_rule.description, NG_NAT_DESC_LENGTH, "nat-addr-0");
+	  for (k=0;k<NM_ADDR;k++) {
+	    if ((nat->nrad_id[k] != 0) && (memcmp(&tmp_rule, &nat->nrad[k],
+	      sizeof(struct ng_nat_redirect_addr)-NG_NAT_DESC_LENGTH) == 0)) {
+	      if (iface->up && iface->nat_up) {
+	        if (NgSendMsg(gLinksCsock, path, NGM_NAT_COOKIE,
+	          NGM_NAT_REDIRECT_DELETE, &k, sizeof(k)) < 0) {
+	          Perror("Can't delete nat rule");
+	          break;
+	        }
+	      }
+	      nat->nrad_id[k] = 0;
+	      bzero(&nat->nrad[k], sizeof(struct ng_nat_redirect_addr));
+	      break;
+	    }
+	  }
+	  if (k == NM_ADDR)
+	    Error("Rule not found");
 	}
       }
       break;
@@ -302,7 +355,34 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  if (k == NM_PROTO)
 	    Error("max number of redirect-proto \"%d\" reached", NM_PROTO);
 	} else {
-	  Error("Not implemented");
+	  struct ng_nat_redirect_proto	tmp_rule;
+
+	  bzero(&tmp_rule, sizeof(struct ng_nat_redirect_proto));
+	  memcpy(&tmp_rule.local_addr, &l_addr, sizeof(struct in_addr));
+	  memcpy(&tmp_rule.alias_addr, &a_addr, sizeof(struct in_addr));
+	  if (ac == 4) {
+	    memcpy(&tmp_rule.remote_addr, &r_addr, sizeof(struct in_addr));
+	  }
+	  tmp_rule.proto = (uint8_t)proto->p_proto;
+	  /* hack to fill misaligned space */
+	  snprintf(tmp_rule.description, NG_NAT_DESC_LENGTH, "nat-proto-0");
+	  for (k=0;k<NM_PROTO;k++) {
+	    if ((nat->nrpr_id[k] != 0) && (memcmp(&tmp_rule, &nat->nrpr[k],
+	      sizeof(struct ng_nat_redirect_proto)-NG_NAT_DESC_LENGTH) == 0)) {
+	      if (iface->up && iface->nat_up) {
+	        if (NgSendMsg(gLinksCsock, path, NGM_NAT_COOKIE,
+	          NGM_NAT_REDIRECT_DELETE, &k, sizeof(k)) < 0) {
+	          Perror("Can't delete nat rule");
+	          break;
+	        }
+	      }
+	      nat->nrpr_id[k] = 0;
+	      bzero(&nat->nrpr[k], sizeof(struct ng_nat_redirect_proto));
+	      break;
+	    }
+	  }
+	  if (k == NM_PROTO)
+	    Error("Rule not found");
 	}
       }
       break;
