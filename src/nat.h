@@ -48,6 +48,9 @@
  */
 
   extern const struct cmdtab	NatSetCmds[];
+#ifdef NG_NAT_DESC_LENGTH
+  extern const struct cmdtab	NatUnSetCmds[];
+#endif
 
   extern void	NatInit(Bund b);
   extern int	NatStat(Context ctx, int ac, char *av[], void *arg);

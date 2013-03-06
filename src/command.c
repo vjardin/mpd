@@ -291,8 +291,12 @@
   };
 
   static const struct cmdtab UnSetCommands[] = {
-   { "radius ...",			"RADIUS stuff",
+   { "radius ...",			"RADIUS specific stuff",
 	CMD_SUBMENU, AdmitLink, 2, (void *) RadiusUnSetCmds },
+#ifdef NG_NAT_DESC_LENGTH
+   { "nat ...",			"NAT specific stuff",
+	CMD_SUBMENU, AdmitBund, 2, (void *) NatUnSetCmds },
+#endif
 	{ NULL },
   };
   

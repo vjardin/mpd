@@ -27,7 +27,10 @@
     SET_DISABLE,
     SET_REDIRECT_PORT,
     SET_REDIRECT_ADDR,
-    SET_REDIRECT_PROTO
+    SET_REDIRECT_PROTO,
+    UNSET_REDIRECT_PORT,
+    UNSET_REDIRECT_ADDR,
+    UNSET_REDIRECT_PROTO
   };
 
 static int	NatSetCommand(Context ctx, int ac, char *av[], void *arg);
@@ -35,6 +38,18 @@ static int	NatSetCommand(Context ctx, int ac, char *av[], void *arg);
 /*
  * GLOBAL VARIABLES
  */
+
+#ifdef NG_NAT_DESC_LENGTH
+  const struct cmdtab NatUnSetCmds[] = {
+    { "red-port {proto} {alias_addr} {alias_port} {local_addr} {local_port} [{remote_addr} {remote_port}]",	"Redirect port",
+	NatSetCommand, AdmitBund, 2, (void *) UNSET_REDIRECT_PORT },
+    { "red-addr {alias_addr} {local_addr}",	"Redirect address",
+	NatSetCommand, AdmitBund, 2, (void *) UNSET_REDIRECT_ADDR },
+    { "red-proto {proto} {alias-addr} {local_addr} [{remote-addr}]",	"Redirect protocol",
+	NatSetCommand, AdmitBund, 2, (void *) UNSET_REDIRECT_PROTO },
+	  { NULL },
+  };
+#endif
 
   const struct cmdtab NatSetCmds[] = {
     { "address {addr}",		"Set alias address",
@@ -144,6 +159,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 
 #ifdef NG_NAT_DESC_LENGTH
     case SET_REDIRECT_PORT:
+    case UNSET_REDIRECT_PORT:
       {
 	struct protoent	*proto;
 	struct in_addr	l_addr, a_addr, r_addr;
@@ -172,34 +188,39 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	    Error("Incorrect remote port number \"%s\"", av[6]);
 	}
 	/* OK */
-	for (k=0;k<NM_PORT;k++) {
-	  if (nat->nrpt_id[k] == 0) {
-	    memcpy(&nat->nrpt[k].local_addr, &l_addr, sizeof(struct in_addr));
-	    memcpy(&nat->nrpt[k].alias_addr, &a_addr, sizeof(struct in_addr));
-	    nat->nrpt[k].local_port = lp;
-	    nat->nrpt[k].alias_port = ap;
-	    if (ac == 7) {
-	      memcpy(&nat->nrpt[k].remote_addr, &r_addr, sizeof(struct in_addr));
-	      nat->nrpt[k].remote_port = rp;
+	if ((intptr_t)arg == SET_REDIRECT_PORT) {
+	  for (k=0;k<NM_PORT;k++) {
+	    if (nat->nrpt_id[k] == 0) {
+	      memcpy(&nat->nrpt[k].local_addr, &l_addr, sizeof(struct in_addr));
+	      memcpy(&nat->nrpt[k].alias_addr, &a_addr, sizeof(struct in_addr));
+	      nat->nrpt[k].local_port = lp;
+	      nat->nrpt[k].alias_port = ap;
+	      if (ac == 7) {
+	        memcpy(&nat->nrpt[k].remote_addr, &r_addr, sizeof(struct in_addr));
+	        nat->nrpt[k].remote_port = rp;
+	      }
+	      nat->nrpt[k].proto = (uint8_t)proto->p_proto;
+	      snprintf(nat->nrpt[k].description, NG_NAT_DESC_LENGTH, "nat-port-%d", k);
+	      nat->nrpt_id[k] = -1;
+	      if (iface->up && iface->nat_up) {
+	        if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PORT,
+	          &nat->nrpt[k], sizeof(struct ng_nat_redirect_port),
+	          &u.reply, sizeof(u), NULL) == 0)
+	            nat->nrpt_id[k] = *nat_id;
+	      }
+	      break;
 	    }
-	    nat->nrpt[k].proto = (uint8_t)proto->p_proto;
-	    snprintf(nat->nrpt[k].description, NG_NAT_DESC_LENGTH, "nat-port-%d", k);
-	    nat->nrpt_id[k] = -1;
-	    if (iface->up && iface->nat_up) {
-	      if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PORT,
-	        &nat->nrpt[k], sizeof(struct ng_nat_redirect_port),
-	        &u.reply, sizeof(u), NULL) == 0)
-	          nat->nrpt_id[k] = *nat_id;
-	    }
-	    break;
 	  }
+	  if (k == NM_PORT)
+	    Error("max number of redirect-port \"%d\" reached", NM_PORT);
+	} else {
+	  Error("Not implemented");
 	}
-	if (k == NM_PORT)
-	  Error("max number of redirect-port \"%d\" reached", NM_PORT);
       }
       break;
 
     case SET_REDIRECT_ADDR:
+    case UNSET_REDIRECT_ADDR:
       {
 	struct in_addr	l_addr, a_addr;
 	int k;
@@ -213,27 +234,32 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	  Error("bad local IP address \"%s\"", av[1]);
 
 	/* OK */
-	for (k=0;k<NM_ADDR;k++) {
-	  if (nat->nrad_id[k] == 0) {
-	    memcpy(&nat->nrad[k].local_addr, &l_addr, sizeof(struct in_addr));
-	    memcpy(&nat->nrad[k].alias_addr, &a_addr, sizeof(struct in_addr));
-	    snprintf(nat->nrad[k].description, NG_NAT_DESC_LENGTH, "nat-addr-%d", k);
-	    nat->nrad_id[k] = -1;
-	    if (iface->up && iface->nat_up) {
-	      if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_ADDR,
-	        &nat->nrad[k], sizeof(struct ng_nat_redirect_addr),
-	        &u.reply, sizeof(u), NULL) == 0)
-	          nat->nrad_id[k] = *nat_id;
+	if ((intptr_t)arg == SET_REDIRECT_ADDR) {
+	  for (k=0;k<NM_ADDR;k++) {
+	    if (nat->nrad_id[k] == 0) {
+	      memcpy(&nat->nrad[k].local_addr, &l_addr, sizeof(struct in_addr));
+	      memcpy(&nat->nrad[k].alias_addr, &a_addr, sizeof(struct in_addr));
+	      snprintf(nat->nrad[k].description, NG_NAT_DESC_LENGTH, "nat-addr-%d", k);
+	      nat->nrad_id[k] = -1;
+	      if (iface->up && iface->nat_up) {
+	        if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_ADDR,
+	          &nat->nrad[k], sizeof(struct ng_nat_redirect_addr),
+	          &u.reply, sizeof(u), NULL) == 0)
+	            nat->nrad_id[k] = *nat_id;
+	      }
+	      break;
 	    }
-	    break;
 	  }
+	  if (k == NM_ADDR)
+	    Error("max number of redirect-addr \"%d\" reached", NM_ADDR);
+	} else {
+	  Error("Not implemented");
 	}
-	if (k == NM_ADDR)
-	  Error("max number of redirect-addr \"%d\" reached", NM_ADDR);
       }
       break;
 
     case SET_REDIRECT_PROTO:
+    case UNSET_REDIRECT_PROTO:
       {
 	struct protoent	*proto;
 	struct in_addr	l_addr, a_addr, r_addr;
@@ -254,26 +280,30 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
 	}
 
 	/* OK */
-	for (k=0;k<NM_PROTO;k++) {
-	  if (nat->nrpr_id[k] == 0) {
-	    memcpy(&nat->nrpr[k].local_addr, &l_addr, sizeof(struct in_addr));
-	    memcpy(&nat->nrpr[k].alias_addr, &a_addr, sizeof(struct in_addr));
-	    if (ac == 4)
-	      memcpy(&nat->nrpr[k].remote_addr, &r_addr, sizeof(struct in_addr));
-	    nat->nrpr[k].proto = (uint8_t)proto->p_proto;
-	    snprintf(nat->nrpr[k].description, NG_NAT_DESC_LENGTH, "nat-proto-%d", k);
-	    nat->nrpr_id[k] = -1;
-	    if (iface->up && iface->nat_up) {
-	      if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PROTO,
-	        &nat->nrpr[k], sizeof(struct ng_nat_redirect_proto),
-	        &u.reply, sizeof(u), NULL) == 0)
-	          nat->nrpr_id[k] = *nat_id;
+	if ((intptr_t)arg == SET_REDIRECT_PROTO) {
+	  for (k=0;k<NM_PROTO;k++) {
+	    if (nat->nrpr_id[k] == 0) {
+	      memcpy(&nat->nrpr[k].local_addr, &l_addr, sizeof(struct in_addr));
+	      memcpy(&nat->nrpr[k].alias_addr, &a_addr, sizeof(struct in_addr));
+	      if (ac == 4)
+	        memcpy(&nat->nrpr[k].remote_addr, &r_addr, sizeof(struct in_addr));
+	      nat->nrpr[k].proto = (uint8_t)proto->p_proto;
+	      snprintf(nat->nrpr[k].description, NG_NAT_DESC_LENGTH, "nat-proto-%d", k);
+	      nat->nrpr_id[k] = -1;
+	      if (iface->up && iface->nat_up) {
+	        if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_REDIRECT_PROTO,
+	          &nat->nrpr[k], sizeof(struct ng_nat_redirect_proto),
+	          &u.reply, sizeof(u), NULL) == 0)
+	            nat->nrpr_id[k] = *nat_id;
+	      }
+	      break;
 	    }
-	    break;
 	  }
+	  if (k == NM_PROTO)
+	    Error("max number of redirect-proto \"%d\" reached", NM_PROTO);
+	} else {
+	  Error("Not implemented");
 	}
-	if (k == NM_PROTO)
-	  Error("max number of redirect-proto \"%d\" reached", NM_PROTO);
       }
       break;
 #endif
