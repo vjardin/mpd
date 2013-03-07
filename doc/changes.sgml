@@ -14,6 +14,8 @@
 	  </item>
 	  <item> Added `unset radius server ...` command.
 	  </item>
+	  <item> Added `unset nat ...` command.
+	  </item>
 	  <item> Added `Class` CoA attribute from RFC 2865.
 	  </item>
 	  <item> New command 'show netflow' added.
@@ -22,7 +24,7 @@
 	</item>
 	<item> Changes:
 	<itemize>
-	  <item> NAT rules may be added without shutdowning interface.
+	  <item> NAT rules may be added/deleted without shutdowning interface.
 	  </item>
 	  <item> NetFlow can export IPv6 data.
 	  </item>

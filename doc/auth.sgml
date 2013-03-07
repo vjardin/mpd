@@ -200,6 +200,12 @@ If one of auth/acct ports specified as 0, it will not be used for requests
 of that type.
 
 <tag><tt>
+unset radius server <em>name</em> [ <em>auth-port</em> [ <em>acct-port</em> ]]
+</tt></tag>
+
+Deletes cpecific RADIUS server from pool.
+
+<tag><tt>
 set radius timeout <em>seconds</em>
 </tt></tag>
 
