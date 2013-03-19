@@ -163,7 +163,8 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
       {
 	struct protoent	*proto;
 	struct in_addr	l_addr, a_addr, r_addr;
-	int lp, ap, rp = 0, k;
+	int lp, ap, rp = 0;
+	uint32_t k;
 
 	/* Parse */
 	if (ac != 5 && ac != 7)
@@ -253,7 +254,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
     case UNSET_REDIRECT_ADDR:
       {
 	struct in_addr	l_addr, a_addr;
-	int k;
+	uint32_t k;
 
 	/* Parse */
 	if (ac != 2)
@@ -316,7 +317,7 @@ NatSetCommand(Context ctx, int ac, char *av[], void *arg)
       {
 	struct protoent	*proto;
 	struct in_addr	l_addr, a_addr, r_addr;
-	int k;
+	uint32_t k;
 
 	/* Parse */
 	if (ac != 3 && ac != 4)
