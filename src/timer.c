@@ -77,10 +77,11 @@ void
 TimerStop2(PppTimer timer, const char *file, int line)
 {
     /* Stop timer if running */
-    Log(LG_EVENTS, ("EVENT: Stopping timer \"%s\" %s() at %s:%d",
-	timer->desc, timer->dbg, file, line));
-    if (EventIsRegistered(&timer->event))
+    if (EventIsRegistered(&timer->event)) {
+	Log(LG_EVENTS, ("\nEVENT: Stopping timer \"%s\" %s() at %s:%d\n",
+	    timer->desc, timer->dbg, file, line));
 	EventUnRegister(&timer->event);
+    }
 }
 
 /*
