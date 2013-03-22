@@ -15,8 +15,7 @@ else
 fi
 
 echo -n "Looking for ng_car ..."
-if [ -e /usr/include/netgraph/ng_car.h \
-  -o -e /usr/local/include/netgraph/ng_car.h ]
+if [ -e /usr/include/netgraph/ng_car.h ]
 then
     echo " found."
     echo "#define	HAVE_NG_CAR	1" >> $CONFIG
@@ -119,4 +118,3 @@ then
 else
     echo " not found."
 fi
-
