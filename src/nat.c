@@ -411,6 +411,16 @@ int
 NatStat(Context ctx, int ac, char *av[], void *arg)
 {
     NatState	const nat = &ctx->bund->iface.nat;
+#ifdef NGM_NAT_LIBALIAS_INFO
+    IfaceState	const iface = &ctx->bund->iface;
+    union {
+        u_char buf[sizeof(struct ng_mesg) + sizeof(struct ng_nat_libalias_info)];
+        struct ng_mesg reply;
+    } u;
+    struct ng_nat_libalias_info *const li = \
+        (struct ng_nat_libalias_info *)(void *)u.reply.data;
+    char	path[NG_PATHSIZ];
+#endif
     char	buf[48];
     int k;
 
@@ -459,5 +469,24 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
 #endif
     Printf("NAT options:\r\n");
     OptStat(ctx, &nat->options, gConfList);
+#ifdef NGM_NAT_LIBALIAS_INFO
+    if (Enabled(&nat->options, NAT_CONF_LOG) && iface->up && iface->nat_up) {
+        snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, \
+            (char *)&ctx->bund->name);
+        Printf("LibAlias statistic:\r\n");
+        if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_LIBALIAS_INFO,
+            NULL, 0, &u.reply, sizeof(u), NULL) < 0)
+            Perror("Can't get LibAlis stats");
+        Printf("\ticmpLinkCount  : %u\r\n", li->icmpLinkCount);
+        Printf("\tudpLinkCount   : %u\r\n", li->udpLinkCount);
+        Printf("\ttcpLinkCount   : %u\r\n", li->tcpLinkCount);
+        Printf("\tsctpLinkCount  : %u\r\n", li->sctpLinkCount);
+        Printf("\tpptpLinkCount  : %u\r\n", li->pptpLinkCount);
+        Printf("\tprotoLinkCount : %u\r\n", li->protoLinkCount);
+        Printf("\tfragmentIdLinkCount  : %u\r\n", li->fragmentIdLinkCount);
+        Printf("\tfragmentPtrLinkCount : %u\r\n", li->fragmentPtrLinkCount);
+        Printf("\tsockCount      : %u\r\n", li->sockCount);
+    }
+#endif
     return(0);
 }
