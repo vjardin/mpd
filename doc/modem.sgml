@@ -19,7 +19,7 @@ set modem device <em>devname</em>
 Modem links operate over serial ports. This command tells mpd
 which serial port to use for this link, and is required.
 The <tt><em>devname</em></tt> should be the pathname of a serial
-device, e.g., <tt>/dev/cuad0</tt>.
+device, e.g., <tt>/dev/cuau0</tt>.
 
 <tag><tt>
 set modem var <em>$variable</em> <em>string</em>

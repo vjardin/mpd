@@ -16,6 +16,7 @@
 .Op Fl f Ar file
 .Op Fl p Ar pid-file
 .Op Fl s Ar ident
+.Op Fl m Ar service
 .Op Ar configuration
 .Sh DESCRIPTION
 .Nm
@@ -112,6 +113,16 @@ daemon currently running. The same pidfile must be used.
 .Pp
 Identifier to use for
 .Xr syslog 3 .
+The default -
+.Pa mpd
+.Pp
+.It Fl m Ar service
+.It Fl -pam-service Ar service
+.Pp
+Service name to use for
+.Xr pam 3 .
+The default -
+.Pa mpd
 .Pp
 .It Fl v
 .It Fl -version
@@ -143,8 +154,7 @@ Stored process ID and lock file
 .Xr ngctl 8 ,
 .Xr ng_ppp 4 ,
 .Xr ng_iface 4 ,
-.Xr ppp 8 ,
-.Xr pppd 8 .
+.Xr ppp 8 .
 .Sh AUTHORS
 .An Archie Cobbs Aq archie@FreeBSD.org
 .An Alexander Motin Aq mav@FreeBSD.org

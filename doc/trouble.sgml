@@ -80,14 +80,6 @@ The following node types are or may be needed:
 </itemize>
 
 <tag><bf>
-Poor performance with Mac OS X PPTP clients.
-</bf></tag>
-
-Upgrade to a version of FreeBSD newer than 4.7-RELEASE.  Or apply
-<htmlurl url="http://www.freebsd.org/cgi/cvsweb.cgi/src/sys/netgraph/ng_pptpgre.c.diff?r1=1.25&amp;r2=1.26" name="this patch">
-manually.
-
-<tag><bf>
 My configuration doesn't seem to be working as expected.
 </bf></tag>
 
@@ -139,7 +131,7 @@ The first thing what you can try is reducing mpd's MTU value, by
 setting: <tt>set link mtu 1300</tt> and <tt>set bundle disable multilink</tt>,
 this should help in most cases.
 For TCP connections it's possible enabling the TCP-MSS-Fix:
-<tt>set iface enable tcpmssfix</tt> (available since mpd-3.15).
+<tt>set iface enable tcpmssfix</tt>.
 
 <tag><bf>
 Problems with MPPE stateless when connecting to Cisco devices.
