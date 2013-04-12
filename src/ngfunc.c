@@ -909,8 +909,8 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     Printf("\tNetflow v9 MTU : %d\r\n",
         gNetflowMTU ? gNetflowMTU : BASE_MTU);
 #endif /* NGM_NETFLOW_V9_COOKIE */
-    if (gNetflowNodeID>0) {
 #endif
+    if (gNetflowNodeID>0) {
         Printf("Traffic stats:\r\n");
         Printf("\tAccounted IPv4 octets  : %llu\r\n", (unsigned long long)ni->nfinfo_bytes);
         Printf("\tAccounted IPv4 packets : %d\r\n", ni->nfinfo_packets);
