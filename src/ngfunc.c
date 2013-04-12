@@ -44,8 +44,8 @@
 #endif
 #ifdef USE_NG_NETFLOW
 #include <netgraph/netflow/ng_netflow.h>
-#if NGM_NETFLOW_COOKIE >= 1309868867
 #include <netgraph/netflow/netflow.h>
+#if NGM_NETFLOW_COOKIE >= 1309868867
 #include <netgraph/netflow/netflow_v9.h>
 #endif
 #endif
