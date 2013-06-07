@@ -19,8 +19,6 @@ port:
 		cp mpd5.sh ${RCSCRIPT}
 		( cd .. && stat -f "SIZE (mpd5/mpd-${VERSION}.tar.gz) = %z" \
 		  mpd-${VERSION}.tar.gz ) > ${DISTINFO}
-		( cd .. && md5 mpd-${VERSION}.tar.gz ) \
-		  | sed 's,mpd-,mpd5/mpd-,g' >> ${DISTINFO}
 		( cd .. && sha256 mpd-${VERSION}.tar.gz ) \
 		  | sed 's,mpd-,mpd5/mpd-,g' >> ${DISTINFO}
 		sed -e 's/@VERSION@/${VERSION}/g' \
@@ -31,4 +29,3 @@ port:
 
 clean cleandir:
 		rm -f ../port.tgz
-
