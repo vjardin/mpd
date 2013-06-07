@@ -698,6 +698,7 @@ ChapHash(Link l, int alg, u_char *hash_value, u_char id, const char *username,
 	if (local) {			/* generate reverse 'peer challenge' */
 	  ChapGenRandom(l, val->peerChal, sizeof(val->peerChal));
 	  memset(val->reserved, 0, sizeof(val->reserved));
+	  val->flags = 0; /* rfc2759, paragraph 4 says that flags MUST be zero */
 	}
 	GenerateNTResponse(challenge,
 	  val->peerChal, username, secret, val->ntHash);
