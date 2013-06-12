@@ -9,7 +9,7 @@ PDIR=		port.temp
 MAKEFILE=	${PDIR}/Makefile
 DESCR=		${PDIR}/pkg-descr
 DISTINFO=	${PDIR}/distinfo
-RCSCRIPT=	${PDIR}/files/mpd5.sh.in
+RCSCRIPT=	${PDIR}/files/mpd5.in
 
 port:
 		rm -rf ${PDIR}

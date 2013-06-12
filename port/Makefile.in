@@ -1,4 +1,4 @@
-# Created by: Archie Cobbs <archie@freebsd.org>
+# Created by: Archie Cobbs
 # $FreeBSD$
 
 PORTNAME=	mpd
@@ -20,7 +20,7 @@ CONFIGURE_WRKSRC=	"${WRKSRC}/src"
 
 USE_OPENSSL=	yes
 
-.include <bsd.port.pre.mk>
+.include <bsd.port.options.mk>
 
 .if ${PORT_OPTIONS:MNG_IPACCT}
 BUILD_DEPENDS+=	${LOCALBASE}/include/netgraph/ng_ipacct.h:${PORTSDIR}/net-mgmt/ng_ipacct
@@ -33,7 +33,7 @@ RUN_DEPENDS+=	/boot/modules/ng_ipacct.ko:${PORTSDIR}/net-mgmt/ng_ipacct
 
 MAN8=		mpd5.8
 MANCOMPRESSED=	maybe
-USE_RC_SUBR=	mpd5.sh
+USE_RC_SUBR=	mpd5
 HTMLNUM!=	@HTMLNUM@
 CONFSUF=	conf secret script
 DOCSDIR=	${PREFIX}/share/doc/mpd5
@@ -42,4 +42,4 @@ PORTDOCS=	${HTMLNUM:S/^/mpd/:S/$/.html/} mpd.html mpd.ps README	\
 PLIST_DIRS=	etc/mpd5
 PLIST_FILES=	${CONFSUF:S/^/etc\/mpd5\/mpd./:S/$/.sample/} sbin/mpd5
 
-.include <bsd.port.post.mk>
+.include <bsd.port.mk>
