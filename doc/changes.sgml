@@ -6,6 +6,27 @@
   <sect><heading>Change history<label id="changes"></heading>
 
   <p>
+    Changes since version 5.7:
+    <itemize>
+	<item> New features:
+	<itemize>
+	  <item> Added `set pppoe mac-format ...` command.
+	  </item>
+	</itemize>
+	</item>
+	<item> Changes:
+	<itemize>
+	</itemize>
+	</item>
+	<item> Bugfixes:
+	<itemize>
+	  <item> Restore send mac address to radius server in unformatted value.
+	  </item>
+	</itemize>
+	</item>
+    </itemize>
+  </p>
+  <p>
     Changes since version 5.6:
     <itemize>
 	<item> New features:

@@ -48,5 +48,14 @@ set pppoe acname <em>name</em>
 Set name of this PPPoE access concentrator to be sent to clients.
 If not specified, local hostname will be used.
 
+<tag><tt>
+set pppoe mac-format <em>format</em>
+</tt></tag>
+
+Set radius server attribute 31 mac format as `unix-like` - aa:bb:cc:dd:ee:ff,
+or `unformatted` - aabbccddeeff.
+
+The default is "unformatted".
+
 </descrip>
 

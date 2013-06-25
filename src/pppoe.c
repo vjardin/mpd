@@ -50,6 +50,7 @@ struct pppoeinfo {
 	char		hook[NG_HOOKSIZ];	/* hook on that node */
 	char		session[MAX_SESSION];	/* session name */
 	char		acname[PPPOE_SERVICE_NAME_SIZE];	/* AC name */
+	int		mac_format;		/* MAC address format */
 	u_char		peeraddr[6];		/* Peer MAC address */
 	char		real_session[MAX_SESSION]; /* real session name */
 	char		agent_cid[64];		/* Agent Circuit ID */
@@ -69,7 +70,8 @@ static u_char gNgEtherLoaded = FALSE;
 enum {
 	SET_IFACE,
 	SET_SESSION,
-	SET_ACNAME
+	SET_ACNAME,
+	SET_MAC_FORMAT
 };
 
 /*
@@ -164,6 +166,8 @@ const struct cmdtab PppoeSetCmds[] = {
 	  PppoeSetCommand, NULL, 2, (void *)SET_SESSION },
       { "acname {name}",	"Set PPPoE access concentrator name",
 	  PppoeSetCommand, NULL, 2, (void *)SET_ACNAME },
+      { "mac-format {format}",		"set radius attribute 31 mac format",
+	  PppoeSetCommand, NULL, 2, (void *)SET_MAC_FORMAT },
       { NULL },
 };
 
@@ -213,6 +217,7 @@ PppoeInit(Link l)
 	pe->agent_cid[0] = 0;
 	pe->agent_rid[0] = 0;
 	pe->PIf = NULL;
+	pe->mac_format = 0;
 
 	/* Done */
 	return(0);
@@ -555,6 +560,8 @@ PppoeStat(Context ctx)
 	Printf("\tIface Node   : %s\r\n", pe->path);
 	Printf("\tIface Hook   : %s\r\n", pe->hook);
 	Printf("\tSession      : %s\r\n", pe->session);
+	Printf("\tMAC format   : %s\r\n",
+	    pe->mac_format ? "unix-like" : "unformatted");
 	Printf("PPPoE status:\r\n");
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	    Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
@@ -615,7 +622,13 @@ PppoeCallingNum(Link l, void *buf, size_t buf_len)
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
 	if (pppoe->incoming) {
-	    ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+	    if (!pppoe->mac_format) {
+		snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
+		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+	    } else {
+		ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+	    }
 	} else {
 	    strlcpy(buf, pppoe->real_session, buf_len);
 	}
@@ -629,7 +642,13 @@ PppoeCalledNum(Link l, void *buf, size_t buf_len)
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
 	if (!pppoe->incoming) {
-	    ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+	    if (!pppoe->mac_format) {
+		snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
+		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+	    } else {
+		ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+	    }
 	} else {
 	    strlcpy(buf, pppoe->real_session, buf_len);
 	}
@@ -1376,6 +1395,12 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 		if (ac != 1)
 			return(-1);
 		strlcpy(pi->acname, av[0], sizeof(pi->acname));
+		break;
+	case SET_MAC_FORMAT:
+		if (ac != 1)
+			return(-1);
+		if (strcmp(av[0], "unix-like") == 0)
+		    pi->mac_format = 1;
 		break;
 	default:
 		assert(0);
