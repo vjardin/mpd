@@ -1467,7 +1467,7 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 		} else if (strcmp(av[0], "ietf") == 0) {
 		    pi->mac_format = MAC_IETF;
 		} else {
-		    return(-1);
+		    Error("Incorrect pppoe mac-format");
 		}
 		break;
 	default:
