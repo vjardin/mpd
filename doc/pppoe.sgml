@@ -52,8 +52,13 @@ If not specified, local hostname will be used.
 set pppoe mac-format <em>format</em>
 </tt></tag>
 
-Set radius server attribute 31 mac format as `unix-like` - aa:bb:cc:dd:ee:ff,
-or `unformatted` - aabbccddeeff.
+Set radius server attribute 31 mac format as:
+<verb>
+unformatted	aabbccddeeff
+unix-like	aa:bb:cc:dd:ee:ff
+cisco-like	aabb.ccdd.eeff
+ietf		aa-bb-cc-dd-ee-ff
+</verb>
 
 The default is "unformatted".
 

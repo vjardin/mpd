@@ -74,6 +74,14 @@ enum {
 	SET_MAC_FORMAT
 };
 
+/* MAC format options */
+enum {
+    MAC_UNFORMATTED = 0,
+    MAC_UNIX_LIKE,
+    MAC_CISCO_LIKE,
+    MAC_IETF
+};
+
 /*
    Invariants:
    ----------
@@ -217,7 +225,7 @@ PppoeInit(Link l)
 	pe->agent_cid[0] = 0;
 	pe->agent_rid[0] = 0;
 	pe->PIf = NULL;
-	pe->mac_format = 0;
+	pe->mac_format = MAC_UNFORMATTED;
 
 	/* Done */
 	return(0);
@@ -556,12 +564,29 @@ PppoeStat(Context ctx)
 	const PppoeInfo pe = (PppoeInfo)ctx->lnk->info;
 	char	buf[32];
 
+	switch (pe->mac_format) {
+	    case MAC_UNFORMATTED:
+		sprintf(buf, "unformatted");
+		break;
+	    case MAC_UNIX_LIKE:
+		sprintf(buf, "unix-like");
+		break;
+	    case MAC_CISCO_LIKE:
+		sprintf(buf, "cisco-like");
+		break;
+	    case MAC_IETF:
+		sprintf(buf, "ietf");
+		break;
+	    default:
+		sprintf(buf, "unknown");
+		break;
+	}
+
 	Printf("PPPoE configuration:\r\n");
 	Printf("\tIface Node   : %s\r\n", pe->path);
 	Printf("\tIface Hook   : %s\r\n", pe->hook);
 	Printf("\tSession      : %s\r\n", pe->session);
-	Printf("\tMAC format   : %s\r\n",
-	    pe->mac_format ? "unix-like" : "unformatted");
+	Printf("\tMAC format   : %s\r\n", buf);
 	Printf("PPPoE status:\r\n");
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
 	    Printf("\tOpened       : %s\r\n", (pe->opened?"YES":"NO"));
@@ -622,12 +647,29 @@ PppoeCallingNum(Link l, void *buf, size_t buf_len)
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
 	if (pppoe->incoming) {
-	    if (!pppoe->mac_format) {
-		snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
-		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
-		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
-	    } else {
-		ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+	    switch (pppoe->mac_format) {
+		case MAC_UNFORMATTED:
+		    snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
+		    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+		    break;
+		case MAC_UNIX_LIKE:
+		    ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+		    break;
+		case MAC_CISCO_LIKE:
+		    snprintf(buf, buf_len, "%02x%02x.%02x%02x.%02x%02x",
+		    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+		    break;
+		case MAC_IETF:
+		    snprintf(buf, buf_len, "%02x-%02x-%02x-%02x-%02x-%02x",
+		    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+		    break;
+		default:
+		    sprintf(buf, "unknown");
+		    return(-1);
+		    break;
 	    }
 	} else {
 	    strlcpy(buf, pppoe->real_session, buf_len);
@@ -642,12 +684,29 @@ PppoeCalledNum(Link l, void *buf, size_t buf_len)
 	PppoeInfo	const pppoe = (PppoeInfo)l->info;
 
 	if (!pppoe->incoming) {
-	    if (!pppoe->mac_format) {
-		snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
-		pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
-		pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
-	    } else {
-		ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+	    switch (pppoe->mac_format) {
+		case MAC_UNFORMATTED:
+		    snprintf(buf, buf_len, "%02x%02x%02x%02x%02x%02x",
+		    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+		    break;
+		case MAC_UNIX_LIKE:
+		    ether_ntoa_r((struct ether_addr *)pppoe->peeraddr, buf);
+		    break;
+		case MAC_CISCO_LIKE:
+		    snprintf(buf, buf_len, "%02x%02x.%02x%02x.%02x%02x",
+		    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+		    break;
+		case MAC_IETF:
+		    snprintf(buf, buf_len, "%02x-%02x-%02x-%02x-%02x-%02x",
+		    pppoe->peeraddr[0], pppoe->peeraddr[1], pppoe->peeraddr[2],
+		    pppoe->peeraddr[3], pppoe->peeraddr[4], pppoe->peeraddr[5]);
+		    break;
+		default:
+		    sprintf(buf, "unknown");
+		    return(-1);
+		    break;
 	    }
 	} else {
 	    strlcpy(buf, pppoe->real_session, buf_len);
@@ -1399,8 +1458,17 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_MAC_FORMAT:
 		if (ac != 1)
 			return(-1);
-		if (strcmp(av[0], "unix-like") == 0)
-		    pi->mac_format = 1;
+		if (strcmp(av[0], "unformatted") == 0) {
+		    pi->mac_format = MAC_UNFORMATTED;
+		} else if (strcmp(av[0], "unix-like") == 0) {
+		    pi->mac_format = MAC_UNIX_LIKE;
+		} else if (strcmp(av[0], "cisco-like") == 0) {
+		    pi->mac_format = MAC_CISCO_LIKE;
+		} else if (strcmp(av[0], "ietf") == 0) {
+		    pi->mac_format = MAC_IETF;
+		} else {
+		    return(-1);
+		}
 		break;
 	default:
 		assert(0);
