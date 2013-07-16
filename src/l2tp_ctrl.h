@@ -396,7 +396,7 @@ extern int	ppp_l2tp_ctrl_get_self_name(struct ppp_l2tp_ctrl *ctrl,
 			void *buf, size_t buf_len);
 extern int	ppp_l2tp_ctrl_get_peer_name(struct ppp_l2tp_ctrl *ctrl,
 			void *buf, size_t buf_len);
-
+extern char*	ppp_l2tp_ctrl_get_peer_name_p(struct ppp_l2tp_ctrl *ctrl);
 /*
  * Get the node ID and hook name for the hook that corresponds
  * to a session's data packets.

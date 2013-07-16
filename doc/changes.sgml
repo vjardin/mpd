@@ -10,6 +10,8 @@
     <itemize>
 	<item> New features:
 	<itemize>
+	  <item> Added `set l2tp peermask ...` command.
+	  </item>
 	  <item> Added `set pppoe mac-format ...` command.
 	  </item>
 	</itemize>

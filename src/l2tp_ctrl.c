@@ -965,6 +965,11 @@ ppp_l2tp_ctrl_get_peer_name(struct ppp_l2tp_ctrl *ctrl,
 	return (0);
 };
 
+char *
+ppp_l2tp_ctrl_get_peer_name_p(struct ppp_l2tp_ctrl *ctrl) {
+	return &(ctrl->peer_name[0]);
+};
+
 /*
  * Get the node path and hook name for the hook that corresponds
  * to a control connection's L2TP frames.

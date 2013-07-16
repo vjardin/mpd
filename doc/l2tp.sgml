@@ -78,6 +78,14 @@ If several hostnames defined, only the first matching will be used for all
 incoming connections.
 
 <tag><tt>
+set l2tp peermask <em>mask</em>
+</tt></tag>
+
+Check peer hostname, related to wildcard <tt><em>mask</em></tt>.
+Wildcard can contain any shell-like mask, such as "*.myhost.com"
+Peer can set self hostname with <tt><em>set l2tp hostname</em></tt> command.
+
+<tag><tt>
 set l2tp secret <em>secret</em>
 </tt></tag>
 

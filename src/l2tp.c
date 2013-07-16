@@ -28,6 +28,7 @@
 #include <netgraph/ng_ksocket.h>
 #include <netgraph/ng_l2tp.h>
 #include <netgraph.h>
+#include <fnmatch.h>
 
 /*
  * DEFINITIONS
@@ -74,6 +75,7 @@
 	char 		hostname[MAXHOSTNAMELEN]; /* L2TP local hostname */
 	char		secret[64];	/* L2TP tunnel secret */
 	char		*fqdn_peer_addr;	/* FQDN Peer address */
+	char		*peer_mask;	/* L2TP peer hostname mask */
     } conf;
     u_char		opened;		/* L2TP opened by phys */
     u_char		incoming;	/* Call is incoming vs. outgoing */
@@ -94,6 +96,7 @@
     SET_CALLINGNUM,
     SET_CALLEDNUM,
     SET_HOSTNAME,
+    SET_PEERMASK,
     SET_SECRET,
     SET_ENABLE,
     SET_DISABLE
@@ -209,6 +212,8 @@
 	L2tpSetCommand, NULL, 2, (void *) SET_CALLEDNUM },
     { "hostname {name}",		"Set L2TP local hostname",
 	L2tpSetCommand, NULL, 2, (void *) SET_HOSTNAME },
+    { "peermask {mask}",		"Set L2TP peer hostname mask",
+	L2tpSetCommand, NULL, 2, (void *) SET_PEERMASK },
     { "secret {sec}",			"Set L2TP tunnel secret",
 	L2tpSetCommand, NULL, 2, (void *) SET_SECRET },
     { "enable [opt ...]",		"Enable option",
@@ -298,6 +303,7 @@ L2tpInit(Link l)
     l2tp->conf.peer_addr.width = 0;
     l2tp->conf.peer_port = 0;
     l2tp->conf.fqdn_peer_addr = NULL;
+    l2tp->conf.peer_mask = NULL;
 
     Enable(&l2tp->conf.options, L2TP_CONF_DATASEQ);
     Enable(&l2tp->conf.options, L2TP_CONF_RESOLVE_ONCE);
@@ -320,6 +326,8 @@ L2tpInst(Link l, Link lt)
 	if (pit->conf.fqdn_peer_addr != NULL)
 	    pi->conf.fqdn_peer_addr =
 	        Mstrdup(MB_PHYS, pit->conf.fqdn_peer_addr);
+	if (pit->conf.peer_mask != NULL)
+	    pi->conf.peer_mask = Mstrdup(MB_PHYS, pit->conf.peer_mask);
 	if (pi->server)
 	    pi->server->refs++;
 	
@@ -680,7 +688,8 @@ L2tpShutdown(Link l)
 
     if (pi->conf.fqdn_peer_addr)
         Freee(pi->conf.fqdn_peer_addr);
-
+    if (pi->conf.peer_mask)
+        Freee(pi->conf.peer_mask);
     L2tpUnListen(l);
     Freee(l->info);
 }
@@ -911,6 +920,7 @@ L2tpStat(Context ctx)
 	Printf(", port %u", l2tp->conf.peer_port);
     Printf("\r\n");
     Printf("\tHostname     : %s\r\n", l2tp->conf.hostname);
+    Printf("\tPeer mask    : %s\r\n", l2tp->conf.peer_mask);
     Printf("\tSecret       : %s\r\n", (l2tp->conf.callingnum[0])?"******":"");
     Printf("\tCalling number: %s\r\n", l2tp->conf.callingnum);
     Printf("\tCalled number: %s\r\n", l2tp->conf.callednum);
@@ -1103,6 +1113,7 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 	u_char *include_length, u_char *enable_dseq)
 {
 	struct	l2tp_tun *const tun = ppp_l2tp_ctrl_get_cookie(ctrl);
+	char   *peername = ppp_l2tp_ctrl_get_peer_name_p(ctrl);
 	struct	ppp_l2tp_avp_ptrs *ptrs = NULL;
 	Link 	l = NULL;
 	L2tpInfo pi = NULL;
@@ -1146,7 +1157,8 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		    ((u_addrempty(&pi2->conf.self_addr)) || (u_addrcompare(&pi2->conf.self_addr, &tun->self_addr) == 0)) &&
 		    (pi2->conf.self_port == 0 || pi2->conf.self_port == tun->self_port) &&
 		    (IpAddrInRange(&pi2->conf.peer_addr, &tun->peer_addr)) &&
-		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == tun->peer_port)) {
+		    (pi2->conf.peer_port == 0 || pi2->conf.peer_port == tun->peer_port) &&
+		    (peername == NULL || *peername == 0 || pi2->conf.peer_mask == 0 || fnmatch(pi2->conf.peer_mask, peername, 0) == 0)) {
 			
 			if (pi == NULL || pi2->conf.peer_addr.width > pi->conf.peer_addr.width) {
 				l = l2;
@@ -1165,6 +1177,9 @@ ppp_l2tp_initiated_cb(struct ppp_l2tp_ctrl *ctrl,
 		Log(LG_PHYS, ("[%s] L2TP: %s call #%u via control connection %p accepted", 
 		    l->name, (out?"Outgoing":"Incoming"), 
 		    ppp_l2tp_sess_get_serial(sess), ctrl));
+		if (peername && *peername)
+		    Log(LG_PHYS2, ("[%s] L2TP: Call #%u remote hostname is %s",
+			l->name, ppp_l2tp_sess_get_serial(sess), peername));
 
 		if (out)
 		    l->state = PHYS_STATE_READY;
@@ -1711,6 +1726,7 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
 {
     L2tpInfo		const l2tp = (L2tpInfo) ctx->lnk->info;
     char		**fqdn_peer_addr = &l2tp->conf.fqdn_peer_addr;
+    char		**peer_mask = &l2tp->conf.peer_mask;
     struct u_range	rng;
     int			port;
 
@@ -1756,6 +1772,13 @@ L2tpSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    if (ac != 1)
 		return(-1);
     	    strlcpy(l2tp->conf.hostname, av[0], sizeof(l2tp->conf.hostname));
+    	    break;
+	case SET_PEERMASK:
+    	    if (ac != 1)
+		return(-1);
+	    if (*peer_mask)
+		Freee(*peer_mask);
+	    *peer_mask = Mstrdup(MB_PHYS, av[0]);
     	    break;
 	case SET_SECRET:
     	    if (ac != 1)
