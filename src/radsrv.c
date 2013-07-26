@@ -8,6 +8,7 @@
 #include "ppp.h"
 #include "radsrv.h"
 #include "util.h"
+#include <stdint.h>
 #include <radlib.h>
 #include <radlib_vs.h>
 
@@ -97,9 +98,10 @@ RadsrvEvent(int type, void *cookie)
     char	*username = NULL, *called = NULL, *calling = NULL, *sesid = NULL;
     char	*msesid = NULL, *link = NULL, *bundle = NULL, *iface = NULL;
     int		nasport = -1, serv_type = 0, ifindex = -1, i;
-    u_int	session_timeout = -1, idle_timeout = -1, acct_update = -1;
-    struct in_addr ip = { -1 };
-    struct in_addr nas_ip = { -1 };
+    u_int	session_timeout = UINT_MAX, idle_timeout = UINT_MAX;
+    u_int	acct_update = UINT_MAX;
+    struct in_addr ip = { UINT32_MAX };
+    struct in_addr nas_ip = { UINT32_MAX };
     char	buf[64];
     u_int32_t	vendor;
     u_char	*state = NULL, *rad_class = NULL;
@@ -439,7 +441,8 @@ RadsrvEvent(int type, void *cookie)
 	}
     }
     err = 0;
-    if (w->addr.u.ip4.s_addr != 0 && nas_ip.s_addr != -1 && w->addr.u.ip4.s_addr != nas_ip.s_addr) {
+    if (w->addr.u.ip4.s_addr != 0 && nas_ip.s_addr != UINT32_MAX
+    && w->addr.u.ip4.s_addr != nas_ip.s_addr) {
         Log(LG_ERR, ("radsrv: incorrect NAS-IP-Address"));
 	err = 403;
     } else if (anysesid == 0) {
@@ -487,9 +490,9 @@ RadsrvEvent(int type, void *cookie)
 		continue;
 	    if (iface && (!B || strcmp(iface, B->iface.ifname)))
 		continue;
-	    if (ifindex >= 0 && (!B || ifindex != B->iface.ifindex))
+	    if (ifindex >= 0 && (!B || (uint)ifindex != B->iface.ifindex))
 		continue;
-	    if (ip.s_addr != -1 && (!B ||
+	    if (ip.s_addr != UINT32_MAX && (!B ||
 		    ip.s_addr != B->iface.peer_addr.u.ip4.s_addr))
 		continue;
 		
@@ -546,11 +549,11 @@ RadsrvEvent(int type, void *cookie)
 		strcpy(L->lcp.auth.params.std_acct[0], std_acct[0]);
 		strcpy(L->lcp.auth.params.std_acct[1], std_acct[1]);
 #endif
-		if (session_timeout != -1)
+		if (session_timeout != UINT_MAX)
 		    L->lcp.auth.params.session_timeout = session_timeout;
-		if (idle_timeout != -1)
+		if (idle_timeout != UINT_MAX)
 		    L->lcp.auth.params.idle_timeout = idle_timeout;
-		if (acct_update != -1) {
+		if (acct_update != UINT_MAX) {
 		    L->lcp.auth.params.acct_update = acct_update;
 		    /* Stop accounting update timer if running. */
 		    TimerStop(&L->lcp.auth.acct_timer);
