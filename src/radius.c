@@ -1462,7 +1462,7 @@ RadiusGetParams(AuthData auth, int eap_proxy)
         Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_FRAMED_IP_ADDRESS: %s",
           auth->info.lnkname, inet_ntoa(ip)));
 
-	if (strcmp(inet_ntoa(ip), "255.255.255.255") == 0) {
+	if (ip.s_addr == INADDR_BROADCAST) {
 	  /* the peer can choose an address */
 	  Log(LG_RADIUS2, ("[%s]   the peer can choose an address", auth->info.lnkname));
 	  ip.s_addr=0;
