@@ -189,6 +189,13 @@ set iface enable proxy-arp
 
 The default is disable.
 
+<tag><tt>keep-timeout</tt></tag>
+
+When this option is enabled, we are not clear ``session timeout''
+counter. This is useful together with CoA requests.
+
+The default is disable.
+
 <tag><tt>tcpmssfix</tt></tag>
 This option causes mpd to adjust incoming and outgoing TCP SYN
 segments so that the requested maximum segment size is not greater

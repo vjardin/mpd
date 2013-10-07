@@ -197,6 +197,7 @@
   static const struct confinfo	gConfList[] = {
     { 0,	IFACE_CONF_ONDEMAND,		"on-demand"	},
     { 0,	IFACE_CONF_PROXY,		"proxy-arp"	},
+    { 0,	IFACE_CONF_KEEP_TIMEOUT,	"keep-timeout"	},
 #ifdef USE_NG_TCPMSS
     { 0,	IFACE_CONF_TCPMSSFIX,           "tcpmssfix"	},
 #endif
@@ -293,6 +294,7 @@ IfaceInit(Bund b)
 #endif
   Disable(&iface->options, IFACE_CONF_ONDEMAND);
   Disable(&iface->options, IFACE_CONF_PROXY);
+  Disable(&iface->options, IFACE_CONF_KEEP_TIMEOUT);
   Disable(&iface->options, IFACE_CONF_TCPMSSFIX);
 #ifdef	USE_NG_NAT
   NatInit(b);
@@ -453,7 +455,12 @@ IfaceUp(Bund b, int ready)
 
     /* Start Session timer */
     if (b->params.session_timeout > 0) {
-	session_timeout = b->params.session_timeout;
+	if (Enabled(&iface->options, IFACE_CONF_KEEP_TIMEOUT)) {
+	    session_timeout = b->params.session_timeout - \
+		(iface->last_up - b->last_up);
+	} else {
+	    session_timeout = b->params.session_timeout;
+	}
     } else if (iface->session_timeout > 0) {
 	session_timeout = iface->session_timeout;
     }
