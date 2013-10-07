@@ -29,7 +29,7 @@
   /* Macros */
   #define MBDATAU(bp)	((u_char *)(bp) + sizeof(struct mpdmbuf) + (bp)->offset)
   #define MBDATA(bp)	((bp) ? MBDATAU(bp) : NULL)
-  #define MBLEN(bp)	((bp) ? (bp)->cnt : 0)
+  #define MBLEN(bp)	((size_t)((bp) ? (bp)->cnt : 0))
   #define MBSPACE(bp)	((bp) ? (bp)->size - (bp)->offset : 0)
 
   /* Types of allocated memory */
