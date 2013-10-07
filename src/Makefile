@@ -295,6 +295,9 @@ COPTS+=         -DUSE_FETCH
 LDADD+=		-lfetch
 DPADD+=		${LIBFETCH}
 .endif
+.if defined ( SMALL_SYSTEM )
+COPTS+=         -DSMALL_SYSTEM
+.endif
 
 # Add in required support files and libraries
 

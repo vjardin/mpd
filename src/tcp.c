@@ -26,7 +26,12 @@
 #define TCP_MRU		2048
 #define LISTENHOOK		"listen"
 
+#ifndef SMALL_SYSTEM
 #define TCP_MAXPARENTIFS	256
+#else
+#define TCP_MAXPARENTIFS	64
+#endif
+
 
 struct tcpinfo {
 	/* Configuration */

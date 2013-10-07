@@ -31,7 +31,11 @@
   #define UDP_MTU		2048
   #define UDP_MRU		2048
 
-  #define UDP_MAXPARENTIFS	256
+#ifndef SMALL_SYSTEM
+#define UDP_MAXPARENTIFS	256
+#else
+#define UDP_MAXPARENTIFS	64
+#endif
 
   struct udpinfo {
     struct {
