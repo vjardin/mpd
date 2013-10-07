@@ -232,12 +232,8 @@ RadsrvEvent(int type, void *cookie)
 		ip = rad_cvt_addr(data);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_FRAMED_IP_ADDRESS: %s",
 		    inet_ntoa(ip)));
-		if (ip.s_addr == INADDR_BROADCAST) {
-		    ip.s_addr = INADDR_ANY;
-		} else if (strcmp(inet_ntoa(ip), "255.255.255.254") == 0) {
-		    Log(LG_ERR, ("radsrv: Bad value"));
-		    anysesid = 0;
-		}
+		if (ip.s_addr == INADDR_BROADCAST)
+		    Log(LG_ERR, ("radsrv: incorrect Framed-IP-Address"));
 		break;
 	    case RAD_NAS_PORT:
 		anysesid = 1;
