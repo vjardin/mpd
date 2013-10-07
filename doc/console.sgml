@@ -58,6 +58,12 @@ This options enables writing of logging messages to the current console.
 
 The default is enable for stdout and disable for the rest.
 
+<tag><tt>auth</tt></tag>
+
+This options enables autorized login to console. This is a read-only value.
+
+The default is enable.
+
 </descrip>
 
 </p>

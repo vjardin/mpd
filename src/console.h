@@ -31,6 +31,11 @@
 				  return(CMD_ERR_OTHER);			\
   				} while (0)
 
+  /* Global configuration options */
+  enum {
+    CONSOLE_AUTH	/* enable authentication */
+  };
+
   /* Configuration options */
   enum {
     CONSOLE_LOGGING	/* enable logging */
@@ -43,6 +48,7 @@
     SLIST_HEAD(, console_session) sessions;	/* active sessions */
     EventRef		event;		/* connect-event */
     pthread_rwlock_t	lock;
+    struct optinfo	options;	/* Configured options */
   };
 
   typedef struct console *Console;

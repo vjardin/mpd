@@ -16,6 +16,8 @@
 	  </item>
 	  <item> Added `set iface keep-timeout` options.
 	  </item>
+	  <item> Added `set console auth` options.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

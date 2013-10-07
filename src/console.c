@@ -87,6 +87,11 @@
  */
 
   static const struct confinfo	gConfList[] = {
+    { 0,	CONSOLE_AUTH,		"auth"		},
+    { 0,	0,			NULL		},
+  };
+
+  static const struct confinfo	sConfList[] = {
     { 0,	CONSOLE_LOGGING,	"logging"	},
     { 0,	0,			NULL		},
   };
@@ -107,6 +112,7 @@ ConsoleInit(Console c)
   memset(&gConsole, 0, sizeof(gConsole));
   ParseAddr(DEFAULT_CONSOLE_IP, &c->addr, ALLOW_IPV4|ALLOW_IPV6);
   c->port = DEFAULT_CONSOLE_PORT;
+  Enable(&c->options, CONSOLE_AUTH);
 
   SLIST_INIT(&c->sessions);
   
@@ -194,9 +200,11 @@ ConsoleStat(Context ctx, int ac, char *av[], void *arg)
   }
   RWLOCK_UNLOCK(c->lock);
 
+  Printf("Global options:\r\n");
+  OptStat(ctx, &c->options, gConfList);
   if (cs) {
     Printf("This session options:\r\n");
-    OptStat(ctx, &cs->options, gConfList);
+    OptStat(ctx, &cs->options, sConfList);
   }
   return 0;
 }
@@ -233,7 +241,13 @@ ConsoleConnect(int type, void *cookie)
   cs->write = ConsoleSessionWrite;
   cs->writev = ConsoleSessionWriteV;
   cs->prompt = ConsoleSessionShowPrompt;
-  cs->state = STATE_USERNAME;
+  if (!Enabled(&c->options, CONSOLE_AUTH)) {
+	cs->state = STATE_AUTHENTIC;
+	strcpy(cs->user.username, "root");
+	cs->context.priv = 2;
+  } else {
+	cs->state = STATE_USERNAME;
+  }
   cs->context.cs = cs;
   RWLOCK_WRLOCK(c->lock);
   SLIST_INSERT_HEAD(&c->sessions, cs, next);
@@ -794,12 +808,16 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
 
     case SET_ENABLE:
       if (cs)
-	EnableCommand(ac, av, &cs->options, gConfList);
+	EnableCommand(ac, av, &cs->options, sConfList);
+      else
+	EnableCommand(ac, av, &c->options, gConfList);
       break;
 
     case SET_DISABLE:
       if (cs)
-	DisableCommand(ac, av, &cs->options, gConfList);
+	DisableCommand(ac, av, &cs->options, sConfList);
+      else
+	DisableCommand(ac, av, &c->options, gConfList);
       break;
 
     case SET_SELF:
@@ -888,7 +906,7 @@ UserStat(Context ctx, int ac, char *av[], void *arg)
     RWLOCK_RDLOCK(gUsersLock);
     ghash_walk_init(gUsers, &walk);
     while ((u = ghash_walk_next(gUsers, &walk)) !=  NULL) {
-	Printf("\tUsername: %-15s Priv:%s\r\n", u->username,
+	Printf("\tUsername: %-15s Priv: %s\r\n", u->username,
 	    ((u->priv == 2)?"admin":((u->priv == 1)?"operator":"user")));
     }
     RWLOCK_UNLOCK(gUsersLock);
