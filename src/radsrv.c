@@ -100,8 +100,8 @@ RadsrvEvent(int type, void *cookie)
     int		nasport = -1, serv_type = 0, ifindex = -1, i;
     u_int	session_timeout = UINT_MAX, idle_timeout = UINT_MAX;
     u_int	acct_update = UINT_MAX;
-    struct in_addr ip = { UINT32_MAX };
-    struct in_addr nas_ip = { UINT32_MAX };
+    struct in_addr ip = { INADDR_BROADCAST };
+    struct in_addr nas_ip = { INADDR_BROADCAST };
     char	buf[64];
     u_int32_t	vendor;
     u_char	*state = NULL, *rad_class = NULL;
@@ -232,6 +232,12 @@ RadsrvEvent(int type, void *cookie)
 		ip = rad_cvt_addr(data);
 		Log(LG_RADIUS2, ("radsrv: Got RAD_FRAMED_IP_ADDRESS: %s",
 		    inet_ntoa(ip)));
+		if (ip.s_addr == INADDR_BROADCAST) {
+		    ip.s_addr = INADDR_ANY;
+		} else if (strcmp(inet_ntoa(ip), "255.255.255.254") == 0) {
+		    Log(LG_ERR, ("radsrv: Bad value"));
+		    anysesid = 0;
+		}
 		break;
 	    case RAD_NAS_PORT:
 		anysesid = 1;
@@ -441,7 +447,7 @@ RadsrvEvent(int type, void *cookie)
 	}
     }
     err = 0;
-    if (w->addr.u.ip4.s_addr != 0 && nas_ip.s_addr != UINT32_MAX
+    if (w->addr.u.ip4.s_addr != 0 && nas_ip.s_addr != INADDR_BROADCAST
     && w->addr.u.ip4.s_addr != nas_ip.s_addr) {
         Log(LG_ERR, ("radsrv: incorrect NAS-IP-Address"));
 	err = 403;
@@ -492,7 +498,7 @@ RadsrvEvent(int type, void *cookie)
 		continue;
 	    if (ifindex >= 0 && (!B || (uint)ifindex != B->iface.ifindex))
 		continue;
-	    if (ip.s_addr != UINT32_MAX && (!B ||
+	    if (ip.s_addr != INADDR_BROADCAST && (!B ||
 		    ip.s_addr != B->iface.peer_addr.u.ip4.s_addr))
 		continue;
 		
