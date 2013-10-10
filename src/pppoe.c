@@ -44,6 +44,14 @@
 #define MAX_PATH		64	/* XXX should be NG_PATHSIZ */
 #define MAX_SESSION		64	/* max length of PPPoE session name */
 
+#ifndef PTT_MAX_PAYL			/* PPP-Max-Payload (RFC4638) */
+#if BYTE_ORDER == BIG_ENDIAN
+#define PTT_MAX_PAYL		(0x0120)
+#else
+#define PTT_MAX_PAYL		(0x2001)
+#endif
+#endif
+
 /* Per link private info */
 struct pppoeinfo {
 	char		path[MAX_PATH];		/* PPPoE node path */
@@ -176,7 +184,7 @@ const struct cmdtab PppoeSetCmds[] = {
 	  PppoeSetCommand, NULL, 2, (void *)SET_ACNAME },
       { "mac-format {format}",		"set radius attribute 31 mac format",
 	  PppoeSetCommand, NULL, 2, (void *)SET_MAC_FORMAT },
-      { NULL },
+      { NULL }
 };
 
 /* 
@@ -202,6 +210,28 @@ struct PppoeIf {
 
 int PppoeIfCount=0;
 struct PppoeIf PppoeIfs[PPPOE_MAXPARENTIFS];
+
+struct tagname {
+    int		tag;
+    const char	*name;
+};
+
+static const struct tagname tag2str[] = {
+    { PTT_EOL, "End-Of-List" },
+    { PTT_SRV_NAME, "Service-Name" },
+    { PTT_AC_NAME, "AC-Name" },
+    { PTT_HOST_UNIQ, "Host-Uniq" },
+    { PTT_AC_COOKIE, "AC-Cookie" },
+    { PTT_VENDOR, "Vendor-Specific" },
+    { PTT_RELAY_SID, "Relay-Session-ID" },
+    { PTT_MAX_PAYL, "PPP-Max-Payload" },
+    { PTT_SRV_ERR, "Service-Name-Error" },
+    { PTT_SYS_ERR, "AC-System-Error" },
+    { PTT_GEN_ERR, "Generic-Error" },
+    { 0, "UNKNOWN" }
+};
+#define NUM_TAG_NAMES	(sizeof(tag2str) / sizeof(*tag2str))
+
 
 /*
  * PppoeInit()
@@ -745,7 +775,7 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	struct ng_mesg *resp;
 	const struct hooklist *hlist;
 	const struct nodeinfo *ninfo;
-	int f;
+	uint32_t f;
 
 	/* Make sure interface is up. */
 	char iface[IFNAMSIZ];
@@ -970,6 +1000,96 @@ get_vs_tag(const struct pppoe_hdr* ph, uint32_t idx)
 }
 
 static void
+print_tags(const struct pppoe_hdr* ph)
+{
+	const char *const end = ((const char *)(ph + 1))
+	            + ntohs(ph->length);
+	const struct pppoe_tag *pt = (const void *)(ph + 1);
+	const char *ptn;
+	const void *v;
+	char buf[1024], tag[32];
+	size_t len, k;
+
+	/*
+	 * Keep processing tags while a tag header will still fit.
+	 */
+	while((const char*)(pt + 1) <= end) {
+		/*
+		 * If the tag data would go past the end of the packet, abort.
+		 */
+		v = pt + 1;
+		ptn = (((const char *)(pt + 1)) + ntohs(pt->tag_len));
+		if (ptn > end)
+			return;
+		len = ntohs(pt->tag_len);
+		buf[0] = 0;
+		switch (pt->tag_type) {
+		    case PTT_EOL:
+			if (len != 0)
+			    sprintf(buf, "TAG_LENGTH is not zero!");
+			break;
+		    case PTT_SRV_NAME:
+			if (len >= sizeof(buf))
+			    len = sizeof(buf)-1;
+			memcpy(buf, pt + 1, len);
+			buf[len] = 0;
+			if (len == 0)
+			    sprintf(buf, "Any service is acceptable");
+			break;
+		    case PTT_AC_NAME:
+			if (len >= sizeof(buf))
+			    len = sizeof(buf)-1;
+			memcpy(buf, pt + 1, len);
+			buf[len] = 0;
+			break;
+		    case PTT_HOST_UNIQ:
+		    case PTT_AC_COOKIE:
+		    case PTT_RELAY_SID:
+			snprintf(buf, sizeof(buf), "0x%s", Bin2Hex(v, len));
+			break;
+		    case PTT_VENDOR:
+			if (len >= 4)
+			    snprintf(buf, sizeof(buf), "0x%s", Bin2Hex(v, len));
+			break;
+		    case PTT_MAX_PAYL:
+			if (len != 2) {
+			    sprintf(buf, "TAG_LENGTH is not 2!");
+			} else {
+			    sprintf(buf, "%u", *(uint16_t*)(pt + 1));
+			}
+			break;
+		    case PTT_SRV_ERR:
+			if (len > 0 && (const char *)(pt + 1)+4 !=0) {
+			    if (len >= sizeof(buf))
+				len = sizeof(buf)-1;
+			    memcpy(buf, pt + 1, len);
+			    buf[len] = 0;
+			}
+			break;
+		    case PTT_SYS_ERR:
+		    case PTT_GEN_ERR:
+			if (len >= sizeof(buf))
+			    len = sizeof(buf)-1;
+			memcpy(buf, pt + 1, len);
+			buf[len] = 0;
+			break;
+		    default:
+			sprintf(buf, "0x%04x", pt->tag_type);
+			break;
+		}
+		/* First check our stat list for known tags */
+		for (k = 0; k < NUM_TAG_NAMES; k++) {
+		    if (pt->tag_type == tag2str[k].tag) {
+			sprintf(tag, tag2str[k].name);
+			break;
+		    }
+		}
+		Log(LG_PHYS3, ("TAG: %s, Value: %s", tag, buf));
+		pt = (const struct pppoe_tag*)ptn;
+	}
+}
+
+static void
 PppoeListenEvent(int type, void *arg)
 {
 	int			k, sz;
@@ -1053,9 +1173,13 @@ PppoeListenEvent(int type, void *arg)
 		pos += 2 + len1;
 	    }
 	}
+
 	Log(LG_PHYS, ("Incoming PPPoE connection request via %s for "
 	    "service \"%s\" from %s", PIf->ifnodepath, real_session,
 	    ether_ntoa((struct  ether_addr *)&wh->eh.ether_shost)));
+
+	if (gLogOptions & LG_PHYS3)
+	    print_tags(ph);
 
 	if (gShutdownInProgress) {
 		Log(LG_PHYS, ("Shutdown sequence in progress, ignoring request."));
