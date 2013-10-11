@@ -1048,8 +1048,19 @@ print_tags(const struct pppoe_hdr* ph)
 			snprintf(buf, sizeof(buf), "0x%s", Bin2Hex(v, len));
 			break;
 		    case PTT_VENDOR:
-			if (len >= 4)
-			    snprintf(buf, sizeof(buf), "0x%s", Bin2Hex(v, len));
+			if (len >= 4) {
+			    if ((uint8_t)*(uint8_t*)v != 0) {
+				snprintf(buf, sizeof(buf),
+				    "First byte of VENDOR is not zero! 0x%s",
+				    Bin2Hex(v, len));
+			    } else {
+				snprintf(buf, sizeof(buf), "0x%s 0x%s",
+				Bin2Hex(v, 4),
+				Bin2Hex((const uint8_t*)v + 4, len - 4));
+			    }
+			} else {
+			    sprintf(buf, "TAG_LENGTH must be >= 4 !");
+			}
 			break;
 		    case PTT_MAX_PAYL:
 			if (len != 2) {
