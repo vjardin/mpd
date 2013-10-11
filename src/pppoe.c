@@ -52,6 +52,23 @@
 #endif
 #endif
 
+/* http://tools.ietf.org/html/draft-arberg-pppoe-iana-00 */
+#if BYTE_ORDER == BIG_ENDIAN
+#define MPD_PTT_CREDITS		(0x0106)
+#define MPD_PTT_METRICS		(0x0107)
+#define MPD_PTT_SEQ_NUMBER	(0x0108)
+#define MPD_PTT_HURL		(0x0111)
+#define MPD_PTT_MOTM		(0x0112)
+#define MPD_PTT_IP_ROUTE_ADD	(0x0121)
+#else
+#define MPD_PTT_CREDITS		(0x0601)
+#define MPD_PTT_METRICS		(0x0701)
+#define MPD_PTT_SEQ_NUMBER	(0x0801)
+#define MPD_PTT_HURL		(0x1101)
+#define MPD_PTT_MOTM		(0x1201)
+#define MPD_PTT_IP_ROUTE_ADD	(0x2101)
+#endif
+
 /* Per link private info */
 struct pppoeinfo {
 	char		path[MAX_PATH];		/* PPPoE node path */
@@ -228,6 +245,13 @@ static const struct tagname tag2str[] = {
     { PTT_SRV_ERR, "Service-Name-Error" },
     { PTT_SYS_ERR, "AC-System-Error" },
     { PTT_GEN_ERR, "Generic-Error" },
+    /* http://tools.ietf.org/html/draft-arberg-pppoe-iana-00 */
+    { MPD_PTT_CREDITS, "Credits" },
+    { MPD_PTT_METRICS, "Metrics" },
+    { MPD_PTT_SEQ_NUMBER, "Sequence Number" },
+    { MPD_PTT_HURL, "HURL" },
+    { MPD_PTT_MOTM, "MOTM" },
+    { MPD_PTT_IP_ROUTE_ADD, "IP_Route_Add" },
     { 0, "UNKNOWN" }
 };
 #define NUM_TAG_NAMES	(sizeof(tag2str) / sizeof(*tag2str))
@@ -1083,6 +1107,14 @@ print_tags(const struct pppoe_hdr* ph)
 			    len = sizeof(buf)-1;
 			memcpy(buf, pt + 1, len);
 			buf[len] = 0;
+			break;
+		    case MPD_PTT_CREDITS:
+		    case MPD_PTT_METRICS:
+		    case MPD_PTT_SEQ_NUMBER:
+		    case MPD_PTT_HURL:
+		    case MPD_PTT_MOTM:
+		    case MPD_PTT_IP_ROUTE_ADD:
+			sprintf(buf, "Not implemented");
 			break;
 		    default:
 			sprintf(buf, "0x%04x", pt->tag_type);
