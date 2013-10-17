@@ -442,7 +442,7 @@ AuthInput(Link l, int proto, Mbuf bp)
 
   /* Sanity check */
   if (l->lcp.phase != PHASE_AUTHENTICATE && l->lcp.phase != PHASE_NETWORK) {
-    Log(LG_AUTH, ("[%s] AUTH: rec'd stray packet", l->name));
+    Log(LG_ERR|LG_AUTH, ("[%s] AUTH: rec'd stray packet", l->name));
     mbfree(bp);
     return;
   }
@@ -451,7 +451,7 @@ AuthInput(Link l, int proto, Mbuf bp)
 
   /* Sanity check length */
   if (len < sizeof(fsmh)) {
-    Log(LG_AUTH, ("[%s] AUTH: rec'd runt packet: %d bytes",
+    Log(LG_ERR|LG_AUTH, ("[%s] AUTH: rec'd runt packet: %d bytes",
       l->name, len));
     mbfree(bp);
     return;
@@ -1152,7 +1152,7 @@ AuthAsync(void *arg)
         auth->params.authentic = AUTH_CONF_EXT_AUTH;
 	Log(LG_AUTH, ("[%s] AUTH: Trying EXTERNAL", auth->info.lnkname));
 	if (AuthExternal(auth)) {
-	    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned error",
+	    Log(LG_ERR|LG_AUTH, ("[%s] AUTH: EXTERNAL returned error",
     		auth->info.lnkname));
 	} else {
 	    Log(LG_AUTH, ("[%s] AUTH: EXTERNAL returned: %s",
@@ -1171,7 +1171,7 @@ AuthAsync(void *arg)
 	auth->params.authentic = AUTH_CONF_RADIUS_AUTH;
 	Log(LG_AUTH, ("[%s] AUTH: Trying RADIUS", auth->info.lnkname));
 	if (RadiusAuthenticate(auth)) {
-	    Log(LG_AUTH, ("[%s] AUTH: RADIUS returned error",
+	    Log(LG_ERR|LG_AUTH, ("[%s] AUTH: RADIUS returned error",
     		auth->info.lnkname));
 	} else {
 	    Log(LG_AUTH, ("[%s] AUTH: RADIUS returned: %s", 
@@ -1713,7 +1713,7 @@ AuthPreChecks(AuthData auth)
     }
 
     if (num >= gMaxLogins) {
-	Log(LG_AUTH, ("[%s] AUTH: Name: \"%s\" max. number of logins exceeded",
+	Log(LG_ERR|LG_AUTH, ("[%s] AUTH: Name: \"%s\" max. number of logins exceeded",
 	    auth->info.lnkname, auth->params.authname));
         auth->status = AUTH_STATUS_FAIL;
         auth->why_fail = AUTH_FAIL_INVALID_LOGIN;
@@ -2211,7 +2211,7 @@ AuthExternal(AuthData auth)
 	struct u_range        range;
 
 	if (!ParseRange(val, &range, ALLOW_IPV4)) {
-	  Log(LG_AUTH, ("[%s] Ext-auth: FRAMED_ROUTE: Bad route \"%s\"", 
+	  Log(LG_ERR|LG_AUTH, ("[%s] Ext-auth: FRAMED_ROUTE: Bad route \"%s\"",
 	    auth->info.lnkname, val));
 	} else {
 	    struct ifaceroute     *r, *r1;
@@ -2223,7 +2223,8 @@ AuthExternal(AuthData auth)
 	    j = 0;
 	    SLIST_FOREACH(r1, &auth->params.routes, next) {
 	      if (!u_rangecompare(&r->dest, &r1->dest)) {
-	        Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
+	        Log(LG_ERR|LG_AUTH, ("[%s] Ext-auth: Duplicate route",
+	          auth->info.lnkname));
 	        j = 1;
 	      }
 	    };
@@ -2238,7 +2239,7 @@ AuthExternal(AuthData auth)
 	struct u_range        range;
 
 	if (!ParseRange(val, &range, ALLOW_IPV6)) {
-	  Log(LG_AUTH, ("[%s] Ext-auth: FRAMED_IPV6_ROUTE: Bad route \"%s\"", 
+	  Log(LG_ERR|LG_AUTH, ("[%s] Ext-auth: FRAMED_IPV6_ROUTE: Bad route \"%s\"",
 	    auth->info.lnkname, val));
 	} else {
 	    struct ifaceroute     *r, *r1;
@@ -2250,7 +2251,8 @@ AuthExternal(AuthData auth)
 	    j = 0;
 	    SLIST_FOREACH(r1, &auth->params.routes, next) {
 	      if (!u_rangecompare(&r->dest, &r1->dest)) {
-	        Log(LG_AUTH, ("[%s] Ext-auth: Duplicate route", auth->info.lnkname));
+	        Log(LG_ERR|LG_AUTH, ("[%s] Ext-auth: Duplicate route",
+	          auth->info.lnkname));
 	        j = 1;
 	      }
 	    };
