@@ -78,7 +78,7 @@ If several hostnames defined, only the first matching will be used for all
 incoming connections.
 
 <tag><tt>
-set l2tp peermask <em>mask</em>
+set l2tp pmask <em>mask</em>
 </tt></tag>
 
 Check peer hostname, related to wildcard <tt><em>mask</em></tt>.

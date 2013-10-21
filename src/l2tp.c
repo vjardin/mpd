@@ -212,7 +212,7 @@
 	L2tpSetCommand, NULL, 2, (void *) SET_CALLEDNUM },
     { "hostname {name}",		"Set L2TP local hostname",
 	L2tpSetCommand, NULL, 2, (void *) SET_HOSTNAME },
-    { "peermask {mask}",		"Set L2TP peer hostname mask",
+    { "pmask {mask}",			"Set L2TP peer hostname mask",
 	L2tpSetCommand, NULL, 2, (void *) SET_PEERMASK },
     { "secret {sec}",			"Set L2TP tunnel secret",
 	L2tpSetCommand, NULL, 2, (void *) SET_SECRET },
