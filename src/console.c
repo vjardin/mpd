@@ -807,16 +807,18 @@ ConsoleSetCommand(Context ctx, int ac, char *av[], void *arg)
       break;
 
     case SET_ENABLE:
-      if (cs)
-	EnableCommand(ac, av, &cs->options, sConfList);
-      else
+      if (cs) {
+	if (strcmp(av[0], "auth") != 0)
+	    EnableCommand(ac, av, &cs->options, sConfList);
+      } else
 	EnableCommand(ac, av, &c->options, gConfList);
       break;
 
     case SET_DISABLE:
-      if (cs)
-	DisableCommand(ac, av, &cs->options, sConfList);
-      else
+      if (cs) {
+	if (strcmp(av[0], "auth") != 0)
+	    DisableCommand(ac, av, &cs->options, sConfList);
+      } else
 	DisableCommand(ac, av, &c->options, gConfList);
       break;
 
