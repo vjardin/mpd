@@ -18,11 +18,11 @@
 	  </item>
 	  <item> Added `set console auth` options.
 	  </item>
-	  <item> Added 'agent-rid' global option to control diaplay
+	  <item> Added 'agent-rid' global option to control display
 	    PPPoE ADSL-Agent-Circuit-Id option in `show session` command.
 	    Default is disabled.
 	  </item>
-	  <item> Added 'session-time' global option to control diaplay
+	  <item> Added 'session-time' global option to control display
 	    session time in seconds in `show session` command.
 	    Default is disabled.
 	  </item>
