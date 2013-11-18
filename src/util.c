@@ -851,7 +851,8 @@ GenerateMagic(void)
 int
 PIDCheck(const char *filename, int killem)
 {
-  int	fd = -1, n_tries;
+  int	n_tries;
+  struct pidfh *pfh = NULL;
 
 /* Sanity */
 
@@ -859,88 +860,43 @@ PIDCheck(const char *filename, int killem)
 
 /* Atomically open and lock file */
 
-  for (n_tries = 0;
-    n_tries < MAX_LOCK_ATTEMPTS
-      && (fd = open(filename, O_RDWR|O_CREAT|O_EXLOCK|O_NONBLOCK, 0644)) < 0;
-    n_tries++)
+  for (n_tries = 0; n_tries < MAX_LOCK_ATTEMPTS; n_tries++)
   {
-    int		nscan, old_pid;
-    FILE	*fp;
+    pid_t old_pid;
 
-  /* Abort on any unexpected errors */
-
-    if (errno != EAGAIN)
-    {
-      Perror("%s: open(%s)", __FUNCTION__, filename);
-      return(-1);
+    pfh = pidfile_open(filename, 0644, &old_pid);
+    if (pfh == NULL) {
+	if (errno == EEXIST) {
+	    if (!killem) {
+		Log(LG_ERR, ("already running as process %d", old_pid));
+		return(-1);
+	    }
+	    if (kill(old_pid, SIGTERM) < 0)
+	        switch (errno) {
+		case ESRCH:
+		    Log(LG_ERR, ("process %d no longer exists", old_pid));
+		    break;
+		default:
+		    Perror("%s: kill(%d)", __FUNCTION__, old_pid);
+		    return(-1);
+		}
+	    /* Wait and try again */
+	    Log(LG_ERR, ("waiting for process %d to die...", old_pid));
+	    sleep(1);
+	} else {
+	    Perror("cannot open pid file");
+	    return(-1);
+	}
+    } else {
+	pidfile_write(pfh);
+	break;
     }
-
-  /* We're already running ... see who it is */
-
-    if ((fp = fopen(filename, "r")) == NULL)
-    {
-      Perror("%s: fopen(%s)", __FUNCTION__, filename);
-      return(-1);
-    }
-
-  /* If there's a PID in there, sniff it out */
-
-    nscan = fscanf(fp, "%d", &old_pid);
-    fclose(fp);
-    if (nscan != 1)
-    {
-      Log(LG_ERR, ("%s: contents mangled", filename));
-      return(-1);
-    }
-
-  /* Maybe kill the other guy */
-
-    if (!killem)
-    {
-      Log(LG_ERR, ("already running as process %d", old_pid));
-      return(-1);
-    }
-    if (kill(old_pid, SIGTERM) < 0)
-      switch (errno)
-      {
-	case ESRCH:
-	  Log(LG_ERR, ("process %d no longer exists", old_pid));
-	  break;
-	default:
-	  Perror("%s: kill(%d)", __FUNCTION__, old_pid);
-	  return(-1);
-      }
-
-  /* Wait and try again */
-
-    Log(LG_ERR, ("waiting for process %d to die...", old_pid));
-    sleep(1);
   }
   if (n_tries == MAX_LOCK_ATTEMPTS)
   {
     Log(LG_ERR, ("can't lock %s after %d attempts", filename, n_tries));
     return(-1);
   }
-
-/* Close on exec */
-
-  (void) fcntl(fd, F_SETFD, 1);
-
-/* Create a stream on top of file descriptor */
-
-  if ((lockFp = fdopen(fd, "r+")) == NULL)
-  {
-    Perror("%s: fdopen", __FUNCTION__);
-    return(-1);
-  }
-  setbuf(lockFp, NULL);
-
-/* Write my PID in there */
-
-  rewind(lockFp);
-  fprintf(lockFp, "%u\n", (u_int) gPid);
-  fflush(lockFp);
-  (void) ftruncate(fileno(lockFp), ftell(lockFp));
   return(0);
 }
 
