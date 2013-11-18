@@ -31,7 +31,9 @@
 #ifdef USE_WRAP
     GLOBAL_CONF_TCPWRAPPER,	/* enable tcp-wrapper */
 #endif
-    GLOBAL_CONF_ONESHOT		/* enable OneShot mode */
+    GLOBAL_CONF_ONESHOT,	/* enable OneShot mode */
+    GLOBAL_CONF_AGENT_RID,	/* enable display Agent RID in show session */
+    GLOBAL_CONF_SESS_TIME	/* enable display uptime in show session */
   };
 
   struct globalconf {

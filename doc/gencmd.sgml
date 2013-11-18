@@ -277,6 +277,20 @@ connections, including PPTP and the TCP device layer.
 
 The default is disable.
 
+<tag><tt>agent-rid</tt></tag>
+
+Display PPPoE <em>ADSL-Agent-Circuit-Id</em> option in
+<em>show session</em> command.
+
+The default is disable.
+
+<tag><tt>session-time</tt></tag>
+
+Display session time in seconds in <em>show session</em>
+command.
+
+The default is disable.
+
 <tag><tt>
 set user <em>username</em> <em>password</em>
 [<em>admin</em>|<em>operator</em>|<em>user</em>]

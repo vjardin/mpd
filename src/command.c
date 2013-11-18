@@ -167,6 +167,8 @@
     { 0,	GLOBAL_CONF_TCPWRAPPER,	"tcp-wrapper"	},
 #endif
     { 0,	GLOBAL_CONF_ONESHOT,	"one-shot"	},
+    { 0,	GLOBAL_CONF_AGENT_RID,	"agent-rid"	},
+    { 0,	GLOBAL_CONF_SESS_TIME,	"session-time"	},
     { 0,	0,			NULL		},
   };
 
@@ -1162,7 +1164,8 @@ CloseCommand(Context ctx, int ac, char *av[], void *arg)
 static Layer
 GetLayer(const char *name)
 {
-  int	k, found;
+  size_t	k;
+  int		found;
 
   if (name == NULL)
     name = "iface";
@@ -1189,7 +1192,7 @@ GetLayer(const char *name)
 static int
 ShowLayers(Context ctx, int ac, char *av[], void *arg)
 {
-  int	k;
+  size_t	k;
 
   Printf("\tName\t\tDescription\r\n");
   Printf("\t----\t\t-----------\r\n");
@@ -1311,7 +1314,7 @@ ShowSessions(Context ctx, int ac, char *av[], void *arg)
     int		l;
     Bund	B;
     Link  	L;
-    char	peer[64], addr[64];
+    char	peer[64], addr[64], buf[64];
 
     if (ac != 0 && ac != 1)
 	return (-1);
@@ -1379,6 +1382,14 @@ out:
 		L->lcp.auth.params.authname,
 		peer
 	    );
+	    if (Enabled(&gGlobalConf.options, GLOBAL_CONF_AGENT_RID)) {
+		PhysGetPeerName(L, buf, sizeof(buf));
+		Printf("\t%s", buf);
+	    }
+	    if (Enabled(&gGlobalConf.options, GLOBAL_CONF_SESS_TIME)) {
+		if (L->state == PHYS_STATE_UP)
+		    Printf("\t%ld", (long int)(time(NULL) - L->last_up));
+	    }
 	    Printf("\r\n");
 	}
     }
