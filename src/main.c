@@ -320,15 +320,17 @@ static void
 ConfigRead(int type, void *arg)
 {
     Context	c = (Context)arg;
+    int		err;
 
     /* Read startup configuration section */
-    ReadFile(gConfigFile, STARTUP_CONF, DoCommand, c);
+    err = ReadFile(gConfigFile, STARTUP_CONF, DoCommand, c);
 
     /* Read configuration as specified on the command line, or default */
-    if (!gPeerSystem)
-	ReadFile(gConfigFile, DEFAULT_CONF, DoCommand, c);
-    else {
-	if (ReadFile(gConfigFile, gPeerSystem, DoCommand, c) < 0) {
+    if (!gPeerSystem) {
+	if (err != -2)
+	    ReadFile(gConfigFile, DEFAULT_CONF, DoCommand, c);
+    } else {
+	if (err == -2 || ReadFile(gConfigFile, gPeerSystem, DoCommand, c) < 0) {
 	    Log(LG_ERR, ("can't read configuration for \"%s\"", gPeerSystem));
 	    DoExit(EX_CONFIG);
 	}

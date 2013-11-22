@@ -389,7 +389,7 @@ ReadFile(const char *filename, const char *target,
 /* Open file */
 
   if ((fp = OpenConfFile(filename, &cf)) == NULL)
-    return(-1);
+    return(-2);
 
 /* Find label */
 
