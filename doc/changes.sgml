@@ -36,6 +36,8 @@
 	<itemize>
 	  <item> Restore send mac address to radius server in unformatted value.
 	  </item>
+	  <item> Fix long living bug with ECP.
+	  </item>
 	</itemize>
 	</item>
     </itemize>

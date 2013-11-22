@@ -302,7 +302,7 @@ EcpNgDataEvent(int type, void *cookie)
     socklen_t		nsize;
     Mbuf		bp;
     int			num = 0;
-    char                *bundname, *rest;
+    char                *bundname, *rest, *b1;
     int                 id;
 		
     while (1) {
@@ -335,6 +335,8 @@ EcpNgDataEvent(int type, void *cookie)
 	    mbfree(bp);
     	    continue;
 	}
+	/* Keep old value */
+	b1 = bundname;
 	bundname++;
 	id = strtol(bundname, &rest, 10);
 	if (rest[0] != 0 || !gBundles[id] || gBundles[id]->dead) {
@@ -347,7 +349,7 @@ EcpNgDataEvent(int type, void *cookie)
 	b = gBundles[id];
 
 	/* Packet requiring compression */
-	if (bundname[0] == 'e') {
+	if (b1[0] == 'e') {
 	    bp = EcpDataOutput(b, bp);
 	} else {
 	    /* Packet requiring decompression */
