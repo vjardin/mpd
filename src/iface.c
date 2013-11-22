@@ -2321,6 +2321,11 @@ IfaceNgIpv6Init(Bund b, int ready)
 #endif	/* USE_NG_NETFLOW */
     }
 
+#ifdef USE_NG_BPF
+    if (IfaceInitLimits(b, path, hook))
+	goto fail;
+#endif
+
     /* Connect graph to the iface node. */
     strcpy(cn.ourhook, hook);
     snprintf(cn.path, sizeof(cn.path), "%s:", b->iface.ngname);
@@ -2347,6 +2352,10 @@ IfaceNgIpv6Init(Bund b, int ready)
 #endif /* USE_NG_NETFLOW */
     }
 
+#ifdef USE_NG_BPF
+    IfaceSetupLimits(b);
+#endif
+
     /* OK */
     return(0);
 
@@ -2363,6 +2372,9 @@ IfaceNgIpv6Shutdown(Bund b)
 {
     char		path[NG_PATHSIZ];
 
+#ifdef USE_NG_BPF
+    IfaceShutdownLimits(b); /* Limits must shutdown first to save final stats. */
+#endif
     if (b->iface.tee6_up)
 	IfaceShutdownTee(b, 1);
     b->iface.tee6_up = 0;
