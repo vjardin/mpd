@@ -277,7 +277,7 @@ connections, including PPTP and the TCP device layer.
 
 The default is disable.
 
-<tag><tt>agent-rid</tt></tag>
+<tag><tt>agent-cid</tt></tag>
 
 Display PPPoE <em>ADSL-Agent-Circuit-Id</em> option in
 <em>show session</em> command.

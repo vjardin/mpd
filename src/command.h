@@ -32,7 +32,7 @@
     GLOBAL_CONF_TCPWRAPPER,	/* enable tcp-wrapper */
 #endif
     GLOBAL_CONF_ONESHOT,	/* enable OneShot mode */
-    GLOBAL_CONF_AGENT_RID,	/* enable display Agent RID in show session */
+    GLOBAL_CONF_AGENT_CID,	/* enable display Agent CID in show session */
     GLOBAL_CONF_SESS_TIME	/* enable display uptime in show session */
   };
 

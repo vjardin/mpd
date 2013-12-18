@@ -167,7 +167,7 @@
     { 0,	GLOBAL_CONF_TCPWRAPPER,	"tcp-wrapper"	},
 #endif
     { 0,	GLOBAL_CONF_ONESHOT,	"one-shot"	},
-    { 0,	GLOBAL_CONF_AGENT_RID,	"agent-rid"	},
+    { 0,	GLOBAL_CONF_AGENT_CID,	"agent-cid"	},
     { 0,	GLOBAL_CONF_SESS_TIME,	"session-time"	},
     { 0,	0,			NULL		},
   };
@@ -1382,8 +1382,8 @@ out:
 		L->lcp.auth.params.authname,
 		peer
 	    );
-	    if (Enabled(&gGlobalConf.options, GLOBAL_CONF_AGENT_RID)) {
-		PhysGetPeerName(L, buf, sizeof(buf));
+	    if (Enabled(&gGlobalConf.options, GLOBAL_CONF_AGENT_CID)) {
+		PhysGetSelfName(L, buf, sizeof(buf));
 		Printf("\t%s", buf);
 	    }
 	    if (Enabled(&gGlobalConf.options, GLOBAL_CONF_SESS_TIME)) {

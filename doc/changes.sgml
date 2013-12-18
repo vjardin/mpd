@@ -18,7 +18,7 @@
 	  </item>
 	  <item> Added `set console auth` options.
 	  </item>
-	  <item> Added 'agent-rid' global option to control display
+	  <item> Added 'agent-cid' global option to control display
 	    PPPoE ADSL-Agent-Circuit-Id option in `show session` command.
 	    Default is disabled.
 	  </item>
