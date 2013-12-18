@@ -145,6 +145,7 @@
     { 0,	LINK_CONF_TIMEREMAIN,	"time-remain"	},
     { 0,	LINK_CONF_PEER_AS_CALLING,	"peer-as-calling"	},
     { 0,	LINK_CONF_REPORT_MAC,	"report-mac"	},
+    { 0,	LINK_CONF_REMOVE_TEE,	"remove-tee"	},
     { 0,	0,			NULL		},
   };
 
@@ -428,6 +429,7 @@ LinkCreate(Context ctx, int ac, char *av[], void *arg)
         l->upReasonValid = 0;
         l->downReason = NULL;
         l->downReasonValid = 0;
+        l->tee_removed = 0;
 
         Disable(&l->conf.options, LINK_CONF_CHAPMD5);
         Accept(&l->conf.options, LINK_CONF_CHAPMD5);

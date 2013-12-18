@@ -71,7 +71,8 @@
     LINK_CONF_SHORTSEQ,		/* multi-link short sequence numbers */
     LINK_CONF_TIMEREMAIN,	/* Send LCP Time-Remain if known */
     LINK_CONF_PEER_AS_CALLING,
-    LINK_CONF_REPORT_MAC
+    LINK_CONF_REPORT_MAC,
+    LINK_CONF_REMOVE_TEE	/* Remove ng_tee from the resulting chain */
   };
 
   /* Configuration for a link */
@@ -138,6 +139,7 @@
     short		num_redial;	/* Counter for retry attempts */
     u_char		upReasonValid;
     u_char		downReasonValid;
+    u_char		tee_removed;
     char		*upReason;	/* Reason for link going up */
     char		*downReason;	/* Reason for link going down */
     int			bandwidth;	/* Bandwidth in bits per second */
