@@ -2097,18 +2097,6 @@ IfaceNgIpInit(Bund b, int ready)
 	snprintf(hook, sizeof(hook), "4%d", b->id);
 
     } else {
-
-	if (b->n_links == 1 && b->n_up == 1) {
-	    Link	l = (Link)b->links[0];
-
-	    if (Enabled(&l->conf.options, LINK_CONF_REMOVE_TEE)) {
-		snprintf(path, sizeof(path), "[%lx]:", (u_long)l->nodeID);
-		Log(LG_IFACE2, ("[%s] IFACE: Removing ng_tee node", b->name));
-		NgFuncShutdownNode(gLinksCsock, "tee", path);
-		l->tee_removed = 1;
-	    }
-	}
-
 	snprintf(path, sizeof(path), "[%x]:", b->nodeID);
 	strcpy(hook, NG_PPP_HOOK_INET);
 

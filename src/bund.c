@@ -405,9 +405,7 @@ BundLeave(Link l)
     b->pppConfig.links[l->bundleIndex].mru = LCP_DEFAULT_MRU;
     NgFuncSetConfig(b);
 
-    /* ng_tee is not removed */
-    if (l->tee_removed == 0)
-	LinkNgLeave(l);
+    LinkNgLeave(l);
     l->joined_bund = 0;
     b->n_up--;
     

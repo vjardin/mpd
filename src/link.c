@@ -719,6 +719,12 @@ LinkNgJoin(Link l)
     }
     
     NgFuncDisconnect(gLinksCsock, l->name, path, NG_TEE_HOOK_LEFT2RIGHT);
+
+    if (Enabled(&l->conf.options, LINK_CONF_REMOVE_TEE)) {
+	Log(LG_IFACE2, ("[%s] IFACE: Removing ng_tee node", l->name));
+	NgFuncShutdownNode(gLinksCsock, "tee", path);
+	l->tee_removed = 1;
+    }
     return (0);
 }
 
@@ -731,6 +737,10 @@ LinkNgLeave(Link l)
 {
     char		path[NG_PATHSIZ];
     struct ngm_connect	cn;
+
+    /* ng_tee is already removed */
+    if (l->tee_removed == 1)
+	return(0);
 
     memset(&cn, 0, sizeof(cn));
     snprintf(cn.path, sizeof(cn.path), "[%lx]:", (u_long)l->nodeID);
