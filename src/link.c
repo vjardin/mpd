@@ -722,11 +722,11 @@ LinkNgJoin(Link l)
 
     if (Enabled(&l->conf.options, LINK_CONF_REMOVE_TEE)) {
 	if (l->stay == 0) {
-	    Log(LG_IFACE2, ("[%s] Link: Removing ng_tee node", l->name));
+	    Log(LG_PHYS2, ("[%s] Link: Removing ng_tee node", l->name));
 	    NgFuncShutdownNode(gLinksCsock, NG_TEE_NODE_TYPE, path);
 	    l->tee_removed = 1;
 	} else
-	    Log(LG_ERR, ("[%s] Link: Can't remove ng_tee node on static link",
+	    Log(LG_PHYS2, ("[%s] Link: Can't remove ng_tee node on static link",
 	    l->name));
     }
     return (0);
@@ -834,7 +834,7 @@ LinkNgDataEvent(int type, void *cookie)
 	    mbfree(bp);
 	    if (errno == EAGAIN)
     		return;
-	    Log(LG_LINK, ("Link socket read error: %s", strerror(errno)));
+	    Perror("Link: Link socket read error");
 	    return;
 	}
 	num++;
@@ -845,7 +845,7 @@ LinkNgDataEvent(int type, void *cookie)
 	    name++;
 	    id = strtol(name, &rest, 10);
 	    if (rest[0] != 0 || !gLinks[id]) {
-    		Log(LG_ERR, ("Link: packet from unexisting link \"%s\"",
+    		Log(LG_ERR, ("Link: Packet from unexisting link \"%s\"",
     		    name));
 		mbfree(bp);
 		continue;
