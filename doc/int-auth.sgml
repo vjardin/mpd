@@ -37,7 +37,7 @@ use it! MS-CHAPv2 uses a peer challenge and a server
 challenge and uses SHA1 as hashing algorithm, so it's much more
 secure then MS-CHAPv1. MS-CHAPv2 requires the NT-Hash be available.
 
-Usualy UNIX systems have a different non-revertable hashing
+Usually UNIX systems have a different non-revertable hashing
 algorithm for passwords, therefore it is not possible to use the
 traditional UNIX password database if you want to use any
 CHAP algorithm, with the exception that FreeBSD versions 5.1 and

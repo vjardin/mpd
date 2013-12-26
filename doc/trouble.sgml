@@ -122,7 +122,7 @@ websites, or listing larger ftp directories, then the connection
 seems to hang.
 </bf></tag>
 
-Windows XP insists on a very low MTU (usualy 1396 Bytes), this needs
+Windows XP insists on a very low MTU (usually 1396 Bytes), this needs
 fragmentation, if bigger packets should be transmited over the link.
 Fragmentation is negotiated at ICMP level, if there is a bad router
 somewhere in the network, who drops such packets, then the connection
