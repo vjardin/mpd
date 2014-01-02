@@ -398,7 +398,7 @@ PppoeOpen(Link l)
 	Log(LG_PHYS, ("[%s] PPPoE: Connecting to '%s'", l->name, pe->session));
 	
 	/* Tell the PPPoE node to try to connect to a server. */
-	memset(idata, 0, sizeof(idata));
+	memset(idata, 0, sizeof(struct ngpppoe_init_data));
 	strlcpy(idata->hook, session_hook, sizeof(idata->hook));
 	idata->data_len = strlen(pe->session);
 	strncpy(idata->data, pe->session, MAX_SESSION);
