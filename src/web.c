@@ -217,7 +217,7 @@ static void
 WebShowCSS(FILE *f)
 {
   fprintf(f, "body {font-family: Arial, Helvetica, Sans-Serif; background-color: #EEEEEE; }\n");
-  fprintf(f, "table {background-color: #FFFFFF; }\n");
+  fprintf(f, "table, pre {background-color: #FFFFFF; }\n");
   fprintf(f, "th, td {padding: 0 2pt 0 2pt; }\n");
   fprintf(f, "th {background-color: #00B000; }\n");
   fprintf(f, "td {background-color: #EEEEEE; }\n");
@@ -225,7 +225,6 @@ WebShowCSS(FILE *f)
   fprintf(f, "td.y {background-color: #EEEEBB; }\n");
   fprintf(f, "td.g {background-color: #BBEEBB; }\n");
   fprintf(f, "td.d {background-color: #CCCCCC; }\n");
-  fprintf(f, "pre {background-color: #FFFFFF; }\n");
   fprintf(f, "a, a:visited, a:link { color: blue; }\n");
 }
 
@@ -239,7 +238,7 @@ WebShowSummary(FILE *f, int priv)
   char		buf[64],buf2[64];
 
   fprintf(f, "<H2>Current status summary</H2>\n");
-  fprintf(f, "<table>\n");
+  fprintf(f, "<TABLE>\n");
   fprintf(f, "<TR><TH>Bund</TH><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>ECP</TH>"
 	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=2>Device</TH><TH>Peer</TH><TH>IP</TH><TH colspan=3></TH>%s</TR>",
 	     priv?"<TH>State</TH>":"");

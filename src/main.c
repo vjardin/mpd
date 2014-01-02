@@ -690,7 +690,7 @@ Usage(int ex)
 	opt = OptList + k;
 	snprintf(buf, sizeof(buf), "  -%c, --%-s %s",
     	    opt->sflag, opt->lflag, opt->usage);
-	fprintf(stderr, "%-40s%s\n", buf, opt->desc);
+	fprintf(stderr, "%-35s%s\n", buf, opt->desc);
     }
     exit(ex);
 }
