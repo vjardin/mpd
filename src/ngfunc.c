@@ -629,7 +629,7 @@ NgFuncWriteFrame(int dsock, const char *hookname, const char *label, Mbuf bp)
     /* ENOBUFS can be expected on some links, e.g., ng_pptpgre(4) */
     if (rtn < 0 && errno != ENOBUFS) {
 	Perror("[%s] error writing len %d frame to %s",
-	    label, MBLEN(bp), hookname);
+	    label, (int)MBLEN(bp), hookname);
     }
     mbfree(bp);
     return (rtn);
@@ -875,10 +875,10 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
     Printf("\tNode name      : %s\r\n", gNetflowNodeName);
     Printf("\tInitial hook   : %d\r\n", gNetflowIface);
     Printf("\tTimeouts, sec:\r\n");
-    Printf("\t  Active       : %d\r\n",
+    Printf("\t  Active       : %u\r\n",
         (gNetflowNodeID>0) ? ni->nfinfo_act_t :
         (gNetflowActive ? gNetflowActive : ACTIVE_TIMEOUT));
-    Printf("\t  Inactive     : %d\r\n",
+    Printf("\t  Inactive     : %u\r\n",
         (gNetflowNodeID>0) ? ni->nfinfo_inact_t :
         (gNetflowInactive ? gNetflowInactive : INACTIVE_TIMEOUT));
     sockaddrtou_addr(&gNetflowExport, &addr, &port);
@@ -912,29 +912,49 @@ ShowNetflow(Context ctx, int ac, char *av[], void *arg)
 #endif
     if (gNetflowNodeID>0) {
         Printf("Traffic stats:\r\n");
+#if NGM_NETFLOW_COOKIE >= 1365756954
         Printf("\tAccounted IPv4 octets  : %llu\r\n", (unsigned long long)ni->nfinfo_bytes);
-        Printf("\tAccounted IPv4 packets : %d\r\n", ni->nfinfo_packets);
+        Printf("\tAccounted IPv4 packets : %llu\r\n", (unsigned long long)ni->nfinfo_packets);
+        Printf("\tAccounted IPv6 octets  : %llu\r\n", (unsigned long long)ni->nfinfo_bytes6);
+        Printf("\tAccounted IPv6 packets : %llu\r\n", (unsigned long long)ni->nfinfo_packets6);
+        Printf("\tSkipped IPv4 octets    : %llu\r\n", (unsigned long long)ni->nfinfo_sbytes);
+        Printf("\tSkipped IPv4 packets   : %llu\r\n", (unsigned long long)ni->nfinfo_spackets);
+        Printf("\tSkipped IPv6 octets    : %llu\r\n", (unsigned long long)ni->nfinfo_sbytes6);
+        Printf("\tSkipped IPv6 packets   : %llu\r\n", (unsigned long long)ni->nfinfo_spackets6);
+        Printf("\tActive expiries        : %llu\r\n", (unsigned long long)ni->nfinfo_act_exp);
+        Printf("\tInactive expiries      : %llu\r\n", (unsigned long long)ni->nfinfo_inact_exp);
+        Printf("\tUsed IPv4 cache records: %u\r\n", ni->nfinfo_used);
+        Printf("\tUsed IPv6 cache records: %u\r\n", ni->nfinfo_used6);
+        Printf("\tFailed allocations     : %u\r\n", ni->nfinfo_alloc_failed);
+        Printf("\tFailed v5 export       : %u\r\n", ni->nfinfo_export_failed);
+        Printf("\tFailed v9 export       : %u\r\n", ni->nfinfo_export9_failed);
+        Printf("\tRallocated mbufs       : %u\r\n", ni->nfinfo_realloc_mbuf);
+        Printf("\tFibs allocated         : %u\r\n", ni->nfinfo_alloc_fibs);
+#else /* NGM_NETFLOW_COOKIE >= 1365756954 */
+        Printf("\tAccounted IPv4 octets  : %llu\r\n", (unsigned long long)ni->nfinfo_bytes);
+        Printf("\tAccounted IPv4 packets : %u\r\n", ni->nfinfo_packets);
 #if NGM_NETFLOW_COOKIE >= 1309868867
         Printf("\tAccounted IPv6 octets  : %llu\r\n", (unsigned long long)ni->nfinfo_bytes6);
-        Printf("\tAccounted IPv6 packets : %d\r\n", ni->nfinfo_packets6);
+        Printf("\tAccounted IPv6 packets : %u\r\n", ni->nfinfo_packets6);
         Printf("\tSkipped IPv4 octets    : %llu\r\n", (unsigned long long)ni->nfinfo_sbytes);
-        Printf("\tSkipped IPv4 packets   : %d\r\n", ni->nfinfo_spackets);
+        Printf("\tSkipped IPv4 packets   : %u\r\n", ni->nfinfo_spackets);
         Printf("\tSkipped IPv6 octets    : %llu\r\n", (unsigned long long)ni->nfinfo_sbytes6);
-        Printf("\tSkipped IPv6 packets   : %d\r\n", ni->nfinfo_spackets6);
+        Printf("\tSkipped IPv6 packets   : %u\r\n", ni->nfinfo_spackets6);
 #endif
-        Printf("\tUsed IPv4 cache records: %d\r\n", ni->nfinfo_used);
+        Printf("\tUsed IPv4 cache records: %u\r\n", ni->nfinfo_used);
 #if NGM_NETFLOW_COOKIE >= 1309868867
-        Printf("\tUsed IPv6 cache records: %d\r\n", ni->nfinfo_used6);
+        Printf("\tUsed IPv6 cache records: %u\r\n", ni->nfinfo_used6);
 #endif
-        Printf("\tFailed allocations     : %d\r\n", ni->nfinfo_alloc_failed);
-        Printf("\tFailed v5 export       : %d\r\n", ni->nfinfo_export_failed);
+        Printf("\tFailed allocations     : %u\r\n", ni->nfinfo_alloc_failed);
+        Printf("\tFailed v5 export       : %u\r\n", ni->nfinfo_export_failed);
 #if NGM_NETFLOW_COOKIE >= 1309868867
-        Printf("\tFailed v9 export       : %d\r\n", ni->nfinfo_export9_failed);
-        Printf("\tRallocated mbufs       : %d\r\n", ni->nfinfo_realloc_mbuf);
-        Printf("\tFibs allocated         : %d\r\n", ni->nfinfo_alloc_fibs);
+        Printf("\tFailed v9 export       : %u\r\n", ni->nfinfo_export9_failed);
+        Printf("\tRallocated mbufs       : %u\r\n", ni->nfinfo_realloc_mbuf);
+        Printf("\tFibs allocated         : %u\r\n", ni->nfinfo_alloc_fibs);
 #endif
-        Printf("\tActive expiries        : %d\r\n", ni->nfinfo_act_exp);
-        Printf("\tInactive expiries      : %d\r\n", ni->nfinfo_inact_exp);
+        Printf("\tActive expiries        : %u\r\n", ni->nfinfo_act_exp);
+        Printf("\tInactive expiries      : %u\r\n", ni->nfinfo_inact_exp);
+#endif /* NGM_NETFLOW_COOKIE >= 1365756954 */
     }
     return(0);
 }
