@@ -2305,8 +2305,8 @@ IfaceNgIpv6Init(Bund b, int ready)
 	}
 #else	/* NG_NETFLOW_CONF_INGRESS */
 	/* Connect a netflow node if configured */
-	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN, 1)) {
-	    if (IfaceInitNetflow(b, path, hook, 1, 0))
+	if (Enabled(&b->iface.options, IFACE_CONF_NETFLOW_IN)) {
+	    if (IfaceInitNetflow(b, path, hook, 1, 0, 1))
 		goto fail;
 	    b->iface.nfin_up = 1;
 	}

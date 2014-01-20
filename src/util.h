@@ -11,7 +11,8 @@
 #define _UTIL_H_
 
 #include "ip.h"
-
+#include <net/ethernet.h>
+#include <osreldate.h>
   /*-
    * The following macro is used to update an
    * internet checksum.  "acc" is a 32-bit
@@ -97,5 +98,8 @@
   extern int		GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr);
   extern void     	ppp_util_ascify(char *buf, size_t max,
 			    const char *bytes, size_t len);
+#if (__FreeBSD_version < 700042)
+  extern char		*ether_ntoa_r(const struct ether_addr *n, char *a);
+#endif
 
 #endif

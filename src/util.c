@@ -19,6 +19,8 @@
 #include <sys/sysctl.h>
 #include <net/route.h>
 #include <netinet/if_ether.h>
+#include <net/ethernet.h>
+#include <osreldate.h>
 
 /*
  * DEFINITIONS
@@ -1487,3 +1489,19 @@ ppp_util_ascify(char *buf, size_t bsiz, const char *data, size_t len)
 	*bp = '\0';
 }
 
+#if (__FreeBSD_version < 700042)
+/*
+ * Convert a binary representation of an ethernet address to an ASCII string.
+ */
+char *
+ether_ntoa_r(const struct ether_addr *n, char *a)
+{
+        int i;
+
+        i = sprintf(a, "%02x:%02x:%02x:%02x:%02x:%02x", n->octet[0],
+            n->octet[1], n->octet[2], n->octet[3], n->octet[4], n->octet[5]);
+        if (i < 17)
+                return (NULL);
+        return (a);
+}
+#endif
