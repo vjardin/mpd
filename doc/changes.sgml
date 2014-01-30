@@ -30,6 +30,8 @@
 	</item>
 	<item> Changes:
 	<itemize>
+	  <item> Rename `quit` command to `shutdown`.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:

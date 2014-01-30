@@ -453,7 +453,7 @@ an incomplete command is given, lists the available alternatives.
 This command exits the console, but does not quit the mpd process.
 This command is useful for disconnecting a telnet connection.
 
-<tag><tt>quit</tt>
+<tag><tt>shutdown</tt>
 </tag>
 
 Close down all connections and quit the mpd process.

@@ -385,7 +385,7 @@
 	MSessionCommand, NULL, 0, NULL },
     { "open [{layer}]",			"Open a layer",
 	OpenCommand, NULL, 1, NULL },
-    { "quit",				"Quit program",
+    { "shutdown",			"Shutdown program",
 	QuitCommand, NULL, 2, NULL },
     { "repeater [{name}]",		"Choose/list repeaters",
 	RepCommand, NULL, 0, NULL },
