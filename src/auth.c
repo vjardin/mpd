@@ -1344,8 +1344,7 @@ AuthSystem(AuthData auth)
     err=errno;
     GIANT_MUTEX_UNLOCK(); /* We must release lock before Log() */
     if (err)
-      Log(LG_ERR, ("[%s] AUTH: Error retrieving passwd: %s",
-        auth->info.lnkname, strerror(err)));
+      Perror("[%s] AUTH: Error retrieving passwd", auth->info.lnkname);
     else
       Log(LG_AUTH, ("[%s] AUTH: User \"%s\" not found in the systems database",
         auth->info.lnkname, auth->params.authname));

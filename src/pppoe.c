@@ -1498,9 +1498,8 @@ PppoeListen(Link l)
 
 	if (NgSendMsg(PIf->csock, ".:", NGM_GENERIC_COOKIE, NGM_CONNECT, &cn,
 	    sizeof(cn)) < 0) {
-		Log(LG_ERR, ("PPPoE: Can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\": %s",
-		    ".:", cn.ourhook, cn.path, cn.peerhook,
-		    strerror(errno)));
+		Perror("PPPoE: Can't connect \"%s\"->\"%s\" and \"%s\"->\"%s\"",
+		    ".:", cn.ourhook, cn.path, cn.peerhook);
 		return(0);
 	}
 
