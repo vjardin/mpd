@@ -117,7 +117,6 @@ LDADD+=		-L${PREFIX}/lib
 LDADD+=		-lpdel
 LDADD+=		-lexpat
 .endif
-LDADD+=		-lssl
 
 MPD_VERSION!=	echo -n "${VERSION} (`id -un`@`uname -n` `LC_TIME=C date +'%R %v'`)"
 
@@ -154,6 +153,7 @@ STDSRCS=        assert.c auth.c bund.c rep.c ccp.c chap.c \
 COPTS+=		-DNOWEB
 .else
 STDSRCS+=	web.c
+LDADD+=		-lssl
 .endif
 
 .if defined ( NOLIBPDEL )
@@ -300,11 +300,8 @@ COPTS+=         -DSMALL_SYSTEM
 .endif
 
 # Add in required support files and libraries
-
-.if defined ( NEED_DES )
 LDADD+=		-lcrypto
 DPADD+=		${LIBCRYPTO}
-.endif
 
 # Now add standard sources
 
