@@ -265,8 +265,8 @@ main(int ac, char *av[])
     }
 
     /* Create signaling pipe */
-    if ((ret = pipe(gSignalPipe)) != 0) {
-	Log(LG_ERR, ("Could not create signal pipe %d", ret));
+    if (pipe(gSignalPipe) < 0) {
+	Perror("Could not create signal pipe");
 	exit(EX_UNAVAILABLE);
     }
     if (EventRegister(&gSignalEvent, EVENT_READ, gSignalPipe[0], 
