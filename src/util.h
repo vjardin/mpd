@@ -98,7 +98,7 @@
   extern int		GetPeerEther(struct u_addr *addr, struct sockaddr_dl *hwaddr);
   extern void     	ppp_util_ascify(char *buf, size_t max,
 			    const char *bytes, size_t len);
-#if (__FreeBSD_version < 700042)
+#ifndef	HAVE_NTOA_R
   extern char		*ether_ntoa_r(const struct ether_addr *n, char *a);
 #endif
 

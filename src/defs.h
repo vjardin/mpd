@@ -55,6 +55,12 @@
 #ifndef HAVE_IPFW
   #undef USE_IPFW
 #endif
+#ifndef HAVE_RAD_BIND
+  #undef HAVE_RAD_BIND
+#endif
+#ifndef	HAVE_NTOA_R
+  #undef HAVE_NTOA_R
+#endif
 
   /* Boolean */
 #ifndef TRUE

@@ -1489,7 +1489,7 @@ ppp_util_ascify(char *buf, size_t bsiz, const char *data, size_t len)
 	*bp = '\0';
 }
 
-#if (__FreeBSD_version < 700042)
+#ifndef	HAVE_NTOA_R
 /*
  * Convert a binary representation of an ethernet address to an ASCII string.
  */
