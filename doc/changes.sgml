@@ -14,6 +14,8 @@
 	  </item>
 	  <item> Added `set pppoe mac-format ...` command.
 	  </item>
+	  <item> Added 'set radius src-addr ...' command.
+	  </item>
 	  <item> Added `set iface keep-timeout` options.
 	  </item>
 	  <item> Added `set console auth` options.

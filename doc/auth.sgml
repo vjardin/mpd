@@ -206,6 +206,13 @@ unset radius server <em>name</em> [ <em>auth-port</em> [ <em>acct-port</em> ]]
 Deletes cpecific RADIUS server from pool.
 
 <tag><tt>
+set radius src-addr <em>ipaddr</em>
+</tt></tag>
+
+Configure IP address on the multihomed host that is used as a source address
+for all requests.
+
+<tag><tt>
 set radius timeout <em>seconds</em>
 </tt></tag>
 

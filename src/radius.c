@@ -52,6 +52,9 @@
   enum {
 	UNSET_SERVER,
     SET_SERVER,
+#ifdef HAVE_RAD_BIND
+    SET_SRC_ADDR,
+#endif
     SET_ME,
     SET_MEV6,
     SET_IDENTIFIER,
@@ -74,6 +77,10 @@
   const struct cmdtab RadiusSetCmds[] = {
     { "server {name} {secret} [{auth port}] [{acct port}]", "Set radius server parameters" ,
 	RadiusSetCommand, NULL, 2, (void *) SET_SERVER },
+#ifdef HAVE_RAD_BIND
+    { "src-addr {ip}",			"Set source address for request" ,
+	RadiusSetCommand, NULL, 2, (void *) SET_SRC_ADDR },
+#endif
     { "me {ip}",			"Set NAS IP address" ,
 	RadiusSetCommand, NULL, 2, (void *) SET_ME },
     { "v6me {ip}",			"Set NAS IPv6 address" ,
@@ -259,6 +266,9 @@ RadStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tTimeout      : %d\r\n", conf->radius_timeout);
   Printf("\tRetries      : %d\r\n", conf->radius_retries);
   Printf("\tConfig-file  : %s\r\n", (conf->file ? conf->file : "none"));
+#ifdef HAVE_RAD_BIND
+  Printf("\tSrc address  : %s\r\n", inet_ntoa(conf->src_addr));
+#endif
   Printf("\tMe (NAS-IP)  : %s\r\n", inet_ntoa(conf->radius_me));
   Printf("\tv6Me (NAS-IP): %s\r\n", u_addrtoa(&conf->radius_mev6, buf1, sizeof(buf1)));
   Printf("\tIdentifier   : %s\r\n", (conf->identifier ? conf->identifier : ""));
@@ -336,6 +346,10 @@ RadiusAddServer(AuthData auth, short request_type)
 
     s = s->next;
   }
+#ifdef HAVE_RAD_BIND
+  if (c->src_addr.s_addr != INADDR_ANY)
+    rad_bind_to(auth->radius.handle, c->src_addr.s_addr);
+#endif
 
   return (RAD_ACK);
 }
@@ -432,9 +446,18 @@ RadiusSetCommand(Context ctx, int ac, char *av[], void *arg)
 
 	break;
 
+#ifdef HAVE_RAD_BIND
+      case SET_SRC_ADDR:
+        if (ParseAddr(*av, &t, ALLOW_IPV4)) {
+	    u_addrtoin_addr(&t, &conf->src_addr);
+	} else
+	    Error("Bad Src address '%s'.", *av);
+	break;
+#endif
+
       case SET_ME:
         if (ParseAddr(*av, &t, ALLOW_IPV4)) {
-	    u_addrtoin_addr(&t,&conf->radius_me);
+	    u_addrtoin_addr(&t, &conf->radius_me);
 	} else
 	    Error("Bad NAS address '%s'.", *av);
 	break;

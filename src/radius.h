@@ -140,6 +140,9 @@
   struct radiusconf {
     int		radius_timeout;
     int		radius_retries;
+#ifdef HAVE_RAD_BIND
+    struct	in_addr src_addr;
+#endif
     struct	in_addr radius_me;
     struct	u_addr radius_mev6;
     char	*identifier;

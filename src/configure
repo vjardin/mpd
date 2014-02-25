@@ -118,3 +118,12 @@ then
 else
     echo " not found."
 fi
+
+echo -n "Looking for rad_bind_to() ..."
+if /usr/bin/grep rad_bind_to /usr/include/radlib.h >/dev/null 2>&1
+then
+    echo " found."
+    echo "#define	HAVE_RAD_BIND	1" >> $CONFIG
+else
+    echo " not found."
+fi
