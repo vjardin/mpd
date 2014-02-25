@@ -601,7 +601,14 @@ IfaceUp(Bund b, int ready)
     acl = Mdup(MB_IPFW, acls, sizeof(struct acl) + strlen(acls->rule));
     acl->next = iface->tables;
     iface->tables = acl;
-    ExecCmd(LG_IFACE2, b->name, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
+    if (strncmp(acls->rule, "peer_addr", 9) == 0) {
+	char hisaddr[20];
+	ExecCmd(LG_IFACE2, b->name, "%s table %d add %s",
+	    PATH_IPFW, acls->real_number,
+	    u_addrtoa(&iface->peer_addr, hisaddr, sizeof(hisaddr)));
+    } else {
+	ExecCmd(LG_IFACE2, b->name, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
+    }
     acls = acls->next;
   };
   acls = b->params.acl_rule;
@@ -678,8 +685,15 @@ IfaceDown(Bund b)
   };
   acl = iface->tables;
   while (acl != NULL) {
-    ExecCmd(LG_IFACE2, b->name, "%s table %d delete %s",
-	PATH_IPFW, acl->real_number, acl->rule);
+    if (strncmp(acl->rule, "peer_addr", 9) == 0) {
+      char hisaddr[20];
+      ExecCmd(LG_IFACE2, b->name, "%s table %d delete %s",
+        PATH_IPFW, acl->real_number,
+        u_addrtoa(&iface->peer_addr, hisaddr, sizeof(hisaddr)));
+    } else {
+      ExecCmd(LG_IFACE2, b->name, "%s table %d delete %s",
+        PATH_IPFW, acl->real_number, acl->rule);
+    }
     aclnext = acl->next;
     Freee(acl);
     acl = aclnext;

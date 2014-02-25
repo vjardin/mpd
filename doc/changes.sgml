@@ -28,6 +28,9 @@
 	    session time in seconds in `show session` command.
 	    Default is disabled.
 	  </item>
+	  <item>Using `peer_addr` in ACL tell to use mpd-table with
+	    the peer negotiated IP address.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:

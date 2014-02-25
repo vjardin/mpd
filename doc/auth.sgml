@@ -444,6 +444,9 @@ When the link goes down, all created rules will be removed.
 Note: As soon as mpd executes ipfw commands using shell, shell's
 special characters like "(" and ")" must be slashed.
 
+You can specify <em>mpd-table += "1=peer_addr"</em> to use mpd-table
+with the peer negotiated IP address.
+
 <tag>internal (ng_bpf/ng_car)</tag>
 <p>
 
