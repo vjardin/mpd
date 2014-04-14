@@ -106,7 +106,7 @@ dialin:
 
 multi_dialup:
 #
-# Example of a multi-link dialup setup, using links "usr1" and "usr2"
+# Example of a multi-link dialup setup, using links "L1" and "L2"
 # Similar to the first example, but uses two links together, and
 # does not do dial-on-demand.
 #
@@ -280,6 +280,10 @@ pptp_client:
 	create bundle static B1
 	set iface route default
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
+# Enable network Address Translation (NAT)
+# and forward tcp port 80 to the internal network machine with IP 192.168.0.1
+	set iface enable nat
+	set nat red-port tcp 0.0.0.0 80 192.168.0.1 80
 	
 	create link static L1 pptp
 	set link action bundle B1
