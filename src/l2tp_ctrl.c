@@ -296,7 +296,7 @@ static void	ppp_l2tp_ctrl_dump(struct ppp_l2tp_ctrl *ctrl,
 			struct ppp_l2tp_avp_list *list, const char *fmt, ...)
 			__printflike(3, 4);
 static const	char *ppp_l2tp_ctrl_state_str(enum l2tp_ctrl_state state);
-static const	char *ppp_l2tp_sess_state_str(enum l2tp_ctrl_state state);
+static const	char *ppp_l2tp_sess_state_str(enum l2tp_sess_state state);
 static const	char *ppp_l2tp_sess_orig_str(enum l2tp_sess_orig orig);
 static const	char *ppp_l2tp_sess_side_str(enum l2tp_sess_side side);
 
@@ -2571,7 +2571,7 @@ ppp_l2tp_ctrl_state_str(enum l2tp_ctrl_state state)
 }
 
 static const char *
-ppp_l2tp_sess_state_str(enum l2tp_ctrl_state state)
+ppp_l2tp_sess_state_str(enum l2tp_sess_state state)
 {
 	switch (state) {
 	case SS_WAIT_REPLY:
