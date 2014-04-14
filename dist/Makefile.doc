@@ -3,6 +3,11 @@
 PREFIX?=	/usr/local
 DOCDIR?=	${PREFIX}/share/doc/mpd5
 
+DOCOWN!=	/usr/bin/id -n -u
+DOCGRP!=	/usr/bin/id -n -g
+MANOWN=		${DOCOWN}
+MANGRP=		${DOCGRP}
+
 MPD_DOC_FILES+=	../README
 MPD_DOC_FILES+=	mpd*.html
 MPD_DOC_FILES+=	mpd.ps
@@ -22,9 +27,9 @@ mpd5.8:          mpd5.8.in
 
 .if !defined(NOPORTDOCS)
 afterinstall:
-	[ -d ${DOCDIR} ] || mkdir ${DOCDIR}
+	[ -d ${DESTDIR}${DOCDIR} ] || mkdir ${DESTDIR}${DOCDIR}
 	${INSTALL} -c -o ${DOCOWN} -g ${DOCGRP} -m ${DOCMODE} \
-	    ${MPD_DOC_FILES} ${DOCDIR}
+	    ${MPD_DOC_FILES} ${DESTDIR}${DOCDIR}
 .endif
 
 .include <bsd.prog.mk>

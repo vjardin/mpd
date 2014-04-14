@@ -14,6 +14,8 @@ VERSION=		5.8a
 NOMAN=
 NO_MAN=
 
+BINOWN!=		/usr/bin/id -n -u
+BINGRP!=		/usr/bin/id -n -g
 
 # Default configuration directory
 

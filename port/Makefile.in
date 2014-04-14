@@ -5,6 +5,7 @@ PORTNAME=	mpd
 DISTVERSION=	@VERSION@
 CATEGORIES=	net
 MASTER_SITES=	SF/${PORTNAME}/Mpd5/Mpd-${PORTVERSION}
+PKGNAMESUFFIX=	5
 DIST_SUBDIR=	mpd5
 
 MAINTAINER=	mav@FreeBSD.org
@@ -31,7 +32,6 @@ RUN_DEPENDS+=	/boot/modules/ng_ipacct.ko:${PORTSDIR}/net-mgmt/ng_ipacct
 .endif
 .endif
 
-MAN8=		mpd5.8
 MANCOMPRESSED=	maybe
 USE_RC_SUBR=	mpd5
 HTMLNUM!=	@HTMLNUM@
@@ -40,6 +40,7 @@ DOCSDIR=	${PREFIX}/share/doc/mpd5
 PORTDOCS=	${HTMLNUM:S/^/mpd/:S/$/.html/} mpd.html mpd.ps README	\
 		mpd_toc.html
 PLIST_DIRS=	etc/mpd5
-PLIST_FILES=	${CONFSUF:S/^/etc\/mpd5\/mpd./:S/$/.sample/} sbin/mpd5
+PLIST_FILES=	${CONFSUF:S/^/etc\/mpd5\/mpd./:S/$/.sample/} sbin/mpd5	\
+		man/man8/mpd5.8.gz
 
 .include <bsd.port.mk>
