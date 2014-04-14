@@ -5,7 +5,7 @@
  * Written by Alexander Motin <mav@FreeBSD.org>
  */
 
-#ifndef _L2TP_H
+#ifndef _L2TP_H_
 #define	_L2TP_H_
 
 #include "command.h"

@@ -7,7 +7,7 @@
  * See ``COPYRIGHT.whistle''
  */
 
-#ifndef _PPTP_H
+#ifndef _PPTP_H_
 #define	_PPTP_H_
 
 #include "command.h"
