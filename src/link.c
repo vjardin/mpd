@@ -867,7 +867,7 @@ LinkNgDataEvent(int type, void *cookie)
 
 	    if (MBLEN(bp) <= ptr) {
 		LogDumpBp(LG_FRAME|LG_ERR, bp,
-    		    "[%s] rec'd truncated %d bytes frame from link",
+    		    "[%s] rec'd truncated %zu bytes frame from link",
     		    l->name, MBLEN(bp));
 		mbfree(bp);
 		continue;
@@ -875,7 +875,7 @@ LinkNgDataEvent(int type, void *cookie)
 
 	    /* Debugging */
 	    LogDumpBp(LG_FRAME, bp,
-    		"[%s] rec'd %d bytes frame from link proto=0x%04x",
+    		"[%s] rec'd %zu bytes frame from link proto=0x%04x",
     		l->name, MBLEN(bp), proto);
       
 	    bp = mbadj(bp, ptr);
@@ -910,7 +910,7 @@ LinkNgDataEvent(int type, void *cookie)
 
 		if (MBLEN(bp) <= 4) {
 		    LogDumpBp(LG_FRAME|LG_ERR, bp,
-    			"[%s] rec'd truncated %d bytes frame",
+    			"[%s] rec'd truncated %zu bytes frame",
     			b->name, MBLEN(bp));
 		    continue;
 		}
@@ -923,7 +923,7 @@ LinkNgDataEvent(int type, void *cookie)
 
 		/* Debugging */
 		LogDumpBp(LG_FRAME, bp,
-    		    "[%s] rec'd %d bytes bypass frame link=%d proto=0x%04x",
+    		    "[%s] rec'd %zu bytes bypass frame link=%d proto=0x%04x",
     		    b->name, MBLEN(bp), (int16_t)linkNum, proto);
 
 		/* Set link */
@@ -940,7 +940,7 @@ LinkNgDataEvent(int type, void *cookie)
 
 	    /* Debugging */
 	    LogDumpBp(LG_FRAME, bp,
-		"[%s] rec'd %d bytes frame on %s hook", b->name, MBLEN(bp), naddr.sg_data);
+		"[%s] rec'd %zu bytes frame on %s hook", b->name, MBLEN(bp), naddr.sg_data);
 
 #ifndef USE_NG_TCPMSS
 	    /* A snooped, outgoing TCP SYN frame */

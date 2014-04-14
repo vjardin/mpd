@@ -397,7 +397,7 @@ CcpNgDataEvent(int type, void *cookie)
     
 	/* Debugging */
 	LogDumpBp(LG_FRAME, bp,
-	    "CcpNgDataEvent: rec'd %d bytes frame on %s hook", MBLEN(bp), naddr.sg_data);
+	    "CcpNgDataEvent: rec'd %zu bytes frame on %s hook", MBLEN(bp), naddr.sg_data);
 
 	bundname = ((struct sockaddr_ng *)&naddr)->sg_data;
 	if (bundname[0] != 'c' && bundname[0] != 'd') {
