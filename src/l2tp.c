@@ -520,7 +520,7 @@ L2tpOpen(Link l)
 	win = htons(8); /* XXX: this value is empirical. */
 	if ((ppp_l2tp_avp_list_append(avps, 1, 0, AVP_HOST_NAME,
 	      hostname, strlen(hostname)) == -1) ||
-	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_VENDOR_NAME,
+	    (ppp_l2tp_avp_list_append(avps, 0, 0, AVP_VENDOR_NAME,
 	      MPD_VENDOR, strlen(MPD_VENDOR)) == -1) ||
 	    (ppp_l2tp_avp_list_append(avps, 1, 0, AVP_BEARER_CAPABILITIES,
 	      &cap, sizeof(cap)) == -1) ||
