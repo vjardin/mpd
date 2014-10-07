@@ -1127,7 +1127,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
 	  memcpy(&magic, opt->data, 4);
 	  magic = ntohl(magic);
-	  Log(LG_LCP, ("[%s]   %s %08x", l->name, oi->name, magic));
+	  Log(LG_LCP, ("[%s]   %s 0x%08x", l->name, oi->name, magic));
 	  switch (mode) {
 	    case MODE_REQ:
 	      if (lcp->want_magic) {
