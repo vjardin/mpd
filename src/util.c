@@ -977,7 +977,7 @@ TcpGetListenPort(struct u_addr *addr, in_port_t port, int block)
 
 /* Make socket available for connections  */
 
-  if (listen(sock, 2) < 0)
+  if (listen(sock, -1) < 0)
   {
     Perror("%s: listen", __FUNCTION__);
     (void) close(sock);
