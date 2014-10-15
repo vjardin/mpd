@@ -722,11 +722,11 @@ LinkNgJoin(Link l)
 
     if (Enabled(&l->conf.options, LINK_CONF_REMOVE_TEE)) {
 	if (l->stay == 0) {
-	    Log(LG_PHYS2, ("[%s] Link: Removing ng_tee node", l->name));
+	    Log(LG_LINK, ("[%s] Link: Removing ng_tee node", l->name));
 	    NgFuncShutdownNode(gLinksCsock, NG_TEE_NODE_TYPE, path);
 	    l->tee_removed = 1;
 	} else
-	    Log(LG_PHYS2, ("[%s] Link: Can't remove ng_tee node on static link",
+	    Log(LG_LINK, ("[%s] Link: Can't remove ng_tee node on static link",
 	    l->name));
     }
     return (0);
