@@ -191,6 +191,7 @@ authparamsInit(struct authparams *ap)
 	ap->eapmsg = NULL;
 	ap->state = NULL;
 	ap->class = NULL;
+	ap->filter_id = NULL;
 	ap->msdomain = NULL;
 #ifdef SIOCSIFDESCR
 	ap->ifdescr = NULL;
@@ -205,12 +206,12 @@ authparamsDestroy(struct authparams *ap)
 
 #ifdef USE_NG_BPF
 	int i;
-
 #endif
 
 	Freee(ap->eapmsg);
 	Freee(ap->state);
 	Freee(ap->class);
+	Freee(ap->filter_id);
 
 #ifdef USE_IPFW
 	ACLDestroy(ap->acl_rule);
@@ -257,6 +258,8 @@ authparamsCopy(struct authparams *src, struct authparams *dst)
 		dst->state = Mdup(MB_AUTH, src->state, src->state_len);
 	if (src->class)
 		dst->class = Mdup(MB_AUTH, src->class, src->class_len);
+	if (src->filter_id)
+		dst->filter_id = Mstrdup(MB_AUTH, src->filter_id);
 
 #ifdef USE_IPFW
 	ACLCopy(src->acl_rule, &dst->acl_rule);
