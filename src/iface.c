@@ -961,22 +961,21 @@ IfaceIpIfaceUp(Bund b, int ready)
     /* Proxy ARP for peer if desired and peer's address is known */
     u_addrclear(&iface->proxy_addr);
     if (Enabled(&iface->options, IFACE_CONF_PROXY)) {
+	u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr));
 	if (u_addrempty(&iface->peer_addr)) {
-    	    Log(LG_IFACE,
-		("[%s] IFACE: Can't proxy arp for %s",
-		b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
+    	    Log(LG_IFACE, ("[%s] IFACE: Can't proxy arp for %s",
+		b->name, hisaddr));
 	} else if (GetEther(&iface->peer_addr, &hwa) < 0) {
-    	    Log(LG_IFACE,
-		("[%s] IFACE: No interface to proxy arp on for %s",
-		b->name, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr))));
+    	    Log(LG_IFACE, ("[%s] IFACE: No interface to proxy arp on for %s",
+		b->name, hisaddr));
 	} else {
     	    ether = (u_char *) LLADDR(&hwa);
     	    if (ExecCmdNosh(LG_IFACE2, b->name, 
 		"%s -S %s %x:%x:%x:%x:%x:%x pub",
-		PATH_ARP, u_addrtoa(&iface->peer_addr,hisaddr,sizeof(hisaddr)),
+		PATH_ARP, hisaddr,
 		ether[0], ether[1], ether[2],
 		ether[3], ether[4], ether[5]) == 0)
-	    iface->proxy_addr = iface->peer_addr;
+		iface->proxy_addr = iface->peer_addr;
 	}
     }
   
@@ -1014,11 +1013,13 @@ IfaceIpIfaceUp(Bund b, int ready)
 	else
     	    ns2buf[0] = '\0';
 
-	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' '%s' '%s' '%s'",
-	    iface->up_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
+	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' '%s' '%s' '%s' '%s'",
+	    iface->up_script, iface->ifname,
+	    u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
     	    *b->params.authname ? b->params.authname : "-", 
-    	    ns1buf, ns2buf, *b->params.peeraddr ? b->params.peeraddr : "-");
+    	    ns1buf, ns2buf, *b->params.peeraddr ? b->params.peeraddr : "-",
+    	    *b->params.filter_id ? b->params.filter_id: "-");
 	if (res != 0) {
 	    FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
 	    return (-1);
@@ -1044,11 +1045,13 @@ IfaceIpIfaceDown(Bund b)
     if (*iface->down_script) {
 	char	selfbuf[40],peerbuf[40];
 
-	ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' '%s'",
-    	    iface->down_script, iface->ifname, u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet %s %s '%s' '%s' '%s'",
+    	    iface->down_script, iface->ifname,
+    	    u_rangetoa(&iface->self_addr,selfbuf, sizeof(selfbuf)),
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
     	    *b->params.authname ? b->params.authname : "-",
-    	    *b->params.peeraddr ? b->params.peeraddr : "-");
+    	    *b->params.peeraddr ? b->params.peeraddr : "-",
+    	    *b->params.filter_id ? b->params.filter_id: "-");
     }
 
     /* Delete dynamic routes */
@@ -1101,10 +1104,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.myintid)[0];
-        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.myintid)[1];
-        iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.myintid)[2];
-	iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.myintid)[3];
+        bcopy(&iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4], b->ipv6cp.myintid, sizeof(b->ipv6cp.myintid));
     } else {
 	u_addrcopy(&iface->conf.self_ipv6_addr, &iface->self_ipv6_addr);
     }
@@ -1114,10 +1114,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4] = ((u_short*)b->ipv6cp.hisintid)[0];
-        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[5] = ((u_short*)b->ipv6cp.hisintid)[1];
-        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[6] = ((u_short*)b->ipv6cp.hisintid)[2];
-        iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[7] = ((u_short*)b->ipv6cp.hisintid)[3];
+        bcopy(&iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4], b->ipv6cp.hisintid, sizeof(b->ipv6cp.hisintid));
     } else {
 	u_addrcopy(&iface->conf.peer_ipv6_addr, &iface->peer_ipv6_addr);
     }
@@ -1158,12 +1155,13 @@ IfaceIpv6IfaceUp(Bund b, int ready)
 	char	selfbuf[48],peerbuf[48];
 	int	res;
 
-	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s' '%s'",
+	res = ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s' '%s' '%s'",
     	    iface->up_script, iface->ifname, 
     	    u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
     	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
     	    *b->params.authname ? b->params.authname : "-",
-    	    *b->params.peeraddr ? b->params.peeraddr : "-");
+    	    *b->params.peeraddr ? b->params.peeraddr : "-",
+    	    *b->params.filter_id ? b->params.filter_id: "-");
 	if (res != 0) {
 	    FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
 	    return (-1);
@@ -1190,12 +1188,13 @@ IfaceIpv6IfaceDown(Bund b)
     if (*iface->down_script) {
 	char	selfbuf[48],peerbuf[48];
 
-	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s' '%s'",
+	ExecCmd(LG_IFACE2, b->name, "%s %s inet6 %s%%%s %s%%%s '%s' '%s' '%s'",
     	    iface->down_script, iface->ifname, 
     	    u_addrtoa(&iface->self_ipv6_addr, selfbuf, sizeof(selfbuf)), iface->ifname,
     	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
     	    *b->params.authname ? b->params.authname : "-",
-    	    *b->params.peeraddr ? b->params.peeraddr : "-");
+    	    *b->params.peeraddr ? b->params.peeraddr : "-",
+    	    *b->params.filter_id ? b->params.filter_id: "-");
     }
 
     /* Delete dynamic routes */
@@ -1864,9 +1863,9 @@ add_scope(struct sockaddr *sa, int ifindex)
   if (!IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr) &&
       !IN6_IS_ADDR_MC_LINKLOCAL(&sa6->sin6_addr))
     return;
-  if (*(u_int16_t *)&sa6->sin6_addr.s6_addr[2] != 0)
+  if (sa6->sin6_addr.__u6_addr.__u6_addr16[1] != 0)
     return;
-  *(u_int16_t *)&sa6->sin6_addr.s6_addr[2] = htons(ifindex);
+  sa6->sin6_addr.__u6_addr.__u6_addr16[1] = htons(ifindex);
 }
 #endif
 
