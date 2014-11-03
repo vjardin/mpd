@@ -274,6 +274,7 @@ N   Name                       	   Access	 Accounting
 7   Framed-Protocol		+	-	+	-
 8   Framed-IP-Address		-	+	+	-
 9   Framed-IP-Netmask		-	+	+	-
+11  Filter-Id			-	+	-	-
 12  Framed-MTU			-	+	-	-
 13  Framed-Compression		-	+	-	-
 18  Reply-Message		-	+	-	-

@@ -31,6 +31,8 @@
 	  <item>Using `peer_addr` in ACL tell to use mpd-table with
 	    the peer negotiated IP address.
 	  </item>
+	  <item> Added `Filter-Id` RADIUS attribute.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
