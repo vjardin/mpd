@@ -39,6 +39,8 @@
 	<itemize>
 	  <item> Rename `quit` command to `shutdown`.
 	  </item>
+	  <item> `authname ...` command can be case insensitive.
+	  </item>
 	</itemize>
 	</item>
 	<item> Bugfixes:

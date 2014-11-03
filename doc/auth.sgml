@@ -44,7 +44,7 @@ command instead.
 
 Limit the max. amount of concurrent logins with the same username.
 If set to zero, then this feature is disabled. If CI argument is present
-login comparision will ba case insensitive.
+login comparasion will be case insensitive.
 
 <tag><tt>set auth acct-update <em>seconds</em></tt></tag>
 

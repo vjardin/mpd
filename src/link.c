@@ -1104,7 +1104,7 @@ AuthnameCommand(Context ctx, int ac, char *av[], void *arg)
 {
     int		k;
 
-    if (ac > 1)
+    if (ac > 2)
 	return (-1);
 
     if (ac == 0) {
@@ -1116,11 +1116,19 @@ AuthnameCommand(Context ctx, int ac, char *av[], void *arg)
 	return (0);
     }
 
-    /* Find link */
-    for (k = 0;
-	k < gNumLinks && (gLinks[k] == NULL || 
-	    strcmp(gLinks[k]->lcp.auth.params.authname, av[0]));
-	k++);
+    if (ac == 2 && strcasecmp(av[1], "ci") == 0) {
+	/* Find link */
+	for (k = 0;
+	    k < gNumLinks && (gLinks[k] == NULL || 
+		strcasecmp(gLinks[k]->lcp.auth.params.authname, av[0]));
+	    k++);
+    } else {
+	/* Find link */
+	for (k = 0;
+	    k < gNumLinks && (gLinks[k] == NULL || 
+		strcmp(gLinks[k]->lcp.auth.params.authname, av[0]));
+	    k++);
+    }
     if (k == gNumLinks) {
 	/* Change default link and bundle */
 	RESETREF(ctx->lnk, NULL);
