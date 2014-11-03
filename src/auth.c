@@ -98,7 +98,7 @@ enum {
  */
 
 const struct cmdtab AuthSetCmds[] = {
-	{"max-logins {num}", "Max concurrent logins",
+	{"max-logins {num} [CI]", "Max concurrent logins",
 	AuthSetCommand, NULL, 2, (void *)SET_MAX_LOGINS},
 	{"authname {name}", "Authentication name",
 	AuthSetCommand, NULL, 2, (void *)SET_AUTHNAME},
