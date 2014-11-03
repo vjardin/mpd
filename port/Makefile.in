@@ -30,7 +30,6 @@ RUN_DEPENDS+=	/boot/modules/ng_ipacct.ko:${PORTSDIR}/net-mgmt/ng_ipacct
 .endif
 .endif
 
-MANCOMPRESSED=	maybe
 USE_RC_SUBR=	mpd5
 HTMLNUM!=	@HTMLNUM@
 CONFSUF=	conf secret script
