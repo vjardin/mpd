@@ -765,6 +765,8 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
     	    gNetflowExport = *sin;
     	    break;
 	case SET_SELF:
+	    if (ac != 1 && ac != 2)
+		return (-1);
     	    if ((sin = ParseAddrPort(ac, av, ALLOW_IPV4|ALLOW_IPV6)) == NULL)
 		return (-1);
     	    gNetflowSource = *sin;
@@ -817,7 +819,7 @@ NetflowSetCommand(Context ctx, int ac, char *av[], void *arg)
 	case SET_HOOK:
     	    if (ac != 1)
 		return (-1);
-    	    if (atoi(av[0]) <= 0)
+    	    if (atoi(av[0]) <= 0 || atoi(av[0]) >= NG_NETFLOW_MAXIFACES)
 		Error("Bad netflow hook number \"%s\"", av[0]);
     	    gNetflowIface = atoi(av[0])-1;
     	    break;
