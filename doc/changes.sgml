@@ -49,6 +49,8 @@
 	  </item>
 	  <item> Fix long living bug with ECP.
 	  </item>
+	  <item> Fix ability to use both IPv4 and IPv6 addresses on the same interface.
+	  </item>
 	</itemize>
 	</item>
     </itemize>
