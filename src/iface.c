@@ -99,8 +99,8 @@
 
 #ifdef USE_NG_NETFLOW
   static int	IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out, int v6);
-  static int	IfaceSetupNetflow(Bund b, char in, char out);
-  static void	IfaceShutdownNetflow(Bund b, char in, char out);
+  static int	IfaceSetupNetflow(Bund b, char in, char out, int v6);
+  static void	IfaceShutdownNetflow(Bund b, char in, char out, int v6);
 #endif
 
 #ifdef USE_NG_IPACCT
@@ -2199,13 +2199,13 @@ IfaceNgIpInit(Bund b, int ready)
 #ifdef USE_NG_NETFLOW
 #ifdef NG_NETFLOW_CONF_INGRESS
 	if (b->iface.nfin_up || b->iface.nfout_up)
-	    IfaceSetupNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+	    IfaceSetupNetflow(b, b->iface.nfin_up, b->iface.nfout_up, 0);
 #else /* NG_NETFLOW_CONF_INGRESS */
 	if (b->iface.nfin_up)
-	    IfaceSetupNetflow(b, 1, 0);
+	    IfaceSetupNetflow(b, 1, 0, 0);
 
 	if (b->iface.nfout_up)
-	    IfaceSetupNetflow(b, 0, 1);
+	    IfaceSetupNetflow(b, 0, 1, 0);
 #endif /* NG_NETFLOW_CONF_INGRESS */
 #endif /* USE_NG_NETFLOW */
     }
@@ -2249,15 +2249,15 @@ IfaceNgIpShutdown(Bund b)
 #ifdef USE_NG_NETFLOW
 #ifdef NG_NETFLOW_CONF_INGRESS
     if (b->iface.nfin_up || b->iface.nfout_up)
-	IfaceShutdownNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+	IfaceShutdownNetflow(b, b->iface.nfin_up, b->iface.nfout_up, 0);
     b->iface.nfin_up = 0;
     b->iface.nfout_up = 0;
 #else /* NG_NETFLOW_CONF_INGRESS */
     if (b->iface.nfin_up)
-	IfaceShutdownNetflow(b, 1, 0);
+	IfaceShutdownNetflow(b, 1, 0, 0);
     b->iface.nfin_up = 0;
     if (b->iface.nfout_up)
-	IfaceShutdownNetflow(b, 0, 1);
+	IfaceShutdownNetflow(b, 0, 1, 0);
     b->iface.nfout_up = 0;
 #endif /* NG_NETFLOW_CONF_INGRESS */
 #endif
@@ -2353,13 +2353,13 @@ IfaceNgIpv6Init(Bund b, int ready)
 #ifdef USE_NG_NETFLOW
 #ifdef NG_NETFLOW_CONF_INGRESS
 	if (b->iface.nfin_up || b->iface.nfout_up)
-	    IfaceSetupNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+	    IfaceSetupNetflow(b, b->iface.nfin_up, b->iface.nfout_up, 1);
 #else /* NG_NETFLOW_CONF_INGRESS */
 	if (b->iface.nfin_up)
-	    IfaceSetupNetflow(b, 1, 0);
+	    IfaceSetupNetflow(b, 1, 0, 1);
 
 	if (b->iface.nfout_up)
-	    IfaceSetupNetflow(b, 0, 1);
+	    IfaceSetupNetflow(b, 0, 1, 1);
 #endif /* NG_NETFLOW_CONF_INGRESS */
 #endif /* USE_NG_NETFLOW */
     }
@@ -2393,15 +2393,15 @@ IfaceNgIpv6Shutdown(Bund b)
 #ifdef USE_NG_NETFLOW
 #ifdef NG_NETFLOW_CONF_INGRESS
     if (b->iface.nfin_up || b->iface.nfout_up)
-	IfaceShutdownNetflow(b, b->iface.nfin_up, b->iface.nfout_up);
+	IfaceShutdownNetflow(b, b->iface.nfin_up, b->iface.nfout_up, 1);
     b->iface.nfin_up = 0;
     b->iface.nfout_up = 0;
 #else /* NG_NETFLOW_CONF_INGRESS */
     if (b->iface.nfin_up)
-	IfaceShutdownNetflow(b, 1, 0);
+	IfaceShutdownNetflow(b, 1, 0, 1);
     b->iface.nfin_up = 0;
     if (b->iface.nfout_up)
-	IfaceShutdownNetflow(b, 0, 1);
+	IfaceShutdownNetflow(b, 0, 1, 1);
     b->iface.nfout_up = 0;
 #endif /* NG_NETFLOW_CONF_INGRESS */
 #endif
@@ -2736,10 +2736,11 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out, int v6)
     int nif;
 
 #ifdef NG_NETFLOW_CONF_INGRESS
-    nif = gNetflowIface + b->id;
+    nif = gNetflowIface + b->id*2;
 #else
-    nif = gNetflowIface + b->id*2 + out;
+    nif = gNetflowIface + b->id*4 + out*2;
 #endif
+    nif += v6 ? 1 : 0;
 
     Log(LG_IFACE2, ("[%s] IFACE: Connecting netflow%s (%s)",
 	b->name, v6?"6":"",  out?"out":"in"));
@@ -2785,7 +2786,7 @@ IfaceInitNetflow(Bund b, char *path, char *hook, char in, char out, int v6)
 }
 
 static int
-IfaceSetupNetflow(Bund b, char in, char out)
+IfaceSetupNetflow(Bund b, char in, char out, int v6)
 {
     char path[NG_PATHSIZ];
     struct ng_netflow_setdlt	 nf_setdlt;
@@ -2796,11 +2797,12 @@ IfaceSetupNetflow(Bund b, char in, char out)
     int nif;
 
 #ifdef NG_NETFLOW_CONF_INGRESS
-    nif = gNetflowIface + b->id;
+    nif = gNetflowIface + b->id*2;
 #else
-    nif = gNetflowIface + b->id*2 + out;
+    nif = gNetflowIface + b->id*4 + out*2;
 #endif
-    
+    nif += v6 ? 1 : 0;
+
     /* Configure data link type and interface index. */
     snprintf(path, sizeof(path), "[%x]:", gNetflowNodeID);
     nf_setdlt.iface = nif;
@@ -2842,17 +2844,18 @@ fail:
 }
 
 static void
-IfaceShutdownNetflow(Bund b, char in, char out)
+IfaceShutdownNetflow(Bund b, char in, char out, int v6)
 {
     char	path[NG_PATHSIZ];
     char	hook[NG_HOOKSIZ];
     int nif;
 
 #ifdef NG_NETFLOW_CONF_INGRESS
-    nif = gNetflowIface + b->id;
+    nif = gNetflowIface + b->id*2;
 #else
-    nif = gNetflowIface + b->id*2 + out;
+    nif = gNetflowIface + b->id*4 + out*2;
 #endif
+    nif += v6 ? 1 : 0;
 
     snprintf(path, NG_PATHSIZ, "[%x]:", gNetflowNodeID);
     snprintf(hook, NG_HOOKSIZ, "%s%d", NG_NETFLOW_HOOK_DATA, nif);
