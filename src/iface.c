@@ -1019,7 +1019,7 @@ IfaceIpIfaceUp(Bund b, int ready)
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
     	    *b->params.authname ? b->params.authname : "-", 
     	    ns1buf, ns2buf, *b->params.peeraddr ? b->params.peeraddr : "-",
-    	    *b->params.filter_id ? b->params.filter_id: "-");
+    	    b->params.filter_id ? b->params.filter_id : "-");
 	if (res != 0) {
 	    FsmFailure(&b->ipcp.fsm, FAIL_NEGOT_FAILURE);
 	    return (-1);
@@ -1051,7 +1051,7 @@ IfaceIpIfaceDown(Bund b)
     	    u_addrtoa(&iface->peer_addr, peerbuf, sizeof(peerbuf)), 
     	    *b->params.authname ? b->params.authname : "-",
     	    *b->params.peeraddr ? b->params.peeraddr : "-",
-    	    *b->params.filter_id ? b->params.filter_id: "-");
+    	    b->params.filter_id ? b->params.filter_id : "-");
     }
 
     /* Delete dynamic routes */
@@ -1161,7 +1161,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
     	    *b->params.authname ? b->params.authname : "-",
     	    *b->params.peeraddr ? b->params.peeraddr : "-",
-    	    *b->params.filter_id ? b->params.filter_id: "-");
+    	    b->params.filter_id ? b->params.filter_id : "-");
 	if (res != 0) {
 	    FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);
 	    return (-1);
@@ -1194,7 +1194,7 @@ IfaceIpv6IfaceDown(Bund b)
     	    u_addrtoa(&iface->peer_ipv6_addr, peerbuf, sizeof(peerbuf)), iface->ifname, 
     	    *b->params.authname ? b->params.authname : "-",
     	    *b->params.peeraddr ? b->params.peeraddr : "-",
-    	    *b->params.filter_id ? b->params.filter_id: "-");
+    	    b->params.filter_id ? b->params.filter_id : "-");
     }
 
     /* Delete dynamic routes */
