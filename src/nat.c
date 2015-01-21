@@ -411,7 +411,7 @@ int
 NatStat(Context ctx, int ac, char *av[], void *arg)
 {
     NatState	const nat = &ctx->bund->iface.nat;
-#ifdef NGM_NAT_LIBALIAS_INFO
+#ifdef NG_NAT_LIBALIAS_INFO
     IfaceState	const iface = &ctx->bund->iface;
     union {
         u_char buf[sizeof(struct ng_mesg) + sizeof(struct ng_nat_libalias_info)];
@@ -469,7 +469,7 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
 #endif
     Printf("NAT options:\r\n");
     OptStat(ctx, &nat->options, gConfList);
-#ifdef NGM_NAT_LIBALIAS_INFO
+#ifdef NG_NAT_LIBALIAS_INFO
     if (Enabled(&nat->options, NAT_CONF_LOG) && iface->up && iface->nat_up) {
         snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, \
             (char *)&ctx->bund->name);
