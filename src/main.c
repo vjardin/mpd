@@ -26,6 +26,9 @@
 #include "ccp_mppc.h"
 #endif
 
+#ifdef USE_BACKTRACE
+#include <execinfo.h>
+#endif
 #include <netgraph.h>
 
 /*
@@ -471,10 +474,29 @@ FatalSignal(int sig)
     static struct pppTimer	gDeathTimer;
     int				k;
     int				upLinkCount;
+#ifdef USE_BACKTRACE
+    void			*buffer[100];
+    char			**strings;
+    int				n;
+#endif
 
     /* If a SIGTERM or SIGINT, gracefully shutdown; otherwise shutdown now */
     Log(LG_ERR, ("caught fatal signal %s", sys_signame[sig]));
     gShutdownInProgress=1;
+#ifdef USE_BACKTRACE
+    if (sig != SIGTERM && sig != SIGINT) {
+        n = backtrace(buffer, 100);
+        strings = backtrace_symbols(buffer, n);
+        if (strings == NULL) {
+            Log(LG_ERR, ("No backtrace symbols found"));
+        } else {
+            for (k = 0; k < n; k++) {
+                Log(LG_ERR, ("%s", strings[k]));
+            }
+            free(strings);
+        }
+    }
+#endif
     for (k = 0; k < gNumBundles; k++) {
 	if ((b = gBundles[k])) {
     	    if (sig != SIGTERM && sig != SIGINT)

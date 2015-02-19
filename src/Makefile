@@ -308,6 +308,11 @@ COPTS+=         -DSMALL_SYSTEM
 LDADD+=		-lcrypto
 DPADD+=		${LIBCRYPTO}
 
+.if exists ( /usr/lib/libexecinfo.so )
+LDADD+=		-lexecinfo
+COPTS+=		-DUSE_BACKTRACE
+.endif
+
 # Now add standard sources
 
 SRCS+=		${STDSRCS}
