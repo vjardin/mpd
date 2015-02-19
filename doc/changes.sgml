@@ -33,7 +33,7 @@
 	  </item>
 	  <item> Added `Filter-Id` RADIUS attribute.
 	  </item>
-	  <item> Added support for Backtrace Access Library
+	  <item> Added support for Backtrace Access Library.
 	  </item>
 	</itemize>
 	</item>
