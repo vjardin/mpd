@@ -1147,8 +1147,8 @@ FsmSendIdent(Fsm fp, const char *ident)
   bp = mbcopyback(bp, sizeof(self_magic), ident, len);
 
   /* Send it */
-  Log(LG_FSM, ("[%s] %s: SendIdent #%d", Pref(fp), Fsm(fp), fp->echoid));
-  ShowMesg(LG_FSM, Pref(fp), ident, len);
+  Log(fp->log2, ("[%s] %s: SendIdent #%d", Pref(fp), Fsm(fp), fp->echoid));
+  ShowMesg(fp->log2, Pref(fp), ident, len);
   FsmOutputMbuf(fp, CODE_IDENT, fp->echoid++, bp);
 }
 
@@ -1174,8 +1174,8 @@ FsmSendTimeRemaining(Fsm fp, u_int seconds)
   bp = mbcopyback(bp, sizeof(self_magic), &data, 4);
 
   /* Send it */
-  Log(LG_FSM, ("[%s] %s: SendTimeRemaining #%d", Pref(fp), Fsm(fp), fp->echoid));
-  Log(LG_FSM, ("[%s]   %u seconds remain", Pref(fp), seconds));
+  Log(fp->log2, ("[%s] %s: SendTimeRemaining #%d", Pref(fp), Fsm(fp), fp->echoid));
+  Log(fp->log2, ("[%s]   %u seconds remain", Pref(fp), seconds));
   FsmOutputMbuf(fp, CODE_TIMEREM, fp->echoid++, bp);
 }
 
