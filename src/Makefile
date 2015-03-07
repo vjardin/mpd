@@ -80,7 +80,7 @@ COPTS+=			-DPROTO_NAME_LIST
 
 # Compiler & linker flags
 
-.if defined ( USE_TCP_WRAP )
+.if exists ( /usr/lib/libwrap.so ) && defined ( USE_TCP_WRAP )
 ## filter TCP accept connections
 LDADD+=		-lwrap
 DPADD+=		${LIBWRAP}
@@ -94,7 +94,7 @@ DPADD+=		${LIBOPIE}
 COPTS+=		-DUSE_OPIE
 .endif
 
-.if defined ( USE_AUTH_PAM )
+.if exists ( /usr/lib/libpam.so ) && defined ( USE_AUTH_PAM )
 LDADD+=		-lpam
 DPADD+=		${LIBPAM}
 COPTS+=		-DUSE_PAM
