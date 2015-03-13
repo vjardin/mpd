@@ -231,7 +231,7 @@
 
 #ifdef USE_NG_BPF
   /* A BPF filter that matches TCP SYN packets */
-  static const struct bpf_insn gTCPSYNProg[] = {
+  static const struct bpf_insn gTCPSYNProg[] __attribute__((used)) = {
 /*00*/	BPF_STMT(BPF_LD+BPF_B+BPF_ABS, 9),		/* A <- IP protocol */
 /*01*/	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, IPPROTO_TCP, 0, 6), /* !TCP => 8 */
 /*02*/	BPF_STMT(BPF_LD+BPF_H+BPF_ABS, 6),	/* A <- fragmentation offset */
@@ -2500,8 +2500,8 @@ IfaceSetupNAT(Bund b)
     uint32_t *const nat_id = (uint32_t *)(void *)u.reply.data;
 #endif
 
+    snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
     if (u_addrempty(&nat->alias_addr)) {
-	snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, b->name);
 	if (NgSendMsg(gLinksCsock, path,
     		NGM_NAT_COOKIE, NGM_NAT_SET_IPADDR,
 		&b->iface.self_addr.addr.u.ip4,
