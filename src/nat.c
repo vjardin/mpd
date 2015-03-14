@@ -473,6 +473,7 @@ NatStat(Context ctx, int ac, char *av[], void *arg)
     if (Enabled(&nat->options, NAT_CONF_LOG) && iface->up && iface->nat_up) {
         snprintf(path, sizeof(path), "mpd%d-%s-nat:", gPid, \
             (char *)&ctx->bund->name);
+        bzero(li, sizeof(struct ng_nat_libalias_info));
         Printf("LibAlias statistic:\r\n");
         if (NgFuncSendQuery(path, NGM_NAT_COOKIE, NGM_NAT_LIBALIAS_INFO,
             NULL, 0, &u.reply, sizeof(u), NULL) < 0)
