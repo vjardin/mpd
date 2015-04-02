@@ -52,7 +52,7 @@
 #endif
 #endif
 
-/* http://tools.ietf.org/html/draft-arberg-pppoe-iana-00 */
+/* https://tools.ietf.org/html/rfc4937 */
 #if BYTE_ORDER == BIG_ENDIAN
 #define MPD_PTT_CREDITS		(0x0106)
 #define MPD_PTT_METRICS		(0x0107)
