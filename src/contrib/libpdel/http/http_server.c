@@ -197,7 +197,7 @@ http_server_start(struct pevent_ctx *ctx, struct in_addr ip,
 		_http_ssl_init();
 
 		/* Initialize SSL context for this server */
-		if ((serv->ssl = SSL_CTX_new(SSLv2_server_method())) == NULL) {
+		if ((serv->ssl = SSL_CTX_new(SSLv23_server_method())) == NULL) {
 			ssl_log(http_server_ssl_logger, serv);
 			goto fail;
 		}
