@@ -35,6 +35,8 @@
 	  </item>
 	  <item> Added support for Backtrace Access Library.
 	  </item>
+	  <item> Added support for LibreSSL Library.
+	  </item>
 	</itemize>
 	</item>
 	<item> Changes:
