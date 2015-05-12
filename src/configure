@@ -129,6 +129,15 @@ else
     echo " not found."
 fi
 
+echo -n "Looking for rad_cvt_addr6() ..."
+if /usr/bin/grep rad_cvt_addr6 /usr/include/radlib.h >/dev/null 2>&1
+then
+    echo " found."
+    echo "#define	HAVE_RAD_ADDR6	1" >> $CONFIG
+else
+    echo " not found."
+fi
+
 echo -n "Looking for ether_ntoa_r() ..."
 if /usr/bin/grep ether_ntoa_r /usr/include/net/ethernet.h >/dev/null 2>&1
 then

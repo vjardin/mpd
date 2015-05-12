@@ -292,6 +292,8 @@ struct authdata {
 		char	peer_ident[64];	/* LCP ident received from peer */
 		struct in_addr peer_addr;	/* currently assigned
 						 * IP-Address of the client */
+		struct in6_addr peer_addr6;	/* currently assigned
+						 * IPv6-Address of the client */
 		short	n_links;	/* number of links in the bundle */
 		u_char	originate;	/* Who originated the connection */
 	}	info;

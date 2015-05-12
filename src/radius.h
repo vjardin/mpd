@@ -87,6 +87,10 @@
   #define RAD_MAX_ATTR_LEN 253
   #endif
 
+  #ifndef RAD_FRAMED_IPV6_ADDRESS
+  #define RAD_FRAMED_IPV6_ADDRESS 168
+  #endif
+
   /* for mppe-keys */
   #define AUTH_LEN		16
   #define SALT_LEN		2

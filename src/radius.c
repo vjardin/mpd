@@ -603,7 +603,11 @@ RadiusStart(AuthData auth, short request_type)
   if (!u_addrempty(&conf->radius_mev6)) {
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_NAS_IPV6_ADDRESS: %s", 
       auth->info.lnkname, u_addrtoa(&conf->radius_mev6,buf,sizeof(buf))));
+#ifdef HAVE_RAD_ADDR6
+    if (rad_put_addr6(auth->radius.handle, RAD_NAS_IPV6_ADDRESS, conf->radius_mev6.u.ip6) == -1) {
+#else
     if (rad_put_attr(auth->radius.handle, RAD_NAS_IPV6_ADDRESS, &conf->radius_mev6.u.ip6, sizeof(conf->radius_mev6.u.ip6)) == -1) {
+#endif
 	RadiusLogError(auth, "Put RAD_NAS_IPV6_ADDRESS failed");
 	return (RAD_NACK);
     }
@@ -1001,6 +1005,7 @@ RadiusPutAcct(AuthData auth)
 {
     char *username;
     int	authentic;
+    char buf[64];
 
     if (auth->acct_type == AUTH_ACCT_START) {
 	Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_ACCT_STATUS_TYPE: RAD_START", 
@@ -1028,6 +1033,16 @@ RadiusPutAcct(AuthData auth)
 	    return (RAD_NACK);
 	}
     }
+
+#ifdef HAVE_RAD_ADDR6
+    Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_FRAMED_IPV6_ADDRESS: %s", 
+	auth->info.lnkname, inet_ntop(AF_INET6, &auth->info.peer_addr6, buf,
+	 sizeof(buf))));
+    if (rad_put_addr6(auth->radius.handle, RAD_FRAMED_IPV6_ADDRESS, auth->info.peer_addr6)) {
+	RadiusLogError(auth, "Put RAD_FRAMED_IPV6_ADDRESS failed");
+	return (RAD_NACK);
+    }
+#endif
 
     username = auth->params.authname;
     Log(LG_RADIUS2, ("[%s] RADIUS: Put RAD_USER_NAME: %s", 
@@ -1362,6 +1377,8 @@ RadiusGetParams(AuthData auth, int eap_proxy)
   char		*route;
   char		*tmpval;
   struct in_addr	ip;
+  struct in6_addr	ipv6;
+  char		buf[64];
 #if defined(USE_NG_BPF) || defined(USE_IPFW)
   struct acl		**acls, *acls1;
   char		*acl, *acl1, *acl2, *acl3;
@@ -1447,6 +1464,16 @@ RadiusGetParams(AuthData auth, int eap_proxy)
 	  auth->params.range_valid = 1;
 	}  
         break;
+
+#ifdef HAVE_RAD_ADDR6
+      case RAD_FRAMED_IPV6_ADDRESS:
+        ipv6 = rad_cvt_addr6(data);
+        Log(LG_RADIUS2, ("[%s] RADIUS: Get RAD_FRAMED_IPV6_ADDRESS: %s",
+          auth->info.lnkname, inet_ntop(AF_INET6, &ipv6, buf, sizeof(buf))));
+        in6_addrtou_range(&ipv6, 64, &auth->params.range);
+        auth->params.range_valid = 1;
+        break;
+#endif
 
       case RAD_USER_NAME:
 	tmpval = rad_cvt_string(data, len);

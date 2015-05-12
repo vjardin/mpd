@@ -1118,7 +1118,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
     } else {
 	u_addrcopy(&iface->conf.peer_ipv6_addr, &iface->peer_ipv6_addr);
     }
-
+    u_addrcopy(&iface->peer_ipv6_addr, &b->ipv6cp.peer_addr);
     if (IfaceNgIpv6Init(b, ready)) {
         Log(LG_ERR, ("[%s] IFACE: IfaceNgIpv6Init() failed, closing IPv6CP", b->name));
         FsmFailure(&b->ipv6cp.fsm, FAIL_NEGOT_FAILURE);

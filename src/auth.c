@@ -646,6 +646,7 @@ AuthDataNew(Link l)
 		strlcpy(auth->info.bundname, l->bund->name, sizeof(auth->info.bundname));
 		auth->info.n_links = l->bund->n_links;
 		auth->info.peer_addr = l->bund->ipcp.peer_addr;
+		u_addrcopy(&l->bund->ipv6cp.peer_addr, &auth->info.peer_addr6);
 	}
 	/* Copy current link statistics */
 	memcpy(&auth->info.stats, &l->stats, sizeof(auth->info.stats));
