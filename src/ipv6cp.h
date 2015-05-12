@@ -32,6 +32,7 @@
     u_char 		myintid[8];
     u_char 		hisintid[8];
 
+    struct in6_addr	want_addr;	/* IPv6 address I'm willing to use */
     struct in6_addr	peer_addr;	/* IPv6 address he is willing to use */
 
     uint32_t		peer_reject;	/* Request codes rejected by peer */
