@@ -1104,7 +1104,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
         iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-        bcopy(&iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4], b->ipv6cp.myintid, sizeof(b->ipv6cp.myintid));
+        bcopy(b->ipv6cp.myintid, &iface->self_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4], sizeof(b->ipv6cp.myintid));
         bcopy(&iface->self_ipv6_addr.u.ip6, &b->ipv6cp.want_addr, sizeof(struct in6_addr));
     } else {
 	u_addrcopy(&iface->conf.self_ipv6_addr, &iface->self_ipv6_addr);
@@ -1115,7 +1115,7 @@ IfaceIpv6IfaceUp(Bund b, int ready)
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[1] = 0x0000;
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[2] = 0x0000;
         iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[3] = 0x0000;
-        bcopy(&iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4], b->ipv6cp.hisintid, sizeof(b->ipv6cp.hisintid));
+        bcopy(b->ipv6cp.hisintid, &iface->peer_ipv6_addr.u.ip6.__u6_addr.__u6_addr16[4], sizeof(b->ipv6cp.hisintid));
         bcopy(&iface->peer_ipv6_addr.u.ip6, &b->ipv6cp.peer_addr, sizeof(struct in6_addr));
     } else {
 	u_addrcopy(&iface->conf.peer_ipv6_addr, &iface->peer_ipv6_addr);
