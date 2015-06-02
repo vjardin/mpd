@@ -3654,9 +3654,11 @@ IfaceSetName(Bund b, const char * ifname)
 	b->name, iface->ifname, ifname));
 
     if (ioctl(s, SIOCSIFNAME, (caddr_t)&ifr) < 0) {
-	Perror("[%s] IFACE: ioctl(%s, SIOCSIFNAME)", b->name, iface->ifname);
-	close(s);
-	return(-1);
+	if (errno != EEXIST) {
+	    Perror("[%s] IFACE: ioctl(%s, SIOCSIFNAME)", b->name, iface->ifname);
+	    close(s);
+	    return(-1);
+	}
     }
 
     close(s);
