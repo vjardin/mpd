@@ -278,6 +278,11 @@ pptp_client:
 #
 
 	create bundle static B1
+	set bundle enable compression
+	set ccp yes mppc
+	set mppc no e40
+	set mppc yes e128
+	set mppc yes stateless
 	set iface route default
 	set ipcp ranges 0.0.0.0/0 0.0.0.0/0
 # Enable network Address Translation (NAT)
