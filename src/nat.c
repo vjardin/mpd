@@ -3,6 +3,7 @@
  * nat.c
  *
  * Written by Alexander Motin <mav@FreeBSD.org>
+ * Rewritten by Dmitry Luhtionov <dmitryluhtionov@gmail.com>
  */
 
 #include "ppp.h"
