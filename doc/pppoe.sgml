@@ -52,7 +52,7 @@ If not specified, local hostname will be used.
 set pppoe mac-format <em>format</em>
 </tt></tag>
 
-Set radius server attribute 31 mac format as:
+Set RADIUS server attribute 31 mac format as:
 <verb>
 unformatted	aabbccddeeff
 unix-like	aa:bb:cc:dd:ee:ff
