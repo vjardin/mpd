@@ -27,7 +27,6 @@
 /*
  * DEFINITIONS
  */
-
 #define PPPOE_MTU		1492	/* allow room for PPPoE overhead */
 #define PPPOE_MRU		1492
 
@@ -75,6 +74,7 @@ struct pppoeinfo {
 	char		hook[NG_HOOKSIZ];	/* hook on that node */
 	char		session[MAX_SESSION];	/* session name */
 	char		acname[PPPOE_SERVICE_NAME_SIZE];	/* AC name */
+	uint16_t	max_payload;		/* PPP-Max-Payload (RFC4638) */
 	int		mac_format;		/* MAC address format */
 	u_char		peeraddr[6];		/* Peer MAC address */
 	char		real_session[MAX_SESSION]; /* real session name */
@@ -82,6 +82,7 @@ struct pppoeinfo {
 	char		agent_rid[64];		/* Agent Remote ID */
 	u_char		incoming;		/* incoming vs. outgoing */
 	u_char		opened;			/* PPPoE opened by phys */
+	u_char		mp_reply;		/* PPP-Max-Payload reply from server */
 	struct optinfo	options;
 	struct PppoeIf  *PIf;			/* pointer on parent ng_pppoe info */
 	struct PppoeList *list;
@@ -96,6 +97,7 @@ enum {
 	SET_IFACE,
 	SET_SESSION,
 	SET_ACNAME,
+	SET_MAX_PAYLOAD,
 	SET_MAC_FORMAT
 };
 
@@ -148,6 +150,7 @@ static int	PppoeCallingNum(Link l, void *buf, size_t buf_len);
 static int	PppoeCalledNum(Link l, void *buf, size_t buf_len);
 static int	PppoeSelfName(Link l, void *buf, size_t buf_len);
 static int	PppoePeerName(Link l, void *buf, size_t buf_len);
+static u_short	PppoeGetMru(Link l, int conf);
 static void	PppoeCtrlReadEvent(int type, void *arg);
 static void	PppoeConnectTimeout(void *arg);
 static void	PppoeStat(Context ctx);
@@ -190,6 +193,7 @@ const struct phystype gPppoePhysType = {
     .callednum		= PppoeCalledNum,
     .selfname		= PppoeSelfName,
     .peername		= PppoePeerName,
+    .getmru		= PppoeGetMru
 };
 
 const struct cmdtab PppoeSetCmds[] = {
@@ -199,7 +203,11 @@ const struct cmdtab PppoeSetCmds[] = {
 	  PppoeSetCommand, NULL, 2, (void *)SET_SESSION },
       { "acname {name}",	"Set PPPoE access concentrator name",
 	  PppoeSetCommand, NULL, 2, (void *)SET_ACNAME },
-      { "mac-format {format}",		"set radius attribute 31 mac format",
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+      { "max-payload {size}",	"Set PPP-Max-Payload tag",
+	  PppoeSetCommand, NULL, 2, (void *)SET_MAX_PAYLOAD },
+#endif
+      { "mac-format {format}",	"Set RADIUS attribute 31 MAC format",
 	  PppoeSetCommand, NULL, 2, (void *)SET_MAC_FORMAT },
       { NULL }
 };
@@ -240,12 +248,12 @@ static const struct tagname tag2str[] = {
     { PTT_HOST_UNIQ, "Host-Uniq" },
     { PTT_AC_COOKIE, "AC-Cookie" },
     { PTT_VENDOR, "Vendor-Specific" },
-    { PTT_RELAY_SID, "Relay-Session-ID" },
+    { PTT_RELAY_SID, "Relay-Session-Id" },
     { PTT_MAX_PAYL, "PPP-Max-Payload" },
     { PTT_SRV_ERR, "Service-Name-Error" },
     { PTT_SYS_ERR, "AC-System-Error" },
     { PTT_GEN_ERR, "Generic-Error" },
-    /* http://tools.ietf.org/html/draft-arberg-pppoe-iana-00 */
+    /* RFC 4937 */
     { MPD_PTT_CREDITS, "Credits" },
     { MPD_PTT_METRICS, "Metrics" },
     { MPD_PTT_SEQ_NUMBER, "Sequence Number" },
@@ -279,7 +287,9 @@ PppoeInit(Link l)
 	pe->agent_cid[0] = 0;
 	pe->agent_rid[0] = 0;
 	pe->PIf = NULL;
+	pe->max_payload = 0;
 	pe->mac_format = MAC_UNFORMATTED;
+	pe->mp_reply = 0;
 
 	/* Done */
 	return(0);
@@ -394,6 +404,20 @@ PppoeOpen(Link l)
     		    l->name, path, cn.ourhook, cn.path, cn.peerhook);
 		goto fail2;
 	}
+	
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+	if (pe->max_payload > 0) {
+	    const uint16_t max_payload = pe->max_payload;
+	    Log(LG_PHYS, ("[%s] PPPoE: Set PPP-Max-Payload to '%d'",
+		l->name, max_payload));
+	    /* Tell the PPPoE node to set PPP-Max-Payload value. */
+	    if (NgSendMsg(pe->PIf->csock, path, NGM_PPPOE_COOKIE, NGM_PPPOE_SETMAXP,
+		&max_payload, sizeof(uint16_t)) < 0) {
+		    Perror("[%s] PPPoE can't set PPP-Max-Payload value", l->name);
+		    goto fail2;
+	    }
+	}
+#endif
 
 	Log(LG_PHYS, ("[%s] PPPoE: Connecting to '%s'", l->name, pe->session));
 	
@@ -418,6 +442,7 @@ PppoeOpen(Link l)
 	strlcpy(pe->real_session, pe->session, sizeof(pe->real_session));
 	pe->agent_cid[0] = 0;
 	pe->agent_rid[0] = 0;
+	pe->mp_reply = 0;
 	return;
 
 fail3:
@@ -500,6 +525,7 @@ PppoeDoClose(Link l)
 	pi->real_session[0] = 0;
 	pi->agent_cid[0] = 0;
 	pi->agent_rid[0] = 0;
+	pi->mp_reply = 0;
 }
 
 /*
@@ -511,7 +537,11 @@ static void
 PppoeCtrlReadEvent(int type, void *arg)
 {
 	union {
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct ngpppoe_maxp)];
+#else
 	    u_char buf[sizeof(struct ng_mesg) + sizeof(struct ngpppoe_sts)];
+#endif
 	    struct ng_mesg resp;
 	} u;
 	char path[NG_PATHSIZ];
@@ -535,6 +565,9 @@ PppoeCtrlReadEvent(int type, void *arg)
 	    case NGM_PPPOE_SUCCESS:
 	    case NGM_PPPOE_FAIL:
 	    case NGM_PPPOE_CLOSE:
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+	    case NGM_PPPOE_SETMAXP:
+#endif
 	    {
 		char	ppphook[NG_HOOKSIZ];
 		char	*linkname, *rest;
@@ -577,6 +610,8 @@ PppoeCtrlReadEvent(int type, void *arg)
 	/* Decode message. */
 	switch (u.resp.header.cmd) {
 	    case NGM_PPPOE_SESSIONID: /* XXX: I do not know what to do with this? */
+		Log(LG_PHYS3, ("PPPoE: rec'd SESSIONID %u from \"%s\"",
+		  ntohs((uint16_t)u.resp.data), path));
 		break;
 	    case NGM_PPPOE_SUCCESS:
 		Log(LG_PHYS, ("[%s] PPPoE: connection successful", l->name));
@@ -602,6 +637,28 @@ PppoeCtrlReadEvent(int type, void *arg)
 		Log(LG_PHYS, ("PPPoE: rec'd ACNAME \"%s\"",
 		  ((struct ngpppoe_sts *)u.resp.data)->hook));
 		break;
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+	    case NGM_PPPOE_SETMAXP:
+	    {
+		struct ngpppoe_maxp *maxp;
+		
+		maxp = ((struct ngpppoe_maxp *)u.resp.data);
+		Log(LG_PHYS, ("[%s] PPPoE: rec'd PPP-Max-Payload '%u'",
+		  l->name, maxp->data));
+		if (pi->max_payload > 0) {
+		    if (pi->max_payload == maxp->data)
+			pi->mp_reply = 1;
+		    else
+			Log(LG_PHYS,
+			  ("[%s] PPPoE: sent and returned values are not equal",
+			  l->name));
+		} else
+		    Log(LG_PHYS, ("[%s] PPPoE: server sent tag PPP-Max-Payload"
+		      " without request from the client",
+		      l->name));
+		break;
+	    }
+#endif
 	    default:
 		Log(LG_PHYS, ("PPPoE: rec'd command %lu from \"%s\"",
 		    (u_long)u.resp.header.cmd, path));
@@ -640,6 +697,9 @@ PppoeStat(Context ctx)
 	Printf("\tIface Node   : %s\r\n", pe->path);
 	Printf("\tIface Hook   : %s\r\n", pe->hook);
 	Printf("\tSession      : %s\r\n", pe->session);
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+	Printf("\tMax-Payload  : %d\r\n", pe->max_payload);
+#endif
 	Printf("\tMAC format   : %s\r\n", buf);
 	Printf("PPPoE status:\r\n");
 	if (ctx->lnk->state != PHYS_STATE_DOWN) {
@@ -648,6 +708,7 @@ PppoeStat(Context ctx)
 	    PppoePeerMacAddr(ctx->lnk, buf, sizeof(buf));
 	    Printf("\tCurrent peer : %s\r\n", buf);
 	    Printf("\tSession      : %s\r\n", pe->real_session);
+	    Printf("\tMax-Payload  : %s\r\n", (pe->mp_reply?"YES":"NO"));
 	    Printf("\tCircuit-ID   : %s\r\n", pe->agent_cid);
 	    Printf("\tRemote-ID    : %s\r\n", pe->agent_rid);
 	}
@@ -787,6 +848,20 @@ PppoePeerName(Link l, void *buf, size_t buf_len)
 	strlcpy(buf, pppoe->agent_rid, buf_len);
 
 	return (0);
+}
+
+static u_short
+PppoeGetMru(Link l, int conf)
+{
+	PppoeInfo	const pppoe = (PppoeInfo)l->info;
+
+	if (pppoe->max_payload > 0 && pppoe->mp_reply > 0)
+	    return (pppoe->max_payload);
+	else
+	    if (conf == 0)
+		return (l->type->mru);
+	    else
+		return (l->conf.mru);
 }
 
 static int 
@@ -1123,7 +1198,7 @@ print_tags(const struct pppoe_hdr* ph)
 		/* First check our stat list for known tags */
 		for (k = 0; k < NUM_TAG_NAMES; k++) {
 		    if (pt->tag_type == tag2str[k].tag) {
-			sprintf(tag, tag2str[k].name);
+			sprintf(tag, "%s", tag2str[k].name);
 			break;
 		    }
 		}
@@ -1584,7 +1659,9 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 	const PppoeInfo pi = (PppoeInfo) ctx->lnk->info;
 	const char *hookname = ETHER_DEFAULT_HOOK;
 	const char *colon;
-
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+	int ap;
+#endif
 	switch ((intptr_t)arg) {
 	case SET_IFACE:
 		switch (ac) {
@@ -1621,6 +1698,16 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 			return(-1);
 		strlcpy(pi->acname, av[0], sizeof(pi->acname));
 		break;
+#ifdef NGM_PPPOE_SETMAXP_COOKIE
+	case SET_MAX_PAYLOAD:
+		if (ac != 1)
+			return(-1);
+		ap = atoi(av[0]);
+		if (ap < ETHER_MIN_LEN + 8 || ap > ETHER_MAX_LEN - 8)
+			Error("PPP-Max-Payload value \"%s\"", av[0]);
+		pi->max_payload = ap;
+		break;
+#endif
 	case SET_MAC_FORMAT:
 		if (ac != 1)
 			return(-1);
@@ -1633,7 +1720,7 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 		} else if (strcmp(av[0], "ietf") == 0) {
 		    pi->mac_format = MAC_IETF;
 		} else {
-		    Error("Incorrect pppoe mac-format");
+		    Error("Incorrect PPPoE mac-format \"%s\"", av[0]);
 		}
 		break;
 	default:

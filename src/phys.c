@@ -466,6 +466,29 @@ PhysGetCalledNum(Link l, char *buf, size_t buf_len)
 }
 
 /*
+ * PhysGetMru()
+ */
+
+u_short
+PhysGetMru(Link l, int conf)
+{
+    PhysType	const pt = l->type;
+
+    if (pt) {
+	if (pt->getmru)
+	    return ((*pt->getmru)(l, conf));
+	if (conf == 0) {
+	    if (pt->mru)
+		return (pt->mru);
+	    else
+		return (0);
+	} else
+	    return (l->conf.mru);
+    } else
+	return (0);
+}
+
+/*
  * PhysIsBusy()
  *
  * This returns 1 if link is busy

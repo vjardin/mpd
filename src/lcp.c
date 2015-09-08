@@ -227,9 +227,9 @@ LcpConfigure(Fsm fp)
 
     /* Initialize normal LCP stuff */
     lcp->peer_mru = l->conf.mtu;
-    lcp->want_mru = l->conf.mru;
-    if (l->type && (lcp->want_mru > l->type->mru))
-	lcp->want_mru = l->type->mru;
+    lcp->want_mru = PhysGetMru(l, 1);
+    if (l->type && (lcp->want_mru > PhysGetMru(l, 0)))
+	lcp->want_mru = PhysGetMru(l, 0);
     lcp->peer_accmap = 0xffffffff;
     lcp->want_accmap = l->conf.accmap;
     lcp->peer_acfcomp = FALSE;

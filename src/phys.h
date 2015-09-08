@@ -64,6 +64,7 @@
 						/* returns the calling number (IP, MAC, whatever) */
     int		(*callednum)(Link l, void *buf, size_t buf_len); 
 						/* returns the called number (IP, MAC, whatever) */
+    u_short	(*getmru)(Link l, int conf);	/* returns actual MRU */
   };
   typedef struct phystype	*PhysType;
 
@@ -99,6 +100,7 @@
   extern int		PhysGetPeerIface(Link l, char *buf, size_t buf_len);
   extern int		PhysGetCallingNum(Link l, char *buf, size_t buf_len);
   extern int		PhysGetCalledNum(Link l, char *buf, size_t buf_len);
+  extern u_short	PhysGetMru(Link l, int conf);
   extern int		PhysIsBusy(Link l);
  
   extern int		PhysInit(Link l);
