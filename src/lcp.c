@@ -226,7 +226,7 @@ LcpConfigure(Fsm fp)
     lcp->peer_reject = 0;
 
     /* Initialize normal LCP stuff */
-    lcp->peer_mru = l->conf.mtu;
+    lcp->peer_mru = PhysGetMtu(l, 1);
     lcp->want_mru = PhysGetMru(l, 1);
     if (l->type && (lcp->want_mru > PhysGetMru(l, 0)))
 	lcp->want_mru = PhysGetMru(l, 0);
@@ -793,7 +793,7 @@ LcpDecodeConfig(Fsm fp, FsmOption list, int num, int mode)
 
     /* If we have got request, forget the previous values */
     if (mode == MODE_REQ) {
-	lcp->peer_mru = l->conf.mtu;
+	lcp->peer_mru = PhysGetMtu(l, 1);
 	lcp->peer_accmap = 0xffffffff;
 	lcp->peer_acfcomp = FALSE;
 	lcp->peer_protocomp = FALSE;

@@ -27,6 +27,7 @@
 /*
  * DEFINITIONS
  */
+
 #define PPPOE_MTU		1492	/* allow room for PPPoE overhead */
 #define PPPOE_MRU		1492
 
@@ -150,6 +151,7 @@ static int	PppoeCallingNum(Link l, void *buf, size_t buf_len);
 static int	PppoeCalledNum(Link l, void *buf, size_t buf_len);
 static int	PppoeSelfName(Link l, void *buf, size_t buf_len);
 static int	PppoePeerName(Link l, void *buf, size_t buf_len);
+static u_short	PppoeGetMtu(Link l, int conf);
 static u_short	PppoeGetMru(Link l, int conf);
 static void	PppoeCtrlReadEvent(int type, void *arg);
 static void	PppoeConnectTimeout(void *arg);
@@ -193,6 +195,7 @@ const struct phystype gPppoePhysType = {
     .callednum		= PppoeCalledNum,
     .selfname		= PppoeSelfName,
     .peername		= PppoePeerName,
+    .getmtu		= PppoeGetMtu,
     .getmru		= PppoeGetMru
 };
 
@@ -698,7 +701,7 @@ PppoeStat(Context ctx)
 	Printf("\tIface Hook   : %s\r\n", pe->hook);
 	Printf("\tSession      : %s\r\n", pe->session);
 #ifdef NGM_PPPOE_SETMAXP_COOKIE
-	Printf("\tMax-Payload  : %d\r\n", pe->max_payload);
+	Printf("\tMax-Payload  : %u\r\n", pe->max_payload);
 #endif
 	Printf("\tMAC format   : %s\r\n", buf);
 	Printf("PPPoE status:\r\n");
@@ -848,6 +851,20 @@ PppoePeerName(Link l, void *buf, size_t buf_len)
 	strlcpy(buf, pppoe->agent_rid, buf_len);
 
 	return (0);
+}
+
+static u_short
+PppoeGetMtu(Link l, int conf)
+{
+	PppoeInfo	const pppoe = (PppoeInfo)l->info;
+
+	if (pppoe->max_payload > 0 && pppoe->mp_reply > 0)
+	    return (pppoe->max_payload);
+	else
+	    if (conf == 0)
+		return (l->type->mtu);
+	    else
+		return (l->conf.mtu);
 }
 
 static u_short
@@ -1703,7 +1720,7 @@ PppoeSetCommand(Context ctx, int ac, char *av[], void *arg)
 		if (ac != 1)
 			return(-1);
 		ap = atoi(av[0]);
-		if (ap < ETHER_MIN_LEN + 8 || ap > ETHER_MAX_LEN - 8)
+		if (ap < PPPOE_MRU || ap > ETHER_MAX_LEN - 8)
 			Error("PPP-Max-Payload value \"%s\"", av[0]);
 		pi->max_payload = ap;
 		break;

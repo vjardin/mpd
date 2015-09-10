@@ -466,6 +466,29 @@ PhysGetCalledNum(Link l, char *buf, size_t buf_len)
 }
 
 /*
+ * PhysGetMtu()
+ */
+
+u_short
+PhysGetMtu(Link l, int conf)
+{
+    PhysType	const pt = l->type;
+
+    if (pt) {
+	if (pt->getmtu)
+	    return ((*pt->getmtu)(l, conf));
+	if (conf == 0) {
+	    if (pt->mtu)
+		return (pt->mtu);
+	    else
+		return (0);
+	} else
+	    return (l->conf.mtu);
+    } else
+	return (0);
+}
+
+/*
  * PhysGetMru()
  */
 
