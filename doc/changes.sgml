@@ -10,6 +10,8 @@
     <itemize>
 	<item> New features:
 	<itemize>
+	  <item> Added JSON format output into the web console.
+	  </item>
 	  <item> Added `set l2tp pmask ...` command.
 	  </item>
 	  <item> Added `set pppoe mac-format ...` command.

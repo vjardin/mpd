@@ -42,7 +42,8 @@
 
   static void	WebRunBinCmd(FILE *f, const char *query, int priv);
   static void	WebRunCmd(FILE *f, const char *query, int priv);
-  static void	WebShowSummary(FILE *f, int priv);
+  static void	WebShowHTMLSummary(FILE *f, int priv);
+  static void	WebShowJSONSummary(FILE *f, int priv);
 
 /*
  * GLOBAL VARIABLES
@@ -229,7 +230,7 @@ WebShowCSS(FILE *f)
 }
 
 static void
-WebShowSummary(FILE *f, int priv)
+WebShowHTMLSummary(FILE *f, int priv)
 {
   int		b,l;
   Bund		B;
@@ -237,142 +238,142 @@ WebShowSummary(FILE *f, int priv)
   Rep		R;
   char		buf[64],buf2[64];
 
-  fprintf(f, "<H2>Current status summary</H2>\n");
-  fprintf(f, "<TABLE>\n");
-  fprintf(f, "<TR><TH>Bund</TH><TH colspan=2>Iface</TH><TH>IPCP</TH><TH>IPV6CP</TH><TH>CCP</TH><TH>ECP</TH>"
-	     "<TH>Link</TH><TH>LCP</TH><TH>User</TH><TH colspan=2>Device</TH><TH>Peer</TH><TH>IP</TH><TH colspan=3></TH>%s</TR>",
-	     priv?"<TH>State</TH>":"");
+  fprintf(f, "<h2>Current status summary</h2>\n");
+  fprintf(f, "<table>\n");
+  fprintf(f, "<thead>\n<tr>\n<th>Bund</th>\n<th colspan=\"2\">Iface</th>\n<th>IPCP</th>\n<th>IPV6CP</th>\n<th>CCP</th>\n<th>ECP</th>\n"
+	     "<th>Link</th>\n<th>LCP</th>\n<th>User</th>\n<th colspan=\"2\">Device</th>\n<th>Peer</th>\n<th>IP</th>\n<th>&#160;</th>\n<th>&#160;</th>\n<th>&#160;</th>\n%s</tr>\n</thead>\n<tbody>\n",
+	     priv?"<th>State</th>\n":"");
 #define FSM_COLOR(s) (((s)==ST_OPENED)?"g":(((s)==ST_INITIAL)?"r":"y"))
 #define PHYS_COLOR(s) (((s)==PHYS_STATE_UP)?"g":(((s)==PHYS_STATE_DOWN)?"r":"y"))
     for (b = 0; b<gNumLinks; b++) {
 	if ((L=gLinks[b]) != NULL && L->bund == NULL && L->rep == NULL) {
-	    fprintf(f, "<TR>\n");
-	    fprintf(f, "<TD colspan=\"7\">&nbsp;</a></TD>\n");
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20link\">%s</a></TD>\n", 
+	    fprintf(f, "<tr>\n");
+	    fprintf(f, "<td colspan=\"7\">&#160;</td>\n");
+	    fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20link\">%s</a></td>\n", 
 	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->name);
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20lcp\">%s</a></TD>\n", 
+	    fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20lcp\">%s</a></td>\n", 
 	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20auth\">%s</a></TD>\n", 
+	    fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20auth\">%s</a></td>\n", 
 	        L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
+	    fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20device\">%s</a></td>\n", 
 	        L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
-	    fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
+	    fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20device\">%s</a></td>\n", 
 	        L->tmpl?"d":PHYS_COLOR(L->state), L->name, gPhysStateNames[L->state]);
 	    if (L->state != PHYS_STATE_DOWN) {
 		PhysGetPeerAddr(L, buf, sizeof(buf));
-		fprintf(f, "<TD>%s</TD>\n", buf);
-		fprintf(f, "<TD></TD>\n");
+		fprintf(f, "<td>%s</td>\n", buf);
+		fprintf(f, "<td>&#160;</td>\n");
 		PhysGetCallingNum(L, buf, sizeof(buf));
 		PhysGetCalledNum(L, buf2, sizeof(buf2));
 		if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
-		    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
+		    fprintf(f, "<td>%s</td>\n<td>&#60;=</td>\n<td>%s</td>\n", 
 			buf2, buf);
 		} else {
-		    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
+		    fprintf(f, "<td>%s</td>\n<td>=&#62;</td>\n<td>%s</td>\n", 
 			buf, buf2);
 		}
 	    } else {
-	    	fprintf(f, "<TD></TD>\n");
-	    	fprintf(f, "<TD></TD>\n");
-	    	fprintf(f, "<TD colspan=3></TD>\n");
+	    	fprintf(f, "<td>&#160;</td>\n");
+	    	fprintf(f, "<td>&#160;</td>\n");
+	    	fprintf(f, "<td colspan=\"3\">&#160;</td>\n");
 	    }
 	    if (priv) {
 		if (!L->tmpl) {
 		    switch (L->state) {
 			case PHYS_STATE_DOWN:
-			    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</A></TD>\n",
+			    fprintf(f, "<td><a href=\"/cmd?link%%20%s&#38;open\">[Open]</a></td>\n",
 				L->name);
 			    break;
 			case PHYS_STATE_UP:
-			    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;close\">[Close]</A></TD>\n",
+			    fprintf(f, "<td><a href=\"/cmd?link%%20%s&#38;close\">[Close]</a></td>\n",
 				L->name);
 			    break;
 			default:
-			    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a>&nbsp;<A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
+			    fprintf(f, "<td><a href=\"/cmd?link%%20%s&#38;open\">[Open]</a>&#160;<a href=\"/cmd?link%%20%s&#38;close\">[Close]</a></td>\n", 
 				L->name, L->name);
 		    }
 		} else {
-		    fprintf(f, "<TD></TD>\n");
+		    fprintf(f, "<td>&#160;</td>\n");
 		}
 	    }
-	    fprintf(f, "</TR>\n");
+	    fprintf(f, "</tr>\n");
 	}
     }
   for (b = 0; b<gNumBundles; b++) {
     if ((B=gBundles[b]) != NULL) {
 	int rows = B->n_links?B->n_links:1;
 	int first = 1;
-	fprintf(f, "<TR>\n");
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20bund\">%s</a></TD>\n", 
+	fprintf(f, "<tr>\n");
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?bund%%20%s&#38;show%%20bund\">%s</a></td>\n", 
 	    rows, B->tmpl?"d":(B->iface.up?"g":"r"), B->name, B->name);
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20iface\">%s</a></TD>\n", 
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?bund%%20%s&#38;show%%20iface\">%s</a></td>\n", 
 	    rows, B->tmpl?"d":(B->iface.up?"g":"r"), B->name, B->iface.ifname);
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20iface\">%s</a></TD>\n", 
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?bund%%20%s&#38;show%%20iface\">%s</a></td>\n", 
 	    rows, B->tmpl?"d":(B->iface.up?"g":"r"), B->name, (B->iface.up?"Up":"Down"));
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20ipcp\">%s</a></TD>\n", 
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?bund%%20%s&#38;show%%20ipcp\">%s</a></td>\n", 
 	    rows, B->tmpl?"d":FSM_COLOR(B->ipcp.fsm.state), B->name,FsmStateName(B->ipcp.fsm.state));
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20ipv6cp\">%s</a></TD>\n", 
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?bund%%20%s&#38;show%%20ipv6cp\">%s</a></td>\n", 
 	    rows, B->tmpl?"d":FSM_COLOR(B->ipv6cp.fsm.state), B->name,FsmStateName(B->ipv6cp.fsm.state));
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20ccp\">%s</a></TD>\n", 
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?bund%%20%s&#38;show%%20ccp\">%s</a></td>\n", 
 	    rows, B->tmpl?"d":FSM_COLOR(B->ccp.fsm.state), B->name,FsmStateName(B->ccp.fsm.state));
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?bund%%20%s&amp;show%%20ecp\">%s</a></TD>\n", 
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?bund%%20%s&#38;show%%20ecp\">%s</a></td>\n", 
 	    rows, B->tmpl?"d":FSM_COLOR(B->ecp.fsm.state), B->name,FsmStateName(B->ecp.fsm.state));
 	if (B->n_links == 0) {
-	    fprintf(f, "<TD colspan=\"11\">&nbsp;</a></TD>\n</TR>\n");
+	    fprintf(f, "<td colspan=\"11\">&#160;</td>\n</tr>\n");
 	}
 	for (l = 0; l < NG_PPP_MAX_LINKS; l++) {
 	    if ((L=B->links[l]) != NULL) {
 		if (first)
 		    first = 0;
 		else
-		    fprintf(f, "<TR>\n");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20link\">%s</a></TD>\n", 
+		    fprintf(f, "<tr>\n");
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20link\">%s</a></td>\n", 
 		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->name);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20lcp\">%s</a></TD>\n", 
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20lcp\">%s</a></td>\n", 
 		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, FsmStateName(L->lcp.fsm.state));
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20auth\">%s</a></TD>\n", 
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20auth\">%s</a></td>\n", 
 		    L->tmpl?"d":FSM_COLOR(L->lcp.fsm.state), L->name, L->lcp.auth.params.authname);
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20device\">%s</a></td>\n", 
 		    L->tmpl?"d":PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20device\">%s</a></td>\n", 
 		    L->tmpl?"d":PHYS_COLOR(L->state), L->name, gPhysStateNames[L->state]);
 		if (L->state != PHYS_STATE_DOWN) {
 		    PhysGetPeerAddr(L, buf, sizeof(buf));
-		    fprintf(f, "<TD>%s</TD>\n", buf);
+		    fprintf(f, "<td>%s</td>\n", buf);
 		    if (L->bund != NULL)
-			fprintf(f, "<TD>%s</TD>\n", inet_ntoa(L->bund->ipcp.peer_addr));
+			fprintf(f, "<td>%s</td>\n", inet_ntoa(L->bund->ipcp.peer_addr));
 		    else
-			fprintf(f, "<TD></TD>\n");
+			fprintf(f, "<td>&#160;</td>\n");
 		    PhysGetCallingNum(L, buf, sizeof(buf));
 		    PhysGetCalledNum(L, buf2, sizeof(buf2));
 		    if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
-			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
+			    fprintf(f, "<td>%s</td>\n<td>&#60;=</td>\n<td>%s</td>\n", 
 				buf2, buf);
 		    } else {
-			    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
+			    fprintf(f, "<td>%s</td>\n<td>=&#62;</td>\n<td>%s</td>\n", 
 				buf, buf2);
 		    }
 		} else {
-			fprintf(f, "<TD></TD>\n");
-			fprintf(f, "<TD></TD>\n");
-			fprintf(f, "<TD colspan=3></TD>\n");
+			fprintf(f, "<td>&#160;</td>\n");
+			fprintf(f, "<td>&#160;</td>\n");
+			fprintf(f, "<td colspan=\"3\">&#160;</td>\n");
 		}
 		if (priv) {
 		    switch (L->state) {
 			case PHYS_STATE_DOWN:
-			    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</A></TD>\n",
+			    fprintf(f, "<td><a href=\"/cmd?link%%20%s&#38;open\">[Open]</a></td>\n",
 				L->name);
 			    break;
 			case PHYS_STATE_UP:
-			    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;close\">[Close]</A></TD>\n",
+			    fprintf(f, "<td><a href=\"/cmd?link%%20%s&#38;close\">[Close]</a></td>\n",
 				L->name);
 			    break;
 			default:
-			    fprintf(f, "<TD><A href=\"/cmd?link%%20%s&amp;open\">[Open]</a>&nbsp;<A href=\"/cmd?link%%20%s&amp;close\">[Close]</a></TD>\n", 
+			    fprintf(f, "<td><a href=\"/cmd?link%%20%s&#38;open\">[Open]</a>&#160;<a href=\"/cmd?link%%20%s&#38;close\">[Close]</a></td>\n", 
 				L->name, L->name);
 		    }
 		}
-		fprintf(f, "</TR>\n");
+		fprintf(f, "</tr>\n");
 	    }
 	}
     }
@@ -385,55 +386,229 @@ WebShowSummary(FILE *f, int priv)
 	int rows = (R->links[0]?1:0) + (R->links[1]?1:0);
 	if (rows == 0)
 	    rows = 1;
-	fprintf(f, "<TR>\n");
-	fprintf(f, "<TD rowspan=\"%d\" colspan=6>Repeater</TD>\n", rows);
-	fprintf(f, "<TD rowspan=\"%d\" class=\"%s\"><A href=\"/cmd?rep%%20%s&amp;show%%20repeater\">%s</a></TD>\n", 
+	fprintf(f, "<tr>\n");
+	fprintf(f, "<td rowspan=\"%d\" colspan=\"6\">Repeater</td>\n", rows);
+	fprintf(f, "<td rowspan=\"%d\" class=\"%s\"><a href=\"/cmd?rep%%20%s&#38;show%%20repeater\">%s</a></td>\n", 
 	     rows, R->p_up?"g":"r", R->name, R->name);
 	for (l = 0; l < 2; l++) {
 	    if ((L=R->links[l]) != NULL) {
 		if (shown)
-		    fprintf(f, "<TR>\n");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
+		    fprintf(f, "<tr>\n");
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20device\">%s</a></td>\n", 
 		    PHYS_COLOR(L->state), L->name, L->name);
-		fprintf(f, "<TD colspan=2></TD>\n");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
+		fprintf(f, "<td colspan=\"2\">&#160;</td>\n");
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20device\">%s</a></td>\n", 
 		    PHYS_COLOR(L->state), L->name, L->type?L->type->name:"");
-		fprintf(f, "<TD class=\"%s\"><A href=\"/cmd?link%%20%s&amp;show%%20device\">%s</a></TD>\n", 
+		fprintf(f, "<td class=\"%s\"><a href=\"/cmd?link%%20%s&#38;show%%20device\">%s</a></td>\n", 
 		    PHYS_COLOR(L->state), L->name, gPhysStateNames[L->state]);
 		if (L->state != PHYS_STATE_DOWN) {
 		    PhysGetPeerAddr(L, buf, sizeof(buf));
-		    fprintf(f, "<TD>%s</TD>\n", buf);
+		    fprintf(f, "<td>%s</td>\n", buf);
 		    if (L->bund != NULL)
-			fprintf(f, "<TD>%s</TD>\n", inet_ntoa(L->bund->ipcp.peer_addr));
+			fprintf(f, "<td>%s</td>\n", inet_ntoa(L->bund->ipcp.peer_addr));
 		    else
-			fprintf(f, "<TD></TD>\n");
+			fprintf(f, "<td>&#160;</td>\n");
 		    PhysGetCallingNum(L, buf, sizeof(buf));
 		    PhysGetCalledNum(L, buf2, sizeof(buf2));
 		    if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
-			    fprintf(f, "<TD>%s</TD><TD><=</TD><TD>%s</TD>\n", 
+			    fprintf(f, "<td>%s</td>\n<td>&#60;=</td>\n<td>%s</td>\n", 
 				buf2, buf);
 		    } else {
-			    fprintf(f, "<TD>%s</TD><TD>=></TD><TD>%s</TD>\n", 
+			    fprintf(f, "<td>%s</td>\n<td>=&#62;</td>\n<td>%s</td>\n", 
 				buf, buf2);
 		    }
 		} else {
-			fprintf(f, "<TD></TD>\n");
-			fprintf(f, "<TD></TD>\n");
-			fprintf(f, "<TD colspan=3></TD>\n");
+			fprintf(f, "<td>&#160;</td>\n");
+			fprintf(f, "<td>&#160;</td>\n");
+			fprintf(f, "<td colspan=\"3\">&#160;</td>\n");
 		}
-		fprintf(f, "<TD></TD>\n");
-		fprintf(f, "</TR>\n");
+		fprintf(f, "<td>&#160;</td>\n");
+		fprintf(f, "</tr>\n");
 		
 		shown = 1;
 	    }
 	}
 	if (!shown) {
-	    fprintf(f, "<TD colspan = \"11\"></TD>\n");
-	    fprintf(f, "</TR>\n");
+	    fprintf(f, "<td colspan=\"11\">&#160;</td>\n");
+	    fprintf(f, "</tr>\n");
 	}
     }
   }
-  fprintf(f, "</TABLE>\n");
+  fprintf(f, "</tbody>\n</table>\n");
+}
+
+static void
+WebShowJSONSummary(FILE *f, int priv)
+{
+  int		b,l;
+  Bund		B;
+  Link  	L;
+  Rep		R;
+  char		buf[64],buf2[64];
+
+  int first_l = 1;
+  fprintf(f, "{\"links\":[\n");
+  for (b = 0; b<gNumLinks; b++) {
+	if ((L=gLinks[b]) != NULL && L->bund == NULL && L->rep == NULL) {
+	    if (first_l) {
+		fprintf(f, "{\n");
+		first_l = 0;
+	    } else
+		fprintf(f, ",\n{\n");
+
+	    fprintf(f, "\"link\": \"%s\",\n", L->name);
+	    fprintf(f, "\"lcp\": \"%s\",\n", FsmStateName(L->lcp.fsm.state));
+	    fprintf(f, "\"auth\": \"%s\",\n", L->lcp.auth.params.authname);
+	    fprintf(f, "\"type\": \"%s\",\n", L->type?L->type->name:"");
+	    fprintf(f, "\"state\": \"%s\",\n", gPhysStateNames[L->state]);
+
+	    if (L->state != PHYS_STATE_DOWN) {
+	        PhysGetPeerAddr(L, buf, sizeof(buf));
+	        fprintf(f, "\"peer_ip\": \"%s\",\n", buf);
+
+		PhysGetCallingNum(L, buf, sizeof(buf));
+		PhysGetCalledNum(L, buf2, sizeof(buf2));
+		if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
+		    fprintf(f, "\"calling_num\": \"%s\",\n", buf);
+		    fprintf(f, "\"called_num\": \"%s\"\n", buf2);
+		} else {
+		    fprintf(f, "\"calling_num\": \"%s\",\n", buf2);
+		    fprintf(f, "\"called_num\": \"%s\"\n", buf);
+		}
+	    } else {
+		fprintf(f, "\"calling_num\": \"%s\",\n", "");
+		fprintf(f, "\"called_num\": \"%s\"\n", "");
+	    }
+	    fprintf(f, "}\n");
+	}
+  }
+  fprintf(f, "],\n");
+
+  int first_b = 1;
+  fprintf(f, "\"bundles\":[\n");
+  for (b = 0; b<gNumBundles; b++) {
+    if ((B=gBundles[b]) != NULL) {
+	if (first_b) {
+	    fprintf(f, "{\n");
+	    first_b = 0;
+	} else
+	    fprintf(f, ",\n{\n");
+
+	fprintf(f, "\"bundle\": \"%s\",\n", B->name);
+	fprintf(f, "\"iface\": \"%s\",\n", B->iface.ifname);
+	fprintf(f, "\"state\": \"%s\",\n", (B->iface.up?"Up":"Down"));
+	fprintf(f, "\"ipcp\": \"%s\",\n", FsmStateName(B->ipcp.fsm.state));
+	fprintf(f, "\"ipv6cp\": \"%s\",\n", FsmStateName(B->ipv6cp.fsm.state));
+	fprintf(f, "\"ccp\": \"%s\",\n", FsmStateName(B->ccp.fsm.state));
+	fprintf(f, "\"ecp\": \"%s\",\n", FsmStateName(B->ecp.fsm.state));
+
+	int first_l = 1;
+	fprintf(f, "\"links\":[\n");
+	for (l = 0; l < NG_PPP_MAX_LINKS; l++) {
+	    if ((L=B->links[l]) != NULL) {
+		if (first_l) {
+		    fprintf(f, "{\n");
+		    first_l = 0;
+		} else
+		    fprintf(f, ",\n{\n");
+
+		fprintf(f, "\"link\": \"%s\",\n", L->name);
+		fprintf(f, "\"lcp\": \"%s\",\n", FsmStateName(L->lcp.fsm.state));
+		fprintf(f, "\"auth\": \"%s\",\n", L->lcp.auth.params.authname);
+		fprintf(f, "\"type\": \"%s\",\n", L->type?L->type->name:"");
+		fprintf(f, "\"state\": \"%s\",\n", gPhysStateNames[L->state]);
+
+		if (L->state != PHYS_STATE_DOWN) {
+		    PhysGetPeerAddr(L, buf, sizeof(buf));
+		    fprintf(f, "\"peer_ip\": \"%s\",\n", buf);
+
+		    if (L->bund != NULL)
+			fprintf(f, "\"ipcp_ip\": \"%s\",\n", inet_ntoa(L->bund->ipcp.peer_addr));
+		    else
+			fprintf(f, "\"ipcp_ip\": \"%s\",\n", "");
+
+		    PhysGetCallingNum(L, buf, sizeof(buf));
+		    PhysGetCalledNum(L, buf2, sizeof(buf2));
+		    if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
+			fprintf(f, "\"calling_num\": \"%s\",\n", buf);
+			fprintf(f, "\"called_num\": \"%s\"\n", buf2);
+		    } else {
+			fprintf(f, "\"calling_num\": \"%s\",\n", buf2);
+			fprintf(f, "\"called_num\": \"%s\"\n", buf);
+		    }
+		} else {
+			fprintf(f, "\"calling_num\": \"%s\",\n", "");
+			fprintf(f, "\"called_num\": \"%s\"\n", "");
+		}
+		fprintf(f, "}\n");
+	    }
+	}
+	fprintf(f, "]\n}\n");
+    }
+  }
+  fprintf(f, "],\n");
+
+  int first_r = 1;
+  fprintf(f, "\"repeaters\":[\n");
+  for (b = 0; b<gNumReps; b++) {
+    if ((R=gReps[b]) != NULL) {
+	if (first_r) {
+	    fprintf(f, "{\n");
+	    first_r = 0;
+	} else
+	    fprintf(f, ",\n{\n");
+
+	fprintf(f, "\"repeater\": \"%s\",\n", R->name);
+
+	int first_l = 1;
+	fprintf(f, "\"links\":[\n");
+	for (l = 0; l < 2; l++) {
+	    if ((L=R->links[l]) != NULL) {
+		if (first_l) {
+		    fprintf(f, "{\n");
+		    first_l = 0;
+		} else
+		    fprintf(f, ",\n{\n");
+
+		fprintf(f, "\"link\": \"%s\",\n", L->name);
+		fprintf(f, "\"type\": \"%s\",\n", L->type?L->type->name:"");
+		fprintf(f, "\"state\": \"%s\",\n", gPhysStateNames[L->state]);
+
+		if (L->state != PHYS_STATE_DOWN) {
+		    PhysGetPeerAddr(L, buf, sizeof(buf));
+		    fprintf(f, "\"peer_ip\": \"%s\",\n", buf);
+
+		    if (L->bund != NULL)
+			fprintf(f, "\"ipcp_ip\": \"%s\",\n", inet_ntoa(L->bund->ipcp.peer_addr));
+		    else
+			fprintf(f, "\"ipcp_ip\": \"%s\",\n", "");
+
+		    PhysGetCallingNum(L, buf, sizeof(buf));
+		    PhysGetCalledNum(L, buf2, sizeof(buf2));
+		    if (PhysGetOriginate(L) == LINK_ORIGINATE_REMOTE) {
+			fprintf(f, "\"calling_num\": \"%s\",\n", buf);
+			fprintf(f, "\"called_num\": \"%s\"\n", buf2);
+		    } else {
+			fprintf(f, "\"calling_num\": \"%s\",\n", buf2);
+			fprintf(f, "\"called_num\": \"%s\"\n", buf);
+		    }
+		} else {
+		    fprintf(f, "\"calling_num\": \"%s\",\n", "");
+		    fprintf(f, "\"called_num\": \"%s\"\n", "");
+		}
+		fprintf(f, "}\n");
+	    }
+	}
+	fprintf(f, "]\n");
+
+        if (b == (gNumReps - 1)) {
+	    fprintf(f, "}\n");
+	} else {
+	    fprintf(f, "},\n");
+	}
+    }
+  }
+  fprintf(f, "]}\n");
 }
 
 static void 
@@ -515,14 +690,14 @@ WebRunCmd(FILE *f, const char *query, int priv)
     	    if (++argc >= MAX_CONSOLE_ARGS)
         	break;
 
-    fprintf(f, "<P><A href=\"/\"><< Back</A></P>\n");
+    fprintf(f, "<p>\n<a href=\"/\">Back</a>\n</p>\n");
 
     if (argc == 0) {
-	fprintf(f, "<P>No command cpecified!</P>\n");
+	fprintf(f, "<p>No command cpecified!</p>\n");
 	goto done;
     }
 
-    fprintf(f, "<PRE>\n");
+    fprintf(f, "<pre>\n");
     for (k = 0; k < argc; k++) {
 	int	ac;
 	char	*av[MAX_CONSOLE_ARGS];
@@ -542,10 +717,10 @@ WebRunCmd(FILE *f, const char *query, int priv)
 	DoCommand(&cs->context, ac, av, NULL, 0);
 	Freee(buf1);
     }
-    fprintf(f, "</PRE>\n");
+    fprintf(f, "</pre>\n");
 done:
     Freee(buf);
-    fprintf(f, "<P><A href=\"/\"><< Back</A></P>\n");
+    fprintf(f, "<p>\n<a href=\"/\">Back</a>\n</p>\n");
     RESETREF(cs->context.lnk, NULL);
     RESETREF(cs->context.bund, NULL);
     RESETREF(cs->context.rep, NULL);
@@ -600,16 +775,22 @@ WebServletRun(struct http_servlet *servlet,
     if (!strcmp(path,"/mpd.css")) {
 	http_response_set_header(resp, 0, "Content-Type", "text/css");
 	WebShowCSS(f);
-    } else if (!strcmp(path,"/bincmd")) {
+    } else if (!strcmp(path,"/bincmd") || !strcmp(path,"/json")) {
 	http_response_set_header(resp, 0, "Content-Type", "text/plain");
 	http_response_set_header(resp, 1, "Pragma", "no-cache");
 	http_response_set_header(resp, 1, "Cache-Control", "no-cache, must-revalidate");
 	
 	pthread_cleanup_push(WebServletRunCleanup, NULL);
 	GIANT_MUTEX_LOCK();
-	WebRunBinCmd(f, query, priv);
+	
+	if (!strcmp(path,"/bincmd"))
+	    WebRunBinCmd(f, query, priv);
+	else if (!strcmp(path,"/json"))
+	    WebShowJSONSummary(f, priv);
+
 	GIANT_MUTEX_UNLOCK();
 	pthread_cleanup_pop(0);
+
     } else if (!strcmp(path,"/") || !strcmp(path,"/cmd")) {
 	http_response_set_header(resp, 0, "Content-Type", "text/html");
 	http_response_set_header(resp, 1, "Pragma", "no-cache");
@@ -617,24 +798,23 @@ WebServletRun(struct http_servlet *servlet,
 	
 	pthread_cleanup_push(WebServletRunCleanup, NULL);
 	GIANT_MUTEX_LOCK();
-	fprintf(f, "<!DOCTYPE HTML "
-	    "PUBLIC \"-//W3C//DTD HTML 4.01//EN\" "
-	    "\"http://www.w3.org/TR/html4/strict.dtd\">\n");
-	fprintf(f, "<HTML>\n");
-	fprintf(f, "<HEAD><TITLE>Multi-link PPP Daemon for FreeBSD (mpd)</TITLE>\n");
-	fprintf(f, "<LINK rel='stylesheet' href='/mpd.css' type='text/css'>\n");
-	fprintf(f, "</HEAD>\n<BODY>\n");
-	fprintf(f, "<H1>Multi-link PPP Daemon for FreeBSD</H1>\n");
+
+	fprintf(f, "<!DOCTYPE html>\n");
+	fprintf(f, "<html>\n");
+	fprintf(f, "<head>\n<title>Multi-link PPP Daemon for FreeBSD (mpd)</title>\n");
+	fprintf(f, "<link rel=\"stylesheet\" href=\"/mpd.css\" type=\"text/css\"/>\n");
+	fprintf(f, "</head>\n<body>\n");
+	fprintf(f, "<h1>Multi-link PPP Daemon for FreeBSD</h1>\n");
     
 	if (!strcmp(path,"/"))
-	    WebShowSummary(f, priv);
+	    WebShowHTMLSummary(f, priv);
 	else if (!strcmp(path,"/cmd"))
 	    WebRunCmd(f, query, priv);
 	    
 	GIANT_MUTEX_UNLOCK();
 	pthread_cleanup_pop(0);
 	
-	fprintf(f, "</BODY>\n</HTML>\n");
+	fprintf(f, "</body>\n</html>\n");
     } else {
 	http_response_send_error(resp, 404, NULL);
     }
