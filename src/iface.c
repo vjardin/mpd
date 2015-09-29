@@ -140,7 +140,7 @@
 #ifdef USE_IPFW
   static int	IfaceAllocACL (struct acl_pool ***ap, int start, char * ifname, int number);
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
-  static char *	IFaceParseACL (char * src, char * ifname);
+  static char *	IfaceParseACL (char * src, IfaceState iface);
 #endif
 
   static int	IfaceSetName(Bund b, const char * ifname);
@@ -591,13 +591,17 @@ IfaceUp(Bund b, int ready)
   }
   acls = b->params.acl_queue;
   while (acls != NULL) {
-    buf = IFaceParseACL(acls->rule,iface->ifname);
+    buf = IfaceParseACL(acls->rule, iface);
     ExecCmd(LG_IFACE2, b->name, "%s queue %d config %s", PATH_IPFW, acls->real_number, buf);
     Freee(buf);
     acls = acls->next;
   }
   acls = b->params.acl_table;
   while (acls != NULL) {
+    /* allow both %aX and `peer_addr` macros */
+    buf = IfaceParseACL(acls->rule, iface);
+    strcpy(acls->rule, buf);
+    Freee(buf);
     acl = Mdup(MB_IPFW, acls, sizeof(struct acl) + strlen(acls->rule));
     acl->next = iface->tables;
     iface->tables = acl;
@@ -613,7 +617,7 @@ IfaceUp(Bund b, int ready)
   };
   acls = b->params.acl_rule;
   while (acls != NULL) {
-    buf = IFaceParseACL(acls->rule, iface->ifname);
+    buf = IfaceParseACL(acls->rule, iface);
     ExecCmd(LG_IFACE2, b->name, "%s add %d %s via %s", PATH_IPFW, acls->real_number, buf, iface->ifname);
     Freee(buf);
     acls = acls->next;
@@ -861,20 +865,25 @@ IfaceFindACL (struct acl_pool *ap, char * ifname, int number)
 }
 
 /*
- * IFaceParseACL ()
+ * IfaceParseACL ()
  *
- * Parces ACL and replaces %r, %p and %q macroses 
+ * Parses ACL and replaces %r, %p and %q macroses 
  * by the real numbers of rules, queues and pipes.
+ *
+ * Also replaces %a1 and a2 with the remote(peer)
+ * or local(self) IP address respectively.
  */
 
 static char *
-IFaceParseACL (char * src, char * ifname)
+IfaceParseACL (char * src, IfaceState iface)
 {
     char *buf,*buf1;
     char *begin,*param,*end;
     char t;
     int num,real_number;
     struct acl_pool *ap;
+    char hisaddr[20];
+    int ipmode = 0; /* 0 - normal macro, 1 - IP address macro */
     
     buf = Malloc(MB_IPFW, ACL_LEN);
     buf1 = Malloc(MB_IPFW, ACL_LEN);
@@ -899,15 +908,35 @@ IFaceParseACL (char * src, char * ifname)
 		    case 't':
 			ap = table_pool;
 			break;
+		    case 'a':
+			ipmode = 1;
+			if (num == 1)
+			   u_addrtoa(&iface->peer_addr, hisaddr, sizeof(hisaddr));
+			else if (num == 2)
+			   u_rangetoa(&iface->self_addr, hisaddr, sizeof(hisaddr));
+			else
+			   ipmode = 0;
+			ap = NULL;
+                        break;
 		    default:
 			ap = NULL;
 		};
-		real_number = IfaceFindACL(ap,ifname,num);
-		if (end != NULL) {
-		    snprintf(buf1, ACL_LEN, "%s%d %s", begin, real_number, end);
-		} else {
-		    snprintf(buf1, ACL_LEN, "%s%d", begin, real_number);
-		};
+		if (ipmode)
+		{
+		    if (end != NULL)
+			snprintf(buf1, ACL_LEN, "%s%s %s", begin, hisaddr, end);
+		    else
+			snprintf(buf1, ACL_LEN, "%s%s", begin, hisaddr);
+		    ipmode = 0;
+		}
+		else
+		{
+		    real_number = IfaceFindACL(ap, iface->ifname, num);
+		    if (end != NULL)
+			snprintf(buf1, ACL_LEN, "%s%d %s", begin, real_number, end);
+		    else
+		 	snprintf(buf1, ACL_LEN, "%s%d", begin, real_number);
+		}
 		strlcpy(buf, buf1, ACL_LEN);
 	    };
 	};
