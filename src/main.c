@@ -50,7 +50,7 @@
   };
   typedef struct option	*Option;
 
-  static const char		*UsageStr = "[options] [system]";
+  static const char		*UsageStr = "[options] [configuration]";
   static struct option		OptList[] = {
     { 0, 'b',	"background",	"",
 				"Run as a background daemon"	},
@@ -176,7 +176,7 @@ main(int ac, char *av[])
     Context		c;
     PhysType		pt;
 
-    gPid=getpid();
+    gPid = getpid();
 
     /* enable libpdel typed_mem */
     typed_mem_enable();
