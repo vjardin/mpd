@@ -3712,6 +3712,9 @@ IfaceSetName(Bund b, const char * ifname)
  * %I for interface name;
  * %l for name of bundle's first link
  * %M for peer MAC address of bundle's first link
+ * %o for local outer ("physical") address of bundle's first link
+ * %O for peer outer ("physical") address of bundle's first link
+ * %P for peer outer ("physical") port of bundle's first link
  * %S for interface status (DoD/UP/DOWN)
  * %t for type of bundle's first link (pppoe, pptp, l2tp etc.)
  * %u for self auth name (or dash if self auth name not used)
@@ -3815,14 +3818,14 @@ IfaceSetDescr(Bund b, const char * template)
 	  /* peer address */
 	  case 'A':
 	    {
-	      u_addrtoa (&iface->peer_addr, buf, sizeof(buf));
+	      u_addrtoa(&iface->peer_addr, buf, sizeof(buf));
 	      DST_COPY(buf);
 	    }
 	    break;
 	  /* interface index */
 	  case 'i':
 	    {
-	      snprintf (buf, sizeof(buf), "%u", iface->ifindex);
+	      snprintf(buf, sizeof(buf), "%u", iface->ifindex);
 	      DST_COPY(buf);
 	    }
 	    break;
@@ -3834,15 +3837,40 @@ IfaceSetDescr(Bund b, const char * template)
 	  case 'l':
 	    DST_COPY(b->links[0] ? b->links[0]->name : NULL);
 	    break;
+	  /* peer MAC address */
 	  case 'M':
-	    if(b->links[0]) {
+	    if (b->links[0]) {
 	      PhysType const pt = b->links[0]->type;
 	      if (pt && pt->peermacaddr) {
-	        (*pt->peermacaddr)(b->links[0], buf, sizeof(buf));
-	        DST_COPY(buf);
+		(*pt->peermacaddr)(b->links[0], buf, sizeof(buf));
+		DST_COPY(buf);
 	      } else {
 		  DST_COPY("-");
 	      }
+	    } else {
+		DST_COPY("-");
+	    }
+	    break;
+	  /* local "physycal" address */
+	  case 'o':
+	    if (b->links[0] && PhysGetSelfAddr(b->links[0], buf, sizeof(buf)) == 0) {
+		DST_COPY(buf);
+	    } else {
+		DST_COPY("-");
+	    }
+	    break;
+	  /* peer "physycal" address */
+	  case 'O':
+	    if (b->links[0] && PhysGetPeerAddr(b->links[0], buf, sizeof(buf)) == 0) {
+		DST_COPY(buf);
+	    } else {
+		DST_COPY("-");
+	    }
+	    break;
+	  /* peer port */
+	  case 'P':
+	    if (b->links[0] && PhysGetPeerPort(b->links[0], buf, sizeof(buf)) == 0) {
+		DST_COPY(buf);
 	    } else {
 		DST_COPY("-");
 	    }
