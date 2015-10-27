@@ -33,7 +33,6 @@ set iface description [ <em>description</em> ]
 This command changes interface description.
 
 Template may contain conversion specifications:
-
 <verb>
 %% expands to single % sign;
 %a for interface local address;
@@ -42,6 +41,9 @@ Template may contain conversion specifications:
 %I for interface name;
 %l for name of bundle's first link
 %M for peer MAC address of bundle's first link
+%o for local outer ("physical") address of bundle's first link
+%O for peer outer ("physical") address of bundle's first link
+%P for peer outer ("physical") port of bundle's first link
 %S for interface status (DoD/UP/DOWN)
 %t for type of bundle's first link (pppoe, pptp, l2tp etc.)
 %u for self auth name (or dash if self auth name not used)

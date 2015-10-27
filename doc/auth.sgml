@@ -436,8 +436,8 @@ Allowed macroses:
 %pX IPFW pipe pool
 %qX IPFW queue pool
 %tX IPFW table pool
-%a1 peer negoriated IP address
-%a2 self negoriated IP address
+%a1 peer negotiated IP address
+%a2 self negotiated IP address
 </verb>
 
 As a result of this example we would get these commands executed:

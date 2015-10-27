@@ -22,16 +22,21 @@
 	  </item>
 	  <item> Added `set console auth` options.
 	  </item>
-	  <item> Added 'agent-cid' global option to control display
+	  <item> Added `agent-cid` global option to control display
 	    PPPoE ADSL-Agent-Circuit-Id option in `show session` command.
 	    Default is disabled.
 	  </item>
-	  <item> Added 'session-time' global option to control display
+	  <item> Added `session-time` global option to control display
 	    session time in seconds in `show session` command.
 	    Default is disabled.
 	  </item>
-	  <item>Using `peer_addr` in ACL tell to use mpd-table with
+	  <item> Using `peer_addr` in ACL tell to use mpd-table with
 	    the peer negotiated IP address.
+	  </item>
+	  <item> Added more wildcards, passed from ACL's.
+	  </item>
+	  <item> Added more wildcards, passed from `set iface description ...`
+	    command or `mpd-iface-descr` RADIUS attribute.
 	  </item>
 	  <item> Added `Filter-Id` RADIUS attribute.
 	  </item>
@@ -51,7 +56,7 @@
 	</item>
 	<item> Bugfixes:
 	<itemize>
-	  <item> Restore send mac address to radius server in unformatted value.
+	  <item> Restore send mac address to RADIUS server in unformatted value.
 	  </item>
 	  <item> Fix long living bug with ECP.
 	  </item>
@@ -74,7 +79,7 @@
 	  </item>
 	  <item> Added `Class` CoA attribute from RFC 2865.
 	  </item>
-	  <item> New command 'show netflow' added.
+	  <item> New command `show netflow` added.
 	  </item>
 	</itemize>
 	</item>
@@ -174,7 +179,7 @@
 	</item>
 	<item> Bugfixes:
 	<itemize>
-	  <item> Fix memory leaks on pptp and radius on some reason.
+	  <item> Fix memory leaks on PPTP and RADIUS on some reason.
 	  </item>
 	  <item> Really make RESULT a mandatory option in ext-auth.
 	  </item>

@@ -13,7 +13,7 @@
 <bf>mpd [ <em>options</em> ] [ <em>configuration</em> ] </bf>
 </tt></tscreen>
 	On startup mpd run commands from the <tt>startup</tt> label.
-	Aftre that, if <tt><em>configuration</em></tt> is supplied,
+	After that, if <tt><em>configuration</em></tt> is supplied,
 	mpd looks in <tt>mpd.conf</tt> for a matching label,
 	and runs the corresponding commands. If 
 	<tt><em>configuration</em></tt> is not supplied,
