@@ -75,7 +75,6 @@ If
 .Ar configuration
 is not supplied, mpd looks for label named
 .Ar default .
-
 .Sh ON-LINE MANUAL
 Mpd is fully documented in the mpd manual, which is available in HTML.
 The manual can be found in the directory
