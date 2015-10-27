@@ -58,12 +58,24 @@ In general, everything is controlled by executing commands which are either
 entered via the console command line or read from a configuration file. If
 .Nm
 is running as a background daemon, the console can be made accessible via
-.Xr telnet 1
+.Xr telnet 1 .
 Since commands may apply to a single link, the console prompt always shows the
 .Ar current bundle
 or the
 .Ar current link
-in that bundle. 
+in that bundle.
+On startup mpd run commands from the
+.Ar startup
+label of config file.
+After that, if
+.Ar configuration
+is supplied, mpd looks config file for a matching label and runs the
+corresponding commands.
+If
+.Ar configuration
+is not supplied, mpd looks for label named
+.Ar default .
+
 .Sh ON-LINE MANUAL
 Mpd is fully documented in the mpd manual, which is available in HTML.
 The manual can be found in the directory
@@ -156,6 +168,6 @@ Stored process ID and lock file
 .Xr ng_iface 4 ,
 .Xr ppp 8 .
 .Sh AUTHORS
-.An Archie Cobbs Aq archie@FreeBSD.org
-.An Alexander Motin Aq mav@FreeBSD.org
-.An based on ppp daemon written by Toshiharu OHNO Aq tony-o@iij.ad.jp
+.An Archie Cobbs Aq Mt archie@FreeBSD.org
+.An Alexander Motin Aq Mt mav@FreeBSD.org
+.An based on ppp daemon written by Toshiharu OHNO Aq Mt tony-o@iij.ad.jp
