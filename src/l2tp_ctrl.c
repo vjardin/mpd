@@ -1121,10 +1121,10 @@ ppp_l2tp_ctrl_setup_2(struct ppp_l2tp_ctrl *ctrl,
 
 		/* Make sure response was included */
 		if (ptrs->challengresp == NULL) {
-			Log(LOG_WARNING, ("L2TP: SCCRP lacks challenge response"));
+			Log(LOG_WARNING, ("L2TP: SCCRP/SCCCN lacks challenge response"));
 			ppp_l2tp_ctrl_close(ctrl,
 			    L2TP_RESULT_NOT_AUTH, 0, NULL);
-			return (0);
+			return (-1);
 		}
 
 		/* Calculate challenge response */
