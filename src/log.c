@@ -249,7 +249,7 @@ void
 vLogPrintf(const char *fmt, va_list args)
 {
     if (!SLIST_EMPTY(&gConsole.sessions)) {
-	char		buf[256];
+	char		buf[1000];
 	ConsoleSession	s;
 
         vsnprintf(buf, sizeof(buf), fmt, args);
