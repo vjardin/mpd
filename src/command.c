@@ -889,6 +889,11 @@ ShowVersion(Context ctx, int ac, char *av[], void *arg)
 #else
   Printf("	config fetch	: no\r\n");
 #endif
+#ifdef USE_BACKTRACE
+  Printf("	backtrace()	: yes\r\n");
+#else
+  Printf("	backtrace()	: no\r\n");
+#endif
 #ifdef	USE_NG_BPF
   Printf("	ng_bpf		: yes\r\n");
 #else
