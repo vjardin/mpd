@@ -458,6 +458,8 @@ IfaceUp(Bund b, int ready)
 	if (Enabled(&iface->options, IFACE_CONF_KEEP_TIMEOUT)) {
 	    session_timeout = b->params.session_timeout - \
 		(iface->last_up - b->last_up);
+	    Log(LG_IFACE2, ("[%s] IFACE: keep session-timeout at: %d seconds",
+		b->name, session_timeout));
 	} else {
 	    session_timeout = b->params.session_timeout;
 	}
@@ -471,7 +473,7 @@ IfaceUp(Bund b, int ready)
 	if (session_timeout > INT_MAX / 1100) {
 	    session_timeout = INT_MAX / 1100;
 	    Log(LG_ERR, ("[%s] IFACE: session-timeout limited to %d seconds", 
-    		b->name, session_timeout));
+		b->name, session_timeout));
 	}
 	TimerInit(&iface->sessionTimer, "IfaceSession",
     	    session_timeout * SECONDS, IfaceSessionTimeout, b);
