@@ -1446,16 +1446,16 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 	    if (!SLIST_EMPTY(&iface->routes) || !SLIST_EMPTY(&b->params.routes)) {
     		Printf("\tRoutes via peer :\r\n");
 		SLIST_FOREACH(r, &iface->routes, next)
-		    Printf("\t\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
+		    Printf("\t\t: %s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
 		SLIST_FOREACH(r, &b->params.routes, next)
-		    Printf("\t\t%s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
+		    Printf("\t\t: %s\r\n", u_rangetoa(&r->dest,buf,sizeof(buf)));
 	    }
 #ifdef USE_IPFW
 	    if (b->params.acl_pipe) {
 		Printf("\tIPFW pipes      :\r\n");
 		a = b->params.acl_pipe;
 		while (a) {
-		    Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+		    Printf("\t\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 		    a = a->next;
 		}
 	    }
@@ -1463,7 +1463,7 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		Printf("\tIPFW queues     :\r\n");
 		a = b->params.acl_queue;
 		while (a) {
-		    Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+		    Printf("\t\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 	    	    a = a->next;
 		}
 	    }
@@ -1472,9 +1472,9 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		a = b->params.acl_table;
 		while (a) {
 		    if (a->number != 0)
-			Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+			Printf("\t\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 		    else
-			Printf("\t\t(%d)\t'%s'\r\n", a->real_number, a->rule);
+			Printf("\t\t(%d)\t: '%s'\r\n", a->real_number, a->rule);
 		    a = a->next;
 		}
 	    }
@@ -1482,7 +1482,7 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		Printf("\tIPFW rules      :\r\n");
 		a = b->params.acl_rule;
 		while (a) {
-	    	    Printf("\t\t%d (%d)\t'%s'\r\n", a->number, a->real_number, a->rule);
+	    	    Printf("\t\t%d (%d)\t: '%s'\r\n", a->number, a->real_number, a->rule);
 	    	    a = a->next;
 		}
 	    }
@@ -1496,7 +1496,7 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		    if (a == NULL)
 			a = acl_filters[k];
 		    while (a) {
-			Printf("\t\t%d#%d\t'%s'\r\n", (k + 1), a->number, a->rule);
+			Printf("\t\t%d#%d\t: '%s'\r\n", (k + 1), a->number, a->rule);
 			a = a->next;
 		    }
 		}
@@ -1504,7 +1504,7 @@ ShowCustomer(Context ctx, int ac, char *av[], void *arg)
 		for (k = 0; k < 2; k++) {
 		    a = b->params.acl_limits[k];
 		    while (a) {
-			Printf("\t\t%s#%d%s%s\t'%s'\r\n", (k?"out":"in"), a->number,
+			Printf("\t\t%s#%d%s%s\t: '%s'\r\n", (k?"out":"in"), a->number,
 			    ((a->name[0])?"#":""), a->name, a->rule);
 			a = a->next;
 		    }
