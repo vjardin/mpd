@@ -16,6 +16,8 @@
 	  </item>
 	  <item> Added `set pppoe mac-format ...` command.
 	  </item>
+	  <item> Added `set pppoe max-payload ...` command from RFC 4638.
+	  </item>
 	  <item> Added 'set radius src-addr ...' command.
 	  </item>
 	  <item> Added `set iface keep-timeout` options.
