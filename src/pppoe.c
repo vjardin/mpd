@@ -409,16 +409,14 @@ PppoeOpen(Link l)
 	}
 	
 #ifdef NGM_PPPOE_SETMAXP_COOKIE
-	if (pe->max_payload > 0) {
-	    const uint16_t max_payload = pe->max_payload;
-	    Log(LG_PHYS, ("[%s] PPPoE: Set PPP-Max-Payload to '%d'",
-		l->name, max_payload));
-	    /* Tell the PPPoE node to set PPP-Max-Payload value. */
-	    if (NgSendMsg(pe->PIf->csock, path, NGM_PPPOE_COOKIE, NGM_PPPOE_SETMAXP,
-		&max_payload, sizeof(uint16_t)) < 0) {
-		    Perror("[%s] PPPoE can't set PPP-Max-Payload value", l->name);
-		    goto fail2;
-	    }
+	if (pe->max_payload > 0)
+	    Log(LG_PHYS, ("[%s] PPPoE: Set PPP-Max-Payload to '%u'",
+		l->name, pe->max_payload));
+	/* Tell the PPPoE node to set PPP-Max-Payload value (unset if 0). */
+	if (NgSendMsg(pe->PIf->csock, path, NGM_PPPOE_COOKIE, NGM_PPPOE_SETMAXP,
+	    &pe->max_payload, sizeof(uint16_t)) < 0) {
+		Perror("[%s] PPPoE can't set PPP-Max-Payload value", l->name);
+		goto fail2;
 	}
 #endif
 
