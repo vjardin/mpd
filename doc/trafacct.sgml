@@ -22,7 +22,7 @@
   so it must be done before first bundle get connected.
 
   <bf>Note:</bf> This feature is available only on FreeBSD 6.0-RELEASE
-  and newer. NetFlow v9 supprted only on FreeBSD 9.0-RELEASE and newer.
+  and newer. NetFlow v9 supported only on FreeBSD 9.0-RELEASE and newer.
 
 <descrip>
 
