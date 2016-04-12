@@ -43,6 +43,7 @@
   #define TY_IPADDRS		1
   #define TY_COMPPROTO		2
   #define TY_IPADDR		3
+  #define TY_MOBILEIP		4
   #define TY_PRIMARYDNS		129
   #define TY_PRIMARYNBNS	130
   #define TY_SECONDARYDNS	131
@@ -131,6 +132,7 @@
     { "COMPPROTO",	TY_COMPPROTO,		4, 4, TRUE },
 #endif
     { "IPADDR",		TY_IPADDR,		4, 4, TRUE },
+    { "MOBILEIP",	TY_MOBILEIP,		6, 6, FALSE },
     { "PRIDNS",		TY_PRIMARYDNS,		4, 4, TRUE },
     { "PRINBNS",	TY_PRIMARYNBNS,		4, 4, TRUE },
     { "SECDNS",		TY_SECONDARYDNS,	4, 4, TRUE },
