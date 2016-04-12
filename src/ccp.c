@@ -148,7 +148,7 @@
     { CCP_TY_V42BIS,		"V42BIS" },
     { CCP_TY_BSD,		"BSD" },
     { CCP_TY_LZS_DCP,		"LZS-DCP" },
-    { CCP_TY_DEFLATE24,		"DEFLATE24" },
+    { CCP_TY_MVRCA,		"MVRCA" },
     { CCP_TY_DCE,		"DCE" },
     { CCP_TY_DEFLATE,		"DEFLATE" },
     { CCP_TY_V44,		"V.44/LZJH" },

@@ -46,7 +46,7 @@
   #define CCP_TY_V42BIS		20	/* V.42bis compression */
   #define CCP_TY_BSD		21	/* BSD LZW Compress */
   #define CCP_TY_LZS_DCP	23	/* LZS-DCP Compression Protocol */
-  #define CCP_TY_DEFLATE24	24	/* Gzip "deflate" compression WRONG! */
+  #define CCP_TY_MVRCA		24	/* MVRCA (Magnalink) */
   #define CCP_TY_DCE		25	/* Data Compression in Data Circuit-Terminating Equipment */
   #define CCP_TY_DEFLATE	26	/* Gzip "deflate" compression */
   #define CCP_TY_V44		27	/* V.44/LZJH Compression Protocol */
