@@ -15,6 +15,7 @@
 
 #include <paths.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_pppoe.h>
 #include <netgraph/ng_ether.h>
@@ -897,12 +898,19 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 	strlcpy(iface, path, sizeof(iface));
 	if (iface[strlen(iface) - 1] == ':')
 		iface[strlen(iface) - 1] = '\0';
+#if 0
 	if (ExecCmdNosh(LG_PHYS2, iface, "%s %s up", _PATH_IFCONFIG, iface) != 0) {
 		Log(LG_ERR, ("PPPoE: can't bring up interface %s",
 		    iface));
 		return (0);
 	}
-
+#else
+	if (IfaceSetFlag(iface, IFF_UP) != 0) {
+		Log(LG_ERR, ("PPPoE: can't bring up interface %s",
+		    iface));
+		return (0);
+	}
+#endif
 	/* Create a new netgraph node */
 	if (NgMkSockNode(NULL, &PIf->csock, &PIf->dsock) < 0) {
 		Perror("[%s] PPPoE: can't create ctrl socket", iface);

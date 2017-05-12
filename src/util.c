@@ -1505,3 +1505,39 @@ ether_ntoa_r(const struct ether_addr *n, char *a)
         return (a);
 }
 #endif
+
+int
+IfaceSetFlag(const char *ifname, int value)
+{
+	struct ifreq		my_ifr;
+	int s;
+	int flags;
+
+	/* Get socket */
+	if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	    Perror("Can't get socket to set flags");
+	    return(-1);
+	}
+
+	memset(&my_ifr, 0, sizeof(my_ifr));
+	(void) strlcpy(my_ifr.ifr_name, ifname, sizeof(my_ifr.ifr_name));
+
+ 	if (ioctl(s, SIOCGIFFLAGS, (caddr_t)&my_ifr) < 0) {
+ 		Perror("ioctl (SIOCGIFFLAGS)");
+ 		return (-1);
+ 	}
+	flags = (my_ifr.ifr_flags & 0xffff) | (my_ifr.ifr_flagshigh << 16);
+
+	if (value < 0) {
+		value = -value;
+		flags &= ~value;
+	} else
+		flags |= value;
+	my_ifr.ifr_flags = flags & 0xffff;
+	my_ifr.ifr_flagshigh = flags >> 16;
+	if (ioctl(s, SIOCSIFFLAGS, (caddr_t)&my_ifr) < 0) {
+		Perror(ifname);
+		return (-1);
+	}
+	return (0);
+}
