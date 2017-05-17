@@ -587,7 +587,7 @@ L2tpOpen(Link l)
 		goto fail;
 	}
 
-	if (!u_addrempty(&tun->self_addr)) {
+	if (!u_addrempty(&tun->self_addr) || tun->self_port != 0) {
 	    /* Bind socket to a new port */
 	    u_addrtosockaddr(&tun->self_addr,tun->self_port,&sas);
 	    if (NgSendMsg(csock, namebuf, NGM_KSOCKET_COOKIE,
