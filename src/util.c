@@ -1514,7 +1514,7 @@ IfaceSetFlag(const char *ifname, int value)
 	int flags;
 
 	/* Get socket */
-	if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((s = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0) {
 	    Perror("Can't get socket to set flags");
 	    return(-1);
 	}
@@ -1524,6 +1524,7 @@ IfaceSetFlag(const char *ifname, int value)
 
  	if (ioctl(s, SIOCGIFFLAGS, (caddr_t)&my_ifr) < 0) {
  		Perror("ioctl (SIOCGIFFLAGS)");
+ 		close(s);
  		return (-1);
  	}
 	flags = (my_ifr.ifr_flags & 0xffff) | (my_ifr.ifr_flagshigh << 16);
@@ -1536,8 +1537,10 @@ IfaceSetFlag(const char *ifname, int value)
 	my_ifr.ifr_flags = flags & 0xffff;
 	my_ifr.ifr_flagshigh = flags >> 16;
 	if (ioctl(s, SIOCSIFFLAGS, (caddr_t)&my_ifr) < 0) {
-		Perror(ifname);
+		Perror("ioctl (SIOCSIFFLAGS)");
+		close(s);
 		return (-1);
 	}
+	close(s);
 	return (0);
 }

@@ -1811,7 +1811,7 @@ IfaceSetMTU(Bund b, int mtu)
     int			s;
 
     /* Get socket */
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((s = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to set MTU", b->name);
 	return;
     }
@@ -1856,7 +1856,7 @@ IfaceChangeFlags(Bund b, int clear, int set)
     Log(LG_IFACE2, ("[%s] IFACE: Change interface %s flags: -%d +%d",
 	b->name, b->iface.ifname, clear, set));
 
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((s = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to change interface flags", b->name);
 	return;
     }
@@ -3672,7 +3672,7 @@ IfaceSetName(Bund b, const char * ifname)
 	return(0);
 
     /* Get socket */
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((s = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to set name", b->name);
 	return(-1);
     }
@@ -3745,7 +3745,7 @@ IfaceSetDescr(Bund b, const char * template)
      */
     if (mib[0] < 0 && sysctlnametomib("net.ifdescr_maxlen", mib, &miblen) < 0) {
       mib[0] = 0;
-      Perror("[%s] IFACE: sysctl net.ifdescr_maxlen  failed", b->name);
+      Perror("[%s] IFACE: sysctl net.ifdescr_maxlen failed", b->name);
     }
 
     /*
@@ -3924,7 +3924,7 @@ IfaceSetDescr(Bund b, const char * template)
 	return(0);		/* we have not set system interface name yet */
 
     /* Get socket */
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((s = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to set description for %s",
 	        b->name, ifname);
 	return(-1);
@@ -3977,7 +3977,7 @@ IfaceAddGroup(Bund b, const char * ifgroup)
     }
 
     /* Get socket */
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((s = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to add group", b->name);
 	return(-1);
     }
@@ -4012,7 +4012,7 @@ IfaceDelGroup(Bund b, const char * ifgroup)
     int	s;
 
     /* Get socket */
-    if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((s = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0) {
 	Perror("[%s] IFACE: Can't get socket to delete from group", b->name);
 	return(-1);
     }
