@@ -175,6 +175,14 @@ ConsoleClose(Console c)
   return 0;
 }
 
+void
+ConsoleCancelCleanup(void *rwlock)
+{
+  pthread_rwlock_t p = (pthread_rwlock_t)rwlock;
+
+  RWLOCK_UNLOCK(p);
+}
+
 /*
  * ConsoleStat()
  */
@@ -192,13 +200,14 @@ ConsoleStat(Context ctx, int ac, char *av[], void *arg)
   Printf("\tIP-Address    : %s\r\n", u_addrtoa(&c->addr,addrstr,sizeof(addrstr)));
   Printf("\tPort          : %d\r\n", c->port);
 
+  pthread_cleanup_push(ConsoleCancelCleanup, c->lock);
   RWLOCK_RDLOCK(c->lock);
   Printf("Active sessions:\r\n");
   SLIST_FOREACH(s, &c->sessions, next) {
     Printf("\tUsername: %s\tFrom: %s\r\n",
 	s->user.username, u_addrtoa(&s->peer_addr,addrstr,sizeof(addrstr)));
   }
-  RWLOCK_UNLOCK(c->lock);
+  pthread_cleanup_pop(1);
 
   Printf("Global options:\r\n");
   OptStat(ctx, &c->options, gConfList);
@@ -905,13 +914,14 @@ UserStat(Context ctx, int ac, char *av[], void *arg)
     ConsoleUser		u;
 
     Printf("Configured users:\r\n");
+    pthread_cleanup_push(ConsoleCancelCleanup, gUsersLock);
     RWLOCK_RDLOCK(gUsersLock);
     ghash_walk_init(gUsers, &walk);
     while ((u = ghash_walk_next(gUsers, &walk)) !=  NULL) {
 	Printf("\tUsername: %-15s Priv: %s\r\n", u->username,
 	    ((u->priv == 2)?"admin":((u->priv == 1)?"operator":"user")));
     }
-    RWLOCK_UNLOCK(gUsersLock);
+    pthread_cleanup_pop(1);
 
     return 0;
 }

@@ -256,12 +256,13 @@ vLogPrintf(const char *fmt, va_list args)
 #ifdef SYSLOG_FACILITY
         syslog(LOG_INFO, "%s", buf);
 #endif
+	pthread_cleanup_push(ConsoleCancelCleanup, gConsole.lock);
 	RWLOCK_RDLOCK(gConsole.lock);
 	SLIST_FOREACH(s, &gConsole.sessions, next) {
 	    if (Enabled(&s->options, CONSOLE_LOGGING))
 		s->write(s, "%s\r\n", buf);
 	}
-	RWLOCK_UNLOCK(gConsole.lock);
+	pthread_cleanup_pop(1);
 #ifdef SYSLOG_FACILITY
     } else {
         vsyslog(LOG_INFO, fmt, args);
