@@ -11,7 +11,8 @@
 	<item> Bugfixes:
 	<itemize>
 	  <item> Properly clean console mutex lock in case of thread
-	    cancellation to prevent deadlock.
+	    cancellation to prevent deadlock
+	  </item>
 	</itemize>
 	</item>
     </itemize>
