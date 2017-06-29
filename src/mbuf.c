@@ -55,6 +55,20 @@ Mdup(const char *type, const void *src, size_t size)
 }
 
 void *
+Mdup2(const char *type, const void *src, size_t oldsize, size_t newsize)
+{
+    const char	**memory;
+    if ((memory = MALLOC(type, sizeof(char *) + newsize)) == NULL) {
+	Perror("Mdup2: malloc");
+	DoExit(EX_ERRDEAD);
+    }
+
+    memory[0] = type;
+    memcpy(memory + 1, src, oldsize < newsize ? oldsize : newsize);
+    return(memory + 1);
+}
+
+void *
 Mstrdup(const char *type, const void *src)
 {
     return (Mdup(type, src, strlen(src) + 1));

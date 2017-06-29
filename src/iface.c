@@ -602,18 +602,18 @@ IfaceUp(Bund b, int ready)
   while (acls != NULL) {
     /* allow both %aX and `peer_addr` macros */
     buf = IfaceParseACL(acls->rule, iface);
-    strcpy(acls->rule, buf);
+    acl = Mdup2(MB_IPFW, acls, sizeof(struct acl), sizeof(struct acl) + strlen(buf));
+    strcpy(acl->rule, buf);
     Freee(buf);
-    acl = Mdup(MB_IPFW, acls, sizeof(struct acl) + strlen(acls->rule));
     acl->next = iface->tables;
     iface->tables = acl;
-    if (strncmp(acls->rule, "peer_addr", 9) == 0) {
+    if (strncmp(acl->rule, "peer_addr", 9) == 0) {
 	char hisaddr[20];
 	ExecCmd(LG_IFACE2, b->name, "%s table %d add %s",
-	    PATH_IPFW, acls->real_number,
+	    PATH_IPFW, acl->real_number,
 	    u_addrtoa(&iface->peer_addr, hisaddr, sizeof(hisaddr)));
     } else {
-	ExecCmd(LG_IFACE2, b->name, "%s table %d add %s", PATH_IPFW, acls->real_number, acls->rule);
+	ExecCmd(LG_IFACE2, b->name, "%s table %d add %s", PATH_IPFW, acl->real_number, acl->rule);
     }
     acls = acls->next;
   };

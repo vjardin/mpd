@@ -11,7 +11,15 @@
 	<item> Bugfixes:
 	<itemize>
 	  <item> Properly clean console mutex lock in case of thread
-	    cancellation to prevent deadlock
+	    cancellation to prevent deadlock.
+	  </item>
+	</itemize>
+	<itemize>
+	  <item> Fix buffer overflow introduced in version 5.8:
+	    processing of template %aX in a RADIUS authentication response
+	    might lead to unexpected termination of the mpd5 process.
+	    Installations not using RADIUS or not using %aX templates
+	    in RADIUS attributes were not affected.
 	  </item>
 	</itemize>
 	</item>

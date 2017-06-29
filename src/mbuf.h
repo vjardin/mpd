@@ -73,6 +73,7 @@
 
   extern void	*Malloc(const char *type, size_t size) __malloc_like;
   extern void	*Mdup(const char *type, const void *src, size_t size) __malloc_like;
+  extern void	*Mdup2(const char *type, const void *src, size_t oldsize, size_t newsize) __malloc_like;
   extern void	*Mstrdup(const char *type, const void *src) __malloc_like;
   extern void	Freee(void *ptr);
 
