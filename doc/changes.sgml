@@ -8,6 +8,14 @@
   <p>
     Changes since version 5.8:
     <itemize>
+	<item> Changes:
+	<itemize>
+	  <item> Improve compatibility with new implementation of ipfw tables
+	    in the FreeBSD 11 when ipfw table delete command takes
+	    list of addresses.
+	  </item>
+	</itemize>
+	</item>
 	<item> Bugfixes:
 	<itemize>
 	  <item> Properly clean console mutex lock in case of thread

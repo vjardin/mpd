@@ -141,6 +141,7 @@
   static int	IfaceAllocACL (struct acl_pool ***ap, int start, char * ifname, int number);
   static int	IfaceFindACL (struct acl_pool *ap, char * ifname, int number);
   static char *	IfaceParseACL (char * src, IfaceState iface);
+  static char *	IfaceFixAclForDelete(char *r, char *buf, size_t len);
 #endif
 
   static int	IfaceSetName(Bund b, const char * ifname);
@@ -697,8 +698,10 @@ IfaceDown(Bund b)
         PATH_IPFW, acl->real_number,
         u_addrtoa(&iface->peer_addr, hisaddr, sizeof(hisaddr)));
     } else {
+      char buf[ACL_LEN];
       ExecCmd(LG_IFACE2, b->name, "%s table %d delete %s",
-        PATH_IPFW, acl->real_number, acl->rule);
+        PATH_IPFW, acl->real_number,
+        IfaceFixAclForDelete(acl->rule, buf, sizeof(buf)));
     }
     aclnext = acl->next;
     Freee(acl);
@@ -945,6 +948,60 @@ IfaceParseACL (char * src, IfaceState iface)
     } while (end != NULL);
     Freee(buf1);
     return(buf);
+}
+
+/*
+ * IfaceFixAclForDelete()
+ *
+ * Removes values from ipfw 'table-key value [...]' expression r, if any.
+ * Returns buf pointer for modified expression or original r pointer
+ * if no modifications were performed when no values were found or
+ * buf found too short.
+ *
+ * len is size of buf. Strings are zero-terminated.
+ * r and buf must point to non-overlapping memory areas.
+ */
+
+static char*
+IfaceFixAclForDelete(char *r, char *buf, size_t len)
+{
+  static const char sep[] = " \t";
+  char *limit, *s;
+  int  i, state = 0; 
+
+/*
+ * Possible state values:
+ *
+ * -1: skip value (otherwise copy);
+ *  0: first iteration, do copy;
+ *  1: not first iteration, do copy.
+*/
+
+  s = buf;
+  limit = buf + len;
+
+  for (r += strspn(r, sep);		/* Skip leading spaces. 	    */
+       *r;				/* Check for end of string. 	    */
+       r += i, r += strspn(r, sep))	/* Advance and skip spaces again.   */
+  {
+    i = strcspn(r, sep);		/* Find separator or end of string. */
+    if (state == 0 && r[i] == '\0')	/* No separators in the rule?	    */
+      return r;
+    if (state < 0) {			/* Skip value.			    */
+      state = 1;
+      continue;
+    }
+    if (limit - s < i + 1 + state)	/* Check space.			    */
+      return r;
+    if (state != 0)			/* Insert separator.		    */
+      *s++ = ' ';
+    memcpy(s, r, i);			/* Copy IP address from the rule.   */
+    s += i;
+    state = -1;
+  }
+  *s = '\0';
+
+  return buf;
 }
 #endif /* USE_IPFW */
 
