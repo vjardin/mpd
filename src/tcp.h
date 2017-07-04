@@ -15,9 +15,7 @@
  * VARIABLES
  */
 
-  extern const struct cmdtab	TcpSetCmds[];
-  extern const struct phystype	gTcpPhysType;
+extern const struct cmdtab TcpSetCmds[];
+extern const struct phystype gTcpPhysType;
 
 #endif
-
-

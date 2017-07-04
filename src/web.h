@@ -26,38 +26,37 @@
  * DEFINITIONS
  */
 
-  /* Configuration options */
-  enum {
-    WEB_AUTH	/* enable auth */
-  };
+ /* Configuration options */
+enum {
+	WEB_AUTH			/* enable auth */
+};
 
-  struct web {
-    struct optinfo	options;
-    struct u_addr 	addr;
-    in_port_t		port;
-    struct http_server *srv;
-    struct http_servlet srvlet;
-    EventRef		event;		/* connect-event */
-  };
+struct web {
+	struct optinfo options;
+	struct u_addr addr;
+	in_port_t port;
+	struct http_server *srv;
+	struct http_servlet srvlet;
+	EventRef event;			/* connect-event */
+};
 
-  typedef struct web *Web;
+typedef struct web *Web;
 
 /*
  * VARIABLES
  */
 
-  extern const struct cmdtab WebSetCmds[];
+extern const struct cmdtab WebSetCmds[];
 
 
 /*
  * FUNCTIONS
  */
 
-  extern int	WebInit(Web c);
-  extern int	WebOpen(Web c);
-  extern int	WebClose(Web c);
-  extern int	WebStat(Context ctx, int ac, char *av[], void *arg);
+extern int WebInit(Web c);
+extern int WebOpen(Web c);
+extern int WebClose(Web c);
+extern int WebStat(Context ctx, int ac, char *av[], void *arg);
 
 
 #endif
-

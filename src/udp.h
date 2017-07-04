@@ -15,9 +15,7 @@
  * VARIABLES
  */
 
-  extern const struct cmdtab	UdpSetCmds[];
-  extern const struct phystype	gUdpPhysType;
+extern const struct cmdtab UdpSetCmds[];
+extern const struct phystype gUdpPhysType;
 
 #endif
-
-
