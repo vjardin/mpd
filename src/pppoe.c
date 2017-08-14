@@ -1035,7 +1035,8 @@ CreatePppoeNode(struct PppoeIf *PIf, const char *path, const char *hook)
 		snprintf(path2, sizeof(path2), "%s%s", path, hook);
 		/* Get pppoe node ID */
 		if ((PIf->node_id = NgGetNodeID(PIf->csock, path2)) == 0) {
-			Perror("[%s] Cannot get pppoe node id", iface);
+			Perror("[%s] Cannot get %s node id", iface,
+			    NG_PPPOE_NODE_TYPE);
 			close(PIf->csock);
 			close(PIf->dsock);
 			return (0);
