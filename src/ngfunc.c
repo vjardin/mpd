@@ -978,7 +978,8 @@ NgGetNodeID(int csock, const char *path)
 	    /* Create a netgraph socket node */
 	    snprintf(name, sizeof(name), "mpd%d-stats", gPid);
 	    if (NgMkSockNode(name, &gNgStatSock, NULL) < 0) {
-    		Perror("NgFuncSendQuery: can't create %s node", NG_SOCKET_NODE_TYPE);
+    		Perror("NgMkSockNode: can't create %s node",
+    		     NG_SOCKET_NODE_TYPE);
     		return(-1);
 	    }
 	    (void) fcntl(gNgStatSock, F_SETFD, 1);
@@ -987,11 +988,15 @@ NgGetNodeID(int csock, const char *path)
     }
 
     if (NgSendMsg(csock, path,
-      NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0)
-        return (0);
-    if (NgRecvMsg(csock, &u.reply, sizeof(u), NULL) < 0)
+      NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0) {
+	Perror("NgSendMsg to %s", path);
 	return (0);
-    
+    }
+    if (NgRecvMsg(csock, &u.reply, sizeof(u), NULL) < 0) {
+	Perror("NgRecvMsg");
+	return (0);
+    }
+
     return (ni->id);
 }
 
