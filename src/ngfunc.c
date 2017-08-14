@@ -993,7 +993,7 @@ NgGetNodeID(int csock, const char *path)
 	return (0);
     }
     if (NgRecvMsg(csock, &u.reply, sizeof(u), NULL) < 0) {
-	Perror("NgRecvMsg");
+	Perror("NgRecvMsg from %s", path);
 	return (0);
     }
 
