@@ -980,7 +980,7 @@ NgGetNodeID(int csock, const char *path)
 	    if (NgMkSockNode(name, &gNgStatSock, NULL) < 0) {
     		Perror("NgMkSockNode: can't create %s node",
     		     NG_SOCKET_NODE_TYPE);
-    		return(-1);
+    		return (0);
 	    }
 	    (void) fcntl(gNgStatSock, F_SETFD, 1);
 	}
