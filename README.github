@@ -1,0 +1,23 @@
+# from https://gist.github.com/tobiasvl/4dbc7eaa4a25d398125f
+#
+git clone https://github.com/akavel/cvsclone.git
+cd cvsclone/
+make all
+cd ..
+export DESTDIR=$(pwd)/destdir
+export GITDIR=$(pwd)/gitdir
+export SRCDIR=$(pwd)/srcdir
+mkdir -p $SRCDIR 
+cd $SRCDIR
+../cvsclone/cvsclone -d :pserver:anonymous@mpd.cvs.sourceforge.net:/cvsroot/mpd mpd
+
+# Function for syncing file out of repository
+synccvs() {   mkdir -p `dirname ${DESTDIR}/${1}`   if test -d ${SRCDIR}/${1}; then     rsync -avz ${SRCDIR}/${1}/ ${DESTDIR}/${1};     return;   fi   if test -e ${SRCDIR}/${1},v; then     rsync -avz ${SRCDIR}/${1},v ${DESTDIR}/${1},v;     return;   fi   if test -e `dirname ${SRCDIR}/${1}`/Attic/`basename ${SRCDIR}/${1}`,v; then     mkdir -p `dirname ${DESTDIR}/${1}`/Attic;     rsync -avz `dirname ${SRCDIR}/${1}`/Attic/`basename ${SRCDIR}/${1}`,v       `dirname ${DESTDIR}/${1}`/Attic/`basename ${DESTDIR}/${1}`,v;     return;   fi;   echo "Path doesn't exist! ${1}";   exit 1; }
+
+synccvs 
+cvs -d ${DESTDIR} init
+# sudo apt-get install git-cvs
+git cvsimport -d ${DESTDIR} -C ${GITDIR} -p -z,120 -o master -k mpd
+# git remote rm origin
+git remote add origin https://github.com/vjardin6WIND/mpd.git
+git push -u origin master
