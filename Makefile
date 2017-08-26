@@ -5,11 +5,10 @@ VERSION!=	cat src/Makefile | grep ^VERSION | awk '{ print $$2 }'
 DISTNAME=	mpd-${VERSION}
 TARBALL=	${DISTNAME}.tar.gz
 PORTBALL=	port.tgz
-CVSROOT?=	:pserver:anonymous@mpd.cvs.sourceforge.net:/cvsroot/mpd
 
 all:		${TARBALL} ${PORTBALL}
 
-${TARBALL}:	.export-done
+${TARBALL}:	._export-done
 	cd mpd && ${MAKE} .${TARBALL}
 	cp mpd/${TARBALL} ./${TARBALL}
 
@@ -17,19 +16,20 @@ ${TARBALL}:	.export-done
 	rm -f ${TARBALL}
 	tar cvf - ${DISTNAME} | gzip --best > ${TARBALL}
 
-${PORTBALL}:	.export-done
+${PORTBALL}:	._export-done
 	cd mpd && ${MAKE} .${PORTBALL}
 	cp mpd/${PORTBALL} ./${PORTBALL}
 
 .${PORTBALL}:	.dist-done
 	cd port && ${MAKE} port
 
-.export-done:
+._export-done:
 	@if [ -z ${TAG} ]; then						\
-		echo ERROR: Please specify TAG in environment;		\
+		echo ERROR: Please specify TAG=HEAD? in environment;	\
 		false;							\
 	fi
-	cvs -d${CVSROOT} export -r ${TAG} mpd
+	git archive --format=tar.gz --prefix=mpd/ ${TAG} >mpd-${TAG}.tgz
+	tar xvzf mpd-${TAG}.tgz
 	touch ${.TARGET}
 
 .dist-done:	.doc-done
@@ -58,7 +58,7 @@ send:	${TARBALL}
 
 clean cleandir:
 	rm -rf mpd
-	rm -f .export-done
+	rm -f ._export-done
 	cd doc && ${MAKE} clean
 	rm -f .doc-done
 	rm -rf ${DISTNAME} ${TARBALL} ${PORTBALL}
