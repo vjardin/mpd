@@ -21,3 +21,8 @@ git cvsimport -d ${DESTDIR} -C ${GITDIR} -p -z,120 -o master -k mpd
 # git remote rm origin
 git remote add origin https://github.com/vjardin6WIND/mpd.git
 git push -u origin master
+
+# compile
+cd src
+sh configure
+make
