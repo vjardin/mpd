@@ -6,7 +6,7 @@ DISTNAME=	mpd-${VERSION}
 TARBALL=	${DISTNAME}.tar.gz
 PORTBALL=	port.tgz
 
-all:		${TARBALL} ${PORTBALL}
+all:		${TARBALL} ${PORTBALL} testport
 
 ${TARBALL}:	._export-done
 	cd mpd && ${MAKE} .${TARBALL}
@@ -53,8 +53,10 @@ ${PORTBALL}:	._export-done
 
 regen:		clean ${TARBALL}
 
-send:	${TARBALL}
-		tar cvf - ${.ALLSRC} | blow gatekeeper
+testport:	${TARBALL} ${PORTBALL}
+	sudo cp ${TARBALL} /usr/ports/distfiles/mpd5/
+	mkdir -p ._${PORTBALL}
+	cd ._${PORTBALL} && tar xvzf ../${PORTBALL} && make
 
 clean cleandir:
 	rm -rf mpd
@@ -62,6 +64,7 @@ clean cleandir:
 	cd doc && ${MAKE} clean
 	rm -f .doc-done
 	rm -rf ${DISTNAME} ${TARBALL} ${PORTBALL}
+	rm -rf ._${PORTBALL}
 	rm -f .dist-done
 	cd src && ${MAKE} cleandir
 	cd port && ${MAKE} cleandir
