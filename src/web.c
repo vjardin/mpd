@@ -693,7 +693,7 @@ WebRunCmd(FILE *f, const char *query, int priv)
     fprintf(f, "<p>\n<a href=\"/\">Back</a>\n</p>\n");
 
     if (argc == 0) {
-	fprintf(f, "<p>No command cpecified!</p>\n");
+	fprintf(f, "<p>No command specified!</p>\n");
 	goto done;
     }
 
